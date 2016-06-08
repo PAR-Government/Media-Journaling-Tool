@@ -1,9 +1,9 @@
 from Tkinter import *
 import re
 
-# need to pull this from a file
+# modified from https://gist.github.com/uroshekic/tkinter-autocomplete-listbox.py
 
-class AutocompleteEntry(Entry):
+class AutocompleteEntryWithList(Entry):
 
     def __init__(self,master, autocompleteList, *args, **kwargs):
 

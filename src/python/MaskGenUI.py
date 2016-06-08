@@ -5,10 +5,13 @@ from PIL import Image, ImageTk
 import cv2
 import numpy as np
 import os
-from autocomplete import AutocompleteEntry 
+from autocomplete import AutocompleteEntryWithList 
+from autocomplete_it import AutocompleteEntryInText
 import sys
+import argparse
+import mask_operation
 
-from scenario_model import Description, Scenario
+from scenario_model import Modification, Scenario
 
 def alignShape(im,shape):
    z = np.zeros(shape)
@@ -41,7 +44,7 @@ class FileFinder:
 
 class ScenarioModel:
     items = list()
-    descriptions = list()
+    modifications = list()
     step = 0
     filefinder = None
     startImg = None
@@ -54,7 +57,7 @@ class ScenarioModel:
        self.step = 0
        self.items = list()
        self.items.append(name)
-       self.descriptions = list()
+       self.modifications = list()
        self.filefinder.setFile(name)
        self.startImg = None
        self.nextImg = None
@@ -65,13 +68,13 @@ class ScenarioModel:
     def nextImageName(self):
       return self.items[self.step]
 
-    def nextDescription(self):
-      return self.descriptions[max(self.step - 1,0)]
+    def nextModification(self):
+      return self.modifications[max(self.step - 1,0)]
 
     def createAndSaveScenario(self):
         scenario= Scenario(os.path.split(self.filefinder.file)[1], \
                         os.path.split(self.nextImageName())[1], \
-                        self.descriptions)
+                        self.modifications)
         with open(self.filefinder.composeFileName('.json'), 'w') as f:
           f.write(scenario.toJson())
         return scenario
@@ -83,9 +86,20 @@ class ScenarioModel:
         gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
         ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
         nin = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
-        self.descriptions.append(Description('change',os.path.split(nin)[1]))
         cv2.imwrite(nin,thresh1)
         return Image.fromarray(thresh1)
+
+    def revertToPriorStep(self):
+       print "revert"
+       self.deleteMask()
+       self.step-=1
+       self.modifications = self.modifications[0:len(self.modifications)-1]
+       self.items=self.items[0:len(self.items)-1]
+
+    def deleteMask(self):
+       f = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
+       if (os.path.exists(f)):
+         os.remove(f)
 
     def isMask(self, name):
       return name.rfind('_mask_')>0
@@ -102,40 +116,62 @@ class ScenarioModel:
 
     def scanNextImage(self):
       suffix =   self.startImageName()[self.startImageName().rfind('.'):]
+      # Want the algorithm to support overwriting the same 
+      # output file. Therefore, we need to retain the prior
+      # and not reread it from the file the may have been overwritten
       self.startImg = self.nextImg
       self.nextImg = None
 
       def filterF (file):
          return file not in self.items and not(self.isMask(file)) and file.endswith(suffix)
-
+      
+      # if the user is writing to the same output file
+      # in a lock step process with the changes
+      # then nfile remains the same name is changed file
+      nfile = self.items[self.step]
       for file in self.filefinder.findFiles(filterF):
-         self.items.append(file)
-         self.step+=1
-         return file
-      return self.items[self.step]
+         nfile = file
+         break
+
+      maskfile = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
+      self.modifications.append(Modification('change',os.path.split(maskfile)[1]))
+      self.items.append(nfile)
+      self.step+=1
+      return nfile
     
-ops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
+defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
 
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    description = None
+   model = None
+   justExit = False
+   myops = []
 
-   def __init__(self, parent, description):
-      self.description = description
+   def __init__(self, parent, model,myops):
+      self.description = model.nextModification()
+      self.model = model
+      self.myops = myops
       tkSimpleDialog.Dialog.__init__(self, parent, "Operation Description")
-
+     
    def body(self, master):
       Label(master, text="Operation:").grid(row=0)
       Label(master, text="Description:").grid(row=1)
 
-      self.e1 = AutocompleteEntry(master,ops)
+      self.e1 = AutocompleteEntryInText(master,self.myops)
       self.e2 = Entry(master)
 
       self.e1.grid(row=0, column=1)
       self.e2.grid(row=1, column=1)
       return self.e1 # initial focus
 
+   def cancel(self):
+       if not self.justExit:
+          self.model.revertToPriorStep()
+       tkSimpleDialog.Dialog.cancel(self)
+
    def apply(self):
+       self.justExit = True
        first = self.e1.get()
        second = self.e2.get()
        self.description.operationName = first
@@ -158,6 +194,7 @@ class MakeGenUI(Frame):
     l2 = None
     l3 = None
     processmenu = None
+    myops = []
 
     def printit(self):
         print "hi"
@@ -195,9 +232,8 @@ class MakeGenUI(Frame):
         self.img3c.itemconfig(self.img3oc, image=self.img3)
         self.l1.config(text=os.path.split(self.scModel.startImageName())[1])
         self.l2.config(text=os.path.split(self.scModel.nextImageName())[1])
-        self.l3.config(text=self.scModel.nextDescription().maskFileName)
-        d = DescriptionCaptureDialog(self.master, self.scModel.nextDescription())
-        print self.scModel.nextDescription().operationName
+        self.l3.config(text=self.scModel.nextModification().maskFileName)
+        d = DescriptionCaptureDialog(self.master, self.scModel, self.myops)
         
     def gquit(self, event):
         self.quit()
@@ -263,8 +299,9 @@ class MakeGenUI(Frame):
         self.l3 = Label(img3f, text="")
         self.l3.grid(row=1,column=2)
 
-    def __init__(self, filefinder,master=None):
+    def __init__(self, filefinder,master=None, ops=[]):
         Frame.__init__(self, master)
+        self.myops = ops
         self.createWidgets()
         self.filefinder = filefinder
         self.scModel = ScenarioModel(filefinder)
@@ -272,11 +309,21 @@ class MakeGenUI(Frame):
 def main(argv=None):
    if (argv is None):
        argv = sys.argv
+
+   parser = argparse.ArgumentParser(description='')
+   parser.add_argument('imagedir', help='image directory')
+   parser.add_argument('--ops', help="operations list file")
    imgdir = '.'
-   if (len(argv)>0 and os.path.isdir(argv[1])):
-      imgdir = argv[1]
+   argv = argv[1:]
+   args = parser.parse_args(argv)
+   if args.imagedir is not None:
+       imgdir = args.imagedir
+   if args.ops is not None:
+       ops = mask_operation.loadOperations(args.ops)
+   else:
+       ops = defaultops
    root= Tk()
-   gui = MakeGenUI(filefinder=FileFinder(imgdir),master=root)
+   gui = MakeGenUI(filefinder=FileFinder(imgdir),master=root,ops=ops)
    gui.mainloop()
 
 if __name__ == "__main__":
