@@ -100,6 +100,15 @@ class ScenarioModel:
         cv2.imwrite(nin,thresh1)
         return Image.fromarray(thresh1)
 
+    def revertToStep(self, maskid):
+       fpos = [i for i in range(len(self.modifications)) if self.modifications[i].maskFileName==maskid]
+       if (len(fpos)> 0):
+         pos = fpos[0]+1
+         self.modifications = self.modifications[0:pos]
+         self.items = self.items[0:pos+1]
+         self.images = self.images[0:pos+1]
+         self.step=pos
+
     def revertToPriorStep(self):
        print "revert"
        self.deleteMask()
@@ -236,6 +245,10 @@ class MakeGenUI(Frame):
     def next(self):
         self.processmenu.entryconfig(1,state='normal')
         self.scModel.scanNextImage()
+        self.drawState()
+        d = DescriptionCaptureDialog(self, self.scModel, self.myops)
+
+    def drawState(self):
         self.img1= ImageTk.PhotoImage(self.scModel.startImage())
         self.img2= ImageTk.PhotoImage(self.scModel.nextImage())
         self.img3= ImageTk.PhotoImage(self.scModel.createMask())
@@ -245,7 +258,6 @@ class MakeGenUI(Frame):
         self.l1.config(text=os.path.split(self.scModel.startImageName())[1])
         self.l2.config(text=os.path.split(self.scModel.nextImageName())[1])
         self.l3.config(text=self.scModel.nextModification().maskFileName)
-        d = DescriptionCaptureDialog(self, self.scModel, self.myops)
         
     def gquit(self, event):
         self.quit()
@@ -262,7 +274,12 @@ class MakeGenUI(Frame):
           self.stop()
 
     def revert(self):
-       print self.history.focus()
+        maskid = self.history.focus()
+        if (len(maskid)>0):
+          self.history.clearData()
+          self.scModel.revertToStep(maskid)
+          self.drawState()
+          self.history.loadData(self.scModel.modifications)
 
     def createWidgets(self):
         self.master.title("Mask Generator")
@@ -323,7 +340,7 @@ class MakeGenUI(Frame):
         
 
     def popup(self, event):
-       menu.post(event.x_root, event.y_root)
+       self.itemmenu.post(event.x_root, event.y_root)
 
     def __init__(self, filefinder,master=None, ops=[]):
         Frame.__init__(self, master)

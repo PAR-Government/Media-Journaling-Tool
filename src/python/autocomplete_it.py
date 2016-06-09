@@ -14,6 +14,20 @@ class AutocompleteEntryInText(Entry):
         self.focus()
         self.set_completion_list(autocompleteList)
 
+    def selection(self,event):
+        self.insert(0,self.listbox.get(ACTIVE))
+        self.delete(0, Tkinter.END)
+        self.listbox.destroy()
+        self.icursor(END)
+
+    def popup(self,event):
+        self.listbox = Listbox(width=self["width"], height=len(self._completion_list))
+        self.listbox.bind("<Button-1>", self.selection)
+        self.listbox.bind("<Right>", self.selection)
+        self.listbox.place(x=self.winfo_x(), y=self.winfo_y() + self.winfo_height())
+        for w in self._completion_list:
+          self.listbox.insert(END,w)
+
     """
     Subclass of Tkinter.Entry that features autocompletion.
         
@@ -27,6 +41,7 @@ class AutocompleteEntryInText(Entry):
         self._hit_index = 0
         self.position = 0
         self.bind('<KeyRelease>', self.handle_keyrelease)               
+        self.bind("<Button-2>", self.popup)
 
     def autocomplete(self, delta=0):
                 """autocomplete the Entry, delta may be 0/1/-1 to cycle through possible hits"""

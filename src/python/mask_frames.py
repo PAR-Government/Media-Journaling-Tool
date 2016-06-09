@@ -37,25 +37,16 @@ class HistoryFrame(ttk.Frame):
         xsb.grid(in_=self, row=1, column=0, sticky=EW)
          
     def clearData(self):
-      for mod in self.modifications:
-        self.tree.delete(mod.maskFileName)
+       for mod in self.modifications:
+         self.tree.delete(mod.maskFileName)
+       self.modifications = []
 
     def loadData(self, modifications):
-        self.modifications = modifications
-                 
-        # configure column headings
-        i = 1
-        for c in self.dataCols:
-            self.tree.heading(c, text=c.title())
-#                              command=lambda c=c: self._column_sort(c, MCListDemo.SortDir))           
-            self.tree.column(c, width=tkFont.Font().measure(c.title())*i)
-            i+=1
-
-        # add data to the tttk.Treeviewree
         for mod in modifications:
-            addModification(mod)
+            self.addModification(mod)
 
     def addModification(self, mod):
+        self.modifications.append(mod)
         item = (mod.operationName, mod.maskFileName, mod.additionalInfo)
         self.tree.insert('', 'end',iid=mod.maskFileName, values=item)
              
