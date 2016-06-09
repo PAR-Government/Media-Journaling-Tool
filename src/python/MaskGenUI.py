@@ -10,6 +10,7 @@ from autocomplete_it import AutocompleteEntryInText
 import sys
 import argparse
 import mask_operation
+from mask_frames import HistoryFrame 
 
 from scenario_model import Modification, Scenario
 
@@ -44,11 +45,10 @@ class FileFinder:
 
 class ScenarioModel:
     items = list()
+    images = list()
     modifications = list()
     step = 0
     filefinder = None
-    startImg = None
-    nextImg = None
 
     def __init__(self, filefinder):
       self.filefinder = filefinder
@@ -57,10 +57,9 @@ class ScenarioModel:
        self.step = 0
        self.items = list()
        self.items.append(name)
+       self.images.append(Image.open(name))
        self.modifications = list()
        self.filefinder.setFile(name)
-       self.startImg = None
-       self.nextImg = None
       
     def startImageName(self):
       return self.items[max(0,self.step-1)]
@@ -79,12 +78,24 @@ class ScenarioModel:
           f.write(scenario.toJson())
         return scenario
 
+    def startImage(self):
+       return self.images[max(0,self.step-1)]
+
+    def nextImage(self):
+      return self.images[self.step]
+
     def createMask(self):
-        si = np.array(self.startImg)
-        ni = alignShape(np.array(self.nextImg),si.shape)
+        si = np.array(self.startImage())
+        ni = alignShape(np.array(self.nextImage()),si.shape)
         dst = np.abs(si-ni).astype('uint8')
+        dst2 = np.abs(ni-si).astype('uint8')
         gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
         ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
+        gray_image2 = cv2.cvtColor(dst2, cv2.COLOR_BGR2GRAY)
+        ret,thresh2 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
+        intersect = cv2.bitwise_and(thresh1,thresh1,mask = thresh1)
+        if (np.max(intersect)>0):
+          thresh1 = intersect
         nin = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
         cv2.imwrite(nin,thresh1)
         return Image.fromarray(thresh1)
@@ -104,23 +115,8 @@ class ScenarioModel:
     def isMask(self, name):
       return name.rfind('_mask_')>0
 
-    def startImage(self):
-        if (self.startImg == None):
-            self.startImg = Image.open(self.startImageName())
-        return self.startImg
-
-    def nextImage(self):
-        if (self.nextImg == None):
-            self.nextImg = Image.open(self.nextImageName())
-        return self.nextImg
-
     def scanNextImage(self):
       suffix =   self.startImageName()[self.startImageName().rfind('.'):]
-      # Want the algorithm to support overwriting the same 
-      # output file. Therefore, we need to retain the prior
-      # and not reread it from the file the may have been overwritten
-      self.startImg = self.nextImg
-      self.nextImg = None
 
       def filterF (file):
          return file not in self.items and not(self.isMask(file)) and file.endswith(suffix)
@@ -136,6 +132,7 @@ class ScenarioModel:
       maskfile = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
       self.modifications.append(Modification('change',os.path.split(maskfile)[1]))
       self.items.append(nfile)
+      self.images.append(Image.open(nfile))
       self.step+=1
       return nfile
     
@@ -152,6 +149,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.description = model.nextModification()
       self.model = model
       self.myops = myops
+      self.parent = parent
       tkSimpleDialog.Dialog.__init__(self, parent, "Operation Description")
      
    def body(self, master):
@@ -176,6 +174,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
        second = self.e2.get()
        self.description.operationName = first
        self.description.additionalInfo = second
+       self.parent.history.addModification(self.description)
        print first, second # or something
 
 class MakeGenUI(Frame):
@@ -195,6 +194,7 @@ class MakeGenUI(Frame):
     l3 = None
     processmenu = None
     myops = []
+    itemmenu = None
 
     def printit(self):
         print "hi"
@@ -204,8 +204,16 @@ class MakeGenUI(Frame):
         if (val != None and len(val)> 0):
           self.scModel.setInitialImage(val)
           try:
-            self.img1 = ImageTk.PhotoImage(Image.open(self.scModel.startImageName()))
+            self.history.clearData()
+            self.img1= ImageTk.PhotoImage(Image.open(self.scModel.startImageName()))
+            self.img2= self.img1
+            self.img3= ImageTk.PhotoImage(Image.fromarray(np.zeros((500,500,3)).astype('uint8')))
             self.img1c.itemconfig(self.img1oc, image= self.img1)
+            self.img2c.itemconfig(self.img2oc, image=self.img2)
+            self.img3c.itemconfig(self.img3oc, image=self.img3)         
+            self.l1.config(text=os.path.split(self.scModel.startImageName())[1])
+            self.l2.config(text=os.path.split(self.scModel.startImageName())[1])
+            self.l3.config(text="")
             self.processmenu.entryconfig(0,state='normal')
           except IOError:
             tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
@@ -220,6 +228,10 @@ class MakeGenUI(Frame):
         self.img1c.itemconfig(self.img1oc, image=self.img1)
         self.img2c.itemconfig(self.img2oc, image=self.img2)
         self.img3c.itemconfig(self.img3oc, image=self.img3)
+        self.l1.config(text="")
+        self.l2.config(text="")
+        self.l3.config(text="")
+        self.history.clearData()
 
     def next(self):
         self.processmenu.entryconfig(1,state='normal')
@@ -233,7 +245,7 @@ class MakeGenUI(Frame):
         self.l1.config(text=os.path.split(self.scModel.startImageName())[1])
         self.l2.config(text=os.path.split(self.scModel.nextImageName())[1])
         self.l3.config(text=self.scModel.nextModification().maskFileName)
-        d = DescriptionCaptureDialog(self.master, self.scModel, self.myops)
+        d = DescriptionCaptureDialog(self, self.scModel, self.myops)
         
     def gquit(self, event):
         self.quit()
@@ -248,6 +260,9 @@ class MakeGenUI(Frame):
     def gfinish(self, next):
         if (self.processmenu.entrycget(1,'state')=="normal"):
           self.stop()
+
+    def revert(self):
+       print self.history.focus()
 
     def createWidgets(self):
         self.master.title("Mask Generator")
@@ -279,11 +294,11 @@ class MakeGenUI(Frame):
         img1f = img2f = img3f = self.master
 
         self.img1c = Canvas(img1f, width=500, height=500)
-        self.img1c.grid(row = 0, column = 0)
+        self.img1c.grid(row = 1, column = 0)
         self.img2c = Canvas(img2f, width=500, height=500)
-        self.img2c.grid(row = 0, column = 1)
+        self.img2c.grid(row = 1, column = 1)
         self.img3c = Canvas(img3f, width=500, height=500)
-        self.img3c.grid(row = 0, column = 2)
+        self.img3c.grid(row = 1, column = 2)
 
         self.img1 = ImageTk.PhotoImage(Image.new("RGB", (500, 500), "white"))
         self.img1oc = self.img1c.create_image(250,250,image=self.img1, tag='img1')
@@ -293,11 +308,22 @@ class MakeGenUI(Frame):
         self.img3oc = self.img3c.create_image(250,250,image=self.img3, tag='img3')
 
         self.l1 = Label(img1f, text="") 
-        self.l1.grid(row=1,column=0)
+        self.l1.grid(row=0,column=0)
         self.l2 = Label(img2f, text="")
-        self.l2.grid(row=1,column=1)
+        self.l2.grid(row=0,column=1)
         self.l3 = Label(img3f, text="")
-        self.l3.grid(row=1,column=2)
+        self.l3.grid(row=0,column=2)
+
+        self.itemmenu = Menu(self.master,tearoff=0)
+        self.itemmenu.add_command(label="Revert To", command=self.revert)
+
+        self.history = HistoryFrame(self.master)
+        self.history.grid(row=2,column=0,columnspan=3,sticky=W+E+N+S)
+        self.history.tree.bind("<Button-2>", self.popup)
+        
+
+    def popup(self, event):
+       menu.post(event.x_root, event.y_root)
 
     def __init__(self, filefinder,master=None, ops=[]):
         Frame.__init__(self, master)
