@@ -11,6 +11,7 @@ import sys
 import argparse
 import mask_operation
 from mask_frames import HistoryFrame 
+import ttk
 
 from scenario_model import Modification, Scenario
 
@@ -88,14 +89,18 @@ class ScenarioModel:
         si = np.array(self.startImage())
         ni = alignShape(np.array(self.nextImage()),si.shape)
         dst = np.abs(si-ni).astype('uint8')
-        dst2 = np.abs(ni-si).astype('uint8')
         gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
         ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
+
+        ni2 = np.array(self.nextImage())
+        si2 = alignShape(np.array(self.startImage()),ni2.shape)
+        dst2 = np.abs(ni2-si2).astype('uint8')
         gray_image2 = cv2.cvtColor(dst2, cv2.COLOR_BGR2GRAY)
-        ret,thresh2 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-        intersect = cv2.bitwise_and(thresh1,thresh1,mask = thresh1)
-        if (np.max(intersect)>0):
-          thresh1 = intersect
+        ret,thresh2 = cv2.threshold(gray_image2,1,255,cv2.THRESH_BINARY)
+
+#        intersect = cv2.bitwise_and(thresh1,thresh1,mask = thresh2)
+#        if (np.max(intersect)>0):
+#          thresh1 = intersect
         nin = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
         cv2.imwrite(nin,thresh1)
         return Image.fromarray(thresh1)
@@ -161,11 +166,16 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.parent = parent
       tkSimpleDialog.Dialog.__init__(self, parent, "Operation Description")
      
+   def newselection(self, event):
+      self.value_of_combo = self.e1.get()
+
    def body(self, master):
       Label(master, text="Operation:").grid(row=0)
       Label(master, text="Description:").grid(row=1)
 
-      self.e1 = AutocompleteEntryInText(master,self.myops)
+      self.e1 = AutocompleteEntryInText(master,self.myops,values=self.myops,takefocus=False)
+      self.e1.bind("<Return>", self.newselection)
+      self.e1.bind("<<ComboboxSelected>>", self.newselection)
       self.e2 = Entry(master)
 
       self.e1.grid(row=0, column=1)
@@ -179,7 +189,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    def apply(self):
        self.justExit = True
-       first = self.e1.get()
+       first = self.value_of_combo
+#self.e1.get()
        second = self.e2.get()
        self.description.operationName = first
        self.description.additionalInfo = second
