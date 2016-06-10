@@ -10,18 +10,11 @@ from autocomplete_it import AutocompleteEntryInText
 import sys
 import argparse
 import mask_operation
+import tool_set
 from mask_frames import HistoryFrame 
 import ttk
 
 from scenario_model import Modification, Scenario
-
-def alignShape(im,shape):
-   z = np.zeros(shape)
-   x = min(shape[0],im.shape[0])
-   y = min(shape[1],im.shape[1])
-   for d in range(min(shape[2],im.shape[2])):
-      z[0:x,0:y,d] = im[0:x,0:y,d]
-   return z
 
 # this program creates a canvas and puts a single polygon on the canvas
 
@@ -85,25 +78,11 @@ class ScenarioModel:
     def nextImage(self):
       return self.images[self.step]
 
-    def createMask(self):
-        si = np.array(self.startImage())
-        ni = alignShape(np.array(self.nextImage()),si.shape)
-        dst = np.abs(si-ni).astype('uint8')
-        gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
-        ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-
-        ni2 = np.array(self.nextImage())
-        si2 = alignShape(np.array(self.startImage()),ni2.shape)
-        dst2 = np.abs(ni2-si2).astype('uint8')
-        gray_image2 = cv2.cvtColor(dst2, cv2.COLOR_BGR2GRAY)
-        ret,thresh2 = cv2.threshold(gray_image2,1,255,cv2.THRESH_BINARY)
-
-#        intersect = cv2.bitwise_and(thresh1,thresh1,mask = thresh2)
-#        if (np.max(intersect)>0):
-#          thresh1 = intersect
+    def createAndWriteMask(self):
+        mask = tool_set.createMask(np.array(self.startImage()),np.array(self.nextImage()))
         nin = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
-        cv2.imwrite(nin,thresh1)
-        return Image.fromarray(thresh1)
+        cv2.imwrite(nin,mask)
+        return Image.fromarray(mask)
 
     def revertToStep(self, maskid):
        fpos = [i for i in range(len(self.modifications)) if self.modifications[i].maskFileName==maskid]
@@ -262,7 +241,7 @@ class MakeGenUI(Frame):
     def drawState(self):
         self.img1= ImageTk.PhotoImage(self.scModel.startImage())
         self.img2= ImageTk.PhotoImage(self.scModel.nextImage())
-        self.img3= ImageTk.PhotoImage(self.scModel.createMask())
+        self.img3= ImageTk.PhotoImage(self.scModel.createAndWriteMask())
         self.img1c.itemconfig(self.img1oc, image=self.img1)
         self.img2c.itemconfig(self.img2oc, image=self.img2)
         self.img3c.itemconfig(self.img3oc, image=self.img3)
