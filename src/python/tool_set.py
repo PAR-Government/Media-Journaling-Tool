@@ -123,7 +123,9 @@ def spliceMask(mask):
     seams = findVerticalSeam(mask)
     if (len(seams)>0):
       first = seams[0]
-      #should compare to seams[-1]
+      #should compare to seams[-1].  this would be accomplished by
+      # looking at the region size of the seam. We want one of the first or last seam that is most
+      # centered
       mask = np.zeros(mask.shape)
       for i in range(len(first)): 
         mask[i,first[i]] = 255
