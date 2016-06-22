@@ -12,6 +12,7 @@ brew tap homebrew/science
 brew install opencv
 pip install numpy
 pip install matplotlib
+pip install networkx
 ```
 
 # Usage

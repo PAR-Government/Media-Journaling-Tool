@@ -5,7 +5,7 @@ import re
 
 class AutocompleteEntryWithList(Entry):
 
-    def __init__(self,master, autocompleteList, *args, **kwargs):
+    def __init__(self,master, *args, **kwargs):
 
         # Listbox length
         if 'listboxLength' in kwargs:
@@ -29,7 +29,7 @@ class AutocompleteEntryWithList(Entry):
         Entry.__init__(self, master, *args, **kwargs)
         self.focus()
 
-        self.autocompleteList = autocompleteList
+        self.autocompleteList = kwargs['values']
         
         self.var = self["textvariable"]
         if self.var == '':

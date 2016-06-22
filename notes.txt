@@ -1,0 +1,20 @@
+Issues:
+> = fixed
+# = not fixed
+- = not going to fix
+
+> (1) window...fixed resolution...smaller monitor...file names get hidden
+# (2) Pan or zoom images
+> (3) output file name on a line, if too long, gets mangled.  Not sure if this is fixable.
+> (4) first item combo item in the combo box list does not work...operation list...additional info would not appear
+# (5) repeat original ...black image...next. open image, next.
+> (6) save and overwrite the original image...save over it (used by another program)...
+# (7) 'Undo' can only undo one operation
+# (8) 'Undo' state is not represented in the main menu...it is always avaible, even when no action can be taken
+# (9) 'Undo' does not work with remove it does not rebuild the removed masks
+# (10) Need to add the ability to change a link's data (description and operation)
+# (11) Add a way to visualize a link description
+# (12) Is there a direct way to pull from a clipboard?
+# (13) Add note about anaconda and pillow incompatibility with tool
+# (14) Can search for next image based on image meta-data...modified date...date created...last date modified.
+

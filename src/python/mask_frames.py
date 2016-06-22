@@ -15,7 +15,6 @@ class HistoryFrame(ttk.Frame):
         return self.tree.focus()
 
     def createWidgets(self):
-         
         # create the tree and scrollbars
         self.dataCols = ('Operation', 'Mask Name', 'Description')
         self.tree = ttk.Treeview(columns=self.dataCols,show='headings',selectmode='browse',displaycolumns='#all')

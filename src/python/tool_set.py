@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from PIL import Image 
 
 def alignShape(im,shape):
    x = min(shape[0],im.shape[0])
@@ -81,7 +82,7 @@ def composeExpandImageMask(img1,img2):
         mask[tuple[0]:tuple[2],tuple[1]:tuple[3]] = submask
     return np.array(mask*255)[:,:,0]
 
-def createMask(img1, img2):
+def createMask(img1, img2, invert):
     img1, img2 = alignChannels(img1,img2)
     if (sum(img1.shape) > sum(img2.shape)):
       return composeCropImageMask(img1,img2)
@@ -90,7 +91,16 @@ def createMask(img1, img2):
     dst = np.abs(img1-img2).astype('uint8')
     gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
     ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-    return np.array(thresh1)
+    return (255-np.array(thresh1)) if not invert else np.array(thresh1)
+
+def imageResize(img,dim):
+  wpercent = float(dim[0])/float(img.size[0])
+  hpercent = float(dim[1])/float(img.size[1])
+  perc = min(wpercent,hpercent)
+  wsize = int((float(img.size[0])*float(perc)))
+  hsize = int((float(img.size[1])*float(perc)))
+  print (wsize, hsize)
+  return img.resize((wsize,hsize), Image.ANTIALIAS)
 
 def findNeighbors(paths,next):
    newpaths = list()

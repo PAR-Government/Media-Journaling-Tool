@@ -2,179 +2,24 @@ from Tkinter import *
 import Tkconstants, tkFileDialog, tkSimpleDialog
 import tkMessageBox
 from PIL import Image, ImageTk
-import cv2
 import numpy as np
 import os
-from autocomplete import AutocompleteEntryWithList 
-from autocomplete_it import AutocompleteEntryInText
 import sys
 import argparse
 import mask_operation
-import tool_set
 from mask_frames import HistoryFrame 
 import ttk
-
-from scenario_model import Modification, Scenario
+from graph_canvas import MaskGraphCanvas
+from scenario_model import FileFinder,ProjectModel,Modification
+from description_dialog import DescriptionCaptureDialog
+from tool_set import imageResize
 
 # this program creates a canvas and puts a single polygon on the canvas
 
-class FileFinder:
-    dir = '.'
-    file = '.'
-    
-    def __init__(self, dirname):
-      self.dir = dirname
 
-    def setFile(self,filename):
-        self.file = filename 
-
-    def composeFileName(self, postFix):
-        return self.file[0:self.file.rfind('.')] + postFix
-
-    def findFiles(self, filterFunction):
-        exp = os.path.split(self.file[0:self.file.rfind('.')])[1]
-        set= [os.path.abspath(os.path.join(self.dir,filename)) for filename in os.listdir(self.dir) if (filename.startswith(exp)) and filterFunction(os.path.abspath(os.path.join(self.dir,filename)))]
-        set.sort()
-        return set
-
-class ScenarioModel:
-    items = list()
-    images = list()
-    modifications = list()
-    step = 0
-    filefinder = None
-
-    def __init__(self, filefinder):
-      self.filefinder = filefinder
-
-    def setInitialImage(self, name):
-       self.step = 0
-       self.items = list()
-       self.items.append(name)
-       self.images.append(Image.open(name))
-       self.modifications = list()
-       self.filefinder.setFile(name)
-      
-    def startImageName(self):
-      return self.items[max(0,self.step-1)]
-    
-    def nextImageName(self):
-      return self.items[self.step]
-
-    def nextModification(self):
-      return self.modifications[max(self.step - 1,0)]
-
-    def createAndSaveScenario(self):
-        scenario= Scenario(os.path.split(self.filefinder.file)[1], \
-                        os.path.split(self.nextImageName())[1], \
-                        self.modifications)
-        with open(self.filefinder.composeFileName('.json'), 'w') as f:
-          f.write(scenario.toJson())
-        return scenario
-
-    def startImage(self):
-       return self.images[max(0,self.step-1)]
-
-    def nextImage(self):
-      return self.images[self.step]
-
-    def createAndWriteMask(self):
-        mask = tool_set.createMask(np.array(self.startImage()),np.array(self.nextImage()))
-        nin = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
-        cv2.imwrite(nin,mask)
-        return Image.fromarray(mask)
-
-    def revertToStep(self, maskid):
-       fpos = [i for i in range(len(self.modifications)) if self.modifications[i].maskFileName==maskid]
-       if (len(fpos)> 0):
-         pos = fpos[0]+1
-         self.modifications = self.modifications[0:pos]
-         self.items = self.items[0:pos+1]
-         self.images = self.images[0:pos+1]
-         self.step=pos
-
-    def revertToPriorStep(self):
-       print "revert"
-       self.deleteMask()
-       self.step-=1
-       self.modifications = self.modifications[0:len(self.modifications)-1]
-       self.items=self.items[0:len(self.items)-1]
-
-    def deleteMask(self):
-       f = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
-       if (os.path.exists(f)):
-         os.remove(f)
-
-    def isMask(self, name):
-      return name.rfind('_mask_')>0
-
-    def scanNextImage(self):
-      suffix =   self.startImageName()[self.startImageName().rfind('.'):]
-
-      def filterF (file):
-         return file not in self.items and not(self.isMask(file)) and file.endswith(suffix)
-      
-      # if the user is writing to the same output file
-      # in a lock step process with the changes
-      # then nfile remains the same name is changed file
-      nfile = self.items[self.step]
-      for file in self.filefinder.findFiles(filterF):
-         nfile = file
-         break
-
-      maskfile = self.filefinder.composeFileName('_mask_' + str(self.step) + '.png')
-      self.modifications.append(Modification('change',os.path.split(maskfile)[1]))
-      self.items.append(nfile)
-      self.images.append(Image.open(nfile))
-      self.step+=1
-      return nfile
-    
 defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
 
-class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
-   description = None
-   model = None
-   justExit = False
-   myops = []
-
-   def __init__(self, parent, model,myops):
-      self.description = model.nextModification()
-      self.model = model
-      self.myops = myops
-      self.parent = parent
-      tkSimpleDialog.Dialog.__init__(self, parent, "Operation Description")
-     
-   def newselection(self, event):
-      self.value_of_combo = self.e1.get()
-
-   def body(self, master):
-      Label(master, text="Operation:").grid(row=0)
-      Label(master, text="Description:").grid(row=1)
-
-      self.e1 = AutocompleteEntryInText(master,self.myops,values=self.myops,takefocus=False)
-      self.e1.bind("<Return>", self.newselection)
-      self.e1.bind("<<ComboboxSelected>>", self.newselection)
-      self.e2 = Entry(master)
-
-      self.e1.grid(row=0, column=1)
-      self.e2.grid(row=1, column=1)
-      return self.e1 # initial focus
-
-   def cancel(self):
-       if not self.justExit:
-          self.model.revertToPriorStep()
-       tkSimpleDialog.Dialog.cancel(self)
-
-   def apply(self):
-       self.justExit = True
-       first = self.value_of_combo
-#self.e1.get()
-       second = self.e2.get()
-       self.description.operationName = first
-       self.description.additionalInfo = second
-       self.parent.history.addModification(self.description)
-       print first, second # or something
 
 class MakeGenUI(Frame):
 
@@ -192,127 +37,164 @@ class MakeGenUI(Frame):
     l2 = None
     l3 = None
     processmenu = None
-    myops = []
-    itemmenu = None
+    myops = {}
+    nodemenu = None
+    edgemenu = None
+    canvas = None
 
-    def printit(self):
-        print "hi"
+    def new(self):
+       res = tkSimpleDialog.askstring("Project Name", "Name")
+       if res is None or res == '':
+         return
+       self.scModel.startNew(res)
+       self.master.title(res)
+       self.drawState()
+       self.canvas.update()
+       self.processmenu.entryconfig(1,state='disabled')
 
     def open(self):
+        val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select project file",filetypes = [("json files","*.json")])
+        if(val != None and len(val)>0):
+          self.scModel.load(val)
+          self.drawState()
+          self.canvas.update()
+          if (self.scModel.start is not None):
+             self.processmenu.entryconfig(1,state='normal')
+
+    def add(self):
         val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         if (val != None and len(val)> 0):
-          self.scModel.setInitialImage(val)
+          place = self.scModel.start if self.scModel.end is None else self.scModel.end
+          self.scModel.addImage(val)
           try:
-            self.history.clearData()
-            self.img1= ImageTk.PhotoImage(Image.open(self.scModel.startImageName()))
-            self.img2= self.img1
-            self.img3= ImageTk.PhotoImage(Image.fromarray(np.zeros((500,500,3)).astype('uint8')))
-            self.img1c.itemconfig(self.img1oc, image= self.img1)
-            self.img2c.itemconfig(self.img2oc, image=self.img2)
-            self.img3c.itemconfig(self.img3oc, image=self.img3)         
-            self.l1.config(text=os.path.split(self.scModel.startImageName())[1])
-            self.l2.config(text=os.path.split(self.scModel.startImageName())[1])
-            self.l3.config(text="")
-            self.processmenu.entryconfig(0,state='normal')
+            self.drawState()
+            self.processmenu.entryconfig(1,state='normal')
+            self.canvas.addNew()
           except IOError:
             tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
 
-    def stop(self):
-        self.processmenu.entryconfig(1,state='disabled')
-        self.processmenu.entryconfig(0,state='disabled')
-        self.scModel.createAndSaveScenario()
-        self.img1= ImageTk.PhotoImage(Image.fromarray(np.zeros((500,500,3)).astype('uint8')))
-        self.img2= ImageTk.PhotoImage(Image.fromarray(np.zeros((500,500,3)).astype('uint8')))
-        self.img3= ImageTk.PhotoImage(Image.fromarray(np.zeros((500,500,3)).astype('uint8')))
-        self.img1c.itemconfig(self.img1oc, image=self.img1)
-        self.img2c.itemconfig(self.img2oc, image=self.img2)
-        self.img3c.itemconfig(self.img3oc, image=self.img3)
-        self.l1.config(text="")
-        self.l2.config(text="")
-        self.l3.config(text="")
-        self.history.clearData()
+    def save(self):
+       self.scModel.save()
+
+    def saveas(self):
+       val = tkFileDialog.asksaveasfile(initialdir = self.scModel.filefinder.dir, title = "Save As",filetypes = [("json files","*.json")])
+       if (val is not None and len(val.name)>0):
+         name = os.path.split(val.name[0:val.name.rfind('.')])[1]
+         dir = os.path.split(val.name)[0]
+         if (dir != os.path.abspath(self.scModel.filefinder.dir)):
+            tkMessageBox.showwarning("Save As", "Cannot save to a different directory\n(%s)" % dir)
+         else:
+            self.scModel.saveas(val.name,name)
+            self.master.title(name)
+         val.close()
+  
+    def undo(self):
+       self.scModel.undo()
+       self.drawState()
+       self.canvas.update()
 
     def next(self):
-        self.processmenu.entryconfig(1,state='normal')
-        self.scModel.scanNextImage()
-        self.drawState()
-        d = DescriptionCaptureDialog(self, self.scModel, self.myops)
+        file,im = self.scModel.scanNextImage()
+        if (file is None): 
+            return
+        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
+        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+            self.scModel.addNextImage(file,mod=d.description)
+            self.drawState()
+            self.canvas.add(self.scModel.start, self.scModel.end)
 
     def drawState(self):
-        self.img1= ImageTk.PhotoImage(self.scModel.startImage())
-        self.img2= ImageTk.PhotoImage(self.scModel.nextImage())
-        self.img3= ImageTk.PhotoImage(self.scModel.createAndWriteMask())
+        self.img1= ImageTk.PhotoImage(imageResize(self.scModel.startImage(),(250,250)))
+        self.img2= ImageTk.PhotoImage(imageResize(self.scModel.nextImage(),(250,250)))
+        self.img3= ImageTk.PhotoImage(imageResize(self.scModel.maskImage(),(250,250)))
         self.img1c.itemconfig(self.img1oc, image=self.img1)
         self.img2c.itemconfig(self.img2oc, image=self.img2)
         self.img3c.itemconfig(self.img3oc, image=self.img3)
-        self.l1.config(text=os.path.split(self.scModel.startImageName())[1])
-        self.l2.config(text=os.path.split(self.scModel.nextImageName())[1])
-        self.l3.config(text=self.scModel.nextModification().maskFileName)
-        
+        self.l1.config(text=self.scModel.startImageName())
+        self.l2.config(text=self.scModel.nextImageName())
+
     def gquit(self, event):
         self.quit()
 
     def gopen(self, event):
         self.open()
 
+    def gnew(self, event):
+        self.new()
+
+    def gsave(self, event):
+        self.save()
+
     def gnext(self, next):
-        if (self.processmenu.entrycget(0,'state')=="normal"):
-          self.next()
+        self.next()
 
-    def gfinish(self, next):
-        if (self.processmenu.entrycget(1,'state')=="normal"):
-          self.stop()
+    def gundo(self, next):
+        self.undo()
 
-    def revert(self):
-        maskid = self.history.focus()
-        if (len(maskid)>0):
-          self.history.clearData()
-          self.scModel.revertToStep(maskid)
-          self.drawState()
-          self.history.loadData(self.scModel.modifications)
+    def gadd(self, next):
+        self.add()
+
+    def connectto(self):
+       self.drawState()
+       self.canvas.connectto()
+
+    def select(self):
+       self.drawState()
+
+    def remove(self):
+       self.canvas.remove()
+       self.drawState()
 
     def createWidgets(self):
-        self.master.title("Mask Generator")
+        self.master.title("Untitled")
 
         menubar = Menu(self)
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="Open",command=self.open, accelerator="Ctrl+O")
+        filemenu.add_command(label="New",command=self.new, accelerator="Ctrl+N")
+        filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
+        filemenu.add_command(label="Save As", command=self.saveas)
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
-        self.processmenu.add_command(label="Next", command=self.next, accelerator="Ctrl+N", state='disabled')
-        self.processmenu.add_command(label="Finish", command=self.stop, accelerator="Ctrl+F", state='disabled')
+        self.processmenu.add_command(label="Add", command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Next", command=self.next, accelerator="Ctrl+F", state='disabled')
+        self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+U")
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
         self.bind_all('<Control-q>',self.gquit)
         self.bind_all('<Control-o>',self.gopen)
-        self.bind_all('<Control-n>',self.gnext)
-        self.bind_all('<Control-f>',self.gfinish)
+        self.bind_all('<Control-s>',self.gsave)
+        self.bind_all('<Control-a>',self.gadd)
+        self.bind_all('<Control-n>',self.gnew)
+        self.bind_all('<Control-f>',self.gnext)
+        self.bind_all('<Control-u>',self.gundo)
 
         self.grid()
         self.master.rowconfigure(0,weight=1)
         self.master.rowconfigure(1,weight=1)
         self.master.rowconfigure(2,weight=1)
+        self.master.rowconfigure(3,weight=1)
         self.master.columnconfigure(0,weight=1)
         self.master.columnconfigure(1,weight=1)
         self.master.columnconfigure(2,weight=1)
 
         img1f = img2f = img3f = self.master
 
-        self.img1c = Canvas(img1f, width=500, height=500)
+        self.img1c = Canvas(img1f, width=256, height=256)
         self.img1c.grid(row = 1, column = 0)
-        self.img2c = Canvas(img2f, width=500, height=500)
+        self.img2c = Canvas(img2f, width=256, height=256)
         self.img2c.grid(row = 1, column = 1)
-        self.img3c = Canvas(img3f, width=500, height=500)
+        self.img3c = Canvas(img3f, width=256, height=256)
         self.img3c.grid(row = 1, column = 2)
 
-        self.img1 = ImageTk.PhotoImage(Image.new("RGB", (500, 500), "white"))
-        self.img1oc = self.img1c.create_image(250,250,image=self.img1, tag='img1')
-        self.img2 = ImageTk.PhotoImage(Image.new("RGB", (500, 500), "white"))
-        self.img2oc = self.img2c.create_image(250,250,image=self.img2, tag='img2')
-        self.img3 = ImageTk.PhotoImage(Image.new("RGB", (500, 500), "white"))
-        self.img3oc = self.img3c.create_image(250,250,image=self.img3, tag='img3')
+        self.img1 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
+        self.img1oc = self.img1c.create_image(125,125,image=self.img1, tag='img1')
+        self.img2 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
+        self.img2oc = self.img2c.create_image(125,125,image=self.img2, tag='img2')
+        self.img3 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
+        self.img3oc = self.img3c.create_image(125,125,image=self.img3, tag='img3')
 
         self.l1 = Label(img1f, text="") 
         self.l1.grid(row=0,column=0)
@@ -321,23 +203,44 @@ class MakeGenUI(Frame):
         self.l3 = Label(img3f, text="")
         self.l3.grid(row=0,column=2)
 
-        self.itemmenu = Menu(self.master,tearoff=0)
-        self.itemmenu.add_command(label="Revert To", command=self.revert)
+        self.nodemenu = Menu(self.master,tearoff=0)
+        self.nodemenu.add_command(label="Select", command=self.select)
+        self.nodemenu.add_command(label="Remove", command=self.remove)
+        self.nodemenu.add_command(label="Connect To", command=self.connectto)
 
-        self.history = HistoryFrame(self.master)
-        self.history.grid(row=2,column=0,columnspan=3,sticky=W+E+N+S)
-        self.history.tree.bind("<Button-2>", self.popup)
-        
+        self.edgemenu = Menu(self.master,tearoff=0)
+        self.edgemenu.add_command(label="Select", command=self.select)
+        self.edgemenu.add_command(label="Remove", command=self.remove)
 
-    def popup(self, event):
-       self.itemmenu.post(event.x_root, event.y_root)
+        mframe = Frame(self.master, bd=2, relief=SUNKEN)
+        mframe.grid_rowconfigure(0, weight=1)
+        mframe.grid_columnconfigure(0, weight=1)
+        self.vscrollbar = Scrollbar(mframe, orient=VERTICAL)
+        self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
+        self.vscrollbar.grid(row=0, column=1, sticky=N+S)
+        self.hscrollbar.grid(row=1, column=0, sticky=E+W)
+        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB,self.myops, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
+        self.canvas.grid(row=0, column=0,sticky=N+S+E+W)
+        self.vscrollbar.config(command=self.canvas.yview)
+        self.hscrollbar.config(command=self.canvas.xview)
+        mframe.grid(row=2,column=0,rowspan=1,columnspan=3, sticky=N+S+E+W)
+
+    def graphCB(self, event, eventName):
+       if eventName == 'rcNode':
+          self.nodemenu.post(event.x_root,event.y_root)
+       if eventName == 'rcEdge':
+          self.edgemenu.post(event.x_root,event.y_root)
+       if eventName == 'n':
+           self.drawState()
 
     def __init__(self, filefinder,master=None, ops=[]):
         Frame.__init__(self, master)
         self.myops = ops
-        self.createWidgets()
         self.filefinder = filefinder
-        self.scModel = ScenarioModel(filefinder)
+        self.scModel = ProjectModel(filefinder,"Untitled")
+        self.createWidgets()
+
+
 
 def main(argv=None):
    if (argv is None):

@@ -10,10 +10,9 @@ tkinter_umlauts=['odiaeresis', 'adiaeresis', 'udiaeresis', 'Odiaeresis', 'Adiaer
 class AutocompleteEntryInText(ttk.Combobox):
 
 
-    def __init__(self,master, autocompleteList, *args, **kwargs):
+    def __init__(self,master, *args, **kwargs):
         ttk.Combobox.__init__(self, master, *args, **kwargs)
-        self.focus()
-        self.set_completion_list(autocompleteList)
+        self.set_completion_list(kwargs['values'])
 
     """
     Subclass of Tkinter.Entry that features autocompletion.
@@ -23,11 +22,14 @@ class AutocompleteEntryInText(ttk.Combobox):
     To cycle through hits use down and up arrow keys.
     """
     def set_completion_list(self, completion_list):
-        self._completion_list = completion_list
+        self['values'] = completion_list
+        if (len(completion_list)>0):
+            self.set(completion_list[0])
         self._hits = []
         self._hit_index = 0
         self.position = 0
         self.bind('<KeyRelease>', self.handle_keyrelease)               
+        self.focus()
 
     def autocomplete(self, delta=0):
                 """autocomplete the Entry, delta may be 0/1/-1 to cycle through possible hits"""
@@ -37,7 +39,7 @@ class AutocompleteEntryInText(ttk.Combobox):
                         self.position = len(self.get())
                 # collect hits
                 _hits = []
-                for element in self._completion_list:
+                for element in self['values']:
                         if element.startswith(self.get().lower()):
                                 _hits.append(element)
                 # if we have a new hit list, keep this in mind

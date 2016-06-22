@@ -1,9 +1,98 @@
-insert
-splice
-blur
-resize
-color
-sharpen
-compress
-mosaic
-alias
+AdditionalEffectAddLightSource ,AdditionalEffect ,addLightSource
+AdditionalEffectFading  ,AdditionalEffect ,fading
+AdditionalEffectFilterAddNoise ,AdditionalEffect ,filterAddNoise 
+AdditionalEffectFilterBlur ,AdditionalEffect ,filterBlur 
+AdditionalEffectFilterMedianSmoothing ,AdditionalEffect ,filterMedianSmoothing 
+AdditionalEffectFilterSharpening ,AdditionalEffect ,filterSharpening 
+AdditionalEffectFilterSmoothing ,AdditionalEffect ,filterSmoothing 
+AdditionalEffectGradientEffect ,AdditionalEffect ,gradientEffect 
+AdditionalEffectSoftEdgeBrushing ,AdditionalEffect ,softEdgeBrushing 
+AntiForensicCameraFingerprintAberrationCorrection ,AntiForensicCameraFingerprint ,aberrationCorrection 
+AntiForensicCameraFingerprintCFAHiding ,AntiForensicCameraFingerprint ,CFAHiding 
+AntiForensicCameraFingerprintCFAInterpolation ,AntiForensicCameraFingerprint ,CFAInterpolation 
+AntiForensicCameraFingerprintCFAResize ,AntiForensicCameraFingerprint ,CFAResize 
+AntiForensicCameraFingerprintCFARotation ,AntiForensicCameraFingerprint ,CFARotation 
+AntiForensicCameraFingerprintENFAlternation ,AntiForensicCameraFingerprint ,ENFAlternation 
+AntiForensicCameraFingerprintPhotoResponseNonUniformity ,AntiForensicCameraFingerprint ,photoResponseNonUniformity 
+AntiForensicCompressionCompressionNormalization ,AntiForensicCompression ,compressionNormalization 
+AntiForensicExifCameraModelPara ,AntiForensicExif ,cameraModelPara 
+AntiForensicExifDateTime ,AntiForensicExif ,dateTime 
+AntiForensicExifManipulationSoftware ,AntiForensicExif ,manipulationSoftware 
+AntiForensicExifQuantizationTable ,AntiForensicExif ,quantizationTable 
+AntiforensicFilterNoiseRestoration ,AntiforensicFilter ,noiseRestoration 
+ArtifactsCGIArtificialLighting ,ArtifactsCGI ,artificialLighting 
+ArtifactsCGIArtificialReflection ,ArtifactsCGI ,artificialReflection 
+ArtifactsCGIArtificialShadow ,ArtifactsCGI ,artificialShadow 
+ArtifactsCGIObjectCGI ,ArtifactsCGI ,objectCGI 
+ColorBlendColorBurn  ,Color ,blendColorBurn 
+ColorBlendColorInterpolation ,Color ,blendColorInterpolation 
+ColorBlendDissolve  ,Color ,blendDissolve 
+ColorBlendMultiply  ,Color ,blendMultiply 
+ColorColorBalance  ,Color ,colorBalance 
+ColorFill  ,Color ,fill 
+ColorHue  ,Color ,hue 
+ColorMatchColor  ,Color ,matchColor 
+ColorOpacity  ,Color ,opacity 
+ColorReplaceColor  ,Color ,replaceColor 
+ColorSaturation  ,Color ,saturation 
+ColorVibranceContentBoosting ,Color ,vibranceContentBossting 
+ColorVibranceReduction  ,Color ,vibranceReduction 
+CreationFilterGT ,Creation ,filterGT 
+FillBackground  ,Fill ,background 
+FillCloneRubberStamp ,Fill ,cloneRubberStamp 
+FillContentAwareFill ,Fill ,contentAwareFill 
+FillForeground  ,Fill ,foreground 
+FillGradient  ,Fill ,gradient 
+FillHealingBrush ,Fill ,healingBrush 
+FillImageInterpolation  ,Fill ,imageInterpolation 
+FillInpainting  ,Fill ,inpainting 
+FillLocalRetouching  ,Fill ,localRetouching 
+FillPaintBrushTool  ,Fill ,paintBrushTool 
+FillPaintBucket  ,Fill ,paintBucket 
+FillPattern  ,Fill ,pattern 
+FillRubberStamp  ,Fill ,rubberStamp 
+FilterBlurMotion ,Filter ,blurMotion 
+FilterBlurNoise  ,Filter ,blurNoise 
+FilterCameraRawFilter ,Filter ,cameraRawFilter 
+IntensityBrightness  ,Intensity ,brightness 
+IntensityContrast  ,Intensity ,contrast 
+IntensityCurves  ,Intensity ,curves 
+IntensityDarken  ,Intensity ,darken 
+IntensityDesaturate  ,Intensity ,desaturate 
+IntensityExposure  ,Intensity ,exposure 
+IntensityHardlight  ,Intensity ,hardlight 
+IntensityHighlight  ,Intensity ,highlight 
+IntensityLevels  ,Intensity ,levels 
+IntensityLighten ,Intensity ,lighten 
+IntensityLuminosity  ,Intensity ,luminosity 
+IntensitySoftlight  ,Intensity ,softlight 
+MarkupDigitalPenDraw ,Markup ,digitalPenDraw 
+MarkupHandwriting  ,Markup ,handwriting 
+MarkupOverlayObject  ,Markup ,overlayObject 
+MarkupOverlayText  ,Markup ,overlayText 
+OutputBmp  ,Output ,bmp 
+OutputJpg  ,Output ,jpg 
+OutputPng  ,Output ,png 
+OutputTif  ,Output ,tif 
+PasteClone  ,Paste ,clone 
+PasteDuplicate  ,Paste ,duplicate 
+PasteSplice  ,Paste ,splice 
+PostProcessingSizeUpDownOrgExif ,PostProcessing ,sizeUpDownOrgExif 
+SelectCopy  ,Select ,copy 
+SelectRegion  ,Select ,region 
+SelectRemove  ,Select ,remove 
+TransformAffine  ,Transform ,affine 
+TransformContentAwareScale ,Transform ,contentAwareScale 
+TransformCrop  ,Transform ,crop 
+TransformDistort ,Transform ,distort 
+TransformFlip  ,Transform ,flip 
+TransformMove  ,Transform ,move 
+TransformResample  ,Transform ,resample 
+TransformResize  ,Transform ,resize 
+TransformRotate  ,Transform ,rotate 
+TransformScale  ,Transform ,scale 
+TransformSeamCarving ,Transform ,seamCarving 
+TransformShear  ,Transform ,shear 
+TransformSkew  ,Transform ,skew 
+TransformWarp  ,Transform ,warp 
+
