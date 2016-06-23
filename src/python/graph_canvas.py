@@ -71,17 +71,23 @@ class MaskGraphCanvas(tk.Canvas):
 
         self.move(tk.ALL, delta_x, delta_y)
 
-    def addNew(self):
+    def addNew(self,ids):
        wx,wy = self.winfo_width(), self.winfo_height()
        center =  (0,50)
        for name in self.scModel.getGraph().get_nodes():
            n = self.scModel.getGraph().get_node(name)
            if (n.has_key('xpos')):
               center = ( max(center[0],n['xpos']), min(center[1],n['ypos']))
-       node = self.scModel.getGraph().get_node(self.scModel.start)
-       node['xpos'] = center[0]+int(wx/5.0)
-       node['ypos'] = center[1]
-       self._mark(self._draw_node(self.scModel.start))
+       if (center[0] + 75 > wx):
+          center = (center[0], center[1]+30)
+       else:
+          center = (center[0]+75, center[1])
+       for id in ids:
+         node = self.scModel.getGraph().get_node(id)
+         node['xpos'] = center[0]
+         node['ypos'] = center[1]
+         self._mark(self._draw_node(id))
+         center = (center[0], center[1]+30)
 
     def add(self,start, end):
        center = self._node_center(start)
@@ -150,11 +156,10 @@ class MaskGraphCanvas(tk.Canvas):
                self.scModel.connect(nodeId)
                ok = True
             else:
-               self.deselectCursor(None)
                tkMessageBox.showinfo("Error", "Destination node already has two predecessors")
+            self.deselectCursor(None)
             if (ok):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
-               self.deselectCursor(None)
                self.callback(event,"n")
             return
 

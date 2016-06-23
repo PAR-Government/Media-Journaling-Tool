@@ -41,6 +41,7 @@ class ProjectModel:
        nname = self.G.add_node(pathname)
        self.start = nname
        self.end = None
+       return nname
 
     def connect(self,destination,mod=Modification('Donor',''), invert=False):
        if (self.start is None):
@@ -52,13 +53,37 @@ class ProjectModel:
 
        return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
 
-    def addNextImage(self, pathname, invert=False, mod=Modification('','')):
+    def addNextImageFile(self, pathname, invert=False, mod=Modification('','')):
        if (self.end is not None):
           self.start = self.end
        fname = os.path.split(pathname)[1]
        nname = fname[0:fname.rfind('.')]
        nname = self.G.add_node(pathname, seriesname=self.getSeriesName())
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
+       maskname=self.start + '_' + nname + '_mask'+'.png'
+       self.end = nname
+       return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+
+    def saveToFile(self,pathname,img):
+       fname = os.path.split(pathname)[1]
+       nname = fname[0:fname.rfind('.')]
+       suffix = fname[fname.rfind('.'):]
+       f = None
+       while True:
+          f = self.filefinder.composeFileName(nname + '_' + str(self.G.nextId()) + suffix)
+          if (not os.path.exists (f)):
+             break
+       img.save(f)
+       return f
+
+    def addNextImage(self,file,img,mod=Modification('','')):
+       if (self.end is not None):
+          self.start = self.end
+       pathname = self.saveToFile(file, img)   
+       fname = os.path.split(pathname)[1]
+       nname = fname[0:fname.rfind('.')]
+       nname = self.G.add_node(pathname, seriesname=self.getSeriesName())
+       mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), False)
        maskname=self.start + '_' + nname + '_mask'+'.png'
        self.end = nname
        return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
@@ -135,6 +160,17 @@ class ProjectModel:
            return Image.fromarray(np.zeros((500,500,3)).astype('uint8'));
        return self.G.get_edge_mask(self.start,self.end)
 
+    def currentImage(self):
+       file = None
+       im = None
+       if self.end is not None:
+          file=self.G.get_node(self.end)['file']
+          im=self.nextImage()
+       elif self.start is not None:
+          file=self.G.get_node(self.start)['file']
+          im=self.startImage()
+       return file,im
+
     def selectImage(self,name):
       self.start = name
       self.end = None
@@ -182,4 +218,12 @@ class ProjectModel:
          im = Image.open(fp)
          im.load()
 
+      return nfile,im
+
+    def openImage(self,nfile):
+      im = None
+      if nfile is not None:
+         with open(nfile) as fp:
+           im = Image.open(fp)
+           im.load()
       return nfile,im

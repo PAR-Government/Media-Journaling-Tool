@@ -17,4 +17,12 @@ Issues:
 # (12) Is there a direct way to pull from a clipboard?
 # (13) Add note about anaconda and pillow incompatibility with tool
 # (14) Can search for next image based on image meta-data...modified date...date created...last date modified.
-
+> (15) Bulk Load images
+# (16) Introduce efficiency in pulling in Donor images.  Need to rethink the Donor mask.
+> (17) Ctrl-Z for undo
+> (18) local filter. see 22
+> (19) Description/Operation dialog was not setting default values.
+> (20) Cursor was not being deselected when a 'canceled' occured during connecting two nodes
+> (21) Find and connect next image from a from loaded file (change Ctrl-L) to do this.  Ctrl-P replaced the old functionality (for auto pick)
+> (22) Add and connect next image from plugin filter
+# (23) Creating a new project should allow the selection of the image directory

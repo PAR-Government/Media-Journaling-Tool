@@ -1,4 +1,5 @@
 from Tkinter import *
+import plugins
 import Tkconstants, tkFileDialog, tkSimpleDialog
 import tkMessageBox
 from PIL import Image, ImageTk
@@ -38,6 +39,7 @@ class MakeGenUI(Frame):
     l3 = None
     processmenu = None
     myops = {}
+    mypluginops = {}
     nodemenu = None
     edgemenu = None
     canvas = None
@@ -51,6 +53,8 @@ class MakeGenUI(Frame):
        self.drawState()
        self.canvas.update()
        self.processmenu.entryconfig(1,state='disabled')
+       self.processmenu.entryconfig(2,state='disabled')
+       self.processmenu.entryconfig(3,state='disabled')
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select project file",filetypes = [("json files","*.json")])
@@ -60,18 +64,20 @@ class MakeGenUI(Frame):
           self.canvas.update()
           if (self.scModel.start is not None):
              self.processmenu.entryconfig(1,state='normal')
+             self.processmenu.entryconfig(2,state='normal')
+             self.processmenu.entryconfig(3,state='normal')
 
     def add(self):
-        val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.filefinder.dir, title = "Select image file(s)",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         if (val != None and len(val)> 0):
-          place = self.scModel.start if self.scModel.end is None else self.scModel.end
-          self.scModel.addImage(val)
           try:
-            self.drawState()
-            self.processmenu.entryconfig(1,state='normal')
-            self.canvas.addNew()
+            self.canvas.addNew([self.scModel.addImage(f) for f in val])
           except IOError:
             tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
+          self.processmenu.entryconfig(1,state='normal')
+          self.processmenu.entryconfig(2,state='normal')
+          self.processmenu.entryconfig(3,state='normal')
+          self.drawState()
 
     def save(self):
        self.scModel.save()
@@ -93,13 +99,35 @@ class MakeGenUI(Frame):
        self.drawState()
        self.canvas.update()
 
-    def next(self):
+    def nextadd(self):
+        val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        file,im = self.scModel.openImage(val)
+        if (file is None): 
+            return
+        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
+        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+            self.scModel.addNextImageFile(file,mod=d.description)
+            self.drawState()
+            self.canvas.add(self.scModel.start, self.scModel.end)
+
+    def nextauto(self):
         file,im = self.scModel.scanNextImage()
         if (file is None): 
             return
         d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImage(file,mod=d.description)
+            self.scModel.addNextImageFile(file,mod=d.description)
+            self.drawState()
+            self.canvas.add(self.scModel.start, self.scModel.end)
+
+    def nextfilter(self):
+        file,im = self.scModel.currentImage()
+        if (im is None): 
+            return
+        d = DescriptionCaptureDialog(self,im,plugins.getOperations(),file)
+        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+            im = plugins.callPlugin(d.description.operationName,im)
+            self.scModel.addNextImage(file,im,mod=d.description)
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -125,8 +153,14 @@ class MakeGenUI(Frame):
     def gsave(self, event):
         self.save()
 
-    def gnext(self, next):
-        self.next()
+    def gnextauto(self, next):
+        self.nextauto()
+
+    def gnextadd(self, next):
+        self.nextadd()
+
+    def gnextfilter(self, next):
+        self.nextfilter()
 
     def gundo(self, next):
         self.undo()
@@ -159,8 +193,10 @@ class MakeGenUI(Frame):
 
         self.processmenu = Menu(menubar, tearoff=0)
         self.processmenu.add_command(label="Add", command=self.add, accelerator="Ctrl+A")
-        self.processmenu.add_command(label="Next", command=self.next, accelerator="Ctrl+F", state='disabled')
-        self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+U")
+        self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
+        self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
+        self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F", state='disabled')
+        self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
         self.bind_all('<Control-q>',self.gquit)
@@ -168,8 +204,10 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-s>',self.gsave)
         self.bind_all('<Control-a>',self.gadd)
         self.bind_all('<Control-n>',self.gnew)
-        self.bind_all('<Control-f>',self.gnext)
-        self.bind_all('<Control-u>',self.gundo)
+        self.bind_all('<Control-p>',self.gnextauto)
+        self.bind_all('<Control-l>',self.gnextadd)
+        self.bind_all('<Control-f>',self.gnextfilter)
+        self.bind_all('<Control-z>',self.gundo)
 
         self.grid()
         self.master.rowconfigure(0,weight=1)
@@ -233,9 +271,10 @@ class MakeGenUI(Frame):
        if eventName == 'n':
            self.drawState()
 
-    def __init__(self, filefinder,master=None, ops=[]):
+    def __init__(self, filefinder,master=None, ops=[],pluginops={}):
         Frame.__init__(self, master)
         self.myops = ops
+        self.mypluginops = pluginops
         self.filefinder = filefinder
         self.scModel = ProjectModel(filefinder,"Untitled")
         self.createWidgets()
@@ -259,7 +298,8 @@ def main(argv=None):
    else:
        ops = defaultops
    root= Tk()
-   gui = MakeGenUI(filefinder=FileFinder(imgdir),master=root,ops=ops)
+
+   gui = MakeGenUI(filefinder=FileFinder(imgdir),master=root,ops=ops,pluginops=plugins.loadPlugins())
    gui.mainloop()
 
 if __name__ == "__main__":
