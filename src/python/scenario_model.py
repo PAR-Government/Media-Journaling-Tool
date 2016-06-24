@@ -13,29 +13,16 @@ class Modification:
      self.additionalInfo  = additionalInfo
      self.operationName = name
 
-class FileFinder:
-    dir = '.'
-    
-    def __init__(self, dirname):
-      self.dir = dirname
-
-    def composeFileName(self, postFix):
-        return os.path.abspath(os.path.join(self.dir,postFix))
-
-    def findFiles(self, preFix, filterFunction):
-        set= [os.path.abspath(os.path.join(self.dir,filename)) for filename in os.listdir(self.dir) if (filename.startswith(preFix)) and filterFunction(os.path.abspath(os.path.join(self.dir,filename)))]
-        set.sort()
-        return set
-
 class ProjectModel:
     G = None
     start = None
     end = None
-    filefinder = None
 
-    def __init__(self, filefinder, projectName):
-      self.filefinder = filefinder
-      self.G = ImageGraph(projectName, self.filefinder.dir)
+    def __init__(self, projectFileName):
+      self.G = ImageGraph(projectFileName)
+
+    def get_dir(self):
+       return self.G.dir
 
     def addImage(self, pathname):
        nname = self.G.add_node(pathname)
@@ -48,42 +35,14 @@ class ProjectModel:
           return
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
        maskname=self.start + '_' + destination + '_mask'+'.png'
-       nin = self.filefinder.composeFileName(maskname)
        self.end = destination
-
        return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
 
-    def addNextImageFile(self, pathname, invert=False, mod=Modification('','')):
+    def addNextImage(self, pathname, img, invert=False, mod=Modification('','')):
        if (self.end is not None):
           self.start = self.end
-       fname = os.path.split(pathname)[1]
-       nname = fname[0:fname.rfind('.')]
-       nname = self.G.add_node(pathname, seriesname=self.getSeriesName())
+       nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
-       maskname=self.start + '_' + nname + '_mask'+'.png'
-       self.end = nname
-       return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
-
-    def saveToFile(self,pathname,img):
-       fname = os.path.split(pathname)[1]
-       nname = fname[0:fname.rfind('.')]
-       suffix = fname[fname.rfind('.'):]
-       f = None
-       while True:
-          f = self.filefinder.composeFileName(nname + '_' + str(self.G.nextId()) + suffix)
-          if (not os.path.exists (f)):
-             break
-       img.save(f)
-       return f
-
-    def addNextImage(self,file,img,mod=Modification('','')):
-       if (self.end is not None):
-          self.start = self.end
-       pathname = self.saveToFile(file, img)   
-       fname = os.path.split(pathname)[1]
-       nname = fname[0:fname.rfind('.')]
-       nname = self.G.add_node(pathname, seriesname=self.getSeriesName())
-       mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), False)
        maskname=self.start + '_' + nname + '_mask'+'.png'
        self.end = nname
        return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
@@ -119,13 +78,13 @@ class ProjectModel:
       self.start= edge[0]
       self.end = edge[1]
 
-    def startNew(self,name):
+    def startNew(self,pathname):
+      self.G = ImageGraph(pathname)
       self.start = None
       self.end = None
-      self.G = ImageGraph(name,self.filefinder.dir)
 
-    def load(self,fname):
-       self.G.load(fname)
+    def load(self,pathname):
+       self.G.load(pathname)
        n = self.G.get_nodes()
        if (len(n) > 0):
            self.start = n[0]
@@ -138,9 +97,8 @@ class ProjectModel:
                  self.start = p[0]
                  self.end = n[0]
 
-    def saveas(self, path, name):
-       self.G.set_name(name)
-       self.G.save()
+    def saveas(self,pathname):
+       self.G.saveas(pathname)
 
     def save(self):
        self.G.save()
@@ -180,13 +138,9 @@ class ProjectModel:
       self.end = end
 
     def remove(self):
-       def maskRemover(edge):
-          f = self.filefinder.composeFileName(edge['maskname'])
-          if (os.path.exists(f)):
-             os.remove(f)
        name = self.start if self.end is None else self.end
        p = self.G.predecessors(self.start) if self.end is None else [self.start]
-       self.G.remove(name, maskRemover)
+       self.G.remove(name, None)
        self.start = p[0] if len(p) > 0  else None
        print self.start
        self.end = None
@@ -198,20 +152,24 @@ class ProjectModel:
       if (self.start is None):
          return None,None
 
-      startNode = self.G.get_node(self.start)
       suffix = self.start
       seriesName = self.getSeriesName()
       if seriesName is not None:
          suffix = seriesName
 
-      def filterF (file):
+      def filterFunction (file):
          return not self.G.has_node(os.path.split(file[0:file.rfind('.')])[1]) and not(file.rfind('_mask')>0)
+
+      def findFiles(dir, preFix, filterFunction):
+         set= [os.path.abspath(os.path.join(dir,filename)) for filename in os.listdir(dir) if (filename.startswith(preFix)) and filterFunction(os.path.abspath(os.path.join(dir,filename)))]
+         set.sort()
+         return set
       
       # if the user is writing to the same output file
       # in a lock step process with the changes
       # then nfile remains the same name is changed file
-      nfile = self.filefinder.composeFileName(startNode['file'])
-      for file in self.filefinder.findFiles(suffix, filterF):
+      nfile = self.G.get_pathname(self.start)
+      for file in findFiles(self.G.dir,suffix, filterFunction):
          nfile = file
          break
       with open(nfile) as fp:
@@ -227,3 +185,6 @@ class ProjectModel:
            im = Image.open(fp)
            im.load()
       return nfile,im
+
+
+

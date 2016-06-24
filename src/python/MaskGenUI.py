@@ -11,7 +11,7 @@ import mask_operation
 from mask_frames import HistoryFrame 
 import ttk
 from graph_canvas import MaskGraphCanvas
-from scenario_model import FileFinder,ProjectModel,Modification
+from scenario_model import ProjectModel,Modification
 from description_dialog import DescriptionCaptureDialog
 from tool_set import imageResize
 
@@ -19,8 +19,6 @@ from tool_set import imageResize
 
 
 defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
-
-
 
 class MakeGenUI(Frame):
 
@@ -44,12 +42,20 @@ class MakeGenUI(Frame):
     edgemenu = None
     canvas = None
 
+    def _check_dir(self,pathinfo):
+         dir = os.path.abspath(os.path.split(pathinfo)[0])
+         set = [filename for filename in os.listdir(dir) if filename.endswith('.json')]
+         return not len(set)>0
+
     def new(self):
-       res = tkSimpleDialog.askstring("Project Name", "Name")
-       if res is None or res == '':
+       val = tkFileDialog.asksaveasfilename(initialdir = self.scModel.get_dir(), title = "Select new project file",filetypes = [("json files","*.json")])
+       if val is None or val== '':
          return
-       self.scModel.startNew(res)
-       self.master.title(res)
+       if (not self._check_dir(val)):
+         tkMessageBox.showinfo("Error", "Directory already associated with a project")
+         return
+       self.scModel.startNew(val)
+       self.master.title(val)
        self.drawState()
        self.canvas.update()
        self.processmenu.entryconfig(1,state='disabled')
@@ -57,9 +63,10 @@ class MakeGenUI(Frame):
        self.processmenu.entryconfig(3,state='disabled')
 
     def open(self):
-        val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select project file",filetypes = [("json files","*.json")])
+        val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select project file",filetypes = [("json files","*.json")])
         if(val != None and len(val)>0):
           self.scModel.load(val)
+          self.master.title(val)
           self.drawState()
           self.canvas.update()
           if (self.scModel.start is not None):
@@ -68,7 +75,7 @@ class MakeGenUI(Frame):
              self.processmenu.entryconfig(3,state='normal')
 
     def add(self):
-        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.filefinder.dir, title = "Select image file(s)",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.get_dir(), title = "Select image file(s)",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         if (val != None and len(val)> 0):
           try:
             self.canvas.addNew([self.scModel.addImage(f) for f in val])
@@ -83,15 +90,14 @@ class MakeGenUI(Frame):
        self.scModel.save()
 
     def saveas(self):
-       val = tkFileDialog.asksaveasfile(initialdir = self.scModel.filefinder.dir, title = "Save As",filetypes = [("json files","*.json")])
+       val = tkFileDialog.asksaveasfile(initialdir = self.scModel.get_dir(), title = "Save As",filetypes = [("json files","*.json")])
        if (val is not None and len(val.name)>0):
-         name = os.path.split(val.name[0:val.name.rfind('.')])[1]
-         dir = os.path.split(val.name)[0]
-         if (dir != os.path.abspath(self.scModel.filefinder.dir)):
-            tkMessageBox.showwarning("Save As", "Cannot save to a different directory\n(%s)" % dir)
+         dir = os.path.abspath(os.path.split(val.name)[0])
+         if (dir == os.path.abspath(self.scModel.get_dir())):
+            tkMessageBox.showwarning("Save As", "Cannot save to the same directory\n(%s)" % dir)
          else:
-            self.scModel.saveas(val.name,name)
-            self.master.title(name)
+            self.scModel.saveas(val.name)
+            self.master.title(val.name)
          val.close()
   
     def undo(self):
@@ -100,13 +106,13 @@ class MakeGenUI(Frame):
        self.canvas.update()
 
     def nextadd(self):
-        val = tkFileDialog.askopenfilename(initialdir = self.scModel.filefinder.dir, title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         file,im = self.scModel.openImage(val)
         if (file is None): 
             return
         d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImageFile(file,mod=d.description)
+            self.scModel.addNextImage(file,im,mod=d.description)
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -116,7 +122,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImageFile(file,mod=d.description)
+            self.scModel.addNextImage(file,im,mod=d.description)
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -180,7 +186,7 @@ class MakeGenUI(Frame):
        self.drawState()
 
     def createWidgets(self):
-        self.master.title("Untitled")
+        self.master.title(os.path.join(self.scModel.get_dir(),"Untitled"))
 
         menubar = Menu(self)
         filemenu = Menu(menubar, tearoff=0)
@@ -271,12 +277,11 @@ class MakeGenUI(Frame):
        if eventName == 'n':
            self.drawState()
 
-    def __init__(self, filefinder,master=None, ops=[],pluginops={}):
+    def __init__(self,dir,master=None, ops=[],pluginops={}):
         Frame.__init__(self, master)
         self.myops = ops
         self.mypluginops = pluginops
-        self.filefinder = filefinder
-        self.scModel = ProjectModel(filefinder,"Untitled")
+        self.scModel = ProjectModel(os.path.join(dir,"Untitled"))
         self.createWidgets()
 
 
@@ -299,7 +304,7 @@ def main(argv=None):
        ops = defaultops
    root= Tk()
 
-   gui = MakeGenUI(filefinder=FileFinder(imgdir),master=root,ops=ops,pluginops=plugins.loadPlugins())
+   gui = MakeGenUI(imgdir,master=root,ops=ops,pluginops=plugins.loadPlugins())
    gui.mainloop()
 
 if __name__ == "__main__":

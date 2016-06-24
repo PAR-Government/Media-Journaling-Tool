@@ -3,7 +3,7 @@ import Tkinter as tk
 import tkMessageBox
 import tkSimpleDialog as tkd
 from functools import wraps
-from scenario_model import FileFinder,ProjectModel
+from scenario_model import ProjectModel
 import numpy as np
 from math import atan2, pi, cos, sin
 from description_dialog import DescriptionCaptureDialog
