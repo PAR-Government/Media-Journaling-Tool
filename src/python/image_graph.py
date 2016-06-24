@@ -2,10 +2,14 @@ from PIL import Image, ImageTk
 import networkx as nx
 from networkx.readwrite import json_graph
 from copy import copy
+import pwd
 import json
 import os
 import shutil
 import cv2
+
+def get_username():
+    return pwd.getpwuid( os.getuid() )[ 0 ]
 
 def get_pre_name(file):
   pos = file.rfind('.')
@@ -91,6 +95,16 @@ class ImageGraph:
            self.G.remove_edge(node['start'],node['end'])
     self.U = nx.DiGraph(name="undo")
 
+  def update_edge(self, start, end,op=None,description=None):
+    if start is None or end is None:
+      return
+    if not self.G.has_node(start) or not self.G.has_node(end):
+      return
+    if (op is not None):
+      self.G[start][end]['op'] = op 
+    if (description is not None):
+      self.G[start][end]['description'] = description
+    
   def add_edge(self,start, end, maskname=None,mask=None, op='Change',description=''):
     im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
@@ -98,7 +112,7 @@ class ImageGraph:
     if (not os.path.exists(newpathname)):
       cv2.imwrite(newpathname,mask)
       includePathInUndo = True
-    self.G.add_edge(start,end, maskname=maskname, op=op, description=description)
+    self.G.add_edge(start,end, maskname=maskname, op=op, description=description, username=get_username())
     self.U = nx.DiGraph(name="undo")
     self.U.add_node(maskname, action='addEdge',start=start,end=end,ownership=('yes' if includePathInUndo else 'no'))
     return im
@@ -110,7 +124,7 @@ class ImageGraph:
        return im
 
   def get_edge(self,start,end):
-    return self.G[start][end]
+    return self.G[start][end] if (self.G.has_edge(start,end)) else None
 
   def get_edge_mask(self,start,end):
     with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['maskname']))) as fp:
@@ -148,7 +162,10 @@ class ImageGraph:
      return self.G.has_node(name)
 
   def get_node(self,name):
-    return self.G.node[name]
+    if self.G.has_node(name):
+      return self.G.node[name]
+    else:
+      return None
 
   def load(self,pathname):
     with open(pathname) as f:

@@ -185,6 +185,15 @@ class MakeGenUI(Frame):
        self.canvas.remove()
        self.drawState()
 
+    def edit(self):
+       file,im = self.scModel.currentImage()
+       if (im is None): 
+            return
+       d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription())
+       if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+           self.scModel.update_edge(d.description)
+       self.drawState()
+ 
     def createWidgets(self):
         self.master.title(os.path.join(self.scModel.get_dir(),"Untitled"))
 
@@ -255,6 +264,7 @@ class MakeGenUI(Frame):
         self.edgemenu = Menu(self.master,tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
         self.edgemenu.add_command(label="Remove", command=self.remove)
+        self.edgemenu.add_command(label="Edit", command=self.edit)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
         mframe.grid_rowconfigure(0, weight=1)

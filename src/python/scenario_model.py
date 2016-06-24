@@ -8,10 +8,12 @@ import tool_set
 class Modification:
    operationName = None
    additionalInfo = ''
+   category = None
 
-   def __init__(self, name, additionalInfo):
+   def __init__(self, name, additionalInfo, category=None):
      self.additionalInfo  = additionalInfo
      self.operationName = name
+     self.category = category
 
 class ProjectModel:
     G = None
@@ -29,6 +31,9 @@ class ProjectModel:
        self.start = nname
        self.end = None
        return nname
+
+    def update_edge(self,mod):
+        self.G.update_edge(self.start, self.end, mod.operationName, mod.additionalInfo)
 
     def connect(self,destination,mod=Modification('Donor',''), invert=False):
        if (self.start is None):
@@ -102,6 +107,14 @@ class ProjectModel:
 
     def save(self):
        self.G.save()
+
+    def getDescription(self):
+       if (self.start is None or self.end is None):
+          return None
+       edge = self.G.get_edge(self.start, self.end)
+       if edge is not None:
+          return Modification(edge['op'],edge['description'])
+       return None
 
     def startImage(self):
        if (self.start is None):

@@ -21,10 +21,13 @@ class AutocompleteEntryInText(ttk.Combobox):
     a list of possible strings to hit.
     To cycle through hits use down and up arrow keys.
     """
-    def set_completion_list(self, completion_list):
+    def set_completion_list(self, completion_list, initialValue=None):
         self['values'] = completion_list
         if (len(completion_list)>0):
-            self.set(completion_list[0])
+            if initialValue is not None and initialValue in completion_list:
+               self.set(initialValue)
+            else:
+               self.set(completion_list[0])
         self._hits = []
         self._hit_index = 0
         self.position = 0

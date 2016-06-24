@@ -222,14 +222,21 @@ class MaskGraphCanvas(tk.Canvas):
     def onTokenRightClick(self, event):
        self._unmark()
        item = self._get_id(event)
+       eventname = 'rcNode'
+       e = None
        if (item is not None):
            if self.itemToNodeIds.has_key(item):
                self.scModel.selectImage(self.itemToNodeIds[item])
            else:
                e = self.itemToEdgeIds[item]
                self.scModel.selectPair(e[0],e[1])
+               eventname='rcEdge'
            self._mark(item)
-           self.callback(event,"rcNode")
+           self.callback(event,eventname)
+           if (e is not None):
+             edge =  self.scModel.getGraph().get_edge(e[0],e[1])
+             if (edge is not None):
+                self.itemToCanvas[item].update(edge['op'])
     
     def onNodeKey(self, event):
        self._unmark()
@@ -386,6 +393,9 @@ class LineTextObj(tk.Canvas):
         cfg['arrow'] = tk.LAST
         cfg['arrowshape'] = (30,40,5)
         return cfg
+
+    def update(self, name):
+        self.itemconfig(self.label, text=name)
 
     def _render(self, name,coords):
         cfg = self._newcfg()

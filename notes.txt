@@ -25,4 +25,7 @@ Issues:
 > (20) Cursor was not being deselected when a 'canceled' occured during connecting two nodes
 > (21) Find and connect next image from a from loaded file (change Ctrl-L) to do this.  Ctrl-P replaced the old functionality (for auto pick)
 > (22) Add and connect next image from plugin filter
-# (23) Creating a new project should allow the selection of the image directory
+> (23) Creating a new project should allow the selection of the image directory
+> (24) Fixed wrong menu item for edges on graph
+> (25) Unify the project concept: one project per directory.  Copy images into project directory where necessary
+> (26) Record user name for each edge (manipulation)
