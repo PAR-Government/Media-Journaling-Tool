@@ -5,6 +5,12 @@ from PIL import Image, ImageTk
 import tool_set
 
 
+def findProject(dir):
+    if (dir.endswith(".json")):
+       return os.path.abspath(dir)
+    p = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
+    return  os.path.join(dir,p[0] if len(p)>0 else 'Untitled')
+
 class Modification:
    operationName = None
    additionalInfo = ''
@@ -20,8 +26,9 @@ class ProjectModel:
     start = None
     end = None
 
-    def __init__(self, projectFileName):
+    def __init__(self, projectFileName, notify=None):
       self.G = ImageGraph(projectFileName)
+      self.notify = notify
 
     def get_dir(self):
        return self.G.dir
@@ -41,7 +48,10 @@ class ProjectModel:
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
        maskname=self.start + '_' + destination + '_mask'+'.png'
        self.end = destination
-       return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+       im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+       if (self.notify is not None):
+          self.notify(mod)
+       return im
 
     def addNextImage(self, pathname, img, invert=False, mod=Modification('','')):
        if (self.end is not None):
@@ -50,7 +60,10 @@ class ProjectModel:
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
        maskname=self.start + '_' + nname + '_mask'+'.png'
        self.end = nname
-       return self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+       im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+       if (self.notify is not None):
+          self.notify(mod)
+       return im
 
     def getSeriesName(self):
        if (self.start is None):

@@ -11,7 +11,7 @@ import mask_operation
 from mask_frames import HistoryFrame 
 import ttk
 from graph_canvas import MaskGraphCanvas
-from scenario_model import ProjectModel,Modification
+from scenario_model import ProjectModel,Modification,findProject
 from description_dialog import DescriptionCaptureDialog
 from tool_set import imageResize
 
@@ -147,6 +147,10 @@ class MakeGenUI(Frame):
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
 
+    def quit(self):
+        self.save()
+        Frame.quit(self)
+
     def gquit(self, event):
         self.quit()
 
@@ -180,6 +184,10 @@ class MakeGenUI(Frame):
 
     def select(self):
        self.drawState()
+
+    def connectEvent(self,modification):
+        if (modification.operationName == 'PasteSplice'):
+           tkMessageBox.showinfo("Splice Requirement", "A splice operation should be accompnanied by a donor image.")
 
     def remove(self):
        self.canvas.remove()
@@ -291,7 +299,7 @@ class MakeGenUI(Frame):
         Frame.__init__(self, master)
         self.myops = ops
         self.mypluginops = pluginops
-        self.scModel = ProjectModel(os.path.join(dir,"Untitled"))
+        self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)
         self.createWidgets()
 
 
