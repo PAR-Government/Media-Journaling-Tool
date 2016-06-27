@@ -29,6 +29,12 @@ Issues:
 > (24) Fixed wrong menu item for edges on graph
 > (25) Unify the project concept: one project per directory.  Copy images into project directory where necessary
 > (26) Record user name for each edge (manipulation)
-# (27) Enforce connectto to ot allow connections to nodes with output links
+# (27) Enforce connectto to allow connections to nodes with output links
 # (28) Do not allow edit of a link that has been created with a plugin
-# (29) Over-writing an initial image messes up the diplay in the tool since the initial image is no longer available.  A copy should be made.
+# (29) Over-writing an initial image messes up the diplay in the tool since the initial image is no longer available.  Should a copy should be made.
+# (30) Reload and regenerate mask for link option on link menu
+> (31) Alpha channels not visible
+> (32) Mask generation failing for images with alpha channels
+> (33) Masks need to be inverted for acceptance by evaluation team
+> (34) Center on selected image not working with graph scroll bars
+# (35) When first loading up, the current link is not high-lighted in the graph

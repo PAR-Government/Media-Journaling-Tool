@@ -13,7 +13,7 @@ import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
 from description_dialog import DescriptionCaptureDialog
-from tool_set import imageResize
+from tool_set import imageResize,fixTransparency
 
 # this program creates a canvas and puts a single polygon on the canvas
 
@@ -138,8 +138,8 @@ class MakeGenUI(Frame):
             self.canvas.add(self.scModel.start, self.scModel.end)
 
     def drawState(self):
-        self.img1= ImageTk.PhotoImage(imageResize(self.scModel.startImage(),(250,250)))
-        self.img2= ImageTk.PhotoImage(imageResize(self.scModel.nextImage(),(250,250)))
+        self.img1= ImageTk.PhotoImage(fixTransparency(imageResize(self.scModel.startImage(),(250,250))))
+        self.img2= ImageTk.PhotoImage(fixTransparency(imageResize(self.scModel.nextImage(),(250,250))))
         self.img3= ImageTk.PhotoImage(imageResize(self.scModel.maskImage(),(250,250)))
         self.img1c.itemconfig(self.img1oc, image=self.img1)
         self.img2c.itemconfig(self.img2oc, image=self.img2)
@@ -287,6 +287,12 @@ class MakeGenUI(Frame):
         self.hscrollbar.config(command=self.canvas.xview)
         mframe.grid(row=2,column=0,rowspan=1,columnspan=3, sticky=N+S+E+W)
 
+        if (self.scModel.start is not None):
+           self.processmenu.entryconfig(1,state='normal')
+           self.processmenu.entryconfig(2,state='normal')
+           self.processmenu.entryconfig(3,state='normal')
+           self.drawState()
+
     def graphCB(self, event, eventName):
        if eventName == 'rcNode':
           self.nodemenu.post(event.x_root,event.y_root)
@@ -297,6 +303,7 @@ class MakeGenUI(Frame):
 
     def __init__(self,dir,master=None, ops=[],pluginops={}):
         Frame.__init__(self, master)
+        master.wm_attributes("-transparent", True)
         self.myops = ops
         self.mypluginops = pluginops
         self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)

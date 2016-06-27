@@ -39,8 +39,8 @@ class MaskGraphCanvas(tk.Canvas):
     def plot(self, home_node):
         self.clear()
         self._plot_graph()
-        if (home_node is not None):
-           self.center_on_node(home_node)
+#        if (home_node is not None):
+#           self.center_on_node(home_node)
 
     def _node_center(self, node_name):
         """Calcualte the center of a given node"""
@@ -131,7 +131,6 @@ class MaskGraphCanvas(tk.Canvas):
     def onNodeButtonPress(self, event):
         """Being drag of an object"""
         # record the item and its location
-        print event.x, event.y
         item = self._get_id(event)
         cursor = self.cget("cursor")
         if (item is None):
@@ -163,7 +162,6 @@ class MaskGraphCanvas(tk.Canvas):
                self.callback(event,"n")
             return
 
-        print 'found item ' + self.itemToNodeIds[item]
         self.drag_data["item"] = item
         self.drag_data["x"] = event.x
         self.drag_data["y"] = event.y
@@ -361,7 +359,6 @@ class NodeObj(tk.Canvas):
         canvas.  Argument should be string of name of function from
         _host_canvas to call."""
         func = getattr(self.master, func_name)
-        print 'node ' + str(self.node_name)
         def _wrapper(event):
             # Modify even to be relative to the host's canvas
             event.x += self.winfo_x()
@@ -422,7 +419,6 @@ class LineTextObj(tk.Canvas):
         canvas.  Argument should be string of name of function from
         _host_canvas to call."""
         func = getattr(self.master, func_name)
-        print 'edge ' + str(self.edge_name)
         def _wrapper(event):
             # Modify even to be relative to the host's canvas
             event.x += self.winfo_x()

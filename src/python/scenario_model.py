@@ -28,6 +28,7 @@ class ProjectModel:
 
     def __init__(self, projectFileName, notify=None):
       self.G = ImageGraph(projectFileName)
+      self._setup()
       self.notify = notify
 
     def get_dir(self):
@@ -103,6 +104,9 @@ class ProjectModel:
 
     def load(self,pathname):
        self.G.load(pathname)
+       self._setup()
+
+    def _setup(self):
        n = self.G.get_nodes()
        if (len(n) > 0):
            self.start = n[0]

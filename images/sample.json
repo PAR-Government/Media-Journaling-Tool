@@ -1,0 +1,103 @@
+{
+  "directed": true, 
+  "graph": {
+    "name": "sample"
+  }, 
+  "nodes": [
+    {
+      "count": 2, 
+      "id": "idcount"
+    }, 
+    {
+      "xpos": 264, 
+      "ownership": "no", 
+      "ypos": 331, 
+      "seriesname": "orig_input", 
+      "file": "input_mod_2.png", 
+      "id": "input_mod_2"
+    }, 
+    {
+      "xpos": 281, 
+      "ownership": "no", 
+      "ypos": 227, 
+      "seriesname": "orig_input", 
+      "file": "input_mod_1.png", 
+      "id": "input_mod_1"
+    }, 
+    {
+      "xpos": 245, 
+      "ownership": "no", 
+      "ypos": 45, 
+      "seriesname": "orig_input", 
+      "file": "orig_input.png", 
+      "id": "orig_input"
+    }, 
+    {
+      "xpos": 265, 
+      "ownership": "no", 
+      "ypos": 469, 
+      "seriesname": "orig_input", 
+      "file": "input_mod_2_2.png", 
+      "id": "input_mod_2_2"
+    }, 
+    {
+      "xpos": 388, 
+      "ownership": "no", 
+      "ypos": 153, 
+      "seriesname": "hat", 
+      "file": "hat_splice.png", 
+      "id": "hat_splice"
+    }, 
+    {
+      "xpos": 444, 
+      "ownership": "no", 
+      "ypos": 51, 
+      "seriesname": "hat", 
+      "file": "hat.jpg", 
+      "id": "hat"
+    }
+  ], 
+  "links": [
+    {
+      "username": "ericrobertson", 
+      "maskname": "input_mod_2_input_mod_2_2_mask.png", 
+      "target": 4, 
+      "source": 1, 
+      "op": "ColorColorBalance", 
+      "description": "Average convolution over the RGB values of an image given a 5x5 convolution"
+    }, 
+    {
+      "username": "ericrobertson", 
+      "maskname": "input_mod_1_input_mod_2_mask.png", 
+      "target": 1, 
+      "source": 2, 
+      "op": "SelectRemove", 
+      "description": ""
+    }, 
+    {
+      "username": "ericrobertson", 
+      "maskname": "orig_input_input_mod_1_mask.png", 
+      "target": 2, 
+      "source": 3, 
+      "op": "PasteSplice", 
+      "description": ""
+    }, 
+    {
+      "username": "ericrobertson", 
+      "maskname": "hat_splice_input_mod_1_mask.png", 
+      "target": 2, 
+      "source": 5, 
+      "op": "Donor", 
+      "description": ""
+    }, 
+    {
+      "username": "ericrobertson", 
+      "maskname": "hat_hat_splice_mask.png", 
+      "target": 5, 
+      "source": 6, 
+      "op": "SelectRegion", 
+      "description": ""
+    }
+  ], 
+  "multigraph": false
+}

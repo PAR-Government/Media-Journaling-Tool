@@ -20,8 +20,8 @@ def alignChannels(img1, img2):
    if (img1.shape[2] == img2.shape[2]):
        return img1, img2
    thirdchannel = max(img1.shape[2],img2.shape[2])
-   z1 = np.zeros((img1.shape[0],img1.shape[1],thirdchannel))
-   z2 = np.zeros((img2.shape[0],img2.shape[1],thirdchannel))
+   z1 = np.ones((img1.shape[0],img1.shape[1],thirdchannel))*255
+   z2 = np.ones((img2.shape[0],img2.shape[1],thirdchannel))*255
    for d in range(thirdchannel):
        if (d < img1.shape[2]):
          z1[:,:,d] = img1[:,:,d]
@@ -90,17 +90,29 @@ def createMask(img1, img2, invert):
       return composeExpandImageMask(img1,img2)
     dst = np.abs(img1-img2).astype('uint8')
     gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+    if (dst.shape[2]==4):
+       gray_image[dst[:,:,3]>0] = 255
     ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-    return (255-np.array(thresh1)) if not invert else np.array(thresh1)
+    return (255-np.array(thresh1)) if invert else np.array(thresh1)
+
+def fixTransparency(img):
+   if img.mode.find('A')<0:
+      return img
+   xx = np.asarray(img)
+   perc = xx[:,:,3].astype(float)/float(255)
+   xx.flags['WRITEABLE'] = True
+   for d in range(3):
+     xx[:,:,d] = xx[:,:,d]*perc
+   xx[:,:,3]=np.ones((xx.shape[0], xx.shape[1]))*255
+   return Image.fromarray(xx)
 
 def imageResize(img,dim):
-  wpercent = float(dim[0])/float(img.size[0])
-  hpercent = float(dim[1])/float(img.size[1])
-  perc = min(wpercent,hpercent)
-  wsize = int((float(img.size[0])*float(perc)))
-  hsize = int((float(img.size[1])*float(perc)))
-  print (wsize, hsize)
-  return img.resize((wsize,hsize), Image.ANTIALIAS)
+   wpercent = float(dim[0])/float(img.size[0])
+   hpercent = float(dim[1])/float(img.size[1])
+   perc = min(wpercent,hpercent)
+   wsize = int((float(img.size[0])*float(perc)))
+   hsize = int((float(img.size[1])*float(perc)))
+   return img.resize((wsize,hsize), Image.ANTIALIAS).convert('RGBA')
 
 def findNeighbors(paths,next):
    newpaths = list()
