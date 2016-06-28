@@ -303,7 +303,7 @@ class MakeGenUI(Frame):
 
     def __init__(self,dir,master=None, ops=[],pluginops={}):
         Frame.__init__(self, master)
-        master.wm_attributes("-transparent", True)
+#        master.wm_attributes("-transparent", True)
         self.myops = ops
         self.mypluginops = pluginops
         self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)
