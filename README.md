@@ -1,8 +1,12 @@
 # Dependencies
 
+Install Python 2.7 (supposedly works with Anaconda)
+
 Install Tkinter
 
 Install PIL
+
+Uses opencv (cv2)
 
 ## Install commands
 
