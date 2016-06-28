@@ -13,6 +13,7 @@ brew install opencv
 pip install numpy
 pip install matplotlib
 pip install networkx
+pip install moviepy
 ```
 
 # Usage
@@ -56,13 +57,15 @@ Process > Next w/Auto Pick [Control-p] automatically finds and picks the next mo
 
 Process > Next w/Add [Control-l] prompts with file finding window to select an image that differs from the current selected image by ONE modifications.  A dialog appears to capture the modification, including the type of modification and additional description (optional). The dialog dispays the next select image as confirmation. A link is formed between the current selected image to the newly loaded image.
 
-Process > Next w/Filte [Control-f] prompts with modification to the current selected imaged.  The tool then applies the selected image to create a new image.  Unlike the other two 'next' functions, the set of operation is limited to those avaiable from the tool's plugins.  Furthermore, the image shown in the dialog window is the current selected image to which the selected modification is applied.
+Process > Next w/Filter [Control-f] prompts with modification to the current selected imaged.  The tool then applies the selected image to create a new image.  Unlike the other two 'next' functions, the set of operation is limited to those avaiable from the tool's plugins.  Furthermore, the image shown in the dialog window is the current selected image to which the selected modification is applied.
 
 Process > Undo [Control-z] Undo the last operation performed.  The tool does not support undo of an undo.
 
 # Links and Image Nodes
 
 Links record a single action taken on one image to produce another.  An image node can only have one input link (see Paste Splice below).  An image node can contribute to multiple different manipulation paths resulting in many different images.  Therefore, an image node may have many mant output lnks.
+
+![Alt](doc/UIView.jpg "UI View")
 
 ## Graph Operations
 
