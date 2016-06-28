@@ -2,11 +2,19 @@ from PIL import Image, ImageTk
 import networkx as nx
 from networkx.readwrite import json_graph
 from copy import copy
-import pwd
 import json
 import os
 import shutil
 import cv2
+import getpass
+
+try:
+  import pwd
+except ImportError:
+  class Pwd():
+     def getpwuid(self, user):
+          return getpass.getuser()
+  pwd = Pwd()
 
 def get_username():
     return pwd.getpwuid( os.getuid() )[ 0 ]
