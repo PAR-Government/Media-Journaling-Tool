@@ -129,7 +129,7 @@ class ImageGraph:
     return im
 
   def get_image(self,name):
-    with open(os.path.abspath(os.path.join(self.dir,self.G.node[name]['file']))) as fp:
+    with open(os.path.abspath(os.path.join(self.dir,self.G.node[name]['file'])),"rb") as fp:
        im= Image.open(fp)
        im.load()
        return im
@@ -138,7 +138,7 @@ class ImageGraph:
     return self.G[start][end] if (self.G.has_edge(start,end)) else None
 
   def get_edge_mask(self,start,end):
-    with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['maskname']))) as fp:
+    with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['maskname'])),"rb") as fp:
        im= Image.open(fp)
        im.load()
        return im
@@ -179,7 +179,7 @@ class ImageGraph:
       return None
 
   def load(self,pathname):
-    with open(pathname) as f:
+    with open(pathname,"r") as f:
       d = json.load(f)
       self.G = json_graph.node_link_graph(d)
     if (self.G.has_node('idcount')):
