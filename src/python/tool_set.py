@@ -79,17 +79,29 @@ def findBestMatch(big,small):
 
 def composeCropImageMask(img1,img2):
     tuple = findBestMatch(img1,img2)
-    mask = np.ones(img1.shape)
+    mask = np.zeros(img1.shape)
     if tuple is not None:
         dims = (0,img2.shape[0],0,img2.shape[1])
-        diffIm = np.copy(img1)
+        
+        diffIm = np.zeros(img1.shape)
         diffIm[tuple[0]:tuple[2],tuple[1]:tuple[3],:]=img2
+
+        diffIm2 = np.copy(img1)
+        diffIm2[tuple[0]:tuple[2],tuple[1]:tuple[3],:]=img2
+
         pinned = np.where(np.array(dims)==np.array(tuple))[0]
+
         dst = np.abs(img1-diffIm).astype('uint8')
+        dst2 = np.abs(img1-diffIm2).astype('uint8')
+
         gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+        gray_image2 = cv2.cvtColor(dst2, cv2.COLOR_BGR2GRAY)
+
         ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
+        ret,thresh2 = cv2.threshold(gray_image2,1,255,cv2.THRESH_BINARY)
+
         mask = thresh1
-        mask = spliceMask(mask) if (len(pinned)>=2) else mask
+      #  mask = spliceMask(thresh2) if (len(pinned)>=2) else mask
     else:
         mask = np.array(mask*255)[:,:,0]
     return abs(255-mask)
@@ -102,7 +114,7 @@ def composeExpandImageMask(img1,img2):
         dst = np.abs(img1-subpic).astype('uint8')
         gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
         ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-        mask[tuple[0]:tuple[2],tuple[1]:tuple[3]] = thresh1
+        mask = thresh1
     return abs(255-mask)
 
 def diffMask(img1,img2,invert):
@@ -118,7 +130,7 @@ def createMask(img1, img2, invert):
     if (sum(img1.shape) > sum(img2.shape)):
       return composeCropImageMask(img1,img2)
     if (sum(img1.shape) < sum(img2.shape)):
-      return composeExpandImageMask(img1,img2)
+      return composeCropImageMask(img2,img1)
     return diffMask(img1,img2,invert)
 
 def fixTransparency(img):

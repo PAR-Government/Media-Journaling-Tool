@@ -203,7 +203,7 @@ class MakeGenUI(Frame):
        self.drawState()
  
     def createWidgets(self):
-        self.master.title(os.path.join(self.scModel.get_dir(),"Untitled"))
+        self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
 
         menubar = Menu(self)
         filemenu = Menu(menubar, tearoff=0)

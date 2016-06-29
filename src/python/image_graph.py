@@ -130,12 +130,10 @@ class ImageGraph:
     im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
     includePathInUndo = False
-    if (not os.path.exists(newpathname)):
-      cv2.imwrite(newpathname,mask)
-      includePathInUndo = True
+    cv2.imwrite(newpathname,mask)
     self.G.add_edge(start,end, maskname=maskname, op=op, description=description, username=get_username(), softwareName=softwareName, softwareVersion=softwareVersion, opsys=getOS())
     self.U = nx.DiGraph(name="undo")
-    self.U.add_node(maskname, action='addEdge',start=start,end=end,ownership=('yes' if includePathInUndo else 'no'))
+    self.U.add_node(maskname, action='addEdge',start=start,end=end,ownership='yes')
     return im
 
   def get_image(self,name):
