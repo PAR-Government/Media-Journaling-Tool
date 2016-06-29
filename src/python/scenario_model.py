@@ -202,7 +202,7 @@ class ProjectModel:
       for file in findFiles(self.G.dir,suffix, filterFunction):
          nfile = file
          break
-      with open(nfile) as fp:
+      with open(nfile,"rb") as fp:
          im = Image.open(fp)
          im.load()
 
@@ -211,7 +211,7 @@ class ProjectModel:
     def openImage(self,nfile):
       im = None
       if nfile is not None:
-         with open(nfile) as fp:
+         with open(nfile,"rb") as fp:
            im = Image.open(fp)
            im.load()
       return nfile,im
