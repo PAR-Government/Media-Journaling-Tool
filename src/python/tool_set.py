@@ -101,7 +101,7 @@ def composeCropImageMask(img1,img2):
         ret,thresh2 = cv2.threshold(gray_image2,1,255,cv2.THRESH_BINARY)
 
         mask = thresh1
-      #  mask = spliceMask(thresh2) if (len(pinned)>=2) else mask
+        mask = seamMask(thresh2) if (len(pinned)>=2) else mask
     else:
         mask = np.array(mask*255)[:,:,0]
     return abs(255-mask)
@@ -179,7 +179,7 @@ def findHorizontalSeam(mask):
     paths = findNeighbors(paths,np.where(mask[:,y]>0)[0])
   return paths
 
-def spliceMask(mask):
+def seamMask(mask):
     seams = findVerticalSeam(mask)
     if (len(seams)>0):
       first = seams[0]
