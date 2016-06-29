@@ -108,7 +108,7 @@ class MakeGenUI(Frame):
     def nextadd(self):
         val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         file,im = self.scModel.openImage(val)
-        if (file is None): 
+        if (file is None or file == ''): 
             return
         d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):

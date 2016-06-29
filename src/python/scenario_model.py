@@ -214,7 +214,7 @@ class ProjectModel:
 
     def openImage(self,nfile):
       im = None
-      if nfile is not None:
+      if nfile is not None and nfile != '':
          with open(nfile,"rb") as fp:
            im = Image.open(fp)
            im.load()

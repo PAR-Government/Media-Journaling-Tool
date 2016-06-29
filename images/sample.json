@@ -5,27 +5,29 @@
   }, 
   "nodes": [
     {
-      "count": 2, 
+      "count": 3, 
       "id": "idcount"
     }, 
     {
-      "xpos": 264, 
-      "ownership": "no", 
-      "ypos": 331, 
-      "seriesname": "orig_input", 
+      "xpos": 244, 
       "file": "input_mod_2.png", 
-      "id": "input_mod_2"
-    }, 
-    {
-      "xpos": 281, 
-      "ownership": "no", 
-      "ypos": 227, 
+      "ypos": 303, 
       "seriesname": "orig_input", 
-      "file": "input_mod_1.png", 
-      "id": "input_mod_1"
+      "ownership": "no", 
+      "id": "input_mod_2", 
+      "ctime": "2016-06-29 15:12:07"
     }, 
     {
-      "xpos": 245, 
+      "xpos": 244, 
+      "file": "input_mod_1.png", 
+      "ypos": 174, 
+      "seriesname": "orig_input", 
+      "ownership": "no", 
+      "id": "input_mod_1", 
+      "ctime": "2016-06-29 15:11:34"
+    }, 
+    {
+      "xpos": 244, 
       "ownership": "no", 
       "ypos": 45, 
       "seriesname": "orig_input", 
@@ -33,20 +35,22 @@
       "id": "orig_input"
     }, 
     {
-      "xpos": 265, 
-      "ownership": "no", 
-      "ypos": 469, 
+      "xpos": 244, 
+      "file": "input_mod_2_3.png", 
+      "ypos": 432, 
       "seriesname": "orig_input", 
-      "file": "input_mod_2_2.png", 
-      "id": "input_mod_2_2"
+      "ownership": "yes", 
+      "id": "input_mod_2_3", 
+      "ctime": "2016-06-29 15:12:22"
     }, 
     {
-      "xpos": 388, 
-      "ownership": "no", 
-      "ypos": 153, 
-      "seriesname": "hat", 
+      "xpos": 444, 
       "file": "hat_splice.png", 
-      "id": "hat_splice"
+      "ypos": 180, 
+      "seriesname": "hat", 
+      "ownership": "no", 
+      "id": "hat_splice", 
+      "ctime": "2016-06-29 15:11:14"
     }, 
     {
       "xpos": 444, 
@@ -60,43 +64,58 @@
   "links": [
     {
       "username": "ericrobertson", 
-      "maskname": "input_mod_2_input_mod_2_2_mask.png", 
-      "target": 4, 
+      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
+      "description": "Average convolution over the RGB values of an image given a 5x5 convolution", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "softwareName": "Gimp", 
       "source": 1, 
-      "op": "ColorColorBalance", 
-      "description": "Average convolution over the RGB values of an image given a 5x5 convolution"
+      "softwareVersion": "2.6", 
+      "target": 4, 
+      "op": "ColorColorBalance"
     }, 
     {
       "username": "ericrobertson", 
       "maskname": "input_mod_1_input_mod_2_mask.png", 
-      "target": 1, 
+      "description": "Removed Section", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "softwareName": "Gimp", 
       "source": 2, 
-      "op": "SelectRemove", 
-      "description": ""
+      "softwareVersion": "2.6", 
+      "target": 1, 
+      "op": "SelectRegion"
     }, 
     {
       "username": "ericrobertson", 
       "maskname": "orig_input_input_mod_1_mask.png", 
-      "target": 2, 
+      "description": "Added hat", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "softwareName": "Gimp", 
       "source": 3, 
-      "op": "PasteSplice", 
-      "description": ""
+      "softwareVersion": "2.6", 
+      "target": 2, 
+      "op": "PasteSplice"
     }, 
     {
       "username": "ericrobertson", 
       "maskname": "hat_splice_input_mod_1_mask.png", 
-      "target": 2, 
+      "description": "", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "softwareName": "", 
       "source": 5, 
-      "op": "Donor", 
-      "description": ""
+      "softwareVersion": "", 
+      "target": 2, 
+      "op": "Donor"
     }, 
     {
       "username": "ericrobertson", 
       "maskname": "hat_hat_splice_mask.png", 
-      "target": 5, 
+      "description": "", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "softwareName": "Gimp", 
       "source": 6, 
-      "op": "SelectRegion", 
-      "description": ""
+      "softwareVersion": "2.6", 
+      "target": 5, 
+      "op": "SelectRegion"
     }
   ], 
   "multigraph": false
