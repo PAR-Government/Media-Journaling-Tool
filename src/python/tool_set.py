@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from PIL import Image 
+from operator import mul
 
 def alignShape(im,shape):
    x = min(shape[0],im.shape[0])
@@ -29,7 +30,7 @@ def alignChannels(img1, img2):
          z2[:,:,d] = img2[:,:,d]
    return z1,z2
 
-def findBestMatch(img1,img2):
+def findBestMatchOld(img1,img2):
     img1y=img1.shape[0]
     img1x=img1.shape[1]
 
@@ -41,7 +42,10 @@ def findBestMatch(img1,img2):
 
     maxv = -1
     maxc = (-1,-1)
+    done = False
     for x1 in range(0,stopx):
+        if done:
+           break
         for y1 in range(0,stopy):
             x2=x1+img2x
             y2=y1+img2y
@@ -53,7 +57,25 @@ def findBestMatch(img1,img2):
             if (matches > maxv):
                 maxc = (x1,y1)
                 maxv = matches
+            if matches == img2.shape[0]*img2.shape[1]:
+               done = True
+               break
     return (maxc[1],maxc[0],maxc[1]+img2y,maxc[0]+img2x) if maxv>0 else None
+
+
+def findBestMatch(big,small):
+    smalli = small.astype('uint8')
+    bigi = big.astype('uint8')
+    if (np.any(np.asarray([(x[1]-x[0]) for x in zip(smalli.shape,bigi.shape)])<0)):
+       return None
+    result = np.zeros((bigi.shape[0]-smalli.shape[0]+1,bigi.shape[1]-smalli.shape[1]+1))
+    for d in range(smalli.shape[2]):
+      result += cv2.matchTemplate(bigi[:,:,d], smalli[:,:,d], cv2.cv.CV_TM_SQDIFF_NORMED)
+    mn,_,mnLoc,_ = cv2.minMaxLoc(result)
+#    subpic=bigi[mnLoc[0]:mnLoc[0]+smalli.shape[0],mnLoc[1]:mnLoc[1]+smalli.shape[1],:]
+#    matches = np.sum(subpic==small)
+#    ratio = float(matches)/reduce(mul, small.shape)
+    return (mnLoc[0],mnLoc[1],mnLoc[0]+smalli.shape[0],mnLoc[1]+smalli.shape[1])
 
 def composeCropImageMask(img1,img2):
     tuple = findBestMatch(img1,img2)
@@ -69,7 +91,7 @@ def composeCropImageMask(img1,img2):
         mask = spliceMask(mask) if (len(pinned)>=2) else mask
     else:
         mask = np.array(mask*255)[:,:,0]
-    return mask
+    return abs(255-mask)
 
 def composeExpandImageMask(img1,img2):
     tuple = findBestMatch(img2,img1)
@@ -80,7 +102,7 @@ def composeExpandImageMask(img1,img2):
         submask = np.ones(test.shape)
         submask[test] = 0
         mask[tuple[0]:tuple[2],tuple[1]:tuple[3]] = submask
-    return np.array(mask*255)[:,:,0]
+    return abs(255-np.array(mask*255)[:,:,0])
 
 def createMask(img1, img2, invert):
     img1, img2 = alignChannels(img1,img2)
@@ -93,7 +115,7 @@ def createMask(img1, img2, invert):
     if (dst.shape[2]==4):
        gray_image[dst[:,:,3]>0] = 255
     ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-    return (255-np.array(thresh1)) if invert else np.array(thresh1)
+    return np.array(thresh1) if invert else (255-np.array(thresh1))
 
 def fixTransparency(img):
    if img.mode.find('A')<0:
@@ -163,3 +185,4 @@ def spliceMask(mask):
         mask[first[i],i] = 255
       return mask
     
+
