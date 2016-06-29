@@ -112,7 +112,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImage(file,im,mod=d.description)
+            self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -122,7 +122,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImage(file,im,mod=d.description)
+            self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -133,7 +133,7 @@ class MakeGenUI(Frame):
         d = DescriptionCaptureDialog(self,im,plugins.getOperations(),file)
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             im = plugins.callPlugin(d.description.operationName,im)
-            self.scModel.addNextImage(file,im,mod=d.description)
+            self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -199,7 +199,7 @@ class MakeGenUI(Frame):
             return
        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-           self.scModel.update_edge(d.description)
+           self.scModel.update_edge(d.description,software=d.getSoftware())
        self.drawState()
  
     def createWidgets(self):

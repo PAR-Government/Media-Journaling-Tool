@@ -40,28 +40,30 @@ class ProjectModel:
        self.end = None
        return nname
 
-    def update_edge(self,mod):
-        self.G.update_edge(self.start, self.end, mod.operationName, mod.additionalInfo)
+    def update_edge(self,mod,software=None):
+        self.G.update_edge(self.start, self.end, mod.operationName, mod.additionalInfo,software=software)
 
-    def connect(self,destination,mod=Modification('Donor',''), invert=False):
+    def connect(self,destination,mod=Modification('Donor',''), software=None, invert=False):
        if (self.start is None):
           return
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
        maskname=self.start + '_' + destination + '_mask'+'.png'
        self.end = destination
-       im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+       im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo, \
+            softwareName=('' if software is None else software.name), softwareVersion=('' if software is None else software.version))
        if (self.notify is not None):
           self.notify(mod)
        return im
 
-    def addNextImage(self, pathname, img, invert=False, mod=Modification('','')):
+    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None):
        if (self.end is not None):
           self.start = self.end
        nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
        maskname=self.start + '_' + nname + '_mask'+'.png'
        self.end = nname
-       im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo)
+       im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo, \
+            softwareName=('' if software is None else software.name), softwareVersion=('' if software is None else software.version))
        if (self.notify is not None):
           self.notify(mod)
        return im

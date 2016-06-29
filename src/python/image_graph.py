@@ -7,6 +7,8 @@ import os
 import shutil
 import cv2
 import getpass
+import datetime
+from software_loader import Software, SoftwareLoader, getOS
 
 try:
   import pwd
@@ -84,7 +86,7 @@ class ImageGraph:
         shutil.copy2(pathname, newpathname)
       elif image is not None:
         image.save(newpathname)
-    self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'))
+    self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
     self.U = nx.DiGraph(name="undo")
     self.U.add_node(nname, action='addNode', file=fname, ownership=('yes' if includePathInUndo else 'no'))
     return nname
@@ -106,7 +108,7 @@ class ImageGraph:
            self.G.remove_edge(node['start'],node['end'])
     self.U = nx.DiGraph(name="undo")
 
-  def update_edge(self, start, end,op=None,description=None):
+  def update_edge(self, start, end,op=None,description=None, software=None):
     if start is None or end is None:
       return
     if not self.G.has_node(start) or not self.G.has_node(end):
@@ -115,15 +117,18 @@ class ImageGraph:
       self.G[start][end]['op'] = op 
     if (description is not None):
       self.G[start][end]['description'] = description
+    if (software is not None):
+      self.G[start][end]['softwareName'] = software.name
+      self.G[start][end]['softwareVersion'] = software.version
     
-  def add_edge(self,start, end, maskname=None,mask=None, op='Change',description=''):
+  def add_edge(self,start, end, maskname=None,mask=None, op='Change',description='', softwareName='', softwareVersion=''):
     im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
     includePathInUndo = False
     if (not os.path.exists(newpathname)):
       cv2.imwrite(newpathname,mask)
       includePathInUndo = True
-    self.G.add_edge(start,end, maskname=maskname, op=op, description=description, username=get_username())
+    self.G.add_edge(start,end, maskname=maskname, op=op, description=description, username=get_username(), softwareName=softwareName, softwareVersion=softwareVersion, opsys=getOS())
     self.U = nx.DiGraph(name="undo")
     self.U.add_node(maskname, action='addEdge',start=start,end=end,ownership=('yes' if includePathInUndo else 'no'))
     return im

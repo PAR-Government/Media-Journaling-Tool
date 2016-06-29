@@ -147,7 +147,7 @@ class MaskGraphCanvas(tk.Canvas):
                file = node['file']
                d = DescriptionCaptureDialog(self.master,im,self.ops,file)
                if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                 self.scModel.connect(nodeId,mod=d.description)
+                 self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
                  ok = True
                else:
                  ok = False

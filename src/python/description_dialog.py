@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize
 from scenario_model import ProjectModel,Modification
+from software_loader import Software, SoftwareLoader, getOS
 
 def opfromitem(item):
    return (item[0] if type(item) is tuple else item)
@@ -24,6 +25,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    description = None
    im = None
+   softwareName = None
+   softwareVersion = None
    myops = []
    photo=None
    c= None
@@ -34,6 +37,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.parent = parent
       self.value_of_combo=''
       self.description=description
+      self.software = SoftwareLoader()
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def newcategory(self, event):
@@ -58,6 +62,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       Label(master, text="Category").grid(row=1)
       Label(master, text="Operation:").grid(row=2)
       Label(master, text="Description:").grid(row=3)
+      Label(master, text="Software Name:").grid(row=4)
+      Label(master, text="Software Version:").grid(row=5)
 
       opv = []
       cats = self.myops.keys()
@@ -65,6 +71,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
          opv = [opfromitem(x) for x in self.myops[cats[0]]]
       self.e1 = AutocompleteEntryInText(master,values=cats,takefocus=False)
       self.e2 = AutocompleteEntryInText(master,values=opv,takefocus=False)
+      self.e4 = AutocompleteEntryInText(master,values=self.software.get_names(),takefocus=False)
+      self.e5 = AutocompleteEntryInText(master,values=self.software.get_versions(),takefocus=False)
       self.e1.bind("<Return>", self.newcategory)
       self.e1.bind("<<ComboboxSelected>>", self.newcategory)
       self.e2.bind("<Return>", self.newselection)
@@ -79,6 +87,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.e1.grid(row=1, column=1)
       self.e2.grid(row=2, column=1)
       self.e3.grid(row=3, column=1)
+      self.e4.grid(row=4, column=1)
+      self.e5.grid(row=5, column=1)
 
       if self.description is not None:
          self.e1.set_completion_list(self.myops.keys(),initialValue=getCategory(self.myops,self.description))
@@ -95,4 +105,14 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    def apply(self):
        self.description = Modification(self.value_of_combo,self.e3.get())
+       self.softwareName = self.e4.get()
+       self.softwareVersion = self.e5.get()
+       s = self.getSoftware()
+       if s is not None:
+          if (self.software.add(s)):
+             self.software.save()
 
+   def getSoftware(self):
+      if self.softwareName != '' and self.softwareVersion != '':
+         return Software(self.softwareName,self.softwareVersion)
+      return None
