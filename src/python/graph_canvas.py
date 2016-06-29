@@ -324,6 +324,7 @@ class NodeObj(tk.Canvas):
         self.bind('<ButtonRelease-1>', self._host_event('onNodeButtonRelease'))
         self.bind('<B1-Motion>', self._host_event('onNodeMotion'))
         self.bind('<Button-2>', self._host_event('onTokenRightClick'))
+        self.bind('<Double-Button-1>', self._host_event('onTokenRightClick'))
 #        self.bind('<Key>', self._host_event('onNodeKey'))
 #        self.bind('<Enter>', lambda e: self.focus_set())
 #        self.bind('<Leave>', lambda e: self.master.focus())
@@ -378,6 +379,7 @@ class LineTextObj(tk.Canvas):
         self.edge_name = edge_name
 
         self.bind('<Button-2>', self._host_event('onTokenRightClick'))
+        self.bind('<Double-Button-1>', self._host_event('onTokenRightClick'))
 #        self.bind('<Enter>', lambda e: self.focus_set())
 #        self.bind('<Leave>', lambda e: self.master.focus())
 
