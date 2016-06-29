@@ -106,6 +106,8 @@ class ProjectModel:
 
     def load(self,pathname):
        self.G.load(pathname)
+       self.start = None
+       self.end = None
        self._setup()
 
     def _setup(self):

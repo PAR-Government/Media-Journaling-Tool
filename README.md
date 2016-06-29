@@ -77,6 +77,14 @@ Image nodes may be selected, changing image display.  The image associated with 
 
 Links may be selected, change the image display to show the output node, input node and associated different mask.  Removing link results in removeing the link and all downstream nodes and links.  Editing a link permits the user to change the operation and description.  Caution: do not change the operation name and description when using a plugin operation ([Process Next w/Filter [Ctrl-f]).
 
+## Link Descriptions
+
+Link descriptionns include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different software with differant versions to manipulate images, the tool is not equipped nor does it enforce a single set, as is done with operations.
+
+## Other Meta-Data
+
+No shown in the UI, the project JSON file also contains the user performing the manipulation, the operating system used to run the manipulation and the upload time for each image.
+
 # Paste Splice
 
 Paste Splice is a special operation that expects a donor image.  This is the only type of operation where a image node can have two incoming links.  The first link is PasteSplice, recording the difference from the prior image (the mask is only the spliced in image). The second link is a donor image. The tool enforces that a second incoming link to a node is a donor link.  The tool does not force donor links to exist.  Instead, the tool reminds the user to form the link.  There may be several steps to create a donor image from an initial image (e.g. bluring, cropping, etc). 
