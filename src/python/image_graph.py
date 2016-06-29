@@ -12,14 +12,19 @@ from software_loader import Software, SoftwareLoader, getOS
 
 try:
   import pwd
+  import os
+  class PwdX():
+     def getpwuid(self):
+          return pwd.getpwuid( os.getuid() )[ 0 ]
+  pwdAPI = PwdX()
 except ImportError:
-  class Pwd():
-     def getpwuid(self, user):
+  class PwdX():
+     def getpwuid(self):
           return getpass.getuser()
-  pwd = Pwd()
+  pwdAPI = PwdX()
 
 def get_username():
-    return pwd.getpwuid( os.getuid() )[ 0 ]
+    return pwdAPI.getpwuid()
 
 def get_pre_name(file):
   pos = file.rfind('.')
