@@ -15,11 +15,13 @@ class Modification:
    operationName = None
    additionalInfo = ''
    category = None
+   inputmaskpathname=None
 
-   def __init__(self, name, additionalInfo, category=None):
+   def __init__(self, name, additionalInfo, category=None,inputmaskpathname=None):
      self.additionalInfo  = additionalInfo
      self.operationName = name
      self.category = category
+     self.inputmaskpathname = inputmaskpathname
 
 class ProjectModel:
     G = None
@@ -41,18 +43,26 @@ class ProjectModel:
        return nname
 
     def update_edge(self,mod,software=None):
-        self.G.update_edge(self.start, self.end, mod.operationName, mod.additionalInfo,software=software)
+        self.G.update_edge(self.start, self.end, \
+            inputmaskpathname=mod.inputmaskpathname, \
+            op=mod.operationName, \
+            description=mod.additionalInfo, \
+            softwareName=('' if software is None else software.name), \
+            softwareVersion=('' if software is None else software.version))
 
-    def connect(self,destination,mod=Modification('Donor',''), software=None, invert=False):
+    def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False):
        if (self.start is None):
           return
-       mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
+       mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
        maskname=self.start + '_' + destination + '_mask'+'.png'
        self.end = destination
        im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+            inputmaskpathname=mod.inputmaskpathname, \
             op=mod.operationName,description=mod.additionalInfo, \
+            editable='yes', \
             softwareName=('' if software is None else software.name), \
-            softwareVersion=('' if software is None else software.version))
+            softwareVersion=('' if software is None else software.version), \
+            **analysis)
        if (self.notify is not None):
           self.notify(mod)
        return im
@@ -71,13 +81,16 @@ class ProjectModel:
        if (self.end is not None):
           self.start = self.end
        nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
-       mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
+       mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
        maskname=self.start + '_' + nname + '_mask'+'.png'
        self.end = nname
        im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+            inputmaskpathname=mod.inputmaskpathname, \
             op=mod.operationName,description=mod.additionalInfo, \
             editable='no' if software.internal else 'yes', \
-            softwareName=('' if software is None else software.name), softwareVersion=('' if software is None else software.version))
+            softwareName=('' if software is None else software.name), \
+            softwareVersion=('' if software is None else software.version), \
+            **analysis)
        if (self.notify is not None):
           self.notify(mod)
        return im
@@ -148,7 +161,7 @@ class ProjectModel:
           return None
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
-          return Modification(edge['op'],edge['description'])
+          return Modification(edge['op'],edge['description'],inputmaskpathname=self.G.get_inputmaskpathname(self.start,self.end))
        return None
 
     def startImage(self):

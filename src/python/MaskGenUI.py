@@ -111,7 +111,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
@@ -121,7 +121,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.scanNextImage()
         if (file is None): 
             return
-        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
@@ -131,7 +131,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.currentImage()
         if (im is None): 
             return
-        d = DescriptionCaptureDialog(self,im,plugins.getOperations(),file)
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file)
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             im = plugins.callPlugin(d.description.operationName,im)
             s = d.getSoftware()
@@ -200,7 +200,7 @@ class MakeGenUI(Frame):
        file,im = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description,software=d.getSoftware())
        self.drawState()

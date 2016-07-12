@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from PIL import Image 
 from operator import mul
+import math
+from skimage.measure import compare_ssim as ssim
 
 def alignShape(im,shape):
    x = min(shape[0],im.shape[0])
@@ -62,7 +64,6 @@ def findBestMatchOld(img1,img2):
                break
     return (maxc[1],maxc[0],maxc[1]+img2y,maxc[0]+img2x) if maxv>0 else None
 
-
 def findBestMatch(big,small):
     smalli = small.astype('uint8')
     bigi = big.astype('uint8')
@@ -83,16 +84,19 @@ def findBestMatch(big,small):
 def composeCropImageMask(img1,img2):
     tuple = findBestMatch(img1,img2)
     mask = np.zeros(img1.shape)
+    analysis={}
     if tuple is not None:
         dims = (0,img2.shape[0],0,img2.shape[1])
         
-        diffIm = np.zeros(img1.shape)
+        diffIm = np.zeros(img1.shape).astype('uint8')
         diffIm[tuple[0]:tuple[2],tuple[1]:tuple[3],:]=img2
 
-        diffIm2 = np.copy(img1)
+        diffIm2 = np.copy(img1).astype('uint8')
         diffIm2[tuple[0]:tuple[2],tuple[1]:tuple[3],:]=img2
 
         pinned = np.where(np.array(dims)==np.array(tuple))[0]
+
+        analysis = img_analytics(img1,diffIm)
 
         dst = np.abs(img1-diffIm).astype('uint8')
         dst2 = np.abs(img1-diffIm2).astype('uint8')
@@ -110,8 +114,9 @@ def composeCropImageMask(img1,img2):
        dst = np.abs(img1-img2).astype('uint8')
        gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
        ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
+       analysis = img_analytics(img1,img2)
        mask = thresh1
-    return abs(255-mask)
+    return (abs(255-mask),analysis)
 
 def composeExpandImageMask(img1,img2):
     tuple = findBestMatch(img2,img1)
@@ -124,13 +129,26 @@ def composeExpandImageMask(img1,img2):
         mask = thresh1
     return abs(255-mask)
 
+def structured_simularity(z1,z2):
+    return ssim(z1,z2,multichannel=True)
+
+def colorPSNR(z1,z2):
+    d = (z1-z2)**2
+    sse = np.sum(d)
+    mse=  float(sse)/float(reduce(lambda x, y: x*y, d.shape))
+    return 20.0* math.log10(255.0/math.sqrt(mse))
+
+def img_analytics(z1,z2):
+   return {'ssim':structured_simularity(z1,z2),'psnr':colorPSNR(z1,z2)}
+
 def diffMask(img1,img2,invert):
     dst = np.abs(img1-img2).astype('uint8')
     gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
     if (dst.shape[2]==4):
        gray_image[dst[:,:,3]>0] = 255
     ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
-    return np.array(thresh1) if invert else (255-np.array(thresh1))
+    analysis = img_analytics(img1,img2)
+    return (np.array(thresh1) if invert else (255-np.array(thresh1)),analysis)
 
 def createMask(img1, img2, invert):
     img1, img2 = alignChannels(img1,img2)

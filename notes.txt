@@ -40,3 +40,6 @@ Issues:
 > (33) Masks need to be inverted for acceptance by evaluation team
 > (34) Center on selected image not working with graph scroll bars
 # (35) When first loading up, the current link is not high-lighted in the graph
+# (36) When chnging a owned mask on edge, the old one should be removed (see update_edge)
+# (37) Undo does not handle the removal of edge input masks
+
