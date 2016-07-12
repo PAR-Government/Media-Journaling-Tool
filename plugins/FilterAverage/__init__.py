@@ -12,5 +12,5 @@ def transform(img):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['ColorColorBalance','Color','Average convolution over the RGB values of an image given a 5x5 convolution']
+  return ['ColorColorBalance','Color','Average convolution over the RGB values of an image given a 5x5 convolution','OpenCV','2.4.13']
 

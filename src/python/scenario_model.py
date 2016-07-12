@@ -3,7 +3,7 @@ import os
 import numpy as np
 from PIL import Image, ImageTk
 import tool_set
-
+from software_loader import Software
 
 def findProject(dir):
     if (dir.endswith(".json")):
@@ -49,11 +49,23 @@ class ProjectModel:
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
        maskname=self.start + '_' + destination + '_mask'+'.png'
        self.end = destination
-       im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo, \
-            softwareName=('' if software is None else software.name), softwareVersion=('' if software is None else software.version))
+       im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+            op=mod.operationName,description=mod.additionalInfo, \
+            softwareName=('' if software is None else software.name), \
+            softwareVersion=('' if software is None else software.version))
        if (self.notify is not None):
           self.notify(mod)
        return im
+
+    def getSoftware(self):
+      e = self.G.get_edge(self.start, self.end)
+      if e is None:
+          return None
+      return Software(e['softwareName'],e['softwareVersion'],'editable' in e and e['editable'] == 'no')
+
+    def isEditableEdge(self,start,end):
+      e = self.G.get_edge(start,end)
+      return 'editable' not in e or e['editable'] == 'yes'
 
     def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None):
        if (self.end is not None):
@@ -62,7 +74,9 @@ class ProjectModel:
        mask = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
        maskname=self.start + '_' + nname + '_mask'+'.png'
        self.end = nname
-       im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname,op=mod.operationName,description=mod.additionalInfo, \
+       im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+            op=mod.operationName,description=mod.additionalInfo, \
+            editable='no' if software.internal else 'yes', \
             softwareName=('' if software is None else software.name), softwareVersion=('' if software is None else software.version))
        if (self.notify is not None):
           self.notify(mod)
@@ -172,12 +186,15 @@ class ProjectModel:
       self.end = end
 
     def remove(self):
-       name = self.start if self.end is None else self.end
-       p = self.G.predecessors(self.start) if self.end is None else [self.start]
-       self.G.remove(name, None)
-       self.start = p[0] if len(p) > 0  else None
-       print self.start
-       self.end = None
+       if (self.start is not None and self.end is not None):
+           self.G.remove_edge(self.start, self.end)
+           self.end = None
+       else:
+         name = self.start if self.end is None else self.end
+         p = self.G.predecessors(self.start) if self.end is None else [self.start]
+         self.G.remove(name, None)
+         self.start = p[0] if len(p) > 0  else None
+         self.end = None
 
     def getGraph(self):
       return self.G

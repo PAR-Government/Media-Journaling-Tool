@@ -75,7 +75,10 @@ def findBestMatch(big,small):
 #    subpic=bigi[mnLoc[0]:mnLoc[0]+smalli.shape[0],mnLoc[1]:mnLoc[1]+smalli.shape[1],:]
 #    matches = np.sum(subpic==small)
 #    ratio = float(matches)/reduce(mul, small.shape)
-    return (mnLoc[0],mnLoc[1],mnLoc[0]+smalli.shape[0],mnLoc[1]+smalli.shape[1])
+    tuple=(mnLoc[0],mnLoc[1],mnLoc[0]+smalli.shape[0],mnLoc[1]+smalli.shape[1])
+    if (tuple[2] > big.shape[0] or tuple[3] > big.shape[1]):
+      return None
+    return tuple
 
 def composeCropImageMask(img1,img2):
     tuple = findBestMatch(img1,img2)
@@ -103,7 +106,11 @@ def composeCropImageMask(img1,img2):
         mask = thresh1
         mask = seamMask(thresh2) if (len(pinned)>=2) else mask
     else:
-        mask = np.array(mask*255)[:,:,0]
+       img1 = np.array(Image.fromarray(img1).resize((img2.shape[1],img2.shape[0])))
+       dst = np.abs(img1-img2).astype('uint8')
+       gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+       ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
+       mask = thresh1
     return abs(255-mask)
 
 def composeExpandImageMask(img1,img2):

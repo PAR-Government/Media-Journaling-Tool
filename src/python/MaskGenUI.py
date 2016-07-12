@@ -12,7 +12,7 @@ from mask_frames import HistoryFrame
 import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
-from description_dialog import DescriptionCaptureDialog
+from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog
 from tool_set import imageResize,fixTransparency
 
 # this program creates a canvas and puts a single polygon on the canvas
@@ -40,6 +40,7 @@ class MakeGenUI(Frame):
     mypluginops = {}
     nodemenu = None
     edgemenu = None
+    filteredgemenu = None
     canvas = None
 
     def _check_dir(self,pathinfo):
@@ -133,7 +134,9 @@ class MakeGenUI(Frame):
         d = DescriptionCaptureDialog(self,im,plugins.getOperations(),file)
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             im = plugins.callPlugin(d.description.operationName,im)
-            self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            s = d.getSoftware()
+            s.internal=True
+            self.scModel.addNextImage(file,im,mod=d.description,software=s)
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
 
@@ -197,11 +200,17 @@ class MakeGenUI(Frame):
        file,im = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription())
+       d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description,software=d.getSoftware())
        self.drawState()
- 
+
+    def view(self):
+       file,im = self.scModel.currentImage()
+       if (im is None): 
+            return
+       d = DescriptionViewDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+
     def createWidgets(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
 
@@ -274,6 +283,11 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Edit", command=self.edit)
 
+        self.filteredgemenu = Menu(self.master,tearoff=0)
+        self.filteredgemenu.add_command(label="Select", command=self.select)
+        self.filteredgemenu.add_command(label="Remove", command=self.remove)
+        self.filteredgemenu.add_command(label="Inspect", command=self.view)
+
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
         mframe.grid_rowconfigure(0, weight=1)
         mframe.grid_columnconfigure(0, weight=1)
@@ -296,9 +310,11 @@ class MakeGenUI(Frame):
     def graphCB(self, event, eventName):
        if eventName == 'rcNode':
           self.nodemenu.post(event.x_root,event.y_root)
-       if eventName == 'rcEdge':
+       elif eventName == 'rcEdge':
           self.edgemenu.post(event.x_root,event.y_root)
-       if eventName == 'n':
+       elif eventName == 'rcNonEditEdge':
+          self.filteredgemenu.post(event.x_root,event.y_root)
+       elif eventName == 'n':
            self.drawState()
 
     def __init__(self,dir,master=None, ops=[],pluginops={}):

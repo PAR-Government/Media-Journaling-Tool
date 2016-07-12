@@ -43,7 +43,7 @@ def getOperations():
         op = loaded[l]['operation']
         if not ops.has_key(op[1]):
             ops[op[1]]=[]
-        ops[op[1]].append((op[0],op[2]))
+        ops[op[1]].append((op[0],op[2],op[3],op[4]))
     return ops
     
 def callPlugin(name,im):

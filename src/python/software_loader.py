@@ -9,10 +9,12 @@ def getOS():
 class Software:
    name = None
    version = None
+   internal = False
 
-   def __init__(self, name, version):
+   def __init__(self, name, version, internal=False):
      self.name = name
      self.version = version
+     self.internal=internal
 
 
 class SoftwareLoader:
