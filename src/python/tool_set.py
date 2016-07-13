@@ -118,7 +118,7 @@ def composeCropImageMask(img1,img2):
        ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
        analysis = img_analytics(img1,img2)
        mask = thresh1
-    return (abs(255-mask),analysis)
+    return (abs(255-mask).astype('uint8'),analysis)
 
 def composeExpandImageMask(img1,img2):
     tuple = findBestMatch(img2,img1)
@@ -129,13 +129,13 @@ def composeExpandImageMask(img1,img2):
         gray_image = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
         ret,thresh1 = cv2.threshold(gray_image,1,255,cv2.THRESH_BINARY)
         mask = thresh1
-    return abs(255-mask)
+    return abs(255-mask).astype('uint8')
 
 def colorPSNR(z1,z2):
     d = (z1-z2)**2
     sse = np.sum(d)
     mse=  float(sse)/float(reduce(lambda x, y: x*y, d.shape))
-    return 20.0* math.log10(255.0/math.sqrt(mse))
+    return 0.0 if mse==0.0 else 20.0* math.log10(255.0/math.sqrt(mse))
 
 def img_analytics(z1,z2):
    with warnings.catch_warnings():
@@ -157,7 +157,22 @@ def createMask(img1, img2, invert):
       return composeCropImageMask(img1,img2)
     if (sum(img1.shape) < sum(img2.shape)):
       return composeCropImageMask(img2,img1)
-    return diffMask(img1,img2,invert)
+    #rotation
+    try:
+      if (img1.shape != img2.shape):
+        one = np.rot90(img2,1)
+        one_diff,one_analysis = diffMask(img1,one,invert)
+        three = np.rot90(img2,3)
+        three_diff,three_analysis = diffMask(img1,three,invert)
+        if abs(three_analysis['ssim']) > abs(one_analysis['ssim']):
+           return three_diff,three_analysis
+        else:
+           return one_diff,one_analysis
+      else:    
+        return diffMask(img1,img2,invert)
+    except ValueError:
+      mask = np.ones(img1.shape)*255
+      return abs(255-mask).astype('uint8'),{}
 
 def fixTransparency(img):
    if img.mode.find('A')<0:
