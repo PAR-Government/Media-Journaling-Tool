@@ -145,7 +145,7 @@ class ImageGraph:
       if v is not None:
         if k == 'inputmaskownership' and own is None:
           own = v
-        elif k=='inputmaskname':
+        elif k=='inputmaskpathname':
           inputmaskname,own = self.handle_inputmask(v)
           self.G[start][end]['inputmaskname']=inputmaskname
         else:
