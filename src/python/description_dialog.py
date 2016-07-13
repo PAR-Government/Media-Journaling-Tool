@@ -68,18 +68,18 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         oplist = [opfromitem(x) for x in self.myops[self.e1.get()]]
         desclist = [descfromitem(x) for x in self.myops[self.e1.get()]]
         self.e2.set_completion_list(oplist)
-        self.e3.delete(0)
-        self.e3.insert(0,desclist[0] if len(desclist)>0 else '')
+        self.e3.delete(1.0,END)
+        self.e3.insert(1.0,desclist[0] if len(desclist)>0 else '')
       else:
         self.e2.set_completion_list([])
-        self.e3.delete(0)
+        self.e3.delete(1.0,END)
 
    def body(self, master):
       self.photo = ImageTk.PhotoImage(imageResize(self.im,(250,250)))
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(125,125,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
-      Label(master, text="Category").grid(row=1,sticky=W)
+      Label(master, text="Category:").grid(row=1,sticky=W)
       Label(master, text="Operation:").grid(row=2,sticky=W)
       Label(master, text="Description:").grid(row=3,sticky=W)
       Label(master, text="Software Name:").grid(row=4,sticky=W)
@@ -87,8 +87,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       Label(master, text="Input Mask:").grid(row=6, column=0,sticky=W)
       self.inputmaskvar = StringVar()
       self.inputmaskvar.set('None' if self.description.inputmaskpathname is None else os.path.split(self.description.inputmaskpathname)[1])
-      Label(master, textvariable=self.inputmaskvar).grid(row=6,column=1)
-      self.b = Button(master,text="Load",command=self.addinputmask)
+      Label(master, textvariable=self.inputmaskvar).grid(row=6,column=1, sticky=W)
+      self.attachImage = ImageTk.PhotoImage(file="icons/attach.png")
+      self.b = Button(master,image=self.attachImage,text="Load",command=self.addinputmask)
       self.b.grid(row=6,column=3)
 
       opv = []
@@ -103,14 +104,14 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.e1.bind("<<ComboboxSelected>>", self.newcategory)
       self.e2.bind("<Return>", self.newcommand)
       self.e2.bind("<<ComboboxSelected>>", self.newcommand)
-      self.e3 = Entry(master)
+      self.e3 = Text(master,height=2,width=28,font=('Times', '14'))
 
       if (len(cats)>0):
-        self.e3.insert(0,descfromitem(self.myops[cats[0]][0]))
+        self.e3.insert(1.0,descfromitem(self.myops[cats[0]][0]))
 
       self.e1.grid(row=1, column=1)
       self.e2.grid(row=2, column=1)
-      self.e3.grid(row=3, column=1)
+      self.e3.grid(row=3, column=1,sticky=E)
       self.e4.grid(row=4, column=1)
       self.e5.grid(row=5, column=1)
 
@@ -126,8 +127,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             oplist = [opfromitem(x) for x in self.myops[self.e1.get()]]
             self.e2.set_completion_list(oplist,self.description.operationName)
          if (self.description.additionalInfo is not None):
-            self.e3.delete(0)
-            self.e3.insert(0,self.description.additionalInfo)
+            self.e3.delete(1.0, END)
+            self.e3.insert(1.0,self.description.additionalInfo)
 
       if self.software is not None:
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.software.name)
@@ -154,7 +155,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    def apply(self):
        self.description.operationName=self.e2.get()
-       self.description.additionalInfo=self.e3.get()
+       self.description.additionalInfo=self.e3.get(1.0,END)
        self.description.category=self.e1.get()
        self.software=Software(self.e4.get(),self.e5.get())
        if (self.softwareLoader.add(self.software)):
@@ -184,7 +185,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(128,128,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
-      Label(master, text="Category",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
+      Label(master, text="Category:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
       Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
       Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
       Label(master, text="Software Name:",anchor=W,justify=LEFT).grid(row=4, column=0,sticky=W)

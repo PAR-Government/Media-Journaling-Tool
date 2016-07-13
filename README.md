@@ -80,11 +80,13 @@ Links may be selected, change the image display to show the output node, input n
 
 ## Link Descriptions
 
-Link descriptionns include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different software with differant versions to manipulate images, the tool is not equipped nor does it enforce a single set, as is done with operations.
+Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different software with differant versions to manipulate images, the tool is not equipped nor does it enforce a single set, as is done with operations.
+
+Link descriptions can include an input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output image.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  The input mask is an optional attachment.  When first attached to the description, the mask is not shown in the description dialog.  On subsequent edits, the image is both shown and able to be replaced with a new attachment.
 
 ## Other Meta-Data
 
-No shown in the UI, the project JSON file also contains the user performing the manipulation, the operating system used to run the manipulation and the upload time for each image.
+No shown in the UI, the project JSON file also contains the operating system used to run the manipulation and the upload time for each image.
 
 # Paste Splice
 
@@ -98,9 +100,25 @@ Paste Splice is a special operation that expects a donor image.  This is the onl
 
 When performing manipulations, it is important to consider what is detectable in an modified image. A crop may not detectable, depending on the compression configuration, since the initial image is absent in the analysis.  A move manipulation, in itself, resembles an insert.  It is acceptable to group manipulations so long a their final result can be represented as one of the accepted singular operations configured with the tool. A pure crop does not produce a mask with identified changes.  Thus, it is important to the manipulation operation to understand the operation.
 
+## Analytics
+
+During mask generation, analytics are processed on the images.  
+The analytics include:
+
+* [Structural Similarity](https://en.wikipedia.org/wiki/Structural_similarity)
+* [Peak Signal to Noise Ratio](https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio)
+
+NOTE: Structual Similarity produces a warning on the tool command line output that can be safely ignored.  There is a bug within the scikit-image package where the compare_ssim function calls a known deprecated function for multichannel images.  Furthermore, the deprecation warning module reinstates the warning filter prior to issuing the warning, thus overriding warning suppression.
+
 # Plugins
 
 Plugin filters are python scripts.  They are located under a plugins directory.  Each plugin is a directory with a file __init__.py  The __init__ module must provide two functions: 
 
-(1) 'operation()' that returns a list of three items 'operation name', 'operation category' and 'description'
+(1) 'operation()' that returns a list of five items 'operation name', 'operation category', 'description', 'python package','package version'
 (2) 'transform(im)' that consumes a PIL Image and returns a PIL Image.
+
+The python package and package version are automatically added to the list of software used by the manipulator.
+
+# Known Issues
+
+During mask calculation, the system r

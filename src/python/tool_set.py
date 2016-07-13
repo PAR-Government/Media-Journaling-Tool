@@ -3,7 +3,8 @@ import numpy as np
 from PIL import Image 
 from operator import mul
 import math
-from skimage.measure import compare_ssim as ssim
+from skimage.measure import compare_ssim
+import warnings
 
 def alignShape(im,shape):
    x = min(shape[0],im.shape[0])
@@ -129,9 +130,6 @@ def composeExpandImageMask(img1,img2):
         mask = thresh1
     return abs(255-mask)
 
-def structured_simularity(z1,z2):
-    return ssim(z1,z2,multichannel=True)
-
 def colorPSNR(z1,z2):
     d = (z1-z2)**2
     sse = np.sum(d)
@@ -139,7 +137,9 @@ def colorPSNR(z1,z2):
     return 20.0* math.log10(255.0/math.sqrt(mse))
 
 def img_analytics(z1,z2):
-   return {'ssim':structured_simularity(z1,z2),'psnr':colorPSNR(z1,z2)}
+   with warnings.catch_warnings():
+     warnings.simplefilter("ignore")
+     return {'ssim':compare_ssim(z1,z2,multichannel=True),'psnr':colorPSNR(z1,z2)}
 
 def diffMask(img1,img2,invert):
     dst = np.abs(img1-img2).astype('uint8')
