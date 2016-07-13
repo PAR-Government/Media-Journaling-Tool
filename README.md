@@ -18,6 +18,7 @@ pip install numpy
 pip install matplotlib
 pip install networkx
 pip install moviepy
+pip install scikit-image
 ```
 
 # Usage

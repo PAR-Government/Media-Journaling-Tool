@@ -90,7 +90,7 @@ class ImageGraph:
       nname = nname + '_' + str(self.nextId())
       fname = nname + suffix
     newpathname = os.path.join(self.dir,fname)
-    includePathInUndo = False
+    includePathInUndo = (newpathname in self.filesToRemove)
     if (not os.path.exists(newpathname)):
       includePathInUndo = True
       if (os.path.exists(pathname)):
@@ -118,6 +118,10 @@ class ImageGraph:
          k = os.path.join(self.dir,d['maskname'])
          if k in self.filesToRemove:
            self.filesToRemove.remove(k)
+         if 'inputmaskname' in d:
+            k = os.path.join(self.dir,d['inputmaskname'])
+            if k in self.filesToRemove:
+              self.filesToRemove.remove(k)
          start = d.pop('start')
          end = d.pop('end')
          self.G.add_edge(start,end,**d)
@@ -131,28 +135,56 @@ class ImageGraph:
          self.G.remove_edge(d['start'],d['end'])
     self.U = []
 
-  def update_edge(self, start, end,op=None,description=None, software=None):
+  def update_edge(self, start, end,**kwargs):
     if start is None or end is None:
       return
     if not self.G.has_node(start) or not self.G.has_node(end):
       return
-    if (op is not None):
-      self.G[start][end]['op'] = op 
-    if (description is not None):
-      self.G[start][end]['description'] = description
-    if (software is not None):
-      self.G[start][end]['softwareName'] = software.name
-      self.G[start][end]['softwareVersion'] = software.version
-    
-  def add_edge(self,start, end, maskname=None,mask=None,editable='yes',op='Change',description='', softwareName='', softwareVersion=''):
+    own = None
+    for k,v in kwargs.iteritems():
+      if v is not None:
+        if k == 'inputmaskownership' and own is None:
+          own = v
+        elif k=='inputmaskname':
+          inputmaskname,own = self.handle_inputmask(v)
+          self.G[start][end]['inputmaskname']=inputmaskname
+        else:
+          self.G[start][end][k]=v
+    self.G[start][end]['inputmaskownership']=own if own is not None else 'no'
+
+  def get_inputmaskpathname(self,start,end):
+    e = self.G[start][end]
+    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e else None
+
+  def handle_inputmask(self,inputmaskpathname):
+    includePathInUndo = False
+    inputmaskname = ''
+    if inputmaskpathname is not None:
+      inputmaskname=os.path.split(inputmaskpathname)[1]
+      newinputpathname = os.path.join(self.dir,inputmaskname)
+      # already slated for removal
+      includePathInUndo = (newinputpathname in self.filesToRemove)
+      if (not os.path.exists(newinputpathname)):
+        includePathInUndo = True
+        if (os.path.exists(inputmaskpathname)):
+          shutil.copy2(inputmaskpathname, newinputpathname)
+      if newinputpathname in self.filesToRemove:
+        self.filesToRemove.remove(newinputpathname)
+    return inputmaskname, 'yes' if includePathInUndo else 'no'
+
+  def add_edge(self,start, end,inputmaskpathname=None,maskname=None,mask=None,op='Change',description='',**kwargs):
     im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
-    includePathInUndo = False
     cv2.imwrite(newpathname,mask)
+    inputmaskname,inputmaskownership= self.handle_inputmask(inputmaskpathname)
     # do not remove old version of mask if not saved previously
     if newpathname in self.filesToRemove:
       self.filesToRemove.remove(newpathname)
-    self.G.add_edge(start,end, maskname=maskname,editable=editable,op=op, description=description, username=get_username(), softwareName=softwareName, softwareVersion=softwareVersion, opsys=getOS())
+    self.G.add_edge(start,end, maskname=maskname,op=op, \
+         description=description, username=get_username(), opsys=getOS(), \
+         inputmaskname=inputmaskname, \
+         inputmaskownership=inputmaskownership, \
+         **kwargs)
     self.U = []
     self.U.append(dict(action='addEdge', ownership='yes', start=start,end=end, **self.G.edge[start][end]))
     return im
@@ -172,16 +204,23 @@ class ImageGraph:
        im.load()
        return im
 
-  def remove(self,node,edgeFunc=None,children=False):
-    self.U = []
-    self.E = []
-    def maskRemover(start,end,edge):
+  def _maskRemover(self,actionList, edgeFunc, start,end,edge):
        if edgeFunc is not None:
          edgeFunc(edge)
        f = os.path.abspath(os.path.join(self.dir,edge['maskname']))
        if (os.path.exists(f)):
           self.filesToRemove.add(f)
-       self.E.append(dict(start=start,end=end,action='removeEdge',**self.G.edge[start][end]))
+       if 'inputmaskname' in edge:
+          f = os.path.abspath(os.path.join(self.dir,edge['inputmaskname']))
+          if (os.path.exists(f)):
+            self.filesToRemove.add(f)
+       actionList.append(dict(start=start,end=end,action='removeEdge',**self.G.edge[start][end]))
+
+  def remove(self,node,edgeFunc=None,children=False):
+    self.U = []
+    self.E = []
+    def maskRemover(start,end,edge):
+       self._maskRemover(self.E,edgeFunc,start,end,edge)
     #remove predecessor edges
     for p in self.G.predecessors(node):
       maskRemover(p,node,self.G.edge[p][node])
@@ -203,12 +242,7 @@ class ImageGraph:
   def remove_edge(self,start,end,edgeFunc=None):
     self.U = []
     edge = self.G.edge[start][end]
-    if edgeFunc is not None:
-      edgeFunc(edge)
-    f = os.path.abspath(os.path.join(self.dir,edge['maskname']))
-    if (os.path.exists(f)):
-      self.filesToRemove.add(f)
-    self.U.append(dict(start=start,end=end,action='removeEdge',**self.G.edge[start][end]))
+    self._maskRemover(self.U,edgeFunc,start,end,edge)
     self.G.remove_edge(start,end)
 
   def predecessors(self,node):

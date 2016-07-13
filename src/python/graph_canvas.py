@@ -145,7 +145,7 @@ class MaskGraphCanvas(tk.Canvas):
             if (len(preds) == 0):
                im = self.scModel.getGraph().get_image(nodeId)
                file = node['file']
-               d = DescriptionCaptureDialog(self.master,im,self.ops,file)
+               d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,self.ops,file)
                if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                  self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
                  ok = True

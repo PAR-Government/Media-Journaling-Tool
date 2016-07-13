@@ -111,7 +111,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
@@ -121,7 +121,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.scanNextImage()
         if (file is None): 
             return
-        d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             self.drawState()
@@ -131,7 +131,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.currentImage()
         if (im is None): 
             return
-        d = DescriptionCaptureDialog(self,im,plugins.getOperations(),file)
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file)
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             im = plugins.callPlugin(d.description.operationName,im)
             s = d.getSoftware()
@@ -149,6 +149,7 @@ class MakeGenUI(Frame):
         self.img3c.itemconfig(self.img3oc, image=self.img3)
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
+        self.maskvar.set(self.scModel.maskStats())
 
     def quit(self):
         self.save()
@@ -200,7 +201,7 @@ class MakeGenUI(Frame):
        file,im = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description,software=d.getSoftware())
        self.drawState()
@@ -288,6 +289,13 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
 
+        iframe = Frame(self.master, bd=2, relief=SUNKEN)
+        iframe.grid_rowconfigure(0, weight=1)
+        iframe.grid_columnconfigure(0, weight=1)
+        self.maskvar = StringVar()
+        Label(iframe, textvariable=self.maskvar).grid(row=0)
+        iframe.grid(row=2,column=0,rowspan=1,columnspan=3, sticky=N+S+E+W)
+
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
         mframe.grid_rowconfigure(0, weight=1)
         mframe.grid_columnconfigure(0, weight=1)
@@ -299,7 +307,7 @@ class MakeGenUI(Frame):
         self.canvas.grid(row=0, column=0,sticky=N+S+E+W)
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
-        mframe.grid(row=2,column=0,rowspan=1,columnspan=3, sticky=N+S+E+W)
+        mframe.grid(row=3,column=0,rowspan=1,columnspan=3, sticky=N+S+E+W)
 
         if (self.scModel.start is not None):
            self.processmenu.entryconfig(1,state='normal')
