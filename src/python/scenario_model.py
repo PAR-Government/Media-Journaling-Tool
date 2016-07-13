@@ -259,5 +259,12 @@ class ProjectModel:
            im.load()
       return nfile,im
 
+    def export(self, location):
+      self.G.create_archive(location)
 
+    def export_path(self, location):
+      if self.end is None and self.start is not None:
+         self.G.create_path_archive(location,self.start)
+      elif self.end is not None:
+         self.G.create_path_archive(location,self.end)
 

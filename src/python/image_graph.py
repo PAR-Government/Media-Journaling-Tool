@@ -9,6 +9,7 @@ import cv2
 import getpass
 import datetime
 from software_loader import Software, SoftwareLoader, getOS
+import tarfile
 
 try:
   import pwd
@@ -310,3 +311,62 @@ class ImageGraph:
       newpathname = os.path.join(self.dir,edge['maskname'])
       if (not os.path.exists(newpathname)):
           shutil.copy2(oldpathname, newpathname)
+      if 'inputmasknanme' in edge:
+        oldpathname = os.path.join(currentdir,edge['inputmaskname'])
+        newpathname = os.path.join(self.dir,edge['inputmaskname'])
+        if (not os.path.exists(newpathname)):
+            shutil.copy2(oldpathname, newpathname)
+
+  def create_archive(self, location):
+    self.save()
+    archive = tarfile.open(os.path.join(location,self.G.name + '.tgz'),"w:gz")
+    archive.add(os.path.join(self.dir,self.G.name + ".json"),arcname=os.path.join(self.G.name,self.G.name + ".json"))
+    for nname in self.G.nodes():
+       node = self.G.node[nname]
+       archive.add(os.path.join(self.dir,node['file']),arcname=os.path.join(self.G.name,node['file']))
+    for edgename in self.G.edges():
+      edge= self.G[edgename[0]][edgename[1]]
+      self._archive_edge(edge,self.G.name, archive)
+    archive.close()
+
+  def _archive_edge(self,edge, archive_name,archive):
+     newpathname = os.path.join(self.dir,edge['maskname'])
+     archive.add(newpathname,arcname=os.path.join(archive_name,edge['maskname']))
+     if 'inputmaskname' in edge:
+       newpathname = os.path.join(self.dir,edge['inputmaskname'])
+       archive.add(newpathname,arcname=os.path.join(archive_name,edge['inputmaskname']))
+
+  def _archive_path(self, child, archive_name, archive, pathGraph):
+     node = self.G.node[child]
+     pathGraph.add_node(child,**node)
+     archive.add(os.path.join(self.dir,node['file']),arcname=os.path.join(archive_name,node['file']))
+     for parent in self.G.predecessors(child):
+       self._archive_edge(self.G[parent][child],archive_name,archive)
+       pathGraph.add_edge(parent,child,**self.G[parent][child])
+       self._archive_path(parent,archive_name, archive,pathGraph)
+
+ 
+  def create_path_archive(self, location, end):
+    self.save()
+    if end in self.G.nodes():
+      node = self.G.node[end]
+      archive_name=node['file'].replace('.','_')
+      archive = tarfile.open(os.path.join(location,archive_name + '.tgz'),"w:gz")
+      pathGraph = nx.DiGraph(name="Empty")
+      self._archive_path(end,archive_name, archive,pathGraph)
+      filename=os.path.abspath(os.path.join(self.dir,archive_name + '.json'))
+
+      old = None
+      if os.path.exists(filename):
+        old = 'backup.json'
+        shutil.copy2(filename, old)
+
+      with open(filename, 'w') as f:
+        jg = json.dump(json_graph.node_link_data(pathGraph),f,indent=2)
+      archive.add(filename,arcname=os.path.join(archive_name,archive_name + '.json'))
+      archive.close()
+      if old is not None:
+        shutil.copy2(old,filename)
+      else:
+        os.remove(filename)
+

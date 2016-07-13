@@ -100,6 +100,12 @@ class MakeGenUI(Frame):
             self.scModel.saveas(val.name)
             self.master.title(val.name)
          val.close()
+
+    def export(self):
+       val = tkFileDialog.askdirectory(initialdir = '.',title = "Export To Directory")
+       if (val is not None and len(val)>0):
+         self.scModel.export(val)
+         tkMessageBox.showinfo("Export", "Complete")
   
     def undo(self):
        self.scModel.undo()
@@ -186,6 +192,12 @@ class MakeGenUI(Frame):
        self.drawState()
        self.canvas.connectto()
 
+    def exportpath(self):
+       val = tkFileDialog.askdirectory(initialdir = '.',title = "Export " + self.scModel.startImageName() + " To Directory")
+       if (val is not None and len(val)>0):
+         self.scModel.export_path(val)
+         tkMessageBox.showinfo("Export", "Complete")
+
     def select(self):
        self.drawState()
 
@@ -221,6 +233,7 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="New",command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
+        filemenu.add_command(label="Export", command=self.export, accelerator="Ctrl+E")
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         menubar.add_cascade(label="File", menu=filemenu)
 
@@ -278,6 +291,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Select", command=self.select)
         self.nodemenu.add_command(label="Remove", command=self.remove)
         self.nodemenu.add_command(label="Connect To", command=self.connectto)
+        self.nodemenu.add_command(label="Export", command=self.exportpath)
 
         self.edgemenu = Menu(self.master,tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
