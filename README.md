@@ -54,6 +54,8 @@ File > Save As saves entire project to a new project directory and changes the n
 
 File > New [Control-n] creates a new project.
 
+File > Export [Control-e] creates a compressed archive file of the project including images and masks.
+
 File > Quit [Control-q] Save and Quit
 
 Process > Add Add a selected image to the project. The image can be linked to other images within the graph.
@@ -74,9 +76,10 @@ Links record a single action taken on one image to produce another.  An image no
 
 ## Graph Operations
 
-Image nodes may be selected, changing image display.  The image associated with selected image node is shown in the left most image box.  The right two boxes are left blank.  Image nodes can be removed.  All input and output links are removed.  All down-stream (output linked) nodes and links are removed.  Images can be connected to another image node.  When 'connect to' is selected, the cursor changes to a cross. Select on the another image node that is either an image node without any links (input or output) links OR an image node with one input link with operation PasteSplice (see Paste Splice below).
+Image nodes may be selected, changing image display.  The image associated with selected image node is shown in the left most image box.  The right two boxes are left blank.  Image nodes can be removed.  All input and output links are removed.  All down-stream (output linked) nodes and links are removed.  Images can be connected to another image node.  When 'connect to' is selected, the cursor changes to a cross. Select on the another image node that is either an image node without any links (input or output) links OR an image node with one input link with operation PasteSplice (see Paste Splice below).  Image nodes may be exported.  Exporting an image node results the creation of compressed archive file with the node and all edges and nodes leading up to the node.  The name of the compressed file and the enclosed project is the node's image name (replacing '.' with '_').
 
 Links may be selected, change the image display to show the output node, input node and associated different mask.  Removing link results in removeing the link and all downstream nodes and links.  Editing a link permits the user to change the operation and description.  Caution: do not change the operation name and description when using a plugin operation ([Process Next w/Filter [Ctrl-f]).
+
 
 ## Link Descriptions
 
