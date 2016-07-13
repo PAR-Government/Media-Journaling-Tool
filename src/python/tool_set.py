@@ -21,7 +21,7 @@ def alignChannels(img1, img2):
     img2 = img2.reshape(img2.shape[0], img2.shape[1],1)
 
    if (img1.shape[2] == img2.shape[2]):
-       return img1, img2
+       return img1.astype('uint8'), img2.astype('uint8')
    thirdchannel = max(img1.shape[2],img2.shape[2])
    z1 = np.ones((img1.shape[0],img1.shape[1],thirdchannel))*255
    z2 = np.ones((img2.shape[0],img2.shape[1],thirdchannel))*255
@@ -30,7 +30,7 @@ def alignChannels(img1, img2):
          z1[:,:,d] = img1[:,:,d]
        if (d < img2.shape[2]):
          z2[:,:,d] = img2[:,:,d]
-   return z1,z2
+   return z1.astype('uint8'), z2.astype('uint8')
 
 def findBestMatchOld(img1,img2):
     img1y=img1.shape[0]

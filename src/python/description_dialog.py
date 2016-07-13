@@ -79,18 +79,17 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(125,125,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
-      Label(master, text="Category").grid(row=1)
-      Label(master, text="Operation:").grid(row=2)
-      Label(master, text="Description:").grid(row=3)
-      Label(master, text="Software Name:").grid(row=4)
-      Label(master, text="Software Version:").grid(row=5)
-      Label(master, text="Input Mask:").grid(row=6, column=0)
+      Label(master, text="Category").grid(row=1,sticky=W)
+      Label(master, text="Operation:").grid(row=2,sticky=W)
+      Label(master, text="Description:").grid(row=3,sticky=W)
+      Label(master, text="Software Name:").grid(row=4,sticky=W)
+      Label(master, text="Software Version:").grid(row=5,sticky=W)
+      Label(master, text="Input Mask:").grid(row=6, column=0,sticky=W)
       self.inputmaskvar = StringVar()
       self.inputmaskvar.set('None' if self.description.inputmaskpathname is None else os.path.split(self.description.inputmaskpathname)[1])
       Label(master, textvariable=self.inputmaskvar).grid(row=6,column=1)
       self.b = Button(master,text="Load",command=self.addinputmask)
       self.b.grid(row=6,column=3)
-
 
       opv = []
       cats = self.myops.keys()
@@ -154,7 +153,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
        tkSimpleDialog.Dialog.cancel(self)
 
    def apply(self):
-       self.description.operationName=self.e2.get(),
+       self.description.operationName=self.e2.get()
        self.description.additionalInfo=self.e3.get()
        self.description.category=self.e1.get()
        self.software=Software(self.e4.get(),self.e5.get())
@@ -163,7 +162,6 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    def getSoftware(self):
       return self.software
-
 
 class DescriptionViewDialog(tkSimpleDialog.Dialog):
 

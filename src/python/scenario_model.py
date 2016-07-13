@@ -179,6 +179,15 @@ class ProjectModel:
            return Image.fromarray(np.zeros((500,500,3)).astype('uint8'));
        return self.G.get_edge_mask(self.start,self.end)
 
+    def maskStats(self):
+       if self.end is None:
+          return ''
+       edge = self.G.get_edge(self.start,self.end)
+       if edge is None:
+         return ''
+       stat_names = ['ssim','psnr','username']
+       return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
+
     def currentImage(self):
        file = None
        im = None
