@@ -104,7 +104,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.e1.bind("<<ComboboxSelected>>", self.newcategory)
       self.e2.bind("<Return>", self.newcommand)
       self.e2.bind("<<ComboboxSelected>>", self.newcommand)
-      self.e3 = Text(master,height=2,width=28,font=('Times', '14'))
+      self.e3 = Text(master,height=2,width=28,font=('Times', '14'), relief=RAISED,borderwidth=2)
 
       if (len(cats)>0):
         self.e3.insert(1.0,descfromitem(self.myops[cats[0]][0]))
@@ -206,3 +206,77 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         self.bind("<Return>", self.cancel)
         self.bind("<Escape>", self.cancel)
         box.pack()
+
+class FilterCaptureDialog(tkSimpleDialog.Dialog):
+
+   description = None
+   im = None
+   software = None
+   photo=None
+   c= None
+   optocall= None
+
+   def __init__(self,parent,dir,im, myops, name):
+      self.myops = myops
+      self.im = im
+      self.dir = dir
+      self.parent = parent
+      self.description=Modification('','')
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      self.photo = ImageTk.PhotoImage(imageResize(self.im,(250,250)))
+      self.c = Canvas(master, width=250, height=250)
+      self.c.create_image(128,128,image=self.photo, tag='imgd')
+      self.c.grid(row=0, column=0, columnspan=2)
+      
+      self.e1 = AutocompleteEntryInText(master,values=self.myops.keys(),takefocus=True)
+      self.e1.bind("<Return>", self.newop)
+      self.e1.bind("<<ComboboxSelected>>", self.newop)
+      Label(master, text="Pluging Name:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
+      Label(master, text="Category:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
+      Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
+      Label(master, text="Software Name:",anchor=W,justify=LEFT).grid(row=4, column=0,sticky=W)
+      Label(master, text="Software Version:",anchor=W,justify=LEFT).grid(row=5, column=0,sticky=W)
+      self.catvar = StringVar()
+      self.opvar = StringVar()
+      self.softwarevar = StringVar()
+      self.versionvar = StringVar()
+      Label(master, textvariable=self.catvar,anchor=W,justify=LEFT).grid(row=2,column=1,sticky=W)
+      Label(master, textvariable=self.opvar,anchor=W,justify=LEFT).grid(row=3,column=1,sticky=W)
+      Label(master, textvariable=self.softwarevar,anchor=W,justify=LEFT).grid(row=4,column=1,sticky=W)
+      Label(master, textvariable=self.versionvar,anchor=W,justify=LEFT).grid(row=5,column=1,sticky=W)
+      self.e1.grid(row=1, column=1)
+      if len(self.myops.keys()) > 0:
+         self.newop(None)
+
+   def newop(self, event):
+      if (self.myops.has_key(self.e1.get())):
+         opinfo = self.myops[self.e1.get()]
+         self.catvar.set(opinfo[1])
+         self.opvar.set(opinfo[0])
+         self.description.additionalInfo=opinfo[2]
+         self.softwarevar.set(opinfo[3])
+         self.versionvar.set(opinfo[4])
+      else:
+         self.catvar.set('')
+         self.opvar.set('')
+         self.softwarevar.set('')
+         self.versionvar.set('')
+         self.optocall = None
+
+   def cancel(self):
+       tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+       self.optocall=self.e1.get()
+       self.description.operationName=self.opvar.get()
+       self.description.additionalInfo=self.e1.get() + ':' + self.description.additionalInfo
+       self.description.category=self.catvar.get()
+       self.software=Software(self.softwarevar.get(),self.versionvar.get())
+       self.software.internal=True
+#       if (self.softwareLoader.add(self.software)):
+#          self.softwareLoader.save()
+
+   def getSoftware(self):
+      return self.software

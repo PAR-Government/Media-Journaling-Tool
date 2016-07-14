@@ -31,9 +31,9 @@ def loadPlugins():
       print("Loading plugin " + i)
       plugin = imp.load_module(MainModule, *ps[i]["info"])
       op = plugin.operation()
-      loaded[op[0]] = {}
-      loaded[op[0]]['function']=plugin.transform
-      loaded[op[0]]['operation']=op
+      loaded[i] = {}
+      loaded[i]['function']=plugin.transform
+      loaded[i]['operation']=op
    return loaded
 
 def getOperations():
@@ -41,9 +41,7 @@ def getOperations():
     ops = {}
     for l in loaded.keys():
         op = loaded[l]['operation']
-        if not ops.has_key(op[1]):
-            ops[op[1]]=[]
-        ops[op[1]].append((op[0],op[2],op[3],op[4]))
+        ops[l] = op
     return ops
     
 def callPlugin(name,im):
