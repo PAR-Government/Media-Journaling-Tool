@@ -110,7 +110,8 @@ def composeCropImageMask(img1,img2):
         ret,thresh2 = cv2.threshold(gray_image2,1,255,cv2.THRESH_BINARY)
 
         mask = thresh1
-        mask = seamMask(thresh2) if (len(pinned)>=2) else mask
+        if (len(pinned)>=2):
+           mask = seamMask(thresh2)
     else:
        img1 = np.array(Image.fromarray(img1).resize((img2.shape[1],img2.shape[0])))
        dst = np.abs(img1-img2).astype('uint8')
@@ -156,7 +157,10 @@ def createMask(img1, img2, invert):
     if (sum(img1.shape) > sum(img2.shape)):
       return composeCropImageMask(img1,img2)
     if (sum(img1.shape) < sum(img2.shape)):
-      return composeCropImageMask(img2,img1)
+#     return composeCropImageMask(img2,img1)  
+#     if this a splice, then it should be two manipulations, the base image being a blank slate
+      mask = np.ones(img1.shape)*255
+      return abs(255-mask).astype('uint8'),{}
     #rotation
     try:
       if (img1.shape != img2.shape):
