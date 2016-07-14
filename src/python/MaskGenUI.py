@@ -1,5 +1,6 @@
 from Tkinter import *
 import plugins
+from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 import tkMessageBox
 from PIL import Image, ImageTk
@@ -12,7 +13,7 @@ from mask_frames import HistoryFrame
 import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
-from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog
+from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog
 from tool_set import imageResizeRelative,fixTransparency
 
 # this program creates a canvas and puts a single polygon on the canvas
@@ -42,6 +43,8 @@ class MakeGenUI(Frame):
     edgemenu = None
     filteredgemenu = None
     canvas = None
+   
+    gfl = GroupFilterLoader()
 
     def _check_dir(self,pathinfo):
          dir = os.path.abspath(os.path.split(pathinfo)[0])
@@ -62,6 +65,7 @@ class MakeGenUI(Frame):
        self.processmenu.entryconfig(1,state='disabled')
        self.processmenu.entryconfig(2,state='disabled')
        self.processmenu.entryconfig(3,state='disabled')
+       self.processmenu.entryconfig(4,state='disabled')
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select project file",filetypes = [("json files","*.json")])
@@ -74,6 +78,7 @@ class MakeGenUI(Frame):
              self.processmenu.entryconfig(1,state='normal')
              self.processmenu.entryconfig(2,state='normal')
              self.processmenu.entryconfig(3,state='normal')
+             self.processmenu.entryconfig(4,state='normal')
 
     def add(self):
         val = tkFileDialog.askopenfilenames(initialdir = self.scModel.get_dir(), title = "Select image file(s)",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
@@ -85,6 +90,7 @@ class MakeGenUI(Frame):
           self.processmenu.entryconfig(1,state='normal')
           self.processmenu.entryconfig(2,state='normal')
           self.processmenu.entryconfig(3,state='normal')
+          self.processmenu.entryconfig(4,state='normal')
           self.drawState()
 
     def save(self):
@@ -152,6 +158,25 @@ class MakeGenUI(Frame):
             else:
               self.drawState()
               self.canvas.add(self.scModel.start, self.scModel.end)
+
+    def nextfiltergroup(self):
+        file,im = self.scModel.currentImage()
+        if (im is None): 
+            return
+        if len(self.gfl.getGroupNames()) == 0:
+            tkMessageBox.showwarning("Next Group Filter","No groups found")
+            return
+        d = FilterGroupCaptureDialog(self,im,file)
+        if d.getGroup() is not None:
+            tkMessageBox.showwarning("Next Group Filter","Not yet implemented for " + d.getGroup())
+#            im = plugins.callPlugin(d.optocall,im)
+#            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+#            if msg is not None:
+#              tkMessageBox.showwarning("Next Filter",msg)
+#            else:
+#              self.drawState()
+#              self.canvas.add(self.scModel.start, self.scModel.end)
+
 
     def drawState(self):
         sim = self.scModel.startImage()
@@ -251,6 +276,7 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
         self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F", state='disabled')
+        self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
@@ -336,6 +362,7 @@ class MakeGenUI(Frame):
            self.processmenu.entryconfig(1,state='normal')
            self.processmenu.entryconfig(2,state='normal')
            self.processmenu.entryconfig(3,state='normal')
+           self.processmenu.entryconfig(4,state='normal')
            self.drawState()
 
     def graphCB(self, event, eventName):

@@ -1,4 +1,5 @@
 from Tkinter import *
+from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
@@ -280,3 +281,34 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
 
    def getSoftware(self):
       return self.software
+
+
+class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
+
+   gfl = GroupFilterLoader()
+   im = None
+   grouptocall= None
+
+   def __init__(self,parent,im,name):
+      self.im = im
+      self.parent = parent
+      self.name = name
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      self.photo = ImageTk.PhotoImage(imageResize(self.im,(250,250)))
+      self.c = Canvas(master, width=250, height=250)
+      self.c.create_image(128,128,image=self.photo, tag='imgd')
+      self.c.grid(row=0, column=0, columnspan=2)
+      Label(master, text="Group Name:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
+      self.e1 = AutocompleteEntryInText(master,values=self.gfl.getGroupNames(),takefocus=True)
+      self.e1.grid(row=1, column=1)
+
+   def cancel(self):
+       tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+       self.grouptocall=self.e1.get()
+
+   def getGroup(self):
+      return self.grouptocall
