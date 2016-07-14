@@ -15,6 +15,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
 from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog
 from tool_set import imageResizeRelative,fixTransparency
+from software_loader import Software
 
 # this program creates a canvas and puts a single polygon on the canvas
 
@@ -168,16 +169,46 @@ class MakeGenUI(Frame):
             return
         d = FilterGroupCaptureDialog(self,im,file)
         if d.getGroup() is not None:
-            tkMessageBox.showwarning("Next Group Filter","Not yet implemented for " + d.getGroup())
-#            im = plugins.callPlugin(d.optocall,im)
-#            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
-#            if msg is not None:
-#              tkMessageBox.showwarning("Next Filter",msg)
-#            else:
-#              self.drawState()
-#              self.canvas.add(self.scModel.start, self.scModel.end)
+            start = self.scModel.startImageName()
+            end = None
+            for filter in self.gfl.getGroup(d.getGroup()):
+               op = plugins.getOperation(filter)
+               imResult = plugins.callPlugin(filter,im)
+               description = Modification(op[0],filter + ':' + op[2],op[1])
+               software = Software(op[3],op[4],internal=True)
+               msg = self.scModel.addNextImage(file,imResult,mod=description,software=software)
+               if msg is not None:
+                 tkMessageBox.showwarning("Next Filter",msg)
+                 break
+               self.canvas.add(self.scModel.start, self.scModel.end)
+               end = self.scModel.nextImageName()
+               # reset back to the start image
+               self.scModel.selectImage(start)
+            #select the last one completed
+            self.scModel.select((start,end))
+            self.drawState()
 
-
+    def nextfiltergroupsequence(self):
+        file,im = self.scModel.currentImage()
+        if (im is None): 
+            return
+        if len(self.gfl.getGroupNames()) == 0:
+            tkMessageBox.showwarning("Next Group Filter","No groups found")
+            return
+        d = FilterGroupCaptureDialog(self,im,file)
+        if d.getGroup() is not None:
+            for filter in self.gfl.getGroup(d.getGroup()):
+               op = plugins.getOperation(filter)
+               im = plugins.callPlugin(filter,im)
+               description = Modification(op[0],filter + ':' + op[2],op[1])
+               software = Software(op[3],op[4],internal=True)
+               msg = self.scModel.addNextImage(file,im,mod=description,software=software)
+               if msg is not None:
+                 tkMessageBox.showwarning("Next Filter",msg)
+                 break
+               self.canvas.add(self.scModel.start, self.scModel.end)
+            self.drawState()
+            
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
@@ -277,6 +308,7 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
         self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F", state='disabled')
         self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
+        self.processmenu.add_command(label="Next w/Filter Sequence", command=self.nextfiltergroupsequence, state='disabled')
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)

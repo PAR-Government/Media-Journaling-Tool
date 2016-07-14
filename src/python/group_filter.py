@@ -17,6 +17,9 @@ class GroupFilterLoader:
    def getGroups(self):
      return self.groups.values()
 
+   def getGroup(self, name):
+    return self.groups[name].filters
+
    def getGroupNames(self):
      return self.groups.keys()
 
