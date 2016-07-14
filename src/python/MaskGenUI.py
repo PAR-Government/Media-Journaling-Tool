@@ -119,9 +119,12 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
-            self.drawState()
-            self.canvas.add(self.scModel.start, self.scModel.end)
+            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            if msg is not None:
+              tkMessageBox.showwarning("Auto Connect",msg)
+            else:
+              self.drawState()
+              self.canvas.add(self.scModel.start, self.scModel.end)
 
     def nextauto(self):
         file,im = self.scModel.scanNextImage()
@@ -129,9 +132,12 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
-            self.drawState()
-            self.canvas.add(self.scModel.start, self.scModel.end)
+            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            if msg is not None:
+              tkMessageBox.showwarning("Auto Connect",msg)
+            else:
+              self.drawState()
+              self.canvas.add(self.scModel.start, self.scModel.end)
 
     def nextfilter(self):
         file,im = self.scModel.currentImage()
@@ -142,9 +148,12 @@ class MakeGenUI(Frame):
             im = plugins.callPlugin(d.description.operationName,im)
             s = d.getSoftware()
             s.internal=True
-            self.scModel.addNextImage(file,im,mod=d.description,software=s)
-            self.drawState()
-            self.canvas.add(self.scModel.start, self.scModel.end)
+            msg = self.scModel.addNextImage(file,im,mod=d.description,software=s)
+            if msg is not None:
+              tkMessageBox.showwarning("Next Filter",msg)
+            else:
+              self.drawState()
+              self.canvas.add(self.scModel.start, self.scModel.end)
 
     def drawState(self):
         sim = self.scModel.startImage()

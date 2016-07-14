@@ -75,17 +75,14 @@ def findBestMatch(big,small):
     for d in range(smalli.shape[2]):
       result += cv2.matchTemplate(bigi[:,:,d], smalli[:,:,d], cv2.cv.CV_TM_SQDIFF_NORMED)
     mn,_,mnLoc,_ = cv2.minMaxLoc(result)
-#    subpic=bigi[mnLoc[0]:mnLoc[0]+smalli.shape[0],mnLoc[1]:mnLoc[1]+smalli.shape[1],:]
-#    matches = np.sum(subpic==small)
-#    ratio = float(matches)/reduce(mul, small.shape)
-    tuple=(mnLoc[0],mnLoc[1],mnLoc[0]+smalli.shape[0],mnLoc[1]+smalli.shape[1])
+    tuple=(mnLoc[1],mnLoc[0],mnLoc[1]+smalli.shape[0],mnLoc[0]+smalli.shape[1])
     if (tuple[2] > big.shape[0] or tuple[3] > big.shape[1]):
       return None
     return tuple
 
 def composeCropImageMask(img1,img2):
     tuple = findBestMatch(img1,img2)
-    mask = np.zeros(img1.shape)
+    mask = None
     analysis={}
     if tuple is not None:
         dims = (0,img2.shape[0],0,img2.shape[1])
@@ -138,10 +135,19 @@ def colorPSNR(z1,z2):
     mse=  float(sse)/float(reduce(lambda x, y: x*y, d.shape))
     return 0.0 if mse==0.0 else 20.0* math.log10(255.0/math.sqrt(mse))
 
+def size_diff(z1,z2):
+   return str((z1.shape[0]-z2.shape[0],z1.shape[1]-z2.shape[1]))
+
 def img_analytics(z1,z2):
    with warnings.catch_warnings():
      warnings.simplefilter("ignore")
-     return {'ssim':compare_ssim(z1,z2,multichannel=True),'psnr':colorPSNR(z1,z2)}
+#     gi1 = cv2.cvtColor(z1.astype('uint16'), cv2.COLOR_BGR2GRAY)
+#     gi2 = cv2.cvtColor(z2.astype('uint16'), cv2.COLOR_BGR2GRAY)
+#     if z1.shape[2] == 4:
+#        gi1[z1[:,:,3]==255] = 0
+#     if z2.shape[2] == 4:
+#        gi2[z1[:,:,3]==255] = 0
+     return {'ssim':compare_ssim(z1,z2,multichannel=True),'psnr':colorPSNR(z1,z2),'size':size_diff(z1,z2)}
 
 def diffMask(img1,img2,invert):
     dst = np.abs(img1-img2).astype('uint8')

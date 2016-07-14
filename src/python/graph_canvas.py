@@ -147,15 +147,18 @@ class MaskGraphCanvas(tk.Canvas):
                file = node['file']
                d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,self.ops,file)
                if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                 self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
-                 ok = True
+                 msg = self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
+                 if msg is not None:
+                   tkMessageBox.showwarning("Connect Error", msg)
+                 else:
+                   ok = True
                else:
                  ok = False
             elif (len(preds) == 1):
                self.scModel.connect(nodeId)
                ok = True
             else:
-               tkMessageBox.showinfo("Error", "Destination node already has two predecessors")
+               tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
             self.deselectCursor(None)
             if (ok):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
