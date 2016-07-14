@@ -189,13 +189,18 @@ def fixTransparency(img):
    xx[:,:,3]=np.ones((xx.shape[0], xx.shape[1]))*255
    return Image.fromarray(xx)
 
-def imageResize(img,dim):
-   wpercent = float(dim[0])/float(img.size[0])
-   hpercent = float(dim[1])/float(img.size[1])
+def imageResizeRelative(img,dim,otherIm):
+   wmax=max(img.size[0],otherIm[0])
+   hmax=max(img.size[1],otherIm[1])
+   wpercent = float(dim[0])/float(wmax)
+   hpercent = float(dim[1])/float(hmax)
    perc = min(wpercent,hpercent)
    wsize = int((float(img.size[0])*float(perc)))
    hsize = int((float(img.size[1])*float(perc)))
    return img.resize((wsize,hsize), Image.ANTIALIAS).convert('RGBA')
+
+def imageResize(img,dim):
+   return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
 
 def findNeighbors(paths,next):
    newpaths = list()

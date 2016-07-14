@@ -13,7 +13,7 @@ import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
 from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog
-from tool_set import imageResize,fixTransparency
+from tool_set import imageResizeRelative,fixTransparency
 
 # this program creates a canvas and puts a single polygon on the canvas
 
@@ -147,9 +147,11 @@ class MakeGenUI(Frame):
             self.canvas.add(self.scModel.start, self.scModel.end)
 
     def drawState(self):
-        self.img1= ImageTk.PhotoImage(fixTransparency(imageResize(self.scModel.startImage(),(250,250))))
-        self.img2= ImageTk.PhotoImage(fixTransparency(imageResize(self.scModel.nextImage(),(250,250))))
-        self.img3= ImageTk.PhotoImage(imageResize(self.scModel.maskImage(),(250,250)))
+        sim = self.scModel.startImage()
+        nim = self.scModel.nextImage()
+        self.img1= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim,(250,250),nim.size)))
+        self.img2= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim,(250,250),sim.size)))
+        self.img3= ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(),(250,250),nim.size))
         self.img1c.itemconfig(self.img1oc, image=self.img1)
         self.img2c.itemconfig(self.img2oc, image=self.img2)
         self.img3c.itemconfig(self.img3oc, image=self.img3)
