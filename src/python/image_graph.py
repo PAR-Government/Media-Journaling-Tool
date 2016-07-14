@@ -119,7 +119,7 @@ class ImageGraph:
          k = os.path.join(self.dir,d['maskname'])
          if k in self.filesToRemove:
            self.filesToRemove.remove(k)
-         if 'inputmaskname' in d:
+         if 'inputmaskname' in d and len(edge['inputmaskname']) > 0:
             k = os.path.join(self.dir,d['inputmaskname'])
             if k in self.filesToRemove:
               self.filesToRemove.remove(k)
@@ -155,7 +155,7 @@ class ImageGraph:
 
   def get_inputmaskpathname(self,start,end):
     e = self.G[start][end]
-    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e and e['inputmaskname'] != '' else None
+    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e and len(edge['inputmaskname']) > 0 else None
 
   def handle_inputmask(self,inputmaskpathname):
     includePathInUndo = False
@@ -211,7 +211,7 @@ class ImageGraph:
        f = os.path.abspath(os.path.join(self.dir,edge['maskname']))
        if (os.path.exists(f)):
           self.filesToRemove.add(f)
-       if 'inputmaskname' in edge:
+       if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0:
           f = os.path.abspath(os.path.join(self.dir,edge['inputmaskname']))
           if (os.path.exists(f)):
             self.filesToRemove.add(f)
@@ -311,7 +311,7 @@ class ImageGraph:
       newpathname = os.path.join(self.dir,edge['maskname'])
       if (not os.path.exists(newpathname)):
           shutil.copy2(oldpathname, newpathname)
-      if 'inputmasknanme' in edge:
+      if 'inputmasknanme' in edge and len(edge['inputmaskname']) > 0:
         oldpathname = os.path.join(currentdir,edge['inputmaskname'])
         newpathname = os.path.join(self.dir,edge['inputmaskname'])
         if (not os.path.exists(newpathname)):
@@ -332,7 +332,7 @@ class ImageGraph:
   def _archive_edge(self,edge, archive_name,archive):
      newpathname = os.path.join(self.dir,edge['maskname'])
      archive.add(newpathname,arcname=os.path.join(archive_name,edge['maskname']))
-     if 'inputmaskname' in edge:
+     if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0:
        newpathname = os.path.join(self.dir,edge['inputmaskname'])
        archive.add(newpathname,arcname=os.path.join(archive_name,edge['inputmaskname']))
 

@@ -53,19 +53,22 @@ class ProjectModel:
     def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False):
        if (self.start is None):
           return
-       mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
-       maskname=self.start + '_' + destination + '_mask'+'.png'
-       self.end = destination
-       im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-            inputmaskpathname=mod.inputmaskpathname, \
-            op=mod.operationName,description=mod.additionalInfo, \
-            editable='yes', \
-            softwareName=('' if software is None else software.name), \
-            softwareVersion=('' if software is None else software.version), \
-            **analysis)
-       if (self.notify is not None):
-          self.notify(mod)
-       return im
+       try:
+         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
+         maskname=self.start + '_' + destination + '_mask'+'.png'
+         self.end = destination
+         im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+              inputmaskpathname=mod.inputmaskpathname, \
+              op=mod.operationName,description=mod.additionalInfo, \
+              editable='yes', \
+              softwareName=('' if software is None else software.name), \
+              softwareVersion=('' if software is None else software.version), \
+              **analysis)
+         if (self.notify is not None):
+            self.notify(mod)
+         return None
+       except ValueError, msg:
+         return msg
 
     def getSoftware(self):
       e = self.G.get_edge(self.start, self.end)
@@ -81,19 +84,22 @@ class ProjectModel:
        if (self.end is not None):
           self.start = self.end
        nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
-       mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
-       maskname=self.start + '_' + nname + '_mask'+'.png'
-       self.end = nname
-       im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-            inputmaskpathname=mod.inputmaskpathname, \
-            op=mod.operationName,description=mod.additionalInfo, \
-            editable='no' if software.internal else 'yes', \
-            softwareName=('' if software is None else software.name), \
-            softwareVersion=('' if software is None else software.version), \
-            **analysis)
-       if (self.notify is not None):
-          self.notify(mod)
-       return im
+       try:
+         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
+         maskname=self.start + '_' + nname + '_mask'+'.png'
+         self.end = nname
+         im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+              inputmaskpathname=mod.inputmaskpathname, \
+              op=mod.operationName,description=mod.additionalInfo, \
+              editable='no' if software.internal else 'yes', \
+              softwareName=('' if software is None else software.name), \
+              softwareVersion=('' if software is None else software.version), \
+              **analysis)
+         if (self.notify is not None):
+            self.notify(mod)
+         return None
+       except ValueError, msg:
+         return msg
 
     def getSeriesName(self):
        if (self.start is None):
@@ -171,12 +177,14 @@ class ProjectModel:
 
     def nextImage(self):
        if (self.end is None):
-           return Image.fromarray(np.zeros((500,500,3)).astype('uint8'));
+           dim = (500,500,3) if self.start is None else self.G.get_image(self.start).size
+           return Image.fromarray(np.zeros(dim).astype('uint8'));
        return self.G.get_image(self.end)
 
     def maskImage(self):
        if (self.end is None):
-           return Image.fromarray(np.zeros((500,500,3)).astype('uint8'));
+           dim = (500,500,3) if self.start is None else self.G.get_image(self.start).size
+           return Image.fromarray(np.zeros(dim).astype('uint8'));
        return self.G.get_edge_mask(self.start,self.end)
 
     def maskStats(self):
@@ -185,7 +193,7 @@ class ProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username']
+       stat_names = ['ssim','psnr','username','size']
        return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
