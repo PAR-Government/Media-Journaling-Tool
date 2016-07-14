@@ -12,7 +12,7 @@ from mask_frames import HistoryFrame
 import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
-from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog
+from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog
 from tool_set import imageResizeRelative,fixTransparency
 
 # this program creates a canvas and puts a single polygon on the canvas
@@ -143,12 +143,10 @@ class MakeGenUI(Frame):
         file,im = self.scModel.currentImage()
         if (im is None): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file)
-        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            im = plugins.callPlugin(d.description.operationName,im)
-            s = d.getSoftware()
-            s.internal=True
-            msg = self.scModel.addNextImage(file,im,mod=d.description,software=s)
+        d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file)
+        if d.optocall is not None:
+            im = plugins.callPlugin(d.optocall,im)
+            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             if msg is not None:
               tkMessageBox.showwarning("Next Filter",msg)
             else:

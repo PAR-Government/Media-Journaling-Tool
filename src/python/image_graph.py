@@ -155,7 +155,7 @@ class ImageGraph:
 
   def get_inputmaskpathname(self,start,end):
     e = self.G[start][end]
-    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e and len(edge['inputmaskname']) > 0 else None
+    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e and len(e['inputmaskname']) > 0 else None
 
   def handle_inputmask(self,inputmaskpathname):
     includePathInUndo = False
