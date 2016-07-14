@@ -2,7 +2,7 @@ from Tkinter import *
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize
+from tool_set import imageResize,fixTransparency
 from scenario_model import ProjectModel,Modification
 from software_loader import Software, SoftwareLoader, getOS
 import os
@@ -75,7 +75,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e3.delete(1.0,END)
 
    def body(self, master):
-      self.photo = ImageTk.PhotoImage(imageResize(self.im,(250,250)))
+      self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(125,125,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)

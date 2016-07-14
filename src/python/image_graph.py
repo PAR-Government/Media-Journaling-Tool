@@ -155,12 +155,12 @@ class ImageGraph:
 
   def get_inputmaskpathname(self,start,end):
     e = self.G[start][end]
-    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e else None
+    return os.path.join(self.dir, e['inputmaskname']) if 'inputmaskname' in e and e['inputmaskname'] != '' else None
 
   def handle_inputmask(self,inputmaskpathname):
     includePathInUndo = False
     inputmaskname = ''
-    if inputmaskpathname is not None:
+    if inputmaskpathname is not None and len(inputmaskpathname)>0:
       inputmaskname=os.path.split(inputmaskpathname)[1]
       newinputpathname = os.path.join(self.dir,inputmaskname)
       # already slated for removal
