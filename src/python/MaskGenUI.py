@@ -16,6 +16,7 @@ from scenario_model import ProjectModel,Modification,findProject
 from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog
 from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software
+from group_manager import GroupManagerDialog
 
 # this program creates a canvas and puts a single polygon on the canvas
 
@@ -171,7 +172,7 @@ class MakeGenUI(Frame):
         if d.getGroup() is not None:
             start = self.scModel.startImageName()
             end = None
-            for filter in self.gfl.getGroup(d.getGroup()):
+            for filter in self.gfl.getGroup(d.getGroup()).filters:
                op = plugins.getOperation(filter)
                imResult = plugins.callPlugin(filter,im)
                description = Modification(op[0],filter + ':' + op[2],op[1])
@@ -221,6 +222,9 @@ class MakeGenUI(Frame):
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
         self.maskvar.set(self.scModel.maskStats())
+
+    def groupmanager(self):
+        d = GroupManagerDialog(self)
 
     def quit(self):
         self.save()
@@ -299,6 +303,7 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
         filemenu.add_command(label="Export", command=self.export, accelerator="Ctrl+E")
+        filemenu.add_command(label="Group Manager", command=self.groupmanager)
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         menubar.add_cascade(label="File", menu=filemenu)
 

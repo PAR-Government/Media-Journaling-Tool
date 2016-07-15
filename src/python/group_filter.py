@@ -18,7 +18,7 @@ class GroupFilterLoader:
      return self.groups.values()
 
    def getGroup(self, name):
-    return self.groups[name].filters
+    return self.groups[name] if name in self.groups else None
 
    def getGroupNames(self):
      return self.groups.keys()
@@ -36,6 +36,9 @@ class GroupFilterLoader:
 
    def add(self, groupfilter):
      self.groups[groupfilter.name] = groupfilter
+
+   def remove(self, name):
+     self.groups.pop(name)
 
    def save(self):
       global maskgenloader
