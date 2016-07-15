@@ -8,7 +8,6 @@ from tool_set import imageResize,fixTransparency
 class GroupManagerDialog(tkSimpleDialog.Dialog):
 
    gfl=None
-   checkboxes = {}
    lastselection = None
 
    def __init__(self, parent):
@@ -17,30 +16,71 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
      tkSimpleDialog.Dialog.__init__(self, parent, "Group Manager")
 
    def body(self, master):
-     self.yScroll = Scrollbar(master, orient=VERTICAL)
-     self.yScroll.grid(row=0, column=2, sticky=N+S)
-     self.groupBox = Listbox(master, yscrollcommand=self.yScroll.set)
-     self.yScroll['command'] = self.groupBox.yview
+     Label(master, text="Group").grid(row=0,column=0)
+     Label(master, text="Avaiable").grid(row=0,column=3)
+     Label(master, text="Assigned").grid(row=0,column=5)
+     self.yGBScroll = Scrollbar(master, orient=VERTICAL)
+     self.yGBScroll.grid(row=1, column=2, sticky=N+S)
+     self.groupBox = Listbox(master, yscrollcommand=self.yGBScroll.set)
+     self.yGBScroll['command'] = self.groupBox.yview
      for name in self.gfl.getGroupNames():
         self.groupBox.insert(END,name)
-     self.groupBox.grid(row=0, column=0,columnspan=2, sticky=N+S+E+W)
-     self.groupBox.bind("<<ListboxSelect>>",self.newgroup)
+     self.groupBox.grid(row=1, column=0,columnspan=2, sticky=N+S+E+W)
+     self.groupBox.bind("<<ListboxSelect>>",self.groupselect)
      self.addImage = ImageTk.PhotoImage(imageResize(Image.open("icons/add.png"),(16,16)))
      self.subImage = ImageTk.PhotoImage(imageResize(Image.open("icons/subtract.png"),(16,16)))
      self.addb = Button(master,image=self.addImage,text="Add",command=self.addgroup)
-     self.addb.grid(row=1,column=0)
+     self.addb.grid(row=2,column=0)
      self.subb = Button(master,image=self.subImage,text="Sub",command=self.subgroup)
-     self.subb.grid(row=1,column=1)
-     self.buttonFrame = VerticalScrolledFrame(master, bd=1, relief=SUNKEN)
-     self.buttonFrame.grid(row=0,column=3)
+     self.subb.grid(row=2,column=1)
+
+
+     self.yAVScroll = Scrollbar(master, orient=VERTICAL)
+     self.yAVScroll.grid(row=1, column=4, sticky=N+S)
+     self.availableBox = Listbox(master, yscrollcommand=self.yAVScroll.set)
+     self.availableBox.grid(row=1, column=3,sticky=N+S+E+W)
+     self.yAVScroll['command'] = self.availableBox.yview
+
+     self.yASScroll = Scrollbar(master, orient=VERTICAL)
+     self.yASScroll.grid(row=1, column=6, sticky=N+S)
+     self.assignedBox = Listbox(master, yscrollcommand=self.yASScroll.set)
+     self.assignedBox.grid(row=1, column=5,sticky=N+S+E+W)
+     self.yASScroll['command'] = self.assignedBox.yview
+
+     self.addFilterImage = ImageTk.PhotoImage(imageResize(Image.open("icons/rightarrow.png"),(16,16)))
+     self.subFilterImage = ImageTk.PhotoImage(imageResize(Image.open("icons/leftarrow.png"),(16,16)))
+     self.addFilterButton = Button(master,image=self.addFilterImage,text="Add",command=self.addfilter)
+     self.addFilterButton.grid(row=2,column=3)
+     self.subFilterButton = Button(master,image=self.subFilterImage,text="Sub",command=self.subfilter)
+     self.subFilterButton.grid(row=2,column=5)
 
      plugins.loadPlugins()     
-     r = 0
-     for name in plugins.getOperationNames():
-       var = IntVar()
-       self.checkboxes[name]=(var,Checkbutton(self.buttonFrame.interior, text=name, variable=var))
-       self.checkboxes[name][1].grid(row=r,sticky=W)
-       r+=1
+
+   def addfilter(self):
+      if len(self.availableBox.curselection()) == 0:
+        return
+      index = int(self.availableBox.curselection()[0])
+      value = self.availableBox.get(index)
+      self.assignedBox.insert(END,value)
+      self.availableBox.delete(index)
+
+   def subfilter(self):
+      if len(self.assignedBox.curselection()) == 0:
+        return
+      index = int(self.assignedBox.curselection()[0])
+      value = self.assignedBox.get(index)
+      self.availableBox.insert(END,value)
+      self.assignedBox.delete(index)
+
+   def populateFilterBoxes(self, groupFilter):
+      available = set(plugins.getOperationNames())
+      self.assignedBox.delete(0,END)
+      self.availableBox.delete(0,END)
+      for filter in groupFilter.filters:
+        available.remove(filter)
+        self.assignedBox.insert(END,filter)
+      for filter in available:
+        self.availableBox.insert(END,filter)
      
    def addgroup(self):
      d = tkSimpleDialog.askstring("Add Group", "Name",parent=self)
@@ -60,29 +100,25 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         index = int(self.groupBox.curselection()[0])
         value = self.groupBox.get(index)
         self.savecondition(value)
+      elif self.lastselection is not None:
+        self.savecondition(self.lastselection)
       self.gfl.save()
       return
 
    def savecondition(self,grpName):
       grp = self.gfl.getGroup(grpName)
       grp.filters=[]
-      for k,v in self.checkboxes.iteritems():
-         if v[0].get() > 0:
-             grp.filters.append(k)
+      for filter in self.assignedBox.get(0,END):
+        grp.filters.append(filter)
 
-   def newgroup(self, event):
+   def groupselect(self, event):
       if self.lastselection is not None:
         self.savecondition(self.lastselection)
       index = int(self.groupBox.curselection()[0])
       value = self.groupBox.get(index)
       self.lastselection= value
       grp = self.gfl.getGroup(value)
-      for k,v in self.checkboxes.iteritems():
-         v[0].set(0)
-      if grp is not None:
-          for f in grp.filters:
-             if f in self.checkboxes:
-                 self.checkboxes[f][0].set(1)
+      self.populateFilterBoxes(grp)
       
 class VerticalScrolledFrame(Frame):
     """A pure Tkinter scrollable frame that actually works!
