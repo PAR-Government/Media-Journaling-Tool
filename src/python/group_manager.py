@@ -73,7 +73,7 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
       self.assignedBox.delete(index)
 
    def populateFilterBoxes(self, groupFilter):
-      available = set(plugins.getOperationNames())
+      available = set(plugins.getOperationNames(noArgs=True))
       self.assignedBox.delete(0,END)
       self.availableBox.delete(0,END)
       for filter in groupFilter.filters:

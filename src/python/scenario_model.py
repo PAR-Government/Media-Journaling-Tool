@@ -50,7 +50,7 @@ class ProjectModel:
             softwareName=('' if software is None else software.name), \
             softwareVersion=('' if software is None else software.version))
 
-    def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False):
+    def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False, sendNotifications=True):
        if (self.start is None):
           return
        try:
@@ -64,12 +64,15 @@ class ProjectModel:
               softwareName=('' if software is None else software.name), \
               softwareVersion=('' if software is None else software.version), \
               **analysis)
-         if (self.notify is not None):
+         if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
        except ValueError, msg:
          return msg
 
+    def getNodeNames(self):
+      return self.G.get_nodes()
+      
     def getSoftware(self):
       e = self.G.get_edge(self.start, self.end)
       if e is None:
@@ -80,7 +83,7 @@ class ProjectModel:
       e = self.G.get_edge(start,end)
       return 'editable' not in e or e['editable'] == 'yes'
 
-    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None):
+    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True):
        if (self.end is not None):
           self.start = self.end
        nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
@@ -95,7 +98,7 @@ class ProjectModel:
               softwareName=('' if software is None else software.name), \
               softwareVersion=('' if software is None else software.version), \
               **analysis)
-         if (self.notify is not None):
+         if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
        except ValueError, msg:
@@ -169,6 +172,11 @@ class ProjectModel:
        if edge is not None:
           return Modification(edge['op'],edge['description'],inputmaskpathname=self.G.get_inputmaskpathname(self.start,self.end))
        return None
+
+    def getImage(self,name):
+       if name is None or name=='':
+           return Image.fromarray(np.zeros((500,500,4)).astype('uint8'));
+       return self.G.get_image(name)
 
     def startImage(self):
        if (self.start is None):

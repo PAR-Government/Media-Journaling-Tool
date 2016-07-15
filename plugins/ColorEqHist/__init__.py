@@ -2,7 +2,7 @@ import cv2
 from PIL import Image
 import numpy
 
-def transform(img):
+def transform(img,**kwargs):
   img = img.convert("RGB")
   img_yuv = cv2.cvtColor(numpy.asarray(img), cv2.COLOR_RGB2YUV)
   # equalize the histogram of the Y channel
@@ -15,3 +15,5 @@ def transform(img):
 def operation():
   return ['ColorColorBalance','Color','Equalize Colors using Histogram over the Chrominance Channel','OpenCV','2.4.13']
 
+def args():
+  return None

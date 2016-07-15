@@ -39,6 +39,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    photo=None
    c= None
    moc = None
+   cancelled = True
 
    def __init__(self, parent,dir,im, myops,name, description=None, software=None):
       self.myops = myops
@@ -140,7 +141,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       return self.e1 # initial focus
 
    def addinputmask(self):
-       val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select project file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+       val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
        if (val != None and len(val)> 0):
         try:
           self.inputmask = ImageTk.PhotoImage(Image.open(val))
@@ -152,9 +153,12 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
           tkMessageBox.showinfo("Error", "Failed to load image")
 
    def cancel(self):
+       if not self.cancelled:
+          self.description = None
        tkSimpleDialog.Dialog.cancel(self)
 
    def apply(self):
+       self.cancelled = False
        self.description.operationName=self.e2.get()
        self.description.additionalInfo=self.e3.get(1.0,END)
        self.description.category=self.e1.get()
@@ -208,6 +212,25 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         self.bind("<Escape>", self.cancel)
         box.pack()
 
+class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
+   scModel = None
+   selectedImage = None
+
+   def __init__(self,parent,scModel):
+      self.scModel = scModel
+      tkSimpleDialog.Dialog.__init__(self, parent, "Select Image Node")
+
+   def body(self, master):
+      Label(master, text="Image Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      self.box = AutocompleteEntryInText(master,values=self.scModel.getNodeNames(), takefocus=True)
+      self.box.grid(row=0,column=1)
+
+   def cancel(self):
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.selectedImage = self.box.get()     
+
 class FilterCaptureDialog(tkSimpleDialog.Dialog):
 
    description = None
@@ -216,13 +239,16 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
    photo=None
    c= None
    optocall= None
+   argvalues = {}
+   cancelled = True
 
-   def __init__(self,parent,dir,im, myops, name):
+   def __init__(self,parent,dir,im, myops, name, scModel):
       self.myops = myops
       self.im = im
       self.dir = dir
       self.parent = parent
       self.description=Modification('','')
+      self.scModel = scModel
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):
@@ -230,46 +256,88 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(128,128,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
-      
       self.e1 = AutocompleteEntryInText(master,values=self.myops.keys(),takefocus=True)
       self.e1.bind("<Return>", self.newop)
       self.e1.bind("<<ComboboxSelected>>", self.newop)
-      Label(master, text="Pluging Name:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
-      Label(master, text="Category:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
-      Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
-      Label(master, text="Software Name:",anchor=W,justify=LEFT).grid(row=4, column=0,sticky=W)
-      Label(master, text="Software Version:",anchor=W,justify=LEFT).grid(row=5, column=0,sticky=W)
+      row = 1
+      labels = ['Plugin Name:','Category:','Operation:','Software Name:','Software Version:']
+      for label in labels:
+        Label(master, text=label,anchor=W,justify=LEFT).grid(row=row, column=0,sticky=W)
+        row+=1
       self.catvar = StringVar()
       self.opvar = StringVar()
       self.softwarevar = StringVar()
       self.versionvar = StringVar()
-      Label(master, textvariable=self.catvar,anchor=W,justify=LEFT).grid(row=2,column=1,sticky=W)
-      Label(master, textvariable=self.opvar,anchor=W,justify=LEFT).grid(row=3,column=1,sticky=W)
-      Label(master, textvariable=self.softwarevar,anchor=W,justify=LEFT).grid(row=4,column=1,sticky=W)
-      Label(master, textvariable=self.versionvar,anchor=W,justify=LEFT).grid(row=5,column=1,sticky=W)
       self.e1.grid(row=1, column=1)
+      row=2
+      variables = [self.catvar, self.opvar, self.softwarevar, self.versionvar]
+      for variable in variables:
+        Label(master, textvariable=variable,anchor=W,justify=LEFT).grid(row=row,column=1,sticky=W)
+        row+=1
+      Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2)
+      row+=1
+      self.argBox = Listbox(master)
+      self.argBox.bind("<Double-Button-1>", self.changeParameter)
+      self.argBox.grid(row=row,column =0, columnspan=2)
       if len(self.myops.keys()) > 0:
          self.newop(None)
 
+   def changeParameter(self,event):
+      if len(self.argBox.curselection()) == 0:
+        return
+      index = int(self.argBox.curselection()[0])
+      value = self.argBox.get(index)
+      if self.optocall is not None:
+        op=self.myops[self.optocall]
+        arginfo = op['arguments']
+        if arginfo is not None:
+          arg = arginfo[index]
+          if arg[0] == 'donor':
+            d = ImageNodeCaptureDialog(self, self.scModel)
+            res = d.selectedImage
+          elif arg[0] == 'inputmaskpathname':
+             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+             if (val != None and len(val)> 0):
+                res=val
+          else:
+            res = tkSimpleDialog.askstring("Set Parameter " + arg[0], "Value:", parent=self)
+          if res is not None:
+            self.argvalues[arg[0]] = res
+            self.argBox.delete(index)
+            self.argBox.insert(index,arg[0] + ': ' + res)
+           
    def newop(self, event):
+      self.argvalues= {}
       if (self.myops.has_key(self.e1.get())):
-         opinfo = self.myops[self.e1.get()]
+         self.optocall=self.e1.get()
+         self.argBox.delete(0,END)
+         op=self.myops[self.optocall]
+         opinfo = op['operation']
+         arginfo = op['arguments']
          self.catvar.set(opinfo[1])
          self.opvar.set(opinfo[0])
          self.description.additionalInfo=opinfo[2]
          self.softwarevar.set(opinfo[3])
          self.versionvar.set(opinfo[4])
+         if arginfo is not None:
+           for arg in arginfo:
+              if arg is not None:
+                self.argBox.insert(END,arg[0] + ': ' + str(arg[1] if arg[1] is not None else ''))
       else:
          self.catvar.set('')
          self.opvar.set('')
          self.softwarevar.set('')
          self.versionvar.set('')
          self.optocall = None
+         self.argBox.delete(0,END)
 
    def cancel(self):
+       if not self.cancelled:
+          self.optocall=None
        tkSimpleDialog.Dialog.cancel(self)
 
    def apply(self):
+       cancelled = False
        self.optocall=self.e1.get()
        self.description.operationName=self.opvar.get()
        self.description.additionalInfo=self.e1.get() + ':' + self.description.additionalInfo
@@ -288,6 +356,7 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
    gfl = None
    im = None
    grouptocall= None
+   cancelled = True
 
    def __init__(self,parent,im,name):
       self.im = im
@@ -306,9 +375,12 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
       self.e1.grid(row=1, column=1)
 
    def cancel(self):
+       if not self.cancelled:
+          self.grouptocall = None
        tkSimpleDialog.Dialog.cancel(self)
 
    def apply(self):
+       self.cancelled = False
        self.grouptocall=self.e1.get()
 
    def getGroup(self):

@@ -149,19 +149,35 @@ class MakeGenUI(Frame):
               self.canvas.add(self.scModel.start, self.scModel.end)
               self.processmenu.entryconfig(6,state='normal')
 
+    def resolvePluginValues(self,args):
+      result = {}
+      for k,v in args.iteritems():
+       if k == 'donor':
+          result[k] = self.scModel.getImage(v)
+       else:
+          result[k] = v
+      return result
+
     def nextfilter(self):
         file,im = self.scModel.currentImage()
         if (im is None): 
             return
-        d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file)
+        d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file, self.scModel)
         if d.optocall is not None:
-            im = plugins.callPlugin(d.optocall,im)
-            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            im = plugins.callPlugin(d.optocall,im,**self.resolvePluginValues(d.argvalues))
+            if 'inputmaskpathname' in d.argvalues:
+                d.description.inputmaskpathname = d.argvalues['inputmaskpathname']
+            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware(),sendNotifications=False)
             if msg is not None:
               tkMessageBox.showwarning("Next Filter",msg)
             else:
               self.drawState()
               self.canvas.add(self.scModel.start, self.scModel.end)
+              if 'donor' in d.argvalues:
+                end = self.scModel.end
+                self.scModel.selectImage(d.argvalues['donor'])
+                self.scModel.connect(end)
+                self.canvas.add(self.scModel.start, self.scModel.end)
               self.processmenu.entryconfig(6,state='normal')
 
     def nextfiltergroup(self):
@@ -282,7 +298,7 @@ class MakeGenUI(Frame):
 
     def connectEvent(self,modification):
         if (modification.operationName == 'PasteSplice'):
-           tkMessageBox.showinfo("Splice Requirement", "A splice operation should be accompnanied by a donor image.")
+           tkMessageBox.showinfo("Splice Requirement", "A splice operation should be accompanied by a donor image.")
 
     def remove(self):
        self.canvas.remove()

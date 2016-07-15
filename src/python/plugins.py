@@ -30,27 +30,38 @@ def loadPlugins():
    for i in ps.keys():
       print("Loading plugin " + i)
       plugin = imp.load_module(MainModule, *ps[i]["info"])
-      op = plugin.operation()
       loaded[i] = {}
       loaded[i]['function']=plugin.transform
-      loaded[i]['operation']=op
+      loaded[i]['operation']=plugin.operation()
+      loaded[i]['arguments']=plugin.args()
    return loaded
 
 def getOperations():
     global loaded
     ops = {}
     for l in loaded.keys():
-        op = loaded[l]['operation']
-        ops[l] = op
+        ops[l] = loaded[l]
     return ops
 
-def getOperationNames():
-    return loaded.keys()
+# return list of tuples, name and default value (which can be None)
+def getArguments(name):
+    global loaded
+    return loaded[name]['arguments']
+
+def getOperationNames(noArgs=False):
+    global loaded
+    if not noArgs:
+      return loaded.keys()
+    result = []
+    for k,v in loaded.iteritems():
+      if len(v['arguments'])==0:
+        result.append(k)
+    return k
     
 def getOperation(name):
     global loaded
     return loaded[name]['operation']
 
-def callPlugin(name,im):
+def callPlugin(name,im,**kwargs):
     global loaded
-    return loaded[name]['function'](im)
+    return loaded[name]['function'](im,**kwargs)
