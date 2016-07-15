@@ -285,7 +285,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
 
 class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
 
-   gfl = GroupFilterLoader()
+   gfl = None
    im = None
    grouptocall= None
 
@@ -293,6 +293,7 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
       self.im = im
       self.parent = parent
       self.name = name
+      self.gfl=  GroupFilterLoader()
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):

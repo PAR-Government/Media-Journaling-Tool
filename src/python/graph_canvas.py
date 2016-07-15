@@ -16,6 +16,7 @@ class MaskGraphCanvas(tk.Canvas):
     itemToCanvas = {}
     marked = None
     ops = []
+    lastNodeAdded = None
     
     drag_data = {'x': 0, 'y': 0, 'item': None}
 
@@ -86,6 +87,7 @@ class MaskGraphCanvas(tk.Canvas):
          node = self.scModel.getGraph().get_node(id)
          node['xpos'] = center[0]
          node['ypos'] = center[1]
+         self.lastNodeAdded = node
          self._mark(self._draw_node(id))
          center = (center[0], center[1]+30)
 
@@ -95,6 +97,12 @@ class MaskGraphCanvas(tk.Canvas):
        node = self.scModel.getGraph().get_node(end)
        node['ypos'] = center[1]+int(wy/4.0)
        node['xpos'] = center[0]
+       if (self.lastNodeAdded is not None):
+           diff = abs(self.lastNodeAdded['xpos'] - node['xpos']) + \
+           abs(self.lastNodeAdded['ypos'] - node['ypos'])
+           if diff < 10:
+               node['xpos']+=40
+       self.lastNodeAdded = node
        self._draw_node(end)
        self._mark(self._draw_edge(start,end))
      

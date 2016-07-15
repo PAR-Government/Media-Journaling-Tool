@@ -7,12 +7,13 @@ from tool_set import imageResize,fixTransparency
 
 class GroupManagerDialog(tkSimpleDialog.Dialog):
 
-   gfl = GroupFilterLoader()
+   gfl=None
    checkboxes = {}
    lastselection = None
 
    def __init__(self, parent):
      self.parent = parent
+     self.gfl = GroupFilterLoader()
      tkSimpleDialog.Dialog.__init__(self, parent, "Group Manager")
 
    def body(self, master):
