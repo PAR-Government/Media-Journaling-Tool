@@ -43,7 +43,14 @@ def getOperations():
         op = loaded[l]['operation']
         ops[l] = op
     return ops
+
+def getOperationNames():
+    return loaded.keys()
     
+def getOperation(name):
+    global loaded
+    return loaded[name]['operation']
+
 def callPlugin(name,im):
     global loaded
     return loaded[name]['function'](im)

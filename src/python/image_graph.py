@@ -119,7 +119,7 @@ class ImageGraph:
          k = os.path.join(self.dir,d['maskname'])
          if k in self.filesToRemove:
            self.filesToRemove.remove(k)
-         if 'inputmaskname' in d and len(edge['inputmaskname']) > 0:
+         if 'inputmaskname' in d and len(d['inputmaskname']) > 0:
             k = os.path.join(self.dir,d['inputmaskname'])
             if k in self.filesToRemove:
               self.filesToRemove.remove(k)
