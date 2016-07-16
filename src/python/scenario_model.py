@@ -2,7 +2,7 @@ from image_graph import ImageGraph
 import os
 import numpy as np
 from PIL import Image, ImageTk
-import tool_set
+import tool_set 
 from software_loader import Software
 
 def findProject(dir):
@@ -175,23 +175,23 @@ class ProjectModel:
 
     def getImage(self,name):
        if name is None or name=='':
-           return Image.fromarray(np.zeros((500,500,4)).astype('uint8'));
+           return Image.fromarray(np.zeros((250,250,4)).astype('uint8'));
        return self.G.get_image(name)
 
     def startImage(self):
        if (self.start is None):
-           return Image.fromarray(np.zeros((500,500,3)).astype('uint8'));
+           return Image.fromarray(np.zeros((250,250,3)).astype('uint8'));
        return self.G.get_image(self.start)
 
     def nextImage(self):
        if (self.end is None):
-           dim = (500,500,3) if self.start is None else self.G.get_image(self.start).size
+           dim = (250,250,3) if self.start is None else self.G.get_image(self.start).size
            return Image.fromarray(np.zeros(dim).astype('uint8'));
        return self.G.get_image(self.end)
 
     def maskImage(self):
        if (self.end is None):
-           dim = (500,500,3) if self.start is None else self.G.get_image(self.start).size
+           dim = (250,250,3) if self.start is None else self.G.get_image(self.start).size
            return Image.fromarray(np.zeros(dim).astype('uint8'));
        return self.G.get_edge_mask(self.start,self.end)
 
@@ -261,18 +261,13 @@ class ProjectModel:
       for file in findFiles(self.G.dir,suffix, filterFunction):
          nfile = file
          break
-      with open(nfile,"rb") as fp:
-         im = Image.open(fp)
-         im.load()
-
+      im = tool_set.openImage(nfile)
       return nfile,im
 
     def openImage(self,nfile):
       im = None
       if nfile is not None and nfile != '':
-         with open(nfile,"rb") as fp:
-           im = Image.open(fp)
-           im.load()
+          im = tool_set.openImage(nfile)
       return nfile,im
 
     def export(self, location):

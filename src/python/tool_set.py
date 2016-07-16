@@ -5,7 +5,12 @@ from operator import mul
 import math
 from skimage.measure import compare_ssim
 import warnings
-import tarfile
+
+def openImage(file):
+   with open(file,"rb") as fp:
+      im = Image.open(fp)
+      im.load()
+      return im
 
 def alignShape(im,shape):
    x = min(shape[0],im.shape[0])
@@ -147,7 +152,7 @@ def img_analytics(z1,z2):
 #        gi1[z1[:,:,3]==255] = 0
 #     if z2.shape[2] == 4:
 #        gi2[z1[:,:,3]==255] = 0
-     return {'ssim':compare_ssim(z1,z2,multichannel=True),'psnr':colorPSNR(z1,z2),'size':size_diff(z1,z2)}
+     return {'ssim':compare_ssim(z1,z2,multichannel=True),'psnr':colorPSNR(z1,z2),'shape change':size_diff(z1,z2)}
 
 def diffMask(img1,img2,invert):
     dst = np.abs(img1-img2).astype('uint8')
@@ -203,7 +208,7 @@ def imageResizeRelative(img,dim,otherIm):
    perc = min(wpercent,hpercent)
    wsize = int((float(img.size[0])*float(perc)))
    hsize = int((float(img.size[1])*float(perc)))
-   return img.resize((wsize,hsize), Image.ANTIALIAS).convert('RGBA')
+   return img.resize((wsize,hsize), Image.ANTIALIAS)
 
 def imageResize(img,dim):
    return img.resize(dim, Image.ANTIALIAS).convert('RGBA')

@@ -3,10 +3,11 @@ from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,fixTransparency
+from tool_set import imageResize,fixTransparency,openImage
 from scenario_model import ProjectModel,Modification
 from software_loader import Software, SoftwareLoader, getOS
 import os
+import numpy as np
 
 def opfromitem(item):
    return (item[0] if type(item) is tuple else item)
@@ -118,7 +119,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.e5.grid(row=5, column=1)
 
       if (self.description.inputmaskpathname is not None):
-        self.inputmask = ImageTk.PhotoImage(Image.open(self.description.inputmaskpathname))
+        self.inputmask = ImageTk.PhotoImage(openImage(self.description.inputmaskpathname))
         self.m = Canvas(master, width=250, height=250)
         self.moc = self.m.create_image(125,125,image=self.inputmask, tag='imgm')
         self.m.grid(row=7, column=0, columnspan=2)
@@ -144,7 +145,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
        val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
        if (val != None and len(val)> 0):
         try:
-          self.inputmask = ImageTk.PhotoImage(Image.open(val))
+          self.inputmask = ImageTk.PhotoImage(openImage(val))
           if self.moc is not None: 
             self.m.itemconfig(self.moc, image=self.inputmask)
           self.inputmaskvar.set(os.path.split(val)[1])
@@ -153,7 +154,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
           tkMessageBox.showinfo("Error", "Failed to load image")
 
    def cancel(self):
-       if not self.cancelled:
+       if self.cancelled:
           self.description = None
        tkSimpleDialog.Dialog.cancel(self)
 
@@ -224,6 +225,17 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
       Label(master, text="Image Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       self.box = AutocompleteEntryInText(master,values=self.scModel.getNodeNames(), takefocus=True)
       self.box.grid(row=0,column=1)
+      self.c = Canvas(master, width=250, height=250)
+      self.photo= ImageTk.PhotoImage(Image.fromarray(np.zeros((250,250))))
+      self.imc = self.c.create_image(125,125,image=self.photo, tag='imgd')
+      self.c.grid(row=1, column=0, columnspan=2)
+      self.box.bind("<Return>", self.newimage)
+      self.box.bind("<<ComboboxSelected>>", self.newimage)
+
+   def newimage(self,event):
+      im = self.scModel.getImage(self.box.get())
+      self.photo=ImageTk.PhotoImage(fixTransparency(imageResize(im,(250,250))))
+      self.c.itemconfig(self.imc,image=self.photo)
 
    def cancel(self):
       tkSimpleDialog.Dialog.cancel(self)
@@ -332,12 +344,12 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
          self.argBox.delete(0,END)
 
    def cancel(self):
-       if not self.cancelled:
+       if self.cancelled:
           self.optocall=None
        tkSimpleDialog.Dialog.cancel(self)
 
    def apply(self):
-       cancelled = False
+       self.cancelled = False
        self.optocall=self.e1.get()
        self.description.operationName=self.opvar.get()
        self.description.additionalInfo=self.e1.get() + ':' + self.description.additionalInfo
@@ -375,7 +387,7 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
       self.e1.grid(row=1, column=1)
 
    def cancel(self):
-       if not self.cancelled:
+       if self.cancelled:
           self.grouptocall = None
        tkSimpleDialog.Dialog.cancel(self)
 
