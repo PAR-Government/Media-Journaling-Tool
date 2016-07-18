@@ -54,9 +54,9 @@ def getOperationNames(noArgs=False):
       return loaded.keys()
     result = []
     for k,v in loaded.iteritems():
-      if len(v['arguments'])==0:
+      if v['arguments'] is None or len(v['arguments'])==0:
         result.append(k)
-    return k
+    return result
     
 def getOperation(name):
     global loaded

@@ -56,6 +56,8 @@ File > New [Control-n] creates a new project.
 
 File > Export [Control-e] creates a compressed archive file of the project including images and masks.
 
+File > Group Manager opens a separate dialog to manage groups of plugin filters.
+
 File > Quit [Control-q] Save and Quit
 
 Process > Add Add a selected image to the project. The image can be linked to other images within the graph.
@@ -65,6 +67,10 @@ Process > Next w/Auto Pick [Control-p] automatically finds and picks the next mo
 Process > Next w/Add [Control-l] prompts with file finding window to select an image that differs from the current selected image by ONE modifications.  A dialog appears to capture the modification, including the type of modification and additional description (optional). The dialog dispays the next select image as confirmation. A link is formed between the current selected image to the newly loaded image.
 
 Process > Next w/Filter [Control-f] prompts with modification to the current selected imaged.  The tool then applies the selected image to create a new image.  Unlike the other two 'next' functions, the set of operation is limited to those avaiable from the tool's plugins.  Furthermore, the image shown in the dialog window is the current selected image to which the selected modification is applied.
+
+Process > Next w/Filter Group runs a group of plugin transforms against the selected image, creating an image node for each transform and a link to the new images from the selected image.
+
+Process > Next w/Filter Sequence runs a group of plugin transforms in a sequence starting with the selected image.  Each transform results in a new image node.  The result from one transform is the input into the next transform.  Links are formed between each image node, in the same sequence.
 
 Process > Undo [Control-z] Undo the last operation performed.  The tool does not support undo of an undo.
 
@@ -115,13 +121,27 @@ NOTE: Structual Similarity produces a warning on the tool command line output th
 
 # Plugins
 
-Plugin filters are python scripts.  They are located under a plugins directory.  Each plugin is a directory with a file __init__.py  The __init__ module must provide two functions: 
+Plugin filters are python scripts.  They are located under a plugins directory.  Each plugin is a directory with a file __init__.py  The __init__ module must provide three functions: 
 
 (1) 'operation()' that returns a list of five items 'operation name', 'operation category', 'description', 'python package','package version'
-(2) 'transform(im)' that consumes a PIL Image and returns a PIL Image.
+(2) 'transform(im,**kwargs)' that consumes a PIL Image, a set of argument.  The function returns a PIL Image.
+(3) 'arguments()' returns a list of tuples or None.  Each tuple contains an argument name and a default value. 
 
 The python package and package version are automatically added to the list of software used by the manipulator.
 
+## Arguments
+
+There are two special arguments: 'donor' and 'inputmaskpathname'.  
+
+The system will prompt a user for an image node to fulfill the obligation of the donor. The transform function will be called with the user selected image (e.g. donor=image). Upon completion, separate Donor link is makde between the donor image node and the image node created from the output of the transform operation.
+
+The system prompts for an image file to fulfill the obligation of the inputmaskpathname.  The path name is provided the transform function (e.g. inputmaskpathname='/somepath').  The tool does not load the image in this case.  The image will be preserved within the project as the inputmask of the link, which references the image, upon completion of the operation.
+
+All other arguments collected by the user will br provided as strings to the transform function.
+
+# Group Manager
+
+The Group Manager allows the user to create, remove and manage groups.  Groups are sets of plugin image transforms.  Only those transforms that do not require arguments are permitted within the group at this time.
+
 # Known Issues
 
-During mask calculation, the system r
