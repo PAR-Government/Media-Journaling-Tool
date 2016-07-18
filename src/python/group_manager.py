@@ -3,7 +3,8 @@ from group_filter import GroupFilter,GroupFilterLoader
 import plugins
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
-from tool_set import imageResize,fixTransparency
+from tool_set import imageResize,fixTransparency,openImage
+
 
 class GroupManagerDialog(tkSimpleDialog.Dialog):
 
@@ -27,8 +28,8 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         self.groupBox.insert(END,name)
      self.groupBox.grid(row=1, column=0,columnspan=2, sticky=N+S+E+W)
      self.groupBox.bind("<<ListboxSelect>>",self.groupselect)
-     self.addImage = ImageTk.PhotoImage(imageResize(Image.open("icons/add.png"),(16,16)))
-     self.subImage = ImageTk.PhotoImage(imageResize(Image.open("icons/subtract.png"),(16,16)))
+     self.addImage = ImageTk.PhotoImage(imageResize(openImage("icons/add.png"),(16,16)))
+     self.subImage = ImageTk.PhotoImage(imageResize(openImage("icons/subtract.png"),(16,16)))
      self.addb = Button(master,image=self.addImage,text="Add",command=self.addgroup)
      self.addb.grid(row=2,column=0)
      self.subb = Button(master,image=self.subImage,text="Sub",command=self.subgroup)
@@ -47,8 +48,8 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
      self.assignedBox.grid(row=1, column=5,sticky=N+S+E+W)
      self.yASScroll['command'] = self.assignedBox.yview
 
-     self.addFilterImage = ImageTk.PhotoImage(imageResize(Image.open("icons/rightarrow.png"),(16,16)))
-     self.subFilterImage = ImageTk.PhotoImage(imageResize(Image.open("icons/leftarrow.png"),(16,16)))
+     self.addFilterImage = ImageTk.PhotoImage(imageResize(openImage("icons/rightarrow.png"),(16,16)))
+     self.subFilterImage = ImageTk.PhotoImage(imageResize(openImage("icons/leftarrow.png"),(16,16)))
      self.addFilterButton = Button(master,image=self.addFilterImage,text="Add",command=self.addfilter)
      self.addFilterButton.grid(row=2,column=3)
      self.subFilterButton = Button(master,image=self.subFilterImage,text="Sub",command=self.subfilter)
@@ -73,7 +74,7 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
       self.assignedBox.delete(index)
 
    def populateFilterBoxes(self, groupFilter):
-      available = set(plugins.getOperationNames())
+      available = set(plugins.getOperationNames(noArgs=True))
       self.assignedBox.delete(0,END)
       self.availableBox.delete(0,END)
       for filter in groupFilter.filters:
