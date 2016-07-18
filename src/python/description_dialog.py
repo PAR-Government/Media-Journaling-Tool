@@ -3,7 +3,7 @@ from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,fixTransparency,openImage
+from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage
 from scenario_model import ProjectModel,Modification
 from software_loader import Software, SoftwareLoader, getOS
 import os
@@ -242,6 +242,39 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
 
    def apply(self):
       self.selectedImage = self.box.get()     
+
+class CompareDialog(tkSimpleDialog.Dialog):
+   
+   def __init__(self,parent,im,mask,name, analysis):
+      self.im  = im
+      self.mask = mask
+      self.analysis = analysis
+      tkSimpleDialog.Dialog.__init__(self, parent, "Compare to " + name)
+
+   def body(self, master):
+      self.cim = Canvas(master, width=250, height=250)
+      self.photoim= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.im,(250,250),self.im.size)))
+      self.imc = self.cim.create_image(125,125,image=self.photoim, tag='imgim')
+      self.cim.grid(row=0, column=0)
+
+      self.cmask = Canvas(master, width=250, height=250)
+      self.photomask= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.mask,(250,250),self.mask.size)))
+      self.maskc = self.cmask.create_image(125,125,image=self.photomask, tag='imgmask')
+      self.cmask.grid(row=0, column=1)
+
+      iframe = Frame(master, bd=2, relief=SUNKEN)
+      iframe.grid_rowconfigure(1, weight=1)
+#      iframe.grid_columnconfigure(0, weight=1)
+      Label(iframe, text='  '.join([key + ': ' + str(value) for key,value in self.analysis.items()]),anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      iframe.grid(row=1,column=0,columnspan=2, sticky=N+S+E+W)
+
+   def buttonbox(self):
+        box = Frame(self)
+        w = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Return>", self.cancel)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
 
 class FilterCaptureDialog(tkSimpleDialog.Dialog):
 

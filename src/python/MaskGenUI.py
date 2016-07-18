@@ -281,6 +281,9 @@ class MakeGenUI(Frame):
     def gadd(self, next):
         self.add()
 
+    def compareto(self):
+      self.canvas.compareto()
+
     def connectto(self):
        self.drawState()
        self.canvas.connectto()
@@ -392,6 +395,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Remove", command=self.remove)
         self.nodemenu.add_command(label="Connect To", command=self.connectto)
         self.nodemenu.add_command(label="Export", command=self.exportpath)
+        self.nodemenu.add_command(label="Compare To", command=self.compareto)
 
         self.edgemenu = Menu(self.master,tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
