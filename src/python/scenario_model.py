@@ -50,11 +50,17 @@ class ProjectModel:
             softwareName=('' if software is None else software.name), \
             softwareVersion=('' if software is None else software.version))
 
+    def compare(self, destination,seamAnalysis=True):
+       im1 = self.G.get_image(self.start)
+       im2 = self.G.get_image(destination)
+       mask, analysis = tool_set.createMask(np.array(im1),np.array(im2), invert=False, seamAnalysis=seamAnalysis)
+       return im1,im2,Image.fromarray(mask),analysis
+
     def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False, sendNotifications=True):
        if (self.start is None):
           return
        try:
-         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert)
+         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert=invert)
          maskname=self.start + '_' + destination + '_mask'+'.png'
          self.end = destination
          im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
@@ -88,7 +94,7 @@ class ProjectModel:
           self.start = self.end
        nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
        try:
-         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert)
+         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert=invert)
          maskname=self.start + '_' + nname + '_mask'+'.png'
          self.end = nname
          im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \

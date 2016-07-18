@@ -85,7 +85,7 @@ def findBestMatch(big,small):
       return None
     return tuple
 
-def composeCropImageMask(img1,img2):
+def composeCropImageMask(img1,img2,seamAnalysis=True):
     tuple = findBestMatch(img1,img2)
     mask = None
     analysis={}
@@ -112,7 +112,7 @@ def composeCropImageMask(img1,img2):
         ret,thresh2 = cv2.threshold(gray_image2,1,255,cv2.THRESH_BINARY)
 
         mask = thresh1
-        if (len(pinned)>=2):
+        if (len(pinned)>=2 and seamAnalysis):
            mask = seamMask(thresh2)
     else:
        img1 = np.array(Image.fromarray(img1).resize((img2.shape[1],img2.shape[0])))
@@ -163,10 +163,10 @@ def diffMask(img1,img2,invert):
     analysis = img_analytics(img1,img2)
     return (np.array(thresh1) if invert else (255-np.array(thresh1)),analysis)
 
-def createMask(img1, img2, invert):
+def createMask(img1, img2, invert, seamAnalysis=True):
     img1, img2 = alignChannels(img1,img2)
     if (sum(img1.shape) > sum(img2.shape)):
-      return composeCropImageMask(img1,img2)
+      return composeCropImageMask(img1,img2,seamAnalysis=seamAnalysis)
     if (sum(img1.shape) < sum(img2.shape)):
 #     return composeCropImageMask(img2,img1)  
 #     if this a splice, then it should be two manipulations, the base image being a blank slate

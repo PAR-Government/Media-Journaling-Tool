@@ -6,9 +6,11 @@ from functools import wraps
 from scenario_model import ProjectModel
 import numpy as np
 from math import atan2, pi, cos, sin
-from description_dialog import DescriptionCaptureDialog
+from description_dialog import DescriptionCaptureDialog,CompareDialog
 
 class MaskGraphCanvas(tk.Canvas):
+
+    crossHairConnect = False
 
     toItemIds = {}
     itemToNodeIds = {}
@@ -126,6 +128,7 @@ class MaskGraphCanvas(tk.Canvas):
 
     def selectCursor(self,event):
         self.config(cursor='crosshair')
+        self.crossHairConnect = not (event == 'compare')
         for k,v in self.itemToCanvas.items():
            v.config(cursor='crosshair')
 
@@ -149,24 +152,28 @@ class MaskGraphCanvas(tk.Canvas):
             nodeId = self.itemToNodeIds[item]
             node = self.scModel.getGraph().get_node(nodeId)
             preds = self.scModel.getGraph().predecessors(nodeId)
+            im = self.scModel.getGraph().get_image(nodeId)
+            file = node['file']
             ok = False
-            if (len(preds) == 0):
-               im = self.scModel.getGraph().get_image(nodeId)
-               file = node['file']
-               d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,self.ops,file)
-               if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                 msg = self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
-                 if msg is not None:
-                   tkMessageBox.showwarning("Connect Error", msg)
+            if self.crossHairConnect:
+              if (len(preds) == 0):
+                 d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,self.ops,file)
+                 if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+                   msg = self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
+                   if msg is not None:
+                     tkMessageBox.showwarning("Connect Error", msg)
+                   else:
+                     ok = True
                  else:
-                   ok = True
-               else:
-                 ok = False
-            elif (len(preds) == 1):
-               self.scModel.connect(nodeId)
-               ok = True
+                   ok = False
+              elif (len(preds) == 1):
+                 self.scModel.connect(nodeId)
+                 ok = True
+              else:
+                 tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
             else:
-               tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
+                im1,im2,mask,analysis = self.scModel.compare(nodeId,seamAnalysis=False)
+                CompareDialog(self.master,im2,mask,nodeId,analysis)
             self.deselectCursor(None)
             if (ok):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
@@ -226,7 +233,10 @@ class MaskGraphCanvas(tk.Canvas):
         self.marked = item
 
     def connectto(self):
-        self.selectCursor(None)
+        self.selectCursor('connect')
+
+    def compareto(self):
+        self.selectCursor('compare')
 
     def onTokenRightClick(self, event):
        self._unmark()
