@@ -50,7 +50,7 @@ def peakness(hist, threshold=0.5):
 
        # Calculate peakiness
      peakiness = (1.0 - (float(vA + vB) / (2.0 * float(P)))) * (1.0 - (float(N) / float(W * P)))
-     if peakiness > threshold and j not in valleys:
+f     if peakiness > threshold and j not in valleys:
          valleys.append(j)
          valleys.append(i - 1)
      j = i - 1
@@ -115,7 +115,7 @@ def buildCombinedVideo(fileOne, fileTwo):
   call(['ffmpeg', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', prefixOne + '_'  + prefixTwo + postFix])  
   buildMasksFromCombinedVideo(prefixOne + '_'  + prefixTwo + postFix)
 
-def buildCombinedVideo(fileOne, fileTwo):
+def buildCombinedVideo(fileOne, fileTwo,skipTo = 0,stopAt=None):
   prefixOne = fileOne[0:fileOne.rfind('.')]
   prefixTwo = os.path.split(fileTwo[0:fileTwo.rfind('.')])[1]
   postFix = fileOne[fileOne.rfind('.'):]
@@ -124,15 +124,22 @@ def buildCombinedVideo(fileOne, fileTwo):
   cap2 = cv2.VideoCapture(fileTwo) 
   start = None
   end = None
+  elapsed_time1 = 0
+  elapsed_time2 = 0
+  ret1 = True
+  ret2 = True
   while(cap1.isOpened() and cap2.isOpened()):
-    ret, frame1 = cap1.read()
-    if not ret:
+    ret1 = cap1.grab() if ret1 else False
+    ret2 = cap2.grab() if ret2 else False
+    if (not ret1 and not ret2):
       break
-    ret, frame2 = cap2.read()
-    if not ret:
-      break
-    elapsed_time1 = cap2.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-    elapsed_time2 = cap2.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+    elapsed_time1 = cap2.get(cv2.cv.CV_CAP_PROP_POS_MSEC) if ret1 else elapsed_time1
+    elapsed_time2 = cap2.get(cv2.cv.CV_CAP_PROP_POS_MSEC) if ret2 else elapsed_time2
+    if (elapesed_time1 < skipTo): 
+      continue
+    ret1, frame1 = cap1.retrieve() if ret1 else (False, None)
+    ret2, frame2 = cap1.retrieve() if ret2 else (False, None)
+
     if elapsed_time1 != elapsed_time2:
         start = min(elapsed_time1,elapsed_time2)
         print start
