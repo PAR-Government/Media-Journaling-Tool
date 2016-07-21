@@ -8,6 +8,9 @@ import numpy as np
 from math import atan2, pi, cos, sin
 from description_dialog import DescriptionCaptureDialog,CompareDialog
 
+def restrictPosition(position):
+   return max (position,5)
+
 class MaskGraphCanvas(tk.Canvas):
 
     crossHairConnect = False
@@ -152,7 +155,7 @@ class MaskGraphCanvas(tk.Canvas):
             nodeId = self.itemToNodeIds[item]
             node = self.scModel.getGraph().get_node(nodeId)
             preds = self.scModel.getGraph().predecessors(nodeId)
-            im = self.scModel.getGraph().get_image(nodeId)
+            im = self.scModel.getImage(nodeId)
             file = node['file']
             ok = False
             if self.crossHairConnect:
@@ -184,26 +187,32 @@ class MaskGraphCanvas(tk.Canvas):
         self.drag_data["x"] = event.x
         self.drag_data["y"] = event.y
 
+    def showEdge(self,start,end):
+        if (start,end) not in self.toItemIds:
+          self._mark(self._draw_edge(start,end))
+
     def onNodeMotion(self, event):
         """Handle dragging of an object"""
         if self.drag_data['item'] is None:
             return
         # compute how much this object has moved
-        delta_x = event.x - self.drag_data['x']
-        delta_y = event.y - self.drag_data['y']
+        xp = restrictPosition(event.x)
+        yp = restrictPosition(event.y)
+        delta_x = xp - self.drag_data['x']
+        delta_y = yp - self.drag_data['y']
         # move the object the appropriate amount
         self.move(self.drag_data['item'], delta_x, delta_y)
         # record the new position
-        self.drag_data["x"] = event.x
-        self.drag_data["y"] = event.y
+        self.drag_data["x"] = xp
+        self.drag_data["y"] = yp
 
         # Redraw any edges
         b = self.bbox(self.drag_data['item'])
         from_xy = ( (b[0]+b[2])/2, (b[1]+b[3])/2 )
         from_node = self.itemToNodeIds[self.drag_data['item']]
         node = self.scModel.getGraph().get_node(from_node)
-        node['xpos']=from_xy[0]
-        node['ypos']=from_xy[1]
+        node['xpos']=restrictPosition(from_xy[0])
+        node['ypos']=restrictPosition(from_xy[1])
         for n in self.scModel.getGraph().successors(from_node):
            to_xy = self._node_center(n)
            spline_xy = self._spline_center(*from_xy+to_xy+(5,))

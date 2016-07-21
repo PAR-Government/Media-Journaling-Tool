@@ -8,6 +8,9 @@ Install PIL
 
 Uses opencv (cv2)
 
+Install exiftool
+
+
 ## Install commands
 
 ```
@@ -19,6 +22,7 @@ pip install matplotlib
 pip install networkx
 pip install moviepy
 pip install scikit-image
+pip install tkintertable
 ```
 
 # Usage
@@ -109,6 +113,10 @@ Paste Splice is a special operation that expects a donor image.  This is the onl
 
 When performing manipulations, it is important to consider what is detectable in an modified image. A crop may not detectable, depending on the compression configuration, since the initial image is absent in the analysis.  A move manipulation, in itself, resembles an insert.  It is acceptable to group manipulations so long a their final result can be represented as one of the accepted singular operations configured with the tool. A pure crop does not produce a mask with identified changes.  Thus, it is important to the manipulation operation to understand the operation.
 
+## EXIF Comparison
+
+The tool has a dependency on the [exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool).  By default, the tool is expected to be accessible via the name 'exiftool'.  This can be overwritten by the environmen variable MASKGEN_EXIFTOOL.  EXIF Comparison results are visible by inspecting the contents of a link.
+
 ## Analytics
 
 During mask generation, analytics are processed on the images.  
@@ -124,8 +132,12 @@ NOTE: Structual Similarity produces a warning on the tool command line output th
 Plugin filters are python scripts.  They are located under a plugins directory.  Each plugin is a directory with a file __init__.py  The __init__ module must provide three functions: 
 
 (1) 'operation()' that returns a list of five items 'operation name', 'operation category', 'description', 'python package','package version'
-(2) 'transform(im,**kwargs)' that consumes a PIL Image, a set of argument.  The function returns a PIL Image.
+(2) 'transform(im,imgfilename,**kwargs)' that consumes a PIL Image, a set of arguments.  The function returns True if the EXIF should be copied from the source to target.
 (3) 'arguments()' returns a list of tuples or None.  Each tuple contains an argument name and a default value. 
+
+Plugins may provide a fourth function called 'suffix()'.  The function returns the file suffix of the image file it expects (e.g. .tiff, .jpg).  The expectation is that the plugin overwrites the contents of the file with data corresponding the suffix.
+
+The tool creates a copy of the source image in a new file.  The path (i.e. location) of the new file is provided in the second argument (imgfilename).  The transform changes the select contents of that image file.  The image provided in the first argument the transform is a convenience, providing a copy of the image from the file.  The image is disconnected from the file, residing in memory.  If the transform returns True, then the tool copies the EXIF from the source image to the new image file.  This is often required since PIL(Pillow) Images do not retain all the EXIF data, with the exception of working with TIFF.  
 
 The python package and package version are automatically added to the list of software used by the manipulator.
 
@@ -145,3 +157,16 @@ The Group Manager allows the user to create, remove and manage groups.  Groups a
 
 # Known Issues
 
+# Latest Changes
+
+7/21/2016:
+1. EXIF Compare
+2. Changed JSON
+  * Move the 'idcount' data to the graph data.  
+  * Edges may contain 'arguments'--a set of arguments used by a plugin
+  * New edges will contain 'exifdiff', describing changes to each attribute of the exif.  Changes are 'add','delete' and 'change'. A 'change' contains old new value.
+  * Graph data includes 'igversion' to indicate the version of the graph
+  * Graph data includes 'typespref' contain the image type prefences in the order they are used by the tool for the specific project
+3. Link view contains arguments and EXIF comparison data
+4. About menu displays software verion
+5. Changed the plugins to give more control to the plugin over the contents of the image file.

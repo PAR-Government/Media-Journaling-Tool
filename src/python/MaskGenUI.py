@@ -20,7 +20,7 @@ from group_manager import GroupManagerDialog
 
 # this program creates a canvas and puts a single polygon on the canvas
 
-
+defaultypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
 defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
 
 class MakeGenUI(Frame):
@@ -68,15 +68,22 @@ class MakeGenUI(Frame):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
        self.scModel.startNew(val)
+       if self.scModel.getProjectData('typespref') is None:
+          self.scModel.setProjectData('typespref',defaultypes)
        self.master.title(val)
        self.drawState()
        self.canvas.update()
        self.setSelectState('disabled')
+ 
+    def about(self):
+        tkMessageBox.showinfo('About','Version: ' + self.scModel.getVersion())
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select project file",filetypes = [("json files","*.json")])
-        if(val != None and len(val)>0):
+        if (val != None and len(val)>0):
           self.scModel.load(val)
+          if self.scModel.getProjectData('typespref') is None:
+              self.scModel.setProjectData('typespref',defaultypes)
           self.master.title(val)
           self.drawState()
           self.canvas.update()
@@ -84,8 +91,9 @@ class MakeGenUI(Frame):
              self.setSelectState('normal')
 
     def add(self):
-        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.get_dir(), title = "Select image file(s)",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.get_dir(), title = "Select image file(s)",filetypes =self.getFileTypes())
         if (val != None and len(val)> 0):
+          self.updateFileTypes(val[0])
           try:
             self.canvas.addNew([self.scModel.addImage(f) for f in val])
             self.processmenu.entryconfig(6,state='normal')
@@ -120,8 +128,37 @@ class MakeGenUI(Frame):
        self.processmenu.entryconfig(6,state='disabled')
        self.setSelectState('disabled')
 
+    def updateFileTypes(self, filename):
+        if filename is None or len(filename) == 0:
+           return
+
+        suffix = filename[filename.rfind('.'):]
+        place=0
+        top=None
+        allPlace=0
+        prefs = self.getFileTypes()
+        for pref in prefs:
+           if pref[1] == '*.*':
+             allPlace = place  
+           if pref[1] == '*' + suffix:
+             top=pref
+             break
+           place+=1
+        if top is not None and place>0:
+           prefs[place]=prefs[0]
+           prefs[0]=top
+           self.scModel.setProjectData('typespref',prefs)
+        elif top is None and allPlace > 0:
+           top = prefs[0]
+           prefs[0] = prefs[allPlace]
+           prefs[allPlace] = top
+
+    def getFileTypes(self):
+        return [tuple(x) for x in self.scModel.getProjectData('typespref')]
+            
     def nextadd(self):
-        val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select image file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select image file",filetypes = self.getFileTypes())
+        self.updateFileTypes(val)
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
@@ -136,12 +173,12 @@ class MakeGenUI(Frame):
               self.processmenu.entryconfig(6,state='normal')
 
     def nextauto(self):
-        file,im = self.scModel.scanNextImage()
-        if (file is None): 
+        im,filename = self.scModel.scanNextImage()
+        if (filename is None): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            msg = self.scModel.addNextImage(filename,im,mod=d.description,software=d.getSoftware())
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -153,21 +190,19 @@ class MakeGenUI(Frame):
       result = {}
       for k,v in args.iteritems():
        if k == 'donor':
-          result[k] = self.scModel.getImage(v)
+          result[k] = self.scModel.getImageAndName(v)
        else:
           result[k] = v
+      result['sendNotifications'] = False
       return result
 
     def nextfilter(self):
-        file,im = self.scModel.currentImage()
+        im,filename = self.scModel.currentImage()
         if (im is None): 
             return
-        d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),file, self.scModel)
+        d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),os.path.split(filename)[1], self.scModel)
         if d.optocall is not None:
-            im = plugins.callPlugin(d.optocall,im,**self.resolvePluginValues(d.argvalues))
-            if 'inputmaskpathname' in d.argvalues:
-                d.description.inputmaskpathname = d.argvalues['inputmaskpathname']
-            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware(),sendNotifications=False)
+            msg = self.scModel.imageFromPlugin(d.optocall,im,filename,**self.resolvePluginValues(d.argvalues))
             if msg is not None:
               tkMessageBox.showwarning("Next Filter",msg)
             else:
@@ -177,27 +212,23 @@ class MakeGenUI(Frame):
                 end = self.scModel.end
                 self.scModel.selectImage(d.argvalues['donor'])
                 self.scModel.connect(end)
-                self.canvas.add(self.scModel.start, self.scModel.end)
+                self.canvas.showEdge(self.scModel.start, self.scModel.end)
               self.processmenu.entryconfig(6,state='normal')
 
     def nextfiltergroup(self):
-        file,im = self.scModel.currentImage()
+        im,filename = self.scModel.currentImage()
         if (im is None): 
             return
         if len(self.gfl.getGroupNames()) == 0:
             tkMessageBox.showwarning("Next Group Filter","No groups found")
             return
-        d = FilterGroupCaptureDialog(self,im,file)
+        d = FilterGroupCaptureDialog(self,im,os.path.split(filename)[1])
         if d.getGroup() is not None:
             start = self.scModel.startImageName()
             end = None
             ok = False
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-               op = plugins.getOperation(filter)
-               imResult = plugins.callPlugin(filter,im)
-               description = Modification(op[0],filter + ':' + op[2],op[1])
-               software = Software(op[3],op[4],internal=True)
-               msg = self.scModel.addNextImage(file,imResult,mod=description,software=software)
+               msg = self.scModel.imageFromPlugin(filter,im,filename)
                if msg is not None:
                  tkMessageBox.showwarning("Next Filter",msg)
                  break
@@ -213,24 +244,21 @@ class MakeGenUI(Frame):
                self.processmenu.entryconfig(6,state='normal')
 
     def nextfiltergroupsequence(self):
-        file,im = self.scModel.currentImage()
+        im,filename = self.scModel.currentImage()
         if (im is None): 
             return
         if len(self.gfl.getGroupNames()) == 0:
             tkMessageBox.showwarning("Next Group Filter","No groups found")
             return
-        d = FilterGroupCaptureDialog(self,im,file)
+        d = FilterGroupCaptureDialog(self,im,os.path.split(filename)[1])
         if d.getGroup() is not None:
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-               op = plugins.getOperation(filter)
-               im = plugins.callPlugin(filter,im)
-               description = Modification(op[0],filter + ':' + op[2],op[1])
-               software = Software(op[3],op[4],internal=True)
-               msg = self.scModel.addNextImage(file,im,mod=description,software=software)
+               msg = self.scModel.imageFromPlugin(filter,im,filename)
                if msg is not None:
                  tkMessageBox.showwarning("Next Filter",msg)
                  break
                self.canvas.add(self.scModel.start, self.scModel.end)
+               im,filename = self.scModel.getImageAndName(self.scModel.end)
             self.drawState()
             self.processmenu.entryconfig(6,state='normal')
 
@@ -310,25 +338,26 @@ class MakeGenUI(Frame):
        self.setSelectState('disabled')
 
     def edit(self):
-       file,im = self.scModel.currentImage()
+       im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description,software=d.getSoftware())
        self.drawState()
 
     def view(self):
-       file,im = self.scModel.currentImage()
+       im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,im,self.myops,os.path.split(file)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionViewDialog(self,im,self.myops,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
 
     def createWidgets(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
 
         menubar = Menu(self)
         filemenu = Menu(menubar, tearoff=0)
+        filemenu.add_command(label="About",command=self.about)
         filemenu.add_command(label="Open",command=self.open, accelerator="Ctrl+O")
         filemenu.add_command(label="New",command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
@@ -401,6 +430,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Select", command=self.select)
         self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Edit", command=self.edit)
+        self.edgemenu.add_command(label="Inspect", command=self.view)
 
         self.filteredgemenu = Menu(self.master,tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
@@ -447,6 +477,8 @@ class MakeGenUI(Frame):
         self.myops = ops
         self.mypluginops = pluginops
         self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)
+        if self.scModel.getProjectData('typespref') is None:
+            self.scModel.setProjectData('typespref',defaultypes)
         self.createWidgets()
 
 

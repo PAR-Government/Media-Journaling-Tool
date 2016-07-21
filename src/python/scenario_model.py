@@ -1,9 +1,13 @@
 from image_graph import ImageGraph
+import shutil
+import exif
 import os
 import numpy as np
 from PIL import Image, ImageTk
 import tool_set 
 from software_loader import Software
+import tempfile
+import plugins
 
 def findProject(dir):
     if (dir.endswith(".json")):
@@ -16,12 +20,14 @@ class Modification:
    additionalInfo = ''
    category = None
    inputmaskpathname=None
+   arguments = {}
 
-   def __init__(self, name, additionalInfo, category=None,inputmaskpathname=None):
+   def __init__(self, name, additionalInfo, category=None,inputmaskpathname=None,arguments={}):
      self.additionalInfo  = additionalInfo
      self.operationName = name
      self.category = category
      self.inputmaskpathname = inputmaskpathname
+     self.arguments = arguments
 
 class ProjectModel:
     G = None
@@ -51,30 +57,26 @@ class ProjectModel:
             softwareVersion=('' if software is None else software.version))
 
     def compare(self, destination,seamAnalysis=True):
-       im1 = self.G.get_image(self.start)
-       im2 = self.G.get_image(destination)
+       im1 = self.getImage(self.start)
+       im2 = self.getImage(destination)
        mask, analysis = tool_set.createMask(np.array(im1),np.array(im2), invert=False, seamAnalysis=seamAnalysis)
        return im1,im2,Image.fromarray(mask),analysis
 
-    def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False, sendNotifications=True):
-       if (self.start is None):
-          return
-       try:
-         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(destination)), invert=invert)
-         maskname=self.start + '_' + destination + '_mask'+'.png'
-         self.end = destination
-         im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskpathname=mod.inputmaskpathname, \
-              op=mod.operationName,description=mod.additionalInfo, \
-              editable='yes', \
-              softwareName=('' if software is None else software.name), \
-              softwareVersion=('' if software is None else software.version), \
-              **analysis)
-         if (self.notify is not None and sendNotifications):
-            self.notify(mod)
-         return None
-       except ValueError, msg:
-         return msg
+    def getExifDiff(self):
+      e = self.G.get_edge(self.start, self.end)
+      if e is None:
+          return None
+      return e['exifdiff'] if 'exifdiff' in e else None
+
+    def _compareImages(self,start,destination, invert=False):
+       startIm,startFileName = self.getImageAndName(start)
+       destIm,destFileName = self.getImageAndName(destination)
+       mask,analysis = tool_set.createMask(np.array(startIm),np.array(destIm), invert=invert)
+       maskname=start + '_' + destination + '_mask'+'.png'
+       exifDiff = exif.compareexif(startFileName,destFileName)
+       analysis = analysis if analysis is not None else {}
+       analysis['exifdiff'] = exifDiff
+       return maskname,mask, analysis
 
     def getNodeNames(self):
       return self.G.get_nodes()
@@ -89,14 +91,36 @@ class ProjectModel:
       e = self.G.get_edge(start,end)
       return 'editable' not in e or e['editable'] == 'yes'
 
+    def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False, sendNotifications=True):
+       if (self.start is None):
+          return
+       try:
+         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert)
+         if len(mod.arguments)>0:
+            analysis['arguments'] = mod.arguments
+         self.end = destination
+         im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
+              inputmaskpathname=mod.inputmaskpathname, \
+              op=mod.operationName,description=mod.additionalInfo, \
+              editable='yes', \
+              softwareName=('' if software is None else software.name), \
+              softwareVersion=('' if software is None else software.version), \
+              **analysis)
+         if (self.notify is not None and sendNotifications):
+            self.notify(mod)
+         return None
+       except ValueError, msg:
+         return msg
+
     def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True):
        if (self.end is not None):
           self.start = self.end
-       nname = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
+       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
        try:
-         mask,analysis = tool_set.createMask(np.array(self.G.get_image(self.start)),np.array(self.G.get_image(nname)), invert=invert)
-         maskname=self.start + '_' + nname + '_mask'+'.png'
-         self.end = nname
+         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert)
+         if len(mod.arguments)>0:
+            analysis['arguments'] = mod.arguments
+         self.end = destination
          im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
               inputmaskpathname=mod.inputmaskpathname, \
               op=mod.operationName,description=mod.additionalInfo, \
@@ -176,28 +200,30 @@ class ProjectModel:
           return None
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
-          return Modification(edge['op'],edge['description'],inputmaskpathname=self.G.get_inputmaskpathname(self.start,self.end))
+          return Modification(edge['op'],edge['description'], \
+            inputmaskpathname=self.G.get_inputmaskpathname(self.start,self.end), \
+            arguments = edge['arguments'] if 'arguments' in edge else {})
        return None
 
     def getImage(self,name):
        if name is None or name=='':
            return Image.fromarray(np.zeros((250,250,4)).astype('uint8'));
+       return self.G.get_image(name)[0]
+
+    def getImageAndName(self,name):
+       if name is None or name=='':
+           return Image.fromarray(np.zeros((250,250,4)).astype('uint8'));
        return self.G.get_image(name)
 
     def startImage(self):
-       if (self.start is None):
-           return Image.fromarray(np.zeros((250,250,3)).astype('uint8'));
-       return self.G.get_image(self.start)
+       return self.getImage(self.start)
 
     def nextImage(self):
-       if (self.end is None):
-           dim = (250,250,3) if self.start is None else self.G.get_image(self.start).size
-           return Image.fromarray(np.zeros(dim).astype('uint8'));
-       return self.G.get_image(self.end)
+       return self.getImage(self.end)
 
     def maskImage(self):
        if (self.end is None):
-           dim = (250,250,3) if self.start is None else self.G.get_image(self.start).size
+           dim = (250,250,3) if self.start is None else self.getImage(self.start).size
            return Image.fromarray(np.zeros(dim).astype('uint8'));
        return self.G.get_edge_mask(self.start,self.end)
 
@@ -211,15 +237,11 @@ class ProjectModel:
        return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
-       file = None
-       im = None
        if self.end is not None:
-          file=self.G.get_node(self.end)['file']
-          im=self.nextImage()
+          return self.getImageAndName(self.end)
        elif self.start is not None:
-          file=self.G.get_node(self.start)['file']
-          im=self.startImage()
-       return file,im
+          return self.getImageAndName(self.start)
+       return None,None
 
     def selectImage(self,name):
       self.start = name
@@ -240,8 +262,44 @@ class ProjectModel:
          self.start = p[0] if len(p) > 0  else None
          self.end = None
 
+    def getProjectData(self, item):
+        return self.G.getDataItem(item)
+
+    def setProjectData(self,item, value):
+        self.G.setDataItem(item,value)
+
+    def getVersion(self):
+      return self.G.getVersion()
+
     def getGraph(self):
       return self.G
+
+    def imageFromPlugin(self,filter,im, filename, **kwargs):
+      op = plugins.getOperation(filter)
+      suffix = filename[filename.rfind('.'):]
+      preferred = plugins.getPreferredSuffix(filter)
+      if preferred is not None:
+          suffix = preferred
+      target = os.path.join(tempfile.gettempdir(),self.G.new_name(os.path.split(filename)[1]))
+      shutil.copy2(filename, target)
+      copyExif = plugins.callPlugin(filter,im,target,**kwargs)
+      msg = None
+      if copyExif:
+        msg = exif.copyexif(filename,target)
+      description = Modification(op[0],filter + ':' + op[2],op[1])
+      if 'inputmaskpathname' in kwargs:
+         description.inputmaskpathname = kwargs['inputmaskpathname']
+      sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
+      software = Software(op[3],op[4],internal=True)
+      description.arguments = {k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'inputmaskpathname'}
+      msg2 = self.addNextImage(target,None,mod=description,software=software,sendNotifications=sendNotifications)
+      if msg2 is not None:
+          if msg is None:
+             msg = msg2
+          else:
+             msg = msg + "\n" + msg2
+      os.remove(target)
+      return msg
 
     def scanNextImage(self):
       if (self.start is None):
@@ -268,7 +326,7 @@ class ProjectModel:
          nfile = file
          break
       im = tool_set.openImage(nfile)
-      return nfile,im
+      return im,nfile
 
     def openImage(self,nfile):
       im = None
