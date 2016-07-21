@@ -2,7 +2,7 @@ import cv2
 from PIL import Image
 import numpy
 
-def transform(img,**kwargs):
+def transform(img,imgfilename,**kwargs):
     rgba = img.convert('RGBA')
     inputmask = Image.open(kwargs['inputmaskpathname'])
     if inputmask.size != rgba.size:
@@ -12,7 +12,8 @@ def transform(img,**kwargs):
     bmask = mask>0
     for i in range(4): 
       cv_image[:,:,i][bmask]=0
-    return Image.fromarray(cv_image,'RGBA')
+    Image.fromarray(cv_image,'RGBA').save(imgfilename)
+    return True
 
 # the actual link name to be used. 
 # the category to be shown

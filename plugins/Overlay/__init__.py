@@ -2,14 +2,15 @@ import cv2
 from PIL import Image
 import numpy
 
-def transform(img,**kwargs):
+def transform(img,imgfilename,**kwargs):
     rgba = img.convert('RGBA')
     inputmask = kwargs['donor']
-    donor = inputmask.convert('RGBA')
+    donor = inputmask[0].convert('RGBA')
     if donor.size != rgba.size:
       donor = donor.resize(rgba.size, Image.ANTIALIAS)
     rgba.paste(donor,(0,0),donor)
-    return rgba
+    rgba.save(imgfilename)
+    return True
 
 # the actual link name to be used. 
 # the category to be shown

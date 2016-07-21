@@ -8,6 +8,9 @@ Install PIL
 
 Uses opencv (cv2)
 
+Install exiftool
+
+
 ## Install commands
 
 ```

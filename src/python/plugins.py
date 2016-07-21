@@ -62,6 +62,6 @@ def getOperation(name):
     global loaded
     return loaded[name]['operation']
 
-def callPlugin(name,im,**kwargs):
+def callPlugin(name,im,imgfilename,**kwargs):
     global loaded
-    return loaded[name]['function'](im,**kwargs)
+    return loaded[name]['function'](im,imgfilename,**kwargs)

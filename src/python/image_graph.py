@@ -11,6 +11,8 @@ import datetime
 from software_loader import Software, SoftwareLoader, getOS
 import tarfile
 
+igversion='0.1'
+
 try:
   import pwd
   import os
@@ -97,7 +99,7 @@ class ImageGraph:
       if (os.path.exists(pathname)):
         shutil.copy2(pathname, newpathname)
       elif image is not None:
-        image.save(newpathname)
+        image.save(newpathname,exif=image.info['exif'])
     self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
     self.U = []
     self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
@@ -191,10 +193,11 @@ class ImageGraph:
     return im
 
   def get_image(self,name):
-    with open(os.path.abspath(os.path.join(self.dir,self.G.node[name]['file'])),"rb") as fp:
+    filename= os.path.abspath(os.path.join(self.dir,self.G.node[name]['file']))
+    with open(filename,"rb") as fp:
        im= Image.open(fp)
        im.load()
-       return im
+       return im,filename
 
   def get_edge(self,start,end):
     return self.G[start][end] if (self.G.has_edge(start,end)) else None
@@ -255,19 +258,34 @@ class ImageGraph:
   def has_node(self, name):
      return self.G.has_node(name)
 
+  def getDataItem(self,item):
+    return self.G.graph[item] if item in self.G.graph else None
+     
+  def setDataItem(self,item,value):
+    self.G.graph[item] = value
+
   def get_node(self,name):
     if self.G.has_node(name):
       return self.G.node[name]
     else:
       return None
 
+  def getVersion(self):
+    return igversion
+
   def load(self,pathname):
+    global igversion
     with open(pathname,"r") as f:
-      d = json.load(f)
-      self.G = json_graph.node_link_graph(d)
-    if (self.G.has_node('idcount')):
-      self.idc = self.G.node['idcount']['count']
-      self.G.remove_node('idcount')
+      self.G = json_graph.node_link_graph(json.load(f))
+      if 'igversion' in self.G.graph:
+        if self.G.graph['igversion'] != igversion:
+          raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
+      self.G.graph['igversion'] = igversion
+      if 'idcount' in self.G.graph:
+        self.idc = self.G.graph['idcount']
+      elif self.G.has_node('idcount'):
+        self.idc = self.G.node['idcount']['count']
+        self.G.remove_node('idcount')
     self.dir = os.path.abspath(os.path.split(pathname)[0])
      
   def saveas(self, pathname):
@@ -277,25 +295,22 @@ class ImageGraph:
      self.dir = os.path.abspath(os.path.split(pathname)[0])
      self.G.name = name
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
-     self.G.add_node('idcount',count=self.idc)
      with open(filename, 'w') as f:
         jg = json.dump(json_graph.node_link_data(self.G),f,indent=2)
-     self.G.remove_node('idcount')
      self._copy_contents(currentdir)
      self.filesToRemove.clear()
 
   def save(self):
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
-     self.G.add_node('idcount',count=self.idc)
      with open(filename, 'w') as f:
         jg = json.dump(json_graph.node_link_data(self.G),f,indent=2)
-     self.G.remove_node('idcount')
      for f in self.filesToRemove:
        os.remove(f)
      self.filesToRemove.clear()
 
   def nextId(self):
     self.idc+=1
+    self.G.graph['idcount']=self.idc
     return self.idc
 
   def _copy_contents(self, currentdir):

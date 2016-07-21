@@ -30,6 +30,15 @@ def getCategory(ops, mod):
           return matches[0]
     return None
 
+def tupletostring(tuple):
+   strv = ''
+   for item in tuple[1:]:
+     if type(item) is str:
+       strv = strv + item + ' '
+     else:
+       strv = strv + str(item) + ' '
+   return strv
+
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    description = None
@@ -177,13 +186,15 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
    software = None
    photo=None
    c= None
+   exifdiff = None
 
-   def __init__(self, parent,im, myops,name, description=None,software=None):
+   def __init__(self, parent,im, myops,name, description=None,software=None,exifdiff=None):
       self.myops = myops
       self.im = im
       self.parent = parent
       self.description=description if description is not None else Modification('','')
       self.software = software
+      self.exifdiff = exifdiff
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):
@@ -201,6 +212,33 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=3, column=1,sticky=W)
       Label(master, text=self.software.name,anchor=W,justify=LEFT).grid(row=4, column=1,sticky=W)
       Label(master, text=self.software.version,anchor=W,justify=LEFT).grid(row=5, column=1,sticky=W)
+      row =5
+      if len(self.description.arguments)>0:
+        Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row+1, column=0,columnspan=2,sticky=W)
+        self.argBox = Canvas(master)
+        pos = 10
+        br = (0,0)
+        self.description.arguments['fdjfkdf dfjkdf df'] = 'fdkfd fdfkdf dlfdf'
+        self.description.arguments['fdjfkdf dfjkdf df1'] = 'fdkfd fdfkdf xdlfdf'
+        for argname,argvalue in self.description.arguments.iteritems(): 
+          l = self.argBox.create_text(10, pos, text=argname + ': ' + argvalue, anchor=W)
+          bbox = self.argBox.bbox(l)
+          bbox = [abs(x) for x in bbox]
+          br = ( max(bbox[0] + bbox[2],br[0]), max(bbox[1]+bbox[3],br[1]) )
+          pos+=20
+        self.argBox.grid(row=row+2,column =0, columnspan=2)
+        self.argBox.config(width=br[0]+20,height=br[1])
+        row+=2
+      if len(self.exifdiff) > 0:
+         Label(master, text='EXIF Changes:',anchor=W,justify=LEFT).grid(row=row+1, column=0,columnspan=2,sticky=E+W)
+         items = [k + ': ' + tupletostring(v) for k,v in self.exifdiff.iteritems()]
+         self.lbscrollbar = Scrollbar(master, orient=VERTICAL)
+         self.listbox = Listbox(master, yscrollcommand=self.lbscrollbar.set)
+         for item in items:
+            self.listbox.insert(END,item)
+         self.lbscrollbar.config(command=self.listbox.yview)
+         self.listbox.grid(row=row+2,column=0,columnspan=2,sticky=N+S+E+W)
+         self.lbscrollbar.grid(row=row+2,column=3,sticky=N+S)
 
    def cancel(self):
        tkSimpleDialog.Dialog.cancel(self)
@@ -278,9 +316,7 @@ class CompareDialog(tkSimpleDialog.Dialog):
 
 class FilterCaptureDialog(tkSimpleDialog.Dialog):
 
-   description = None
    im = None
-   software = None
    photo=None
    c= None
    optocall= None
@@ -292,7 +328,6 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       self.im = im
       self.dir = dir
       self.parent = parent
-      self.description=Modification('','')
       self.scModel = scModel
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
@@ -361,7 +396,6 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
          arginfo = op['arguments']
          self.catvar.set(opinfo[1])
          self.opvar.set(opinfo[0])
-         self.description.additionalInfo=opinfo[2]
          self.softwarevar.set(opinfo[3])
          self.versionvar.set(opinfo[4])
          if arginfo is not None:
@@ -384,16 +418,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
    def apply(self):
        self.cancelled = False
        self.optocall=self.e1.get()
-       self.description.operationName=self.opvar.get()
-       self.description.additionalInfo=self.e1.get() + ':' + self.description.additionalInfo
-       self.description.category=self.catvar.get()
-       self.software=Software(self.softwarevar.get(),self.versionvar.get())
-       self.software.internal=True
-#       if (self.softwareLoader.add(self.software)):
-#          self.softwareLoader.save()
 
-   def getSoftware(self):
-      return self.software
 
 
 class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
@@ -406,7 +431,6 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
    def __init__(self,parent,im,name):
       self.im = im
       self.parent = parent
-      self.name = name
       self.gfl=  GroupFilterLoader()
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
@@ -430,3 +454,20 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
 
    def getGroup(self):
       return self.grouptocall
+
+class MyListBox(Frame):
+
+    def __init__(self, master,items,**kwargs):
+        self.items = items
+        Frame.__init__(self, master, **kwargs)
+        self._drawMe()
+  
+    def _drawMe(self):
+      self.scrollbar = Scrollbar(self, orient=VERTICAL)
+      self.listbox = Listbox(self, yscrollcommand=self.scrollbar.set)
+      for item in self.items:
+         self.listbox.insert(END,item)
+      self.scrollbar.config(command=self.listbox.yview)
+      self.listbox.grid(row=0,column=0,sticky=N+S+E+W)
+      self.scrollbar.grid(row=0,column=1,sticky=N+S)
+
