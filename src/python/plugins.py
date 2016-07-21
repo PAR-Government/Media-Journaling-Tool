@@ -34,6 +34,7 @@ def loadPlugins():
       loaded[i]['function']=plugin.transform
       loaded[i]['operation']=plugin.operation()
       loaded[i]['arguments']=plugin.args()
+      loaded[i]['suffix']=plugin.suffix() if hasattr(plugin,'suffix') else None
    return loaded
 
 def getOperations():
@@ -47,6 +48,10 @@ def getOperations():
 def getArguments(name):
     global loaded
     return loaded[name]['arguments']
+
+def getPreferredSuffix(name):
+    global loaded
+    return loaded[name]['suffix']
 
 def getOperationNames(noArgs=False):
     global loaded

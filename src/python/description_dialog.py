@@ -227,8 +227,6 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         self.argBox = Canvas(master)
         pos = 10
         br = (0,0)
-        self.description.arguments['fdjfkdf dfjkdf df'] = 'fdkfd fdfkdf dlfdf'
-        self.description.arguments['fdjfkdf dfjkdf df1'] = 'fdkfd fdfkdf xdlfdf'
         for argname,argvalue in self.description.arguments.iteritems(): 
           l = self.argBox.create_text(10, pos, text=argname + ': ' + argvalue, anchor=W)
           bbox = self.argBox.bbox(l)
@@ -238,7 +236,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         self.argBox.grid(row=row+2,column =0, columnspan=2)
         self.argBox.config(width=br[0]+20,height=br[1])
         row+=2
-      if len(self.exifdiff) > 0:
+      if self.exifdiff is not None and len(self.exifdiff) > 0:
          Label(master, text='EXIF Changes:',anchor=W,justify=LEFT).grid(row=row+1, column=0,columnspan=2,sticky=E+W)
          self.exifBox = ExifTable(master,self.exifdiff)
          self.exifBox.grid(row=row+2,column=0, columnspan=2,sticky=E+W)

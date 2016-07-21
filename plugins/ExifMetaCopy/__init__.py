@@ -6,6 +6,7 @@ from subprocess import call
 def transform(img,target, **kwargs):
     donor = kwargs['donor']
     call(['exiftool', '-TagsFromFile',  donor[1],target])
+    return False
 
 def operation():
     return ['AntiForensicCopyExif','AntiForensicExif','Copy Image EXIF from donor','exiftool','10.23']
