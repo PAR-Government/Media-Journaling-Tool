@@ -8,14 +8,13 @@ import numpy as np
 import os
 import sys
 import argparse
-import mask_operation
 from mask_frames import HistoryFrame 
 import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
 from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog
 from tool_set import imageResizeRelative,fixTransparency
-from software_loader import Software
+from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
 
 # this program creates a canvas and puts a single polygon on the canvas
@@ -39,7 +38,6 @@ class MakeGenUI(Frame):
     l2 = None
     l3 = None
     processmenu = None
-    myops = {}
     mypluginops = {}
     nodemenu = None
     edgemenu = None
@@ -162,7 +160,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
             if msg is not None:
@@ -176,7 +174,7 @@ class MakeGenUI(Frame):
         im,filename = self.scModel.scanNextImage()
         if (filename is None): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg = self.scModel.addNextImage(filename,im,mod=d.description,software=d.getSoftware())
             if msg is not None:
@@ -341,7 +339,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description,software=d.getSoftware())
        self.drawState()
@@ -350,7 +348,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,im,self.myops,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
+       d = DescriptionViewDialog(self,im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
 
     def createWidgets(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
@@ -451,7 +449,7 @@ class MakeGenUI(Frame):
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N+S)
         self.hscrollbar.grid(row=1, column=0, sticky=E+W)
-        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB,self.myops, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
+        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
         self.canvas.grid(row=0, column=0,sticky=N+S+E+W)
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
@@ -471,10 +469,9 @@ class MakeGenUI(Frame):
        elif eventName == 'n':
            self.drawState()
 
-    def __init__(self,dir,master=None, ops=[],pluginops={}):
+    def __init__(self,dir,master=None,pluginops={}):
         Frame.__init__(self, master)
 #        master.wm_attributes("-transparent", True)
-        self.myops = ops
         self.mypluginops = pluginops
         self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)
         if self.scModel.getProjectData('typespref') is None:
@@ -490,18 +487,25 @@ def main(argv=None):
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('imagedir', help='image directory')
    parser.add_argument('--ops', help="operations list file")
+   parser.add_argument('--sw', help="softwarelist file")
    imgdir = '.'
    argv = argv[1:]
    args = parser.parse_args(argv)
    if args.imagedir is not None:
        imgdir = args.imagedir
    if args.ops is not None:
-       ops = mask_operation.loadOperations(args.ops)
+       loadOperations(args.ops)
    else:
-       ops = defaultops
+       print "Operations file is required"
+       sys.exit(-1)
+   if args.sw is not None:
+       loadSoftware(args.sw)
+   else:
+       print "Software file is required"
+       sys.exit(-1)
    root= Tk()
 
-   gui = MakeGenUI(imgdir,master=root,ops=ops,pluginops=plugins.loadPlugins())
+   gui = MakeGenUI(imgdir,master=root,pluginops=plugins.loadPlugins())
    gui.mainloop()
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
-from Tkinter import *
+mfrom Tkinter import *
 from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage
 from scenario_model import ProjectModel,Modification
-from software_loader import Software, SoftwareLoader, getOS
+from software_loader import Software, SoftwareLoader, getOS, getOperations, getSoftware
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
@@ -15,12 +15,6 @@ def opfromitem(item):
 
 def descfromitem(item):
    return (item[1] if type(item) is tuple else '')
-
-def softwarefromitem(item):
-   return (item[2] if type(item) is tuple and len(item)>3 else None)
-
-def versionfromitem(item):
-   return (item[3] if type(item) is tuple and len(item)>3 else None)
 
 def getCategory(ops, mod):
     if mod.category is not None and len(mod.category)>0:
@@ -60,29 +54,22 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    moc = None
    cancelled = True
 
-   def __init__(self, parent,dir,im, myops,name, description=None, software=None):
-      self.myops = myops
+   def __init__(self, parent,dir,im,name, description=None, software=None):
+      self.myops = getOperations()
       self.dir = dir
       self.im = im
       self.parent = parent
       self.description=description if description is not None else Modification('','')
       self.software=software
       self.softwareLoader = SoftwareLoader()
-      for catlist in self.myops.itervalues():
-         for cat in catlist:
-           if self.softwareLoader.add(Software(softwarefromitem(cat),versionfromitem(cat))):
-             self.softwareLoader.save()
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
+   def newsoftware(self,event):
+      sname = self.e4.get()
+      self.e5.set_completion_list(self.softwareLoader.get_versions(sname),initialValue=self.softwareLoader.get_preferred_version(sname))
+
    def newcommand(self,event):
       command = self.e2.get()
-      cat = self.e1.get()
-      if cat in self.myops:
-        catlist = self.myops[cat]
-        for ctuple in catlist:
-          if ctuple[0]==command:
-           self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=softwarefromitem(ctuple))
-           self.e5.set_completion_list(self.softwareLoader.get_versions(),initialValue=versionfromitem(ctuple))
 
    def newcategory(self, event):
       if (self.myops.has_key(self.e1.get())):
@@ -125,6 +112,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.e1.bind("<<ComboboxSelected>>", self.newcategory)
       self.e2.bind("<Return>", self.newcommand)
       self.e2.bind("<<ComboboxSelected>>", self.newcommand)
+      self.e4.bind("<Return>", self.newsoftware)
+      self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
       self.e3 = Text(master,height=2,width=28,font=('Times', '14'), relief=RAISED,borderwidth=2)
 
       if (len(cats)>0):
@@ -153,9 +142,10 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
       if self.software is not None:
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.software.name)
-         self.e5.set_completion_list(self.softwareLoader.get_versions(),initialValue=self.software.version)
+         self.e5.set_completion_list(self.softwareLoader.get_versions(self.software.name),initialValue=self.software.version)
       else:
-         self.newcommand(None)
+         self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.softwareLoader.get_preferred_name())
+         self.e5.set_completion_list(self.softwareLoader.get_versions(self.software.name),initialValue=self.get_preferred_version())
 
       return self.e1 # initial focus
 
@@ -197,8 +187,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
    c= None
    exifdiff = None
 
-   def __init__(self, parent,im, myops,name, description=None,software=None,exifdiff=None):
-      self.myops = myops
+   def __init__(self, parent,im,name, description=None,software=None,exifdiff=None):
+      self.myops = getOperations()
       self.im = im
       self.parent = parent
       self.description=description if description is not None else Modification('','')
@@ -324,8 +314,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
    argvalues = {}
    cancelled = True
 
-   def __init__(self,parent,dir,im, myops, name, scModel):
-      self.myops = myops
+   def __init__(self,parent,dir,im, name, scModel):
+      self.myops = getOperations()
       self.im = im
       self.dir = dir
       self.parent = parent

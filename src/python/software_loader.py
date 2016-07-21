@@ -4,8 +4,42 @@ import platform
 import os
 from maskgen_loader import MaskGenLoader
 
+softwareset = {}
+operations = {}
+
+def getOperations():
+  global operations
+  return operations
+
+def getSoftwareSet()
+  global softwareset
+  return softwareset
+
+def loadCSV(filename)
+    d={}
+    with open(fileName) as f:
+        for l in f.readlines():
+            columns = l.split(',')
+            if (len(columns) > 2):
+              category = columns[1].strip()
+              if not d.has_key(category):
+                  d[category] = []
+              d[category].append(columns[0].strip())
+   return d
+
+def loadOperations(fileName):
+    global operations
+    operations = loadCSV(filename)
+    return operation
+
+def loadSoftware(fileName):
+    global softwareset
+    softwareset = loadCSV(filename)
+    return softwareset
+
 def getOS():
   return platform.system() + ' ' + platform.release() + ' ' + platform.version()
+
 
 class Software:
    name = None
@@ -17,48 +51,69 @@ class Software:
      self.version = version
      self.internal=internal
 
+def validateSoftware(self,softwareName,softwareVersion):
+     global softwareset
+     return softwareName in softwareset and softwareVersion in softwareset[softwareName]
 
 class SoftwareLoader:
 
-   software = []
+   software = {}
+   preference = None
    loader = MaskGenLoader()
 
    def __init__(self):
-     self.software = self.load()
+     self.load(self)
 
    def load(self):
-     res = []
-     #backward compatibility
-     file = os.path.join(expanduser("~"),".maskgen")
-     if os.path.exists(file):
-        with open(file,"r") as csvfile:
-           spamreader = csv.reader(csvfile, delimiter=',', quotechar='"')
-           for row in spamreader:
-             res.append(Software(row[0],row[1]))
+     global softwareset
+     res = {}
+     self.preference = self.loader.get_key('software_pref')
      newset = self.loader.get_key('software')
      if newset is not None:
-       for row in newset:
-         res.append(Software(row[0],row[1]))
-     return res
+       if type(newset) == list:
+         for item in newset:
+            if validateSoftware(item[0],item[1])
+               res[item[0]] = item[1]
+       else 
+         for name,version in newset.iteritems():
+            if validateSoftware(name,version)
+               res[name] = version
+     self.software = res
+
+   def get_preferred_version(self):
+    if self.preference is not None:
+      return self.preference[1]
+    if len(self.software) > 0:
+      return self.software[self.software.keys()[0]]
+    return None
+
+   def get_preferred_name(self)
+    if self.preference is not None:
+      return self.preference[0]
+    if len(self.software) > 0:
+      return self.software.keys()[0]
+    return None
 
    def get_names(self):
-     return list(set([s.name for s in self.software]))
+     global softwareset
+     return list(softwareset.keys())
 
-   def get_versions(self):
-     return list(set([s.version for s in self.software]))
+   def get_versions(self,name):
+     return softwareset[name] if name in softwareset else []
 
    def add(self, software):
-     f = False
-     for s in self.software:
-       if software.name == s.name and software.version == s.version:
-         f= True
-     if not f and software.name is not None and software.version is not None:
-       self.software.append(software)
-       return True
+     isChanged = False
+     if validateSoftware(software.name,software.version):
+        if not software.name in self.software or self.software[software.name] != software.version:
+          self.software[software.name] = software.version
+          isChanged = True
+        pref = self.preference
+        if pref is None or pref[0] != name or pref[1] != version
+           self.preference = [software.name,software.version]
+           isChanged = True
+        
+        return True
      return False
 
    def save(self):
-      image = []
-      for s in self.software:
-        image.append([s.name, s.version])
-      self.loader.save("software",image)
+      self.loader.saveall([("software",self.software),("software_pref",self.preference)])

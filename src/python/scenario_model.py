@@ -233,7 +233,7 @@ class ProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username','size']
+       stat_names = ['ssim','psnr','username','shape change']
        return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
