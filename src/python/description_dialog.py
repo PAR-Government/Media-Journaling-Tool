@@ -468,7 +468,8 @@ class ExifTable(Frame):
        for c in  ['Operation','Old','New']:
           model.addColumn(c)
        model.importDict(exiftodict(self.items))
-       self.table = TableCanvas(self, model=model)
+
+       self.table = TableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True)
        self.table.updateModel(model)
        self.table.createTableFrame()
   
