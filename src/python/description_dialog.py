@@ -8,6 +8,7 @@ from scenario_model import ProjectModel,Modification
 from software_loader import Software, SoftwareLoader, getOS
 import os
 import numpy as np
+from tkintertable import TableCanvas, TableModel
 
 def opfromitem(item):
    return (item[0] if type(item) is tuple else item)
@@ -29,6 +30,14 @@ def getCategory(ops, mod):
        if (len(matches)>0):
           return matches[0]
     return None
+
+def exiftodict(exifdata): 
+   d = {}
+   for k,v in exifdata.iteritems(): 
+      old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
+      new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+      d[k] = {'Operation':v[0],'Old':old,'New':new}
+   return d
 
 def tupletostring(tuple):
    strv = ''
@@ -231,14 +240,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         row+=2
       if len(self.exifdiff) > 0:
          Label(master, text='EXIF Changes:',anchor=W,justify=LEFT).grid(row=row+1, column=0,columnspan=2,sticky=E+W)
-         items = [k + ': ' + tupletostring(v) for k,v in self.exifdiff.iteritems()]
-         self.lbscrollbar = Scrollbar(master, orient=VERTICAL)
-         self.listbox = Listbox(master, yscrollcommand=self.lbscrollbar.set)
-         for item in items:
-            self.listbox.insert(END,item)
-         self.lbscrollbar.config(command=self.listbox.yview)
-         self.listbox.grid(row=row+2,column=0,columnspan=2,sticky=N+S+E+W)
-         self.lbscrollbar.grid(row=row+2,column=3,sticky=N+S)
+         self.exifBox = ExifTable(master,self.exifdiff)
+         self.exifBox.grid(row=row+2,column=0, columnspan=2,sticky=E+W)
 
    def cancel(self):
        tkSimpleDialog.Dialog.cancel(self)
@@ -455,7 +458,7 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
    def getGroup(self):
       return self.grouptocall
 
-class MyListBox(Frame):
+class ExifTable(Frame):
 
     def __init__(self, master,items,**kwargs):
         self.items = items
@@ -463,11 +466,12 @@ class MyListBox(Frame):
         self._drawMe()
   
     def _drawMe(self):
-      self.scrollbar = Scrollbar(self, orient=VERTICAL)
-      self.listbox = Listbox(self, yscrollcommand=self.scrollbar.set)
-      for item in self.items:
-         self.listbox.insert(END,item)
-      self.scrollbar.config(command=self.listbox.yview)
-      self.listbox.grid(row=0,column=0,sticky=N+S+E+W)
-      self.scrollbar.grid(row=0,column=1,sticky=N+S)
+       model = TableModel()
+       for c in  ['Operation','Old','New']:
+          model.addColumn(c)
+       model.importDict(exiftodict(self.items))
+       self.table = TableCanvas(self, model=model)
+       self.table.updateModel(model)
+       self.table.createTableFrame()
+  
 

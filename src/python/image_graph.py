@@ -84,11 +84,18 @@ class ImageGraph:
   def get_edges(self):
     return self.G.edges()
 
+  def new_name(self, fname):
+    suffix = get_suffix(fname)
+    nname = get_pre_name(fname)
+    while (self.G.has_node(nname)):
+      nname = nname + '_' + str(self.nextId())
+      fname = nname + suffix
+    return fname
+
   def add_node(self,pathname, seriesname=None, image=None):
     fname = os.path.split(pathname)[1]
     origname = nname = get_pre_name(fname)
     suffix = get_suffix(fname)
-#    nname = nname + '_' + str(self.nextId())
     while (self.G.has_node(nname)):
       nname = nname + '_' + str(self.nextId())
       fname = nname + suffix

@@ -212,7 +212,7 @@ class MakeGenUI(Frame):
                 end = self.scModel.end
                 self.scModel.selectImage(d.argvalues['donor'])
                 self.scModel.connect(end)
-                self.canvas.add(self.scModel.start, self.scModel.end)
+                self.canvas.showEdge(self.scModel.start, self.scModel.end)
               self.processmenu.entryconfig(6,state='normal')
 
     def nextfiltergroup(self):

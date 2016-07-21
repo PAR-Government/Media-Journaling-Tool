@@ -277,7 +277,7 @@ class ProjectModel:
     def imageFromPlugin(self,filter,im, filename, **kwargs):
       op = plugins.getOperation(filter)
       suffix = filename[filename.rfind('.'):]
-      target = tempfile.mkstemp(suffix=suffix)[1]
+      target = os.path.join(tempfile.gettempdir(),self.G.new_name(os.path.split(filename)[1]))
       shutil.copy2(filename, target)
       copyExif = plugins.callPlugin(filter,im,target,**kwargs)
       msg = None
