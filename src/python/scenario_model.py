@@ -60,8 +60,8 @@ class ProjectModel:
     def compare(self, destination,seamAnalysis=True):
        im1 = self.getImage(self.start)
        im2 = self.getImage(destination)
-       mask, analysis = tool_set.createMask(np.array(im1),np.array(im2), invert=False, seamAnalysis=seamAnalysis)
-       return im1,im2,Image.fromarray(mask),analysis
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis)
+       return im1,im2,mask,analysis
 
     def getExifDiff(self):
       e = self.G.get_edge(self.start, self.end)
@@ -72,7 +72,7 @@ class ProjectModel:
     def _compareImages(self,start,destination, invert=False):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
-       mask,analysis = tool_set.createMask(np.array(startIm),np.array(destIm), invert=invert)
+       mask,analysis = tool_set.createMask(startIm,destIm, invert=invert)
        maskname=start + '_' + destination + '_mask'+'.png'
        exifDiff = exif.compareexif(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}

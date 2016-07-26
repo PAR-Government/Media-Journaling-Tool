@@ -37,6 +37,7 @@ def loadOperations(fileName):
     global operations
     global operationsByCategory
     operations = loadCSV(fileName)
+    operationsByCategory = {}
     for op,data in operations.iteritems():
       cat = data[0]
       if cat not in operationsByCategory:
@@ -113,9 +114,14 @@ class SoftwareLoader:
      global softwareset
      return list(softwareset.keys())
 
-   def get_versions(self,name):
+   def get_versions(self,name,version=None):
      global softwareset
-     return softwareset[name] if name in softwareset else []
+     versions = softwareset[name] if name in softwareset else []
+     if version is not None and version not in versions:
+       print version + ' not in approved set for software ' + name
+       versions = list(versions)
+       versions.append(version)
+     return versions
 
    def add(self, software):
      isChanged = False

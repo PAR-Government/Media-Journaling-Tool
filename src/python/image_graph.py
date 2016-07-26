@@ -183,9 +183,10 @@ class ImageGraph:
     return inputmaskname, 'yes' if includePathInUndo else 'no'
 
   def add_edge(self,start, end,inputmaskpathname=None,maskname=None,mask=None,op='Change',description='',**kwargs):
-    im =  Image.fromarray(mask)
+#    im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
-    cv2.imwrite(newpathname,mask)
+    #cv2.imwrite(newpathname,mask)
+    mask.save(newpathname)
     inputmaskname,inputmaskownership= self.handle_inputmask(inputmaskpathname)
     # do not remove old version of mask if not saved previously
     if newpathname in self.filesToRemove:
@@ -197,7 +198,7 @@ class ImageGraph:
          **kwargs)
     self.U = []
     self.U.append(dict(action='addEdge', ownership='yes', start=start,end=end, **self.G.edge[start][end]))
-    return im
+    return mask
 
   def get_image(self,name):
     filename= os.path.abspath(os.path.join(self.dir,self.G.node[name]['file']))

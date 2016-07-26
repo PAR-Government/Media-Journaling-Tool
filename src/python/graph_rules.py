@@ -1,118 +1,41 @@
+from software_loader import getOperations,SoftwareLoader
+
 rules = {}
+sloader = SoftwareLoader()
 
 def run_rules(op, graph, frm,to):
   global rules
   if len(rules) == 0:
     setup()
-
-  results = []
+  results = initialCheck(op,graph,frm,to)
   for rule in (rules[op] if op in rules else []):
      res = rule(graph,frm,to)
      if res is not None:
        results.append(res)
   return results
 
+def initialCheck(op,graph,frm,to):
+  versionResult= checkVersion(op,graph,frm,to)
+  return [] if versionResult is  None else [versionResult]
+
+def checkVersion(op,graph,frm,to):
+  global sloader
+  edge = graph.get_edge(frm,to)
+  if 'softwareName' in edge and 'softwareVersion' in edge:
+    sname = edge['softwareName']
+    sversion = edge['softwareVersion']
+    if sversion not in sloader.get_versions(sname):
+      return sversion + ' not in approved set for software ' + sname
+  return None
+
 def setup():
+  ops = getOperations()
+  for op,data in ops.iteritems():
+    set_rules(op,data[1:])
+
+def set_rules(op,ruleNames):
   global rules
-  rules['AdditionalEffectAddLightSource'] = [checkSize]
-  rules['AdditionalEffectFading'] = [checkSize]
-  rules['AdditionalEffectFilterAddNoise'] = [checkSize]
-  rules['AdditionalEffectFilterBlur'] = [checkSize]
-  rules['AdditionalEffectFilterMedianSmoothing'] = [checkSize]
-  rules['AdditionalEffectFilterSharpening'] = [checkSize]
-  rules['AdditionalEffectFilterSmoothing'] = [checkSize]
-  rules['AdditionalEffectGradientEffect'] = [checkSize]
-  rules['AdditionalEffectSoftEdgeBrushing'] = [checkSize]
-  rules['AntiForensicCameraFingerprintAberrationCorrection'] = [checkSize]
-  rules['AntiForensicCameraFingerprintCFAHiding'] = [checkSize]
-  rules['AntiForensicCameraFingerprintCFAInterpolation'] = [checkSize]
-  rules['AntiForensicCameraFingerprintCFAResize'] = [checkSize]
-  rules['AntiForensicCameraFingerprintCFARotation'] = [checkSize]
-  rules['AntiForensicCameraFingerprintENFAlternation'] = [checkSize]
-  rules['AntiForensicCameraFingerprintPhotoResponseNonUniformity'] = [checkSize]
-  rules['AntiForensicCompressionCompressionNormalization'] = [checkSize]
-  rules['AntiForensicExifCameraModelPara'] = [checkSize]
-  rules['AntiForensicExifDateTime'] = [checkSize]
-  rules['AntiForensicExifManipulationSoftware'] = [checkSize]
-  rules['AntiForensicExifQuantizationTable'] = [checkSize]
-  rules['AntiforensicFilterNoiseRestoration'] = [checkSize]
-  rules['ArtifactsCGIArtificialLighting'] = [checkSize]
-  rules['ArtifactsCGIArtificialReflection'] = [checkSize]
-  rules['ArtifactsCGIArtificialShadow'] = [checkSize]
-  rules['ArtifactsCGIObjectCGI'] = [checkSize]
-  rules['ColorBlendColorBurn'] = [checkSize]
-  rules['ColorBlendColorInterpolation'] = [checkSize]
-  rules['ColorBlendDissolve'] = [checkSize]
-  rules['ColorBlendMultiply'] = [checkSize]
-  rules['ColorColorBalance'] = [checkSize]
-  rules['ColorFill'] = [checkSize]
-  rules['ColorHue'] = [checkSize]
-  rules['ColorMatchColor'] = [checkSize]
-  rules['ColorOpacity'] = [checkSize]
-  rules['ColorReplaceColor'] = [checkSize]
-  rules['ColorSaturation'] = [checkSize]
-  rules['ColorVibranceContentBoosting'] = [checkSize]
-  rules['ColorVibranceReduction'] = [checkSize]
-  rules['CreationFilterGT'] = [checkSize]
-  rules['FillBackground'] = [checkSize]
-  rules['FillCloneRubberStamp'] = [checkSize]
-  rules['FillContentAwareFill'] = [checkSize]
-  rules['FillForeground'] = [checkSize]
-  rules['FillGradient'] = [checkSize]
-  rules['FillHealingBrush'] = [checkSize]
-  rules['FillImageInterpolation'] = [checkSize]
-  rules['FillInpainting'] = [checkSize]
-  rules['FillLocalRetouching'] = [checkSize]
-  rules['FillPaintBrushTool'] = [checkSize]
-  rules['FillPaintBucket'] = [checkSize]
-  rules['FillPattern'] = [checkSize]
-  rules['FillRubberStamp'] = [checkSize]
-  rules['FilterBlurMotion'] = [checkSize]
-  rules['FilterBlurNoise'] = [checkSize]
-  rules['FilterCameraRawFilter'] = [checkSize]
-  rules['IntensityBrightness'] = [checkSize]
-  rules['IntensityContrast'] = [checkSize]
-  rules['IntensityCurves'] = [checkSize]
-  rules['IntensityDarken'] = [checkSize]
-  rules['IntensityDesaturate'] = [checkSize]
-  rules['IntensityExposure'] = [checkSize]
-  rules['IntensityHardlight'] = [checkSize]
-  rules['IntensityHighlight'] = [checkSize]
-  rules['IntensityLevels'] = [checkSize]
-  rules['IntensityLighten'] = [checkSize]
-  rules['IntensityLuminosity'] = [checkSize]
-  rules['IntensitySoftlight'] = [checkSize]
-  rules['MarkupDigitalPenDraw'] = [checkSize]
-  rules['MarkupHandwriting'] = [checkSize]
-  rules['MarkupOverlayObject'] = [checkSize]
-  rules['MarkupOverlayText'] = [checkSize]
-  rules['OutputBmp'] = [checkSize]
-  rules['OutputJpg'] = [checkSize]
-  rules['OutputPng'] = [checkSize]
-  rules['OutputTif'] = [checkSize]
-  rules['PasteClone'] = [checkSize]
-  rules['PasteDuplicate'] = [checkSize]
-  rules['PasteSplice'] = [checkSize,checkForDonor]
-  rules['PostProcessingSizeUpDownOrgExif'] = [checkSize]
-  rules['SelectCopy'] = [checkSize]
-  rules['SelectRegion'] = [checkSize]
-  rules['SelectRemove'] = [checkSize]
-  rules['TransformAffine'] = [checkSize]
-  rules['TransformContentAwareScale'] = [checkSize]
-  rules['TransformCrop'] = []
-  rules['TransformDistort'] = [checkSize]
-  rules['TransformFlip'] = [checkSize]
-  rules['TransformMove'] = [checkSize]
-  rules['TransformResample'] = [checkSize]
-  rules['TransformResize'] = [sizeChanged]
-  rules['TransformRotate'] = []
-  rules['TransformScale'] = [sizeChanged]
-  rules['TransformSeamCarving'] = [seamCarvingCheck]
-  rules['TransformShear'] = [checkSize]
-  rules['TransformSkew'] = [checkSize]
-  rules['TransformWarp'] = [checkSize]
-  rules['Donor'] = [checkDonor]
-  rules['AntiForensicCopyExif'] = [checkForDonor]
+  rules[op] = [globals().get(name) for name in ruleNames]
 
 def checkForDonor(graph,frm,to):
    pred = graph.predecessors(to)

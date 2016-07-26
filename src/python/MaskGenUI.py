@@ -24,6 +24,32 @@ from maskgen_loader import MaskGenLoader
 defaultypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
 defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
 
+def loadS3(values):
+  import boto3
+  print 'Download operations and software via S3'
+  s3 = boto3.client('s3','us-east-1')
+  BUCKET = values[0][0:values[0].find('/')]
+  DIR=values[0][values[0].find('/')+1:]
+  s3.download_file( BUCKET,DIR + "/operations.csv", "operations.csv")
+  s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
+
+def loadHTTP(values):
+    import requests
+    print 'Download operations and software via HTTP'
+    head = {}
+    for p in range(1, len(values)):
+        name = values[p].split(':')[0].strip()
+        val = values[p].split(':')[1].strip()
+        head[name]=val
+    r = requests.get(values[0] + '/operations.csv',headers=head)
+    if r.status_code < 300:
+      with open('operations.csv', 'w') as f:
+          f.write(r.content)
+    r = requests.get(values[0] + '/software.csv',headers=head)
+    if r.status_code < 300:
+      with open('software.csv', 'w') as f:
+          f.write(r.content)
+
 class MakeGenUI(Frame):
 
     prefLoader= MaskGenLoader()
@@ -292,6 +318,20 @@ class MakeGenUI(Frame):
         if window == self.errorlistDialog:
            self.errorlistDialog = None
 
+    def fetchS3(self):
+       import graph_rules
+       info = self.prefLoader.get_key('s3info')
+       val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder", initialvalue=info if info is not None else '')
+       if (val is not None and len(val)>0):
+         try:
+           loadS3([val])
+           self.prefLoader.save('s3info',val)
+           loadOperations("operations.csv")
+           loadSoftware("software.csv")
+           graph_rules.setup()
+         except ClientError as e:
+           tkMessageBox.showwarning("S3 Download failure",str(e))
+
     def validate(self):
         errorList = self.scModel.validate()
         if (self.errorlistDialog is None):
@@ -400,6 +440,7 @@ class MakeGenUI(Frame):
         filemenu.add_separator()
         filemenu.add_cascade(label="Export", menu=exportmenu)
         filemenu.add_command(label="Validate", command=self.validate)
+        filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
         filemenu.add_command(label="Group Manager", command=self.groupmanager)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
@@ -519,31 +560,6 @@ class MakeGenUI(Frame):
             self.scModel.setProjectData('typespref',defaultypes)
         self.createWidgets()
 
-def loadS3(values):
-  import boto3
-  print 'Download operations and software via S3'
-  s3 = boto3.client('s3','us-east-1')
-  BUCKET = values[0]
-  DIR=values[1]
-  s3.download_file( BUCKET,DIR + "/operations.csv", "operations.csv")
-  s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
-
-def loadHTTP(values):
-    import requests
-    print 'Download operations and software via HTTP'
-    head = {}
-    for p in range(1, len(values)):
-        name = values[p].split(':')[0].strip()
-        val = values[p].split(':')[1].strip()
-        head[name]=val
-    r = requests.get(values[0] + '/operations.csv',headers=head)
-    if r.status_code < 300:
-      with open('operations.csv', 'w') as f:
-          f.write(r.content)
-    r = requests.get(values[0] + '/software.csv',headers=head)
-    if r.status_code < 300:
-      with open('software.csv', 'w') as f:
-          f.write(r.content)
 
 
 def main(argv=None):
@@ -552,7 +568,7 @@ def main(argv=None):
 
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
-   parser.add_argument('--s3', help="s3 bucket directory ",nargs='+')
+   parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
    imgdir = '.'
    argv = argv[1:]

@@ -131,7 +131,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
       if self.software is not None:
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.software.name)
-         self.e5.set_completion_list(self.softwareLoader.get_versions(self.software.name),initialValue=self.software.version)
+         self.e5.set_completion_list(self.softwareLoader.get_versions(self.software.name,version=self.software.version),initialValue=self.software.version)
       else:
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.softwareLoader.get_preferred_name())
          self.e5.set_completion_list(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name()),initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
