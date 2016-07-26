@@ -8,6 +8,7 @@ import tool_set
 from software_loader import Software
 import tempfile
 import plugins
+import graph_rules
 
 def findProject(dir):
     if (dir.endswith(".json")):
@@ -274,6 +275,16 @@ class ProjectModel:
     def getGraph(self):
       return self.G
 
+    def validate(self):
+       total_errors = []
+       for frm,to in self.G.get_edges():
+          edge = self.G.get_edge(frm,to)
+          op = edge['op'] 
+          errors = graph_rules.run_rules(op,self.G,frm,to)
+          if len(errors) > 0:
+              total_errors.extend( [(frm,to,frm + ' => ' + to + ': ' + err) for err in errors])
+       return total_errors
+
     def imageFromPlugin(self,filter,im, filename, **kwargs):
       op = plugins.getOperation(filter)
       suffix = filename[filename.rfind('.'):]
@@ -336,6 +347,16 @@ class ProjectModel:
 
     def export(self, location):
       self.G.create_archive(location)
+
+    def exporttos3(self, location):
+      import boto3
+      path = self.G.create_archive(tempfile.gettempdir())
+      s3 = boto3.client('s3','us-east-1')
+      BUCKET = location.split('/')[0].strip()
+      DIR= location.split('/')[1].strip()
+      print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1] 
+      s3.upload_file(path, BUCKET, DIR + '/' + os.path.split(path)[1])
+      os.remove(path)
 
     def export_path(self, location):
       if self.end is None and self.start is not None:

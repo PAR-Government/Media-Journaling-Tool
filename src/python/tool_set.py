@@ -39,38 +39,6 @@ def alignChannels(img1, img2):
          z2[:,:,d] = img2[:,:,d]
    return z1.astype('uint8'), z2.astype('uint8')
 
-def findBestMatchOld(img1,img2):
-    img1y=img1.shape[0]
-    img1x=img1.shape[1]
-
-    img2y=img2.shape[0]
-    img2x=img2.shape[1]
-
-    stopy=img1y-img2y+1
-    stopx=img1x-img2x+1
-
-    maxv = -1
-    maxc = (-1,-1)
-    done = False
-    for x1 in range(0,stopx):
-        if done:
-           break
-        for y1 in range(0,stopy):
-            x2=x1+img2x
-            y2=y1+img2y
-
-            subpic=img1[y1:y2,x1:x2,:]
-            test=subpic==img2
-
-            matches = np.sum(test)
-            if (matches > maxv):
-                maxc = (x1,y1)
-                maxv = matches
-            if matches == img2.shape[0]*img2.shape[1]:
-               done = True
-               break
-    return (maxc[1],maxc[0],maxc[1]+img2y,maxc[0]+img2x) if maxv>0 else None
-
 def findBestMatch(big,small):
     smalli = small.astype('uint8')
     bigi = big.astype('uint8')

@@ -341,7 +341,8 @@ class ImageGraph:
 
   def create_archive(self, location):
     self.save()
-    archive = tarfile.open(os.path.join(location,self.G.name + '.tgz'),"w:gz")
+    fname = os.path.join(location,self.G.name + '.tgz')
+    archive = tarfile.open(fname,"w:gz")
     archive.add(os.path.join(self.dir,self.G.name + ".json"),arcname=os.path.join(self.G.name,self.G.name + ".json"))
     for nname in self.G.nodes():
        node = self.G.node[nname]
@@ -350,6 +351,7 @@ class ImageGraph:
       edge= self.G[edgename[0]][edgename[1]]
       self._archive_edge(edge,self.G.name, archive)
     archive.close()
+    return fname
 
   def _archive_edge(self,edge, archive_name,archive):
      newpathname = os.path.join(self.dir,edge['maskname'])

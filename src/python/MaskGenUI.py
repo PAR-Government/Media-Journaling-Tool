@@ -12,10 +12,12 @@ from mask_frames import HistoryFrame
 import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,findProject
-from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog
+from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog,ListDialog
 from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
+from maskgen_loader import MaskGenLoader
+
 
 # this program creates a canvas and puts a single polygon on the canvas
 
@@ -24,6 +26,7 @@ defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compre
 
 class MakeGenUI(Frame):
 
+    prefLoader= MaskGenLoader()
     img1 = None
     img2 = None
     img3 = None
@@ -43,6 +46,7 @@ class MakeGenUI(Frame):
     edgemenu = None
     filteredgemenu = None
     canvas = None
+    errorlistDialog = None
    
     gfl = GroupFilterLoader()
 
@@ -118,6 +122,17 @@ class MakeGenUI(Frame):
        if (val is not None and len(val)>0):
          self.scModel.export(val)
          tkMessageBox.showinfo("Export", "Complete")
+
+    def exporttoS3(self):
+       info = self.prefLoader.get_key('s3info')
+       val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder", initialvalue=info if info is not None else '')
+       if (val is not None and len(val)>0):
+         try:
+           self.scModel.exporttos3(val)
+           tkMessageBox.showinfo("Export to S3", "Complete")
+           self.prefLoader.save('s3info',val)
+         except IOError:
+           tkMessageBox.showinfo("Error", "Failed to upload export")
   
     def undo(self):
        self.scModel.undo()
@@ -273,6 +288,17 @@ class MakeGenUI(Frame):
         self.l2.config(text=self.scModel.nextImageName())
         self.maskvar.set(self.scModel.maskStats())
 
+    def doneWithWindow(self,window):
+        if window == self.errorlistDialog:
+           self.errorlistDialog = None
+
+    def validate(self):
+        errorList = self.scModel.validate()
+        if (self.errorlistDialog is None):
+           self.errorlistDialog = ListDialog(self,errorList,"Validation Errors")
+        else:
+           self.errorlistDialog.setItems(errorList)
+
     def groupmanager(self):
         d = GroupManagerDialog(self)
 
@@ -321,6 +347,12 @@ class MakeGenUI(Frame):
          self.scModel.export_path(val)
          tkMessageBox.showinfo("Export", "Complete")
 
+    def selectLink(self,start,end):
+       self.scModel.select((start,end))
+       self.drawState()
+       self.canvas.showEdge(start,end)
+       self.setSelectState('normal')
+
     def select(self):
        self.drawState()
        self.setSelectState('normal')
@@ -354,15 +386,24 @@ class MakeGenUI(Frame):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
 
         menubar = Menu(self)
+
+        exportmenu = Menu(tearoff=0)
+        exportmenu.add_command(label="To File", command=self.export, accelerator="Ctrl+E")
+        exportmenu.add_command(label="To S3", command=self.exporttoS3)
+
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About",command=self.about)
         filemenu.add_command(label="Open",command=self.open, accelerator="Ctrl+O")
         filemenu.add_command(label="New",command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
-        filemenu.add_command(label="Export", command=self.export, accelerator="Ctrl+E")
+        filemenu.add_separator()
+        filemenu.add_cascade(label="Export", menu=exportmenu)
+        filemenu.add_command(label="Validate", command=self.validate)
         filemenu.add_command(label="Group Manager", command=self.groupmanager)
+        filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
+
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
@@ -478,6 +519,31 @@ class MakeGenUI(Frame):
             self.scModel.setProjectData('typespref',defaultypes)
         self.createWidgets()
 
+def loadS3(values):
+  import boto3
+  print 'Download operations and software via S3'
+  s3 = boto3.client('s3','us-east-1')
+  BUCKET = values[0]
+  DIR=values[1]
+  s3.download_file( BUCKET,DIR + "/operations.csv", "operations.csv")
+  s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
+
+def loadHTTP(values):
+    import requests
+    print 'Download operations and software via HTTP'
+    head = {}
+    for p in range(1, len(values)):
+        name = values[p].split(':')[0].strip()
+        val = values[p].split(':')[1].strip()
+        head[name]=val
+    r = requests.get(values[0] + '/operations.csv',headers=head)
+    if r.status_code < 300:
+      with open('operations.csv', 'w') as f:
+          f.write(r.content)
+    r = requests.get(values[0] + '/software.csv',headers=head)
+    if r.status_code < 300:
+      with open('software.csv', 'w') as f:
+          f.write(r.content)
 
 
 def main(argv=None):
@@ -485,27 +551,23 @@ def main(argv=None):
        argv = sys.argv
 
    parser = argparse.ArgumentParser(description='')
-   parser.add_argument('imagedir', help='image directory')
-   parser.add_argument('--ops', help="operations list file")
-   parser.add_argument('--sw', help="softwarelist file")
+   parser.add_argument('--imagedir', help='image directory',nargs=1)
+   parser.add_argument('--s3', help="s3 bucket directory ",nargs='+')
+   parser.add_argument('--http', help="http address and header params",nargs='+')
    imgdir = '.'
    argv = argv[1:]
    args = parser.parse_args(argv)
    if args.imagedir is not None:
        imgdir = args.imagedir
-   if args.ops is not None:
-       loadOperations(args.ops)
-   else:
-       print "Operations file is required"
-       sys.exit(-1)
-   if args.sw is not None:
-       loadSoftware(args.sw)
-   else:
-       print "Software file is required"
-       sys.exit(-1)
+   if args.http is not None:
+       loadHTTP(args.http)
+   elif args.s3 is not None:
+       loadS3(args.s3)
+   loadOperations("operations.csv")
+   loadSoftware("software.csv")
    root= Tk()
 
-   gui = MakeGenUI(imgdir,master=root,pluginops=plugins.loadPlugins())
+   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins())
    gui.mainloop()
 
 if __name__ == "__main__":

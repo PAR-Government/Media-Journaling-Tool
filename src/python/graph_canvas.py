@@ -20,16 +20,14 @@ class MaskGraphCanvas(tk.Canvas):
     itemToEdgeIds = {}
     itemToCanvas = {}
     marked = None
-    ops = []
     lastNodeAdded = None
     
     drag_data = {'x': 0, 'y': 0, 'item': None}
 
-    def __init__(self, master,scModel,callback,ops,**kwargs):
+    def __init__(self, master,scModel,callback,**kwargs):
         self.scModel = scModel
         self.callback = callback
         self.master = master
-        self.ops=ops
         tk.Canvas.__init__(self, master, **kwargs)
         self.bind('<ButtonPress-1>', self.deselectCursor)
         self._plot_graph()
@@ -160,7 +158,7 @@ class MaskGraphCanvas(tk.Canvas):
             ok = False
             if self.crossHairConnect:
               if (len(preds) == 0):
-                 d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,self.ops,file)
+                 d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                    msg = self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
                    if msg is not None:
@@ -189,7 +187,9 @@ class MaskGraphCanvas(tk.Canvas):
 
     def showEdge(self,start,end):
         if (start,end) not in self.toItemIds:
-          self._mark(self._draw_edge(start,end))
+           self._mark(self._draw_edge(start,end))
+        else:
+           self._mark(self.toItemIds[(start,end)][1])
 
     def onNodeMotion(self, event):
         """Handle dragging of an object"""
