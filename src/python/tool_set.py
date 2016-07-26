@@ -66,14 +66,14 @@ def composeCropImageMask(img1,img2,seamAnalysis=True):
         pinned = np.where(np.array(dims)==np.array(tuple))[0]
         analysis = img_analytics(img1,diffIm)
         dst = np.abs(img1-diffIm)
-        gray_image = np.zeros(img1.shape)
+        gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst>0.0001] = 255
         mask = gray_image
         if (len(pinned)>=2 and seamAnalysis):
            diffIm2 = np.copy(img1).astype(float)
            diffIm2[tuple[0]:tuple[2],tuple[1]:tuple[3]]=img2
            dst2 = np.abs(img1-diffIm2)
-           gray_image2 = np.zeros(img1.shape)
+           gray_image2 = np.zeros(img1.shape).astype('uint8')
            gray_image2[dst2>0.0001] = 255
            mask = seamMask(gray_image2)
     else:
@@ -96,7 +96,7 @@ def img_analytics(z1,z2):
 
 def diffMask(img1,img2,invert):
     dst = np.abs(img1-img2)
-    gray_image = np.zeros(img1.shape)
+    gray_image = np.zeros(img1.shape).astype('uint8')
     gray_image[dst>0.0001] = 255
     analysis = img_analytics(img1,img2)
     return Image.fromarray(np.array(gray_image) if invert else (255-np.array(gray_image))),analysis

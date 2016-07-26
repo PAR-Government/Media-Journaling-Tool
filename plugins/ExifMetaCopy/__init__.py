@@ -5,7 +5,10 @@ from subprocess import call
 
 def transform(img,target, **kwargs):
     donor = kwargs['donor']
-    call(['exiftool', '-TagsFromFile',  donor[1],target])
+    call(['exiftool', '-all=', target])
+    call(['exiftool', '-P', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
+    call(['exiftool', '-XMPToolkit=', target])
+    call(['exiftool', '-Warning=', target])
     return False
 
 def operation():

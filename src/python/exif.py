@@ -4,7 +4,10 @@ import os
 def copyexif(source,target):
   exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
   try:
-     call([exifcommand, '-TagsFromFile', source,target])
+     call([exifcommand, '-all=', target])
+     call([exifcommand, '-P', '-TagsFromFile',  source, '-all:all', '-unsafe', target])
+     call([exifcommand, '-XMPToolkit=', target])
+     call([exifcommand, '-Warning=', target])
      return None
   except OSError:
      return 'exiftool not installed'
