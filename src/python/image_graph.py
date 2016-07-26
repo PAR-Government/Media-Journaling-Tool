@@ -183,9 +183,7 @@ class ImageGraph:
     return inputmaskname, 'yes' if includePathInUndo else 'no'
 
   def add_edge(self,start, end,inputmaskpathname=None,maskname=None,mask=None,op='Change',description='',**kwargs):
-#    im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
-    #cv2.imwrite(newpathname,mask)
     mask.save(newpathname)
     inputmaskname,inputmaskownership= self.handle_inputmask(inputmaskpathname)
     # do not remove old version of mask if not saved previously
@@ -256,6 +254,9 @@ class ImageGraph:
     edge = self.G.edge[start][end]
     self._maskRemover(self.U,edgeFunc,start,end,edge)
     self.G.remove_edge(start,end)
+
+  def has_neighbors(self,node):
+     return len(self.G.predecessors(node)) + len(self.G.successors(node))  > 0
 
   def predecessors(self,node):
      return self.G.predecessors(node)

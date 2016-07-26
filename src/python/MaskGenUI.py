@@ -388,9 +388,14 @@ class MakeGenUI(Frame):
          tkMessageBox.showinfo("Export", "Complete")
 
     def selectLink(self,start,end):
+       if start == end:
+          end = None
        self.scModel.select((start,end))
        self.drawState()
-       self.canvas.showEdge(start,end)
+       if end is not None:
+          self.canvas.showEdge(start,end)
+       else:
+          self.canvas.showNode(start)
        self.setSelectState('normal')
 
     def select(self):

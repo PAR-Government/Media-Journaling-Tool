@@ -185,6 +185,10 @@ class MaskGraphCanvas(tk.Canvas):
         self.drag_data["x"] = event.x
         self.drag_data["y"] = event.y
 
+    def showNode(self,node):
+       item_id = self.toItemIds[node][1]
+       self._mark(item_id)
+        
     def showEdge(self,start,end):
         if (start,end) not in self.toItemIds:
            self._mark(self._draw_edge(start,end))

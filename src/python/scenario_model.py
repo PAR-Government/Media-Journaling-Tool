@@ -277,6 +277,10 @@ class ProjectModel:
 
     def validate(self):
        total_errors = []
+       for node in self.G.get_nodes():
+         if not self.G.has_neighbors(node):
+             total_errors.append((node,node,node + ' is not connected to other nodes'))
+
        for frm,to in self.G.get_edges():
           edge = self.G.get_edge(frm,to)
           op = edge['op'] 
