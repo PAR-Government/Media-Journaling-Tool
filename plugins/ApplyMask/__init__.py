@@ -2,7 +2,7 @@ import cv2
 from PIL import Image
 import numpy
 
-def transform(img,imgfilename,**kwargs):
+def transform(img,source,target,**kwargs):
     rgba = img.convert('RGBA')
     inputmask = Image.open(kwargs['inputmaskpathname'])
     if inputmask.size != rgba.size:
@@ -12,7 +12,7 @@ def transform(img,imgfilename,**kwargs):
     bmask = mask>0
     for i in range(4): 
       cv_image[:,:,i][bmask]=0
-    Image.fromarray(cv_image,'RGBA').save(imgfilename)
+    Image.fromarray(cv_image,'RGBA').save(target)
     return True
 
 # the actual link name to be used. 
