@@ -297,7 +297,7 @@ class ProjectModel:
           suffix = preferred
       target = os.path.join(tempfile.gettempdir(),self.G.new_name(os.path.split(filename)[1]))
       shutil.copy2(filename, target)
-      copyExif = plugins.callPlugin(filter,im,target,**kwargs)
+      copyExif = plugins.callPlugin(filter,im,filename,target,**kwargs)
       msg = None
       if copyExif:
         msg = exif.copyexif(filename,target)
