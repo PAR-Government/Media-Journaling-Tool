@@ -71,7 +71,7 @@ def sort_tables(tablesList):
         newTables.append(tempTable)
     return newTables
 
-def save_as(imageFile, qTables):
+def save_as(source, target, qTables):
     """
     Saves image file using quantization tables
     :param imageFile: string filename of image
@@ -88,8 +88,8 @@ def save_as(imageFile, qTables):
         finalTable = qTables
 
     # write jpeg with specified tables
-    im = Image.open(imageFile)
-    im.save(imageFile + '.jpg', subsampling=1, qtables=finalTable)
+    im = Image.open(source)
+    im.save(target, subsampling=1, qtables=finalTable)
     im.close()
 
 def transform(img,source,target, **kwargs):
@@ -97,7 +97,7 @@ def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     tables_zigzag = parse_tables(donor[1])
     tables_sorted = sort_tables(tables_zigzag)
-    save_as(target, tables_sorted)
+    save_as(source, target, tables_sorted)
     
     return True
     
@@ -110,4 +110,3 @@ def args():
 
 def suffix():
     return '.jpg'
- 
