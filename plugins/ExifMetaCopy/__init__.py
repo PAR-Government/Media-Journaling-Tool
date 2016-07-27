@@ -3,7 +3,7 @@ from PIL import Image
 import tempfile
 from subprocess import call
 
-def transform(img,target, **kwargs):
+def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     call(['exiftool', '-all=', target])
     call(['exiftool', '-P', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])

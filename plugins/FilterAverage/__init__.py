@@ -4,10 +4,10 @@ import numpy
 
 kernel = numpy.ones((5,5),numpy.float32)/25
 
-def transform(img,imgfilename,**kwargs):
+def transform(img,source,target,**kwargs):
     rgb = img.convert('RGBA')
     cv_image = numpy.array(rgb)
-    Image.fromarray(cv2.filter2D(cv_image,-1,kernel),'RGBA').save(imgfilename)
+    Image.fromarray(cv2.filter2D(cv_image,-1,kernel),'RGBA').save(target)
     return True
 
 # the actual link name to be used. 
