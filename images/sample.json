@@ -2,6 +2,7 @@
   "directed": true, 
   "graph": {
     "igversion": "0.1", 
+    "idcount": 3,
     "name": "sample", 
     "typespref": [
       [

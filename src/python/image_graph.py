@@ -294,6 +294,7 @@ class ImageGraph:
         self.idc = self.G.graph['idcount']
       elif self.G.has_node('idcount'):
         self.idc = self.G.node['idcount']['count']
+        self.G.graph['idcount']=self.idc
         self.G.remove_node('idcount')
     self.dir = os.path.abspath(os.path.split(pathname)[0])
      
