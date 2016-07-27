@@ -4,6 +4,28 @@ from subprocess import call,Popen, PIPE
 import os
 import json
 
+def otsu(hist):
+  total = sum(hist)
+  sumB = 0
+  wB = 0
+  maximum = 0.0
+  sum1 = np.dot( np.asarray(range(256)), hist)
+  for ii in range(256):
+    wB = wB + hist[ii]
+    if wB == 0:
+        continue
+    wF = total - wB;
+    if wF == 0:
+        break
+    sumB = sumB +  ii * hist[ii]
+    mB = sumB / wB
+    mF = (sum1 - sumB) / wF;
+    between = wB * wF * (mB - mF) * (mB - mF);
+    if between >= maximum:
+        level = ii
+        maximum = between
+  return level
+
 def buildMasksFromCombinedVideo(file):
   cap = cv2.VideoCapture(file)
   maskprefix = file[0:file.rfind('.')]
@@ -71,6 +93,14 @@ def sortFrames(frames):
    for k,v in frames.iteritems():
     frames[k] = sorted(v,key=lambda meta: meta['pkt_pts_time'])
 
+def _addMetaToFrames(frames,meta):
+   if len(meta) > 0 and 'stream_index' in meta:
+      index = meta['stream_index']
+      if index not in frames:
+         frames[index] = []
+      frames[index].append(meta)
+      meta.pop('stream_index')
+
 def processFrames(stream):
    frames = {}
    meta = {}
@@ -78,20 +108,16 @@ def processFrames(stream):
      line = stream.readline()  
      if line is None or len(line) == 0:
          break
-     if '[FRAME]' in line:
-       if len(meta) > 0 and 'stream_index' in meta:
-         index = meta['stream_index']
-         if index not in frames:
-             frames[index] = []
-         frames[index].append(meta)
-         meta.pop('stream_index')
-       meta = {}
+     if '[/FRAME]' in line:
+        _addMetaToFrames(frames,meta)
+        meta = {}
      else:
          parts = line.split('=')
          if len(parts)>1:
             meta[parts[0].strip()] = parts[1].strip()
+   _addMetaToFrames(frames,meta)
    return frames
-   sortFrames(frames)
+#   sortFrames(frames)
    
 def getMeta(file,withFrames=False):
    p = Popen(['ffprobe',file, '-show_frames'] if withFrames else ['ffprobe',file],stdout=PIPE,stderr=PIPE)
@@ -118,19 +144,22 @@ def compareMeta(oneMeta,twoMeta,skipMeta=None):
       diff[k] = ('add',v)
   return diff
 
-# ffmpeg.compareStream([{'i':0,'h':1},{'i':3,'h':1},{'i':4,'h':2},{'i':5,'k':3}],[{'i':0,'h':1},{'i':2,'h':1},{'i':3,'h':9},{'i':4,'h':2}], orderAttr='i')
-def compareStream(a,b,orderAttr='pkt_dts_time',skipMeta=None):
+# video_tools.compareStream([{'i':0,'h':1},{'i':1,'h':1},{'i':2,'h':1},{'i':3,'h':1},{'i':5,'h':2},{'i':6,'k':3}],[{'i':0,'h':1},{'i':3,'h':1},{'i':4,'h':9},{'i':4,'h':2}], orderAttr='i')
+# [('delete', 1.0, 2.0, 2), ('add', 4.0, 4.0, 2), ('delete', 5.0, 6.0, 2)]
+def compareStream(a,b,orderAttr='pkt_pts_time',skipMeta=None):
   apos = 0
   bpos = 0
   diff = []
   start=0
   while apos < len(a) and bpos < len(b):
-    if apos < len(a):
-      apacket = a[apos]
-      aptime = float(apacket[orderAttr])
-    if bpos < len(b):
-      bpacket = b[bpos]
+    apacket = a[apos]
+    aptime = float(apacket[orderAttr])
+    bpacket = b[bpos]
+    try:
       bptime = float(bpacket[orderAttr])
+    except ValueError as e:
+      print bpacket
+      raise e
     if aptime==bptime:
       metaDiff = compareMeta(apacket,bpacket,skipMeta=skipMeta)
       if len(metaDiff)>0:
@@ -138,24 +167,26 @@ def compareStream(a,b,orderAttr='pkt_dts_time',skipMeta=None):
       apos+=1
       bpos+=1
     elif aptime < bptime:
-      start = float(a[apos][orderAttr])
+      start = aptime
       c = 0
-      while aptime < bptime and apos < len(a)-1:
+      while aptime < bptime and apos < len(a):
          end = aptime
-         c+=1
          apos+=1
-         apacket = a[apos]
-         aptime = float(apacket[orderAttr])
+         c+=1
+         if apos < len(a):
+           apacket = a[apos]
+           aptime = float(apacket[orderAttr])
       diff.append(('delete',start,end,c))
     elif aptime > bptime:
-      start = float(b[bpos][orderAttr])
+      start = bptime
       c = 0
-      while aptime > bptime and bpos < len(b)-1:
+      while aptime > bptime and bpos < len(b):
           end = bptime
           c+=1
           bpos+=1
-          bpacket = b[bpos]
-          bptime = float(bpacket[orderAttr])
+          if bpos < len(b):
+            bpacket = b[bpos]
+            bptime = float(bpacket[orderAttr])
       diff.append(('add',start,end,c))
   if apos < len(a):
     start = float(a[apos][orderAttr])
@@ -166,7 +197,7 @@ def compareStream(a,b,orderAttr='pkt_dts_time',skipMeta=None):
        apos+=1
        c+=1
     diff.append(('delete',start,aptime,c))
-  if bpos < len(b):
+  elif bpos < len(b):
     start = float(b[bpos][orderAttr])
     c = 0
     while bpos < len(b):
@@ -189,7 +220,7 @@ def compareFrames(oneFrames,twoFrames,skipMeta=None):
        diff[streamId] = ('add',[])
   return diff
     
-#ffmpeg.formMetaDataDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
+#video_tools.formMetaDataDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
 def formMetaDataDiff(fileOne, fileTwo):
   oneMeta,oneFrames = getMeta(fileOne,withFrames=True)
   twoMeta,twoFrames = getMeta(fileTwo,withFrames=True)
@@ -197,6 +228,7 @@ def formMetaDataDiff(fileOne, fileTwo):
   frameDiff = compareFrames(oneFrames, twoFrames, skipMeta=['pkt_pos','pkt_size'])
   return metaDiff,frameDiff
 
+#video_tools.processSet('/Users/ericrobertson/Documents/movie',[('videoSample','videoSample1'),('videoSample1','videoSample2'),('videoSample2','videoSample3'),('videoSample4','videoSample5'),('videoSample5','videoSample6'),('videoSample6','videoSample7'),('videoSample7','videoSample8'),('videoSample8','videoSample9'),('videoSample9','videoSample10'),('videoSample11','videoSample12'),('videoSample12','videoSample13'),('videoSample13','videoSample14'),('videoSample14','videoSample15')] ,'.mp4')
 def processSet(dir,set,postfix):
   first = None
   for pair in set:
@@ -207,12 +239,11 @@ def processSet(dir,set,postfix):
        json.dump({"meta":resMeta,"frames":resFrame},f,indent=2)
 
 
-#ffmpeg.processSet('/Users/ericrobertson/Documents/movie',[('videoSample','videoSample1'),('videoSample1','videoSample2'),('videoSample2','videoSample3'),('videoSample4','videoSample5'),('videoSample5','videoSample6'),('videoSample6','videoSample7'),('videoSample7','videoSample8'),('videoSample8','videoSample9'),('videoSample9','videoSample10'),('videoSample11','videoSample12'),('videoSample12','videoSample13'),('videoSample13','videoSample14'),('videoSample14','videoSample15')] ,'.mp4')
-#ffmpeg.formMaskDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
+#video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
 def formMaskDiff(fileOne, fileTwo):
    prefixOne = fileOne[0:fileOne.rfind('.')]
    prefixTwo = os.path.split(fileTwo[0:fileTwo.rfind('.')])[1]
    postFix = fileOne[fileOne.rfind('.'):]
-   call(['ffmpeg', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', prefixOne + '_'  + prefixTwo + postFix])  
+   call(['ffmpeg', '-y', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', prefixOne + '_'  + prefixTwo + postFix])  
    buildMasksFromCombinedVideo(prefixOne + '_'  + prefixTwo + postFix)
 
