@@ -8,6 +8,7 @@ import tool_set
 from software_loader import Software
 import tempfile
 import plugins
+import graph_rules
 
 def findProject(dir):
     if (dir.endswith(".json")):
@@ -59,8 +60,8 @@ class ProjectModel:
     def compare(self, destination,seamAnalysis=True):
        im1 = self.getImage(self.start)
        im2 = self.getImage(destination)
-       mask, analysis = tool_set.createMask(np.array(im1),np.array(im2), invert=False, seamAnalysis=seamAnalysis)
-       return im1,im2,Image.fromarray(mask),analysis
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis)
+       return im1,im2,mask,analysis
 
     def getExifDiff(self):
       e = self.G.get_edge(self.start, self.end)
@@ -71,7 +72,7 @@ class ProjectModel:
     def _compareImages(self,start,destination, invert=False):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
-       mask,analysis = tool_set.createMask(np.array(startIm),np.array(destIm), invert=invert)
+       mask,analysis = tool_set.createMask(startIm,destIm, invert=invert)
        maskname=start + '_' + destination + '_mask'+'.png'
        exifDiff = exif.compareexif(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}
@@ -233,7 +234,7 @@ class ProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username','size']
+       stat_names = ['ssim','psnr','username','shape change']
        return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
@@ -273,6 +274,20 @@ class ProjectModel:
 
     def getGraph(self):
       return self.G
+
+    def validate(self):
+       total_errors = []
+       for node in self.G.get_nodes():
+         if not self.G.has_neighbors(node):
+             total_errors.append((node,node,node + ' is not connected to other nodes'))
+
+       for frm,to in self.G.get_edges():
+          edge = self.G.get_edge(frm,to)
+          op = edge['op'] 
+          errors = graph_rules.run_rules(op,self.G,frm,to)
+          if len(errors) > 0:
+              total_errors.extend( [(frm,to,frm + ' => ' + to + ': ' + err) for err in errors])
+       return total_errors
 
     def imageFromPlugin(self,filter,im, filename, **kwargs):
       op = plugins.getOperation(filter)
@@ -336,6 +351,16 @@ class ProjectModel:
 
     def export(self, location):
       self.G.create_archive(location)
+
+    def exporttos3(self, location):
+      import boto3
+      path = self.G.create_archive(tempfile.gettempdir())
+      s3 = boto3.client('s3','us-east-1')
+      BUCKET = location.split('/')[0].strip()
+      DIR= location.split('/')[1].strip()
+      print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1] 
+      s3.upload_file(path, BUCKET, DIR + '/' + os.path.split(path)[1])
+      os.remove(path)
 
     def export_path(self, location):
       if self.end is None and self.start is not None:

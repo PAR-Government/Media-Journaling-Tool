@@ -1,13 +1,29 @@
 {
   "directed": true, 
   "graph": {
-    "name": "sample"
+    "igversion": "0.1", 
+    "idcount": 3,
+    "name": "sample", 
+    "typespref": [
+      [
+        "jpeg files", 
+        "*.jpg"
+      ], 
+      [
+        "png files", 
+        "*.png"
+      ], 
+      [
+        "tiff files", 
+        "*.tiff"
+      ], 
+      [
+        "all files", 
+        "*.*"
+      ]
+    ]
   }, 
   "nodes": [
-    {
-      "count": 3, 
-      "id": "idcount"
-    }, 
     {
       "xpos": 244, 
       "file": "input_mod_2.png", 
@@ -68,9 +84,9 @@
       "description": "Average convolution over the RGB values of an image given a 5x5 convolution", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "softwareName": "Gimp", 
-      "source": 1, 
+      "source": 0, 
       "softwareVersion": "2.6", 
-      "target": 4, 
+      "target": 3, 
       "op": "ColorColorBalance"
     }, 
     {
@@ -79,9 +95,9 @@
       "description": "Removed Section", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "softwareName": "Gimp", 
-      "source": 2, 
+      "source": 1, 
       "softwareVersion": "2.6", 
-      "target": 1, 
+      "target": 0, 
       "op": "SelectRegion"
     }, 
     {
@@ -90,9 +106,9 @@
       "description": "Added hat", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "softwareName": "Gimp", 
-      "source": 3, 
+      "source": 2, 
       "softwareVersion": "2.6", 
-      "target": 2, 
+      "target": 1, 
       "op": "PasteSplice"
     }, 
     {
@@ -101,9 +117,9 @@
       "description": "", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "softwareName": "", 
-      "source": 5, 
+      "source": 4, 
       "softwareVersion": "", 
-      "target": 2, 
+      "target": 1, 
       "op": "Donor"
     }, 
     {
@@ -112,9 +128,9 @@
       "description": "", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "softwareName": "Gimp", 
-      "source": 6, 
+      "source": 5, 
       "softwareVersion": "2.6", 
-      "target": 5, 
+      "target": 4, 
       "op": "SelectRegion"
     }
   ], 

@@ -5,30 +5,17 @@ from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage
 from scenario_model import ProjectModel,Modification
-from software_loader import Software, SoftwareLoader, getOS
+from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 
-def opfromitem(item):
-   return (item[0] if type(item) is tuple else item)
-
-def descfromitem(item):
-   return (item[1] if type(item) is tuple else '')
-
-def softwarefromitem(item):
-   return (item[2] if type(item) is tuple and len(item)>3 else None)
-
-def versionfromitem(item):
-   return (item[3] if type(item) is tuple and len(item)>3 else None)
-
-def getCategory(ops, mod):
+def getCategory(mod):
+    ops = getOperations()
     if mod.category is not None and len(mod.category)>0:
        return mod.category
-    if mod.operationName is not None and len(mod.operationName)>0:
-       matches = [i[0] for i in ops.items() if (mod.operationName in i[1])]
-       if (len(matches)>0):
-          return matches[0]
+    if mod.operationName in ops:
+      return ops[mod.operationName][0]
     return None
 
 def exiftodict(exifdata): 
@@ -60,40 +47,30 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    moc = None
    cancelled = True
 
-   def __init__(self, parent,dir,im, myops,name, description=None, software=None):
-      self.myops = myops
+   def __init__(self, parent,dir,im,name, description=None, software=None):
+      self.myops = getOperations()
       self.dir = dir
       self.im = im
       self.parent = parent
       self.description=description if description is not None else Modification('','')
       self.software=software
       self.softwareLoader = SoftwareLoader()
-      for catlist in self.myops.itervalues():
-         for cat in catlist:
-           if self.softwareLoader.add(Software(softwarefromitem(cat),versionfromitem(cat))):
-             self.softwareLoader.save()
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
+   def newsoftware(self,event):
+      sname = self.e4.get()
+      self.e5.set_completion_list(self.softwareLoader.get_versions(sname),initialValue=self.softwareLoader.get_preferred_version(name=sname))
+
    def newcommand(self,event):
       command = self.e2.get()
-      cat = self.e1.get()
-      if cat in self.myops:
-        catlist = self.myops[cat]
-        for ctuple in catlist:
-          if ctuple[0]==command:
-           self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=softwarefromitem(ctuple))
-           self.e5.set_completion_list(self.softwareLoader.get_versions(),initialValue=versionfromitem(ctuple))
 
    def newcategory(self, event):
-      if (self.myops.has_key(self.e1.get())):
-        oplist = [opfromitem(x) for x in self.myops[self.e1.get()]]
-        desclist = [descfromitem(x) for x in self.myops[self.e1.get()]]
+      opByCat = getOperationsByCategory()
+      if self.e1.get() in opByCat:
+        oplist = opByCat[self.e1.get()]
         self.e2.set_completion_list(oplist)
-        self.e3.delete(1.0,END)
-        self.e3.insert(1.0,desclist[0] if len(desclist)>0 else '')
       else:
         self.e2.set_completion_list([])
-        self.e3.delete(1.0,END)
 
    def body(self, master):
       self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
@@ -113,22 +90,22 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.b = Button(master,image=self.attachImage,text="Load",command=self.addinputmask)
       self.b.grid(row=6,column=3)
 
-      opv = []
-      cats = self.myops.keys()
-      if (len(cats)>0):
-         opv = [opfromitem(x) for x in self.myops[cats[0]]]
-      self.e1 = AutocompleteEntryInText(master,values=cats,takefocus=False)
-      self.e2 = AutocompleteEntryInText(master,values=opv,takefocus=False)
+      cats = getOperationsByCategory()
+      ops = getOperations()
+      catlist = list(cats.keys())
+      catlist.sort()
+      oplist = cats[catlist[0]] if len(cats)>0 else []
+      self.e1 = AutocompleteEntryInText(master,values=catlist,takefocus=False)
+      self.e2 = AutocompleteEntryInText(master,values=oplist,takefocus=False)
       self.e4 = AutocompleteEntryInText(master,values=self.softwareLoader.get_names(),takefocus=False)
-      self.e5 = AutocompleteEntryInText(master,values=self.softwareLoader.get_versions(),takefocus=False)
+      self.e5 = AutocompleteEntryInText(master,values=[],takefocus=False)
       self.e1.bind("<Return>", self.newcategory)
       self.e1.bind("<<ComboboxSelected>>", self.newcategory)
       self.e2.bind("<Return>", self.newcommand)
       self.e2.bind("<<ComboboxSelected>>", self.newcommand)
+      self.e4.bind("<Return>", self.newsoftware)
+      self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
       self.e3 = Text(master,height=2,width=28,font=('Times', '14'), relief=RAISED,borderwidth=2)
-
-      if (len(cats)>0):
-        self.e3.insert(1.0,descfromitem(self.myops[cats[0]][0]))
 
       self.e1.grid(row=1, column=1)
       self.e2.grid(row=2, column=1)
@@ -144,18 +121,20 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
       if self.description is not None:
          if (self.description.operationName is not None and len(self.description.operationName)>0):
-            self.e1.set_completion_list(self.myops.keys(),initialValue=getCategory(self.myops,self.description))
-            oplist = [opfromitem(x) for x in self.myops[self.e1.get()]]
-            self.e2.set_completion_list(oplist,self.description.operationName)
+            selectCat = getCategory(self.description)
+            self.e1.set_completion_list(catlist,initialValue=selectCat)
+            oplist = cats[selectCat] if selectCat in cats else []
+            self.e2.set_completion_list(oplist,initialValue=self.description.operationName)
          if (self.description.additionalInfo is not None):
             self.e3.delete(1.0, END)
             self.e3.insert(1.0,self.description.additionalInfo)
 
       if self.software is not None:
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.software.name)
-         self.e5.set_completion_list(self.softwareLoader.get_versions(),initialValue=self.software.version)
+         self.e5.set_completion_list(self.softwareLoader.get_versions(self.software.name,version=self.software.version),initialValue=self.software.version)
       else:
-         self.newcommand(None)
+         self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.softwareLoader.get_preferred_name())
+         self.e5.set_completion_list(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name()),initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
 
       return self.e1 # initial focus
 
@@ -197,8 +176,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
    c= None
    exifdiff = None
 
-   def __init__(self, parent,im, myops,name, description=None,software=None,exifdiff=None):
-      self.myops = myops
+   def __init__(self, parent,im,name, description=None,software=None,exifdiff=None):
       self.im = im
       self.parent = parent
       self.description=description if description is not None else Modification('','')
@@ -216,8 +194,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
       Label(master, text="Software Name:",anchor=W,justify=LEFT).grid(row=4, column=0,sticky=W)
       Label(master, text="Software Version:",anchor=W,justify=LEFT).grid(row=5, column=0,sticky=W)
-      Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=1,column=1,sticky=W)
-      Label(master, text=getCategory(self.myops,self.description),anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
+      Label(master, text=getCategory(self.description),anchor=W,justify=LEFT).grid(row=1, column=1,sticky=W)
+      Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=2,column=1,sticky=W)
       Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=3, column=1,sticky=W)
       Label(master, text=self.software.name,anchor=W,justify=LEFT).grid(row=4, column=1,sticky=W)
       Label(master, text=self.software.version,anchor=W,justify=LEFT).grid(row=5, column=1,sticky=W)
@@ -324,8 +302,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
    argvalues = {}
    cancelled = True
 
-   def __init__(self,parent,dir,im, myops, name, scModel):
-      self.myops = myops
+   def __init__(self,parent,dir,im,pluginOps, name, scModel):
+      self.pluginOps = pluginOps
       self.im = im
       self.dir = dir
       self.parent = parent
@@ -337,7 +315,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(128,128,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
-      self.e1 = AutocompleteEntryInText(master,values=self.myops.keys(),takefocus=True)
+      self.e1 = AutocompleteEntryInText(master,values=self.pluginOps.keys(),takefocus=True)
       self.e1.bind("<Return>", self.newop)
       self.e1.bind("<<ComboboxSelected>>", self.newop)
       row = 1
@@ -360,7 +338,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       self.argBox = Listbox(master)
       self.argBox.bind("<Double-Button-1>", self.changeParameter)
       self.argBox.grid(row=row,column =0, columnspan=2)
-      if len(self.myops.keys()) > 0:
+      if len(self.pluginOps.keys()) > 0:
          self.newop(None)
 
    def changeParameter(self,event):
@@ -369,7 +347,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       index = int(self.argBox.curselection()[0])
       value = self.argBox.get(index)
       if self.optocall is not None:
-        op=self.myops[self.optocall]
+        op=self.pluginOps[self.optocall]
         arginfo = op['arguments']
         if arginfo is not None:
           arg = arginfo[index]
@@ -389,10 +367,10 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
            
    def newop(self, event):
       self.argvalues= {}
-      if (self.myops.has_key(self.e1.get())):
+      if (self.pluginOps.has_key(self.e1.get())):
          self.optocall=self.e1.get()
          self.argBox.delete(0,END)
-         op=self.myops[self.optocall]
+         op=self.pluginOps[self.optocall]
          opinfo = op['operation']
          arginfo = op['arguments']
          self.catvar.set(opinfo[1])
@@ -474,3 +452,56 @@ class ExifTable(Frame):
        self.table.createTableFrame()
   
 
+class ListDialog(Toplevel):
+
+   items = None
+
+   def __init__(self,parent,items,name):
+      self.items = items
+      self.parent = parent
+      Toplevel.__init__(self, parent)
+      self.title(name)
+      self.parent = parent
+      body = Frame(self)
+      self.body(body)
+      body.pack(padx=5, pady=5)
+      self.buttonbox()
+      self.protocol("WM_DELETE_WINDOW", self.cancel)
+      self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
+                                parent.winfo_rooty()+50))
+
+
+   def setItems(self,items):
+      self.items = items
+      self.itemBox.delete(0,END)
+      for item in self.items:
+         self.itemBox.insert(END,item[2])
+
+#   def grab_set(self):
+#       return None
+
+   def body(self, master):
+      self.itemBox = Listbox(master,width=80)
+      self.itemBox.bind("<Double-Button-1>", self.change)
+      self.itemBox.grid(row=0,column=0)
+      for item in self.items:
+         self.itemBox.insert(END,item[2])
+
+   def cancel(self):
+      self.parent.doneWithWindow(self)
+      self.parent.focus_set()
+      self.destroy()
+      
+   def change(self,event):
+      if len(self.itemBox.curselection()) == 0:
+        return
+      index = int(self.itemBox.curselection()[0])
+      self.parent.selectLink(self.items[index][0],self.items[index][1])
+
+   def buttonbox(self):
+      box = Frame(self)
+      w = Button(box, text="OK", width=10, command=self.cancel, default=ACTIVE)
+      w.pack(side=LEFT, padx=5, pady=5)
+      self.bind("<Return>", self.cancel)
+      self.bind("<Escape>", self.cancel)
+      box.pack()

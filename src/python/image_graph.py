@@ -183,9 +183,8 @@ class ImageGraph:
     return inputmaskname, 'yes' if includePathInUndo else 'no'
 
   def add_edge(self,start, end,inputmaskpathname=None,maskname=None,mask=None,op='Change',description='',**kwargs):
-    im =  Image.fromarray(mask)
     newpathname = os.path.join(self.dir,maskname)
-    cv2.imwrite(newpathname,mask)
+    mask.save(newpathname)
     inputmaskname,inputmaskownership= self.handle_inputmask(inputmaskpathname)
     # do not remove old version of mask if not saved previously
     if newpathname in self.filesToRemove:
@@ -197,7 +196,7 @@ class ImageGraph:
          **kwargs)
     self.U = []
     self.U.append(dict(action='addEdge', ownership='yes', start=start,end=end, **self.G.edge[start][end]))
-    return im
+    return mask
 
   def get_image(self,name):
     filename= os.path.abspath(os.path.join(self.dir,self.G.node[name]['file']))
@@ -256,6 +255,9 @@ class ImageGraph:
     self._maskRemover(self.U,edgeFunc,start,end,edge)
     self.G.remove_edge(start,end)
 
+  def has_neighbors(self,node):
+     return len(self.G.predecessors(node)) + len(self.G.successors(node))  > 0
+
   def predecessors(self,node):
      return self.G.predecessors(node)
 
@@ -292,6 +294,7 @@ class ImageGraph:
         self.idc = self.G.graph['idcount']
       elif self.G.has_node('idcount'):
         self.idc = self.G.node['idcount']['count']
+        self.G.graph['idcount']=self.idc
         self.G.remove_node('idcount')
     self.dir = os.path.abspath(os.path.split(pathname)[0])
      
@@ -341,7 +344,8 @@ class ImageGraph:
 
   def create_archive(self, location):
     self.save()
-    archive = tarfile.open(os.path.join(location,self.G.name + '.tgz'),"w:gz")
+    fname = os.path.join(location,self.G.name + '.tgz')
+    archive = tarfile.open(fname,"w:gz")
     archive.add(os.path.join(self.dir,self.G.name + ".json"),arcname=os.path.join(self.G.name,self.G.name + ".json"))
     for nname in self.G.nodes():
        node = self.G.node[nname]
@@ -350,6 +354,7 @@ class ImageGraph:
       edge= self.G[edgename[0]][edgename[1]]
       self._archive_edge(edge,self.G.name, archive)
     archive.close()
+    return fname
 
   def _archive_edge(self,edge, archive_name,archive):
      newpathname = os.path.join(self.dir,edge['maskname'])
