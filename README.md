@@ -10,6 +10,8 @@ Uses opencv (cv2)
 
 Install exiftool
 
+For optional use of S3:
+pip install awscli
 
 ## Install commands
 
@@ -23,6 +25,9 @@ pip install networkx
 pip install moviepy
 pip install scikit-image
 pip install tkintertable
+
+For optional use with S3
+pip install boto3
 ```
 
 # Usage
@@ -30,13 +35,19 @@ pip install tkintertable
 ## Starting the UI
 
 Add src/python to your PYTHONPATH.
+Assumes operations.csv and software.csv are located in the same directory as the tool.
+
 
 ```
 % export PYTHONPATH=${PYTHONPATH}:src/python
-% python src/python/MaskGenUI.py  --ops operations.csv images
+% python src/python/MaskGenUI.py  --imagedir images
 ```
 
-The second argument is an initial project directory or project (JSON) file in the project directory.
+The imagedir argument is an initial project directory or project (JSON) file in the project directory.
+
+If the operations.csv and software.csv are to be downloaded from a S3 bucket, then
+(1) Use command aws configure to setup you Access Id and Key
+(2) add the argument --s3 bucketname/pathname, for example MyBucket/metaData
 
 ## Projects
 
@@ -58,7 +69,11 @@ File > Save As saves entire project to a new project directory and changes the n
 
 File > New [Control-n] creates a new project.
 
-File > Export [Control-e] creates a compressed archive file of the project including images and masks.
+File > Export > To File [Control-e] creates a compressed archive file of the project including images and masks.
+
+File > Export > To S3 creates a compressed archive file of the project and uploads to a S3 bucket and folder.  The user is prompted for the bucket/folderpath, separated by '/'.
+
+File > Validate Runs a validation rules on the project.  Erros are displayed in a list box. Clicking on each error high-lights the link or node in the graph, as if selected in the graph.
 
 File > Group Manager opens a separate dialog to manage groups of plugin filters.
 
@@ -93,7 +108,7 @@ Links may be selected, change the image display to show the output node, input n
 
 ## Link Descriptions
 
-Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different software with differant versions to manipulate images, the tool is not equipped nor does it enforce a single set, as is done with operations.
+Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different versions of software to manipulate images, the user can override the version set, as the versions associated with each software may be incomplete.  It is important to reach out the management team for the software.csv to add the appropriate version.
 
 Link descriptions can include an input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output image.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  The input mask is an optional attachment.  When first attached to the description, the mask is not shown in the description dialog.  On subsequent edits, the image is both shown and able to be replaced with a new attachment.
 
