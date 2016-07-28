@@ -80,6 +80,8 @@ File > Export > To File [Control-e] creates a compressed archive file of the pro
 
 File > Export > To S3 creates a compressed archive file of the project and uploads to a S3 bucket and folder.  The user is prompted for the bucket/folderpath, separated by '/'.
 
+File > Fetch Meta-Data(S3) prompts the user for the bucket and path to pull down operations.csv and software.csv from an S3 bucket. The user is prompted for the bucket/folderpath, separated by '/\'.
+
 File > Validate Runs a validation rules on the project.  Erros are displayed in a list box. Clicking on each error high-lights the link or node in the graph, as if selected in the graph.
 
 File > Group Manager opens a separate dialog to manage groups of plugin filters.
@@ -158,12 +160,12 @@ NOTE: Structual Similarity produces a warning on the tool command line output th
 Plugin filters are python scripts.  They are located under a plugins directory.  Each plugin is a directory with a file __init__.py  The __init__ module must provide three functions: 
 
 (1) 'operation()' that returns a list of five items 'operation name', 'operation category', 'description', 'python package','package version'
-(2) 'transform(im,imgfilename,**kwargs)' that consumes a PIL Image, a set of arguments.  The function returns True if the EXIF should be copied from the source to target.
+(2) 'transform(im,source,target,**kwargs)' that consumes a PIL Image, the source file name, the target file name and a set of arguments.  The function returns True if the EXIF should be copied from the source to target.
 (3) 'arguments()' returns a list of tuples or None.  Each tuple contains an argument name and a default value. 
 
 Plugins may provide a fourth function called 'suffix()'.  The function returns the file suffix of the image file it expects (e.g. .tiff, .jpg).  The expectation is that the plugin overwrites the contents of the file with data corresponding the suffix.
 
-The tool creates a copy of the source image in a new file.  The path (i.e. location) of the new file is provided in the second argument (imgfilename).  The transform changes the select contents of that image file.  The image provided in the first argument the transform is a convenience, providing a copy of the image from the file.  The image is disconnected from the file, residing in memory.  If the transform returns True, then the tool copies the EXIF from the source image to the new image file.  This is often required since PIL(Pillow) Images do not retain all the EXIF data, with the exception of working with TIFF.  
+The tool creates a copy of the source image into a new file.  The path (i.e. location) of the new file is provided in the third argument (target).  The transform changes the select contents of that image file.  The image provided in the first argument the transform is a convenience, providing a copy of the image from the file.  The image is disconnected from the file, residing in memory.  If the transform returns True, then the tool copies the EXIF from the source image to the new image file.  This is often required since PIL(Pillow) Images do not retain all the EXIF data, with the exception of working with TIFF.  
 
 The python package and package version are automatically added to the list of software used by the manipulator.
 
