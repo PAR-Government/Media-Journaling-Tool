@@ -75,8 +75,7 @@ class MakeGenUI(Frame):
    
     gfl = GroupFilterLoader()
 
-    def _check_dir(self,pathinfo):
-         dir = os.path.abspath(os.path.split(pathinfo)[0])
+    def _check_dir(self,dir):
          set = [filename for filename in os.listdir(dir) if filename.endswith('.json')]
          return not len(set)>0
 
