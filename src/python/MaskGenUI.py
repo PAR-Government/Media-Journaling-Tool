@@ -8,10 +8,9 @@ import numpy as np
 import os
 import sys
 import argparse
-from mask_frames import HistoryFrame 
 import ttk
 from graph_canvas import MaskGraphCanvas
-from scenario_model import ProjectModel,Modification,findProject
+from scenario_model import ProjectModel,Modification,createProject
 from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog,ListDialog
 from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software, loadOperations, loadSoftware
@@ -22,7 +21,6 @@ from maskgen_loader import MaskGenLoader
 # this program creates a canvas and puts a single polygon on the canvas
 
 defaultypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
-defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
 
 def loadS3(values):
   import boto3
@@ -89,10 +87,11 @@ class MakeGenUI(Frame):
        self.processmenu.entryconfig(5,state=state)
 
     def new(self):
-       val = tkFileDialog.asksaveasfilename(initialdir = self.scModel.get_dir(), title = "Select new project file",filetypes = [("json files","*.json")])
+       val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select base image file",filetypes =self.getFileTypes())
        if val is None or val== '':
          return
-       if (not self._check_dir(val)):
+       dir = os.path.split(val)[0]
+       if (not self._check_dir(dir)):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
        self.scModel.startNew(val)
@@ -212,8 +211,19 @@ class MakeGenUI(Frame):
               self.processmenu.entryconfig(6,state='normal')
 
     def nextauto(self):
+        destination = self.scModel.scanNextImageUnConnectedImage()
+        im,filename = self.scModel.getImageAndName(destination)
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+            self.scModel.connect(destination,mod=d.description,software=d.getSoftware())
+            self.drawState()
+            self.canvas.add(self.scModel.start, self.scModel.end)
+            self.processmenu.entryconfig(6,state='normal')
+
+    def nextautofromfile(self):
         im,filename = self.scModel.scanNextImage()
         if (filename is None): 
+            tkMessageBox.showwarning("Auto Connect","Next image file cannot be automatically determined")
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
@@ -455,6 +465,7 @@ class MakeGenUI(Frame):
         self.processmenu = Menu(menubar, tearoff=0)
         self.processmenu.add_command(label="Add", command=self.add, accelerator="Ctrl+A")
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
+        self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile, state='disabled')
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
         self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F", state='disabled')
         self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
@@ -556,11 +567,13 @@ class MakeGenUI(Frame):
        elif eventName == 'n':
            self.drawState()
 
-    def __init__(self,dir,master=None,pluginops={}):
+    def __init__(self,dir,master=None,pluginops={},base=None):
         Frame.__init__(self, master)
-#        master.wm_attributes("-transparent", True)
         self.mypluginops = pluginops
-        self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)
+        self.scModel = createProject(dir, notify=self.connectEvent,base=base)
+        if self.scModel is None:
+          print 'Invalid project director ' + dir
+          sys.exit(-1)
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref',defaultypes)
         self.createWidgets()
@@ -573,9 +586,10 @@ def main(argv=None):
 
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
+   parser.add_argument('--base', help='base image',nargs=1)
    parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
-   imgdir = '.'
+   imgdir = ['.']
    argv = argv[1:]
    args = parser.parse_args(argv)
    if args.imagedir is not None:
@@ -588,7 +602,7 @@ def main(argv=None):
    loadSoftware("software.csv")
    root= Tk()
 
-   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins())
+   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None)
    gui.mainloop()
 
 if __name__ == "__main__":

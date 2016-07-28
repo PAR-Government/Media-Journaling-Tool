@@ -93,7 +93,7 @@ class ImageGraph:
       fname = nname + suffix
     return fname
 
-  def add_node(self,pathname, seriesname=None, image=None):
+  def add_node(self,pathname, seriesname=None, image=None, **kwargs):
     fname = os.path.split(pathname)[1]
     origname = nname = get_pre_name(fname)
     suffix = get_suffix(fname)
@@ -108,7 +108,7 @@ class ImageGraph:
         shutil.copy2(pathname, newpathname)
       elif image is not None:
         image.save(newpathname,exif=image.info['exif'])
-    self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'))
+    self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
     self.U = []
     self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
     # adding back a file that was targeted for removal

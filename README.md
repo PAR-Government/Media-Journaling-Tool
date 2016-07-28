@@ -25,6 +25,7 @@ pip install networkx
 pip install moviepy
 pip install scikit-image
 pip install tkintertable
+pip install bitstring
 
 For optional use with S3
 pip install boto3
@@ -43,7 +44,13 @@ Assumes operations.csv and software.csv are located in the same directory as the
 % python src/python/MaskGenUI.py  --imagedir images
 ```
 
-The imagedir argument is an initial project directory or project (JSON) file in the project directory.
+The imagedir argument is a project directory with a project JSON file in the project directory.
+
+If the project JSON is not found and the imagedir contains is a set of images, then the images are sorted alphabetically, in the order JPG, PNG and TIFF, respectively. The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
+
+```
+% python src/python/MaskGenUI.py  --imagedir images --base images/baseimage.jpg
+```
 
 If the operations.csv and software.csv are to be downloaded from a S3 bucket, then
 (1) Use command aws configure to setup you Access Id and Key
@@ -67,7 +74,7 @@ File > Save [Control-s] saves a project (JSON file).  All project artifacts and 
  
 File > Save As saves entire project to a new project directory and changes the name of the project.
 
-File > New [Control-n] creates a new project.
+File > New [Control-n] creates a new project.  Select a base image file.  The directory containing that image file becomes the project directory.  The name of project is based on the name of the image file, removing the file type suffix. All images in the directory are automatically imported into the project.
 
 File > Export > To File [Control-e] creates a compressed archive file of the project including images and masks.
 
@@ -81,7 +88,9 @@ File > Quit [Control-q] Save and Quit
 
 Process > Add Add a selected image to the project. The image can be linked to other images within the graph.
 
-Process > Next w/Auto Pick [Control-p] automatically finds and picks the next modified version of the current image file.  The modified version of the file contains the same name as the initial image file, minus the file type suffix, with some additional characters.  If there is more than one modified version, they are processed in lexicographic order.  A dialog appears for each modification, capturing the type of modification and additional description (optional).  The dialog displays the next selected image as confirmation. A link is formed to the current image to the next selected image file.   If the next file is NOT found, the tool assumes the currently selected image has been overwritten, reloads that image file and gives it a new name.
+Process > Next w/Auto Pick [Control-p] picks an image node without neighbors.  The chosen image node is the next node in found in lexicographic order. Preference is givne to those image nodes that share the same prefix as the currently selected node. A dialog appears for to capture the manipulation information including the type and additional description (optional).  The dialog displays the next selected image as confirmation. A link is formed to the current image to the next selected image node.
+
+Process > Next w/Auto Pick from File finds a modified version of current image file from the project directory.  The modified version of the file contains the same name as the initial image file, minus the file type suffix, with some additional characters.  If there is more than one modified version, they are processed in lexicographic order.  A dialog appears for each modification, capturing the type of modification and additional description (optional).  The dialog displays the next selected image as confirmation. A link is formed to the current image to the next selected image file.
 
 Process > Next w/Add [Control-l] prompts with file finding window to select an image that differs from the current selected image by ONE modifications.  A dialog appears to capture the modification, including the type of modification and additional description (optional). The dialog dispays the next select image as confirmation. A link is formed between the current selected image to the newly loaded image.
 
@@ -191,3 +200,4 @@ The Group Manager allows the user to create, remove and manage groups.  Groups a
 2. Software name/version validation
 3. Operations and Software download from S3 or Http 
 4. Validation Rules
+5. Start up of new projects now can do a bulk add

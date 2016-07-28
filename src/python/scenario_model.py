@@ -10,11 +10,54 @@ import tempfile
 import plugins
 import graph_rules
 
-def findProject(dir):
+suffixes = [".jpg",".png",".tiff"]
+
+def createProject(dir,notify=None,base=None):
+    """ This utility function creates a ProjectModel given a directory.
+        If the directory contains a JSON file, then that file is used as the project file.
+        Otherwise, the directory is inspected for images.
+        All images found in the directory are imported into the project.
+        If the 'base' parameter is provided, the project is named based on that image name.
+        If the 'base' parameter is not provided, the project name is set based on finding the
+        first image in the list of found images, sorted in lexicographic order, starting with JPG, then PNG and then TIFF.
+        Returns an error message upon error, otherwise None
+    """
+
     if (dir.endswith(".json")):
-       return os.path.abspath(dir)
-    p = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
-    return  os.path.join(dir,p[0] if len(p)>0 else 'Untitled')
+       return ProjectModel(os.path.abspath(dir),notify=notify)
+    selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
+    if len(selectionSet) != 0 and base is not None:
+        print 'Cannot add base image to an existing project'
+        return None
+    if len(selectionSet) == 0 and base is None:
+       print 'No project found and base image not provided; Searching for a base image'
+       suffixPos = 0
+       while len(selectionSet) == 0 and suffixPos < len(suffixes):
+          suffix = suffixes[suffixPos]
+          selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(suffix)]
+          selectionSet.sort()
+          suffixPos+=1
+       projectFile = selectionSet[0] if len(selectionSet) > 0 else None
+       if projectFile is None:
+         print 'Could not find a base image'
+         return None
+    # add base is not None
+    elif len(selectionSet) == 0: 
+       projectFile = os.path.split(base)[1]
+    else:
+       projectFile = selectionSet[0]
+    projectFile = os.path.abspath(os.path.join(dir,projectFile))
+    if not os.path.exists(projectFile):
+      print 'Base project file ' + projectFile + ' not found'
+      return None
+    image = None
+    if  not projectFile.endswith(".json"):
+        image = projectFile
+        projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
+    model=  ProjectModel(projectFile,notify=notify)
+    if  image is not None:
+       model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1])
+    return model
 
 class Modification:
    operationName = None
@@ -31,17 +74,57 @@ class Modification:
      self.arguments = arguments
 
 class ProjectModel:
+    """
+       A ProjectModel manages a project.  A project is made up of a directed graph of Image nodes and links.
+       Each link is associated with a manipulation between the source image to the target image.  
+       A link contains a mask(black and white) image file describing the changes.
+       A mask's X&Y dimensions match the source image.
+       A link contains a desciption of the manipulation operation, software used to perfrom the manipulation,
+       analytic results comparing source to target images, and an input mask path name.  The input mask path name
+       describes a mask used by the manipulation software as a parameter describing the manipulation.
+       Links may be 'read-only' indicating that they are created through an automated plugin.
+
+       A ProjectModel can be reused to open new projects.   It is designed to represent a view model (MVC).
+       A ProjectModel has two state paremeters, 'start' and 'end', containing the name of image nodes in the graph.
+       When both set, a link is selected.  When 'start' is set and 'end' is None, only a single image node is selected.
+       Several methods on the ProjectModel depend on the state of these parameters.  For example, adding a new link
+       to a image node, chooses the source node referenced by 'end' if set, otherwise it chooses the node referenced by 'start'
+    """
+  
     G = None
     start = None
     end = None
 
-    def __init__(self, projectFileName, notify=None):
+    def __init__(self, projectFileName, importImage=False, notify=None):
       self.G = ImageGraph(projectFileName)
       self._setup()
       self.notify = notify
 
     def get_dir(self):
        return self.G.dir
+
+    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=20,ypos=50):
+       """
+         Bulk add all images from a given directory into the project.
+         Position the images in a grid, separated by 50 vertically with a maximum height of 520.
+         Images are imported in lexicographic order, first importing JPG, then PNG and finally TIFF.
+         If baseImageFileName, the name of an image node, is provided, then that node is selected
+         upong completion of the operation.  Otherwise, the last not imported is selected"
+       """
+       initialYpos = ypos
+       for suffix in suffixes:
+         p = [filename for filename in os.listdir(dir) if filename.endswith(suffix) and not filename.endswith('_mask' + suffix)]
+         p.sort()
+         for filename in p:
+             pathname = os.path.abspath(os.path.join(dir,filename))
+             nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
+             ypos+=50
+             if ypos == 520:
+                 ypos=initialYpos
+                 xpos+=20
+             if filename==baseImageFileName:
+               self.start = nname
+               self.end = None
 
     def addImage(self, pathname):
        nname = self.G.add_node(pathname)
@@ -58,12 +141,17 @@ class ProjectModel:
             softwareVersion=('' if software is None else software.version))
 
     def compare(self, destination,seamAnalysis=True):
+       """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+           Return both images, the mask and the analysis results (a dictionary)
+       """
        im1 = self.getImage(self.start)
        im2 = self.getImage(destination)
        mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis)
        return im1,im2,mask,analysis
 
     def getExifDiff(self):
+      """ Return the EXIF differences between nodes referenced by 'start' and 'end' 
+      """
       e = self.G.get_edge(self.start, self.end)
       if e is None:
           return None
@@ -93,7 +181,12 @@ class ProjectModel:
       return 'editable' not in e or e['editable'] == 'yes'
 
     def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False, sendNotifications=True):
-       if (self.start is None):
+       """ Given a image node name, connect the new node to the end of the currently selected node.
+            Create the mask, inverting the mask if requested.
+            Send a notification to the register caller if requested.
+            Return an error message on failure, otherwise return None
+       """
+       if self.start is None:
           return
        try:
          maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert)
@@ -114,6 +207,12 @@ class ProjectModel:
          return msg
 
     def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True):
+       """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
+            Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
+            to the currently selected node.  Create the mask, inverting the mask if requested.
+            Send a notification to the register caller if requested.
+            Return an error message on failure, otherwise return None
+       """
        if (self.end is not None):
           self.start = self.end
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
@@ -136,6 +235,7 @@ class ProjectModel:
          return msg
 
     def getSeriesName(self):
+       """ A Series is the prefix of the first image node """
        if (self.start is None):
           None
        startNode = self.G.get_node(self.start)
@@ -158,6 +258,7 @@ class ProjectModel:
       return self.end if self.end is not None else ""
 
     def undo(self):
+       """ Undo the last graph edit """
        self.start = None
        self.end = None
        self.G.undo()
@@ -166,12 +267,15 @@ class ProjectModel:
       self.start= edge[0]
       self.end = edge[1]
 
-    def startNew(self,pathname):
-      self.G = ImageGraph(pathname)
-      self.start = None
-      self.end = None
+    def startNew(self,imgpathname):
+       """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
+       projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
+       self.G = ImageGraph(projectFile)
+       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[0])
 
     def load(self,pathname):
+       """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
+       # Historically, the JSON was used instead of the project directory as a project since the tool cannot control the content of directory
        self.G.load(pathname)
        self.start = None
        self.end = None
@@ -248,11 +352,12 @@ class ProjectModel:
       self.start = name
       self.end = None
 
-    def selectPair(self, start, end):
+    def selectEdge(self, start, end):
       self.start = start
       self.end = end
 
     def remove(self):
+       """ Remove the selected node or edge """
        if (self.start is not None and self.end is not None):
            self.G.remove_edge(self.start, self.end)
            self.end = None
@@ -270,12 +375,15 @@ class ProjectModel:
         self.G.setDataItem(item,value)
 
     def getVersion(self):
+      """ Return the graph/software versio n"""
       return self.G.getVersion()
 
     def getGraph(self):
       return self.G
 
     def validate(self):
+       """ Return the list of errors from all validation rules on the graph. """
+           
        total_errors = []
        for node in self.G.get_nodes():
          if not self.G.has_neighbors(node):
@@ -290,6 +398,19 @@ class ProjectModel:
        return total_errors
 
     def imageFromPlugin(self,filter,im, filename, **kwargs):
+      """
+        Create a new image from a plugin filter.  
+        This method is given the plugin name, PIL Image, the full pathname of the image and any additional parameters
+        required by the plugin (name/value pairs).
+        The name of the resulting image contains the prefix of the input image file name plus an additional numeric index.
+        If requested by the plugin (return True), the Exif is copied from the input image to the resulting image.
+        The method resolves the donor parameter's name to the donor's image file name.
+        If a donor is used, the method creates a Donor link from the donor image to the resulting image node.
+        If an input mask file is used, the input mask file is moved into the project directory.
+        Prior to calling the plugin, the output file is created and populated with the contents of the input file for convenience.
+        The filter plugin must update or overwrite the contents.
+        The method returns an error message upon failure, otherwise None.
+      """
       op = plugins.getOperation(filter)
       suffixPos = filename.rfind('.')
       suffix = filename[suffixPos:]
@@ -317,7 +438,27 @@ class ProjectModel:
       os.remove(target)
       return msg
 
+    def scanNextImageUnConnectedImage(self):
+       """Scan for an image node with the same prefix as the currently select image node. 
+          Scan in lexicographic order.
+          Exlude images that have neighbors.
+          Return None if a image nodee is not found.
+       """
+       selectionSet = [node for node in self.G.get_nodes() if not self.G.has_neighbors(node) and node != self.start]
+       selectionSet.sort()
+       if (len(selectionSet) > 0):
+           matchNameSet = [name for name in selectionSet if name.startswith(self.start)]
+           selectionSet = matchNameSet if len(matchNameSet) > 0 else selectionSet
+       return selectionSet[0] if len(selectionSet) > 0 else None
+
     def scanNextImage(self):
+      """
+         Scan for a file with the same prefix as the currently select image node. 
+         Scan in lexicographic order.
+         Exlude image files with names ending in _mask or image files that are already imported.
+         Return None if a file is not found.
+      """
+
       if (self.start is None):
          return None,None
 
@@ -334,15 +475,11 @@ class ProjectModel:
          set.sort()
          return set
       
-      # if the user is writing to the same output file
-      # in a lock step process with the changes
-      # then nfile remains the same name is changed file
-      nfile = self.G.get_pathname(self.start)
+      nfile = None
       for file in findFiles(self.G.dir,suffix, filterFunction):
          nfile = file
          break
-      im = tool_set.openImage(nfile)
-      return im,nfile
+      return tool_set.openImage(nfile) if nfile is not None else None,nfile
 
     def openImage(self,nfile):
       im = None
