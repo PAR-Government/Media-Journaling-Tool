@@ -86,9 +86,9 @@ File > Group Manager opens a separate dialog to manage groups of plugin filters.
 
 File > Quit [Control-q] Save and Quit
 
-Process > Add Add a selected image to the project. The image can be linked to other images within the graph.
+Process > Add Images adds selected images to the project. Each image can be linked to other images within the graph.
 
-Process > Next w/Auto Pick [Control-p] picks an image node without neighbors.  The chosen image node is the next node in found in lexicographic order. Preference is givne to those image nodes that share the same prefix as the currently selected node. A dialog appears for to capture the manipulation information including the type and additional description (optional).  The dialog displays the next selected image as confirmation. A link is formed to the current image to the next selected image node.
+Process > Next w/Auto Pick [Control-p] picks an image node without neighbors.  The chosen image node is the next node in found in lexicographic order. Preference is given to those image nodes that share the same prefix as the currently selected node. A dialog appears to capture the manipulation information including the type and additional description (optional).  The dialog displays the next selected image as confirmation. A link is then formed forom the current image node to the selected image node.
 
 Process > Next w/Auto Pick from File finds a modified version of current image file from the project directory.  The modified version of the file contains the same name as the initial image file, minus the file type suffix, with some additional characters.  If there is more than one modified version, they are processed in lexicographic order.  A dialog appears for each modification, capturing the type of modification and additional description (optional).  The dialog displays the next selected image as confirmation. A link is formed to the current image to the next selected image file.
 
@@ -99,6 +99,8 @@ Process > Next w/Filter [Control-f] prompts with modification to the current sel
 Process > Next w/Filter Group runs a group of plugin transforms against the selected image, creating an image node for each transform and a link to the new images from the selected image.
 
 Process > Next w/Filter Sequence runs a group of plugin transforms in a sequence starting with the selected image.  Each transform results in a new image node.  The result from one transform is the input into the next transform.  Links are formed between each image node, in the same sequence.
+
+Process > Create JPEG is a convenience operation that runs two plugin filters, JPEG compression using the base image QT and EXIF copy from the base image, on the final manipulation nodes.  The end result is two additional nodes per each final manipulation node, sequenced from the manipulation node.  Included is the Donor links from the base image.  This operation only applies to JPEG base images.
 
 Process > Undo [Control-z] Undo the last operation performed.  The tool does not support undo of an undo.
 

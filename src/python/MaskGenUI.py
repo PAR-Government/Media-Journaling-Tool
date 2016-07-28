@@ -16,6 +16,7 @@ from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
+from group_operations import ToJPGGroupOperation
 
 
 # this program creates a canvas and puts a single polygon on the canvas
@@ -159,6 +160,16 @@ class MakeGenUI(Frame):
          except IOError:
            tkMessageBox.showinfo("Error", "Failed to upload export")
   
+    def createJPEG(self):
+       msg,pairs = ToJPGGroupOperation(self.scModel).performOp()
+       if msg is not None:
+         tkMessageBox.showwarning("Error", msg)
+       for pair in pairs:
+           self.canvas.add(pair[0],pair[1])
+       self.drawState()
+
+         
+
     def undo(self):
        self.scModel.undo()
        self.drawState()
@@ -238,12 +249,16 @@ class MakeGenUI(Frame):
     def resolvePluginValues(self,args):
       result = {}
       for k,v in args.iteritems():
-       if k == 'donor':
-          result[k] = self.scModel.getImageAndName(v)
-       else:
           result[k] = v
       result['sendNotifications'] = False
       return result
+
+    def _addPairs(self,pairs):
+        for pair in pairs:
+          self.canvas.add(pair[0],pair[1])
+        if len (pairs) > 0:
+          self.drawState()
+          self.processmenu.entryconfig(6,state='normal')
 
     def nextfilter(self):
         im,filename = self.scModel.currentImage()
@@ -251,18 +266,11 @@ class MakeGenUI(Frame):
             return
         d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),os.path.split(filename)[1], self.scModel)
         if d.optocall is not None:
-            msg = self.scModel.imageFromPlugin(d.optocall,im,filename,**self.resolvePluginValues(d.argvalues))
+            msg,pairs = self.scModel.imageFromPlugin(d.optocall,im,filename,**self.resolvePluginValues(d.argvalues))
             if msg is not None:
               tkMessageBox.showwarning("Next Filter",msg)
-            else:
-              self.drawState()
-              self.canvas.add(self.scModel.start, self.scModel.end)
-              if 'donor' in d.argvalues:
-                end = self.scModel.end
-                self.scModel.selectImage(d.argvalues['donor'])
-                self.scModel.connect(end)
-                self.canvas.showEdge(self.scModel.start, self.scModel.end)
-              self.processmenu.entryconfig(6,state='normal')
+            self._addPairs(pairs)
+
 
     def nextfiltergroup(self):
         im,filename = self.scModel.currentImage()
@@ -273,16 +281,16 @@ class MakeGenUI(Frame):
             return
         d = FilterGroupCaptureDialog(self,im,os.path.split(filename)[1])
         if d.getGroup() is not None:
-            start = self.scModel.startImageName()
+            start = self.scModel.operationImageName()
             end = None
             ok = False
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-               msg = self.scModel.imageFromPlugin(filter,im,filename)
+               msg,pairs = self.scModel.imageFromPlugin(filter,im,filename)
+               self._addPairs(pairs)  
                if msg is not None:
-                 tkMessageBox.showwarning("Next Filter",msg)
-                 break
+                  tkMessageBox.showwarning("Next Filter",msg)
+                  break
                ok = True
-               self.canvas.add(self.scModel.start, self.scModel.end)
                end = self.scModel.nextImageName()
                # reset back to the start image
                self.scModel.selectImage(start)
@@ -302,11 +310,11 @@ class MakeGenUI(Frame):
         d = FilterGroupCaptureDialog(self,im,os.path.split(filename)[1])
         if d.getGroup() is not None:
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-               msg = self.scModel.imageFromPlugin(filter,im,filename)
+               msg,pairs = self.scModel.imageFromPlugin(filter,im,filename)
                if msg is not None:
                  tkMessageBox.showwarning("Next Filter",msg)
                  break
-               self.canvas.add(self.scModel.start, self.scModel.end)
+               self._addPairs(pairs)  
                im,filename = self.scModel.getImageAndName(self.scModel.end)
             self.drawState()
             self.processmenu.entryconfig(6,state='normal')
@@ -376,6 +384,9 @@ class MakeGenUI(Frame):
 
     def gnextfilter(self, next):
         self.nextfilter()
+
+    def gcreateJPEG(self, next):
+        self.createJPEG()
 
     def gundo(self, next):
         self.undo()
@@ -463,13 +474,16 @@ class MakeGenUI(Frame):
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
-        self.processmenu.add_command(label="Add", command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add Images", command=self.add, accelerator="Ctrl+A")
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
         self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile, state='disabled')
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
         self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F", state='disabled')
         self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
         self.processmenu.add_command(label="Next w/Filter Sequence", command=self.nextfiltergroupsequence, state='disabled')
+        self.processmenu.add_separator()
+        self.processmenu.add_command(label="Create JPEG", command=self.createJPEG, accelerator="Ctrl+J")
+        self.processmenu.add_separator()
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z",state='disabled')
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
@@ -482,6 +496,7 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-l>',self.gnextadd)
         self.bind_all('<Control-f>',self.gnextfilter)
         self.bind_all('<Control-z>',self.gundo)
+        self.bind_all('<Control-j>',self.gcreateJPEG)
 
         self.grid()
         self.master.rowconfigure(0,weight=1)

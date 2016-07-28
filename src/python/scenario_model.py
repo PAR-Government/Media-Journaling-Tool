@@ -206,7 +206,7 @@ class ProjectModel:
        except ValueError, msg:
          return msg
 
-    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True):
+    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True, position=(50,50)):
        """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
             Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
             to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -215,7 +215,7 @@ class ProjectModel:
        """
        if (self.end is not None):
           self.start = self.end
-       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img)
+       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img,xpos=position[0],ypos=position[1])
        try:
          maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert)
          if len(mod.arguments)>0:
@@ -250,6 +250,9 @@ class ProjectModel:
 
     def getName(self):
      return self.G.get_name()
+
+    def operationImageName(self):
+      return self.end if self.end is not None else self.start 
 
     def startImageName(self):
       return self.start if self.start is not None else ""
@@ -397,6 +400,29 @@ class ProjectModel:
               total_errors.extend( [(frm,to,frm + ' => ' + to + ': ' + err) for err in errors])
        return total_errors
 
+    def _findBaseNodes(self,node):
+       preds = self.G.predecessors(node)
+       res = [node] if len(preds) == 0 else []
+       for pred in preds:
+          res.extend(self._findBaseNodes(pred) if self.G.get_edge(pred,node)['op'] != 'Donor' else [])
+       return res
+            
+    def getTerminalToBasePairs(self, suffix='.jpg'):
+        terminalNodes = [node for node in self.G.get_nodes() if len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
+        endPointTuples = [(node,self._findBaseNodes(node)) for node in terminalNodes]
+        pairs = []
+        for endPointTuple in endPointTuples:
+           matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if self.G.get_pathname(baseNode).endswith(suffix)]
+           if len(matchBaseNodes) > 0:
+              projectNodeIndex = matchBaseNodes.index(self.G.get_name()) if self.G.get_name() in matchBaseNodes else 0
+              baseNode = matchBaseNodes[projectNodeIndex]
+              startNode = endPointTuple[0]
+              # perfect match
+              if baseNode == self.G.get_name():
+                  return [(startNode,baseNode)]
+              pairs.append((startNode,baseNode))
+        return pairs
+                  
     def imageFromPlugin(self,filter,im, filename, **kwargs):
       """
         Create a new image from a plugin filter.  
@@ -409,7 +435,7 @@ class ProjectModel:
         If an input mask file is used, the input mask file is moved into the project directory.
         Prior to calling the plugin, the output file is created and populated with the contents of the input file for convenience.
         The filter plugin must update or overwrite the contents.
-        The method returns an error message upon failure, otherwise None.
+        The method returns tuple with an error message and a list of pairs (links) added.  The error message may be none if no error occurred.
       """
       op = plugins.getOperation(filter)
       suffixPos = filename.rfind('.')
@@ -419,8 +445,14 @@ class ProjectModel:
           suffix = preferred
       target = os.path.join(tempfile.gettempdir(),self.G.new_name(os.path.split(filename)[1],suffix=suffix))
       shutil.copy2(filename, target)
-      copyExif = plugins.callPlugin(filter,im,filename,target,**kwargs)
       msg = None
+      try:
+         copyExif = plugins.callPlugin(filter,im,filename,target,**self._resolvePluginValues(kwargs))
+      except Exception as e:
+         msg = str(e.message)
+         copyExif = False
+      if msg is not None:
+          return self._pluginError(filter,msg),[]
       if copyExif:
         msg = exif.copyexif(filename,target)
       description = Modification(op[0],filter + ':' + op[2],op[1])
@@ -429,14 +461,39 @@ class ProjectModel:
       sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
       software = Software(op[3],op[4],internal=True)
       description.arguments = {k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'inputmaskpathname'}
-      msg2 = self.addNextImage(target,None,mod=description,software=software,sendNotifications=sendNotifications)
+
+      msg2 = self.addNextImage(target,None,mod=description,software=software,sendNotifications=sendNotifications,position=self._getCurrentPosition((60, 40 if 'donor' in kwargs else 0)))
+      pairs = []
       if msg2 is not None:
           if msg is None:
              msg = msg2
           else:
              msg = msg + "\n" + msg2
+      else:
+          pairs.append((self.start, self.end))
+          if 'donor' in kwargs:
+             _end = self.end
+             _start = self.start
+             self.selectImage(kwargs['donor'])
+             self.connect(_end)
+             pairs.append((kwargs['donor'],_end))
+             self.select((_start, _end))
       os.remove(target)
-      return msg
+      return self._pluginError(filter,msg),pairs
+
+    def _resolvePluginValues(self,args):
+      result = {}
+      for k,v in args.iteritems():
+       if k == 'donor':
+          result[k] = self.getImageAndName(v)
+       else:
+          result[k] = v
+      return result
+
+    def _pluginError(self,filter, msg):
+         if msg is not None:
+            return 'Plugin ' + filter + ' Error:\n' + msg
+         return msg
 
     def scanNextImageUnConnectedImage(self):
        """Scan for an image node with the same prefix as the currently select image node. 
@@ -506,3 +563,8 @@ class ProjectModel:
       elif self.end is not None:
          self.G.create_path_archive(location,self.end)
 
+    def _getCurrentPosition(self,augment):
+      if self.start is None:
+          return (50,50)
+      startNode = self.G.get_node(self.start)
+      return ((startNode['xpos'] if startNode.has_key('xpos') else 50)+augment[0],(startNode['ypos'] if startNode.has_key('ypos') else 50)+augment[1])

@@ -89,7 +89,11 @@ class ImageGraph:
      suffix = get_suffix(fname)
     nname = get_pre_name(fname)
     while (self.G.has_node(nname)):
-      nname = nname + '_' + str(self.nextId())
+      posUS = nname.rfind('_')
+      if posUS > 0 and nname[posUS+1:].isdigit():
+         nname = '{}_{:=02d}'.format(nname[:posUS], self.nextId())
+      else:
+         nname = '{}_{:=02d}'.format(nname, self.nextId())
       fname = nname + suffix
     return fname
 
