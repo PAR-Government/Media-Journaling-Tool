@@ -48,3 +48,5 @@ class GroupFilterLoader:
       maskgenloader.save("filtergroups",image)
 
 
+
+   

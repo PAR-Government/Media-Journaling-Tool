@@ -98,9 +98,11 @@ class MaskGraphCanvas(tk.Canvas):
        center = self._node_center(start)
        wx,wy = self.winfo_width(), self.winfo_height()
        node = self.scModel.getGraph().get_node(end)
-       node['ypos'] = center[1]+int(wy/4.0)
-       node['xpos'] = center[0]
-       if (self.lastNodeAdded is not None):
+       if ('ypos' not in node or node['ypos'] <= 0) or \
+           ('xpos' not in node or node['xpos'] <=0):
+         node['ypos'] = center[1]+int(wy/4.0)
+         node['xpos'] = center[0]
+         if (self.lastNodeAdded is not None):
            diff = abs(self.lastNodeAdded['xpos'] - node['xpos']) + \
            abs(self.lastNodeAdded['ypos'] - node['ypos'])
            if diff < 10:
@@ -261,7 +263,7 @@ class MaskGraphCanvas(tk.Canvas):
                self.scModel.selectImage(self.itemToNodeIds[item])
            else:
                e = self.itemToEdgeIds[item]
-               self.scModel.selectPair(e[0],e[1])
+               self.scModel.selectEdge(e[0],e[1])
                eventname= 'rcEdge' if self.scModel.isEditableEdge(e[0],e[1]) else 'rcNonEditEdge'
            self._mark(item)
            self.callback(event,eventname)
@@ -309,6 +311,9 @@ class MaskGraphCanvas(tk.Canvas):
         return (xa, ya)
 
     def _draw_node(self, id):
+        if id in self.toItemIds:
+          marker,wid = self.toItemIds[id]
+          return wid
         wx,wy = self.winfo_width(), self.winfo_height()
 
         node= self.scModel.getGraph().get_node(id)

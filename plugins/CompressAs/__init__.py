@@ -99,7 +99,7 @@ def transform(img,source,target, **kwargs):
     tables_sorted = sort_tables(tables_zigzag)
     save_as(source, target, tables_sorted)
     
-    return True
+    return False
     
 def operation():
     return ['AntiForensicExifQuantizationTable','AntiForensicExif', 

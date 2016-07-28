@@ -6,13 +6,55 @@ import math
 from skimage.measure import compare_ssim
 import warnings
 
+"""  These functions are designed to support mask generation.
+"""
+
+def imageResize(img,dim):
+   return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
+
+def imageResizeRelative(img,dim,otherIm):
+   wmax=max(img.size[0],otherIm[0])
+   hmax=max(img.size[1],otherIm[1])
+   wpercent = float(dim[0])/float(wmax)
+   hpercent = float(dim[1])/float(hmax)
+   perc = min(wpercent,hpercent)
+   wsize = int((float(img.size[0])*float(perc)))
+   hsize = int((float(img.size[1])*float(perc)))
+   return img.resize((wsize,hsize), Image.ANTIALIAS)
+
+
 def openImage(file):
    with open(file,"rb") as fp:
       im = Image.open(fp)
       im.load()
       return im
 
-def alignShape(im,shape):
+def createMask(img1, img2, invert, seamAnalysis=True):
+    img1, img2 = __alignChannels(img1,img2)
+    if (sum(img1.shape) > sum(img2.shape)):
+      return __composeCropImageMask(img1,img2,seamAnalysis=seamAnalysis)
+    if (sum(img1.shape) < sum(img2.shape)):
+      mask = np.ones(img1.shape)*255
+      return Image.fromarray(abs(255-mask).astype('uint8')),{}
+    #rotation
+    try:
+      if (img1.shape != img2.shape):
+        one = np.rot90(img2,1)
+        one_diff,one_analysis = __diffMask(img1,one,invert)
+        three = np.rot90(img2,3)
+        three_diff,three_analysis = __diffMask(img1,three,invert)
+        if abs(three_analysis['ssim']) > abs(one_analysis['ssim']):
+           return three_diff,three_analysis
+        else:
+           return one_diff,one_analysis
+      else:    
+        return __diffMask(img1,img2,invert)
+    except ValueError as e:
+      print 'Mask generation failure ' + e
+      mask = np.ones(img1.shape)*255
+      return Image.fromarray(abs(255-mask).astype('uint8')),{}
+
+def __alignShape(im,shape):
    x = min(shape[0],im.shape[0])
    y = min(shape[1],im.shape[1])
    z = np.zeros(shape)
@@ -20,7 +62,7 @@ def alignShape(im,shape):
       z[0:x,0:y,d] = im[0:x,0:y,d]
    return z
 
-def alignChannels(rawimg1, rawimg2):
+def __alignChannels(rawimg1, rawimg2):
    img1 = np.asarray(rawimg1.convert('F'))
    img2 = np.asarray(rawimg2.convert('F'))
    return img1,img2
@@ -44,7 +86,10 @@ def alignChannels(rawimg1, rawimg2):
 #   return z1.astype('uint8'), z2.astype('uint8')
     
 
-def findBestMatch(big,small):
+def __findBestMatch(big,small):
+    """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
+        likely match to the small image.
+    """
     if (np.any(np.asarray([(x[1]-x[0]) for x in zip(small.shape,big.shape)])<0)):
        return None
     result = cv2.matchTemplate(big, small, cv2.cv.CV_TM_SQDIFF_NORMED)
@@ -54,8 +99,12 @@ def findBestMatch(big,small):
       return None
     return tuple
 
-def composeCropImageMask(img1,img2,seamAnalysis=True):
-    tuple = findBestMatch(img1,img2)
+def __composeCropImageMask(img1,img2,seamAnalysis=True):
+    """ Return a masking where img1 is bigger than img2 and
+        img2 is likely a crop of img1.
+        Images are of type PIL Image.
+    """
+    tuple = __findBestMatch(img1,img2)
     mask = None
     analysis={}
     if tuple is not None:
@@ -75,56 +124,32 @@ def composeCropImageMask(img1,img2,seamAnalysis=True):
            dst2 = np.abs(img1-diffIm2)
            gray_image2 = np.zeros(img1.shape).astype('uint8')
            gray_image2[dst2>0.0001] = 255
-           mask = seamMask(gray_image2)
+           mask = __seamMask(gray_image2)
     else:
         mask = np.ones(img1.shape)*255
     return Image.fromarray(abs(255-mask).astype('uint8')),analysis
 
-def colorPSNR(z1,z2):
+def __colorPSNR(z1,z2):
     d = (z1-z2)**2
     sse = np.sum(d)
     mse=  float(sse)/float(reduce(lambda x, y: x*y, d.shape))
     return 0.0 if mse==0.0 else 20.0* math.log10(255.0/math.sqrt(mse))
 
-def size_diff(z1,z2):
+def __sizeDiff(z1,z2):
    return str((z1.shape[0]-z2.shape[0],z1.shape[1]-z2.shape[1]))
 
 def img_analytics(z1,z2):
    with warnings.catch_warnings():
      warnings.simplefilter("ignore")
-     return {'ssim':compare_ssim(z1,z2,multichannel=False),'psnr':colorPSNR(z1,z2),'shape change':size_diff(z1,z2)}
+     return {'ssim':compare_ssim(z1,z2,multichannel=False),'psnr':__colorPSNR(z1,z2),'shape change':__sizeDiff(z1,z2)}
 
-def diffMask(img1,img2,invert):
+def __diffMask(img1,img2,invert):
     dst = np.abs(img1-img2)
     gray_image = np.zeros(img1.shape).astype('uint8')
     gray_image[dst>0.0001] = 255
     analysis = img_analytics(img1,img2)
     return Image.fromarray(np.array(gray_image) if invert else (255-np.array(gray_image))),analysis
 
-def createMask(img1, img2, invert, seamAnalysis=True):
-    img1, img2 = alignChannels(img1,img2)
-    if (sum(img1.shape) > sum(img2.shape)):
-      return composeCropImageMask(img1,img2,seamAnalysis=seamAnalysis)
-    if (sum(img1.shape) < sum(img2.shape)):
-      mask = np.ones(img1.shape)*255
-      return Image.fromarray(abs(255-mask).astype('uint8')),{}
-    #rotation
-    try:
-      if (img1.shape != img2.shape):
-        one = np.rot90(img2,1)
-        one_diff,one_analysis = diffMask(img1,one,invert)
-        three = np.rot90(img2,3)
-        three_diff,three_analysis = diffMask(img1,three,invert)
-        if abs(three_analysis['ssim']) > abs(one_analysis['ssim']):
-           return three_diff,three_analysis
-        else:
-           return one_diff,one_analysis
-      else:    
-        return diffMask(img1,img2,invert)
-    except ValueError as e:
-      print 'Mask generation failure ' + e
-      mask = np.ones(img1.shape)*255
-      return Image.fromarray(abs(255-mask).astype('uint8')),{}
 
 def fixTransparency(img):
    if img.mode.find('A')<0:
@@ -137,20 +162,8 @@ def fixTransparency(img):
    xx[:,:,3]=np.ones((xx.shape[0], xx.shape[1]))*255
    return Image.fromarray(xx)
 
-def imageResizeRelative(img,dim,otherIm):
-   wmax=max(img.size[0],otherIm[0])
-   hmax=max(img.size[1],otherIm[1])
-   wpercent = float(dim[0])/float(wmax)
-   hpercent = float(dim[1])/float(hmax)
-   perc = min(wpercent,hpercent)
-   wsize = int((float(img.size[0])*float(perc)))
-   hsize = int((float(img.size[1])*float(perc)))
-   return img.resize((wsize,hsize), Image.ANTIALIAS)
 
-def imageResize(img,dim):
-   return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
-
-def findNeighbors(paths,next):
+def __findNeighbors(paths,next):
    newpaths = list()
    s = set()
    for path in paths:
@@ -161,24 +174,24 @@ def findNeighbors(paths,next):
           s.add(i)
    return newpaths
 
-def findVerticalSeam(mask):
+def __findVerticalSeam(mask):
   paths = list()
   for candidate in np.where(mask[0,:]>0)[0]:
      paths.append([candidate])
   for x in range(1,mask.shape[0]):
-    paths = findNeighbors(paths,np.where(mask[x,:]>0)[0])
+    paths = __findNeighbors(paths,np.where(mask[x,:]>0)[0])
   return paths
 
-def findHorizontalSeam(mask):
+def __findHorizontalSeam(mask):
   paths = list()
   for candidate in np.where(mask[:,0]>0)[0]:
      paths.append([candidate])
   for y in range(1,mask.shape[1]):
-    paths = findNeighbors(paths,np.where(mask[:,y]>0)[0])
+    paths = __findNeighbors(paths,np.where(mask[:,y]>0)[0])
   return paths
 
-def seamMask(mask):
-    seams = findVerticalSeam(mask)
+def __seamMask(mask):
+    seams = __findVerticalSeam(mask)
     if (len(seams)>0):
       first = seams[0]
       #should compare to seams[-1].  this would be accomplished by
@@ -189,7 +202,7 @@ def seamMask(mask):
         mask[i,first[i]] = 255
       return mask
     else:
-      seams = findHorizontalSeam(mask)
+      seams = __findHorizontalSeam(mask)
       if (len(seams)==0):
          return mask
       first = seams[0]
