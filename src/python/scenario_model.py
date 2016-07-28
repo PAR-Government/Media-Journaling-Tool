@@ -274,7 +274,7 @@ class ProjectModel:
        """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
        projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
        self.G = ImageGraph(projectFile)
-       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[0])
+       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1])
 
     def load(self,pathname):
        """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """

@@ -98,7 +98,7 @@ class MakeGenUI(Frame):
        self.scModel.startNew(val)
        if self.scModel.getProjectData('typespref') is None:
           self.scModel.setProjectData('typespref',defaultypes)
-       self.master.title(val)
+       self._setTitle()
        self.drawState()
        self.canvas.update()
        self.setSelectState('disabled')
@@ -112,7 +112,7 @@ class MakeGenUI(Frame):
           self.scModel.load(val)
           if self.scModel.getProjectData('typespref') is None:
               self.scModel.setProjectData('typespref',defaultypes)
-          self.master.title(val)
+          self._setTitle()
           self.drawState()
           self.canvas.update()
           if (self.scModel.start is not None):
@@ -140,7 +140,7 @@ class MakeGenUI(Frame):
             tkMessageBox.showwarning("Save As", "Cannot save to the same directory\n(%s)" % dir)
          else:
             self.scModel.saveas(val.name)
-            self.master.title(val.name)
+            self._setTitle()
          val.close()
 
     def export(self):
@@ -448,8 +448,11 @@ class MakeGenUI(Frame):
             return
        d = DescriptionViewDialog(self,im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
 
-    def createWidgets(self):
+    def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
+
+    def createWidgets(self):
+        self._setTitle()
 
         menubar = Menu(self)
 
