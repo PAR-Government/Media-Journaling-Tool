@@ -1,6 +1,3 @@
-import os
-from PIL import Image
-import tempfile
 from subprocess import call
 
 def transform(img,source,target, **kwargs):
