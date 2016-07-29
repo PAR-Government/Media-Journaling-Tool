@@ -1,0 +1,6 @@
+Couldn't find your camera? Here's what you can do:
+1. Check to make sure your database for quantization tables is called "QuantizationTables" and is in the working directory.
+2. Make sure you're using appropriate, specific keywords. Naming conventions in the database are, unfortunately, not well established. This can make searching difficult if you're not specific.
+3. Do you have a new set of quantization tables? They should be placed in a .txt file and placed in the QuantizationTables directory. 
+Make sure you name the file appropriately to make it easy to find later. (i.e. "Apple iPhone 5S", not "my iphone")
+The tables should be 8x8, one "on top" of the other (16 rows, 8 columns), and individual values should be separated by spaces. See other quantization tables for an example.
