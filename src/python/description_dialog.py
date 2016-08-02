@@ -1,4 +1,5 @@
 from Tkinter import *
+import tkMessageBox
 from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
@@ -90,6 +91,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.c.grid(row=0, column=0, columnspan=2)
       Label(master, text="Category:").grid(row=1,sticky=W)
       Label(master, text="Operation:").grid(row=2,sticky=W)
+      #self.attachImage = ImageTk.PhotoImage(file="icons/question.png")
+      self.b = Button(master,bitmap='info',text="Help",command=self.help,borderwidth=0,relief=FLAT)
+      self.b.grid(row=2,column=3)
       Label(master, text="Description:").grid(row=3,sticky=W)
       Label(master, text="Software Name:").grid(row=4,sticky=W)
       Label(master, text="Software Version:").grid(row=5,sticky=W)
@@ -167,6 +171,10 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             self.argBox.delete(index)
             self.argBox.insert(index,arg + ': ' + res)
 
+   def help(self):
+       op = getOperation(self.e2.get())
+       if op is not None:
+         tkMessageBox.showinfo(op.name, op.description if op.description is not None and len(op.description) > 0 else 'No description')
 
    def cancel(self):
        if self.cancelled:
@@ -527,3 +535,49 @@ class ListDialog(Toplevel):
       self.bind("<Return>", self.cancel)
       self.bind("<Escape>", self.cancel)
       box.pack()
+
+class CompositeCaptureDialog(tkSimpleDialog.Dialog):
+
+   im = None
+   inputmask = None
+   cancelled = True
+
+   def __init__(self, parent,dir,im,filename,name,includeInMask):
+      self.dir = dir
+      self.im = im
+      self.inputmask = filename
+      self.parent = parent
+      self.name  = name
+      self.includeInMask = includeInMask
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
+      self.c = Canvas(master, width=250, height=250)
+      self.image_on_canvas = self.c.create_image(125,125,image=self.photo, tag='imgd')
+      self.c.grid(row=0, column=0, columnspan=2)
+      self.var = StringVar()
+      self.var.set(self.includeInMask)
+      self.cb = Checkbutton(master, text="Included in Composite", variable=self.var, \
+         onvalue="yes", offvalue="no")
+      self.cb.grid(row=1,column=0,columnspan=2)
+      self.b = Button(master,text="Change Mask",command=self.changemask,borderwidth=0,relief=FLAT)
+      self.b.grid(row=2,column=0)
+      return self.cb
+
+   def changemask(self):
+        val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask", \
+              filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        if (val != None and len(val)> 0):
+            self.inputmask = val
+            print self.inputmask
+            self.im = openImage(val)
+            self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
+            self.c.itemconfig(self.image_on_canvas, image = self.photo)
+
+   def cancel(self):
+       tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+       self.cancelled = False
+       self.includeInMask = self.var.get()

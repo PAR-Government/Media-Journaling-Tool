@@ -32,7 +32,12 @@ def openImage(file):
       im.load()
       return im
 
-def createMask(img1, img2, invert, seamAnalysis=True,arguments={}):
+def createMask(img1, img2, invert, seamAnalysis=False,arguments={}):
+      mask,analysis = __composeMask(img1,img2,invert,seamAnalysis=seamAnalysis,arguments=arguments)
+      analysis['shape change'] = __sizeDiff(img1,img2)
+      return mask,analysis
+
+def __composeMask(img1, img2, invert, seamAnalysis=False,arguments={}):
     img1, img2 = __alignChannels(img1,img2)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
@@ -73,7 +78,7 @@ def __rotateImage(rotation, img1,img2, invert,arguments):
          # still off by one?
          if res.shape != img1.shape:
            res=res[1:res.shape[0],1:res.shape[1]]
-      return res
+      return res,analysis
 
 def __alignChannels(rawimg1, rawimg2):
    f1 = np.asarray(rawimg1)
@@ -159,7 +164,7 @@ def __colorPSNR(z1,z2):
     return 0.0 if mse==0.0 else 20.0* math.log10(255.0/math.sqrt(mse))
 
 def __sizeDiff(z1,z2):
-   return str((z1.shape[0]-z2.shape[0],z1.shape[1]-z2.shape[1]))
+   return str((z2.size[0]-z1.size[0],z2.size[1]-z1.size[1]))
 
 def invertMask(mask):
     return ImageOps.invert(mask)
@@ -207,7 +212,7 @@ def mergeMask(compositeMask, newMask):
 def img_analytics(z1,z2):
    with warnings.catch_warnings():
      warnings.simplefilter("ignore")
-     return {'ssim':compare_ssim(z1,z2,multichannel=False),'psnr':__colorPSNR(z1,z2),'shape change':__sizeDiff(z1,z2)}
+     return {'ssim':compare_ssim(z1,z2,multichannel=False),'psnr':__colorPSNR(z1,z2)}
 
 def __diffMask(img1,img2,invert):
     dst = np.abs(img1-img2)

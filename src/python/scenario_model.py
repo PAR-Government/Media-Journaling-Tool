@@ -187,7 +187,7 @@ class ProjectModel:
        for pred in predecessors:
           edge = self.G.get_edge(pred,self.start) 
           if edge['op']!='Donor':
-             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)),{}
+             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
        return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
 
     def _compareImages(self,start,destination, invert=False, arguments={}):
@@ -382,6 +382,24 @@ class ProjectModel:
 
     def save(self):
        self.G.save()
+ 
+    def updateCompositeStatus(self, filename, mask, includeInMask):
+       if (self.start is None or self.end is None):
+          return
+       edge = self.G.get_edge(self.start, self.end)
+       if edge is not None:
+          self.G.update_edge(self.start, self.end, recordMaskInComposite=includeInMask)
+          oldmask,oldfilename = self.getCompositeMask()
+          if filename is not None and os.path.split(filename)[1] != os.path.split(oldfilename)[1]:
+             self.G.update_edge(self.start, self.end, selectmaskname=filename)
+
+    def getCompositeStatus(self):
+       if (self.start is None or self.end is None):
+          return 'no'
+       edge = self.G.get_edge(self.start, self.end)
+       if edge is not None:
+          return edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no'
+       return 'no'
 
     def getDescription(self):
        if (self.start is None or self.end is None):
@@ -409,11 +427,20 @@ class ProjectModel:
     def nextImage(self):
        return self.getImage(self.end)
 
+    def getCompositeMask(self):
+       if (self.end is None):
+          return None,None
+       mask = self.G.get_edge_mask(self.start,self.end)
+       selectMask = self.G.get_select_mask(self.start,self.end)
+       if selectMask[0] != None:
+          return selectMask
+       return mask
+
     def maskImage(self):
        if (self.end is None):
            dim = (250,250,3) if self.start is None else self.getImage(self.start).size
-           return Image.fromarray(np.zeros(dim).astype('uint8'));
-       return self.G.get_edge_mask(self.start,self.end)
+           return Image.fromarray(np.zeros(dim).astype('uint8'))
+       return self.G.get_edge_mask(self.start,self.end)[0]
 
     def maskStats(self):
        if self.end is None:
@@ -664,7 +691,7 @@ class ProjectModel:
       # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        compositeMask = tool_set.mergeMask(compositeMask,self.G.get_edge_mask(nodeAndMask[1],suc))    
+        compositeMask = tool_set.mergeMask(compositeMask,self.G.get_edge_mask(nodeAndMask[1],suc)[0])    
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated

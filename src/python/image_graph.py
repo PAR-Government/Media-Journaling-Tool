@@ -169,22 +169,44 @@ class ImageGraph:
         self.G.node[compositeTuple[0]]['compositeBase']=compositeTuple[1]
         compositeTuple[2].save(os.path.abspath(os.path.join(self.dir,fname)))
   
+  def get_select_mask(self,start,end):
+     edge = self.get_edge(start,end)
+     if edge is not None and 'selectmaskname' in edge and len(edge['selectmaskname']) > 0:
+       with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['selectmaskname'])),"rb") as fp:
+         im= Image.open(fp)
+         im.load()
+         return im,self.G[start][end]['selectmaskname']
+     return None,None
+
   def update_edge(self, start, end,**kwargs):
     if start is None or end is None:
       return
     if not self.G.has_node(start) or not self.G.has_node(end):
       return
-    own = None
+    ownInput = None
+    ownSelect = None
     for k,v in kwargs.iteritems():
       if v is not None:
-        if k == 'inputmaskownership' and own is None:
-          own = v
+        if k == 'inputmaskownership' and ownInput is None:
+          ownInput = v
+        elif k == 'selectmaskownership' and ownSelect is None:
+          ownSelect = v
         elif k=='inputmaskpathname' or k=='inputmaskname':
-          inputmaskname,own = self.handle_inputmask(v)
+          inputmaskname,ownInput = self.handle_inputmask(v)
           self.G[start][end]['inputmaskname']=inputmaskname
+        elif  k=='selectmaskname':
+          inputmaskname,ownSelect = self.handle_inputmask(v)
+          if self.G[start][end]['maskname']==inputmaskname:
+            ownSelect = 'no'
+            # TODO: Remove the old selectmask if it exists
+            self.G[start][end]['selectmaskname'] = ''
+            self.G[start][end].pop('selectmaskname')
+          else:
+             self.G[start][end]['selectmaskname']=inputmaskname
         else:
           self.G[start][end][k]=v
-    self.G[start][end]['inputmaskownership']=own if own is not None else 'no'
+    self.G[start][end]['inputmaskownership']=ownInput if ownInput is not None else 'no'
+    self.G[start][end]['selectmaskownership']=ownSelect if ownSelect is not None else 'no'
 
   def get_inputmaskname(self,start,end):
     e = self.G[start][end]
@@ -245,7 +267,7 @@ class ImageGraph:
     with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['maskname'])),"rb") as fp:
        im= Image.open(fp)
        im.load()
-       return im
+       return im,self.G[start][end]['maskname']
 
   def _maskRemover(self,actionList, edgeFunc, start,end,edge):
        if edgeFunc is not None:

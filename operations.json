@@ -8,7 +8,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "includeInMask": false
+           "includeInMask": false
     }, 
     {
       "category": "AdditionalEffect", 
@@ -18,6 +18,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -28,6 +29,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -38,6 +40,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -48,6 +51,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -58,6 +62,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -68,6 +73,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -78,6 +84,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -88,6 +95,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -98,6 +106,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -108,6 +117,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -118,6 +128,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -128,6 +139,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -138,6 +150,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -148,6 +161,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -158,6 +172,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -168,6 +183,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -178,6 +194,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -188,6 +205,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -198,6 +216,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -208,6 +227,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -218,6 +238,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -228,6 +249,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -238,6 +260,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -248,6 +271,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -258,6 +282,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -268,6 +293,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -278,6 +304,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -288,6 +315,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -298,6 +326,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -308,6 +337,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -318,6 +348,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -328,6 +359,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -338,6 +370,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -348,6 +381,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -358,6 +392,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -368,6 +403,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -378,6 +414,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -388,6 +425,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -398,6 +436,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -408,6 +447,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -418,6 +458,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -428,6 +469,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -438,6 +480,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -448,6 +491,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -458,6 +502,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -468,6 +513,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -478,6 +524,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -488,6 +535,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -498,6 +546,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -508,6 +557,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -518,6 +568,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -528,6 +579,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -538,6 +590,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -548,6 +601,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -558,6 +612,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -568,6 +623,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -578,6 +634,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -588,6 +645,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -598,6 +656,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -608,6 +667,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -618,6 +678,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -628,6 +689,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -638,6 +700,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -648,6 +711,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -658,6 +722,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -668,6 +733,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -678,6 +744,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -688,6 +755,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -698,6 +766,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": true
     }, 
     {
@@ -708,6 +777,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": true
     }, 
     {
@@ -718,6 +788,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": true
     }, 
     {
@@ -728,6 +799,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": true
     }, 
     {
@@ -738,6 +810,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -748,6 +821,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -758,6 +832,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -768,6 +843,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -778,6 +854,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "Paste a region selected using a clone tool into the same image",
       "includeInMask": true
     }, 
     {
@@ -790,6 +867,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "Paste a region selected from the same image. The pasted region can be resized and rotated as one operation.",
       "includeInMask": true
     }, 
     {
@@ -801,6 +879,7 @@
         "checkForDonor"
       ], 
       "optionalparameters": [], 
+      "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true
     }, 
     {
@@ -811,6 +890,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -821,6 +901,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -831,6 +912,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -841,6 +923,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -851,6 +934,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -861,6 +945,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -873,6 +958,7 @@
       "optionalparameters": [
         "location"
       ], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -883,6 +969,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -893,6 +980,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -903,6 +991,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -913,6 +1002,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -925,6 +1015,7 @@
       "optionalparameters": [
         "interpolation"
       ], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -935,6 +1026,7 @@
       ], 
       "rules": [], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -945,6 +1037,7 @@
         "sizeChanged"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -957,6 +1050,7 @@
         "seamCarvingCheck"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -967,6 +1061,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -977,6 +1072,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }, 
     {
@@ -987,6 +1083,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
+      "description": "",
       "includeInMask": false
     }
   ]
