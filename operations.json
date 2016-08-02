@@ -1,0 +1,1090 @@
+{
+  "operations": [
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectAddLightSource", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+           "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFading", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterAddNoise", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterBlur", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterMedianSmoothing", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterSharpening", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterSmoothing", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectGradientEffect", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectSoftEdgeBrushing", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintAberrationCorrection", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFAHiding", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFAInterpolation", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFAResize", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFARotation", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintENFAlternation", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintPhotoResponseNonUniformity", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCompression", 
+      "name": "AntiForensicCompressionCompressionNormalization", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicFilter", 
+      "name": "AntiForensicCopyExif", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifCameraModelPara", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifDateTime", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifManipulationSoftware", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifQuantizationTable", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicFilter", 
+      "name": "AntiForensicFilterNoiseRestoration", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIArtificialLighting", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIArtificialReflection", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIArtificialShadow", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIObjectCGI", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendColorBurn", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendColorInterpolation", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendDissolve", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendMultiply", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorColorBalance", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorFill", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorHue", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorMatchColor", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorOpacity", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorReplaceColor", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorSaturation", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorVibranceContentBoosting", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorVibranceReduction", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Creation", 
+      "name": "CreationFilterGT", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillBackground", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillCloneRubberStamp", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillContentAwareFill", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillForeground", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillGradient", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillHealingBrush", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillImageInterpolation", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillInpainting", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillLocalRetouching", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillPaintBrushTool", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillPaintBucket", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillPattern", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillRubberStamp", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterBlurMotion", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterBlurNoise", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterCameraRawFilter", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityBrightness", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityContrast", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityCurves", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityDarken", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityDesaturate", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityExposure", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityHardlight", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityHighlight", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityLevels", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityLighten", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityLuminosity", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensitySoftlight", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupDigitalPenDraw", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupHandwriting", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupOverlayObject", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupOverlayText", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputBmp", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputJpg", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputPng", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputTif", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Paste", 
+      "name": "PasteClone", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "Paste a region selected using a clone tool into the same image",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Paste", 
+      "name": "PasteDuplicate", 
+      "mandatoryparameters": [
+        "inputmaskname"
+      ], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "Paste a region selected from the same image. The pasted region can be resized and rotated as one operation.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Paste", 
+      "name": "PasteSplice", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize", 
+        "checkForDonor"
+      ], 
+      "optionalparameters": [], 
+      "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "PostProcessing", 
+      "name": "PostProcessingSizeUpDownOrgExif", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectCopy", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectRegion", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectRemove", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformAffine", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformContentAwareScale", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformCrop", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [
+        "location"
+      ], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformDistort", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformFlip", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformMove", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformResample", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformResize", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "sizeChanged"
+      ], 
+      "optionalparameters": [
+        "interpolation"
+      ], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformRotate", 
+      "mandatoryparameters": [
+        "rotation"
+      ], 
+      "rules": [], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformScale", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "sizeChanged"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformSeamCarving", 
+      "mandatoryparameters": [
+        "inputmaskname"
+      ], 
+      "rules": [
+        "seamCarvingCheck"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformShear", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformSkew", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformWarp", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": [], 
+      "description": "",
+      "includeInMask": false
+    }
+  ]
+}

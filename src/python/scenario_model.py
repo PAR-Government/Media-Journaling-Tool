@@ -5,12 +5,23 @@ import os
 import numpy as np
 from PIL import Image, ImageTk
 import tool_set 
-from software_loader import Software
+from software_loader import Software,Operation,getOperation
 import tempfile
 import plugins
 import graph_rules
 
 suffixes = [".jpg",".png",".tiff"]
+
+def toIntTuple(tupleString):
+   import re
+   if tupleString is not None and tupleString.find(',') > 0:
+     return tuple([int(re.sub('[()]','',x)) for x in tupleString.split(',')])
+   return (0,0)
+
+
+def recordMaskInComposite(operationName):
+   op = getOperation(operationName)
+   return 'yes' if op is not None and op.includeInMask else 'no'
 
 def createProject(dir,notify=None,base=None):
     """ This utility function creates a ProjectModel given a directory.
@@ -63,14 +74,14 @@ class Modification:
    operationName = None
    additionalInfo = ''
    category = None
-   inputmaskpathname=None
+   inputmaskname=None
    arguments = {}
 
-   def __init__(self, name, additionalInfo, category=None,inputmaskpathname=None,arguments={}):
+   def __init__(self, name, additionalInfo, category=None,inputmaskname=None,arguments={}):
      self.additionalInfo  = additionalInfo
      self.operationName = name
      self.category = category
-     self.inputmaskpathname = inputmaskpathname
+     self.inputmaskname = inputmaskname
      self.arguments = arguments
 
 class ProjectModel:
@@ -134,19 +145,20 @@ class ProjectModel:
 
     def update_edge(self,mod,software=None):
         self.G.update_edge(self.start, self.end, \
-            inputmaskpathname=mod.inputmaskpathname, \
+            inputmaskname=mod.inputmaskname, \
             op=mod.operationName, \
             description=mod.additionalInfo, \
+            arguments=mod.arguments, \
             softwareName=('' if software is None else software.name), \
             softwareVersion=('' if software is None else software.version))
 
-    def compare(self, destination,seamAnalysis=True):
+    def compare(self, destination,seamAnalysis=False, arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask and the analysis results (a dictionary)
        """
        im1 = self.getImage(self.start)
        im2 = self.getImage(destination)
-       mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis)
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis,arguments=arguments)
        return im1,im2,mask,analysis
 
     def getExifDiff(self):
@@ -157,7 +169,28 @@ class ProjectModel:
           return None
       return e['exifdiff'] if 'exifdiff' in e else None
 
-    def _compareImages(self,start,destination, invert=False):
+    def _getTerminalAndBaseNodeTuples(self):
+       """
+         Return a tuple (lead node, base node) for each valid (non-donor) path through the graph
+       """
+       terminalNodes = [node for node in self.G.get_nodes() if len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
+       return [(node,self._findBaseNodes(node)) for node in terminalNodes]
+
+    def _constructDonorMask(self,destination):
+       """
+         Used for Donor images, the mask recording a 'donation' is the inversion of the difference
+         of the Donor image and its parent, it exists.
+         Otherwise, the donor image mask is the donor image (minus alpha channels):
+       """
+       maskname=self.start + '_' + destination + '_mask'+'.png'
+       predecessors = self.G.predecessors(self.start)
+       for pred in predecessors:
+          edge = self.G.get_edge(pred,self.start) 
+          if edge['op']!='Donor':
+             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
+       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
+
+    def _compareImages(self,start,destination, invert=False, arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = tool_set.createMask(startIm,destIm, invert=invert)
@@ -189,14 +222,17 @@ class ProjectModel:
        if self.start is None:
           return
        try:
-         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert)
+         maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
+         if maskname is None:
+             maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
          if len(mod.arguments)>0:
             analysis['arguments'] = mod.arguments
          self.end = destination
          im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskpathname=mod.inputmaskpathname, \
+              inputmaskname=mod.inputmaskname, \
               op=mod.operationName,description=mod.additionalInfo, \
-              editable='yes', \
+              editable='no' if mod.operationName == 'Donor' else 'yes', \
+              recordMaskInComposite=recordMaskInComposite(mod.operationName), \
               softwareName=('' if software is None else software.name), \
               softwareVersion=('' if software is None else software.version), \
               **analysis)
@@ -205,6 +241,49 @@ class ProjectModel:
          return None
        except ValueError, msg:
          return msg
+
+    def getComposite(self):
+      """
+       get the composite image for the selected node.
+       If the composite does not exist AND the node is a leaf node, then create the composite
+       Return None if the node is not a leaf node
+      """
+      nodeName = self.start if self.end is None else self.end
+      mask,filename = self.G.get_composite_mask(nodeName)
+      if mask is None:
+          # verify the node is a leaf node
+          endPointTuples = self._getTerminalAndBaseNodeTuples()
+          if nodeName in [x[0] for x in endPointTuples]:
+            self.constructComposites()
+          mask,filename = self.G.get_composite_mask(nodeName)
+      return mask
+         
+    def _constructComposites(self,nodeAndMasks):
+      """
+        Walks up down the tree from base nodes, assemblying composite masks"
+      """
+      result = []
+      for nodeAndMask in nodeAndMasks:
+         for suc in self.G.successors(nodeAndMask[1]):
+            edge = self.G.get_edge(nodeAndMask[1],suc)
+            if edge['op'] == 'Donor':
+               continue
+            compositeMask = self._extendComposite(nodeAndMask[2],edge,nodeAndMask[1],suc)
+            result.append((nodeAndMask[0],suc,compositeMask))
+      return _constructComposites(result)
+
+    def constructComposites(self):
+      """
+        find all valid base node, leaf node tuples.
+        Construct the composite make along the paths from base to lead node
+      """
+      composites = []
+      endPointTuples = self._getTerminalAndBaseNodeTuples()
+      for endPointTuple in endPointTuples:
+         for baseNode in endPointTuple[1]:
+             composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
+      for composite in composites:
+        self.G.addCompositeToNodes(composite)
 
     def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True, position=(50,50)):
        """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
@@ -217,14 +296,15 @@ class ProjectModel:
           self.start = self.end
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img,xpos=position[0],ypos=position[1])
        try:
-         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert)
+         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
          if len(mod.arguments)>0:
             analysis['arguments'] = mod.arguments
          self.end = destination
          im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskpathname=mod.inputmaskpathname, \
+              inputmaskname=mod.inputmaskname, \
               op=mod.operationName,description=mod.additionalInfo, \
-              editable='no' if software.internal else 'yes', \
+              recordMaskInComposite=recordMaskInComposite(mod.operationName), \
+              editable='no' if software.internal or mod.operationName == 'Donor' else 'yes', \
               softwareName=('' if software is None else software.name), \
               softwareVersion=('' if software is None else software.version), \
               **analysis)
@@ -302,6 +382,24 @@ class ProjectModel:
 
     def save(self):
        self.G.save()
+ 
+    def updateCompositeStatus(self, filename, mask, includeInMask):
+       if (self.start is None or self.end is None):
+          return
+       edge = self.G.get_edge(self.start, self.end)
+       if edge is not None:
+          self.G.update_edge(self.start, self.end, recordMaskInComposite=includeInMask)
+          oldmask,oldfilename = self.getCompositeMask()
+          if filename is not None and os.path.split(filename)[1] != os.path.split(oldfilename)[1]:
+             self.G.update_edge(self.start, self.end, selectmaskname=filename)
+
+    def getCompositeStatus(self):
+       if (self.start is None or self.end is None):
+          return 'no'
+       edge = self.G.get_edge(self.start, self.end)
+       if edge is not None:
+          return edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no'
+       return 'no'
 
     def getDescription(self):
        if (self.start is None or self.end is None):
@@ -309,7 +407,7 @@ class ProjectModel:
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
           return Modification(edge['op'],edge['description'], \
-            inputmaskpathname=self.G.get_inputmaskpathname(self.start,self.end), \
+            inputmaskname=self.G.get_inputmaskname(self.start,self.end), \
             arguments = edge['arguments'] if 'arguments' in edge else {})
        return None
 
@@ -329,11 +427,20 @@ class ProjectModel:
     def nextImage(self):
        return self.getImage(self.end)
 
+    def getCompositeMask(self):
+       if (self.end is None):
+          return None,None
+       mask = self.G.get_edge_mask(self.start,self.end)
+       selectMask = self.G.get_select_mask(self.start,self.end)
+       if selectMask[0] != None:
+          return selectMask
+       return mask
+
     def maskImage(self):
        if (self.end is None):
            dim = (250,250,3) if self.start is None else self.getImage(self.start).size
-           return Image.fromarray(np.zeros(dim).astype('uint8'));
-       return self.G.get_edge_mask(self.start,self.end)
+           return Image.fromarray(np.zeros(dim).astype('uint8'))
+       return self.G.get_edge_mask(self.start,self.end)[0]
 
     def maskStats(self):
        if self.end is None:
@@ -406,10 +513,18 @@ class ProjectModel:
        for pred in preds:
           res.extend(self._findBaseNodes(pred) if self.G.get_edge(pred,node)['op'] != 'Donor' else [])
        return res
-            
+
+    def isDonorEdge(self,start,end):
+        edge = self.G.get_edge(start,end)            
+        if edge is not None:
+           return edge['op'] == 'Donor'
+        return False
+
     def getTerminalToBasePairs(self, suffix='.jpg'):
-        terminalNodes = [node for node in self.G.get_nodes() if len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
-        endPointTuples = [(node,self._findBaseNodes(node)) for node in terminalNodes]
+        """
+         find all pairs of leaf nodes to matching base nodes
+        """
+        endPointTuples = self._getTerminalAndBaseNodeTuples()
         pairs = []
         for endPointTuple in endPointTuples:
            matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if self.G.get_pathname(baseNode).endswith(suffix)]
@@ -456,13 +571,13 @@ class ProjectModel:
       if copyExif:
         msg = exif.copyexif(filename,target)
       description = Modification(op[0],filter + ':' + op[2],op[1])
-      if 'inputmaskpathname' in kwargs:
-         description.inputmaskpathname = kwargs['inputmaskpathname']
+      if 'inputmaskname' in kwargs:
+         description.inputmaskname = kwargs['inputmaskname']
       sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
       software = Software(op[3],op[4],internal=True)
-      description.arguments = {k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'inputmaskpathname'}
+      description.arguments = {k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'inputmaskname'}
 
-      msg2 = self.addNextImage(target,None,mod=description,software=software,sendNotifications=sendNotifications,position=self._getCurrentPosition((60, 40 if 'donor' in kwargs else 0)))
+      msg2 = self.addNextImage(target,None,mod=description,software=software,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
       if msg2 is not None:
           if msg is None:
@@ -568,3 +683,23 @@ class ProjectModel:
           return (50,50)
       startNode = self.G.get_node(self.start)
       return ((startNode['xpos'] if startNode.has_key('xpos') else 50)+augment[0],(startNode['ypos'] if startNode.has_key('ypos') else 50)+augment[1])
+
+    def _extendComposite(self,compositeMask,edge,source,target):
+      if compositeMask is None:
+          compositeMask = np.ones(self.G.get_image(source)[0].size)*255
+      # merge masks first, the mask is the same size as the input image
+      # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
+      # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
+      if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
+        compositeMask = tool_set.mergeMask(compositeMask,self.G.get_edge_mask(nodeAndMask[1],suc)[0])    
+      # change the mask to reflect the output image
+      # considering the crop again, the high-lighted change is not dropped
+      # considering a rotation, the mask is now rotated
+      sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0,0)
+      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location'])> 0 else None
+      rotation = float(edge['rotation'] if 'rotation' in edge and len(edge['rotation'])> 0 else 0.0)
+      args = edge['arguments'] if 'arguments' in edge else {}
+      rotation = float(args['rotation'] if 'rotation' in args and len(args['rotation'])> 0 else rotation)
+      interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
+      compositeMask = tool_set.alterMask(compositeMask,rotation=rotation,sizeChange=sizeChange,interpolation=interpolation,location=location)
+      return compositeMask

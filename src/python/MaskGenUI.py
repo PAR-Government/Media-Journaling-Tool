@@ -11,7 +11,7 @@ import argparse
 import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import ProjectModel,Modification,createProject
-from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog,ListDialog
+from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog,ListDialog,CompositeCaptureDialog
 from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
@@ -29,7 +29,7 @@ def loadS3(values):
   s3 = boto3.client('s3','us-east-1')
   BUCKET = values[0][0:values[0].find('/')]
   DIR=values[0][values[0].find('/')+1:]
-  s3.download_file( BUCKET,DIR + "/operations.csv", "operations.csv")
+  s3.download_file( BUCKET,DIR + "/operations.json", "operations.json")
   s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
 
 def loadHTTP(values):
@@ -40,9 +40,9 @@ def loadHTTP(values):
         name = values[p].split(':')[0].strip()
         val = values[p].split(':')[1].strip()
         head[name]=val
-    r = requests.get(values[0] + '/operations.csv',headers=head)
+    r = requests.get(values[0] + '/operations.json',headers=head)
     if r.status_code < 300:
-      with open('operations.csv', 'w') as f:
+      with open('operations.json', 'w') as f:
           f.write(r.content)
     r = requests.get(values[0] + '/software.csv',headers=head)
     if r.status_code < 300:
@@ -343,7 +343,7 @@ class MakeGenUI(Frame):
          try:
            loadS3([val])
            self.prefLoader.save('s3info',val)
-           loadOperations("operations.csv")
+           loadOperations("operations.json")
            loadSoftware("software.csv")
            graph_rules.setup()
          except ClientError as e:
@@ -445,7 +445,16 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
+       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
+
+    def viewcomposite(self):
+       im,filename = self.scModel.getCompositeMask()
+       if (im is None): 
+            return
+       name = self.scModel.start + ' to ' + self.scModel.end
+       d = CompositeCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],name,self.scModel.getCompositeStatus())
+       if not d.cancelled:
+         self.scModel.updateCompositeStatus(d.inputmask,d.im,d.includeInMask)
 
     def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
@@ -544,6 +553,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
+        self.edgemenu.add_command(label="Composite Mask", command=self.viewcomposite)
 
         self.filteredgemenu = Menu(self.master,tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
@@ -615,7 +625,7 @@ def main(argv=None):
        loadHTTP(args.http)
    elif args.s3 is not None:
        loadS3(args.s3)
-   loadOperations("operations.csv")
+   loadOperations("operations.json")
    loadSoftware("software.csv")
    root= Tk()
 
