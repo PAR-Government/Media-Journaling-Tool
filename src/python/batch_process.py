@@ -62,7 +62,7 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
 
     # begin looping through the different projects
     for sImg in startingImages:
-        sImgName = sImg.split('.')[:-1]
+        sImgName = ''.join(sImg.split('.')[:-1])
         eImg = (endDir + '/' + find_corresponding_image(sImgName, endingImages)).replace('\\','/')
         if inputMaskPath:
             maskIm = (inputMaskPath + '/' + find_corresponding_image(sImgName, inputMaskImages)).replace('\\','/')
@@ -72,7 +72,7 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
         # create project directory if doesn't exist
         project = find_json_path(sImgName, projectDir).replace('\\','/')
 
-        opDetails = scenario_model.Modification(op, descr, category=category, inputmaskpathname=maskIm)
+        opDetails = scenario_model.Modification(op, descr, category=category, inputmaskname=maskIm)
         softwareDetails = Software(software, version)
 
         sm = scenario_model.ProjectModel(project)
@@ -104,13 +104,13 @@ def main():
     parser.add_argument('--continueWithWarning', action='store_true',   help='Tag to ignore version warning')
     args = parser.parse_args()
 
-    ops = loadOperations("operations.csv")
+    ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
 
     if (ops != getOperations() or soft != getSoftwareSet()) and not args.continueWithWarning:
         sys.exit('Invalid operation file. Please update.')
 
-    category = ops[args.op][0]
+    category = ops[args.op].category
     process(args.sourceDir, args.endDir, args.projects, args.op, category,
             args.softwareName, args.softwareVersion, args.description, args.inputmaskpath)
 
