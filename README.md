@@ -205,3 +205,13 @@ The Group Manager allows the user to create, remove and manage groups.  Groups a
 3. Operations and Software download from S3 or Http 
 4. Validation Rules
 5. Start up of new projects now can do a bulk add
+
+8/1/2016:
+1. Updated Software list
+2. Fixed several validation rules
+3. Fixed mask generation for JPEG Creation step
+4. Removed Seam mask estimation
+5. Fixed mask generation when an alpha-channel is introduced
+6. Unified parameters
+7. Introduced parameters for operations
+8. Fixed back door to change a Donor link to some other operation

@@ -4,7 +4,7 @@ import numpy
 
 def transform(img,source,target,**kwargs):
     rgba = img.convert('RGBA')
-    inputmask = Image.open(kwargs['inputmaskpathname'])
+    inputmask = Image.open(kwargs['inputmaskname'])
     if inputmask.size != rgba.size:
       rgba = rgba.resize(inputmask.size, Image.ANTIALIAS)
     cv_image = numpy.array(rgba)
@@ -21,5 +21,5 @@ def operation():
   return ['SelectRemove','Select','Apply a mask to create an alpha channel','OpenCV','2.4.13']
 
 def args():
-  return [('inputmaskpathname',None)]
+  return [('inputmaskname',None)]
 

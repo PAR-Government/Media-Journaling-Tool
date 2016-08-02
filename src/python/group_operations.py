@@ -38,7 +38,7 @@ class ToJPGGroupOperation(BaseOperation):
              break
          newPairs.extend(pairs)
          start = self.scModel.end
-         im,filename=self.scModel.getImageAndName(self.scModel.start)
+         im,filename=self.scModel.getImageAndName(start)
          self.scModel.selectImage(start)
          msg,pairs = self.scModel.imageFromPlugin('ExifMetaCopy',im,filename,donor=pair[1])
          if msg is not None:

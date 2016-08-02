@@ -8,6 +8,9 @@ def transform(img,source,target, **kwargs):
     call(['exiftool', '-Warning=', target])
     return False
 
+def suffix():
+    return '.jpg'
+
 def operation():
     return ['AntiForensicCopyExif','AntiForensicExif','Copy Image EXIF from donor','exiftool','10.23']
   

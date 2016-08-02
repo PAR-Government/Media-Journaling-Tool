@@ -3,10 +3,42 @@ import csv
 import platform
 import os
 from maskgen_loader import MaskGenLoader
+from json import JSONEncoder
+import json
+
+class OperationEncoder(JSONEncoder):
+    def default(self, o):
+        return o.__dict__ 
 
 softwareset = {}
 operations = {}
 operationsByCategory = {}
+
+
+class Operation:
+   name = None
+   category = None
+   includeInMask = False
+   optionalparameters = []
+   mandatoryparameters = []
+   rules = []
+
+   def __init__(self, name='', category='', includeInMask=False, rules=[],optionalparameters=[],mandatoryparameters=[]):
+     self.name = name
+     self.category = category
+     self.includeInMask = includeInMask
+     self.rules = rules
+     self.mandatoryparameters = mandatoryparameters
+     self.optionalparameters = optionalparameters
+
+    
+   def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, 
+            sort_keys=True, indent=4)
+
+def getOperation(name):
+   global operations
+   return operations[name] if name in operations else None
 
 def getOperations():
   global operations
@@ -20,34 +52,60 @@ def getSoftwareSet():
   global softwareset
   return softwareset
 
-def loadCSV(fileName):
+def loadCSV(fileName,toObjectFunction):
    d={}
    with open(fileName) as f:
      for l in f.readlines():
          columns = l.split(',')
-         if (len(columns) > 2):
-           category = columns[0].strip()
-         if not d.has_key(category):
-           d[category] = []
-           for x in columns[1:]:
-             d[category].append(x.strip())
+         key = columns[0].strip()
+         if len(key) > 0:
+           d[key] = toObjectFunction(columns)
    return d
+
+def toOperation(columns):
+    strippedList = [x.strip() for x in columns]
+    params = [x.strip() for x in strippedList[3].split('|')]
+    optionalparams= [param[0:param.find('[')] for param in params if param.find('[optional]')>0]
+    requiredparams= [param[0:param.find('[')] for param in params if param.find('[optional]')<0 and len(param)>0]
+    return Operation(name=strippedList[0], category=strippedList[1],includeInMask=strippedList[2] == 'I', \
+      rules = [] if len(strippedList)<5 else strippedList[4:], \
+      optionalparameters=optionalparams, \
+      mandatoryparameters=requiredparams)
+
+def saveJSON(filename):
+    global operations
+    opnamelist = list(operations.keys())
+    opnamelist.sort()
+    oplist = [operations[op] for op in opnamelist]
+    with open('operations.json','w') as f:
+      json.dump({'operations' : oplist},f,indent=2,cls=OperationEncoder)
+
+def loadJSON(fileName):
+    res = {}
+    with open(fileName,'r') as f:
+      ops = json.load(f)
+      for op in ops['operations']:
+        res[op['name']]= Operation(name=op['name'],category=op['category'],includeInMask=op['includeInMask'], rules=op['rules'],optionalparameters=op['optionalparameters'],mandatoryparameters=op['mandatoryparameters'])
+    return res
 
 def loadOperations(fileName):
     global operations
     global operationsByCategory
-    operations = loadCSV(fileName)
+    operations = loadCSV(fileName,toOperation) if fileName.endswith('csv') else loadJSON(fileName)
     operationsByCategory = {}
     for op,data in operations.iteritems():
-      cat = data[0]
-      if cat not in operationsByCategory:
-        operationsByCategory[cat] = []
-      operationsByCategory[cat].append(op)
+      category =  data.category
+      if category not in operationsByCategory:
+        operationsByCategory[category] = []
+      operationsByCategory[category].append(op)
     return operations
+
+def toSoftware(columns):
+   return [x.strip() for x in columns[1:] if len(x)>0]
 
 def loadSoftware(fileName):
     global softwareset
-    softwareset = loadCSV(fileName)
+    softwareset = loadCSV(fileName,toSoftware)
     return softwareset
 
 def getOS():

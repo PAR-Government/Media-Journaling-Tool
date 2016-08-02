@@ -1,10 +1,13 @@
 import cv2
 import numpy as np
-from PIL import Image 
+from PIL import Image ,ImageOps
 from operator import mul
 import math
 from skimage.measure import compare_ssim
 import warnings
+from scipy import ndimage
+from scipy import misc
+
 
 """  These functions are designed to support mask generation.
 """
@@ -29,26 +32,20 @@ def openImage(file):
       im.load()
       return im
 
-def createMask(img1, img2, invert, seamAnalysis=True):
+def createMask(img1, img2, invert, seamAnalysis=True,arguments={}):
     img1, img2 = __alignChannels(img1,img2)
+    # rotate image two if possible to compare back to image one.
+    # The mask is not perfect.
+    rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
+    if abs(rotation) > 0.0001:
+       return  __rotateImage(rotation, img1, img2,invert,arguments)
     if (sum(img1.shape) > sum(img2.shape)):
       return __composeCropImageMask(img1,img2,seamAnalysis=seamAnalysis)
     if (sum(img1.shape) < sum(img2.shape)):
-      mask = np.ones(img1.shape)*255
-      return Image.fromarray(abs(255-mask).astype('uint8')),{}
-    #rotation
+      return __composeExpandImageMask(img1,img2)
     try:
-      if (img1.shape != img2.shape):
-        one = np.rot90(img2,1)
-        one_diff,one_analysis = __diffMask(img1,one,invert)
-        three = np.rot90(img2,3)
-        three_diff,three_analysis = __diffMask(img1,three,invert)
-        if abs(three_analysis['ssim']) > abs(one_analysis['ssim']):
-           return three_diff,three_analysis
-        else:
-           return one_diff,one_analysis
-      else:    
-        return __diffMask(img1,img2,invert)
+      if img1.shape == img2.shape:
+       return __diffMask(img1,img2,invert)
     except ValueError as e:
       print 'Mask generation failure ' + e
       mask = np.ones(img1.shape)*255
@@ -62,29 +59,36 @@ def __alignShape(im,shape):
       z[0:x,0:y,d] = im[0:x,0:y,d]
    return z
 
+def __rotateImage(rotation, img1,img2, invert,arguments):
+      res = ndimage.interpolation.rotate(img1,rotation,cval=img2[0,0],reshape=(img1.shape!=img2.shape))
+      mask,analysis = __composeExpandImageMask(res,img2) if res.shape != img2.shape else __diffMask(res,img2,invert)
+      # rotate mask back to image one orientation
+      res = ndimage.interpolation.rotate(mask,-rotation,cval=255,reshape=False,prefilter=False)
+      if res.shape != img2.shape:
+         res = misc.imresize(res,img2.shape,interp='nearest')  
+      # now crop out the rotation difference, to make sure the original image is not modified
+      if img1.shape != img2.shape:
+         diff = (abs(img2.shape[0]-img1.shape[0])/2, abs(img2.shape[1]-img1.shape[1])/2) 
+         res = res[diff[0]:res.shape[0]-diff[0],diff[1]:res.shape[1]-diff[1]]
+         # still off by one?
+         if res.shape != img1.shape:
+           res=res[1:res.shape[0],1:res.shape[1]]
+      return res
+
 def __alignChannels(rawimg1, rawimg2):
+   f1 = np.asarray(rawimg1)
+   f2 = np.asarray(rawimg2)
    img1 = np.asarray(rawimg1.convert('F'))
    img2 = np.asarray(rawimg2.convert('F'))
+   if len(f1.shape) == len(f2.shape) and len(f1.shape)==3:
+      #this is messed up.  The conversion does not compare alpha-channels and we to see of one the images
+      #had added an alpha
+      if f2.shape[2] != f1.shape[2]:
+        if f2.shape[2] == 4:
+           img2 = img2 * f2[:,:,3].astype('float32')/255.0
+        elif f1.shape[2] == 4:
+           img1 = img1 * f1[:,:,3].astype('float32')/255.0
    return img1,img2
-
-#   if (len(img1.shape)==2):
-#    img1 = img1.reshape(img1.shape[0], img1.shape[1],1)##
-
-#   if (len(img2.shape)==2):
-#    img2 = img2.reshape(img2.shape[0], img2.shape[1],1)
-
-#   if (img1.shape[2] == img2.shape[2]):
-#       return img1.astype('uint8'), img2.astype('uint8')
-#   thirdchannel = max(img1.shape[2],img2.shape[2])
-#   z1 = np.ones((img1.shape[0],img1.shape[1],thirdchannel))*255
-#   z2 = np.ones((img2.shape[0],img2.shape[1],thirdchannel))*255
-#   for d in range(thirdchannel):
-#       if (d < img1.shape[2]):
-#         z1[:,:,d] = img1[:,:,d]
-#       if (d < img2.shape[2]):
-#         z2[:,:,d] = img2[:,:,d]
-#   return z1.astype('uint8'), z2.astype('uint8')
-    
 
 def __findBestMatch(big,small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
@@ -99,17 +103,17 @@ def __findBestMatch(big,small):
       return None
     return tuple
 
-def __composeCropImageMask(img1,img2,seamAnalysis=True):
+def __composeCropImageMask(img1,img2,seamAnalysis=False):
     """ Return a masking where img1 is bigger than img2 and
         img2 is likely a crop of img1.
-        Images are of type PIL Image.
     """
     tuple = __findBestMatch(img1,img2)
     mask = None
     analysis={}
+    analysis['location']='(0,0)'
     if tuple is not None:
         dims = (0,img2.shape[0],0,img2.shape[1])
-        
+        analysis['location'] = str((tuple[0],tuple[1]))
         diffIm = np.zeros(img1.shape).astype('float32')
         diffIm[tuple[0]:tuple[2],tuple[1]:tuple[3]]=img2
         pinned = np.where(np.array(dims)==np.array(tuple))[0]
@@ -129,6 +133,25 @@ def __composeCropImageMask(img1,img2,seamAnalysis=True):
         mask = np.ones(img1.shape)*255
     return Image.fromarray(abs(255-mask).astype('uint8')),analysis
 
+def __composeExpandImageMask(img1,img2):
+    """ Return a masking where img1 is smaller than img2 and
+        img2 contains img1.
+    """
+    tuple = __findBestMatch(img2,img1)
+    mask = None
+    analysis={}
+    if tuple is not None:
+        diffIm = img2[tuple[0]:tuple[2],tuple[1]:tuple[3]]
+        analysis = img_analytics(img1,diffIm)
+        dst = np.abs(img1-diffIm)
+        gray_image = np.zeros(img1.shape).astype('uint8')
+        gray_image[dst>0.0001] = 255
+        mask = gray_image
+    else:
+        mask = np.ones(img1.shape)*255
+    return Image.fromarray(abs(255-mask).astype('uint8')),analysis
+
+
 def __colorPSNR(z1,z2):
     d = (z1-z2)**2
     sse = np.sum(d)
@@ -137,6 +160,49 @@ def __colorPSNR(z1,z2):
 
 def __sizeDiff(z1,z2):
    return str((z1.shape[0]-z2.shape[0],z1.shape[1]-z2.shape[1]))
+
+def invertMask(mask):
+    return ImageOps.invert(mask)
+
+def convertToMask(im):
+    """
+      Takes an image and produce a mask where all black areas are white
+    """
+    imGray = im.convert('L')
+    imA = np.asarray(im)
+    imGrayA = np.asarray(imGray)
+    gray_image = np.ones(imGrayA.shape).astype('uint8')
+    gray_image[imGrayA<255] = 0
+    gray_image = gray_image * 255
+    if imA.shape[2] == 4:
+      gray_image[imA[:,:,3]==0]=255
+    return Image.fromarray(gray_image)
+
+def alterMask(compositeMask,rotation=0.0, sizeChange=(0,0),interpolation='nearest',location=(0,0)):
+    res = compositeMask
+    if abs(rotation) > 0.001:
+      # use 255 as CVAL since the merge will pick up the differences
+      res = ndimage.interpolation.rotate(res,float(rotation),cval=255)
+    if location != (0,0):
+      sizeChange = (-location[0],-location[1]) if sizeChange == (0,0) else sizeChange
+    expectedSize = (res.shape[0] + sizeChange[0],res.shape[1] + sizeChange[1])
+    if location != (0,0):
+      upperBound = (res.shape[0] + (sizeChange[0]/2),res.shape[1] + (sizeChange[1]/2))
+      res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
+    if expectedSize != res.shape:
+      try:
+         res = misc.imresize(res,expectedSize,interp=interpolation)
+      except KeyError:   
+         res = misc.imresize(res,expectedSize,interp='nearest')
+    return res
+
+def mergeMask(compositeMask, newMask):
+   if compositeMask.shape != newMask.shape:
+      compositeMask = misc.imresize(compositeMask,newMask.shape,interp='nearest')
+   else:
+      compositeMask = np.copy(compositeMask)
+   compositeMask[newMask==0] = 0
+   return compositeMask
 
 def img_analytics(z1,z2):
    with warnings.catch_warnings():

@@ -159,7 +159,7 @@ class MaskGraphCanvas(tk.Canvas):
             file = node['file']
             ok = False
             if self.crossHairConnect:
-              if (len(preds) == 0):
+              if (len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0],nodeId))):
                  d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                    msg = self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
