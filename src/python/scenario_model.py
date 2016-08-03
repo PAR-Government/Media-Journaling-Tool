@@ -193,7 +193,7 @@ class ProjectModel:
     def _compareImages(self,start,destination, invert=False, arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
-       mask,analysis = tool_set.createMask(startIm,destIm, invert=invert)
+       mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
        maskname=start + '_' + destination + '_mask'+'.png'
        exifDiff = exif.compareexif(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}
