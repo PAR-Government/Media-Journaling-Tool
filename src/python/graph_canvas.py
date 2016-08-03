@@ -436,7 +436,7 @@ class LineTextObj(tk.Canvas):
         cfg['width'] = 3
         if not includeInMask:
           cfg['stipple'] = 'gray50'
-#          cfg['fill'] = 'black'
+          cfg['fill'] = 'black'
         else:
           cfg['fill'] = 'blue'
         return cfg
