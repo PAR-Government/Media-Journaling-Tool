@@ -81,7 +81,7 @@ def __rotateImage(rotation, img,expectedDims,cval=0):
    rotNorm = rotNorm if rotNorm is None or rotNorm >= 0 else (4+rotNorm)
    npRotation = rotNorm is not None and img.shape == (expectedDims[1],expectedDims[0])
    if npRotation:
-       res = np.rot90(img,-rotNorm)
+       res = np.rot90(img,rotNorm)
    else:
        res = ndimage.interpolation.rotate(img,rotation,cval=cval,reshape=(img.shape != expectedDims))
    return res
