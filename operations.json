@@ -7,8 +7,9 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-           "includeInMask": false
+      "optionalparameters": ["inputmaskname"], 
+      "description": "",
+      "includeInMask": false
     }, 
     {
       "category": "AdditionalEffect", 
@@ -17,8 +18,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Decrease opacity an image or a layer.",
       "includeInMask": false
     }, 
     {
@@ -28,8 +29,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Add random variations of brightness or color information.",
       "includeInMask": false
     }, 
     {
@@ -39,8 +40,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Make details unclear or less distinct.",
       "includeInMask": false
     }, 
     {
@@ -50,8 +51,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Execute a nonlinear digital filtering technique, often used to remove noise while preserving edges.",
       "includeInMask": false
     }, 
     {
@@ -61,8 +62,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Enhance edge definition within an image.",
       "includeInMask": false
     }, 
     {
@@ -72,8 +73,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Smooth textures while preserving edge detail.",
       "includeInMask": false
     }, 
     {
@@ -83,8 +84,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Apply a filter for scaling intensity.",
       "includeInMask": false
     }, 
     {
@@ -94,8 +95,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Use a brush tool with a variable feathered edge.",
       "includeInMask": false
     }, 
     {
@@ -106,7 +107,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Realign Chromatic Aberration.",
       "includeInMask": false
     }, 
     {
@@ -117,7 +118,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Remove the sensor discrepancies from an individual camera.",
       "includeInMask": false
     }, 
     {
@@ -128,7 +129,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Modify the sensor discrepancies from an individual camera.",
       "includeInMask": false
     }, 
     {
@@ -139,7 +140,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Modify the sensor discrepancies from an individual camera.",
       "includeInMask": false
     }, 
     {
@@ -150,7 +151,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Modify the sensor discrepancies from an individual camera.",
       "includeInMask": false
     }, 
     {
@@ -161,7 +162,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Apply evolutionary Neural Fuzzy filters to blur images.",
       "includeInMask": false
     }, 
     {
@@ -172,7 +173,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter an image's noise pattern to match that of another capture device.",
       "includeInMask": false
     }, 
     {
@@ -183,7 +184,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter compression artifacts to appear uniform.",
       "includeInMask": false
     }, 
     {
@@ -194,7 +195,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter image metadata.",
       "includeInMask": false
     }, 
     {
@@ -205,7 +206,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter image metadata to display another camera model as capture device.",
       "includeInMask": false
     }, 
     {
@@ -216,7 +217,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter Image Metadata to display a different capture time.",
       "includeInMask": false
     }, 
     {
@@ -227,7 +228,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter Image Metadata to display a different or no image editing program.",
       "includeInMask": false
     }, 
     {
@@ -238,7 +239,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter Image Metadata to display a different type or no compression.",
       "includeInMask": false
     }, 
     {
@@ -249,7 +250,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Add random variations of brightness or color information to replicate a different capture device.",
       "includeInMask": false
     }, 
     {
@@ -259,9 +260,9 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
-      "includeInMask": false
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Add sources of illumination that were not originally present.",
+      "includeInMask": true
     }, 
     {
       "category": "ArtifactsCGI", 
@@ -270,9 +271,9 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
-      "includeInMask": false
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Add sources of reflection that were not originally present.",
+      "includeInMask": true
     }, 
     {
       "category": "ArtifactsCGI", 
@@ -281,9 +282,9 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
-      "includeInMask": false
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Add shadows that were not originally present.",
+      "includeInMask": true
     }, 
     {
       "category": "ArtifactsCGI", 
@@ -292,9 +293,9 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
-      "includeInMask": false
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Create objects that were not originally present in an image.",
+      "includeInMask": true
     }, 
     {
       "category": "Color", 
@@ -303,8 +304,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the blending mode within an image either globally or selectively.",
       "includeInMask": false
     }, 
     {
@@ -314,8 +315,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Fill of transparent areas of a current layer with a smooth mix of the colors from the opaque areas.",
       "includeInMask": false
     }, 
     {
@@ -325,8 +326,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": false
     }, 
     {
@@ -336,8 +337,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Using the color information in each channel, calculate a color by multiplying the base color by a blend color. The result color is always a darker color. Multiplying any color with black produces black. Multiplying any color with white leaves the color unchanged. When painting with a color other than black or white, successive strokes with a painting tool produce progressively darker colors.",
       "includeInMask": false
     }, 
     {
@@ -347,8 +348,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
       "includeInMask": false
     }, 
     {
@@ -358,8 +359,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Uniformly alter the color of an image within a given selection.",
       "includeInMask": false
     }, 
     {
@@ -369,8 +370,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the color of a selection or image without adjusting saturation or luminance.",
       "includeInMask": false
     }, 
     {
@@ -380,8 +381,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Use a tool to paint an area with the same color values as a selected donor area.",
       "includeInMask": false
     }, 
     {
@@ -391,8 +392,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Change the transparency of a given color overlay.",
       "includeInMask": false
     }, 
     {
@@ -402,8 +403,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Create a selection based on hue that is then painted over with another color value.",
       "includeInMask": false
     }, 
     {
@@ -413,8 +414,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the color intensity of a given hue.",
       "includeInMask": false
     }, 
     {
@@ -424,8 +425,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Increase intensity of muted colors.",
       "includeInMask": false
     }, 
     {
@@ -435,8 +436,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Reduce intensity of muted colors.",
       "includeInMask": false
     }, 
     {
@@ -446,8 +447,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Create an object not originally in the image",
       "includeInMask": false
     }, 
     {
@@ -457,8 +458,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Apply an adjustment to a selection of non foreground objects.",
       "includeInMask": false
     }, 
     {
@@ -468,8 +469,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Replace an area within a given brush diameter with a mapped selection of imagery from another position.",
       "includeInMask": false
     }, 
     {
@@ -479,8 +480,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Synthesize nearby content for seamless blending with the surrounding content.",
       "includeInMask": false
     }, 
     {
@@ -490,8 +491,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Apply an adjustment to a selection of specified foreground objects.",
       "includeInMask": false
     }, 
     {
@@ -501,8 +502,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Apply a donor adjustment within a selection with scaling intensities.",
       "includeInMask": false
     }, 
     {
@@ -512,8 +513,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Replace imagery within a given brush diameter with a average from surrounding pixels.",
       "includeInMask": false
     }, 
     {
@@ -523,8 +524,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Replace large selections with an averaging of surrounding pixel groups.",
       "includeInMask": false
     }, 
     {
@@ -534,8 +535,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Replace areas of an image with semantically similar pixel values to create a seamless image.",
       "includeInMask": false
     }, 
     {
@@ -545,8 +546,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Create adjustments within a localized selection.",
       "includeInMask": false
     }, 
     {
@@ -556,8 +557,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Use a brush to append pixel values within a given diameter.",
       "includeInMask": false
     }, 
     {
@@ -567,8 +568,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Apply a paintbucket to uniformly fill a given selection.",
       "includeInMask": false
     }, 
     {
@@ -578,8 +579,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Use a specified selection pattern to uniformly fill an area.",
       "includeInMask": false
     }, 
     {
@@ -589,8 +590,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Use mapped donor imagery from a given area to fill an extended work area or canvas.",
       "includeInMask": false
     }, 
     {
@@ -600,8 +601,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Modify an image or image selection to create the illusion of motion.",
       "includeInMask": false
     }, 
     {
@@ -611,8 +612,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Modify an image or image selection to create the illusion of Camera Noise.",
       "includeInMask": false
     }, 
     {
@@ -622,8 +623,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Make edits to raw imagery in a raw processor.",
       "includeInMask": false
     }, 
     {
@@ -634,7 +635,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Shift midtone luminance values on a histogram to higher or lower values.",
       "includeInMask": false
     }, 
     {
@@ -645,7 +646,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
       "includeInMask": false
     }, 
     {
@@ -656,7 +657,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Shift luminance values on a histogram with an editable and flexible curve.",
       "includeInMask": false
     }, 
     {
@@ -667,7 +668,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Shift lower luminance values on a histogram to a higher or lower values.",
       "includeInMask": false
     }, 
     {
@@ -677,8 +678,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Reduce the given intensity of colors.",
       "includeInMask": false
     }, 
     {
@@ -688,8 +689,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Shift all luminance values on a histogram to higher or lower values.",
       "includeInMask": false
     }, 
     {
@@ -699,8 +700,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Increase the contrast of high values in a luminance histogram.",
       "includeInMask": false
     }, 
     {
@@ -710,8 +711,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Change the high values of a luminance histogram.",
       "includeInMask": false
     }, 
     {
@@ -721,8 +722,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Adjust brightness, contrast, and tonal range by specifying the location of complete black, complete white, and midtones in a histogram.",
       "includeInMask": false
     }, 
     {
@@ -732,8 +733,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the luminance of an image or selection.",
       "includeInMask": false
     }, 
     {
@@ -743,8 +744,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the values of a luminance histogram.",
       "includeInMask": false
     }, 
     {
@@ -754,8 +755,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Decrease the contrast in high value areas of the luminance histogram.",
       "includeInMask": false
     }, 
     {
@@ -766,7 +767,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true
     }, 
     {
@@ -777,7 +778,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true
     }, 
     {
@@ -788,7 +789,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ArtifactsCGIObjectCGI.",
       "includeInMask": true
     }, 
     {
@@ -799,7 +800,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
       "includeInMask": true
     }, 
     {
@@ -810,7 +811,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Export the image in the bmp format.",
       "includeInMask": false
     }, 
     {
@@ -821,7 +822,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Export the image in the jpeg format.",
       "includeInMask": false
     }, 
     {
@@ -832,7 +833,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Export the image in the png format.",
       "includeInMask": false
     }, 
     {
@@ -843,7 +844,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Export the image in the tif format.",
       "includeInMask": false
     }, 
     {
@@ -854,7 +855,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "Paste a region selected using a clone tool into the same image",
+      "description": "Paste a region selected using a clone tool into the same image.",
       "includeInMask": true
     }, 
     {
@@ -890,20 +891,9 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
       "includeInMask": false
-    }, 
-    {
-      "category": "Select", 
-      "name": "SelectCopy", 
-      "mandatoryparameters": [], 
-      "rules": [
-        "checkSize"
-      ], 
-      "optionalparameters": [], 
-      "description": "",
-      "includeInMask": false
-    }, 
+    },
     {
       "category": "Select", 
       "name": "SelectRegion", 
@@ -912,7 +902,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.",
       "includeInMask": false
     }, 
     {
@@ -923,8 +913,8 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
-      "includeInMask": false
+      "description": "Remove a limited selection within an image.",
+      "includeInMask": true
     }, 
     {
       "category": "Transform", 
@@ -934,7 +924,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
       "includeInMask": false
     }, 
     {
@@ -945,7 +935,7 @@
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Resize an image without changing important visual content.",
       "includeInMask": false
     }, 
     {
@@ -958,7 +948,7 @@
       "optionalparameters": [
         "location"
       ], 
-      "description": "",
+      "description": "Removing edge content from an image.",
       "includeInMask": false
     }, 
     {
@@ -968,8 +958,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the shape and dimensions of a given selection or image.",
       "includeInMask": false
     }, 
     {
@@ -979,19 +969,21 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": false
     }, 
     {
       "category": "Transform", 
       "name": "TransformMove", 
-      "mandatoryparameters": [], 
+      "mandatoryparameters": [
+        "inputmaskname"
+      ], 
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Reposition a selection within a larger composition.",
       "includeInMask": false
     }, 
     {
@@ -1001,8 +993,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Reduce or increasing the number of pixels in an image.",
       "includeInMask": false
     }, 
     {
@@ -1015,7 +1007,7 @@
       "optionalparameters": [
         "interpolation"
       ], 
-      "description": "",
+      "description": "Alter the dimensions of an image. Interpolation values should be one of ‘nearest’, ‘lanczos’, ‘bilinear’, ‘bicubic’ or ‘cubic’.",
       "includeInMask": false
     }, 
     {
@@ -1026,7 +1018,7 @@
       ], 
       "rules": [], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation. The rotation should be provided in degrees counter-clockwise (0 to 360).",
       "includeInMask": false
     }, 
     {
@@ -1037,7 +1029,7 @@
         "sizeChanged"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Change the size of an image or layer while preserving dimensions.",
       "includeInMask": false
     }, 
     {
@@ -1050,7 +1042,7 @@
         "seamCarvingCheck"
       ], 
       "optionalparameters": [], 
-      "description": "",
+      "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false
     }, 
     {
@@ -1060,8 +1052,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Warp the shape of an object or a selection with anchored endpoints.",
       "includeInMask": false
     }, 
     {
@@ -1071,8 +1063,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
       "includeInMask": false
     }, 
     {
@@ -1082,8 +1074,8 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
-      "description": "",
+      "optionalparameters": ["inputmaskname"], 
+      "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false
     }
   ]

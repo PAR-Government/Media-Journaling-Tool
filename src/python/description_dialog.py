@@ -49,11 +49,13 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    cancelled = True
    argvalues = {}
    arginfo = []
+   mandatoryinfo = []
 
    def __init__(self, parent,dir,im,name, description=None, software=None):
       self.dir = dir
       self.im = im
       self.parent = parent
+      self.argvalues=description.arguments if description is not None else {}
       self.description=description if description is not None else Modification('','')
       self.software=software
       self.softwareLoader = SoftwareLoader()
@@ -63,18 +65,34 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       sname = self.e4.get()
       self.e5.set_completion_list(self.softwareLoader.get_versions(sname),initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
+   def __checkParams(self):
+       ok = True
+       for arg in self.mandatoryinfo:
+          ok  &= (arg in self.argvalues and len(self.argvalues[arg]) > 0)
+       return ok
+
+   def __addToBox(self,arg,mandatory):
+      sep = '*: ' if mandatory else ': '
+      if arg == 'inputmaskname':
+          self.argBox.insert(END,arg + sep + (self.inputmask if self.inputmask is not None else ''))
+      else:
+          self.argBox.insert(END,arg + sep + (str(self.description.arguments[arg]) if arg in self.description.arguments else ''))
+
    def newcommand(self,event):
       op=getOperation(self.e2.get())
       self.argBox.delete(0,END)
+      self.arginfo = []
+      self.mandatoryinfo = []
       if op is not None:
-        self.arginfo = list(op.mandatoryparameters)
-        self.arginfo.extend(op.optionalparameters)
-        for arg in self.arginfo:
-           if arg == 'inputmaskname':
-              self.argBox.insert(END,arg + ': ' + (self.inputmask if self.inputmask is not None else ''))
-           else:
-              self.argBox.insert(END,arg + ': ' + (str(self.description.arguments[arg]) if arg in self.description.arguments else ''))
-        self.argvalues = {}
+        for arg in op.mandatoryparameters:
+            self.__addToBox(arg,True)
+            self.arginfo.append(arg)
+            self.mandatoryinfo.append(arg)
+        for arg in op.optionalparameters:
+            self.__addToBox(arg,False)
+            self.arginfo.append(arg)
+      if self.okButton is not None:
+         self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
    def newcategory(self, event):
       opByCat = getOperationsByCategory()
@@ -85,6 +103,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e2.set_completion_list([])
 
    def body(self, master):
+      self.okButton = None
+
       self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
       self.c = Canvas(master, width=250, height=250)
       self.c.create_image(125,125,image=self.photo, tag='imgd')
@@ -147,7 +167,18 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.softwareLoader.get_preferred_name())
          self.e5.set_completion_list(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name()),initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
 
+
       return self.e1 # initial focus
+
+   def buttonbox(self):
+        box = Frame(self)
+        self.okButton = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE,state=ACTIVE if self.__checkParams() else DISABLED)
+        self.okButton.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Escape>", self.cancel)
+        box.pack()
 
    def changeParameter(self,event):
       if len(self.argBox.curselection()) == 0:
@@ -170,6 +201,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             self.argvalues[arg] = res
             self.argBox.delete(index)
             self.argBox.insert(index,arg + ': ' + res)
+          self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
+
 
    def help(self):
        op = getOperation(self.e2.get())
@@ -407,10 +440,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
          self.opvar.set(opinfo[0])
          self.softwarevar.set(opinfo[3])
          self.versionvar.set(opinfo[4])
-         if arginfo is not None:
-           for arg in arginfo:
-              if arg is not None:
-                self.argBox.insert(END,arg[0] + ': ' + str(arg[1] if arg[1] is not None else ''))
+         self.newcommand(None)
       else:
          self.catvar.set('')
          self.opvar.set('')

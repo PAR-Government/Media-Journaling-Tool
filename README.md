@@ -123,7 +123,7 @@ Links may be selected, change the image display to show the output node, input n
 
 Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different versions of software to manipulate images, the user can override the version set, as the versions associated with each software may be incomplete.  It is important to reach out the management team for the software.csv to add the appropriate version.
 
-Link descriptions can include an input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output image.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  The input mask is an optional attachment.  When first attached to the description, the mask is not shown in the description dialog.  On subsequent edits, the image is both shown and able to be replaced with a new attachment.
+Link descriptions include parameters.  Some parameters are mandatory, with '* added next to them.  These parameters must be set.  Parameter guidance is provided in the operation description, obtained with the information button.  Many operations include an optional input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output image.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  The input mask is an optional attachment.  When first attached to the description, the mask is not shown in the description dialog.  On subsequent edits, the image is both shown and able to be replaced with a new attachment.
 
 ## Other Meta-Data
 
@@ -137,9 +137,13 @@ Paste Splice is a special operation that expects a donor image.  This is the onl
 
    It most cases, mask generation is a comparison between before and after manipulations of an image.  Full image operations like equlization, blur, color enhance, and anti-aliasing often effect all pixels resulting in a full image mask.  Since there operations can target specific pixels and since they may only effect some pixels (e.g. anti-aliasing), the mask does represent the scope of change.
 
-   The mask generation algorithm gives special treatment to manipulations that alter the image size.  The algorithm first finds most common pixels in the smaller image to match the larger.  This is useful in cropping OR framing.  Interpolation applied when expanding an image may distort many pixels, causing a full change mask.  Smaller manipulated images are produced when cropping or seam cutting is applied. Seam cutting is typically done by finding an optimal cut. Seams can be cut both vertical or horizontally. Seam cutting may be considered as operations of region removal, sliding over the remaining pixels, and cropping.  It is expected that each cut is a separate operation.  For the tool to recognize seams cuts, two things must be present: an image size change, either vertically or horizontally, and a mismatched region.  Do not confuse seam cutting with a splice and crop--two separate manipulations.  Although the procedure to create splice involves a cut, paste, move and crop (of the remaining space), the entire effect is detected by a single non-linear line through an image. 
+   The mask generation algorithm gives special treatment to manipulations that alter the image size.  The algorithm first finds most common pixels in the smaller image to match the larger.  This is useful in cropping OR framing.  Interpolation applied when expanding an image may distort many pixels, causing a full change mask.  Smaller manipulated images are produced when cropping or seam cutting is applied. Seam cutting is typically done by finding an optimal cut. Seams can be cut both vertical or horizontally. Seam cutting may be considered as operations of region removal, sliding over the remaining pixels, and cropping.  It is expected that each cut is a separate operation.  
 
 When performing manipulations, it is important to consider what is detectable in an modified image. A crop may not detectable, depending on the compression configuration, since the initial image is absent in the analysis.  A move manipulation, in itself, resembles an insert.  It is acceptable to group manipulations so long a their final result can be represented as one of the accepted singular operations configured with the tool. A pure crop does not produce a mask with identified changes.  Thus, it is important to the manipulation operation to understand the operation.
+
+# Composite Mask
+
+The tool support creation of a summary mask, composed of masks from a leaf manipulated image to a base image.  By default, all masks that involve marking or pasting specific regions of the image are included in the composite mask.  Those links are colored blue and the link operation name is appended with an asterisk.  The status of the link can changed with the Composite Mask menu option.  Furthermore, the mask used for the composite can override the link mask, as a substitute.  
 
 ## EXIF Comparison
 
@@ -215,3 +219,10 @@ The Group Manager allows the user to create, remove and manage groups.  Groups a
 6. Unified parameters
 7. Introduced parameters for operations
 8. Fixed back door to change a Donor link to some other operation
+
+8/3/2016:
+1. Fixed Image Rotation Mask
+2. Fixed image shape size (X,Y) reversed.
+3. Fixed Yellow select on link always selected.
+4. Enforced mandatory parameters by disabling 'ok' button for link.
+5. Added Operation descriptions and more parameters
