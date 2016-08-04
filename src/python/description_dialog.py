@@ -643,3 +643,23 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
       self.c = Canvas(master, width=250, height=250)
       self.image_on_canvas = self.c.create_image(125,125,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
+
+   def buttonbox(self):
+        box = Frame(self)
+        w1 = Button(box, text="Close", width=10, command=self.ok, default=ACTIVE)
+        w2 = Button(box, text="Export", width=10, command=self.saveThenOk, default=ACTIVE)
+        w1.pack(side=LEFT, padx=5, pady=5)
+        w2.pack(side=RIGHT, padx=5, pady=5)
+        self.bind("<Return>", self.cancel)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+
+   def saveThenOk(self):
+     val = tkFileDialog.asksaveasfilename(initialdir='.',initialfile=self.name + '_composite.png',filetypes=[("png files","*.png")],defaultextension='.png')
+     if (val is not None and len(val) > 0):
+       # to cover a bug in some platforms
+       if not val.endswith('.png'):
+          val = val + '.png'
+       self.im.save(val)
+       self.ok()
+
