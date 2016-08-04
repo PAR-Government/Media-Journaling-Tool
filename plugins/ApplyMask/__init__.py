@@ -10,8 +10,8 @@ def transform(img,source,target,**kwargs):
     cv_image = numpy.array(rgba)
     mask = numpy.array(inputmask)
     bmask = mask>0
-    for i in range(4): 
-      cv_image[:,:,i][bmask]=0
+#    for i in range(cv_image.shape[2]): 
+    cv_image[:,:,3][bmask]=0
     Image.fromarray(cv_image,'RGBA').save(target)
     return True
 

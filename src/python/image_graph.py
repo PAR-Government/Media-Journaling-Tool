@@ -133,6 +133,10 @@ class ImageGraph:
          k = os.path.join(self.dir,d['maskname'])
          if k in self.filesToRemove:
            self.filesToRemove.remove(k)
+         if 'compositemask' in d and len(d['compositemask']) > 0:
+            k = os.path.join(self.dir,d['compositemask'])
+            if k in self.filesToRemove:
+              self.filesToRemove.remove(k)
          if 'inputmaskname' in d and len(d['inputmaskname']) > 0:
             k = os.path.join(self.dir,d['inputmaskname'])
             if k in self.filesToRemove:
@@ -153,9 +157,9 @@ class ImageGraph:
   def removeCompositeFromNode(self,nodeName):
     if self.G.has_node(nodeName):
         fname = nodeName + '_composite_mask.png'
-        if 'compositeMask' in self.G.node[nodeName]:
-          self.G.node[nodeName]['compositeMask']=''
-          self.G.node[nodeName]['compositeBase']=''
+        if 'compositemask' in self.G.node[nodeName]:
+          self.G.node[nodeName]['compositemask']=''
+          self.G.node[nodeName]['compositebase']=''
           os.remove(os.path.abspath(os.path.join(self.dir,fname)))
 
   def addCompositeToNode(self,compositeTuple):
@@ -165,8 +169,8 @@ class ImageGraph:
     """
     if self.G.has_node(compositeTuple[0]):
         fname = compositeTuple[0] + '_composite_mask.png'
-        self.G.node[compositeTuple[0]]['compositeMask']=fname
-        self.G.node[compositeTuple[0]]['compositeBase']=compositeTuple[1]
+        self.G.node[compositeTuple[0]]['compositemask']=fname
+        self.G.node[compositeTuple[0]]['compositebase']=compositeTuple[1]
         compositeTuple[2].save(os.path.abspath(os.path.join(self.dir,fname)))
   
   def get_select_mask(self,start,end):
@@ -185,6 +189,7 @@ class ImageGraph:
       return
     ownInput = None
     ownSelect = None
+    unsetkeys = []
     for k,v in kwargs.iteritems():
       if v is not None:
         if k == 'inputmaskownership' and ownInput is None:
@@ -205,16 +210,19 @@ class ImageGraph:
              self.G[start][end]['selectmaskname']=inputmaskname
         else:
           self.G[start][end][k]=v
+      else:
+        unsetkeys.append(k)
+    for k in unsetkeys:
+       if k in self.G[start][end]:
+         self.G[start][end].pop(k) 
     self.G[start][end]['inputmaskownership']=ownInput if ownInput is not None else 'no'
     self.G[start][end]['selectmaskownership']=ownSelect if ownSelect is not None else 'no'
-
-  def get_inputmaskname(self,start,end):
-    e = self.G[start][end]
-    return e['inputmaskname'] if 'inputmaskname' in e and len(e['inputmaskname']) > 0 else None
 
   def handle_inputmask(self,inputmaskpathname):
     includePathInUndo = False
     inputmaskname = ''
+    if inputmaskpathname is None:
+      return '','no'
     if inputmaskpathname is not None and len(inputmaskpathname)>0:
       inputmaskname=os.path.split(inputmaskpathname)[1]
       newinputpathname = os.path.join(self.dir,inputmaskname)
@@ -228,10 +236,11 @@ class ImageGraph:
         self.filesToRemove.remove(newinputpathname)
     return os.path.split(inputmaskname)[1], 'yes' if includePathInUndo else 'no'
 
-  def add_edge(self,start, end,inputmaskname=None,maskname=None,mask=None,op='Change',description='',**kwargs):
+  def add_edge(self,start, end,inputmaskname=None,maskname=None,mask=None,op='Change',description='',selectmaskname=None,**kwargs):
     newpathname = os.path.join(self.dir,maskname)
     mask.save(newpathname)
     inputmaskname,inputmaskownership= self.handle_inputmask(inputmaskname)
+    selectmaskname,selectmaskownership= self.handle_inputmask(selectmaskname)
     # do not remove old version of mask if not saved previously
     if newpathname in self.filesToRemove:
       self.filesToRemove.remove(newpathname)
@@ -239,6 +248,8 @@ class ImageGraph:
          description=description, username=get_username(), opsys=getOS(), \
          inputmaskname=inputmaskname, \
          inputmaskownership=inputmaskownership, \
+         selectmaskname=selectmaskname, \
+         selectmaskownership=selectmaskownership, \
          **kwargs)
     self.U = []
     self.U.append(dict(action='addEdge', ownership='yes', start=start,end=end, **self.G.edge[start][end]))
@@ -275,8 +286,12 @@ class ImageGraph:
        f = os.path.abspath(os.path.join(self.dir,edge['maskname']))
        if (os.path.exists(f)):
           self.filesToRemove.add(f)
-       if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0:
+       if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 and "inputmaskownership" in edge and edge['inputmaskownership']=='yes':
           f = os.path.abspath(os.path.join(self.dir,edge['inputmaskname']))
+          if (os.path.exists(f)):
+            self.filesToRemove.add(f)
+       if 'compositemask' in edge and len(edge['compositemask']) > 0:
+          f = os.path.abspath(os.path.join(self.dir,edge['compositemask']))
           if (os.path.exists(f)):
             self.filesToRemove.add(f)
        actionList.append(dict(start=start,end=end,action='removeEdge',**self.G.edge[start][end]))
