@@ -66,10 +66,11 @@ def sort_tables(tablesList):
 
     newTables = []
     for listIdx in xrange(len(tablesList)):
-        tempTable = []
-        for elmIdx in xrange(0,64):
-            tempTable.append(tablesList[listIdx][indices[elmIdx]])
-        newTables.append(tempTable)
+        if len(tablesList[listIdx]) == 64:
+            tempTable = []
+            for elmIdx in xrange(0,64):
+                tempTable.append(tablesList[listIdx][indices[elmIdx]])
+            newTables.append(tempTable)
     return newTables
 
 def save_as(imageFile, qTables):

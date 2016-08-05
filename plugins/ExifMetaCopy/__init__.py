@@ -2,10 +2,9 @@ from subprocess import call
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
-    call(['exiftool', '-all=', target])
-    call(['exiftool', '-P', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
-    call(['exiftool', '-XMPToolkit=', target])
-    call(['exiftool', '-Warning=', target])
+    call(['exiftool', '-q','-all=', target])
+    call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
+    call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
     return False
 
 def suffix():

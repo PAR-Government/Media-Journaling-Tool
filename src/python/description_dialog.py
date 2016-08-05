@@ -40,9 +40,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    description = None
    im = None
-   inputmask = None
+   inputMaskName = None
    dir = '.'
-   software = None
    photo=None
    c= None
    moc = None
@@ -51,13 +50,12 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    arginfo = []
    mandatoryinfo = []
 
-   def __init__(self, parent,dir,im,name, description=None, software=None):
+   def __init__(self, parent,dir,im,name, description=None):
       self.dir = dir
       self.im = im
       self.parent = parent
       self.argvalues=description.arguments if description is not None else {}
       self.description=description if description is not None else Modification('','')
-      self.software=software
       self.softwareLoader = SoftwareLoader()
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
@@ -74,7 +72,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    def __addToBox(self,arg,mandatory):
       sep = '*: ' if mandatory else ': '
       if arg == 'inputmaskname':
-          self.argBox.insert(END,arg + sep + (self.inputmask if self.inputmask is not None else ''))
+          self.argBox.insert(END,arg + sep + (self.inputMaskName if self.inputMaskName is not None else ''))
       else:
           self.argBox.insert(END,arg + sep + (str(self.description.arguments[arg]) if arg in self.description.arguments else ''))
 
@@ -148,8 +146,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.e5.grid(row=5, column=1)
 
       if self.description is not None:
-         if (self.description.inputmaskname is not None):
-            self.inputmask = self.description.inputmaskname
+         if (self.description.inputMaskName is not None):
+            self.inputMaskName = self.description.inputMaskName
          if (self.description.operationName is not None and len(self.description.operationName)>0):
             selectCat = getCategory(self.description)
             self.e1.set_completion_list(catlist,initialValue=selectCat)
@@ -160,9 +158,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             self.e3.insert(1.0,self.description.additionalInfo)
          self.newcommand(None)
 
-      if self.software is not None:
-         self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.software.name)
-         self.e5.set_completion_list(self.softwareLoader.get_versions(self.software.name,version=self.software.version),initialValue=self.software.version)
+      if self.description.software is not None:
+         self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.description.software.name)
+         self.e5.set_completion_list(self.softwareLoader.get_versions(self.description.software.name,version=self.description.software.version),initialValue=self.description.software.version)
       else:
          self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.softwareLoader.get_preferred_name())
          self.e5.set_completion_list(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name()),initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
@@ -194,7 +192,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
              val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
              if (val != None and len(val)> 0):
                 res=val
-                self.inputmask = res
+                self.inputMaskName = res
           else:
             res = tkSimpleDialog.askstring("Set Parameter " + arg[0], "Value:", parent=self)
           if res is not None:
@@ -216,35 +214,27 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    def apply(self):
        self.cancelled = False
-       self.description.operationName=self.e2.get()
-       self.description.additionalInfo=self.e3.get(1.0,END)
-       self.description.category=self.e1.get()
-       self.description.inputmaskname = self.inputmask
-       for arg in self.arginfo:
-         if arg in self.argvalues and arg != 'inputmaskname':
-           self.description.arguments[arg]= self.argvalues[arg]
-       self.software=Software(self.e4.get(),self.e5.get())
-       if (self.softwareLoader.add(self.software)):
+       self.description.setOperationName(self.e2.get())
+       self.description.setAdditionalInfo(self.e3.get(1.0,END))
+       self.description.setInputMaskName(self.inputMaskName)
+       self.description.setArguments({k:v for (k,v) in self.argvalues.iteritems() if k in self.arginfo})
+       self.description.setSoftware(Software(self.e4.get(),self.e5.get()))
+       if (self.softwareLoader.add(self.description.software)):
           self.softwareLoader.save()
-
-   def getSoftware(self):
-      return self.software
 
 class DescriptionViewDialog(tkSimpleDialog.Dialog):
 
    description = None
    im = None
-   software = None
    photo=None
    c= None
    exifdiff = None
 
-   def __init__(self,parent,dir,im,name, description=None,software=None,exifdiff=None):
+   def __init__(self,parent,dir,im,name, description=None,exifdiff=None):
       self.im = im
       self.dir = dir
       self.parent = parent
       self.description=description if description is not None else Modification('','')
-      self.software = software
       self.exifdiff = exifdiff
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
@@ -261,8 +251,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       Label(master, text=getCategory(self.description),anchor=W,justify=LEFT).grid(row=0, column=1,sticky=W)
       Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=1,column=1,sticky=W)
       Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
-      Label(master, text=self.software.name,anchor=W,justify=LEFT).grid(row=3, column=1,sticky=W)
-      Label(master, text=self.software.version,anchor=W,justify=LEFT).grid(row=4, column=1,sticky=W)
+      Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=3, column=1,sticky=W)
+      Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=4, column=1,sticky=W)
       row=5
       if len(self.description.arguments)>0:
         Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=W)
@@ -270,9 +260,9 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         for argname,argvalue in self.description.arguments.iteritems(): 
              Label(master, text='      ' + argname + ': ' + argvalue,justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=W)
              row+=1
-      if self.description.inputmaskname is not None:
+      if self.description.inputMaskName is not None:
         Label(master, text='Mask:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=W)
-        self.inputmask = ImageTk.PhotoImage(openImage(os.path.join(self.dir,self.description.inputmaskname)))
+        self.inputmask = ImageTk.PhotoImage(openImage(os.path.join(self.dir,self.description.inputMaskName)))
         self.m = Canvas(master, width=250, height=250)
         self.moc = self.m.create_image(125,125,image=self.inputmask, tag='imgm')
         self.m.grid(row=row+1, column=0, columnspan=2,sticky=E+W)
@@ -440,7 +430,10 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
          self.opvar.set(opinfo[0])
          self.softwarevar.set(opinfo[3])
          self.versionvar.set(opinfo[4])
-         self.newcommand(None)
+         if arginfo is not None:
+            for arg in arginfo:
+               if arg is not None:
+                 self.argBox.insert(END,arg[0] + ': ' + str(arg[1] if arg[1] is not None else ''))
       else:
          self.catvar.set('')
          self.opvar.set('')
@@ -569,16 +562,17 @@ class ListDialog(Toplevel):
 class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
    im = None
-   inputmask = None
+   selectMaskName = None
    cancelled = True
+   modification = None
 
-   def __init__(self, parent,dir,im,filename,name,includeInMask):
+   def __init__(self, parent,dir,im,name,modification):
       self.dir = dir
       self.im = im
-      self.inputmask = filename
       self.parent = parent
       self.name  = name
-      self.includeInMask = includeInMask
+      self.modification = modification
+      self.selectMaskName = self.modification.selectMaskName
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):
@@ -586,21 +580,41 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
       self.c = Canvas(master, width=250, height=250)
       self.image_on_canvas = self.c.create_image(125,125,image=self.photo, tag='imgd')
       self.c.grid(row=0, column=0, columnspan=2)
-      self.var = StringVar()
-      self.var.set(self.includeInMask)
-      self.cb = Checkbutton(master, text="Included in Composite", variable=self.var, \
+      self.includeInMaskVar = StringVar()
+      self.includeInMaskVar.set(self.modification.recordMaskInComposite)
+      self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
          onvalue="yes", offvalue="no")
-      self.cb.grid(row=1,column=0,columnspan=2)
+      self.useInputMaskVar = StringVar()
+      self.useInputMaskVar.set('yes' if self.modification.usesInputMaskForSelectMask() else 'no')
+      row  = 1
+      self.cbIncludeInComposite.grid(row=row,column=0,columnspan=2,sticky=W)
+      row+=1
+      if (self.modification.inputMaskName is not None):
+        self.cbUseInputMask = Checkbutton(master, text="Use Input Mask", variable=self.useInputMaskVar, \
+           onvalue="yes", offvalue="no",command=self.useinputmask)
+        self.cbUseInputMask.grid(row=row,column=0,columnspan=2,sticky=W)
+        row+=1
       self.b = Button(master,text="Change Mask",command=self.changemask,borderwidth=0,relief=FLAT)
-      self.b.grid(row=2,column=0)
-      return self.cb
+      self.b.grid(row=row,column=0)
+      return self.cbIncludeInComposite
+
+   def useinputmask(self):
+       if self.useInputMaskVar.get() == 'yes':
+          self.im = openImage(os.path.join(self.dir,self.modification.inputMaskName))
+          self.selectMaskName = self.modification.inputMaskName
+       elif self.modification.changeMaskName is not None:
+          self.im = openImage(os.path.join(self.dir,self.modification.changeMaskName))
+          self.selectMaskName = self.modification.changeMaskName
+       else:
+          self.im = Image.fromarray(np.zeros((250,250)))
+       self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
+       self.c.itemconfig(self.image_on_canvas, image = self.photo)
 
    def changemask(self):
         val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask", \
               filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         if (val != None and len(val)> 0):
-            self.inputmask = val
-            print self.inputmask
+            self.selectMaskName = val
             self.im = openImage(val)
             self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
             self.c.itemconfig(self.image_on_canvas, image = self.photo)
@@ -610,4 +624,42 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
    def apply(self):
        self.cancelled = False
-       self.includeInMask = self.var.get()
+       self.modification.setSelectMaskName(self.selectMaskName)
+       self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
+
+
+class CompositeViewDialog(tkSimpleDialog.Dialog):
+
+   im = None
+
+   def __init__(self, parent,name,im):
+      self.im = im
+      self.parent = parent
+      self.name  = name
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
+      self.c = Canvas(master, width=250, height=250)
+      self.image_on_canvas = self.c.create_image(125,125,image=self.photo, tag='imgd')
+      self.c.grid(row=0, column=0, columnspan=2)
+
+   def buttonbox(self):
+        box = Frame(self)
+        w1 = Button(box, text="Close", width=10, command=self.ok, default=ACTIVE)
+        w2 = Button(box, text="Export", width=10, command=self.saveThenOk, default=ACTIVE)
+        w1.pack(side=LEFT, padx=5, pady=5)
+        w2.pack(side=RIGHT, padx=5, pady=5)
+        self.bind("<Return>", self.cancel)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+
+   def saveThenOk(self):
+     val = tkFileDialog.asksaveasfilename(initialdir='.',initialfile=self.name + '_composite.png',filetypes=[("png files","*.png")],defaultextension='.png')
+     if (val is not None and len(val) > 0):
+       # to cover a bug in some platforms
+       if not val.endswith('.png'):
+          val = val + '.png'
+       self.im.save(val)
+       self.ok()
+
