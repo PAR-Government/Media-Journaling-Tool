@@ -982,7 +982,7 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": ["inputmaskname"], 
+      "optionalparameters": [],
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false
     }, 

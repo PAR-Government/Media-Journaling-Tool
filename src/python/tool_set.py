@@ -216,7 +216,7 @@ def __checkInterpolation(val):
 def alterMask(compositeMask,rotation=0.0, sizeChange=(0,0),interpolation='nearest',location=(0,0)):
     res = compositeMask
     if abs(rotation) > 0.001:
-       res = __rotateImage(rotation,res,(compositeMask[0]+sizeChange[0],compositeMask[1]+sizeChange[1]),cval=255)
+       res = __rotateImage(rotation,res,(compositeMask.shape[0]+sizeChange[0],compositeMask.shape[1]+sizeChange[1]),cval=255)
     if location != (0,0):
       sizeChange = (-location[0],-location[1]) if sizeChange == (0,0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0],res.shape[1] + sizeChange[1])

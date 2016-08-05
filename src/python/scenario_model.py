@@ -19,9 +19,7 @@ def toIntTuple(tupleString):
    return (0,0)
 
 
-def recordMaskInComposite(operationName):
-   op = getOperation(operationName)
-   return 'yes' if op is not None and op.includeInMask else 'no'
+
 
 def createProject(dir,notify=None,base=None):
     """ This utility function creates a ProjectModel given a directory.
@@ -73,16 +71,73 @@ def createProject(dir,notify=None,base=None):
 class Modification:
    operationName = None
    additionalInfo = ''
-   category = None
-   inputmaskname=None
+   # for backward compatibility and ease of access, input mask name is both arguments and 
+   # an instance variable 
+   inputMaskName=None
+   recordMaskInComposite = 'no'
    arguments = {}
+   selectMaskName = None
+   software = None
 
-   def __init__(self, name, additionalInfo, category=None,inputmaskname=None,arguments={}):
+
+   def __init__(self, operationName, additionalInfo, arguments={}, \
+        recordMaskInComposite=None, \
+        changeMaskName=None, \
+        selectMaskName=None, \
+        inputMaskName=None,
+        software=None):
      self.additionalInfo  = additionalInfo
+     self.setOperationName(operationName)
+     self.setArguments(arguments)
+     if inputMaskName is not None:
+       self.setInputMaskName(inputMaskName)
+     self.changeMaskName = changeMaskName
+     self.selectMaskName = selectMaskName
+     self.software = software
+     if recordMaskInComposite is not None:
+        self.recordMaskInComposite = recordMaskInComposite
+
+   def getSoftwareName(self):
+      return self.software.name if self.software is not None and self.software.name is not None else ''
+
+   def getSoftwareVersion(self):
+      return self.software.version if self.software is not None and self.software.version is not None else ''
+
+   def setSoftware(self,software):
+      self.software = software
+
+   def usesInputMaskForSelectMask(self):
+      return self.inputMaskName == self.selectMaskName
+
+   def setArguments(self,args):
+      self.arguments = {}
+      for k,v in args.iteritems():
+         self.arguments[k]= v
+         if k == 'inputmaskname':
+           self.setInputMaskName(v)
+
+   def setSelectMaskName(self,selectMaskName):
+     self.selectMaskName = selectMaskName
+
+   def setInputMaskName(self,inputMaskName):
+     self.inputMaskName = inputMaskName
+     if 'inputmaskname' not in self.arguments or self.arguments['inputmaskname'] != inputMaskName:
+        self.arguments['inputmaskname'] = inputMaskName
+
+   def setAdditionalInfo(self,info):
+     self.additionalInfo  =  info
+  
+   def setRecordMaskInComposite(self,recordMaskInComposite):
+      self.recordMaskInComposite = recordMaskInComposite
+
+   def setOperationName(self,name):
      self.operationName = name
-     self.category = category
-     self.inputmaskname = inputmaskname
-     self.arguments = arguments
+     if name is None:
+        return
+     op = getOperation(self.operationName)
+     self.category = op.category if op is not None else None
+     self.recordMaskInComposite='yes' if op is not None and op.includeInMask else 'no'
+
 
 class ProjectModel:
     """
@@ -90,7 +145,7 @@ class ProjectModel:
        Each link is associated with a manipulation between the source image to the target image.  
        A link contains a mask(black and white) image file describing the changes.
        A mask's X&Y dimensions match the source image.
-       A link contains a desciption of the manipulation operation, software used to perfrom the manipulation,
+       A link contains a description of the manipulation operation, software used to perfrom the manipulation,
        analytic results comparing source to target images, and an input mask path name.  The input mask path name
        describes a mask used by the manipulation software as a parameter describing the manipulation.
        Links may be 'read-only' indicating that they are created through an automated plugin.
@@ -143,14 +198,17 @@ class ProjectModel:
        self.end = None
        return nname
 
-    def update_edge(self,mod,software=None):
+    def update_edge(self,mod):
         self.G.update_edge(self.start, self.end, \
-            inputmaskname=mod.inputmaskname, \
             op=mod.operationName, \
             description=mod.additionalInfo, \
-            arguments=mod.arguments, \
-            softwareName=('' if software is None else software.name), \
-            softwareVersion=('' if software is None else software.version))
+            arguments={k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}, \
+            inputmaskname=mod.inputMaskName, \
+            selectmaskname=mod.selectMaskName, \
+            recordMaskInComposite=mod.recordMaskInComposite,  \
+            editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
+            softwareName=('' if mod.software is None else mod.software.name), \
+            softwareVersion=('' if mod.software is None else mod.software.version))
 
     def compare(self, destination,seamAnalysis=False, arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -203,17 +261,11 @@ class ProjectModel:
     def getNodeNames(self):
       return self.G.get_nodes()
       
-    def getSoftware(self):
-      e = self.G.get_edge(self.start, self.end)
-      if e is None:
-          return None
-      return Software(e['softwareName'],e['softwareVersion'],'editable' in e and e['editable'] == 'no')
-
     def isEditableEdge(self,start,end):
       e = self.G.get_edge(start,end)
       return 'editable' not in e or e['editable'] == 'yes'
 
-    def connect(self,destination,mod=Modification('Donor',''), software=None,invert=False, sendNotifications=True):
+    def connect(self,destination,mod=Modification('Donor',''), invert=False, sendNotifications=True):
        """ Given a image node name, connect the new node to the end of the currently selected node.
             Create the mask, inverting the mask if requested.
             Send a notification to the register caller if requested.
@@ -225,17 +277,8 @@ class ProjectModel:
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
          if maskname is None:
              maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
-         if len(mod.arguments)>0:
-            analysis['arguments'] = mod.arguments
          self.end = destination
-         im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskname=mod.inputmaskname, \
-              op=mod.operationName,description=mod.additionalInfo, \
-              editable='no' if mod.operationName == 'Donor' else 'yes', \
-              recordMaskInComposite=recordMaskInComposite(mod.operationName), \
-              softwareName=('' if software is None else software.name), \
-              softwareVersion=('' if software is None else software.version), \
-              **analysis)
+         im = self.__addEdge(self.start,seld.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
@@ -258,19 +301,34 @@ class ProjectModel:
           mask,filename = self.G.get_composite_mask(nodeName)
       return mask
          
-    def _constructComposites(self,nodeAndMasks):
+    def _constructComposites(self,nodeAndMasks,stopAtNode=None):
       """
         Walks up down the tree from base nodes, assemblying composite masks"
       """
       result = []
       for nodeAndMask in nodeAndMasks:
+         if nodeAndMask[1] == stopAtNode:
+            return [nodeAndMask]
          for suc in self.G.successors(nodeAndMask[1]):
             edge = self.G.get_edge(nodeAndMask[1],suc)
             if edge['op'] == 'Donor':
                continue
             compositeMask = self._extendComposite(nodeAndMask[2],edge,nodeAndMask[1],suc)
             result.append((nodeAndMask[0],suc,compositeMask))
-      return _constructComposites(result)
+      if len(result) == 0:
+         return nodeAndMasks
+      return self._constructComposites(result,stopAtNode=stopAtNode)
+
+    def constructComposite(self):
+       selectedNode = self.end if self.end is not None else self.start
+       baseNodes = self._findBaseNodes(selectedNode)
+       if len(baseNodes) > 0:
+          baseNode = baseNodes[0]
+          composites = self._constructComposites([(baseNode,baseNode,None)],stopAtNode=selectedNode)
+          for composite in composites:
+             if composite[1] == selectedNode and composite[2] is not None:
+                return Image.fromarray(composite[2])
+       return None
 
     def constructComposites(self):
       """
@@ -281,11 +339,12 @@ class ProjectModel:
       endPointTuples = self._getTerminalAndBaseNodeTuples()
       for endPointTuple in endPointTuples:
          for baseNode in endPointTuple[1]:
-             composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
+             composites.extend(self._constrctComposites([(baseNode,baseNode,None)]))
       for composite in composites:
-        self.G.addCompositeToNodes(composite)
+         self.G.addCompositeToNodes((composite[0],composite[1], Image.fromarray(composite[2])))
+      return composites
 
-    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), software=None, sendNotifications=True, position=(50,50)):
+    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50)):
        """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
             Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
             to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -297,22 +356,26 @@ class ProjectModel:
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img,xpos=position[0],ypos=position[1])
        try:
          maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
-         if len(mod.arguments)>0:
-            analysis['arguments'] = mod.arguments
          self.end = destination
-         im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskname=mod.inputmaskname, \
-              op=mod.operationName,description=mod.additionalInfo, \
-              recordMaskInComposite=recordMaskInComposite(mod.operationName), \
-              editable='no' if software.internal or mod.operationName == 'Donor' else 'yes', \
-              softwareName=('' if software is None else software.name), \
-              softwareVersion=('' if software is None else software.version), \
-              **analysis)
+         im = self.__addEdge(self.start,seld.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
        except ValueError, msg:
          return msg
+
+    def __addEdge(self,start,end,mask,maskname,mod,additionalParameters):
+       if len(mod.arguments)>0:
+          additionalParameters['arguments'] = {k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}
+       im= self.G.add_edge(start,end,mask=mask,maskname=maskname, \
+            inputmaskname=mod.inputMaskName, \
+            op=mod.operationName,description=mod.additionalInfo, \
+            recordMaskInComposite=mod.recordMaskInComposite, \
+            selectmaskname=mod.selectMaskName, \
+            editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
+            softwareName=('' if mod.software is None else mod.software.name), \
+            softwareVersion=('' if mod.software is None else mod.software.version), \
+            **additionalParameters)
 
     def getSeriesName(self):
        """ A Series is the prefix of the first image node """
@@ -383,32 +446,21 @@ class ProjectModel:
     def save(self):
        self.G.save()
  
-    def updateCompositeStatus(self, filename, mask, includeInMask):
-       if (self.start is None or self.end is None):
-          return
-       edge = self.G.get_edge(self.start, self.end)
-       if edge is not None:
-          self.G.update_edge(self.start, self.end, recordMaskInComposite=includeInMask)
-          oldmask,oldfilename = self.getCompositeMask()
-          if filename is not None and os.path.split(filename)[1] != os.path.split(oldfilename)[1]:
-             self.G.update_edge(self.start, self.end, selectmaskname=filename)
-
-    def getCompositeStatus(self):
-       if (self.start is None or self.end is None):
-          return 'no'
-       edge = self.G.get_edge(self.start, self.end)
-       if edge is not None:
-          return edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no'
-       return 'no'
-
     def getDescription(self):
        if (self.start is None or self.end is None):
           return None
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
-          return Modification(edge['op'],edge['description'], \
-            inputmaskname=self.G.get_inputmaskname(self.start,self.end), \
-            arguments = edge['arguments'] if 'arguments' in edge else {})
+          return Modification(edge['op'], \
+            edge['description'], \
+            arguments = edge['arguments'] if 'arguments' in edge else {}, \
+            inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
+            selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and len(edge['selectmaskname'])>0 else None, \
+            changeMaskName=  edge['maskname'] if 'maskname' in edge else None, \
+            software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
+                              edge['softwareVersion'] if 'softwareVersion' in edge else None, \
+                              'editable' in edge and edge['editable'] == 'no'), \
+            recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no')
        return None
 
     def getImage(self,name):
@@ -427,7 +479,7 @@ class ProjectModel:
     def nextImage(self):
        return self.getImage(self.end)
 
-    def getCompositeMask(self):
+    def getSelectMask(self):
        if (self.end is None):
           return None,None
        mask = self.G.get_edge_mask(self.start,self.end)
@@ -570,14 +622,13 @@ class ProjectModel:
           return self._pluginError(filter,msg),[]
       if copyExif:
         msg = exif.copyexif(filename,target)
-      description = Modification(op[0],filter + ':' + op[2],op[1])
-      if 'inputmaskname' in kwargs:
-         description.inputmaskname = kwargs['inputmaskname']
+      description = Modification(op[0],filter + ':' + op[2])
       sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
       software = Software(op[3],op[4],internal=True)
-      description.arguments = {k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'inputmaskname'}
+      description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications'})
+      description.setSoftware(software)
 
-      msg2 = self.addNextImage(target,None,mod=description,software=software,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
+      msg2 = self.addNextImage(target,None,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
       if msg2 is not None:
           if msg is None:
@@ -686,17 +737,20 @@ class ProjectModel:
 
     def _extendComposite(self,compositeMask,edge,source,target):
       if compositeMask is None:
-          compositeMask = np.ones(self.G.get_image(source)[0].size)*255
+          imarray = np.asarray(self.G.get_image(source)[0])
+          compositeMask = np.ones((imarray.shape[0],imarray.shape[1]))*255
       # merge masks first, the mask is the same size as the input image
       # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        compositeMask = tool_set.mergeMask(compositeMask,self.G.get_edge_mask(nodeAndMask[1],suc)[0])    
+        selectMask = self.G.get_select_mask(source,target)[0]
+        edgeMask = self.G.get_edge_mask(source,target)[0]
+        compositeMask = tool_set.mergeMask(compositeMask,np.asarray(selectMask if selectMask is not None else edgeMask))
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated
       sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0,0)
-      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location'])> 0 else None
+      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location'])> 0 else (0,0)
       rotation = float(edge['rotation'] if 'rotation' in edge and len(edge['rotation'])> 0 else 0.0)
       args = edge['arguments'] if 'arguments' in edge else {}
       rotation = float(args['rotation'] if 'rotation' in args and len(args['rotation'])> 0 else rotation)
