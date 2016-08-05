@@ -10,8 +10,8 @@ import sys
 import argparse
 import ttk
 from graph_canvas import MaskGraphCanvas
-from scenario_model import ProjectModel,Modification,createProject
-from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog,ListDialog,CompositeCaptureDialog
+from scenario_model import *
+from description_dialog import *
 from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
@@ -212,7 +212,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            msg = self.scModel.addNextImage(file,im,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -225,7 +225,7 @@ class MakeGenUI(Frame):
         im,filename = self.scModel.getImageAndName(destination)
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            self.scModel.connect(destination,mod=d.description,software=d.getSoftware())
+            self.scModel.connect(destination,mod=d.description)
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
             self.processmenu.entryconfig(6,state='normal')
@@ -237,7 +237,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(filename,im,mod=d.description,software=d.getSoftware())
+            msg = self.scModel.addNextImage(filename,im,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -396,6 +396,11 @@ class MakeGenUI(Frame):
     def compareto(self):
       self.canvas.compareto()
 
+    def viewcomposite(self):
+      im = self.scModel.constructComposite()
+      if im is not None:
+         CompositeViewDialog(self,self.scModel.start,im)
+
     def connectto(self):
        self.drawState()
        self.canvas.connectto()
@@ -436,25 +441,25 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-           self.scModel.update_edge(d.description,software=d.getSoftware())
+           self.scModel.update_edge(d.description)
        self.drawState()
 
     def view(self):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
+       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(), exifdiff=self.scModel.getExifDiff())
 
-    def viewcomposite(self):
-       im,filename = self.scModel.getCompositeMask()
+    def viewselectmask(self):
+       im,filename = self.scModel.getSelectMask()
        if (im is None): 
             return
        name = self.scModel.start + ' to ' + self.scModel.end
-       d = CompositeCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],name,self.scModel.getCompositeStatus())
+       d = CompositeCaptureDialog(self,self.scModel.get_dir(),im,name,self.scModel.getDescription())
        if not d.cancelled:
-         self.scModel.updateCompositeStatus(d.inputmask,d.im,d.includeInMask)
+         self.scModel.update_edge(d.modification)
 
     def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
@@ -547,18 +552,20 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Connect To", command=self.connectto)
         self.nodemenu.add_command(label="Export", command=self.exportpath)
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
+        self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
 
         self.edgemenu = Menu(self.master,tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
         self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
-        self.edgemenu.add_command(label="Composite Mask", command=self.viewcomposite)
+        self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
 
         self.filteredgemenu = Menu(self.master,tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
+        self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
