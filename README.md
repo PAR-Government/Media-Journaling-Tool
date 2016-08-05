@@ -187,6 +187,43 @@ All other arguments collected by the user will br provided as strings to the tra
 
 The Group Manager allows the user to create, remove and manage groups.  Groups are sets of plugin image transforms.  Only those transforms that do not require arguments are permitted within the group at this time.
 
+# Batch Processing
+The journaling tool currently supports a rudimentary batch processing feature. This is designed to operate on large quantities of images with the same type of simple manipulation. For example, 100 images are manipulated to have varying levels of saturation. These images can be specified with the tool’s batch feature, and will automatically generate the project, including the mask image and graph.
+
+The batch feature generally requires at least two directories:
+1.	Directory of images
+2.	Directory for projects
+
+Additionally, two optional directories:
+1. Second directory of images
+2. Directory of input masks
+
+If the second directory of images is specified (--endDir, see below), the tool will assume the user wishes to create new projects. It will then use the first directory (--sourceDir) as the source for base images, and link them to the images in the second directory. This will also create the new individual project directories and JSON files if necessary. If this second image directory is not included, the tool will assume the user wishes to add the images in the sourceDir to existing projects.
+
+All images that are to be placed in the same project should have the same basename. Manipulated images should be appended with an underscore followed by some text and a number (i.e. image.jpg, image_01.jpg).
+
+The batch tool is a separate command line tool from MaskGenUI. It should be run from the maskgen directory (the same location as MaskGenUI) with the following:
+
+```
+python src/python/batch_process.py <args>
+
+Mandatory arguments:
+--sourceDir <dir>: directory of images
+--projects <dir>: directory of project directories.
+--op <operation>: operation performed
+--softwareName <name>: manipulation software used
+--softwareVersion <version>: manipulation software version
+
+Optional arguments:
+--endDir <dir>: directory of manipulated images (see above)
+--description <descr>: description of manipulation performed (use quotation marks for multiple words)
+--inputMaskPath <dir>: directory containing input masks
+--continueWithWarning: use this tag to ignore warnings that check for valid operations, software, etc.
+--s3 <bucket/path>: if included, will automatically upload projects to specified S3 bucket
+```
+
+Generated graphs may be viewed by opening the projects in MaskGenUI.
+
 # Known Issues
 
 # Latest Changes
