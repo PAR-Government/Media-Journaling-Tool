@@ -357,7 +357,7 @@ class ProjectModel:
        try:
          maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
          self.end = destination
-         im = self.__addEdge(self.start,seld.end,mask,maskname,mod,analysis)
+         im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
