@@ -147,7 +147,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
       if self.description is not None:
          if (self.description.inputMaskName is not None):
-            self.inputMaskname = self.description.inputMaskName
+            self.inputMaskName = self.description.inputMaskName
          if (self.description.operationName is not None and len(self.description.operationName)>0):
             selectCat = getCategory(self.description)
             self.e1.set_completion_list(catlist,initialValue=selectCat)

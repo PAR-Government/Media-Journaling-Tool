@@ -10,7 +10,7 @@ import sys
 import argparse
 import ttk
 from graph_canvas import MaskGraphCanvas
-from scenario_model import ProjectModel,Modification,createProject
+from scenario_model import *
 from description_dialog import *
 from tool_set import imageResizeRelative,fixTransparency
 from software_loader import Software, loadOperations, loadSoftware

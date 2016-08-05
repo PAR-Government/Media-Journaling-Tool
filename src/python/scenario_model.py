@@ -71,23 +71,28 @@ def createProject(dir,notify=None,base=None):
 class Modification:
    operationName = None
    additionalInfo = ''
+   # for backward compatibility and ease of access, input mask name is both arguments and 
+   # an instance variable 
    inputMaskName=None
    recordMaskInComposite = 'no'
    arguments = {}
    selectMaskName = None
    software = None
 
-   def __init__(self, operationName, additionalInfo, inputMaskName=None,arguments={}, \
+
+   def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
         changeMaskName=None, \
         selectMaskName=None, \
+        inputMaskName=None,
         software=None):
      self.additionalInfo  = additionalInfo
      self.setOperationName(operationName)
-     self.inputMaskName = inputMaskName
+     self.setArguments(arguments)
+     if inputMaskName is not None:
+       self.setInputMaskName(inputMaskName)
      self.changeMaskName = changeMaskName
      self.selectMaskName = selectMaskName
-     self.setArguments(arguments)
      self.software = software
      if recordMaskInComposite is not None:
         self.recordMaskInComposite = recordMaskInComposite
@@ -107,9 +112,8 @@ class Modification:
    def setArguments(self,args):
       self.arguments = {}
       for k,v in args.iteritems():
-         if k != 'inputmaskname':
-           self.arguments[k]= v
-         else:
+         self.arguments[k]= v
+         if k == 'inputmaskname':
            self.setInputMaskName(v)
 
    def setSelectMaskName(self,selectMaskName):
@@ -117,6 +121,8 @@ class Modification:
 
    def setInputMaskName(self,inputMaskName):
      self.inputMaskName = inputMaskName
+     if 'inputmaskname' not in self.arguments or self.arguments['inputmaskname'] != inputMaskName:
+        self.arguments['inputmaskname'] = inputMaskName
 
    def setAdditionalInfo(self,info):
      self.additionalInfo  =  info
@@ -194,10 +200,10 @@ class ProjectModel:
 
     def update_edge(self,mod):
         self.G.update_edge(self.start, self.end, \
-            inputmaskname=mod.inputMaskName, \
             op=mod.operationName, \
             description=mod.additionalInfo, \
-            arguments=mod.arguments, \
+            arguments={k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}, \
+            inputmaskname=mod.inputMaskName, \
             selectmaskname=mod.selectMaskName, \
             recordMaskInComposite=mod.recordMaskInComposite,  \
             editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
@@ -271,18 +277,8 @@ class ProjectModel:
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
          if maskname is None:
              maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
-         if len(mod.arguments)>0:
-            analysis['arguments'] = mod.arguments
          self.end = destination
-         im = self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskname=mod.inputMaskName, \
-              op=mod.operationName,description=mod.additionalInfo, \
-              recordMaskInComposite=mod.recordMaskInComposite, \
-              selectmaskname=mod.selectMaskName, \
-              editable=('no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes'), \
-              softwareName=('' if mod.software is None else mod.software.name), \
-              softwareVersion=('' if mod.software is None else mod.software.version), \
-              **analysis)
+         im = self.__addEdge(self.start,seld.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
@@ -330,7 +326,7 @@ class ProjectModel:
           baseNode = baseNodes[0]
           composites = self._constructComposites([(baseNode,baseNode,None)],stopAtNode=selectedNode)
           for composite in composites:
-             if composite[1] == selectedNode:
+             if composite[1] == selectedNode and composite[2] is not None:
                 return Image.fromarray(composite[2])
        return None
 
@@ -360,23 +356,26 @@ class ProjectModel:
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img,xpos=position[0],ypos=position[1])
        try:
          maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
-         if len(mod.arguments)>0:
-            analysis['arguments'] = mod.arguments
          self.end = destination
-         im= self.G.add_edge(self.start,self.end,mask=mask,maskname=maskname, \
-              inputmaskname=mod.inputMaskName, \
-              op=mod.operationName,description=mod.additionalInfo, \
-              recordMaskInComposite=mod.recordMaskInComposite, \
-              selectmaskname=mod.selectMaskName, \
-              editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
-              softwareName=('' if mod.software is None else mod.software.name), \
-              softwareVersion=('' if mod.software is None else mod.software.version), \
-              **analysis)
+         im = self.__addEdge(self.start,seld.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
          return None
        except ValueError, msg:
          return msg
+
+    def __addEdge(self,start,end,mask,maskname,mod,additionalParameters):
+       if len(mod.arguments)>0:
+          additionalParameters['arguments'] = {k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}
+       im= self.G.add_edge(start,end,mask=mask,maskname=maskname, \
+            inputmaskname=mod.inputMaskName, \
+            op=mod.operationName,description=mod.additionalInfo, \
+            recordMaskInComposite=mod.recordMaskInComposite, \
+            selectmaskname=mod.selectMaskName, \
+            editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
+            softwareName=('' if mod.software is None else mod.software.name), \
+            softwareVersion=('' if mod.software is None else mod.software.version), \
+            **additionalParameters)
 
     def getSeriesName(self):
        """ A Series is the prefix of the first image node """
@@ -454,8 +453,8 @@ class ProjectModel:
        if edge is not None:
           return Modification(edge['op'], \
             edge['description'], \
-            inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
             arguments = edge['arguments'] if 'arguments' in edge else {}, \
+            inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
             selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and len(edge['selectmaskname'])>0 else None, \
             changeMaskName=  edge['maskname'] if 'maskname' in edge else None, \
             software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
@@ -624,11 +623,9 @@ class ProjectModel:
       if copyExif:
         msg = exif.copyexif(filename,target)
       description = Modification(op[0],filter + ':' + op[2])
-      if 'inputmaskname' in kwargs:
-         description.inputMaskName = kwargs['inputmaskname']
       sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
       software = Software(op[3],op[4],internal=True)
-      description.arguments = {k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'inputmaskname'}
+      description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications'})
       description.setSoftware(software)
 
       msg2 = self.addNextImage(target,None,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
