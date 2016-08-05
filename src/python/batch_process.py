@@ -103,15 +103,16 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
         startNode = sm.G.get_node(nodes[-1])
 
         # prepare details for new link
-        opDetails = scenario_model.Modification(op, descr, category=category, inputmaskname=maskIm,
-                                                arguments={'rotation': rotation})
         softwareDetails = Software(software, version)
+        opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,
+                                                arguments={'rotation': rotation})
+
         position = ((startNode['xpos'] + 50 if startNode.has_key('xpos') else
                      80), (startNode['ypos'] + 50 if startNode.has_key('ypos') else 200))
 
         # create link
         sm.selectImage(nodes[-1])
-        sm.addNextImage(eImg, tool_set.openImage(eImg), mod=opDetails, software=softwareDetails,
+        sm.addNextImage(eImg, tool_set.openImage(eImg), mod=opDetails,
                         sendNotifications=False, position=position)
         sm.save()
 
