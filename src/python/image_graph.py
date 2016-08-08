@@ -10,6 +10,7 @@ import getpass
 import datetime
 from software_loader import Software, SoftwareLoader, getOS
 import tarfile
+from tool_set import openImage
 
 igversion='0.1'
 
@@ -72,6 +73,9 @@ class ImageGraph:
     if (os.path.exists(pathname)):
       self.load(pathname)
 
+  def openImage(self,fileName,mask=False):
+    return openImage(fileName)
+
   def get_nodes(self):
     return self.G.nodes()
 
@@ -97,6 +101,9 @@ class ImageGraph:
       fname = nname + suffix
     return fname
 
+  def _saveImage(self,pathname,image):
+    image.save(newpathname,exif=image.info['exif'])
+
   def add_node(self,pathname, seriesname=None, image=None, **kwargs):
     fname = os.path.split(pathname)[1]
     origname = nname = get_pre_name(fname)
@@ -111,7 +118,7 @@ class ImageGraph:
       if (os.path.exists(pathname)):
         shutil.copy2(pathname, newpathname)
       elif image is not None:
-        image.save(newpathname,exif=image.info['exif'])
+        self._saveImage(newpathname,image)
     self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
     self.U = []
     self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
@@ -172,14 +179,12 @@ class ImageGraph:
         self.G.node[compositeTuple[0]]['compositemask']=fname
         self.G.node[compositeTuple[0]]['compositebase']=compositeTuple[1]
         compositeTuple[2].save(os.path.abspath(os.path.join(self.dir,fname)))
-  
+   
   def get_select_mask(self,start,end):
      edge = self.get_edge(start,end)
      if edge is not None and 'selectmaskname' in edge and len(edge['selectmaskname']) > 0:
-       with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['selectmaskname'])),"rb") as fp:
-         im= Image.open(fp)
-         im.load()
-         return im,self.G[start][end]['selectmaskname']
+       im = self.openImage(os.path.abspath(os.path.join(self.dir,self.G[start][end]['selectmaskname'])),mask=True)
+       return im,self.G[start][end]['selectmaskname']
      return None,None
 
   def update_edge(self, start, end,**kwargs):
@@ -258,27 +263,21 @@ class ImageGraph:
   def get_composite_mask(self,name):
     if name in self.G.nodes and 'compositeMask' in self.G.node[name]:
       filename= os.path.abspath(os.path.join(self.dir,self.G.node[name]['compositeMask']))
-      with open(filename,"rb") as fp:
-         im= Image.open(fp)
-         im.load()
-         return im,filename
+      im = self.openImage(filename,mask=True)
+      return im,filename
     return None,None
 
   def get_image(self,name):
     filename= os.path.abspath(os.path.join(self.dir,self.G.node[name]['file']))
-    with open(filename,"rb") as fp:
-       im= Image.open(fp)
-       im.load()
-       return im,filename
+    im = self.openImage(filename)
+    return im,filename
 
   def get_edge(self,start,end):
     return self.G[start][end] if (self.G.has_edge(start,end)) else None
 
   def get_edge_mask(self,start,end):
-    with open(os.path.abspath(os.path.join(self.dir,self.G[start][end]['maskname'])),"rb") as fp:
-       im= Image.open(fp)
-       im.load()
-       return im,self.G[start][end]['maskname']
+    im = self.openImage(os.path.abspath(os.path.join(self.dir,self.G[start][end]['maskname'])),mask=True)
+    return im,self.G[start][end]['maskname']
 
   def _maskRemover(self,actionList, edgeFunc, start,end,edge):
        if edgeFunc is not None:
@@ -467,3 +466,34 @@ class ImageGraph:
       else:
         os.remove(filename)
 
+class VideoGraph(ImageGraph):
+
+  def __init__(self, pathname):
+    ImageGraph.__init__(self,pathname)
+
+  def openImage(self,fileName, metadata={},mask=False):
+    imgDir = os.path.split(os.path.abspath(fileName))[0]
+    retainImage = imgDir == os.path.abspath(self.dir)
+    if fileName.endswith('.png'):
+       return openImage(fileName)
+    snapshotFileName = fileName[0:fileName.rfind ('.')-len(fileName)]+'.png'
+    if os.path.exists(snapshotFileName):
+      return openImage(snapshotFileName)
+    cap = cv2.VideoCapture(fileName)
+    frame = None
+    while(cap.isOpened()):
+      ret, frame = cap.read()
+      if not mask or 'change_pts_time' not in metadata or float(metadata['change_pts_time']) < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
+        break
+      if not ret:
+        break
+    img = Image.fromarray(frame)
+    img = img.convert('L') if mask==True else img
+    img.save(snapshotFileName)
+    return img
+
+  def _saveImage(self,pathname,image):
+    image.save(newpathname,exif=image.info['exif'])
+
+#   def add_edge(self,start, end,inputmaskname=None,maskname=None,mask=None,op='Change',description='',selectmaskname=None,**kwargs):
+#     return ImageGraph.add_edge(self,start,end,inputmaskname=inputmaskname,maskname=maskname,mask=mask,op=op,description=description, selectmaskname=selectmaskname,**kwargs)

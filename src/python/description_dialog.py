@@ -5,7 +5,7 @@ import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage
-from scenario_model import ProjectModel,Modification
+from scenario_model import Modification
 from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory,getOperation
 import os
 import numpy as np
@@ -18,14 +18,6 @@ def getCategory(mod):
     if mod.operationName in ops:
       return ops[mod.operationName].category
     return None
-
-def exiftodict(exifdata): 
-   d = {}
-   for k,v in exifdata.iteritems(): 
-      old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
-      new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
-      d[k] = {'Operation':v[0],'Old':old,'New':new}
-   return d
 
 def tupletostring(tuple):
    strv = ''
@@ -228,21 +220,17 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
    im = None
    photo=None
    c= None
-   exifdiff = None
+   metadiff = None
 
-   def __init__(self,parent,dir,im,name, description=None,exifdiff=None):
+   def __init__(self,parent,dir,im,name, description=None,metadiff=None):
       self.im = im
       self.dir = dir
       self.parent = parent
       self.description=description if description is not None else Modification('','')
-      self.exifdiff = exifdiff
+      self.metadiff = metadiff
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):
-#      self.photo = ImageTk.PhotoImage(imageResize(self.im,(250,250)))
-#      self.c = Canvas(master, width=250, height=250)
-#      self.c.create_image(128,128,image=self.photo, tag='imgd')
-#      self.c.grid(row=0, column=0, columnspan=2)
       Label(master, text="Category:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
       Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
@@ -267,10 +255,19 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         self.moc = self.m.create_image(125,125,image=self.inputmask, tag='imgm')
         self.m.grid(row=row+1, column=0, columnspan=2,sticky=E+W)
         row+=2
-      if self.exifdiff is not None and len(self.exifdiff) > 0:
-         Label(master, text='EXIF Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=E+W)
-         self.exifBox = ExifTable(master,self.exifdiff)
-         self.exifBox.grid(row=row+1,column=0, columnspan=2,sticky=E+W)
+      if self.metadiff is not None:
+        Label(master, text=self.metadiff.getMetaType() +' Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=E+W)
+        row+=1
+        self.metaBox = MetaDiffTable(master,self.metadiff)
+        sections = self.metadiff.getSections()
+        if sections is not None:
+           self.sectionBox = Spinbox(master,values=['Section ' + section for section in sections], command=self.changeSection)
+           self.sectionBox.grid(row=row,column=0,columnspan=2,sticky=E+W)
+           row+=1
+        self.metaBox.grid(row=row,column=0, columnspan=2,sticky=E+W)
+
+   def changeSection(self):
+      self.metaBox.setSection(self.sectionBox.get()[8:])
 
    def cancel(self):
        tkSimpleDialog.Dialog.cancel(self)
@@ -487,18 +484,27 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
    def getGroup(self):
       return self.grouptocall
 
-class ExifTable(Frame):
+class MetaDiffTable(Frame):
 
-    def __init__(self, master,items,**kwargs):
+    section = None
+    def __init__(self, master,items,section=None,**kwargs):
         self.items = items
+        self.section = section
         Frame.__init__(self, master, **kwargs)
         self._drawMe()
   
+    def setSection(self,section):
+        if section == self.section:
+            return
+        self.section = section
+        self.table.getModel().setupModel(self.items.toColumns(section))
+        self.table.redrawTable()
+
     def _drawMe(self):
        model = TableModel()
-       for c in  ['Operation','Old','New']:
+       for c in  self.items.getColumnNames(self.section):
           model.addColumn(c)
-       model.importDict(exiftodict(self.items))
+       model.importDict(self.items.toColumns(self.section))
 
        self.table = TableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True)
        self.table.updateModel(model)

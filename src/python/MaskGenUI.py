@@ -10,10 +10,11 @@ import sys
 import argparse
 import ttk
 from graph_canvas import MaskGraphCanvas
+import scenario_model 
 from scenario_model import *
 from description_dialog import *
 from tool_set import imageResizeRelative,fixTransparency
-from software_loader import Software, loadOperations, loadSoftware
+from software_loader import Software, loadOperations, loadSoftware,getOperation
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
 from group_operations import ToJPGGroupOperation
@@ -21,7 +22,7 @@ from group_operations import ToJPGGroupOperation
 
 # this program creates a canvas and puts a single polygon on the canvas
 
-defaultypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
+
 
 def loadS3(values):
   import boto3
@@ -49,6 +50,18 @@ def loadHTTP(values):
       with open('software.csv', 'w') as f:
           f.write(r.content)
 
+class UIProfile:
+    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
+    suffixes = [".jpg",".png",".tiff"]
+    def getFactory(self): 
+     return imageProjectModelFactory
+
+class VideoProfile:
+    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
+    suffixes = [".mp4",".avi",".mov"]
+    def getFactory(self): 
+     return videoProjectModelFactory
+
 class MakeGenUI(Frame):
 
     prefLoader= MaskGenLoader()
@@ -72,6 +85,7 @@ class MakeGenUI(Frame):
     filteredgemenu = None
     canvas = None
     errorlistDialog = None
+    uiProfile = UIProfile()
    
     gfl = GroupFilterLoader()
 
@@ -94,9 +108,9 @@ class MakeGenUI(Frame):
        if (not self._check_dir(dir)):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
-       self.scModel.startNew(val)
+       self.scModel.startNew(val,suffixes=uiProfile.suffixes)
        if self.scModel.getProjectData('typespref') is None:
-          self.scModel.setProjectData('typespref',defaultypes)
+          self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
        self._setTitle()
        self.drawState()
        self.canvas.update()
@@ -110,7 +124,7 @@ class MakeGenUI(Frame):
         if (val != None and len(val)>0):
           self.scModel.load(val)
           if self.scModel.getProjectData('typespref') is None:
-              self.scModel.setProjectData('typespref',defaultypes)
+              self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
           self._setTitle()
           self.drawState()
           self.canvas.update()
@@ -212,7 +226,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(file,im,mod=d.description)
+            msg = self.scModel.addNextImage(file,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -237,7 +251,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(filename,im,mod=d.description)
+            msg = self.scModel.addNextImage(filename,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -428,8 +442,9 @@ class MakeGenUI(Frame):
        self.setSelectState('normal')
 
     def connectEvent(self,modification):
-        if (modification.operationName == 'PasteSplice'):
-           tkMessageBox.showinfo("Splice Requirement", "A splice operation should be accompanied by a donor image.")
+        op = getOperation(modification.operationName)
+        if op and 'checkForDonor' in op.rules:
+           tkMessageBox.showinfo("Donor Requirement", "This operation should be accompanied by a donor image.")
 
     def remove(self):
        self.canvas.remove()
@@ -450,7 +465,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(), exifdiff=self.scModel.getExifDiff())
+       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
 
     def viewselectmask(self):
        im,filename = self.scModel.getSelectMask()
@@ -601,15 +616,16 @@ class MakeGenUI(Frame):
        elif eventName == 'n':
            self.drawState()
 
-    def __init__(self,dir,master=None,pluginops={},base=None):
+    def __init__(self,dir,master=None,pluginops={},base=None,uiProfile = UIProfile()):
         Frame.__init__(self, master)
+        self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        self.scModel = createProject(dir, notify=self.connectEvent,base=base)
+        self.scModel = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
         if self.scModel is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)
         if self.scModel.getProjectData('typespref') is None:
-            self.scModel.setProjectData('typespref',defaultypes)
+            self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
         self.createWidgets()
 
 
@@ -620,11 +636,13 @@ def main(argv=None):
 
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
+   parser.add_argument('--video', help='video',action='store_true')
    parser.add_argument('--base', help='base image',nargs=1)
    parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
    imgdir = ['.']
    argv = argv[1:]
+   uiProfile = UIProfile()
    args = parser.parse_args(argv)
    if args.imagedir is not None:
        imgdir = args.imagedir
@@ -632,11 +650,13 @@ def main(argv=None):
        loadHTTP(args.http)
    elif args.s3 is not None:
        loadS3(args.s3)
+   if args.video:
+     uiProfile = VideoProfile()
    loadOperations("operations.json")
    loadSoftware("software.csv")
    root= Tk()
 
-   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None)
+   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None,uiProfile=uiProfile)
    gui.mainloop()
 
 if __name__ == "__main__":
