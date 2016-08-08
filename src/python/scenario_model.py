@@ -445,22 +445,20 @@ class ProjectModel:
 
     def save(self):
        self.G.save()
- 
+
+    def getDescriptionForPredecessor(self,node):
+       for pred in self.G.predecessors(node):
+          edge = self.G.get_edge(pred,node)
+          if edge['op'] != 'Donor':
+             return self._getModificationForEdge(edge)
+       return None
+
     def getDescription(self):
        if (self.start is None or self.end is None):
           return None
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
-          return Modification(edge['op'], \
-            edge['description'], \
-            arguments = edge['arguments'] if 'arguments' in edge else {}, \
-            inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
-            selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and len(edge['selectmaskname'])>0 else None, \
-            changeMaskName=  edge['maskname'] if 'maskname' in edge else None, \
-            software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
-                              edge['softwareVersion'] if 'softwareVersion' in edge else None, \
-                              'editable' in edge and edge['editable'] == 'no'), \
-            recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no')
+         return self._getModificationForEdge(edge)
        return None
 
     def getImage(self,name):
@@ -757,3 +755,15 @@ class ProjectModel:
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
       compositeMask = tool_set.alterMask(compositeMask,rotation=rotation,sizeChange=sizeChange,interpolation=interpolation,location=location)
       return compositeMask
+
+    def _getModificationForEdge(self,edge):
+      return Modification(edge['op'], \
+          edge['description'], \
+          arguments = edge['arguments'] if 'arguments' in edge else {}, \
+          inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
+          selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and len(edge['selectmaskname'])>0 else None, \
+          changeMaskName=  edge['maskname'] if 'maskname' in edge else None, \
+          software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
+                            edge['softwareVersion'] if 'softwareVersion' in edge else None, \
+                            'editable' in edge and edge['editable'] == 'no'), \
+          recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no')
