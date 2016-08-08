@@ -1,12 +1,14 @@
-import os
-from PIL import Image
-import tempfile
 from subprocess import call
 
-def transform(img,target, **kwargs):
+def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
-    call(['exiftool', '-TagsFromFile',  donor[1],target])
+    call(['exiftool', '-q','-all=', target])
+    call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
+    call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
     return False
+
+def suffix():
+    return '.jpg'
 
 def operation():
     return ['AntiForensicCopyExif','AntiForensicExif','Copy Image EXIF from donor','exiftool','10.23']

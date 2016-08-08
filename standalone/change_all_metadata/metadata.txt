@@ -1,0 +1,4 @@
+Iptc.Application2.Copyright=© 2016 MediFor
+Iptc.Application2.Byline=Andrew Smith
+Iptc.Application2.Credit=PAR Government
+Xmp.xmpRights.UsageTerms=CC ShareAlike 3.0

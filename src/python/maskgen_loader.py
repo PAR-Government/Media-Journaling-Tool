@@ -33,3 +33,11 @@ class MaskGenLoader:
      file = os.path.join(expanduser("~"),".maskgen2")
      with open(file, 'w') as f:
        json.dump(globalImage,f,indent=2)
+
+   def saveall(self,idanddata):
+     global globalImage
+     for id,data in idanddata:
+       globalImage[id] = data
+     file = os.path.join(expanduser("~"),".maskgen2")
+     with open(file, 'w') as f:
+       json.dump(globalImage,f,indent=2)

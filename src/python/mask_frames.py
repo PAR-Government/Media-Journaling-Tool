@@ -1,9 +1,15 @@
 from Tkinter import *
 import ttk
 import tkFont
- 
+
+
 class HistoryFrame(ttk.Frame):
 
+    """ Display a table of operations, in lieu of the graph view
+
+        NOTE: This is class is a bit out of sync with the rest of the code and is kept for 
+        re-introduction at a later time.
+    """
     modifications = []
 
     def __init__(self, master):

@@ -20,16 +20,14 @@ class MaskGraphCanvas(tk.Canvas):
     itemToEdgeIds = {}
     itemToCanvas = {}
     marked = None
-    ops = []
     lastNodeAdded = None
     
     drag_data = {'x': 0, 'y': 0, 'item': None}
 
-    def __init__(self, master,scModel,callback,ops,**kwargs):
+    def __init__(self, master,scModel,callback,**kwargs):
         self.scModel = scModel
         self.callback = callback
         self.master = master
-        self.ops=ops
         tk.Canvas.__init__(self, master, **kwargs)
         self.bind('<ButtonPress-1>', self.deselectCursor)
         self._plot_graph()
@@ -100,9 +98,11 @@ class MaskGraphCanvas(tk.Canvas):
        center = self._node_center(start)
        wx,wy = self.winfo_width(), self.winfo_height()
        node = self.scModel.getGraph().get_node(end)
-       node['ypos'] = center[1]+int(wy/4.0)
-       node['xpos'] = center[0]
-       if (self.lastNodeAdded is not None):
+       if ('ypos' not in node or node['ypos'] <= 0) or \
+           ('xpos' not in node or node['xpos'] <=0):
+         node['ypos'] = center[1]+int(wy/4.0)
+         node['xpos'] = center[0]
+         if (self.lastNodeAdded is not None):
            diff = abs(self.lastNodeAdded['xpos'] - node['xpos']) + \
            abs(self.lastNodeAdded['ypos'] - node['ypos'])
            if diff < 10:
@@ -159,10 +159,12 @@ class MaskGraphCanvas(tk.Canvas):
             file = node['file']
             ok = False
             if self.crossHairConnect:
-              if (len(preds) == 0):
-                 d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,self.ops,file)
+              if nodeId == self.scModel.start:
+                 tkMessageBox.showwarning("Error", "Cannot connect to the same node")
+              elif (len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0],nodeId))):
+                 d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                   msg = self.scModel.connect(nodeId,mod=d.description,software=d.getSoftware())
+                   msg = self.scModel.connect(nodeId,mod=d.description)
                    if msg is not None:
                      tkMessageBox.showwarning("Connect Error", msg)
                    else:
@@ -187,9 +189,15 @@ class MaskGraphCanvas(tk.Canvas):
         self.drag_data["x"] = event.x
         self.drag_data["y"] = event.y
 
+    def showNode(self,node):
+       item_id = self.toItemIds[node][1]
+       self._mark(item_id)
+        
     def showEdge(self,start,end):
         if (start,end) not in self.toItemIds:
-          self._mark(self._draw_edge(start,end))
+           self._mark(self._draw_edge(start,end))
+        else:
+           self._mark(self.toItemIds[(start,end)][1])
 
     def onNodeMotion(self, event):
         """Handle dragging of an object"""
@@ -257,14 +265,14 @@ class MaskGraphCanvas(tk.Canvas):
                self.scModel.selectImage(self.itemToNodeIds[item])
            else:
                e = self.itemToEdgeIds[item]
-               self.scModel.selectPair(e[0],e[1])
+               self.scModel.selectEdge(e[0],e[1])
                eventname= 'rcEdge' if self.scModel.isEditableEdge(e[0],e[1]) else 'rcNonEditEdge'
            self._mark(item)
            self.callback(event,eventname)
            if (e is not None):
              edge =  self.scModel.getGraph().get_edge(e[0],e[1])
              if (edge is not None):
-                self.itemToCanvas[item].update(edge['op'])
+                self.itemToCanvas[item].update(edge)
     
     def onNodeKey(self, event):
        self._unmark()
@@ -305,6 +313,9 @@ class MaskGraphCanvas(tk.Canvas):
         return (xa, ya)
 
     def _draw_node(self, id):
+        if id in self.toItemIds:
+          marker,wid = self.toItemIds[id]
+          return wid
         wx,wy = self.winfo_width(), self.winfo_height()
 
         node= self.scModel.getGraph().get_node(id)
@@ -332,7 +343,7 @@ class MaskGraphCanvas(tk.Canvas):
         x1,y1 = self._node_center(u)
         x2,y2 = self._node_center(v)
         xa,ya = self._spline_center(x1,y1,x2,y2,5)
-        lineC = LineTextObj(self,edge['op'],(u,v), (x1,y1,xa,ya,x2,y2))
+        lineC = LineTextObj(self,edge,(u,v), (x1,y1,xa,ya,x2,y2))
         wid = self.create_window(xa, ya, window=lineC, anchor=tk.CENTER,
                                   tags='edge')
         self.toItemIds[(u,v)] = (lineC.marker,wid)
@@ -401,10 +412,10 @@ class NodeObj(tk.Canvas):
 
 
 class LineTextObj(tk.Canvas):
-    def __init__(self, master,name, edge_name, coords):
+    def __init__(self, master,edge, edge_name, coords):
         tk.Canvas.__init__(self, width=20, height=10, highlightthickness=0)
 
-        self.name = name
+        self.edge= edge
         self.master = master
         self.edge_name = edge_name
 
@@ -413,22 +424,34 @@ class LineTextObj(tk.Canvas):
 #        self.bind('<Enter>', lambda e: self.focus_set())
 #        self.bind('<Leave>', lambda e: self.master.focus())
 
-        self._render(name,coords)
+        self._render(coords)
 
     def _newcfg(self):
         cfg = {}
+        includeInMask = ('recordMaskInComposite' in self.edge and self.edge['recordMaskInComposite'] == 'yes')
         cfg['tags'] = 'edge'
         cfg['smooth'] = True
         cfg['arrow'] = tk.LAST
         cfg['arrowshape'] = (30,40,5)
+        cfg['width'] = 3
+        if not includeInMask:
+          cfg['stipple'] = 'gray50'
+          cfg['fill'] = 'black'
+        else:
+          cfg['fill'] = 'blue'
         return cfg
 
-    def update(self, name):
+    def update(self, edge):
+        self.edge = edge
+        includeInMask = ('recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes')
+        name = self.edge['op'] + '*' if includeInMask else self.edge['op']
         self.itemconfig(self.label, text=name)
 
-    def _render(self, name,coords):
+    def _render(self, coords):
         cfg = self._newcfg()
         self.marker = self.master.create_line(*coords, **cfg)
+        includeInMask = ('recordMaskInComposite' in self.edge and self.edge['recordMaskInComposite'] == 'yes')
+        name = self.edge['op'] + '*' if includeInMask else self.edge['op']
         self.label = self.create_text(2,2, text=name, anchor=tk.NW)
          # Figure out how big we really need to be
         bbox = self.bbox(self.label)
@@ -438,7 +461,7 @@ class LineTextObj(tk.Canvas):
 
     def unmark(self):
         cfg = self._newcfg()
-        cfg['fill'] = 'black'
+ #       cfg['fill'] = 'black'
         self.master.itemconfig(self.marker, **cfg)
 
     def mark(self):

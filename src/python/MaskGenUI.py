@@ -8,23 +8,50 @@ import numpy as np
 import os
 import sys
 import argparse
-import mask_operation
-from mask_frames import HistoryFrame 
 import ttk
 from graph_canvas import MaskGraphCanvas
-from scenario_model import ProjectModel,Modification,findProject
-from description_dialog import DescriptionCaptureDialog,DescriptionViewDialog,FilterCaptureDialog,FilterGroupCaptureDialog
+from scenario_model import *
+from description_dialog import *
 from tool_set import imageResizeRelative,fixTransparency
-from software_loader import Software
+from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
+from maskgen_loader import MaskGenLoader
+from group_operations import ToJPGGroupOperation
+
 
 # this program creates a canvas and puts a single polygon on the canvas
 
 defaultypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
-defaultops = ['insert', 'splice',  'blur', 'resize', 'color', 'sharpen', 'compress', 'mosaic']
+
+def loadS3(values):
+  import boto3
+  print 'Download operations and software via S3'
+  s3 = boto3.client('s3','us-east-1')
+  BUCKET = values[0][0:values[0].find('/')]
+  DIR=values[0][values[0].find('/')+1:]
+  s3.download_file( BUCKET,DIR + "/operations.json", "operations.json")
+  s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
+
+def loadHTTP(values):
+    import requests
+    print 'Download operations and software via HTTP'
+    head = {}
+    for p in range(1, len(values)):
+        name = values[p].split(':')[0].strip()
+        val = values[p].split(':')[1].strip()
+        head[name]=val
+    r = requests.get(values[0] + '/operations.json',headers=head)
+    if r.status_code < 300:
+      with open('operations.json', 'w') as f:
+          f.write(r.content)
+    r = requests.get(values[0] + '/software.csv',headers=head)
+    if r.status_code < 300:
+      with open('software.csv', 'w') as f:
+          f.write(r.content)
 
 class MakeGenUI(Frame):
 
+    prefLoader= MaskGenLoader()
     img1 = None
     img2 = None
     img3 = None
@@ -39,17 +66,16 @@ class MakeGenUI(Frame):
     l2 = None
     l3 = None
     processmenu = None
-    myops = {}
     mypluginops = {}
     nodemenu = None
     edgemenu = None
     filteredgemenu = None
     canvas = None
+    errorlistDialog = None
    
     gfl = GroupFilterLoader()
 
-    def _check_dir(self,pathinfo):
-         dir = os.path.abspath(os.path.split(pathinfo)[0])
+    def _check_dir(self,dir):
          set = [filename for filename in os.listdir(dir) if filename.endswith('.json')]
          return not len(set)>0
 
@@ -61,16 +87,17 @@ class MakeGenUI(Frame):
        self.processmenu.entryconfig(5,state=state)
 
     def new(self):
-       val = tkFileDialog.asksaveasfilename(initialdir = self.scModel.get_dir(), title = "Select new project file",filetypes = [("json files","*.json")])
+       val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select base image file",filetypes =self.getFileTypes())
        if val is None or val== '':
          return
-       if (not self._check_dir(val)):
+       dir = os.path.split(val)[0]
+       if (not self._check_dir(dir)):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
        self.scModel.startNew(val)
        if self.scModel.getProjectData('typespref') is None:
           self.scModel.setProjectData('typespref',defaultypes)
-       self.master.title(val)
+       self._setTitle()
        self.drawState()
        self.canvas.update()
        self.setSelectState('disabled')
@@ -84,7 +111,7 @@ class MakeGenUI(Frame):
           self.scModel.load(val)
           if self.scModel.getProjectData('typespref') is None:
               self.scModel.setProjectData('typespref',defaultypes)
-          self.master.title(val)
+          self._setTitle()
           self.drawState()
           self.canvas.update()
           if (self.scModel.start is not None):
@@ -112,7 +139,7 @@ class MakeGenUI(Frame):
             tkMessageBox.showwarning("Save As", "Cannot save to the same directory\n(%s)" % dir)
          else:
             self.scModel.saveas(val.name)
-            self.master.title(val.name)
+            self._setTitle()
          val.close()
 
     def export(self):
@@ -120,7 +147,28 @@ class MakeGenUI(Frame):
        if (val is not None and len(val)>0):
          self.scModel.export(val)
          tkMessageBox.showinfo("Export", "Complete")
+
+    def exporttoS3(self):
+       info = self.prefLoader.get_key('s3info')
+       val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder", initialvalue=info if info is not None else '')
+       if (val is not None and len(val)>0):
+         try:
+           self.scModel.exporttos3(val)
+           tkMessageBox.showinfo("Export to S3", "Complete")
+           self.prefLoader.save('s3info',val)
+         except IOError:
+           tkMessageBox.showinfo("Error", "Failed to upload export")
   
+    def createJPEG(self):
+       msg,pairs = ToJPGGroupOperation(self.scModel).performOp()
+       if msg is not None:
+         tkMessageBox.showwarning("Error", msg)
+       for pair in pairs:
+           self.canvas.add(pair[0],pair[1])
+       self.drawState()
+
+         
+
     def undo(self):
        self.scModel.undo()
        self.drawState()
@@ -162,9 +210,9 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(file,im,mod=d.description,software=d.getSoftware())
+            msg = self.scModel.addNextImage(file,im,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -173,12 +221,23 @@ class MakeGenUI(Frame):
               self.processmenu.entryconfig(6,state='normal')
 
     def nextauto(self):
+        destination = self.scModel.scanNextImageUnConnectedImage()
+        im,filename = self.scModel.getImageAndName(destination)
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+            self.scModel.connect(destination,mod=d.description)
+            self.drawState()
+            self.canvas.add(self.scModel.start, self.scModel.end)
+            self.processmenu.entryconfig(6,state='normal')
+
+    def nextautofromfile(self):
         im,filename = self.scModel.scanNextImage()
         if (filename is None): 
+            tkMessageBox.showwarning("Auto Connect","Next image file cannot be automatically determined")
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(filename,im,mod=d.description,software=d.getSoftware())
+            msg = self.scModel.addNextImage(filename,im,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -189,12 +248,16 @@ class MakeGenUI(Frame):
     def resolvePluginValues(self,args):
       result = {}
       for k,v in args.iteritems():
-       if k == 'donor':
-          result[k] = self.scModel.getImageAndName(v)
-       else:
           result[k] = v
       result['sendNotifications'] = False
       return result
+
+    def _addPairs(self,pairs):
+        for pair in pairs:
+          self.canvas.add(pair[0],pair[1])
+        if len (pairs) > 0:
+          self.drawState()
+          self.processmenu.entryconfig(6,state='normal')
 
     def nextfilter(self):
         im,filename = self.scModel.currentImage()
@@ -202,18 +265,11 @@ class MakeGenUI(Frame):
             return
         d = FilterCaptureDialog(self,self.scModel.get_dir(),im,plugins.getOperations(),os.path.split(filename)[1], self.scModel)
         if d.optocall is not None:
-            msg = self.scModel.imageFromPlugin(d.optocall,im,filename,**self.resolvePluginValues(d.argvalues))
+            msg,pairs = self.scModel.imageFromPlugin(d.optocall,im,filename,**self.resolvePluginValues(d.argvalues))
             if msg is not None:
               tkMessageBox.showwarning("Next Filter",msg)
-            else:
-              self.drawState()
-              self.canvas.add(self.scModel.start, self.scModel.end)
-              if 'donor' in d.argvalues:
-                end = self.scModel.end
-                self.scModel.selectImage(d.argvalues['donor'])
-                self.scModel.connect(end)
-                self.canvas.showEdge(self.scModel.start, self.scModel.end)
-              self.processmenu.entryconfig(6,state='normal')
+            self._addPairs(pairs)
+
 
     def nextfiltergroup(self):
         im,filename = self.scModel.currentImage()
@@ -224,16 +280,16 @@ class MakeGenUI(Frame):
             return
         d = FilterGroupCaptureDialog(self,im,os.path.split(filename)[1])
         if d.getGroup() is not None:
-            start = self.scModel.startImageName()
+            start = self.scModel.operationImageName()
             end = None
             ok = False
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-               msg = self.scModel.imageFromPlugin(filter,im,filename)
+               msg,pairs = self.scModel.imageFromPlugin(filter,im,filename)
+               self._addPairs(pairs)  
                if msg is not None:
-                 tkMessageBox.showwarning("Next Filter",msg)
-                 break
+                  tkMessageBox.showwarning("Next Filter",msg)
+                  break
                ok = True
-               self.canvas.add(self.scModel.start, self.scModel.end)
                end = self.scModel.nextImageName()
                # reset back to the start image
                self.scModel.selectImage(start)
@@ -253,11 +309,11 @@ class MakeGenUI(Frame):
         d = FilterGroupCaptureDialog(self,im,os.path.split(filename)[1])
         if d.getGroup() is not None:
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-               msg = self.scModel.imageFromPlugin(filter,im,filename)
+               msg,pairs = self.scModel.imageFromPlugin(filter,im,filename)
                if msg is not None:
                  tkMessageBox.showwarning("Next Filter",msg)
                  break
-               self.canvas.add(self.scModel.start, self.scModel.end)
+               self._addPairs(pairs)  
                im,filename = self.scModel.getImageAndName(self.scModel.end)
             self.drawState()
             self.processmenu.entryconfig(6,state='normal')
@@ -274,6 +330,31 @@ class MakeGenUI(Frame):
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
         self.maskvar.set(self.scModel.maskStats())
+
+    def doneWithWindow(self,window):
+        if window == self.errorlistDialog:
+           self.errorlistDialog = None
+
+    def fetchS3(self):
+       import graph_rules
+       info = self.prefLoader.get_key('s3info')
+       val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder", initialvalue=info if info is not None else '')
+       if (val is not None and len(val)>0):
+         try:
+           loadS3([val])
+           self.prefLoader.save('s3info',val)
+           loadOperations("operations.json")
+           loadSoftware("software.csv")
+           graph_rules.setup()
+         except ClientError as e:
+           tkMessageBox.showwarning("S3 Download failure",str(e))
+
+    def validate(self):
+        errorList = self.scModel.validate()
+        if (self.errorlistDialog is None):
+           self.errorlistDialog = ListDialog(self,errorList,"Validation Errors")
+        else:
+           self.errorlistDialog.setItems(errorList)
 
     def groupmanager(self):
         d = GroupManagerDialog(self)
@@ -303,6 +384,9 @@ class MakeGenUI(Frame):
     def gnextfilter(self, next):
         self.nextfilter()
 
+    def gcreateJPEG(self, next):
+        self.createJPEG()
+
     def gundo(self, next):
         self.undo()
 
@@ -311,6 +395,11 @@ class MakeGenUI(Frame):
 
     def compareto(self):
       self.canvas.compareto()
+
+    def viewcomposite(self):
+      im = self.scModel.constructComposite()
+      if im is not None:
+         CompositeViewDialog(self,self.scModel.start,im)
 
     def connectto(self):
        self.drawState()
@@ -322,6 +411,17 @@ class MakeGenUI(Frame):
        if (val is not None and len(val)>0):
          self.scModel.export_path(val)
          tkMessageBox.showinfo("Export", "Complete")
+
+    def selectLink(self,start,end):
+       if start == end:
+          end = None
+       self.scModel.select((start,end))
+       self.drawState()
+       if end is not None:
+          self.canvas.showEdge(start,end)
+       else:
+          self.canvas.showNode(start)
+       self.setSelectState('normal')
 
     def select(self):
        self.drawState()
@@ -341,39 +441,65 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,self.myops,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware())
+       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-           self.scModel.update_edge(d.description,software=d.getSoftware())
+           self.scModel.update_edge(d.description)
        self.drawState()
 
     def view(self):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,im,self.myops,os.path.split(filename)[1],description=self.scModel.getDescription(),software=self.scModel.getSoftware(), exifdiff=self.scModel.getExifDiff())
+       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(), exifdiff=self.scModel.getExifDiff())
 
-    def createWidgets(self):
+    def viewselectmask(self):
+       im,filename = self.scModel.getSelectMask()
+       if (im is None): 
+            return
+       name = self.scModel.start + ' to ' + self.scModel.end
+       d = CompositeCaptureDialog(self,self.scModel.get_dir(),im,name,self.scModel.getDescription())
+       if not d.cancelled:
+         self.scModel.update_edge(d.modification)
+
+    def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(),self.scModel.getName()))
 
+    def createWidgets(self):
+        self._setTitle()
+
         menubar = Menu(self)
+
+        exportmenu = Menu(tearoff=0)
+        exportmenu.add_command(label="To File", command=self.export, accelerator="Ctrl+E")
+        exportmenu.add_command(label="To S3", command=self.exporttoS3)
+
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About",command=self.about)
         filemenu.add_command(label="Open",command=self.open, accelerator="Ctrl+O")
         filemenu.add_command(label="New",command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
-        filemenu.add_command(label="Export", command=self.export, accelerator="Ctrl+E")
+        filemenu.add_separator()
+        filemenu.add_cascade(label="Export", menu=exportmenu)
+        filemenu.add_command(label="Validate", command=self.validate)
+        filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
         filemenu.add_command(label="Group Manager", command=self.groupmanager)
+        filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
+
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
-        self.processmenu.add_command(label="Add", command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add Images", command=self.add, accelerator="Ctrl+A")
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
+        self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile, state='disabled')
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
         self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F", state='disabled')
         self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
         self.processmenu.add_command(label="Next w/Filter Sequence", command=self.nextfiltergroupsequence, state='disabled')
+        self.processmenu.add_separator()
+        self.processmenu.add_command(label="Create JPEG", command=self.createJPEG, accelerator="Ctrl+J")
+        self.processmenu.add_separator()
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z",state='disabled')
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
@@ -386,6 +512,7 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-l>',self.gnextadd)
         self.bind_all('<Control-f>',self.gnextfilter)
         self.bind_all('<Control-z>',self.gundo)
+        self.bind_all('<Control-j>',self.gcreateJPEG)
 
         self.grid()
         self.master.rowconfigure(0,weight=1)
@@ -425,17 +552,20 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Connect To", command=self.connectto)
         self.nodemenu.add_command(label="Export", command=self.exportpath)
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
+        self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
 
         self.edgemenu = Menu(self.master,tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
         self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
+        self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
 
         self.filteredgemenu = Menu(self.master,tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
+        self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
@@ -451,7 +581,7 @@ class MakeGenUI(Frame):
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N+S)
         self.hscrollbar.grid(row=1, column=0, sticky=E+W)
-        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB,self.myops, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
+        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
         self.canvas.grid(row=0, column=0,sticky=N+S+E+W)
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
@@ -471,12 +601,13 @@ class MakeGenUI(Frame):
        elif eventName == 'n':
            self.drawState()
 
-    def __init__(self,dir,master=None, ops=[],pluginops={}):
+    def __init__(self,dir,master=None,pluginops={},base=None):
         Frame.__init__(self, master)
-#        master.wm_attributes("-transparent", True)
-        self.myops = ops
         self.mypluginops = pluginops
-        self.scModel = ProjectModel(findProject(dir), notify=self.connectEvent)
+        self.scModel = createProject(dir, notify=self.connectEvent,base=base)
+        if self.scModel is None:
+          print 'Invalid project director ' + dir
+          sys.exit(-1)
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref',defaultypes)
         self.createWidgets()
@@ -488,20 +619,24 @@ def main(argv=None):
        argv = sys.argv
 
    parser = argparse.ArgumentParser(description='')
-   parser.add_argument('imagedir', help='image directory')
-   parser.add_argument('--ops', help="operations list file")
-   imgdir = '.'
+   parser.add_argument('--imagedir', help='image directory',nargs=1)
+   parser.add_argument('--base', help='base image',nargs=1)
+   parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
+   parser.add_argument('--http', help="http address and header params",nargs='+')
+   imgdir = ['.']
    argv = argv[1:]
    args = parser.parse_args(argv)
    if args.imagedir is not None:
        imgdir = args.imagedir
-   if args.ops is not None:
-       ops = mask_operation.loadOperations(args.ops)
-   else:
-       ops = defaultops
+   if args.http is not None:
+       loadHTTP(args.http)
+   elif args.s3 is not None:
+       loadS3(args.s3)
+   loadOperations("operations.json")
+   loadSoftware("software.csv")
    root= Tk()
 
-   gui = MakeGenUI(imgdir,master=root,ops=ops,pluginops=plugins.loadPlugins())
+   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None)
    gui.mainloop()
 
 if __name__ == "__main__":
