@@ -26,32 +26,136 @@ def otsu(hist):
         maximum = between
   return level
 
-def buildMasksFromCombinedVideo(file):
-  cap = cv2.VideoCapture(file)
-  maskprefix = file[0:file.rfind('.')]
+#def findRange(hist,perc):
+#  maxvalue = hist[0]
+#  maxpos = 0
+#  maxdiff = 0
+#  lastv = hist[0]
+#  for i in range(1,256):
+#    diff = abs(hist[i]-lastv)
+#    if (diff > maxdiff):
+#      maxdiff = diff
+#    if hist[i] > maxvalue:
+#      maxvalue = hist[i]
+#      maxpos = i
+#  i = maxpos-1
+#  lastv = maxvalue
+#  while i>0:
+#    diff = abs(hist[i]-lastv)
+#    if diff <= maxdiff:
+#      break
+#    lastv=hist[i]
+#    i-=1
+#  bottomRange = i
+#  i = maxpos+1
+#  lastv = maxvalue
+#  while i<256:
+#    diff = abs(hist[i]-lastv)
+#    if diff <= maxdiff:
+#      break
+#    lastv=hist[i]
+#    i+=1
+#  topRange = i
+#  return bottomRange,topRange
+
+
+
+def _buildHist(filename):
+  cap = cv2.VideoCapture(filename)
   hist = np.zeros(256).astype('int64')
   bins=np.asarray(range(257))
+  pixelCount = 0.0
   while(cap.isOpened()):
     ret, frame = cap.read()
     if not ret:
       break
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    hist += np.histogram(frame,bins=bins)[0]
+    pixelCount+=(gray.shape[0]*gray.shape[1])
+    hist += np.histogram(gray,bins=bins)[0]
   cap.release()
-  threshold = otsu(hist)+10
-  print threshold
-  cap = cv2.VideoCapture(file)
+  return hist,pixelCount
+
+def _buildMasks(filename,histandcount):
+  maskprefix = filename[0:filename.rfind('.')]
+  histnorm = histandcount[0]/histandcount[1]
+  values=np.where((histnorm<=0.95) & (histnorm>(256/histandcount[1])))[0]
+  cap = cv2.VideoCapture(filename)
   while(cap.isOpened()):
     ret, frame = cap.read()
     if not ret:
       break
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray[gray>=threshold] = 255
-    gray[gray<threshold] = 0
-    elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-    if (sum(sum(gray>=threshold)) > 0):
+    hist = np.histogram(gray,bins=bins)[0]
+    result = np.ones(gray.shape)*255
+    totalMatch = 0
+    for value in values: 
+       matches = gray==value
+       totalMatch+=sum(sum(matches))
+       result[matches]=0
+    if totalMatch>0:
+       elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
        cv2.imwrite(maskprefix + '_mask_' + str(elapsed_time) + '.png',gray)      
+       break
   cap.release()
+
+def buildMasksFromCombinedVideoOld(filename):
+  h,pc = _buildHist(filename)
+  hist = h/pc
+  return _buildMasks(filename,hist)
+
+def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
+  maskprefix = filename[0:filename.rfind('.')]
+  capIn = cv2.VideoCapture(filename)
+  capOut = None
+  try:
+    ranges= []
+    start = None
+    fourcc = cv2.cv.CV_FOURCC(*codec)
+    count = 0
+    while(capIn.isOpened()):
+      ret, frame = capIn.read()
+      if not ret:
+        break
+      elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+      gray = frame[:,:,1]
+#    laplacian = cv2.Laplacian(frame,cv2.CV_64F)
+      result = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV, 11, 1)
+      ret, otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+      result[:,:]=255
+      result[otsu==0] = 0
+#      result[otsu==0] = 255
+      totalMatch = sum(sum(result))
+#      pixels = np.histogram(frame[:,:,1],bins=range(257))[0]
+#      unchangedValue =np.where(pixels==max(pixels))[0][0]
+#      result = np.ones(gray.shape)*255
+#      matches = gray!=unchangedValue
+#      totalMatch=sum(sum(matches))
+#      result[matches]=0
+      if totalMatch>0:
+        count+=1
+        if start is None:
+          start = elapsed_time
+          print start
+          capOut = cv2.VideoWriter(maskprefix + '_mask_' + str(elapsed_time) + suffix, fourcc, capIn.get(cv2.cv.CV_CAP_PROP_FPS),(result.shape[1],result.shape[0]),False)
+#         cv2.imwrite(maskprefix + '_mask_' + str(elapsed_time) + '.png',result)      
+        result = result.astype('uint8')
+        capOut.write(cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
+      else:
+        if start is not None:
+          ranges.append((start,elapsed_time,count,maskprefix + '_mask_' + str(start) + suffix))
+          capOut.release()
+          count = 0
+        start = None
+        capOut = None
+    if start is not None:
+      ranges.append((start,elapsed_time,count,maskprefix + '_mask_' + str(start) + suffix))
+      capOut.release()
+  finally:
+    capIn.release()
+    if capOut:
+      capOut.release()
+  return ranges
+
 
 def addToMeta(meta,prefix,line,split=True):
    parts = line.split(',') if split else [line]
@@ -120,7 +224,8 @@ def processFrames(stream):
 #   sortFrames(frames)
    
 def getMeta(file,withFrames=False):
-   p = Popen(['ffprobe',file, '-show_frames'] if withFrames else ['ffprobe',file],stdout=PIPE,stderr=PIPE)
+   ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL','ffprobe')
+   p = Popen([ffmpegcommand,file, '-show_frames'] if withFrames else ['ffprobe',file],stdout=PIPE,stderr=PIPE)
    try:
      frames= processFrames(p.stdout) if withFrames else {}
      meta = processMeta(p.stderr) 
@@ -239,11 +344,13 @@ def processSet(dir,set,postfix):
        json.dump({"meta":resMeta,"frames":resFrame},f,indent=2)
 
 
-#video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
+#video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
 def formMaskDiff(fileOne, fileTwo):
+   ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL','ffmpeg')
    prefixOne = fileOne[0:fileOne.rfind('.')]
    prefixTwo = os.path.split(fileTwo[0:fileTwo.rfind('.')])[1]
    postFix = fileOne[fileOne.rfind('.'):]
-   call(['ffmpeg', '-y', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', prefixOne + '_'  + prefixTwo + postFix])  
-   buildMasksFromCombinedVideo(prefixOne + '_'  + prefixTwo + postFix)
+   outFileName = prefixOne + '_'  + prefixTwo + postFix
+   call([ffmpegcommand, '-y', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', outFileName])  
+   buildMasksFromCombinedVideo(outFileName)
 

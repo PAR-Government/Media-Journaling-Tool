@@ -4,7 +4,6 @@ from subprocess import call
 import os
 
 def peakness(hist, threshold=0.5):
-
   valleys = []
   P = hist[0]
 # start of valley
@@ -24,33 +23,28 @@ def peakness(hist, threshold=0.5):
      P = vA;
      W = 1;
      N = vA;
-
      i = j + 1;
-
      #To find the peak
      while (i < 255 and P < hist[i]):
         P = hist[i]
         W += 1
         N += hist[i]
         i += 1
-  
      # To find the border of the valley other side
      peak = i - 1;
      vB = hist[i]
 #       N += hist[i]
      i+=1
      W+=1
-
      l = True
      while (i < 255 and vB >= hist[i]):
         vB = hist[i]
         W += 1
         N += hist[i]
         i += 1 
-
        # Calculate peakiness
      peakiness = (1.0 - (float(vA + vB) / (2.0 * float(P)))) * (1.0 - (float(N) / float(W * P)))
-f     if peakiness > threshold and j not in valleys:
+     if peakiness > threshold and j not in valleys:
          valleys.append(j)
          valleys.append(i - 1)
      j = i - 1
