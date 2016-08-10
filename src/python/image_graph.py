@@ -26,6 +26,9 @@ except ImportError:
           return getpass.getuser()
   pwdAPI = PwdX()
 
+#def setPwdX(pwdxAPI):
+#  pwdAPI = pwdxAPI
+
 def get_username():
     return pwdAPI.getpwuid()
 
@@ -71,6 +74,8 @@ class ImageGraph:
     self.G = nx.DiGraph(name=name)
     if (os.path.exists(pathname)):
       self.load(pathname)
+    else:
+      self.G.graph['username']=get_username()
 
   def get_nodes(self):
     return self.G.nodes()
