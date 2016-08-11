@@ -547,14 +547,14 @@ class ProjectModel:
        total_errors = []
        for node in self.G.get_nodes():
          if not self.G.has_neighbors(node):
-             total_errors.append((node,node,node + ' is not connected to other nodes'))
+             total_errors.append((str(node),str(node),str(node) + ' is not connected to other nodes'))
 
        for frm,to in self.G.get_edges():
           edge = self.G.get_edge(frm,to)
           op = edge['op'] 
           errors = graph_rules.run_rules(op,self.G,frm,to)
           if len(errors) > 0:
-              total_errors.extend( [(frm,to,frm + ' => ' + to + ': ' + err) for err in errors])
+              total_errors.extend( [(str(frm),str(to),str(frm) + ' => ' + str(to) + ': ' + err) for err in errors])
        return total_errors
 
     def _findBaseNodes(self,node):
