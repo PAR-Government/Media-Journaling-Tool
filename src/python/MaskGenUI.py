@@ -163,6 +163,7 @@ class MakeGenUI(Frame):
        msg,pairs = ToJPGGroupOperation(self.scModel).performOp()
        if msg is not None:
          tkMessageBox.showwarning("Error", msg)
+         return
        for pair in pairs:
            self.canvas.add(pair[0],pair[1])
        self.drawState()

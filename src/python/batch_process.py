@@ -3,15 +3,64 @@ Bulk Image Journal Processing
 """
 import argparse
 import sys
+import itertools
 from software_loader import *
 import scenario_model
 import tool_set
 import bulk_export
+import group_operations
+import plugins
+
+
+def check_ops(ops, soft, args):
+    """
+    Error-checking function that ensures operations and software are valid.
+    """
+    if (ops != getOperations() or soft != getSoftwareSet()) and not args.continueWithWarning:
+        print 'ERROR: Invalid operation file. Please update.'
+        sys.exit(0)
+
+    if not getOperation(args.op) and not args.continueWithWarning:
+        print 'ERROR: Invalid operation: ' + args.op
+        print 'Reference the operations.json file for accepted operations.'
+        sys.exit(0)
+
+    if not validateSoftware(args.softwareName, args.softwareVersion) and not args.continueWithWarning:
+        print 'ERROR: Invalid software/version: ' + args.softwareName + ' ' + args.softwareVersion
+        print 'Reference the software.csv file for accepted names and versions. They are case-sensitive.'
+        sys.exit(0)
+    return
+
+def check_one_function(args):
+    """
+    Error-checking function that ensures only 1 operation is performed
+    """
+    sum = bool(args.plugin) + bool(args.sourceDir) + bool(args.jpg)
+
+    if sum > 1:
+        print 'ERROR: Can only specify one of the following: '
+        print '    --sourceDir: creates project/adds specified operation to project'
+        print '    --plugin (performs the specified plugin'
+        print '    --jpg: creates jpg image from last node and copies metadata from base'
+        sys.exit(0)
+    elif sum == 0:
+        print 'ERROR: Must specify exactly 1 of the following: '
+        print '    --sourceDir: creates project/adds specified operation to project'
+        print '    --plugin (performs the specified plugin'
+        print '    --jpg: creates jpg image from last node and copies metadata from base'
+        sys.exit(0)
 
 def find_corresponding_image(image, imageList):
+    """
+    Find image file best matching image arg in imageList
+    :param image: image to match
+    :param imageList: list of images
+    :return: the name of best matching image
+    """
     set = [x for x in imageList if image in x]
     set.sort()
     return set[0]
+
 
 def find_json_path(image, dir):
     """
@@ -32,11 +81,16 @@ def find_json_path(image, dir):
 
 
 def create_image_list(fileList):
+    """
+    Take images from a file list and put them in a new list
+    :param fileList: list of files
+    :return: list of image files in fileList
+    """
     ext = ('.jpg', '.tif', '.png')
     return [i for i in os.listdir(fileList) if i.endswith(ext)]
 
 
-def process(sourceDir, endDir, projectDir, op, category, software, version, descr, inputMaskPath, rotation):
+def process(sourceDir, endDir, projectDir, op, category, software, version, descr, inputMaskPath, additional):
     """
     Perform the bulk journaling. If no endDir is specified, it is assumed that the user wishes
     to add on to existing projects in projectDir.
@@ -49,7 +103,7 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
     :param version: Version of manipulation software
     :param descr: Description of manipulation. Optional
     :param inputMaskPath: Directory of input masks. Optional.
-    :param rotation: Image rotation angle. Optional.
+    :param additional: Dictionary of additional args ({rotation:90,...}). Optional.
     :return: None
     """
 
@@ -104,8 +158,11 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
 
         # prepare details for new link
         softwareDetails = Software(software, version)
-        opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,
-                                                arguments={'rotation': rotation})
+        if additional:
+            opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,
+                                                    arguments=additional)
+        else:
+            opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm)
 
         position = ((startNode['xpos'] + 50 if startNode.has_key('xpos') else
                      80), (startNode['ypos'] + 50 if startNode.has_key('ypos') else 200))
@@ -114,46 +171,96 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
         sm.selectImage(nodes[-1])
         sm.addNextImage(eImg, tool_set.openImage(eImg), mod=opDetails,
                         sendNotifications=False, position=position)
+
         sm.save()
 
-        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + nodes[0]
+        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
+        processNo += 1
+
+
+def process_plugin(projects, plugin):
+    """
+    Perform a plugin operation on all projects in directory
+    :param projects: directory of projects
+    :param plugin: plugin to perform
+    :return: None
+    """
+    projectList = bulk_export.pick_dirs(projects)
+    total = len(projectList)
+    processNo = 1
+    for project in projectList:
+        sm = scenario_model.ProjectModel(project)
+        nodes = sm.G.get_nodes()
+        nodes.sort()
+        sm.selectImage(nodes[-1])
+        im, filename = sm.currentImage()
+        plugins.loadPlugins()
+        sm.imageFromPlugin(plugin, im, filename)
+        sm.save()
+        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
+        processNo += 1
+
+def process_jpg(projects):
+    """
+    Save image as JPEG using the q tables of the base image, and copy exif from base for all projects in directory.
+    :param projects: directory of projects
+    :return: None
+    """
+    projectList = bulk_export.pick_dirs(projects)
+    total = len(projectList)
+    processNo = 1
+    for project in projectList:
+        sm = scenario_model.ProjectModel(project)
+        plugins.loadPlugins()
+        op = group_operations.ToJPGGroupOperation(sm)
+        op.performOp()
+        sm.save()
+        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
         processNo += 1
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sourceDir',                                  help='Directory of starting images')
-    parser.add_argument('--endDir',              default=None,          help='Directory of manipulated images')
     parser.add_argument('--projects',                                   help='Projects directory')
-    parser.add_argument('--op',                                         help='Operation Name')
-    parser.add_argument('--softwareName',                               help='Software Name')
-    parser.add_argument('--softwareVersion',                            help='Software Version')
-    parser.add_argument('--description',         default=None,          help='Description, in quotes')   # optional
-    parser.add_argument('--inputmaskpath',       default=None,          help='Directory of input masks') # optional
-    parser.add_argument('--rotation',            default=0,             help='rotation angle')           # optional
-    parser.add_argument('--continueWithWarning', action='store_true',   help='Tag to ignore version warning') # optional
-    parser.add_argument('--s3',                  default=None,          help='S3 Bucket/Path to upload projects to') # optional
+    parser.add_argument('--plugin',              default=None,          help='Perform specified plugin operation')
+    parser.add_argument('--sourceDir',           default=None,          help='Directory of starting images')
+    parser.add_argument('--endDir',              default=None,          help='Directory of manipulated images')
+    parser.add_argument('--op',                  default=None,          help='Operation Name')
+    parser.add_argument('--softwareName',        default=None,          help='Software Name')
+    parser.add_argument('--softwareVersion',     default=None,          help='Software Version')
+    parser.add_argument('--description',         default=None,          help='Description, in quotes')
+    parser.add_argument('--inputmaskpath',       default=None,          help='Directory of input masks')
+    parser.add_argument('--additional',          default=None,          help='additional operation arguments, e.g. rotation')
+    parser.add_argument('--continueWithWarning', action='store_true',   help='Tag to ignore version warning')
+    parser.add_argument('--jpg',                 action='store_true',   help='Create JPEG and copy metadata from base')
+    parser.add_argument('--s3',                  default=None,          help='S3 Bucket/Path to upload projects to')
     args = parser.parse_args()
 
     ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
 
-    if (ops != getOperations() or soft != getSoftwareSet()) and not args.continueWithWarning:
-        sys.exit('Invalid operation file. Please update.')
+    # make sure only 1 operation per command
+    check_one_function(args)
 
-    if not getOperation(args.op) and not args.continueWithWarning:
-        print 'Invalid operation: ' + args.op
-        print 'Reference the operations.json file for accepted operations.'
-        sys.exit(0)
+    # parse additional arguments (rotation, etc.)
+    # http://stackoverflow.com/questions/6900955/python-convert-list-to-dictionary
+    if args.additional:
+        add = args.additional.split(' ')
+        additionalArgs = dict(itertools.izip_longest(*[iter(add)] * 2, fillvalue=""))
+    else:
+        additionalArgs = args.additional
 
-    if not validateSoftware(args.softwareName, args.softwareVersion) and not args.continueWithWarning:
-        print 'Invalid software/version: ' + args.softwareName + ' ' + args.softwareVersion
-        print 'Reference the software.csv file for accepted names and versions. They are case-sensitive.'
-        sys.exit(0)
-
-    category = ops[args.op].category
-
-    process(args.sourceDir, args.endDir, args.projects, args.op, category, args.softwareName,
-            args.softwareVersion, args.description, args.inputmaskpath, args.rotation)
+    # perform the specified operation
+    if args.plugin:
+        print 'Performing plugin operation ' + args.plugin + ' assuming sourceDir as donor.'
+        process_plugin(args.projects, args.plugin)
+    elif args.jpg:
+        print 'Performing JPEG save & copying metadata from base.'
+        process_jpg(args.projects)
+    else:
+        check_ops(ops, soft, args)
+        category = ops[args.op].category
+        process(args.sourceDir, args.endDir, args.projects, args.op, category, args.softwareName,
+                args.softwareVersion, args.description, args.inputmaskpath, additionalArgs)
 
     if args.s3:
         bulk_export.upload_projects(args.s3, args.projects)

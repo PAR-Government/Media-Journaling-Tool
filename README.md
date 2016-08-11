@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 
 Install Python 2.7 (supposedly works with Anaconda)
 
@@ -190,39 +190,59 @@ The Group Manager allows the user to create, remove and manage groups.  Groups a
 # Batch Processing
 The journaling tool currently supports a rudimentary batch processing feature. This is designed to operate on large quantities of images with the same type of simple manipulation. For example, 100 images are manipulated to have varying levels of saturation. These images can be specified with the tool’s batch feature, and will automatically generate the project, including the mask image and graph.
 
-The batch feature generally requires at least two directories:
-1.	Directory of images
-2.	Directory for projects
-
-Additionally, two optional directories:
-1. Second directory of images
-2. Directory of input masks
-
-If the second directory of images is specified (--endDir, see below), the tool will assume the user wishes to create new projects. It will then use the first directory (--sourceDir) as the source for base images, and link them to the images in the second directory. This will also create the new individual project directories and JSON files if necessary. If this second image directory is not included, the tool will assume the user wishes to add the images in the sourceDir to existing projects.
-
-All images that are to be placed in the same project should have the same basename. Manipulated images should be appended with an underscore followed by some text and a number (i.e. image.jpg, image_01.jpg).
-
-The batch tool is a separate command line tool from MaskGenUI. It should be run from the maskgen directory (the same location as MaskGenUI) with the following:
-
+At its core, the batch tool requires only 1 directory, a directory of project directories. It can be run with the following:
 ```
 python src/python/batch_process.py <args>
 
 Mandatory arguments:
---sourceDir <dir>: directory of images
 --projects <dir>: directory of project directories.
---op <operation>: operation performed
---softwareName <name>: manipulation software used
---softwareVersion <version>: manipulation software version
+
+One (and only one) of these three arguments must be present (see below for an explanation):
+--sourceDir <dir>: directory of images
+--plugin <pluginName>: plugin to perform
+--jpg: Copies quantization tables and exif data from base image to save new jpeg image.
+
+These arguments may be used only if using sourceDir:
+--op <operation>: operation performed (required)
+--softwareName <name>: manipulation software used (required)
+--softwareVersion <version>: manipulation software version (required)
+--endDir <dir>: directory of manipulated images (optional)
+--inputMaskPath <dir>: directory containing input masks (optional)
+--description <"descr">: description of manipulation performed (optional)
+--additional <"name1 value1 name2 value2...">: additional operation arguments, such as rotation angle (optional)
 
 Optional arguments:
---endDir <dir>: directory of manipulated images (see above)
---description <descr>: description of manipulation performed (use quotation marks for multiple words)
---inputMaskPath <dir>: directory containing input masks
 --continueWithWarning: use this tag to ignore warnings that check for valid operations, software, etc.
---s3 <bucket/path>: if included, will automatically upload projects to specified S3 bucket
+--s3 <bucket/path>: if included, will automatically upload projects to specified S3 bucket after performing operation
 ```
 
-Generated graphs may be viewed by opening the projects in MaskGenUI.
+Different arguments will trigger different functionality:
+1. Using both --sourceDir and --endDir will create new projects, using the images in sourceDir as base, and link them with the specified operation. This will also create the project directories and JSON files if necessary.
+```
+python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --endDir <DIR> --op ColorColorBalance --softwareName GIMP --softwareVersion 2.8
+```
+2. --sourceDir without --endDir will add the images in the source directory to the current project and link them to the most recent node with the specified operation.
+```
+python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --op ColorColorBalance --softwareName GIMP --softwareVersion 2.8
+```
+3. Use --plugin to specify a plugin to perform on the most recent image node.
+```
+python src/python/batch_process.py --projects <DIR> --plugin ColorEqHist
+```
+4. Using --jpg will perform antiforensic jpeg export and exif copy on existing projects.
+```
+python src/python/batch_process.py --projects <DIR> --jpg
+```
+
+All images that are to be placed in the same project should have the same basename. Manipulated images should be appended with an underscore followed by some text and a number (i.e. image.jpg, image_01.jpg). 
+For example :
+sourceDir|endDir
+---------|------
+imageA.jpg|imageA_01.png
+imageB.jpg|imageB_01.png
+imageC.jpg|imageC_01.png
+
+It is recommended the user view generated graphs by opening the projects in MaskGenUI once the processing is complete to verify.
 
 # Known Issues
 
@@ -263,3 +283,8 @@ Generated graphs may be viewed by opening the projects in MaskGenUI.
 3. Fixed Yellow select on link always selected.
 4. Enforced mandatory parameters by disabling 'ok' button for link.
 5. Added Operation descriptions and more parameters
+
+8/12/2016
+1. Added plugin support for batch tool
+2. Added JPEG create option for batch tool
+3. Added bulk validation tool

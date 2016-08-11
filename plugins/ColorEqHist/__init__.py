@@ -9,7 +9,7 @@ def transform(img,source,target,**kwargs):
   img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
   # convert the YUV image back to RGB format
   Image.fromarray(cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)).save(target)
-  return True
+  return False
 
 # the actual link name to be used. 
 # the category to be shown
