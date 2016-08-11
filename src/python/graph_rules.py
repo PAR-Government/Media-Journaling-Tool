@@ -1,4 +1,5 @@
 from software_loader import getOperations,SoftwareLoader,getOperation
+from datetime import datetime
 
 rules = {}
 sloader = SoftwareLoader()
@@ -62,6 +63,90 @@ def checkForDonor(graph,frm,to):
      return 'donor image missing'
    return None
 
+def warpMethodCheckRule(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   method = getValue(edge,'arguments.Method')
+   if method and method not in ['Whole Frames', 'Frame Mix' and 'Pixel Motion']:
+     return 'Wrap method is invalid.  Should be one of "Whole Frames", "Frame Mix" and "Pixel Motion"'
+
+def vectorDetailRule(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   detail = getValue(edge,'arguments.Vector Detail')
+   try:
+     if detail and int(detail) < 0:
+       raise ValueError(str(detail))
+   except ValueError:
+      return 'Vector Detail is required to be an integer greater than 0'
+   return None
+
+def timeResolutionCheck(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   detail = getValue(edge,'arguments.Time Resolution')
+   try:
+     if detail and int(detail) < 0:
+       raise ValueError(str(detail))
+   except ValueError:
+      return 'Time Resolution is required to be an integer greater than 0. The value should be greater than the frame rate.'
+   return None
+
+def maxDisplacementCheck(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   detail = getValue(edge,'arguments.Max Displacement Time')
+   try:
+     if detail and int(detail) < 0:
+       raise ValueError(str(detail))
+   except ValueError:
+      return 'Max Displacement Time is required to be an integer greater than 0'
+   return None
+
+def adjustTimeRule(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   detail = getValue(edge,'arguments.Adjust Time By')
+   try:
+     if detail and (int(detail) < 0 or int(detail) > 100):
+       raise ValueError(str(detail))
+   except ValueError:
+      return 'Adjust Time By is required to be an integer value from 0 to 100'
+   return None
+
+def timeCheckRule(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   st = None
+   et = None
+   try:
+     tv = getValue(edge,'arguments.Start Time')
+     if tv:
+        st = datetime.strptime(tv, '%H:%M:%S.%f')  
+     tv = getValue(edge,'arguments.Stop Time')
+     if tv:
+        et = datetime.strptime(tv, '%H:%M:%S.%f')
+   except ValueError:
+     return "Invalid Start and Stop Time formats. Use HH:MI:SS.microseconds"
+   if st and et and st > et:
+     return "Start Time occurs after Stop Time"
+
+def checkLengthSame(graph,frm,to):
+   """ the length of video should not change 
+   """
+   edge = graph.get_edge(frm,to)
+   durationChangeTuple = getValue(edge,'metadatadiff[0].duration')
+   if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
+     return "Length of video has changed"
+
+def checkLengthSmaller(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   durationChangeTuple = getValue(edge,'metadatadiff[0].duration')
+   if durationChangeTuple is None or \
+      (durationChangeTuple[0] == 'change' and durationChangeTuple[1] < durationChangeTuple[2]):
+     return "Length of video is not shorter"
+
+def checkLengthBigger(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   durationChangeTuple = getValue(edge,'metadatadiff[0].duration')
+   if durationChangeTuple is None or \
+      (durationChangeTuple[0] == 'change' and durationChangeTuple[1] > durationChangeTuple[2]):
+     return "Length of video is not longer"
+
 def checkDonor(graph,frm,to):
    pred = graph.predecessors(to)
    if len(pred) < 2:
@@ -95,3 +180,45 @@ def getSizeChange(graph,frm,to):
        y = int(xyparts[1].strip())
        return (x,y)
    return None
+
+def getValue(obj,path,convertFunction=None):
+    """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
+        obj is a node or edge
+        path is a dictionary path: a.b.c
+        convertFunction converts the value
+
+        This function recurses
+    """
+    if not path:
+      return convertFunction(obj) if convertFunction and obj else obj
+
+    current = obj
+    part = path
+    splitpos = path.find(".")
+
+    if splitpos > 0:
+      part = path[0:splitpos]
+      path = path[splitpos+1:]
+    else:
+      path = None
+
+    bpos= part.find('[')
+    pos = 0
+    if bpos > 0:
+      pos = int(part[bpos+1:-1])
+      part = part[0:bpos]
+
+    if part in current:
+      current = current[part]
+      if type(current) is list:
+        if bpos>0:
+          current = current[pos]
+        else:
+          result = []
+          for item in current:
+            v = getValue(item, path,convertFunction)
+            if v:
+              result.append(v)
+          return result
+      return getValue(current, path,convertFunction)
+    return None

@@ -32,6 +32,8 @@ def loadS3(values):
   DIR=values[0][values[0].find('/')+1:]
   s3.download_file( BUCKET,DIR + "/operations.json", "operations.json")
   s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
+  s3.download_file( BUCKET,DIR + "/video_operations.json", "video_operations.json")
+  s3.download_file( BUCKET,DIR + "/video_software.csv", "video_software.csv")
 
 def loadHTTP(values):
     import requests
@@ -49,18 +51,48 @@ def loadHTTP(values):
     if r.status_code < 300:
       with open('software.csv', 'w') as f:
           f.write(r.content)
+    r = requests.get(values[0] + '/video_operations.json',headers=head)
+    if r.status_code < 300:
+      with open('operations.json', 'w') as f:
+          f.write(r.content)
+    r = requests.get(values[0] + '/video_software.csv',headers=head)
+    if r.status_code < 300:
+      with open('software.csv', 'w') as f:
+          f.write(r.content)
+
 
 class UIProfile:
-    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
+    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("bmp files","*.bmp"),("all files","*.*")]
     suffixes = [".jpg",".png",".tiff"]
+    operations='operations.json'
+    software='software.csv'
+    name = 'Image'
     def getFactory(self): 
-     return imageProjectModelFactory
+      return imageProjectModelFactory
+
+    def addProcessCommand(self,menu,parent):
+      menu.add_command(label="Create JPEG", command=parent.createJPEG, accelerator="Ctrl+J")
+      menu.add_separator()
+
+    def addAccelerators(self,parent):
+      parent.bind_all('<Control-j>',parent.gcreateJPEG)
 
 class VideoProfile:
     filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
     suffixes = [".mp4",".avi",".mov"]
+    operations='video_operations.json'
+    software='video_software.csv'
+    name = 'Video'
     def getFactory(self): 
-     return videoProjectModelFactory
+      return videoProjectModelFactory
+
+    def addAccelerators(self,parent):
+      return None
+
+    def addProcessCommand(self,menu,func):
+      return None
+#      menu.add_command(label="Create JPEG", command=func, accelerator="Ctrl+J")
+#      menu.add_separator()
 
 class MakeGenUI(Frame):
 
@@ -224,7 +256,7 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg = self.scModel.addNextImage(file,mod=d.description)
             if msg is not None:
@@ -357,8 +389,8 @@ class MakeGenUI(Frame):
          try:
            loadS3([val])
            self.prefLoader.save('s3info',val)
-           loadOperations("operations.json")
-           loadSoftware("software.csv")
+           loadOperations(self.uiProfile.operations)
+           loadSoftware(self.uiProfile.software)
            graph_rules.setup()
          except ClientError as e:
            tkMessageBox.showwarning("S3 Download failure",str(e))
@@ -456,7 +488,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
+       d = DescriptionCaptureDialog(self,self.uiProfile, self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description)
        self.drawState()
@@ -505,7 +537,7 @@ class MakeGenUI(Frame):
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
-        self.processmenu.add_command(label="Add Images", command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add " + self.uiProfile.name, command=self.add, accelerator="Ctrl+A")
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
         self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile, state='disabled')
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
@@ -513,8 +545,7 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
         self.processmenu.add_command(label="Next w/Filter Sequence", command=self.nextfiltergroupsequence, state='disabled')
         self.processmenu.add_separator()
-        self.processmenu.add_command(label="Create JPEG", command=self.createJPEG, accelerator="Ctrl+J")
-        self.processmenu.add_separator()
+        self.uiProfile.addProcessCommand(self.processmenu,self)
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z",state='disabled')
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
@@ -527,7 +558,7 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-l>',self.gnextadd)
         self.bind_all('<Control-f>',self.gnextfilter)
         self.bind_all('<Control-z>',self.gundo)
-        self.bind_all('<Control-j>',self.gcreateJPEG)
+        self.uiProfile.addAccelerators(self)
 
         self.grid()
         self.master.rowconfigure(0,weight=1)
@@ -596,7 +627,7 @@ class MakeGenUI(Frame):
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N+S)
         self.hscrollbar.grid(row=1, column=0, sticky=E+W)
-        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
+        self.canvas = MaskGraphCanvas(mframe,self.uiProfile,self.scModel,self.graphCB, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
         self.canvas.grid(row=0, column=0,sticky=N+S+E+W)
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
@@ -652,8 +683,8 @@ def main(argv=None):
        loadS3(args.s3)
    if args.video:
      uiProfile = VideoProfile()
-   loadOperations("operations.json")
-   loadSoftware("software.csv")
+   loadOperations(uiProfile.operations)
+   loadSoftware(uiProfile.software)
    root= Tk()
 
    gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None,uiProfile=uiProfile)

@@ -9,6 +9,19 @@ from scipy import ndimage
 from scipy import misc
 
 
+""" These functions support system integration"
+"""
+def openFile(fileName):
+   import os
+   import sys
+   cmd = 'open'
+   if sys.platform.startswith('linux'):
+      cmd = 'xdg-open'
+   elif sys.platform.startswith('win'):
+      cmd = 'start'
+   os.system(cmd + ' "' + fileName + '"')
+   
+
 """  These functions are designed to support mask generation.
 """
 
@@ -25,12 +38,33 @@ def imageResizeRelative(img,dim,otherIm):
    hsize = int((float(img.size[1])*float(perc)))
    return img.resize((wsize,hsize), Image.ANTIALIAS)
 
-
-def openImage(file):
-   with open(file,"rb") as fp:
-      im = Image.open(fp)
-      im.load()
-      return im
+def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
+   import os
+   snapshotFileName = filename
+   if not filename[filename.rfind('.')+1:] in ['png','jpg','gif','tiff','jpeg','bmp']:
+     snapshotFileName = filename[0:filename.rfind ('.')-len(filename)]+'.png'
+   if not os.path.exists(snapshotFileName) and snapshotFileName != filename:
+     cap = cv2.VideoCapture(filename)
+     frame = None
+     try:
+       while(cap.isOpened()):
+         ret, frame = cap.read()
+         if not videoFrameTime or videoFrameTime < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
+           break
+         if not ret:
+           break
+     finally:
+       cap.release()
+     img = Image.fromarray(frame)
+     img = img.convert('L')  if isMask else img
+     if preserveSnapshot:
+       img.save(snapshotFileName)
+     return img
+   else:
+     with open(snapshotFileName,"rb") as fp:
+        img = Image.open(fp)
+        img.load()
+        return img
 
 def createMask(img1, img2, invert, seamAnalysis=False,arguments={}):
       mask,analysis = __composeMask(img1,img2,invert,seamAnalysis=seamAnalysis,arguments=arguments)

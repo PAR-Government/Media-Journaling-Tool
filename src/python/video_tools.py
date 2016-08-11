@@ -59,7 +59,6 @@ def otsu(hist):
 #  return bottomRange,topRange
 
 
-
 def _buildHist(filename):
   cap = cv2.VideoCapture(filename)
   hist = np.zeros(256).astype('int64')
@@ -112,19 +111,32 @@ def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
     start = None
     fourcc = cv2.cv.CV_FOURCC(*codec)
     count = 0
+    fgbg = cv2.BackgroundSubtractorMOG2()
+    first = True
+    sample = None
+    kernel = np.ones((5,5),np.uint8)
     while(capIn.isOpened()):
       ret, frame = capIn.read()
+      if sample is None:
+        sample = np.ones(frame[:,:,0].shape)*255
       if not ret:
         break
+      thresh = fgbg.apply(frame)
+      if first:
+        first = False
+        continue
       elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-      gray = frame[:,:,1]
-#    laplacian = cv2.Laplacian(frame,cv2.CV_64F)
-      result = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV, 11, 1)
-      ret, otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-      result[:,:]=255
-      result[otsu==0] = 0
-#      result[otsu==0] = 255
-      totalMatch = sum(sum(result))
+#      gray = frame[:,:,1]
+#      laplacian = cv2.Laplacian(frame,cv2.CV_64F)
+#      thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 11, 1)
+#      ret, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+      result = thresh.copy()
+      result[:,:]=0
+      result[abs(thresh)>0.000001] = 255 
+      opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
+      closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+      totalMatch = sum(sum(closing))
+      result = closing
 #      pixels = np.histogram(frame[:,:,1],bins=range(257))[0]
 #      unchangedValue =np.where(pixels==max(pixels))[0][0]
 #      result = np.ones(gray.shape)*255
@@ -135,20 +147,20 @@ def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
         count+=1
         if start is None:
           start = elapsed_time
-          print start
-          capOut = cv2.VideoWriter(maskprefix + '_mask_' + str(elapsed_time) + suffix, fourcc, capIn.get(cv2.cv.CV_CAP_PROP_FPS),(result.shape[1],result.shape[0]),False)
+          sample = result
+          capOut = cv2.VideoWriter(_composeMaskName(maskprefix,elapsed_time,suffix), fourcc, capIn.get(cv2.cv.CV_CAP_PROP_FPS),(result.shape[1],result.shape[0]),False)
 #         cv2.imwrite(maskprefix + '_mask_' + str(elapsed_time) + '.png',result)      
         result = result.astype('uint8')
         capOut.write(cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
       else:
         if start is not None:
-          ranges.append((start,elapsed_time,count,maskprefix + '_mask_' + str(start) + suffix))
+          ranges.append({'starttime':start,'endtime':elapsed_time,'frames':count,'mask':sample,'videosegment':os.path.split(_composeMaskName(maskprefix,start,suffix))[1]})
           capOut.release()
           count = 0
         start = None
         capOut = None
     if start is not None:
-      ranges.append((start,elapsed_time,count,maskprefix + '_mask_' + str(start) + suffix))
+      ranges.append({'starttime':start,'endtime':elapsed_time,'frames':count,'mask':sample,'videosegment':os.path.split(_composeMaskName(maskprefix,start,suffix))[1]})
       capOut.release()
   finally:
     capIn.release()
@@ -156,6 +168,9 @@ def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
       capOut.release()
   return ranges
 
+
+def _composeMaskName(maskprefix,starttime,suffix):
+   return maskprefix + '_mask_' + str(starttime) + '.' + suffix 
 
 def addToMeta(meta,prefix,line,split=True):
    parts = line.split(',') if split else [line]
@@ -295,21 +310,15 @@ def compareStream(a,b,orderAttr='pkt_pts_time',skipMeta=None):
       diff.append(('add',start,end,c))
   if apos < len(a):
     start = float(a[apos][orderAttr])
-    c = 0
-    while apos < len(a):
-       apacket = a[apos]
-       aptime = float(apacket[orderAttr])
-       apos+=1
-       c+=1
+    c = len(a)-apos
+    apacket = a[len(a)-1]
+    aptime = float(apacket[orderAttr])
     diff.append(('delete',start,aptime,c))
   elif bpos < len(b):
     start = float(b[bpos][orderAttr])
-    c = 0
-    while bpos < len(b):
-       bpacket = b[apos]
-       bptime = float(apacket[orderAttr])
-       bpos+=1
-       c+=1
+    c = len(b)-bpos
+    bpacket = b[len(b)-1]
+    bptime = float(bpacket[orderAttr])
     diff.append(('add',start,bptime,c))
   return diff
 
@@ -352,5 +361,5 @@ def formMaskDiff(fileOne, fileTwo):
    postFix = fileOne[fileOne.rfind('.'):]
    outFileName = prefixOne + '_'  + prefixTwo + postFix
    call([ffmpegcommand, '-y', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', outFileName])  
-   buildMasksFromCombinedVideo(outFileName)
+   return buildMasksFromCombinedVideo(outFileName)
 

@@ -20,11 +20,13 @@ class MaskGraphCanvas(tk.Canvas):
     itemToCanvas = {}
     marked = None
     lastNodeAdded = None
+    uiProfile = None
     
     drag_data = {'x': 0, 'y': 0, 'item': None}
 
-    def __init__(self, master,scModel,callback,**kwargs):
+    def __init__(self, master,uiProfile,scModel,callback,**kwargs):
         self.scModel = scModel
+        self.uiProfile = uiProfile
         self.callback = callback
         self.master = master
         tk.Canvas.__init__(self, master, **kwargs)
@@ -161,7 +163,7 @@ class MaskGraphCanvas(tk.Canvas):
               if nodeId == self.scModel.start:
                  tkMessageBox.showwarning("Error", "Cannot connect to the same node")
               elif (len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0],nodeId))):
-                 d = DescriptionCaptureDialog(self.master,self.scModel.get_dir(),im,file)
+                 d = DescriptionCaptureDialog(self.master,self.uiProfile,self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                    msg = self.scModel.connect(nodeId,mod=d.description)
                    if msg is not None:

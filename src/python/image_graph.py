@@ -478,24 +478,10 @@ class VideoGraph(ImageGraph):
 
   def openImage(self,fileName, metadata={},mask=False):
     imgDir = os.path.split(os.path.abspath(fileName))[0]
-    retainImage = imgDir == os.path.abspath(self.dir)
-    if fileName.endswith('.png'):
-       return openImage(fileName)
-    snapshotFileName = fileName[0:fileName.rfind ('.')-len(fileName)]+'.png'
-    if os.path.exists(snapshotFileName):
-      return openImage(snapshotFileName)
-    cap = cv2.VideoCapture(fileName)
-    frame = None
-    while(cap.isOpened()):
-      ret, frame = cap.read()
-      if not mask or 'change_pts_time' not in metadata or float(metadata['change_pts_time']) < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
-        break
-      if not ret:
-        break
-    img = Image.fromarray(frame)
-    img = img.convert('L') if mask==True else img
-    img.save(snapshotFileName)
-    return img
+    return openImage(fileName, \
+                     videoFrameTime=None if 'change_pts_time' not in metadata else metadata['change_pts_time'], \
+                     isMask=mask, \
+                     preserveSnapshot=imgDir== os.path.abspath(self.dir))
 
   def _saveImage(self,pathname,image):
     image.save(newpathname,exif=image.info['exif'])

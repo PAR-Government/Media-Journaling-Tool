@@ -144,19 +144,21 @@ class Modification:
    # for backward compatibility and ease of access, input mask name is both arguments and 
    # an instance variable 
    inputMaskName=None
+   maskSet = None
    recordMaskInComposite = 'no'
    arguments = {}
    selectMaskName = None
    software = None
-
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
         changeMaskName=None, \
         selectMaskName=None, \
         inputMaskName=None,
-        software=None):
+        software=None, \
+        maskSet=None):
      self.additionalInfo  = additionalInfo
+     self.maskSet = maskSet
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
@@ -166,6 +168,9 @@ class Modification:
      self.software = software
      if recordMaskInComposite is not None:
         self.recordMaskInComposite = recordMaskInComposite
+ 
+   def setMaskSet(self,maskset):
+      self.maskSet = maskset
 
    def getSoftwareName(self):
       return self.software.name if self.software is not None and self.software.name is not None else ''
@@ -234,6 +239,9 @@ class ImageProjectModel:
     def __init__(self, projectFileName, importImage=False, notify=None):
       self._setup(projectFileName)
       self.notify = notify
+
+    def getTypeName(self):
+       return 'Image'
 
     def get_dir(self):
        return self.G.dir
@@ -571,7 +579,7 @@ class ImageProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username','shape change']
+       stat_names = ['ssim','psnr','username','shape change','masks count']
        return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
@@ -865,7 +873,51 @@ class VideoProjectModel(ImageProjectModel):
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = Image.new("RGB", (250, 250), "black"),{}
        maskname=start + '_' + destination + '_mask'+'.png'
+       maskSet = video_tools.formMaskDiff(startFileName, destFileName)
+# for now, just save the first mask
+       if len(maskSet) > 0:
+          mask = Image.fromarray(maskSet[0]['mask'])
+          for item in maskSet:
+             item.pop('mask')
+       analysis['masks count']=len(maskSet)
+       analysis['videomasks'] = maskSet
        metaDataDiff = video_tools.formMetaDataDiff(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}
        analysis['metadatadiff'] = metaDataDiff
        return maskname,mask, analysis
+
+    def getTypeName(self):
+       return 'Video'
+
+    def _constructDonorMask(self,destination):
+       """
+         Used for Donor images, the mask recording a 'donation' is the inversion of the difference
+         of the Donor image and its parent, it exists.
+         Otherwise, the donor image mask is the donor image (minus alpha channels):
+       """
+       maskname=self.start + '_' + destination + '_mask'+'.png'
+       predecessors = self.G.predecessors(self.start)
+       for pred in predecessors:
+          edge = self.G.get_edge(pred,self.start) 
+          if edge['op']!='Donor':
+             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
+       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
+    
+    def _getModificationForEdge(self,edge):
+       mod = ImageProjectModel._getModificationForEdge(self,edge)
+       if 'videomasks' in edge and len(edge['videomasks'])> 0:
+          mod.setMaskSet( VideoMaskSetInfo(edge['videomasks']))
+       return mod
+
+class VideoMaskSetInfo:
+    columnNames = ['Start','End','Frames','File']
+    columnValues = {}
+
+    def __init__(self,maskset):
+      self.columnValues = {}
+      for i in range(len(maskset)):
+        self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
+      
+    def _convert(self,item):
+       return {'Start':item['starttime'],'End':item['endtime'],'Frames':item['frames'],'File':item['videosegment']}
+

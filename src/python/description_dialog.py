@@ -4,7 +4,7 @@ from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage
+from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile
 from scenario_model import Modification
 from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory,getOperation
 import os
@@ -42,8 +42,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    arginfo = []
    mandatoryinfo = []
 
-   def __init__(self, parent,dir,im,name, description=None):
+   def __init__(self, parent,uiProfile,dir,im,name, description=None):
       self.dir = dir
+      self.uiProfile = uiProfile
       self.im = im
       self.parent = parent
       self.argvalues=description.arguments if description is not None else {}
@@ -181,7 +182,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
           res = None
           arg = self.arginfo[index]
           if arg == 'inputmaskname':
-             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = self.uiProfile.filetypes)
              if (val != None and len(val)> 0):
                 res=val
                 self.inputMaskName = res
@@ -222,7 +223,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
    c= None
    metadiff = None
 
-   def __init__(self,parent,dir,im,name, description=None,metadiff=None):
+   def __init__(self,parent,dir,im,name,description=None,metadiff=None):
       self.im = im
       self.dir = dir
       self.parent = parent
@@ -231,40 +232,41 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):
-      Label(master, text="Category:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
-      Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
-      Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
-      Label(master, text="Software Name:",anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
-      Label(master, text="Software Version:",anchor=W,justify=LEFT).grid(row=4, column=0,sticky=W)
+      vscrollbar = Scrollbar(master, orient=VERTICAL)
+      Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
+      Label(master, text="Software:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
       Label(master, text=getCategory(self.description),anchor=W,justify=LEFT).grid(row=0, column=1,sticky=W)
-      Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=1,column=1,sticky=W)
-      Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
-      Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=3, column=1,sticky=W)
-      Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=4, column=1,sticky=W)
-      row=5
+      Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=0,column=2,sticky=W)
+      Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=1, column=1,sticky=W)
+      Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
+      Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=2, column=2,sticky=W)
+      row=3
       if len(self.description.arguments)>0:
-        Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=W)
+        Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=W)
         row+=1
         for argname,argvalue in self.description.arguments.iteritems(): 
-             Label(master, text='      ' + argname + ': ' + argvalue,justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=W)
+             Label(master, text='      ' + argname + ': ' + argvalue,justify=LEFT).grid(row=row, column=0, columnspan=4,sticky=W)
              row+=1
       if self.description.inputMaskName is not None:
-        Label(master, text='Mask:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=W)
-        self.inputmask = ImageTk.PhotoImage(openImage(os.path.join(self.dir,self.description.inputMaskName)))
-        self.m = Canvas(master, width=250, height=250)
-        self.moc = self.m.create_image(125,125,image=self.inputmask, tag='imgm')
-        self.m.grid(row=row+1, column=0, columnspan=2,sticky=E+W)
-        row+=2
-      if self.metadiff is not None:
-        Label(master, text=self.metadiff.getMetaType() +' Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=E+W)
+        self.inputmaskframe = ButtonFrame(master,self.description.inputMaskName, self.dir, \
+             label='Mask ('+self.description.inputMaskName+'):',isMask=True,preserveSnapshot=True)
+        self.inputmaskframe.grid(row=row, column=0, columnspan=4,sticky=E+W)
         row+=1
-        self.metaBox = MetaDiffTable(master,self.metadiff)
+      if self.metadiff is not None:
         sections = self.metadiff.getSections()
+        Label(master, text=self.metadiff.getMetaType() +' Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2 if sections else 4,sticky=E+W)
+        self.metaBox = MetaDiffTable(master,self.metadiff)
         if sections is not None:
            self.sectionBox = Spinbox(master,values=['Section ' + section for section in sections], command=self.changeSection)
-           self.sectionBox.grid(row=row,column=0,columnspan=2,sticky=E+W)
-           row+=1
-        self.metaBox.grid(row=row,column=0, columnspan=2,sticky=E+W)
+           self.sectionBox.grid(row=row,column=1,columnspan=2,sticky=SE+NW)
+        row+=1
+        self.metaBox.grid(row=row,column=0, columnspan=4,sticky=E+W)
+        row+=1
+      if self.description.maskSet is not None:
+        self.maskBox = MaskSetTable(master,self.description.maskSet,openColumn=3,dir=self.dir)
+        self.maskBox.grid(row=row,column=0, columnspan=4,sticky=SE+NW)
+        row+=1
 
    def changeSection(self):
       self.metaBox.setSection(self.sectionBox.get()[8:])
@@ -286,10 +288,10 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
 
    def __init__(self,parent,scModel):
       self.scModel = scModel
-      tkSimpleDialog.Dialog.__init__(self, parent, "Select Image Node")
+      tkSimpleDialog.Dialog.__init__(self, parent, "Select " + scModel.getTypeName() + " Node")
 
    def body(self, master):
-      Label(master, text="Image Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      Label(master, text=self.scModel.getTypeName() + " Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       self.box = AutocompleteEntryInText(master,values=self.scModel.getNodeNames(), takefocus=True)
       self.box.grid(row=0,column=1)
       self.c = Canvas(master, width=250, height=250)
@@ -331,7 +333,6 @@ class CompareDialog(tkSimpleDialog.Dialog):
 
       iframe = Frame(master, bd=2, relief=SUNKEN)
       iframe.grid_rowconfigure(1, weight=1)
-#      iframe.grid_columnconfigure(0, weight=1)
       Label(iframe, text='  '.join([key + ': ' + str(value) for key,value in self.analysis.items()]),anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       iframe.grid(row=1,column=0,columnspan=2, sticky=N+S+E+W)
 
@@ -405,7 +406,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             d = ImageNodeCaptureDialog(self, self.scModel)
             res = d.selectedImage
           elif arg[0] == 'inputmaskname':
-             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = self.parent.uiProfile.filetypes)
              if (val != None and len(val)> 0):
                 res=val
           else:
@@ -484,6 +485,117 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
    def getGroup(self):
       return self.grouptocall
 
+class ActionableTableCanvas(TableCanvas):
+
+   def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.',**kwargs):
+       self.openColumn = openColumn
+       self.dir = dir
+       TableCanvas.__init__(self,parent=parent,model=model,width=width,height=height,**kwargs)
+
+   def handle_double_click(self, event):
+      row = self.get_row_clicked(event)
+      self.openFile(row)
+
+   def openFile(self,row):
+      model=self.getModel()      
+      f = model.getValueAt(row,self.openColumn)
+      print f
+      openFile(os.path.join(self.dir,f))
+
+   def popupMenu(self, event, rows=None, cols=None, outside=None):
+        """Add left and right click behaviour for canvas, should not have to override
+            this function, it will take its values from defined dicts in constructor"""
+
+        defaultactions = {"Set Fill Color" : lambda : self.setcellColor(rows,cols,key='bg'),
+                        "Set Text Color" : lambda : self.setcellColor(rows,cols,key='fg'),
+                        "Open":  lambda : self.openFile(row),
+                        "Copy" : lambda : self.copyCell(rows, cols),
+                        "View Record" : lambda : self.getRecordInfo(row),
+                        "Select All" : self.select_All,
+                        "Filter Records" : self.showFilteringBar,
+                        "Export csv": self.exportTable,
+                        "Plot Selected" : self.plotSelected,
+                        "Plot Options" : self.plotSetup,
+                        "Export Table" : self.exportTable,
+                        "Preferences" : self.showtablePrefs,
+                        "Formulae->Value" : lambda : self.convertFormulae(rows, cols)}
+
+        if self.openColumn:
+          main = ["Open","Set Fill Color","Set Text Color","Copy"]
+        else:
+          main = ["Set Fill Color","Set Text Color","Copy"]
+        general = ["Select All", "Filter Records", "Preferences"]
+        filecommands = ['Export csv']
+        plotcommands = ['Plot Selected','Plot Options']
+        utilcommands = ["View Record", "Formulae->Value"]
+
+        def createSubMenu(parent, label, commands):
+            menu = Menu(parent, tearoff = 0)
+            popupmenu.add_cascade(label=label,menu=menu)
+            for action in commands:
+                menu.add_command(label=action, command=defaultactions[action])
+            return menu
+
+        def add_commands(fieldtype):
+            """Add commands to popup menu for column type and specific cell"""
+            functions = self.columnactions[fieldtype]
+            for f in functions.keys():
+                func = getattr(self, functions[f])
+                popupmenu.add_command(label=f, command= lambda : func(row,col))
+            return
+
+        popupmenu = Menu(self, tearoff = 0)
+        def popupFocusOut(event):
+            popupmenu.unpost()
+
+        if outside == None:
+            #if outside table, just show general items
+            row = self.get_row_clicked(event)
+            col = self.get_col_clicked(event)
+            coltype = self.model.getColumnType(col)
+            def add_defaultcommands():
+                """now add general actions for all cells"""
+                for action in main:
+                    popupmenu.add_command(label=action, command=defaultactions[action])
+                return
+
+#            if self.columnactions.has_key(coltype):
+#                add_commands(coltype)
+            add_defaultcommands()
+
+        for action in general:
+            popupmenu.add_command(label=action, command=defaultactions[action])
+
+        popupmenu.add_separator()
+        createSubMenu(popupmenu, 'File', filecommands)
+        createSubMenu(popupmenu, 'Plot', plotcommands)
+        if outside == None:
+            createSubMenu(popupmenu, 'Utils', utilcommands)
+        popupmenu.bind("<FocusOut>", popupFocusOut)
+        popupmenu.focus_set()
+        popupmenu.post(event.x_root, event.y_root)
+        return popupmenu
+
+
+class MaskSetTable(Frame):
+
+    section = None
+    def __init__(self, master,items,openColumn=3,dir='.',**kwargs):
+        self.items = items
+        Frame.__init__(self, master,  **kwargs)
+        self._drawMe(dir,openColumn)
+  
+    def _drawMe(self,dir,openColumn):
+       model = TableModel()
+       for c in self.items.columnNames:
+          model.addColumn(c)
+       model.importDict(self.items.columnValues)
+
+       self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True,height=125,openColumn=openColumn,dir=dir)
+       self.table.updateModel(model)
+       self.table.createTableFrame()
+
+
 class MetaDiffTable(Frame):
 
     section = None
@@ -506,9 +618,13 @@ class MetaDiffTable(Frame):
           model.addColumn(c)
        model.importDict(self.items.toColumns(self.section))
 
-       self.table = TableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True)
+       self.grid_rowconfigure(0, weight=1)
+       self.grid_columnconfigure(0, weight=1)
+
+       self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True,height=125)
        self.table.updateModel(model)
        self.table.createTableFrame()
+       
   
 
 class ListDialog(Toplevel):
@@ -606,10 +722,10 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
    def useinputmask(self):
        if self.useInputMaskVar.get() == 'yes':
-          self.im = openImage(os.path.join(self.dir,self.modification.inputMaskName))
+          self.im = openImage(os.path.join(self.dir,self.modification.inputMaskName),isMask=True,preserveSnapshot=True)
           self.selectMaskName = self.modification.inputMaskName
        elif self.modification.changeMaskName is not None:
-          self.im = openImage(os.path.join(self.dir,self.modification.changeMaskName))
+          self.im = openImage(os.path.join(self.dir,self.modification.changeMaskName),isMask=True,preserveSnapshot=True)
           self.selectMaskName = self.modification.changeMaskName
        else:
           self.im = Image.fromarray(np.zeros((250,250)))
@@ -617,11 +733,11 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
        self.c.itemconfig(self.image_on_canvas, image = self.photo)
 
    def changemask(self):
-        val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask", \
-              filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilename(initialdir = self.dir, title = "Select Input Mask", \
+              filetypes = self.parent.uiProfile.filetypes)
         if (val != None and len(val)> 0):
             self.selectMaskName = val
-            self.im = openImage(val)
+            self.im = openImage(val,isMask=True,preserveSnapshot=os.path.split(os.path.abspath(fileName))[0]==dir)
             self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
             self.c.itemconfig(self.image_on_canvas, image = self.photo)
 
@@ -669,3 +785,18 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
        self.im.save(val)
        self.ok()
 
+
+class ButtonFrame(Frame):
+ 
+   def __init__(self,master,fileName,dir,label=None,isMask=False,preserveSnapshot=False,**kwargs):
+      Frame.__init__(self,master,**kwargs)
+      self.fileName = fileName
+      self.dir = dir
+      Label(self, text=label if label else fileName,anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      img = openImage(os.path.join(dir,fileName),isMask=isMask,preserveSnapshot=preserveSnapshot)
+      self.img = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(img,(125,125),img.size)))
+      w = Button(self, text=fileName, width=10, command=self.openMask, default=ACTIVE,image=self.img)
+      w.grid(row=1,sticky=E+W)
+
+   def openMask(self):
+      openFile(os.path.join(self.dir,self.fileName))

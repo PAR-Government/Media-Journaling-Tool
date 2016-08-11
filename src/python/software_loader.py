@@ -79,7 +79,7 @@ def saveJSON(filename):
     opnamelist = list(operations.keys())
     opnamelist.sort()
     oplist = [operations[op] for op in opnamelist]
-    with open('operations.json','w') as f:
+    with open(filename,'w') as f:
       json.dump({'operations' : oplist},f,indent=2,cls=OperationEncoder)
 
 def loadJSON(fileName):

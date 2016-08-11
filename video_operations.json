@@ -5,6 +5,7 @@
       "name": "AdditionalEffectAddLightSource", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -16,6 +17,7 @@
       "name": "AdditionalEffectFading", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -27,6 +29,7 @@
       "name": "AdditionalEffectReduceInterlaceFlicker", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -38,6 +41,7 @@
       "name": "AdditionalEffectFilterAddNoise", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -49,6 +53,7 @@
       "name": "AdditionalEffectFilterBlur", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -57,31 +62,10 @@
     }, 
     {
       "category": "AdditionalEffect", 
-      "name": "AdditionalEffectCutFrames", 
-      "mandatoryparameters": [], 
-      "rules": [
-        "checkLengthSmaller"
-      ], 
-      "optionalparameters": [],
-      "description": "Removing a series of frames from a video clip",
-      "includeInMask": false
-    }, 	
-    {
-      "category": "AdditionalEffect", 
-      "name": "AdditionalEffectAddFrames", 
-      "mandatoryparameters": [], 
-      "rules": [
-        "checkLengthBigger"
-      ], 
-      "optionalparameters": ["CGI Clip"], 
-      "description": "Adding a series of frames from a video clip",
-      "includeInMask": false
-    }, 	
-    {
-      "category": "AdditionalEffect", 
       "name": "AdditionalEffectWarpStabilize", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -93,6 +77,7 @@
       "name": "AdditionalEffectFilterMedianSmoothing", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -104,6 +89,7 @@
       "name": "AdditionalEffectFilterSharpening", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -115,6 +101,7 @@
       "name": "AdditionalEffectFilterSmoothing", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -126,6 +113,7 @@
       "name": "AdditionalEffectGradientEffect", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -137,6 +125,7 @@
       "name": "AdditionalEffectSoftEdgeBrushing", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -157,6 +146,7 @@
       "name": "AntiForensicCameraFingerprintAberrationCorrection", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -168,6 +158,7 @@
       "name": "AntiForensicCameraFingerprintCFAHiding", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -179,6 +170,7 @@
       "name": "AntiForensicCameraFingerprintCFAInterpolation", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -190,6 +182,7 @@
       "name": "AntiForensicCameraFingerprintCFAResize", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -201,6 +194,7 @@
       "name": "AntiForensicCameraFingerprintCFARotation", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -212,6 +206,7 @@
       "name": "AntiForensicCameraFingerprintENFAlternation", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -223,6 +218,7 @@
       "name": "AntiForensicCameraFingerprintPhotoResponseNonUniformity", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -234,6 +230,7 @@
       "name": "AntiForensicCompressionCompressionNormalization", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -245,6 +242,7 @@
       "name": "AntiForensicCopyExif", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -311,6 +309,7 @@
       "name": "ArtifactsCGIArtificialLighting", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -322,6 +321,7 @@
       "name": "ArtifactsCGIArtificialReflection", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -333,6 +333,7 @@
       "name": "ArtifactsCGIArtificialShadow", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -344,6 +345,7 @@
       "name": "ArtifactsCGIObjectCGI", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -355,6 +357,7 @@
       "name": "ColorBlendColorBurn", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -366,6 +369,7 @@
       "name": "ColorBlendColorInterpolation", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -377,6 +381,7 @@
       "name": "ColorBlendDissolve", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -388,6 +393,7 @@
       "name": "ColorBlendMultiply", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -399,6 +405,7 @@
       "name": "ColorColorBalance", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -410,6 +417,7 @@
       "name": "ColorFill", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -421,6 +429,7 @@
       "name": "ColorHue", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -432,6 +441,7 @@
       "name": "ColorMatchColor", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -443,6 +453,7 @@
       "name": "ColorOpacity", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -454,6 +465,7 @@
       "name": "ColorReplaceColor", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -465,6 +477,7 @@
       "name": "ColorSaturation", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -476,6 +489,7 @@
       "name": "ColorVibranceContentBoosting", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -487,6 +501,7 @@
       "name": "ColorVibranceReduction", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -498,6 +513,7 @@
       "name": "CreationFilterGT", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -509,6 +525,7 @@
       "name": "FillBackground", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -520,6 +537,7 @@
       "name": "FillCloneRubberStamp", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -531,6 +549,7 @@
       "name": "FillContentAwareFill", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -542,6 +561,7 @@
       "name": "FillForeground", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -553,6 +573,7 @@
       "name": "FillGradient", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -564,6 +585,7 @@
       "name": "FillHealingBrush", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -575,6 +597,7 @@
       "name": "FillImageInterpolation", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -586,6 +609,7 @@
       "name": "FillInpainting", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -597,6 +621,7 @@
       "name": "FillLocalRetouching", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -608,6 +633,7 @@
       "name": "FillPaintBrushTool", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -619,6 +645,7 @@
       "name": "FillPaintBucket", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -630,6 +657,7 @@
       "name": "FillPattern", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -641,6 +669,7 @@
       "name": "FillRubberStamp", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -652,6 +681,7 @@
       "name": "FilterBlurMotion", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -663,6 +693,7 @@
       "name": "FilterBlurNoise", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -674,6 +705,7 @@
       "name": "FilterCameraRawFilter", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -693,7 +725,9 @@
       "category": "Filter", 
       "name": "FilterKeying", 
       "mandatoryparameters": [], 
-      "rules": [ ], 
+      "rules": [
+        "checkLengthSame"
+      ], 
       "optionalparameters": [], 
       "description": "Remove a color from a layer of video.",
       "includeInMask": false
@@ -703,6 +737,7 @@
       "name": "IntensityBrightness", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -714,6 +749,7 @@
       "name": "IntensityContrast", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -725,6 +761,7 @@
       "name": "IntensityCurves", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -736,6 +773,7 @@
       "name": "IntensityDarken", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -747,6 +785,7 @@
       "name": "IntensityDesaturate", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -758,6 +797,7 @@
       "name": "IntensityExposure", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -769,6 +809,7 @@
       "name": "IntensityHardlight", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -780,6 +821,7 @@
       "name": "IntensityHighlight", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -791,6 +833,7 @@
       "name": "IntensityLevels", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -802,6 +845,7 @@
       "name": "IntensityLighten", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -813,6 +857,7 @@
       "name": "IntensityLuminosity", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -824,6 +869,7 @@
       "name": "IntensitySoftlight", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": ["inputmaskname"], 
@@ -835,6 +881,7 @@
       "name": "MarkupDigitalPenDraw", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -846,6 +893,7 @@
       "name": "MarkupHandwriting", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -857,6 +905,7 @@
       "name": "MarkupOverlayObject", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -868,6 +917,7 @@
       "name": "MarkupOverlayText", 
       "mandatoryparameters": [], 
       "rules": [
+        "checkLengthSame",
         "checkSize"
       ], 
       "optionalparameters": [], 
@@ -909,6 +959,46 @@
     }, 
     {
       "category": "Output", 
+      "name": "OutputXVID", 
+      "mandatoryparameters": [], 
+      "rules": [
+      ], 
+      "optionalparameters": [], 
+      "description": "Export the image in the xvid format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputMOV", 
+      "mandatoryparameters": [], 
+      "rules": [
+      ], 
+      "optionalparameters": [], 
+      "description": "Export the image in the MOV format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputMP4", 
+      "mandatoryparameters": [], 
+      "rules": [
+      ], 
+      "optionalparameters": [], 
+      "description": "Export the image in the MP4 format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputAVI", 
+      "mandatoryparameters": [], 
+      "rules": [
+      ], 
+      "optionalparameters": [], 
+      "description": "Export the image in the AVI format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
       "name": "OutputTif", 
       "mandatoryparameters": [], 
       "rules": [
@@ -921,9 +1011,11 @@
     {
       "category": "Paste", 
       "name": "PasteClone", 
-      "mandatoryparameters": [], 
+      "mandatoryparameters": ["Start Time","Stop Time"], 
       "rules": [
-        "checkSize"
+        "checkLengthSame",
+        "checkSize",
+	"timeCheckRule"
       ], 
       "optionalparameters": [], 
       "description": "Paste a region selected using a clone tool into the same image.",
@@ -931,27 +1023,41 @@
     }, 
     {
       "category": "Paste", 
-      "name": "PasteDuplicate", 
-      "mandatoryparameters": [
-        "inputmaskname"
-      ], 
+      "name": "PasteFrames", 
+      "mandatoryparameters": [ "Start Time","Stop Time"], 
       "rules": [
-        "checkSize"
+        "checkDonor",
+        "checkLengthBigger",
+	"timeCheckRule"
       ], 
-      "optionalparameters": [], 
-      "description": "Paste a region selected from the same image. The pasted region can be resized and rotated as one operation.",
+      "optionalparameters": [""], 
+      "description": "Adding a series of frames from a video clip",
+      "includeInMask": true
+    }, 	
+    {
+      "category": "Paste", 
+      "name": "PasteOverlay",
+      "mandatoryparameters": [],
+      "rules": [
+        "checkDonor",
+        "checkLengthSame",
+	"timeCheckRule"
+      ], 
+      "optionalparameters": ["Start Time","Stop Time"], 
+      "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": true
     }, 
     {
       "category": "Paste", 
-      "name": "PasteSplice", 
+      "name": "PasteImageSplice", 
       "mandatoryparameters": [], 
       "rules": [
         "checkSize", 
-        "checkForDonor"
+        "checkForDonor",
+	"timeCheckRule"
       ], 
-      "optionalparameters": [], 
-      "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
+      "optionalparameters": ["Start Time","Stop Time"], 
+      "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true
     }, 
     {
@@ -967,31 +1073,52 @@
     },
     {
       "category": "Select", 
-      "name": "SelectRegion", 
+      "name": "SelectRegionFromImage", 
       "mandatoryparameters": [], 
       "rules": [
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.",
+      "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false
     }, 
     {
       "category": "Select", 
-      "name": "SelectRemove", 
+      "name": "SelectRegionFromFrames", 
+      "mandatoryparameters": [],
+      "rules": [
+	"timeCheckRule" ], 
+      "optionalparameters": ["Start Time","End Time"], 
+      "description": "Create a limited selection,removing background,from a donor video.  The result should be a black back ground.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectRemoveFromFrames", 
       "mandatoryparameters": [], 
       "rules": [
         "checkSize"
       ], 
       "optionalparameters": [], 
-      "description": "Remove a limited selection within an image.",
+      "description": "Remove a region from a series of frames.",
       "includeInMask": true
     }, 
     {
+      "category": "Select", 
+      "name": "SelectCutFrames", 
+      "mandatoryparameters": [], 
+      "rules": [
+        "checkLengthSmaller"
+      ], 
+      "optionalparameters": [],
+      "description": "Removing a series of frames from a video clip",
+      "includeInMask": false
+    }, 	
+    {
       "category": "TimeAlteration", 
       "name": "TimeAlterationEcho", 
-      "mandatoryparameters": [], 
-      "rules": [],
+      "mandatoryparameters": ["Echo Time","Number of Echos","Starting Intensities"], 
+      "rules": ["checkLengthSame"],
       "optionalparameters": [], 
       "description": "Duplicate video frames and replay them at a delay to create a trail.",
       "includeInMask": false
@@ -999,17 +1126,26 @@
     {
       "category": "TimeAlteration", 
       "name": "TimeAlterationPosterizeTime", 
-      "mandatoryparameters": [], 
-      "rules": [],
+      "mandatoryparameters": ["Frame Rate"], 
+      "rules": ["checkLengthSame"],
       "optionalparameters": [], 
       "description": "Lock a layer to a specific frame rate.",
       "includeInMask": false
     },	
     {
+      "category": "TimeAlteration",
+      "name": "TimeAlterationDifferenceEffect",
+      "mandatoryparameters": ["Time Offset","Contrast"],
+      "rules": ["checkLengthSame"],
+      "optionalparameters": [],
+      "description": "Calculate the color difference between two layers as a useful aid in color correction",
+      "includeInMask": false
+    },
+    {
       "category": "TimeAlteration", 
       "name": "TimeAlterationDisplacementEffect", 
-      "mandatoryparameters": [], 
-      "rules": [], 
+      "mandatoryparameters": ["Max Displacement Time","Time Resolution"], 
+      "rules": ["checkLengthSame","maxDisplacementCheck","timeResolutionCheck"], 
       "optionalparameters": [], 
       "description": "Distorts the image by shifting pixels across time.",
       "includeInMask": false
@@ -1017,10 +1153,10 @@
     {
       "category": "TimeAlteration", 
       "name": "TimeAlterationWarp", 
-      "mandatoryparameters": [], 
-      "rules": [],
-      "optionalparameters": [], 
-      "description": "Alter frame rate and frame blending to change playback rate.",
+      "mandatoryparameters": ["Method","Vector Detail"], 
+      "rules": ["warpMethodCheckRule", "vectorDetailRule", "adjustTimeRule"],
+      "optionalparameters": ["Smoothing","Weighting", "Adjust Time By"], 
+      "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
       "includeInMask": false
     },	
     {
