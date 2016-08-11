@@ -45,7 +45,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
        suffixPos = 0
        while len(selectionSet) == 0 and suffixPos < len(suffixes):
           suffix = suffixes[suffixPos]
-          selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(suffix)]
+          selectionSet = [filename for filename in os.listdir(dir) if filename.lower().endswith(suffix)]
           selectionSet.sort()
           suffixPos+=1
        projectFile = selectionSet[0] if len(selectionSet) > 0 else None
@@ -256,7 +256,7 @@ class ImageProjectModel:
        """
        initialYpos = ypos
        for suffix in suffixes:
-         p = [filename for filename in os.listdir(dir) if filename.endswith(suffix) and not filename.endswith('_mask' + suffix)]
+         p = [filename for filename in os.listdir(dir) if filename.lower().endswith(suffix) and not filename.endswith('_mask' + suffix)]
          p.sort()
          for filename in p:
              pathname = os.path.abspath(os.path.join(dir,filename))
@@ -459,14 +459,14 @@ class ImageProjectModel:
        if (self.start is None):
           None
        startNode = self.G.get_node(self.start)
-       suffix = None
+       prefix = None
        if (startNode.has_key('seriesname')):
-         suffix = startNode['seriesname']
+         prefix = startNode['seriesname']
        if (self.end is not None):
           endNode = self.G.get_node(self.end)
           if (endNode.has_key('seriesname')):
-            suffix = startNode['seriesname']
-       return suffix
+            prefix = startNode['seriesname']
+       return prefix
 
     def getName(self):
      return self.G.get_name()
@@ -628,14 +628,14 @@ class ImageProjectModel:
        total_errors = []
        for node in self.G.get_nodes():
          if not self.G.has_neighbors(node):
-             total_errors.append((node,node,node + ' is not connected to other nodes'))
+             total_errors.append((str(node),str(node),str(node) + ' is not connected to other nodes'))
 
        for frm,to in self.G.get_edges():
           edge = self.G.get_edge(frm,to)
           op = edge['op'] 
           errors = graph_rules.run_rules(op,self.G,frm,to)
           if len(errors) > 0:
-              total_errors.extend( [(frm,to,frm + ' => ' + to + ': ' + err) for err in errors])
+              total_errors.extend( [(str(frm),str(to),str(frm) + ' => ' + str(to) + ': ' + err) for err in errors])
        return total_errors
 
     def _findBaseNodes(self,node):
@@ -658,7 +658,7 @@ class ImageProjectModel:
         endPointTuples = self._getTerminalAndBaseNodeTuples()
         pairs = []
         for endPointTuple in endPointTuples:
-           matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if self.G.get_pathname(baseNode).endswith(suffix)]
+           matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if self.G.get_pathname(baseNode).lower().endswith(suffix)]
            if len(matchBaseNodes) > 0:
               projectNodeIndex = matchBaseNodes.index(self.G.get_name()) if self.G.get_name() in matchBaseNodes else 0
               baseNode = matchBaseNodes[projectNodeIndex]
@@ -685,7 +685,7 @@ class ImageProjectModel:
       """
       op = plugins.getOperation(filter)
       suffixPos = filename.rfind('.')
-      suffix = filename[suffixPos:]
+      suffix = filename[suffixPos:].lower()
       preferred = plugins.getPreferredSuffix(filter)
       if preferred is not None:
           suffix = preferred
@@ -767,7 +767,7 @@ class ImageProjectModel:
       suffix = self.start
       seriesName = self.getSeriesName()
       if seriesName is not None:
-         suffix = seriesName
+         prefix = seriesName
 
       def filterFunction (file):
          return not self.G.has_node(os.path.split(file[0:file.rfind('.')])[1]) and not(file.rfind('_mask')>0)
@@ -778,7 +778,7 @@ class ImageProjectModel:
          return set
       
       nfile = None
-      for file in findFiles(self.G.dir,suffix, filterFunction):
+      for file in findFiles(self.G.dir,prefix, filterFunction):
          nfile = file
          break
       return self.G.openImage(nfile) if nfile is not None else None,nfile
