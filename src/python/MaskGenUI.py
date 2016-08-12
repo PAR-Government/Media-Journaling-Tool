@@ -138,6 +138,8 @@ class MakeGenUI(Frame):
        msg,pairs = ToJPGGroupOperation(self.scModel).performOp()
        if msg is not None:
          tkMessageBox.showwarning("Error", msg)
+         if not pairs:
+             return
        if len(pairs) == 0:
          tkMessageBox.showwarning("Warning", "Leaf image nodes with base JPEG images do not exist in this project")
        for pair in pairs:
