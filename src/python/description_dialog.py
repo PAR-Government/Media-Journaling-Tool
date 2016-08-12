@@ -238,7 +238,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       Label(master, text="Software:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
       Label(master, text=getCategory(self.description),anchor=W,justify=LEFT).grid(row=0, column=1,sticky=W)
       Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=0,column=2,sticky=W)
-      Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=1, column=1,sticky=W)
+      Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=1, column=1,columnspan=3,sticky=W)
       Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
       Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=2, column=2,sticky=W)
       row=3
