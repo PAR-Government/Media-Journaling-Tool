@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 
 Install Python 2.7 (supposedly works with Anaconda)
 
@@ -85,6 +85,8 @@ File > Fetch Meta-Data(S3) prompts the user for the bucket and path to pull down
 File > Validate Runs a validation rules on the project.  Erros are displayed in a list box. Clicking on each error high-lights the link or node in the graph, as if selected in the graph.
 
 File > Group Manager opens a separate dialog to manage groups of plugin filters.
+
+File > Settings > Username allows a user to change their name associated with the project. This setting will be saved for future projects. Changing this will not change the username associated with links that have already been created in the project.
 
 File > Quit [Control-q] Save and Quit
 

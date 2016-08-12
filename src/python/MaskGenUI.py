@@ -12,7 +12,7 @@ import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
-from tool_set import imageResizeRelative,fixTransparency
+from tool_set import *
 from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -49,6 +49,9 @@ class MakeGenUI(Frame):
     errorlistDialog = None
    
     gfl = GroupFilterLoader()
+
+    if prefLoader.get_key('username') is not None:
+        setPwdX(CustomPwdX(prefLoader.get_key('username')))
 
     def _check_dir(self,dir):
          set = [filename for filename in os.listdir(dir) if filename.endswith('.json')]
@@ -144,7 +147,13 @@ class MakeGenUI(Frame):
            self.canvas.add(pair[0],pair[1])
        self.drawState()
 
-         
+    def setusername(self):
+        name = get_username()
+        newName = tkSimpleDialog.askstring("Set Username", "Username", initialvalue=name)
+        if newName is not None:
+            self.prefLoader.save('username', newName)
+            setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
+
 
     def undo(self):
        self.scModel.undo()
@@ -450,6 +459,9 @@ class MakeGenUI(Frame):
         exportmenu.add_command(label="To File", command=self.export, accelerator="Ctrl+E")
         exportmenu.add_command(label="To S3", command=self.exporttoS3)
 
+        settingsmenu = Menu(tearoff=0)
+        settingsmenu.add_command(label="Username", command=self.setusername)
+
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About",command=self.about)
         filemenu.add_command(label="Open",command=self.open, accelerator="Ctrl+O")
@@ -461,6 +473,8 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="Validate", command=self.validate)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
         filemenu.add_command(label="Group Manager", command=self.groupmanager)
+        filemenu.add_separator()
+        filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
 
