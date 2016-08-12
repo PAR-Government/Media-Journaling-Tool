@@ -499,7 +499,6 @@ class ActionableTableCanvas(TableCanvas):
    def openFile(self,row):
       model=self.getModel()      
       f = model.getValueAt(row,self.openColumn)
-      print f
       openFile(os.path.join(self.dir,f))
 
    def popupMenu(self, event, rows=None, cols=None, outside=None):

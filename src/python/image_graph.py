@@ -10,28 +10,10 @@ import getpass
 import datetime
 from software_loader import Software, SoftwareLoader, getOS
 import tarfile
-from tool_set import openImage
+from tool_set import *
 
 igversion='0.1'
 
-try:
-  import pwd
-  import os
-  class PwdX():
-     def getpwuid(self):
-          return pwd.getpwuid( os.getuid() )[ 0 ]
-  pwdAPI = PwdX()
-except ImportError:
-  class PwdX():
-     def getpwuid(self):
-          return getpass.getuser()
-  pwdAPI = PwdX()
-
-#def setPwdX(pwdxAPI):
-#  pwdAPI = pwdxAPI
-
-def get_username():
-    return pwdAPI.getpwuid()
 
 def get_pre_name(file):
   pos = file.rfind('.')

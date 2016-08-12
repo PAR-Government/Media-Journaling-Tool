@@ -1,8 +1,7 @@
 import os
 import sys
 import argparse
-import shutil
-import boto3
+import scenario_model
 
 def pick_dirs(directory):
     """
@@ -15,33 +14,28 @@ def pick_dirs(directory):
     projects = []
 
     for sub in subs:
-        for File in os.listdir(sub):
-            if File.endswith(ext):
-                projects.append(sub)
+        for f in os.listdir(sub):
+            if f.endswith(ext):
+                projects.append(os.path.join(sub,f))
                 break
     return projects
 
+
 def upload_projects(values, dir):
     """
-    Zips project directories and uploads them to S3
+    Uploads project directories to S3 bucket
     :param values: bucket/dir S3 location
-    :param projects: list of project directories
+    :param dir: directory of project directories
     """
 
     projects = pick_dirs(dir)
     if not projects:
         sys.exit('No projects found!')
 
-    s3 = boto3.client('s3', 'us-east-1')
-
-    # handles file paths that use / or \
-    bucketDir = values.replace('\\','/').split('/')
-
     for project in projects:
-        zip = shutil.make_archive(project.replace('\\','/').split('/')[-1],
-                                  'zip', project)
-        s3.upload_file(bucketDir[0], bucketDir[1], zip)
-        os.remove(zip)
+        sm = scenario_model.ProjectModel(project)
+        sm.exporttos3(values)
+
 
 def main():
     parser = argparse.ArgumentParser()
