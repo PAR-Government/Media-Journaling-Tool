@@ -7,10 +7,41 @@ from skimage.measure import compare_ssim
 import warnings
 from scipy import ndimage
 from scipy import misc
+import getpass
 
 
-"""  These functions are designed to support mask generation.
 """
+These functions are designed to support mask generation.
+"""
+
+try:
+  import pwd
+  import os
+  class PwdX():
+     def getpwuid(self):
+          return pwd.getpwuid( os.getuid() )[ 0 ]
+
+except ImportError:
+  class PwdX():
+     def getpwuid(self):
+          return getpass.getuser()
+
+pwdAPI = PwdX()
+
+class CustomPwdX:
+   uid = None
+   def __init__(self, uid):
+      self.uid = uid
+   def getpwuid(self):
+      return self.uid
+
+def setPwdX(api):
+  global pwdAPI
+  pwdAPI = api
+
+
+def get_username():
+    return pwdAPI.getpwuid()
 
 def imageResize(img,dim):
    return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
@@ -310,4 +341,3 @@ def __seamMask(mask):
       for i in range(len(first)): 
         mask[first[i],i] = 255
       return mask
-    

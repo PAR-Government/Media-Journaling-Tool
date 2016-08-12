@@ -86,6 +86,8 @@ File > Validate Runs a validation rules on the project.  Erros are displayed in 
 
 File > Group Manager opens a separate dialog to manage groups of plugin filters.
 
+File > Settings > Username allows a user to change their name associated with the project. This setting will be saved for future projects. Changing this will not change the username associated with links that have already been created in the project.
+
 File > Quit [Control-q] Save and Quit
 
 Process > Add Images adds selected images to the project. Each image can be linked to other images within the graph.
