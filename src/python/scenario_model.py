@@ -325,7 +325,7 @@ class ImageProjectModel:
              return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
        return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
 
-    def _compareImages(self,start,destination, invert=False, arguments={}):
+    def _compareImages(self,start,destination, op, invert=False, arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
@@ -353,7 +353,7 @@ class ImageProjectModel:
        try:
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
          if maskname is None:
-             maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
+             maskname, mask, analysis = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
@@ -432,7 +432,7 @@ class ImageProjectModel:
           self.start = self.end
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),xpos=position[0],ypos=position[1])
        try:
-         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
+         maskname, mask, analysis = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
@@ -868,12 +868,15 @@ class VideoProjectModel(ImageProjectModel):
           return None
       return VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
 
-    def _compareImages(self,start,destination, invert=False, arguments={}):
+    def _compareImages(self,start,destination,op, invert=False,arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = Image.new("RGB", (250, 250), "black"),{}
        maskname=start + '_' + destination + '_mask'+'.png'
-       maskSet = video_tools.formMaskDiff(startFileName, destFileName)
+       maskSet = video_tools.formMaskDiff(startFileName, destFileName, \
+          startSegment = arguments['Start Time'] if 'Start Time' in arguments else None, \
+          endSegment = arguments['End Time'] if 'End Time' in arguments else None, \
+          applyConstraintsToOutput = op != 'SelectCutFrames')
 # for now, just save the first mask
        if len(maskSet) > 0:
           mask = Image.fromarray(maskSet[0]['mask'])
@@ -891,16 +894,23 @@ class VideoProjectModel(ImageProjectModel):
 
     def _constructDonorMask(self,destination):
        """
-         Used for Donor images, the mask recording a 'donation' is the inversion of the difference
+         Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
          of the Donor image and its parent, it exists.
          Otherwise, the donor image mask is the donor image (minus alpha channels):
        """
-       maskname=self.start + '_' + destination + '_mask'+'.png'
+       startNode = self.G.get_node(self.start)
+       startFileName = startNode['file']
+       suffix = startFileName[startFileName.rfind('.'):]
+       maskname=self.start + '_' + destination + '_mask.png'
        predecessors = self.G.predecessors(self.start)
+       analysis = {}
        for pred in predecessors:
           edge = self.G.get_edge(pred,self.start) 
           if edge['op']!='Donor':
-             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
+             if 'masks count' in edge:
+                analysis['masks count'] = edge['masks count']
+             analysis['videomasks'] = video_tools.invertVideoMasks(self.G.dir,edge['videomasks'],self.start,destination)
+             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),analysis
        return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
     
     def _getModificationForEdge(self,edge):

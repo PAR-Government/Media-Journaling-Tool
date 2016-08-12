@@ -3,6 +3,7 @@ import cv2
 from subprocess import call,Popen, PIPE
 import os
 import json
+from datetime import datetime
 
 def otsu(hist):
   total = sum(hist)
@@ -83,8 +84,7 @@ def _buildMasks(filename,histandcount):
     ret, frame = cap.read()
     if not ret:
       break
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    hist = np.histogram(gray,bins=bins)[0]
+    gray = _grayToRGB(frame)
     result = np.ones(gray.shape)*255
     totalMatch = 0
     for value in values: 
@@ -102,7 +102,7 @@ def buildMasksFromCombinedVideoOld(filename):
   hist = h/pc
   return _buildMasks(filename,hist)
 
-def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
+def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4',startSegment=None, endSegment=None, startTime=0):
   maskprefix = filename[0:filename.rfind('.')]
   capIn = cv2.VideoCapture(filename)
   capOut = None
@@ -121,11 +121,15 @@ def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
         sample = np.ones(frame[:,:,0].shape)*255
       if not ret:
         break
+      elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+      if startSegment and startSegment > elapsed_time:
+        continue
+      if endSegment and endSegment < elapsed_time:
+        break
       thresh = fgbg.apply(frame)
       if first:
         first = False
         continue
-      elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
 #      gray = frame[:,:,1]
 #      laplacian = cv2.Laplacian(frame,cv2.CV_64F)
 #      thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 11, 1)
@@ -137,30 +141,22 @@ def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
       closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
       totalMatch = sum(sum(closing))
       result = closing
-#      pixels = np.histogram(frame[:,:,1],bins=range(257))[0]
-#      unchangedValue =np.where(pixels==max(pixels))[0][0]
-#      result = np.ones(gray.shape)*255
-#      matches = gray!=unchangedValue
-#      totalMatch=sum(sum(matches))
-#      result[matches]=0
       if totalMatch>0:
         count+=1
         if start is None:
-          start = elapsed_time
+          start = elapsed_time + startTime
           sample = result
-          capOut = cv2.VideoWriter(_composeMaskName(maskprefix,elapsed_time,suffix), fourcc, capIn.get(cv2.cv.CV_CAP_PROP_FPS),(result.shape[1],result.shape[0]),False)
-#         cv2.imwrite(maskprefix + '_mask_' + str(elapsed_time) + '.png',result)      
-        result = result.astype('uint8')
-        capOut.write(cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
+          capOut = cv2.VideoWriter(_composeMaskName(maskprefix,start,suffix), fourcc, capIn.get(cv2.cv.CV_CAP_PROP_FPS),(result.shape[1],result.shape[0]),False)
+        capOut.write(_grayToRGB(result))
       else:
         if start is not None:
-          ranges.append({'starttime':start,'endtime':elapsed_time,'frames':count,'mask':sample,'videosegment':os.path.split(_composeMaskName(maskprefix,start,suffix))[1]})
+          ranges.append({'starttime':start,'endtime':elapsed_time+startTime,'frames':count,'mask':sample,'videosegment':os.path.split(_composeMaskName(maskprefix,start,suffix))[1]})
           capOut.release()
           count = 0
         start = None
         capOut = None
     if start is not None:
-      ranges.append({'starttime':start,'endtime':elapsed_time,'frames':count,'mask':sample,'videosegment':os.path.split(_composeMaskName(maskprefix,start,suffix))[1]})
+      ranges.append({'starttime':start,'endtime':elapsed_time+startTime,'frames':count,'mask':sample,'videosegment':os.path.split(_composeMaskName(maskprefix,start,suffix))[1]})
       capOut.release()
   finally:
     capIn.release()
@@ -168,9 +164,68 @@ def buildMasksFromCombinedVideo(filename,codec='mp4v',suffix='mp4'):
       capOut.release()
   return ranges
 
+def _rgbToGray(frame):
+   """
+     returnp  green only
+   """
+#  cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+   return frame[:,:,1]
+
+def _grayToRGB(frame):
+   """
+     project gray into Green
+   """
+#  cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
+   result = np.zeros((frame.shape[0],frame.shape[1],3))
+   result[:,:,1] = frame
+   return result.astype('uint8')
 
 def _composeMaskName(maskprefix,starttime,suffix):
    return maskprefix + '_mask_' + str(starttime) + '.' + suffix 
+
+def _invertSegment(dir,segmentFileName, prefix,starttime,codec='mp4v'):
+   """
+    Invert a single video file (gray scale)
+    """
+   suffix = segmentFileName[segmentFileName.rfind('.')+1:]
+   maskFileName = _composeMaskName(prefix,str(starttime),suffix)
+   capIn = cv2.VideoCapture(os.path.join(dir,segmentFileName))
+   fourcc = capIn.get(cv2.cv.CV_CAP_PROP_FOURCC)
+   if fourcc == 0:
+     fourcc = cv2.cv.CV_FOURCC(*codec)
+   capOut = cv2.VideoWriter(os.path.join(dir,maskFileName), fourcc, \
+             capIn.get(cv2.cv.CV_CAP_PROP_FPS), \
+             (int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)),int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))), \
+             False)
+   try:
+     ret = True
+     while(ret and  capIn.isOpened()):
+       ret, frame = capIn.read()
+       if ret:
+          result = _rgbToGray(frame)
+          result = abs(result - np.ones(result.shape)*255)
+          capOut.write(_grayToRGB(result))
+   finally:
+     capIn.release()
+     if capOut:
+       capOut.release()
+   return maskFileName
+   
+def invertVideoMasks(dir,videomasks,start,end):
+   """
+   Invert black/white for the video masks.
+   Save to a new files for the given start and end node names.
+   """
+   if videomasks is None:
+     return
+   prefix = start + '_' + end
+   result = []
+   for maskdata in videomasks:
+     maskdata = maskdata.copy()
+     maskdata['videosegment'] = _invertSegment(dir,maskdata['videosegment'], prefix, maskdata['starttime'])
+     result.append(maskdata)
+   return result
+
 
 def addToMeta(meta,prefix,line,split=True):
    parts = line.split(',') if split else [line]
@@ -267,14 +322,27 @@ def compareMeta(oneMeta,twoMeta,skipMeta=None):
 # video_tools.compareStream([{'i':0,'h':1},{'i':1,'h':1},{'i':2,'h':1},{'i':3,'h':1},{'i':5,'h':2},{'i':6,'k':3}],[{'i':0,'h':1},{'i':3,'h':1},{'i':4,'h':9},{'i':4,'h':2}], orderAttr='i')
 # [('delete', 1.0, 2.0, 2), ('add', 4.0, 4.0, 2), ('delete', 5.0, 6.0, 2)]
 def compareStream(a,b,orderAttr='pkt_pts_time',skipMeta=None):
+  """
+    Compare to lists of hash maps, generating 'add', 'delete' and 'change' records.
+    An order attribute (time stamp) is provided as the orderAttr, to identify each individual record.
+    The order attribute is required to identify sequence of added or removed hashes.
+    The order attribute serves as unique id of each hash.
+    The order attribute is a mandatory key in the hash.
+  """  
   apos = 0
   bpos = 0
   diff = []
   start=0
   while apos < len(a) and bpos < len(b):
     apacket = a[apos]
+    if orderAttr not in apacket:
+      apos+=1
+      continue 
     aptime = float(apacket[orderAttr])
     bpacket = b[bpos]
+    if orderAttr not in bpacket:
+      bpos+=1
+      continue 
     try:
       bptime = float(bpacket[orderAttr])
     except ValueError as e:
@@ -336,6 +404,9 @@ def compareFrames(oneFrames,twoFrames,skipMeta=None):
     
 #video_tools.formMetaDataDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
 def formMetaDataDiff(fileOne, fileTwo):
+  """
+  Obtaining frame and video meta-data, compare the two videos, identify changes, frame additions and frame removals
+  """
   oneMeta,oneFrames = getMeta(fileOne,withFrames=True)
   twoMeta,twoFrames = getMeta(fileTwo,withFrames=True)
   metaDiff = compareMeta(oneMeta,twoMeta)
@@ -353,13 +424,71 @@ def processSet(dir,set,postfix):
        json.dump({"meta":resMeta,"frames":resFrame},f,indent=2)
 
 
+def toMilliSeconds(st):
+  """
+    Convert time to millisecond
+  """
+  if not st or len(st) == 0:
+    return 0
+
+  stdt = None
+  try:
+    stdt = datetime.strptime(st, '%H:%M:%S.%f')
+  except ValueError:
+    stdt = datetime.strptime(st, '%H:%M:%S')
+  return (stdt.hour*3600 + stdt.minute*60 + stdt.second)*1000 + stdt.microsecond/1000
+
+def getDuration(st,et):
+  """
+   calculation duration
+  """
+  stdt = None
+  try:
+    stdt = datetime.strptime(st, '%H:%M:%S.%f')
+  except ValueError:
+    stdt = datetime.strptime(st, '%H:%M:%S')
+
+  etdt = None
+  try:
+    etdt = datetime.strptime(et, '%H:%M:%S.%f')
+  except ValueError:
+    etdt = datetime.strptime(et, '%H:%M:%S')
+
+  delta = etdt-stdt
+  if delta.days < 0:
+    return None
+
+  sec = delta.seconds
+  sec+= (1 if delta.microseconds > 0 else 0)
+  hr = sec/3600
+  mi = sec/60 - (hr*60)
+  ss = sec - (hr*3600) - mi*60
+  return '{:=02d}:{:=02d}:{:=02d}'.format(hr,mi,ss)
+
 #video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
-def formMaskDiff(fileOne, fileTwo):
+def formMaskDiff(fileOne, fileTwo,startSegment=None,endSegment=None,applyConstraintsToOutput=True):
+   """
+   Construct a diff video.  The FFMPEG provides degrees of difference by intensity variation in the green channel.
+   The normal intensity is around 98.
+   """
    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL','ffmpeg')
    prefixOne = fileOne[0:fileOne.rfind('.')]
    prefixTwo = os.path.split(fileTwo[0:fileTwo.rfind('.')])[1]
    postFix = fileOne[fileOne.rfind('.'):]
    outFileName = prefixOne + '_'  + prefixTwo + postFix
-   call([ffmpegcommand, '-y', '-i', fileOne, '-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', outFileName])  
-   return buildMasksFromCombinedVideo(outFileName)
+   command = [ffmpegcommand, '-y']
+   if startSegment:
+     command.extend(['-ss',startSegment])
+     if endSegment:
+       command.extend(['-t', getDuration(startSegment,endSegment)])
+   command.extend(['-i', fileOne])
+   if startSegment and applyConstraintsToOutput:
+     command.extend(['-ss',startSegment])
+     if endSegment:
+       command.extend(['-t', getDuration(startSegment,endSegment)])
+   command.extend(['-i', fileTwo,'-filter_complex', 'blend=all_mode=difference', outFileName])
+   print command
+   call(command)
+   return buildMasksFromCombinedVideo(outFileName,startTime=toMilliSeconds(startSegment))
+
 

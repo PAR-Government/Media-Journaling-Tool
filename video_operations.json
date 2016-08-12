@@ -1099,7 +1099,7 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": [], 
+      "optionalparameters": ["Start Time","End Time"], 
       "description": "Remove a region from a series of frames.",
       "includeInMask": true
     }, 
@@ -1110,7 +1110,7 @@
       "rules": [
         "checkLengthSmaller"
       ], 
-      "optionalparameters": [],
+      "optionalparameters": ["Start Time","End Time"],
       "description": "Removing a series of frames from a video clip",
       "includeInMask": false
     }, 	
