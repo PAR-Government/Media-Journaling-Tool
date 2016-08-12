@@ -107,7 +107,7 @@ class ImageGraph:
     origname = nname = get_pre_name(fname)
     suffix = get_suffix(fname)
     while (self.G.has_node(nname)):
-      nname = nname + '_' + str(self.nextId())
+      nname = '{}_{:=02d}'.format(nname, self.nextId())
       fname = nname + suffix
     newpathname = os.path.join(self.dir,fname)
     includePathInUndo = (newpathname in self.filesToRemove)
