@@ -1303,7 +1303,7 @@
       }, 
       "rules": [], 
       "optionalparameters": {}, 
-      "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation."
+      "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false
     }, 
     {
