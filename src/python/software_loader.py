@@ -54,26 +54,6 @@ def getSoftwareSet():
   global softwareset
   return softwareset
 
-def loadCSV(fileName,toObjectFunction):
-   d={}
-   with open(fileName) as f:
-     for l in f.readlines():
-         columns = l.split(',')
-         key = columns[0].strip()
-         if len(key) > 0:
-           d[key] = toObjectFunction(columns)
-   return d
-
-def toOperation(columns):
-    strippedList = [x.strip() for x in columns]
-    params = [x.strip() for x in strippedList[3].split('|')]
-    optionalparams= [param[0:param.find('[')] for param in params if param.find('[optional]')>0]
-    requiredparams= [param[0:param.find('[')] for param in params if param.find('[optional]')<0 and len(param)>0]
-    return Operation(name=strippedList[0], category=strippedList[1],includeInMask=strippedList[2] == 'I', \
-      rules = [] if len(strippedList)<5 else strippedList[4:], \
-      optionalparameters=optionalparams, \
-      mandatoryparameters=requiredparams)
-
 def saveJSON(filename):
     global operations
     opnamelist = list(operations.keys())
@@ -93,7 +73,7 @@ def loadJSON(fileName):
 def loadOperations(fileName):
     global operations
     global operationsByCategory
-    operations = loadCSV(fileName,toOperation) if fileName.endswith('csv') else loadJSON(fileName)
+    operations = loadJSON(fileName)
     operationsByCategory = {}
     for op,data in operations.iteritems():
       category =  data.category
