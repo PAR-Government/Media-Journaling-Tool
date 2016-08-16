@@ -21,5 +21,5 @@ def operation():
   return ['SelectRemove','Select','Apply a mask to create an alpha channel','OpenCV','2.4.13']
 
 def args():
-  return [('inputmaskname',None)]
+  return [('inputmaskname',None,'Mask to set alpha channel to 0')]
 

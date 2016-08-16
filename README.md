@@ -10,6 +10,8 @@ Uses opencv (cv2)
 
 Install exiftool
 
+Install ffmpeg and ffmprobe for video processing.
+
 For optional use of S3:
 pip install awscli
 
@@ -46,6 +48,7 @@ Assumes operations.csv and software.csv are located in the same directory as the
 
 The imagedir argument is a project directory with a project JSON file in the project directory.
 
+
 If the project JSON is not found and the imagedir contains is a set of images, then the images are sorted alphabetically, in the order JPG, PNG and TIFF, respectively. The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
 
 ```
@@ -56,27 +59,48 @@ If the operations.csv and software.csv are to be downloaded from a S3 bucket, th
 (1) Use command aws configure to setup you Access Id and Key
 (2) add the argument --s3 bucketname/pathname, for example MyBucket/metaData
 
+### Video Projects
+
+Video projects are similar to image projects, using a different set of software and operations.  The tool assumes  video_operations.csv and video_software.csv are located in the same directory as the tool.
+
+```
+% export PYTHONPATH=${PYTHONPATH}:src/python
+% python src/python/MaskGenUI.py  --videodir video
+```
+
+If the project JSON is not found and the videodir contains is a set of videos, then the videos are sorted alphabetically, in the order MP4, AVI, MOV, respectively. The first video file in the sorted list is used as the base video of the project and as a basis for the project name.  All videos in the videodir are imported into the project. An alternative base video can be chosen using the --base command parameter. 
+
+When using video, the displays used to show images show a select frame from the video.
+
 ## Projects
 
-The tool represents a project as a directory that contanins image, both original and manipulated, image masks and a project file (.json).  The project file describes the project.  A directory should only contain one project file.  The tool 'Save As' function does not permit two project files residing in the same directory.  'Save As' copies the contents of the current project directory to another project directory.  
+The tool represents a project as a directory that contanins image or video assets, both original and manipulated, masks and a project file (.json).  The project file describes the project.  A directory should only contain one project file.  The tool 'Save As' function does not permit two project files residing in the same directory.  'Save As' copies the contents of the current project directory to another project directory.  
 
-### Image File Management 
+### File Management 
 
-When images are added to a project, if the image does not already reside in the project directory, it is copied to the directory.  If an image file with the same name already exists in the directory, a name is assigned (appending a integer to the existing name).  The file/image type is unchanched. Adding the same image to the project results in a two separate copies of the image.  
+When images or videos are added to a project, if the source file does not already reside in the project directory, it is copied to the directory.  If an file with the same name already exists in the directory, a name is assigned (appending a integer to the existing name).  The file type is unchanched. Adding the same file to the project results in a two separate copies of the file and its contents.  
 
-If an image file is added to the project directory, then the image file is subject to removal if the image node is removed from the tool.  Removing a image link (manipulation action) results in removing the associated mask.
+If a file is added to the project directory, then the file is subject to removal if the associated node is removed from the tool.  Removing a link between nodes (manipulation action) results in removing the associated mask.
+
+### Artifacts
+
+Artifacts are all files associated with links and nodes.  A node represents a single video or image.  A link represents a operation that created the destination artifact from the source node's artifact.
+
+Links record a single action taken on one image to produce another.  An image node can only have one input link (see Paste Splice below).  An image node can contribute to multiple different manipulation paths resulting in many different images.  Therefore, an image node may have many mant output lnks.
+
+![Alt](doc/UIView.jpg "UI View")
 
 ## Using the Tool
 
 File > Open [Control-o] opens an existing project.
 
-File > Save [Control-s] saves a project (JSON file).  All project artifacts and images are saved in the to the project directory.
+File > Save [Control-s] saves a project (JSON file).  All project artifacts are saved in the to the project directory.
  
 File > Save As saves entire project to a new project directory and changes the name of the project.
 
-File > New [Control-n] creates a new project.  Select a base image file.  The directory containing that image file becomes the project directory.  The name of project is based on the name of the image file, removing the file type suffix. All images in the directory are automatically imported into the project.
+File > New [Control-n] creates a new project.  Select a base image or video file.  The directory containing that file becomes the project directory.  The name of project is based on the name of the file, removing the file type suffix. All images or videos in the directory are automatically imported into the project.
 
-File > Export > To File [Control-e] creates a compressed archive file of the project including images and masks.
+File > Export > To File [Control-e] creates a compressed archive file of the project including referenced artifacts.
 
 File > Export > To S3 creates a compressed archive file of the project and uploads to a S3 bucket and folder.  The user is prompted for the bucket/folderpath, separated by '/'.
 
@@ -92,66 +116,76 @@ File > Quit [Control-q] Save and Quit
 
 Process > Add Images adds selected images to the project. Each image can be linked to other images within the graph.
 
-Process > Next w/Auto Pick [Control-p] picks an image node without neighbors.  The chosen image node is the next node in found in lexicographic order. Preference is given to those image nodes that share the same prefix as the currently selected node. A dialog appears to capture the manipulation information including the type and additional description (optional).  The dialog displays the next selected image as confirmation. A link is then formed forom the current image node to the selected image node.
+Process > Add Video adds selected video to the project. Each video can be linked to other videos within the graph.
 
-Process > Next w/Auto Pick from File finds a modified version of current image file from the project directory.  The modified version of the file contains the same name as the initial image file, minus the file type suffix, with some additional characters.  If there is more than one modified version, they are processed in lexicographic order.  A dialog appears for each modification, capturing the type of modification and additional description (optional).  The dialog displays the next selected image as confirmation. A link is formed to the current image to the next selected image file.
+Process > Next w/Auto Pick [Control-p] picks a node without neighbors.  The chosen node is the next node in found in lexicographic order. Preference is given to those nodes that share the same prefix as the currently selected node. A dialog appears to capture the manipulation information including the type and additional description (optional).  The dialog displays the next selected node name as confirmation. A link is then formed from the current node to the selected node.
 
-Process > Next w/Add [Control-l] prompts with file finding window to select an image that differs from the current selected image by ONE modifications.  A dialog appears to capture the modification, including the type of modification and additional description (optional). The dialog dispays the next select image as confirmation. A link is formed between the current selected image to the newly loaded image.
+Process > Next w/Auto Pick from File finds a modified version of current file from the project directory.  The modified version of the file contains the same name as the initial file, minus the file type suffix, with some additional characters.  If there is more than one modified version, they are processed in lexicographic order.  A dialog appears for each modification, capturing the type of modification and additional description (optional).  The dialog displays the next selected image or video snapshot as confirmation. A link is formed to the current image to the next selected image file.
 
-Process > Next w/Filter [Control-f] prompts with modification to the current selected imaged.  The tool then applies the selected image to create a new image.  Unlike the other two 'next' functions, the set of operation is limited to those avaiable from the tool's plugins.  Furthermore, the image shown in the dialog window is the current selected image to which the selected modification is applied.
+Process > Next w/Add [Control-l] prompts with file finding window to select an file whose contents differ from the current selected node's artifact by ONE modifications.  A dialog appears to capture the modification, including the type of modification and additional description (optional). The dialog dispays the next selected artifact as confirmation. A link is formed between the current selected node to the newly loaded artifact.
 
-Process > Next w/Filter Group runs a group of plugin transforms against the selected image, creating an image node for each transform and a link to the new images from the selected image.
+Process > Next w/Filter [Control-f] prompts with modification to the current selected node.  The tool then applies a filter to the selected node's artifact to create a new artifact.  Unlike the other two 'next' functions, the set of operation is limited to those avaiable from the tool's plugins.  Furthermore, the image shown in the dialog window is the snapshot of current selected artifact to which the selected modification is applied.
 
-Process > Next w/Filter Sequence runs a group of plugin transforms in a sequence starting with the selected image.  Each transform results in a new image node.  The result from one transform is the input into the next transform.  Links are formed between each image node, in the same sequence.
+Process > Next w/Filter Group runs a group of plugin transforms against the selected node, creating a node for each transform and a link to the new node from the selected node.
+
+Process > Next w/Filter Sequence runs a group of plugin transforms in a sequence starting with the selected node.  Each transform results in a new node.  The result from one transform is the input into the next transform.  Links are formed between each node, in the same sequence.
 
 Process > Create JPEG is a convenience operation that runs two plugin filters, JPEG compression using the base image QT and EXIF copy from the base image, on the final manipulation nodes.  The end result is two additional nodes per each final manipulation node, sequenced from the manipulation node.  Included is the Donor links from the base image.  This operation only applies to JPEG base images.
 
 Process > Undo [Control-z] Undo the last operation performed.  The tool does not support undo of an undo.
 
-# Links and Image Nodes
+# Graph Operations
 
-Links record a single action taken on one image to produce another.  An image node can only have one input link (see Paste Splice below).  An image node can contribute to multiple different manipulation paths resulting in many different images.  Therefore, an image node may have many mant output lnks.
+Nodes may be selected, changing image display.  The image associated with selected node is shown in the left most image box. For videos, the image shown is a select frame from the video.  The right two boxes are left blank.  
 
-![Alt](doc/UIView.jpg "UI View")
-
-## Graph Operations
-
-Image nodes may be selected, changing image display.  The image associated with selected image node is shown in the left most image box.  The right two boxes are left blank.  Image nodes can be removed.  All input and output links are removed.  All down-stream (output linked) nodes and links are removed.  Images can be connected to another image node.  When 'connect to' is selected, the cursor changes to a cross. Select on the another image node that is either an image node without any links (input or output) links OR an image node with one input link with operation PasteSplice (see Paste Splice below).  Image nodes may be exported.  Exporting an image node results the creation of compressed archive file with the node and all edges and nodes leading up to the node.  The name of the compressed file and the enclosed project is the node's image name (replacing '.' with '_').
+Nodes can be removed.  All input and output links are removed.  Nodes can be connected to another node via a link.  When 'connect to' is selected, the cursor changes to a cross. Select on the another node that is either an node without any links (input or output) links OR a node with one input link with operation PasteSplice (see Paste Splice below).  Nodes may be exported.  Exporting an node results the creation of compressed archive file with the node and all links and nodes leading up to the node.  The name of the compressed file and the enclosed project is the node's name (replacing '.' with '_').
 
 Links may be selected, change the image display to show the output node, input node and associated different mask.  Removing link results in removeing the link and all downstream nodes and links.  Editing a link permits the user to change the operation and description.  Caution: do not change the operation name and description when using a plugin operation ([Process Next w/Filter [Ctrl-f]).
 
 
 ## Link Descriptions
 
-Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different versions of software to manipulate images, the user can override the version set, as the versions associated with each software may be incomplete.  It is important to reach out the management team for the software.csv to add the appropriate version.
+Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different versions of software to manipulate artficats, the user can override the version set, as the versions associated with each software may be incomplete.  It is important to reach out the management team for the software.csv to add the appropriate version.
 
-Link descriptions include parameters.  Some parameters are mandatory, with '* added next to them.  These parameters must be set.  Parameter guidance is provided in the operation description, obtained with the information button.  Many operations include an optional input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output image.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  The input mask is an optional attachment.  When first attached to the description, the mask is not shown in the description dialog.  On subsequent edits, the image is both shown and able to be replaced with a new attachment.
+Link descriptions include parameters.  Some parameters are mandatory, with '* added next to them.  These parameters must be set.  Parameter guidance is provided in the operation description, obtained with the information button, and on the parameter entry dialog.  Many operations include an optional input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output artifact.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  The input mask is an optional attachment.  When first attached to the description, the mask is not shown in the description dialog.  On subsequent edits, the input mask is both shown and able to be replaced with a new attachment.
 
 ## Other Meta-Data
 
-No shown in the UI, the project JSON file also contains the operating system used to run the manipulation and the upload time for each image.
+Not shown in the UI, the project JSON file also contains the operating system used to run the manipulation and the upload time for each artifact.
 
 # Paste Splice
 
-Paste Splice is a special operation that expects a donor image.  This is the only type of operation where a image node can have two incoming links.  The first link is PasteSplice, recording the difference from the prior image (the mask is only the spliced in image). The second link is a donor image. The tool enforces that a second incoming link to a node is a donor link.  The tool does not force donor links to exist.  Instead, the tool reminds the user to form the link.  There may be several steps to create a donor image from an initial image (e.g. bluring, cropping, etc). 
+Paste Splice is a special operation that expects a donor artifact.  This is the only type of operation where a node can have two incoming links.  The first link is PasteSplice, recording the difference from the prior node (the mask is only the spliced in image). The second link is a donor node. The tool enforces that a second incoming link to a node is a donor link.  The tool does not force donor links to exist.  Instead, the tool reminds the user to form the link.  There may be several steps to create a donor from an initial artifact (e.g. bluring, cropping, etc).   The tool expects one the last operation to select the component of the donor artifact (SelectRegion operation).  For images, this is done with an alpha-channel.  For videos, this is accomplished through a green screen tyoe approach.  The mask for the SelectRegion must reflect the removal of the irrelvant components (treated as background).  The donor link mask is the inverse of the SelectRegion mask.
 
 # Mask Generation
 
-   It most cases, mask generation is a comparison between before and after manipulations of an image.  Full image operations like equlization, blur, color enhance, and anti-aliasing often effect all pixels resulting in a full image mask.  Since there operations can target specific pixels and since they may only effect some pixels (e.g. anti-aliasing), the mask does represent the scope of change.
+   It most cases, mask generation is a comparison between before and after manipulations of an artfiact.  Full artifact operations like equlization, blur, color enhance, and anti-aliasing often effect all pixels resulting in a full mask.  Since there operations can target specific pixels(e.g. anti-aliasing), the mask represents the scope of change.
 
-   The mask generation algorithm gives special treatment to manipulations that alter the image size.  The algorithm first finds most common pixels in the smaller image to match the larger.  This is useful in cropping OR framing.  Interpolation applied when expanding an image may distort many pixels, causing a full change mask.  Smaller manipulated images are produced when cropping or seam cutting is applied. Seam cutting is typically done by finding an optimal cut. Seams can be cut both vertical or horizontally. Seam cutting may be considered as operations of region removal, sliding over the remaining pixels, and cropping.  It is expected that each cut is a separate operation.  
+   The mask generation algorithm gives special treatment to manipulations that alter the image size.  The mask is the same size as the source node artifact.  The algorithm finds most common pixels in the smaller image to match the larger.  This is useful in cropping OR framing.  When cropping in image, the mask should inlude the frame around the cropped image.  When expanding image, the mask represents the comparison of the most closely related area.  If the expansion is due adding a frame, rather than some interpolation, then the mask will not reflect any change since the original pixels have not changed.
 
-When performing manipulations, it is important to consider what is detectable in an modified image. A crop may not detectable, depending on the compression configuration, since the initial image is absent in the analysis.  A move manipulation, in itself, resembles an insert.  It is acceptable to group manipulations so long a their final result can be represented as one of the accepted singular operations configured with the tool. A pure crop does not produce a mask with identified changes.  Thus, it is important to the manipulation operation to understand the operation.
+   The mask generation algorithm also is sensitive to rotations, generating mask reflecting the image after rotation.  A pure rotation with interpolation should have an empty change ask.  Rotations are counter-clockwise in degrees.  Consider a 90 degree rotation: interpolation is not needed and the mask is empty.  When rotating 45 degrees, the size of the resulting image must increase to accomodate entire image.   Since the mask size is the size of the initial image, the mask only indicates some distortion that occurred during the rotation.  The mask is created by first reversing the rotation back to the original image orientation and size.
 
-# Composite Mask
+## Video Masks
 
-The tool support creation of a summary mask, composed of masks from a leaf manipulated image to a base image.  By default, all masks that involve marking or pasting specific regions of the image are included in the composite mask.  Those links are colored blue and the link operation name is appended with an asterisk.  The status of the link can changed with the Composite Mask menu option.  Furthermore, the mask used for the composite can override the link mask, as a substitute.  
+   Video masks are organized by video clips per section of the video affected by the change.  The masks are labeled with the start time in the source video where the change is deteced.  There may be more than one video clip.
+
+## Composite Mask
+
+The tool support creation of an aggregate summary mask, composed of masks from a leaf manipulated node to a base node.  By default, all masks that involve marking or pasting specific regions of the node are included in the composite mask.  Those links are colored blue and the link operation name is appended with an asterisk.  The status of the link can changed with the Composite Mask menu option.  Furthermore, the mask used for the composite can override the link mask, as a substitute.  
+
+The image manipulator must insure the composite mask accurrately reflects ALL localize changes to a manipulated node from the base node. 
 
 ## EXIF Comparison
 
 The tool has a dependency on the [exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool).  By default, the tool is expected to be accessible via the name 'exiftool'.  This can be overwritten by the environmen variable MASKGEN_EXIFTOOL.  EXIF Comparison results are visible by inspecting the contents of a link.
 
+## Frame Comparison
+
+Video frames contain several types of meta-data including expected display time and frame type.  The tool performs a frame-by-frame comparison between source and destination video nodes for each link.  Packet position and size are excluded from the analysis, as these frequently change and tell very little about the actual change.  The presentation time stamp is used to compare the frames, as frames do not have their own identifiers.  The comparison includes changes in the meta-data per fram, and the detection of added or deleted frames.
+
 ## Analytics
+
+### Images
 
 During mask generation, analytics are processed on the images.  
 The analytics include:
@@ -161,13 +195,18 @@ The analytics include:
 
 NOTE: Structual Similarity produces a warning on the tool command line output that can be safely ignored.  There is a bug within the scikit-image package where the compare_ssim function calls a known deprecated function for multichannel images.  Furthermore, the deprecation warning module reinstates the warning filter prior to issuing the warning, thus overriding warning suppression.
 
+### Video
+
+Video does not have additional analytics at this time.
+
+
 # Plugins
 
 Plugin filters are python scripts.  They are located under a plugins directory.  Each plugin is a directory with a file __init__.py  The __init__ module must provide three functions: 
 
 (1) 'operation()' that returns a list of five items 'operation name', 'operation category', 'description', 'python package','package version'
 (2) 'transform(im,source,target,**kwargs)' that consumes a PIL Image, the source file name, the target file name and a set of arguments.  The function returns True if the EXIF should be copied from the source to target.
-(3) 'arguments()' returns a list of tuples or None.  Each tuple contains an argument name and a default value. 
+(3) 'arguments()' returns a list of tuples or None.  Each tuple contains an argument name, a default value and a string description. 
 
 Plugins may provide a fourth function called 'suffix()'.  The function returns the file suffix of the image file it expects (e.g. .tiff, .jpg).  The expectation is that the plugin overwrites the contents of the file with data corresponding the suffix.
 
@@ -175,21 +214,24 @@ The tool creates a copy of the source image into a new file.  The path (i.e. loc
 
 The python package and package version are automatically added to the list of software used by the manipulator.
 
+NOTE: At this time, the arguments are not typed.  
+
 ## Arguments
 
 There are two special arguments: 'donor' and 'inputmaskpathname'.  
 
-The system will prompt a user for an image node to fulfill the obligation of the donor. The transform function will be called with the user selected image (e.g. donor=image). Upon completion, separate Donor link is makde between the donor image node and the image node created from the output of the transform operation.
+The system will prompt a user for an image node to fulfill the obligation of the donor. The transform function will be called with the user selected image (e.g. donor=image). Upon completion, separate Donor link is made between the donor image node and the image node created from the output of the transform operation.
 
 The system prompts for an image file to fulfill the obligation of the inputmaskpathname.  The path name is provided the transform function (e.g. inputmaskpathname='/somepath').  The tool does not load the image in this case.  The image will be preserved within the project as the inputmask of the link, which references the image, upon completion of the operation.
 
-All other arguments collected by the user will br provided as strings to the transform function.
+All other arguments collected by the user will be provided as strings to the transform function.
 
 # Group Manager
 
 The Group Manager allows the user to create, remove and manage groups.  Groups are sets of plugin image transforms.  Only those transforms that do not require arguments are permitted within the group at this time.
 
 # Batch Processing
+
 The journaling tool currently supports a rudimentary batch processing feature. This is designed to operate on large quantities of images with the same type of simple manipulation. For example, 100 images are manipulated to have varying levels of saturation. These images can be specified with the tool’s batch feature, and will automatically generate the project, including the mask image and graph.
 
 At its core, the batch tool requires only 1 directory, a directory of project directories. It can be run with the following:
@@ -290,3 +332,9 @@ It is recommended the user view generated graphs by opening the projects in Mask
 1. Added plugin support for batch tool
 2. Added JPEG create option for batch tool
 3. Added bulk validation tool
+
+8/16/2016
+1. Added Video Support (minus Composite video construction)
+2. Added typed arguments
+3. Fixed archiving and saveas losing mask overrides on links when constructing composite images.
+4. Plugins argument require third item--the description of the argument.  Arguments associated with Operation parameters are prompted for the appropriate type.

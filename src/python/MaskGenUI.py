@@ -105,7 +105,7 @@ class MakeGenUI(Frame):
        if (not self._check_dir(dir)):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
-       self.scModel.startNew(val,suffixes=uiProfile.suffixes)
+       self.scModel.startNew(val,suffixes=self.uiProfile.suffixes)
        if self.scModel.getProjectData('typespref') is None:
           self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
        self._setTitle()
@@ -648,7 +648,7 @@ def main(argv=None):
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
    parser.add_argument('--videodir', help='video directory',nargs=1)
-   parser.add_argument('--base', help='base image',nargs=1)
+   parser.add_argument('--base', help='base image or video',nargs=1)
    parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
    imgdir = ['.']

@@ -5,7 +5,7 @@ from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile,validateTimeString
+from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile,validateTimeString,validateCoordinates
 from scenario_model import Modification
 from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory,getOperation
 import os
@@ -23,6 +23,9 @@ def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
        val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select " + argumentTuple[0],filetypes = filetypes)
        if (val != None and len(val)> 0):
            res=val
+    elif argumentTuple[1]['type'].startswith('donor'):
+       d = ImageNodeCaptureDialog(parent, parent.scModel)
+       res = d.selectedImage
     elif argumentTuple[1]['type'].startswith('float'):
        v = argumentTuple[1]['type']
        vals = [float(x) for x in v[v.rfind('[')+1:-1].split(':')]
@@ -38,6 +41,9 @@ def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
        res = d.choice
     elif argumentTuple[1]['type'] == 'time':
        d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateTimeString,initialvalue=initialvalue)
+       res = d.choice
+    elif argumentTuple[1]['type'] == 'coordinates':
+       d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateCoordinates,initialvalue=initialvalue)
        res = d.choice
     else:
        d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],None,initialvalue=initialvalue)
@@ -430,21 +436,19 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       if self.optocall is not None:
         op=self.pluginOps[self.optocall]
         arginfo = op['arguments']
+        operation = getOperation(op['operation'][0])
         if arginfo is not None:
           arg = arginfo[index]
-          if arg[0] == 'donor':
-            d = ImageNodeCaptureDialog(self, self.scModel)
-            res = d.selectedImage
-          elif arg[0] == 'inputmaskname':
-             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = self.parent.uiProfile.filetypes)
-             if (val != None and len(val)> 0):
-                res=val
-          else:
-            res = tkSimpleDialog.askstring("Set Parameter " + arg[0], "Value:", parent=self)
+          argumentTuple = (arg[0],operation.mandatoryparameters[arg[0]]) if operation is not None and arg[0] in operation.mandatoryparameters else None
+          argumentTuple = (arg[0],operation.optionalparameters[arg[0]]) if operation is not None and arg[0] in operation.optionalparameters else argumentTuple
+          argumentTuple = ('donor',{'type':'donor','description':'Donor'}) if arg[0] == 'donor' else argumentTuple
+          argumentTuple = ('inputmaskname', {'type':'imagefile','description':'Input Mask File'}) if arg[0] == 'inputmaskname' else argumentTuple
+          argumentTuple = (arg[0],{'type':'string','description': arg[2] if len(arg) > 2 else 'Not Available'}) if argumentTuple is None else argumentTuple
+          res = promptForParameter(self, self.dir, argumentTuple, self.parent.uiProfile.filetypes, arg[1])
           if res is not None:
             self.argvalues[arg[0]] = res
             self.argBox.delete(index)
-            self.argBox.insert(index,arg[0] + ': ' + res)
+            self.argBox.insert(index,arg[0] + ': ' + str(res))
            
    def newop(self, event):
       self.argvalues= {}
@@ -766,7 +770,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
               filetypes = self.parent.uiProfile.filetypes)
         if (val != None and len(val)> 0):
             self.selectMaskName = val
-            self.im = openImage(val,isMask=True,preserveSnapshot=os.path.split(os.path.abspath(fileName))[0]==dir)
+            self.im = openImage(val,isMask=True,preserveSnapshot=os.path.split(os.path.abspath(val))[0]==dir)
             self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
             self.c.itemconfig(self.image_on_canvas, image = self.photo)
 

@@ -1,5 +1,5 @@
 from software_loader import getOperations,SoftwareLoader,getOperation
-from tool_set import validateTimeString
+from tool_set import validateTimeString,validateAndConvertTypedValue
 
 
 rules = {}
@@ -63,25 +63,10 @@ def checkArguments(edge,op,graph,frm,to):
   for argName,argDef in args:
     try:
       argValue = getValue(edge,'arguments.' + argName)
-      if argValue and len(str(argValue)) > 0:
-        if argDef['type'].startswith('float'):
-          typeDef = argDef['type']
-          vals = [float(x) for x in typeDef[typeDef.rfind('[')+1:-1].split(':')]
-          if float(argValue) < vals[0] or float(argValue) > vals[1]:
-            results.append(argName + ' is not within the defined range')
-        elif argDef['type'].startswith('int'):
-          typeDef = argDef['type']
-          vals = [int(x) for x in typeDef[typeDef.rfind('[')+1:-1].split(':')]
-          if int(argValue) < vals[0] or int(argValue) > vals[1]:
-            results.append(argName + ' is not within the defined range')
-        elif argDef['type'] == 'list':
-          if argValue not in argDef['values']:
-            results.append(argName + ' is not one of the allowed values')
-        elif argDef['type'] == 'time':
-          if not validateTimeString(argValue):
-            results.append(argName + ' is not a validate time specification (e.g. HH:MM:SS.micro)')
-    except ValueError:
-       results.append(argName + ' is not a valid')
+      if argValue:
+        validateAndConvertTypedValue(argName,argValue,opObj)
+    except ValueError as e:
+       results.append(argName + str(e))
   return results
 
 

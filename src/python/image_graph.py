@@ -7,7 +7,7 @@ import os
 import shutil
 import cv2
 import getpass
-import datetime
+from datetime import datetime
 from software_loader import Software, SoftwareLoader, getOS
 import tarfile
 from tool_set import *
@@ -123,7 +123,7 @@ class ImageGraph:
         shutil.copy2(pathname, newpathname)
       elif image is not None:
         self._saveImage(newpathname,image)
-    self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
+    self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname, ownership=('yes' if includePathInUndo else 'no'), ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
     self.U = []
     self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
     # adding back a file that was targeted for removal
@@ -347,9 +347,9 @@ class ImageGraph:
      self.dir = os.path.abspath(os.path.split(pathname)[0])
      self.G.name = name
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
+     self._copy_contents(currentdir)
      with open(filename, 'w') as f:
         jg = json.dump(json_graph.node_link_data(self.G),f,indent=2)
-     self._copy_contents(currentdir)
      self.filesToRemove.clear()
 
   def save(self):

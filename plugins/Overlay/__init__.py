@@ -18,5 +18,5 @@ def operation():
   return ['PasteSplice','Paste','Overlay image','OpenCV','2.4.13']
 
 def args():
-  return [('donor',None)]
+  return [('donor',None,'Image to overlay')]
 

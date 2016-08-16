@@ -337,7 +337,8 @@
       "name": "AntiForensicExifQuantizationTable", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkForDonor"
       ], 
       "optionalparameters": {}, 
       "description": "Alter Image Metadata to display a different type or no compression.",

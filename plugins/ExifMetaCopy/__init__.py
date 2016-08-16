@@ -14,4 +14,4 @@ def operation():
     return ['AntiForensicCopyExif','AntiForensicExif','Copy Image EXIF from donor','exiftool','10.23']
   
 def args():
-    return [('donor', None)]
+    return [('donor', None, 'JPEG with donor EXIF')]

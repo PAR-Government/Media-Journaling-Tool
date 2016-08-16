@@ -9,6 +9,7 @@ import warnings
 from scipy import ndimage
 from scipy import misc
 import getpass
+import re
 
 
 def openFile(fileName):
@@ -68,6 +69,12 @@ def imageResizeRelative(img,dim,otherIm):
    hsize = int((float(img.size[1])*float(perc)))
    return img.resize((wsize,hsize), Image.ANTIALIAS)
 
+def validateCoordinates(v):
+   try:
+      return len([int(re.sub('[()]','',x)) for x in v.split(',')]) == 2
+   except ValueError:
+      return False
+   
 def validateTimeString(v):
    try:
       stdt = datetime.strptime(v, '%H:%M:%S.%f')
@@ -77,6 +84,40 @@ def validateTimeString(v):
       except ValueError:
         return False
    return True
+
+def validateAndConvertTypedValue(argName,argValue,operationDef):
+   """
+     Validate a typed operation argument
+     return the type converted argument if necessary
+     raise a ValueError if invalid
+   """
+   if not argValue or len(str(argValue)) == 0:
+      raise ValueError(argName + ' cannot be an empty string')
+   argDef = operationDef.optionalparameters[argName] if argName in operationDef.optionalparameters else None
+   argDef = operationDef.mandatoryparameters[argName] if not argDef and argName in operationDef.mandatoryparameters else argDef
+   if argDef:
+      if argDef['type'].startswith('float'):
+         typeDef = argDef['type']
+         vals = [float(x) for x in typeDef[typeDef.rfind('[')+1:-1].split(':')]
+         if float(argValue) < vals[0] or float(argValue) > vals[1]:
+            raise ValueError(argName + ' is not within the defined range')
+         return float(argValue)
+      elif argDef['type'].startswith('int'):
+         typeDef = argDef['type']
+         vals = [int(x) for x in typeDef[typeDef.rfind('[')+1:-1].split(':')]
+         if int(argValue) < vals[0] or int(argValue) > vals[1]:
+           raise ValueError(argName + ' is not within the defined range')
+         return int(argValue)
+      elif argDef['type'] == 'list':
+         if argValue not in argDef['values']:
+           raise ValueError(argName + ' is not one of the allowed values')
+      elif argDef['type'] == 'time':
+         if not validateTimeString(argValue):
+           raise ValueError(argName + ' is not a valid time (e.g. HH:MM:SS.micro)')
+      elif argDef['type'] == 'coorindates':
+         if not validateCoordinates(argValue):
+           raise ValueError(argName + ' is not a valid coordinate (e.g. (6,4)')
+   return argValue
 
 def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
    import os

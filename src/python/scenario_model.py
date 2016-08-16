@@ -38,10 +38,10 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
        return projectModelFactory(os.path.abspath(dir),notify=notify)
     selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
-        print 'Cannot add base image to an existing project'
+        print 'Cannot add base image/video to an existing project'
         return None
     if len(selectionSet) == 0 and base is None:
-       print 'No project found and base image not provided; Searching for a base image'
+       print 'No project found and base image/video not provided; Searching for a base image/video'
        suffixPos = 0
        while len(selectionSet) == 0 and suffixPos < len(suffixes):
           suffix = suffixes[suffixPos]
@@ -50,7 +50,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
           suffixPos+=1
        projectFile = selectionSet[0] if len(selectionSet) > 0 else None
        if projectFile is None:
-         print 'Could not find a base image'
+         print 'Could not find a base image/video'
          return None
     # add base is not None
     elif len(selectionSet) == 0: 
@@ -456,8 +456,8 @@ class ImageProjectModel:
 
     def getSeriesName(self):
        """ A Series is the prefix of the first image node """
-       if (self.start is None):
-          None
+       if self.start is None:
+          return None
        startNode = self.G.get_node(self.start)
        prefix = None
        if (startNode.has_key('seriesname')):
@@ -535,7 +535,7 @@ class ImageProjectModel:
        return None
 
     def getDescription(self):
-       if (self.start is None or self.end is None):
+       if self.start is None or self.end is None:
           return None
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
@@ -556,21 +556,24 @@ class ImageProjectModel:
        return self.getImage(self.start)
 
     def nextImage(self):
+       if self.end is None:
+         dim = (250,250) if self.start is None else self.getImage(self.start).size
+         return Image.fromarray(np.zeros((dim[1],dim[0])).astype('uint8'))
        return self.getImage(self.end)
 
     def getSelectMask(self):
-       if (self.end is None):
+       if self.end is None:
           return None,None
        mask = self.G.get_edge_image(self.start,self.end,'maskname')
-       selectMask = self.G.get_edge_image(self.start,self.end,'selectinputmask')
+       selectMask = self.G.get_edge_image(self.start,self.end,'selectmaskname')
        if selectMask[0] != None:
           return selectMask
        return mask
 
     def maskImage(self):
-       if (self.end is None):
-           dim = (250,250,3) if self.start is None else self.getImage(self.start).size
-           return Image.fromarray(np.zeros(dim).astype('uint8'))
+       if self.end is None:
+           dim = (250,250) if self.start is None else self.getImage(self.start).size
+           return Image.fromarray(np.zeros((dim[1],dim[0])).astype('uint8'))
        return self.G.get_edge_image(self.start,self.end,'maskname')[0]
 
     def maskStats(self):
@@ -761,7 +764,7 @@ class ImageProjectModel:
          Return None if a file is not found.
       """
 
-      if (self.start is None):
+      if self.start is None:
          return None,None
 
       suffix = self.start
@@ -822,17 +825,17 @@ class ImageProjectModel:
       # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        selectMask = self.G.get_select_mask(source,target)[0]
+        selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
         edgeMask = self.G.get_edge_image(source,target,'maskname')[0]
         compositeMask = tool_set.mergeMask(compositeMask,np.asarray(selectMask if selectMask is not None else edgeMask))
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated
       sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0,0)
-      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location'])> 0 else (0,0)
-      rotation = float(edge['rotation'] if 'rotation' in edge and len(edge['rotation'])> 0 else 0.0)
+      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0,0)
+      rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
       args = edge['arguments'] if 'arguments' in edge else {}
-      rotation = float(args['rotation'] if 'rotation' in args and len(args['rotation'])> 0 else rotation)
+      rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
       compositeMask = tool_set.alterMask(compositeMask,rotation=rotation,sizeChange=sizeChange,interpolation=interpolation,location=location)
       return compositeMask
