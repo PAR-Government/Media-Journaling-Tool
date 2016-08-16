@@ -85,6 +85,16 @@ def loadOperations(fileName):
 def toSoftware(columns):
    return [x.strip() for x in columns[1:] if len(x)>0]
 
+def loadCSV(fileName,toObjectFunction):
+   d={}
+   with open(fileName) as f:
+     for l in f.readlines():
+         columns = l.split(',')
+         key = columns[0].strip()
+         if len(key) > 0:
+           d[key] = toObjectFunction(columns)
+   return d
+
 def loadSoftware(fileName):
     global softwareset
     softwareset = loadCSV(fileName,toSoftware)

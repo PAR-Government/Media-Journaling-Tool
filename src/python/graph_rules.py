@@ -1,5 +1,6 @@
 from software_loader import getOperations,SoftwareLoader,getOperation
-from datetime import datetime
+from tool_set import validateTimeString
+
 
 rules = {}
 sloader = SoftwareLoader()
@@ -19,21 +20,25 @@ def initialCheck(op,graph,frm,to):
   edge = graph.get_edge(frm,to)
   versionResult= checkVersion(edge, op,graph,frm,to)
   mandatoryResult= checkMandatory(edge, op,graph,frm,to)
+  argResult= checkArguments(edge, op,graph,frm,to)
   result = []
   if versionResult is not  None:
     result.append(versionResult)
+  if argResult is not  None:
+    result.extend(argResult)
   if mandatoryResult is not  None:
     result.extend(mandatoryResult)
   return result
 
-
 def checkMandatory(edge,op,graph,frm,to):
+  if op == 'Donor':
+    return None
   opObj = getOperation(op)
   if opObj is None:
     return [op + ' is not a valid operation'] if op != 'Donor' else []
   args = edge['arguments'] if 'arguments' in edge  else []
-  missing = [param for param in opObj.mandatoryparameters if (param not in args or len(args[param])== 0) and param == 'inputmask']
-  if 'inputmaskname' in opObj.mandatoryparameters and ('inputmaskname' not in edge or len(edge['inputmaskname']) == 0):
+  missing = [param for param in opObj.mandatoryparameters.keys() if (param not in args or len(str(args[param]))== 0) and param == 'inputmask']
+  if 'inputmaskname' in opObj.mandatoryparameters.keys() and ('inputmaskname' not in edge or len(edge['inputmaskname']) == 0):
     missing.append('inputmask')
   return [('Mandatory parameter ' + m + ' is missing') for m in missing]
 
@@ -47,6 +52,38 @@ def checkVersion(edge,op,graph,frm,to):
     if sversion not in sloader.get_versions(sname):
       return sversion + ' not in approved set for software ' + sname
   return None
+
+def checkArguments(edge,op,graph,frm,to):
+  if op == 'Donor':
+    return None
+  opObj = getOperation(op)
+  args = [(k,v) for k,v in opObj.mandatoryparameters.iteritems()]
+  args.extend([(k,v) for k,v in opObj.optionalparameters.iteritems()])
+  results = []
+  for argName,argDef in args:
+    try:
+      argValue = getValue(edge,'arguments.' + argName)
+      if argValue and len(str(argValue)) > 0:
+        if argDef['type'].startswith('float'):
+          typeDef = argDef['type']
+          vals = [float(x) for x in typeDef[typeDef.rfind('[')+1:-1].split(':')]
+          if float(argValue) < vals[0] or float(argValue) > vals[1]:
+            results.append(argName + ' is not within the defined range')
+        elif argDef['type'].startswith('int'):
+          typeDef = argDef['type']
+          vals = [int(x) for x in typeDef[typeDef.rfind('[')+1:-1].split(':')]
+          if int(argValue) < vals[0] or int(argValue) > vals[1]:
+            results.append(argName + ' is not within the defined range')
+        elif argDef['type'] == 'list':
+          if argValue not in argDef['values']:
+            results.append(argName + ' is not one of the allowed values')
+        elif argDef['type'] == 'time':
+          if not validateTimeString(argValue):
+            results.append(argName + ' is not a validate time specification (e.g. HH:MM:SS.micro)')
+    except ValueError:
+       results.append(argName + ' is not a valid')
+  return results
+
 
 def setup():
   ops = getOperations()
@@ -62,68 +99,6 @@ def checkForDonor(graph,frm,to):
    if len(pred) < 2:
      return 'donor image missing'
    return None
-
-def warpMethodCheckRule(graph,frm,to):
-   edge = graph.get_edge(frm,to)
-   method = getValue(edge,'arguments.Method')
-   if method and method not in ['Whole Frames', 'Frame Mix' and 'Pixel Motion']:
-     return 'Wrap method is invalid.  Should be one of "Whole Frames", "Frame Mix" and "Pixel Motion"'
-
-def vectorDetailRule(graph,frm,to):
-   edge = graph.get_edge(frm,to)
-   detail = getValue(edge,'arguments.Vector Detail')
-   try:
-     if detail and int(detail) < 0:
-       raise ValueError(str(detail))
-   except ValueError:
-      return 'Vector Detail is required to be an integer greater than 0'
-   return None
-
-def timeResolutionCheck(graph,frm,to):
-   edge = graph.get_edge(frm,to)
-   detail = getValue(edge,'arguments.Time Resolution')
-   try:
-     if detail and int(detail) < 0:
-       raise ValueError(str(detail))
-   except ValueError:
-      return 'Time Resolution is required to be an integer greater than 0. The value should be greater than the frame rate.'
-   return None
-
-def maxDisplacementCheck(graph,frm,to):
-   edge = graph.get_edge(frm,to)
-   detail = getValue(edge,'arguments.Max Displacement Time')
-   try:
-     if detail and int(detail) < 0:
-       raise ValueError(str(detail))
-   except ValueError:
-      return 'Max Displacement Time is required to be an integer greater than 0'
-   return None
-
-def adjustTimeRule(graph,frm,to):
-   edge = graph.get_edge(frm,to)
-   detail = getValue(edge,'arguments.Adjust Time By')
-   try:
-     if detail and (int(detail) < 0 or int(detail) > 100):
-       raise ValueError(str(detail))
-   except ValueError:
-      return 'Adjust Time By is required to be an integer value from 0 to 100'
-   return None
-
-def timeCheckRule(graph,frm,to):
-   edge = graph.get_edge(frm,to)
-   st = None
-   et = None
-   try:
-     tv = getValue(edge,'arguments.Start Time')
-     if tv:
-        st = datetime.strptime(tv, '%H:%M:%S.%f')  
-     tv = getValue(edge,'arguments.Stop Time')
-     if tv:
-        et = datetime.strptime(tv, '%H:%M:%S.%f')
-   except ValueError:
-     return "Invalid Start and Stop Time formats. Use HH:MI:SS.microseconds"
-   if st and et and st > et:
-     return "Start Time occurs after Stop Time"
 
 def checkLengthSame(graph,frm,to):
    """ the length of video should not change 

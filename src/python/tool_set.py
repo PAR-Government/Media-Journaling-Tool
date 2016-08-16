@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image ,ImageOps
 from operator import mul
 import math
+from datetime import datetime
 from skimage.measure import compare_ssim
 import warnings
 from scipy import ndimage
@@ -66,6 +67,16 @@ def imageResizeRelative(img,dim,otherIm):
    wsize = int((float(img.size[0])*float(perc)))
    hsize = int((float(img.size[1])*float(perc)))
    return img.resize((wsize,hsize), Image.ANTIALIAS)
+
+def validateTimeString(v):
+   try:
+      stdt = datetime.strptime(v, '%H:%M:%S.%f')
+   except ValueError:
+      try:
+        stdt = datetime.strptime(v, '%H:%M:%S')
+      except ValueError:
+        return False
+   return True
 
 def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
    import os

@@ -647,7 +647,7 @@ def main(argv=None):
 
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
-   parser.add_argument('--video', help='video',action='store_true')
+   parser.add_argument('--videodir', help='video directory',nargs=1)
    parser.add_argument('--base', help='base image',nargs=1)
    parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
@@ -661,8 +661,9 @@ def main(argv=None):
        loadHTTP(args.http)
    elif args.s3 is not None:
        loadS3(args.s3)
-   if args.video:
+   if args.videodir is not None:
      uiProfile = VideoProfile()
+     imgdir = args.videodir
    loadOperations(uiProfile.operations)
    loadSoftware(uiProfile.software)
    root= Tk()

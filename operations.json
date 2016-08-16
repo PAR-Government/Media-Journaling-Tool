@@ -1083,7 +1083,7 @@
     {
       "category": "Output", 
       "name": "OutputPng", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {},
       "rules": [
         "checkSize"
       ], 
@@ -1286,7 +1286,8 @@
       "optionalparameters": {
         "interpolation": {
 	   "type":"list",
-	   "values":['nearest','lanczos','bilinear','bicubic','cubic']
+	   "values":["nearest","lanczos","bilinear","bicubic","cubic"],
+	   "description":"Interpolation is used to resize composite images."
         }
       }, 
       "description": "Alter the dimensions of an image.",
@@ -1297,11 +1298,12 @@
       "name": "TransformRotate", 
       "mandatoryparameters": {
         "rotation" : {
-	   "type"  : "int",
+	   "type"  : "int[-360:360]",
            "description" : "The rotation should be provided in degrees counter-clockwise (0 to 360)"
          }
       }, 
-      "rules": [], 
+      "rules": [
+      ], 
       "optionalparameters": {}, 
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false
@@ -1343,7 +1345,7 @@
       "optionalparameters": {
         "inputmaskname": {
           "type":"imagefile",
-          "description":"An image file containing a mask describing preserved and sliced areas"
+          "description":"An image file containing a mask describing the area affected."
 	}
       }, 
       "description": "Warp the shape of an object or a selection with anchored endpoints.",

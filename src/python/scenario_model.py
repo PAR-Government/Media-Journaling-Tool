@@ -280,12 +280,12 @@ class ImageProjectModel:
             op=mod.operationName, \
             description=mod.additionalInfo, \
             arguments={k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}, \
-            inputmaskname=mod.inputMaskName, \
-            selectmaskname=mod.selectMaskName, \
             recordMaskInComposite=mod.recordMaskInComposite,  \
             editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
             softwareName=('' if mod.software is None else mod.software.name), \
-            softwareVersion=('' if mod.software is None else mod.software.version))
+            softwareVersion=('' if mod.software is None else mod.software.version), \
+            inputmaskname=mod.inputMaskName, \
+            selectmaskname=mod.selectMaskName)
 
     def compare(self, destination,seamAnalysis=False, arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -322,7 +322,7 @@ class ImageProjectModel:
        for pred in predecessors:
           edge = self.G.get_edge(pred,self.start) 
           if edge['op']!='Donor':
-             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
+             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),{}
        return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
 
     def _compareImages(self,start,destination, op, invert=False, arguments={}):
@@ -416,7 +416,7 @@ class ImageProjectModel:
       endPointTuples = self._getTerminalAndBaseNodeTuples()
       for endPointTuple in endPointTuples:
          for baseNode in endPointTuple[1]:
-             composites.extend(self._constrctComposites([(baseNode,baseNode,None)]))
+             composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
       for composite in composites:
          self.G.addCompositeToNodes((composite[0],composite[1], Image.fromarray(composite[2])))
       return composites
@@ -445,13 +445,13 @@ class ImageProjectModel:
        if len(mod.arguments)>0:
           additionalParameters['arguments'] = {k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}
        im= self.G.add_edge(start,end,mask=mask,maskname=maskname, \
-            inputmaskname=mod.inputMaskName, \
             op=mod.operationName,description=mod.additionalInfo, \
             recordMaskInComposite=mod.recordMaskInComposite, \
-            selectmaskname=mod.selectMaskName, \
             editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
             softwareName=('' if mod.software is None else mod.software.name), \
             softwareVersion=('' if mod.software is None else mod.software.version), \
+            inputmaskname=mod.inputMaskName, \
+            selectmaskname=mod.selectMaskName, \
             **additionalParameters)
 
     def getSeriesName(self):
@@ -561,8 +561,8 @@ class ImageProjectModel:
     def getSelectMask(self):
        if (self.end is None):
           return None,None
-       mask = self.G.get_edge_mask(self.start,self.end)
-       selectMask = self.G.get_select_mask(self.start,self.end)
+       mask = self.G.get_edge_image(self.start,self.end,'maskname')
+       selectMask = self.G.get_edge_image(self.start,self.end,'selectinputmask')
        if selectMask[0] != None:
           return selectMask
        return mask
@@ -571,7 +571,7 @@ class ImageProjectModel:
        if (self.end is None):
            dim = (250,250,3) if self.start is None else self.getImage(self.start).size
            return Image.fromarray(np.zeros(dim).astype('uint8'))
-       return self.G.get_edge_mask(self.start,self.end)[0]
+       return self.G.get_edge_image(self.start,self.end,'maskname')[0]
 
     def maskStats(self):
        if self.end is None:
@@ -823,7 +823,7 @@ class ImageProjectModel:
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
         selectMask = self.G.get_select_mask(source,target)[0]
-        edgeMask = self.G.get_edge_mask(source,target)[0]
+        edgeMask = self.G.get_edge_image(source,target,'maskname')[0]
         compositeMask = tool_set.mergeMask(compositeMask,np.asarray(selectMask if selectMask is not None else edgeMask))
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
@@ -910,7 +910,7 @@ class VideoProjectModel(ImageProjectModel):
              if 'masks count' in edge:
                 analysis['masks count'] = edge['masks count']
              analysis['videomasks'] = video_tools.invertVideoMasks(self.G.dir,edge['videomasks'],self.start,destination)
-             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),analysis
+             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),analysis
        return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
     
     def _getModificationForEdge(self,edge):

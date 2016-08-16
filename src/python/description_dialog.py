@@ -1,16 +1,49 @@
 from Tkinter import *
+from datetime import datetime
 import tkMessageBox
 from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile
+from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile,validateTimeString
 from scenario_model import Modification
 from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory,getOperation
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 
+def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
+    """
+     argumentTuple is (name,dict(values, type,descriptipn))
+     type is list, imagefile, donor, float, int, time.  float and int have a range in the follow format: [-80:80]
+      
+    """
+    res = None
+    if argumentTuple[1]['type'] == 'imagefile':
+       val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select " + argumentTuple[0],filetypes = filetypes)
+       if (val != None and len(val)> 0):
+           res=val
+    elif argumentTuple[1]['type'].startswith('float'):
+       v = argumentTuple[1]['type']
+       vals = [float(x) for x in v[v.rfind('[')+1:-1].split(':')]
+       res = tkSimpleDialog.askfloat("Set Parameter " + argumentTuple[0], argumentTuple[1]['description'],minvalue=vals[0],maxvalue=vals[1], \
+          parent=parent, initialvalue=initialvalue)
+    elif argumentTuple[1]['type'].startswith('int'):
+       v = argumentTuple[1]['type']
+       vals = [int(x) for x in v[v.rfind('[')+1:-1].split(':')]
+       res = tkSimpleDialog.askinteger("Set Parameter " + argumentTuple[0], argumentTuple[1]['description'],minvalue=vals[0],maxvalue=vals[1], \
+         parent=parent,initialvalue=initialvalue)
+    elif argumentTuple[1]['type'] == 'list':
+       d = SelectDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],argumentTuple[1]['values'])
+       res = d.choice
+    elif argumentTuple[1]['type'] == 'time':
+       d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateTimeString,initialvalue=initialvalue)
+       res = d.choice
+    else:
+       d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],None,initialvalue=initialvalue)
+       res = d.choice
+    return res
+    
 def getCategory(mod):
     ops = getOperations()
     if mod.category is not None and len(mod.category)>0:
@@ -59,7 +92,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    def __checkParams(self):
        ok = True
        for arg in self.mandatoryinfo:
-          ok  &= (arg in self.argvalues and len(self.argvalues[arg]) > 0)
+          ok &= (arg in self.argvalues and len(str(self.argvalues[arg])) > 0)
        return ok
 
    def __addToBox(self,arg,mandatory):
@@ -75,13 +108,13 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.arginfo = []
       self.mandatoryinfo = []
       if op is not None:
-        for arg in op.mandatoryparameters:
-            self.__addToBox(arg,True)
-            self.arginfo.append(arg)
-            self.mandatoryinfo.append(arg)
-        for arg in op.optionalparameters:
-            self.__addToBox(arg,False)
-            self.arginfo.append(arg)
+        for k,v in op.mandatoryparameters.iteritems():
+            self.__addToBox(k,True)
+            self.arginfo.append((k,v))
+            self.mandatoryinfo.append(k)
+        for k,v in op.optionalparameters.iteritems():
+            self.__addToBox(k,False)
+            self.arginfo.append((k,v))
       if self.okButton is not None:
          self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -179,19 +212,16 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       if self.e2.get() is not None:
         op=getOperation(self.e2.get())
         if op is not None:
-          res = None
-          arg = self.arginfo[index]
-          if arg == 'inputmaskname':
-             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = self.uiProfile.filetypes)
-             if (val != None and len(val)> 0):
-                res=val
-                self.inputMaskName = res
-          else:
-            res = tkSimpleDialog.askstring("Set Parameter " + arg[0], "Value:", parent=self)
+          argumentTuple = self.arginfo[index]
+          res = promptForParameter(self, self.dir,argumentTuple, self.uiProfile.filetypes, \
+             self.argvalues[argumentTuple[0]] if argumentTuple[0] in self.argvalues else None)
+          if argumentTuple[0] == 'inputmaskname' and res:
+            self.inputMaskName = res
           if res is not None:
-            self.argvalues[arg] = res
+            self.argvalues[argumentTuple[0]] = res
             self.argBox.delete(index)
-            self.argBox.insert(index,arg + ': ' + res)
+            sep = '*: ' if argumentTuple[0] in self.mandatoryinfo else ': '
+            self.argBox.insert(index,argumentTuple[0] + sep + str(res))
           self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
 
@@ -208,9 +238,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    def apply(self):
        self.cancelled = False
        self.description.setOperationName(self.e2.get())
-       self.description.setAdditionalInfo(self.e3.get(1.0,END))
+       self.description.setAdditionalInfo(self.e3.get(1.0,END).strip())
        self.description.setInputMaskName(self.inputMaskName)
-       self.description.setArguments({k:v for (k,v) in self.argvalues.iteritems() if k in self.arginfo})
+       self.description.setArguments({k:v for (k,v) in self.argvalues.iteritems() if k in [x[0] for x in self.arginfo]})
        self.description.setSoftware(Software(self.e4.get(),self.e5.get()))
        if (self.softwareLoader.add(self.description.software)):
           self.softwareLoader.save()
@@ -246,7 +276,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=W)
         row+=1
         for argname,argvalue in self.description.arguments.iteritems(): 
-             Label(master, text='      ' + argname + ': ' + argvalue,justify=LEFT).grid(row=row, column=0, columnspan=4,sticky=W)
+             Label(master, text='      ' + argname + ': ' + str(argvalue),justify=LEFT).grid(row=row, column=0, columnspan=4,sticky=W)
              row+=1
       if self.description.inputMaskName is not None:
         self.inputmaskframe = ButtonFrame(master,self.description.inputMaskName, self.dir, \
@@ -799,3 +829,67 @@ class ButtonFrame(Frame):
 
    def openMask(self):
       openFile(os.path.join(self.dir,self.fileName))
+
+
+class SelectDialog(tkSimpleDialog.Dialog):
+
+   cancelled = True
+
+   def __init__(self, parent,name,description, values):
+      self.description = description
+      self.values = values
+      self.parent = parent
+      self.name  = name
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      Label(master, text=self.description).grid(row=0, sticky=W)
+      self.e1 = AutocompleteEntryInText(master,values=self.values,takefocus=True)
+      self.e1.grid(row=1, column=0)
+
+   def cancel(self):
+      if self.cancelled:
+        self.choice = None
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.cancelled = False
+      self.choice = self.e1.get()
+
+class EntryDialog(tkSimpleDialog.Dialog):
+
+   cancelled = True
+
+   def __init__(self, parent,name,description, validateFunc,initialvalue=None):
+      self.description = description
+      self.validateFunc = validateFunc
+      self.parent = parent
+      self.name  = name
+      self.initialvalue = initialvalue
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      Label(master, text=self.description).grid(row=0, sticky=W)
+      self.e1 = Entry(master,takefocus=True)
+      if self.initialvalue:
+        self.e1.insert(0,self.initialvalue)
+      self.e1.grid(row=1, column=0)
+
+   def cancel(self):
+      if self.cancelled:
+         self.choice = None
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.cancelled = False
+      self.choice = self.e1.get()
+
+   def validate(self): 
+      v = self.e1.get()
+      if self.validateFunc and not self.validateFunc(v):
+         tkMessageBox.showwarning(
+              "Bad input",
+              "Illegal values, please try again"
+         )
+         return 0
+      return 1
