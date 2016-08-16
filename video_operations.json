@@ -48,7 +48,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "description": "Smooth the artifacts resultant from interlacing ",
+      "description": "Smooth the artifacts resultant from interlacing.",
       "includeInMask": false
     }, 	
     {
@@ -1435,7 +1435,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro)"
         }
       },
-      "description": "Removing a series of frames from a video clip",
+      "description": "Remove a series of frames from a video clip.",
       "includeInMask": false
     }, 	
     {
@@ -1444,11 +1444,11 @@
       "mandatoryparameters": {
          "Echo Time": {
            "type": "float[-100:100]",
-           "description": "The time, in seconds, between echoes. Negative values create echoes from previous frames; positive values create echoes from upcoming frames"
+           "description": "The time, in seconds, between echoes. Negative values create echoes from previous frames; positive values create echoes from upcoming frames."
          },
          "Number of Echos": {
 	   "type": "int[0:1000000]",
-           "description": "The number of echoes. For example, if the value is 2, the result is a combination of three frames: the current time, the current time + Echo Time, and the current time + (2 * Echo Time)"
+           "description": "The number of echoes. For example, if the value is 2, the result is a combination of three frames: the current time, the current time + Echo Time, and the current time + (2 * Echo Time)."
          },
          "Starting Intensities": {
 	    "type": "int[0:100000]",
@@ -1531,7 +1531,7 @@
         },
         "Vector Detail": {
 	  "type":"int[0:100]",
-	  "description": "Determines how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
+	  "description": "Determine how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
         }
       },
       "rules": [],
@@ -1760,6 +1760,20 @@
 	}
       }, 
       "description": "Freely alter the shape or dimensions of a given selection or image.",
+      "includeInMask": false
+    },
+    {
+      "category": "Transform", 
+      "name": "TransformDownSample", 
+      "mandatoryparameters": {
+        "scale": {
+          "type": "string",
+	  "description":"Down sample instructions such as 640:480."
+	}
+      }, 
+      "rules": [ ], 
+      "optionalparameters": {},
+      "description": "Down sample a video to a lower frame resolution.",
       "includeInMask": false
     }
   ]

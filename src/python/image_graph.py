@@ -67,7 +67,7 @@ class ImageGraph:
   def get_name(self):
     return self.G.name
 
-  def __init__(self, pathname):
+  def __init__(self, pathname,projecttype='image'):
     fname = os.path.split(pathname)[1]
     name = get_pre_name(fname)
     self.dir = os.path.abspath(os.path.split(pathname)[0])
@@ -76,6 +76,7 @@ class ImageGraph:
       self.load(pathname)
     else:
       self.G.graph['username']=get_username()
+      self.G.graph['projecttype']=projecttype
 
   def openImage(self,fileName,mask=False):
     return openImage(fileName)
@@ -461,7 +462,7 @@ class ImageGraph:
 class VideoGraph(ImageGraph):
 
   def __init__(self, pathname):
-    ImageGraph.__init__(self,pathname)
+    ImageGraph.__init__(self,pathname,projecttype='video')
 
   def openImage(self,fileName, metadata={},mask=False):
     imgDir = os.path.split(os.path.abspath(fileName))[0]
