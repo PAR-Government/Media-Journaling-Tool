@@ -1,16 +1,15 @@
-from image_graph import ImageGraph
+from image_graph import ImageGraph,VideoGraph
 import shutil
 import exif
 import os
 import numpy as np
 from PIL import Image, ImageTk
 import tool_set 
+import video_tools
 from software_loader import Software,Operation,getOperation
 import tempfile
 import plugins
 import graph_rules
-
-suffixes = [".jpg",".png",".tiff"]
 
 def toIntTuple(tupleString):
    import re
@@ -18,10 +17,13 @@ def toIntTuple(tupleString):
      return tuple([int(re.sub('[()]','',x)) for x in tupleString.split(',')])
    return (0,0)
 
+def imageProjectModelFactory(name,**kwargs):
+    return ImageProjectModel(name,**kwargs)
 
+def videoProjectModelFactory(name,**kwargs):
+    return VideoProjectModel(name,**kwargs)
 
-
-def createProject(dir,notify=None,base=None):
+def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=imageProjectModelFactory):
     """ This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
         Otherwise, the directory is inspected for images.
@@ -33,13 +35,13 @@ def createProject(dir,notify=None,base=None):
     """
 
     if (dir.endswith(".json")):
-       return ProjectModel(os.path.abspath(dir),notify=notify)
+       return projectModelFactory(os.path.abspath(dir),notify=notify)
     selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
-        print 'Cannot add base image to an existing project'
+        print 'Cannot add base image/video to an existing project'
         return None
     if len(selectionSet) == 0 and base is None:
-       print 'No project found and base image not provided; Searching for a base image'
+       print 'No project found and base image/video not provided; Searching for a base image/video'
        suffixPos = 0
        while len(selectionSet) == 0 and suffixPos < len(suffixes):
           suffix = suffixes[suffixPos]
@@ -48,7 +50,7 @@ def createProject(dir,notify=None,base=None):
           suffixPos+=1
        projectFile = selectionSet[0] if len(selectionSet) > 0 else None
        if projectFile is None:
-         print 'Could not find a base image'
+         print 'Could not find a base image/video'
          return None
     # add base is not None
     elif len(selectionSet) == 0: 
@@ -63,10 +65,78 @@ def createProject(dir,notify=None,base=None):
     if  not projectFile.endswith(".json"):
         image = projectFile
         projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
-    model=  ProjectModel(projectFile,notify=notify)
+    model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
-       model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1])
+       model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes)
     return model
+
+class MetaDiff:
+   diffData = None
+
+   def __init__(self,diffData):
+      self.diffData = diffData
+
+   def getMetaType(self):
+     return 'EXIF'
+ 
+   def getSections(self):
+      return None
+
+   def getColumnNames(self,section):
+     return ['Operation','Old','New']
+
+   def toColumns(self,section):
+     d = {}
+     for k,v in self.diffData.iteritems(): 
+        old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
+        new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+        d[k] = {'Operation':v[0],'Old':old,'New':new}
+     return d
+
+class VideoMetaDiff:
+   diffData = None
+
+   def __init__(self,diffData):
+      self.diffData = diffData
+
+   def getMetaType(self):
+     return 'FRAME'
+ 
+   def getSections(self):
+      return ['Global'] + self.diffData[1].keys()
+
+   def getColumnNames(self,section):
+     return ['Operation','Old','New']
+
+   def toColumns(self,section):
+     d = {}
+     if section is None:
+        section = 'Global'
+     if section == 'Global':
+        self._sectionChanges(d,self.diffData[0])
+     else:
+       itemTuple = self.diffData[1][section]
+       if itemTuple[0] == 'add':
+          d['add'] = {'Operation':'','Old':'','New':''}
+       elif itemTuple[0] == 'delete':
+          d['delete'] = {'Operation':'','Old':'','New':''}
+       else:
+          for changeTuple in itemTuple[1]:
+            if changeTuple[0] == 'add':
+               d[str(changeTuple[1])] = {'Operation':'add','Old':'','New':str(changeTuple[3]) + ':=>' + str(changeTuple[2]) }
+            elif changeTuple[0] == 'delete':
+               d[str(changeTuple[1])] = {'Operation':'delete','Old':str(changeTuple[3]) + ':=>' + str(changeTuple[2]),'New':''}
+            else:
+               self._sectionChanges(d,changeTuple[4],prefix=str(changeTuple[3]))
+     return d
+
+   def _sectionChanges(self,d,sectionData,prefix= ''):
+     for k,v in sectionData.iteritems(): 
+        dictKey = k if prefix == '' else prefix + ': ' + str(k)
+        old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
+        new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+        d[dictKey] = {'Operation':v[0],'Old':old,'New':new}
+
 
 class Modification:
    operationName = None
@@ -74,19 +144,21 @@ class Modification:
    # for backward compatibility and ease of access, input mask name is both arguments and 
    # an instance variable 
    inputMaskName=None
+   maskSet = None
    recordMaskInComposite = 'no'
    arguments = {}
    selectMaskName = None
    software = None
-
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
         changeMaskName=None, \
         selectMaskName=None, \
         inputMaskName=None,
-        software=None):
+        software=None, \
+        maskSet=None):
      self.additionalInfo  = additionalInfo
+     self.maskSet = maskSet
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
@@ -96,6 +168,9 @@ class Modification:
      self.software = software
      if recordMaskInComposite is not None:
         self.recordMaskInComposite = recordMaskInComposite
+ 
+   def setMaskSet(self,maskset):
+      self.maskSet = maskset
 
    def getSoftwareName(self):
       return self.software.name if self.software is not None and self.software.name is not None else ''
@@ -139,7 +214,7 @@ class Modification:
      self.recordMaskInComposite='yes' if op is not None and op.includeInMask else 'no'
 
 
-class ProjectModel:
+class ImageProjectModel:
     """
        A ProjectModel manages a project.  A project is made up of a directed graph of Image nodes and links.
        Each link is associated with a manipulation between the source image to the target image.  
@@ -162,14 +237,16 @@ class ProjectModel:
     end = None
 
     def __init__(self, projectFileName, importImage=False, notify=None):
-      self.G = ImageGraph(projectFileName)
-      self._setup()
+      self._setup(projectFileName)
       self.notify = notify
+
+    def getTypeName(self):
+       return 'Image'
 
     def get_dir(self):
        return self.G.dir
 
-    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=20,ypos=50):
+    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=20,ypos=50,suffixes=[]):
        """
          Bulk add all images from a given directory into the project.
          Position the images in a grid, separated by 50 vertically with a maximum height of 520.
@@ -203,12 +280,12 @@ class ProjectModel:
             op=mod.operationName, \
             description=mod.additionalInfo, \
             arguments={k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}, \
-            inputmaskname=mod.inputMaskName, \
-            selectmaskname=mod.selectMaskName, \
             recordMaskInComposite=mod.recordMaskInComposite,  \
             editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
             softwareName=('' if mod.software is None else mod.software.name), \
-            softwareVersion=('' if mod.software is None else mod.software.version))
+            softwareVersion=('' if mod.software is None else mod.software.version), \
+            inputmaskname=mod.inputMaskName, \
+            selectmaskname=mod.selectMaskName)
 
     def compare(self, destination,seamAnalysis=False, arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -219,13 +296,13 @@ class ProjectModel:
        mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis,arguments=arguments)
        return im1,im2,mask,analysis
 
-    def getExifDiff(self):
+    def getMetaDiff(self):
       """ Return the EXIF differences between nodes referenced by 'start' and 'end' 
       """
       e = self.G.get_edge(self.start, self.end)
       if e is None:
           return None
-      return e['exifdiff'] if 'exifdiff' in e else None
+      return MetaDiff(e['exifdiff']) if 'exifdiff' in e and len(e['exifdiff']) > 0 else None
 
     def _getTerminalAndBaseNodeTuples(self):
        """
@@ -245,10 +322,10 @@ class ProjectModel:
        for pred in predecessors:
           edge = self.G.get_edge(pred,self.start) 
           if edge['op']!='Donor':
-             return maskname,tool_set.invertMask(self.G.get_edge_mask(pred,self.start)[0]),{}
+             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),{}
        return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
 
-    def _compareImages(self,start,destination, invert=False, arguments={}):
+    def _compareImages(self,start,destination, op, invert=False, arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
@@ -276,7 +353,7 @@ class ProjectModel:
        try:
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
          if maskname is None:
-             maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
+             maskname, mask, analysis = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
@@ -339,12 +416,12 @@ class ProjectModel:
       endPointTuples = self._getTerminalAndBaseNodeTuples()
       for endPointTuple in endPointTuples:
          for baseNode in endPointTuple[1]:
-             composites.extend(self._constrctComposites([(baseNode,baseNode,None)]))
+             composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
       for composite in composites:
          self.G.addCompositeToNodes((composite[0],composite[1], Image.fromarray(composite[2])))
       return composites
 
-    def addNextImage(self, pathname, img, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50)):
+    def addNextImage(self, pathname, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50)):
        """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
             Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
             to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -353,9 +430,9 @@ class ProjectModel:
        """
        if (self.end is not None):
           self.start = self.end
-       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), image=img,xpos=position[0],ypos=position[1])
+       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),xpos=position[0],ypos=position[1])
        try:
-         maskname, mask, analysis = self._compareImages(self.start,destination,invert=invert,arguments=mod.arguments)
+         maskname, mask, analysis = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
@@ -368,19 +445,19 @@ class ProjectModel:
        if len(mod.arguments)>0:
           additionalParameters['arguments'] = {k:v for k,v in mod.arguments.iteritems() if k != 'inputmaskname'}
        im= self.G.add_edge(start,end,mask=mask,maskname=maskname, \
-            inputmaskname=mod.inputMaskName, \
             op=mod.operationName,description=mod.additionalInfo, \
             recordMaskInComposite=mod.recordMaskInComposite, \
-            selectmaskname=mod.selectMaskName, \
             editable='no' if (mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes', \
             softwareName=('' if mod.software is None else mod.software.name), \
             softwareVersion=('' if mod.software is None else mod.software.version), \
+            inputmaskname=mod.inputMaskName, \
+            selectmaskname=mod.selectMaskName, \
             **additionalParameters)
 
     def getSeriesName(self):
        """ A Series is the prefix of the first image node """
-       if (self.start is None):
-          None
+       if self.start is None:
+          return None
        startNode = self.G.get_node(self.start)
        prefix = None
        if (startNode.has_key('seriesname')):
@@ -413,21 +490,25 @@ class ProjectModel:
       self.start= edge[0]
       self.end = edge[1]
 
-    def startNew(self,imgpathname):
+    def startNew(self,imgpathname,suffixes=[]):
        """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
        projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
-       self.G = ImageGraph(projectFile)
-       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1])
-
-    def load(self,pathname):
-       """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
-       # Historically, the JSON was used instead of the project directory as a project since the tool cannot control the content of directory
-       self.G.load(pathname)
+       self.G = self._openProject(projectFile)
        self.start = None
        self.end = None
-       self._setup()
+       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1],suffixes=suffixes)
 
-    def _setup(self):
+    def load(self,pathname):
+       """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """ 
+       self._setup(pathname)
+
+    def _openProject(self,projectFileName):
+      return ImageGraph(projectFileName)
+
+    def _setup(self,projectFileName):
+       self.G  = self._openProject(projectFileName)
+       self.start = None
+       self.end = None
        n = self.G.get_nodes()
        if (len(n) > 0):
            self.start = n[0]
@@ -454,7 +535,7 @@ class ProjectModel:
        return None
 
     def getDescription(self):
-       if (self.start is None or self.end is None):
+       if self.start is None or self.end is None:
           return None
        edge = self.G.get_edge(self.start, self.end)
        if edge is not None:
@@ -475,22 +556,25 @@ class ProjectModel:
        return self.getImage(self.start)
 
     def nextImage(self):
+       if self.end is None:
+         dim = (250,250) if self.start is None else self.getImage(self.start).size
+         return Image.fromarray(np.zeros((dim[1],dim[0])).astype('uint8'))
        return self.getImage(self.end)
 
     def getSelectMask(self):
-       if (self.end is None):
+       if self.end is None:
           return None,None
-       mask = self.G.get_edge_mask(self.start,self.end)
-       selectMask = self.G.get_select_mask(self.start,self.end)
+       mask = self.G.get_edge_image(self.start,self.end,'maskname')
+       selectMask = self.G.get_edge_image(self.start,self.end,'selectmaskname')
        if selectMask[0] != None:
           return selectMask
        return mask
 
     def maskImage(self):
-       if (self.end is None):
-           dim = (250,250,3) if self.start is None else self.getImage(self.start).size
-           return Image.fromarray(np.zeros(dim).astype('uint8'))
-       return self.G.get_edge_mask(self.start,self.end)[0]
+       if self.end is None:
+           dim = (250,250) if self.start is None else self.getImage(self.start).size
+           return Image.fromarray(np.zeros((dim[1],dim[0])).astype('uint8'))
+       return self.G.get_edge_image(self.start,self.end,'maskname')[0]
 
     def maskStats(self):
        if self.end is None:
@@ -498,7 +582,7 @@ class ProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username','shape change']
+       stat_names = ['ssim','psnr','username','shape change','masks count']
        return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
@@ -626,7 +710,7 @@ class ProjectModel:
       description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications'})
       description.setSoftware(software)
 
-      msg2 = self.addNextImage(target,None,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
+      msg2 = self.addNextImage(target,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
       if msg2 is not None:
           if msg is None:
@@ -680,7 +764,7 @@ class ProjectModel:
          Return None if a file is not found.
       """
 
-      if (self.start is None):
+      if self.start is None:
          return None,None
 
       suffix = self.start
@@ -700,12 +784,12 @@ class ProjectModel:
       for file in findFiles(self.G.dir,prefix, filterFunction):
          nfile = file
          break
-      return tool_set.openImage(nfile) if nfile is not None else None,nfile
+      return self.G.openImage(nfile) if nfile is not None else None,nfile
 
     def openImage(self,nfile):
       im = None
       if nfile is not None and nfile != '':
-          im = tool_set.openImage(nfile)
+          im = self.G.openImage(nfile)
       return nfile,im
 
     def export(self, location):
@@ -741,17 +825,17 @@ class ProjectModel:
       # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        selectMask = self.G.get_select_mask(source,target)[0]
-        edgeMask = self.G.get_edge_mask(source,target)[0]
+        selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
+        edgeMask = self.G.get_edge_image(source,target,'maskname')[0]
         compositeMask = tool_set.mergeMask(compositeMask,np.asarray(selectMask if selectMask is not None else edgeMask))
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated
       sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0,0)
-      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location'])> 0 else (0,0)
-      rotation = float(edge['rotation'] if 'rotation' in edge and len(edge['rotation'])> 0 else 0.0)
+      location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0,0)
+      rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
       args = edge['arguments'] if 'arguments' in edge else {}
-      rotation = float(args['rotation'] if 'rotation' in args and len(args['rotation'])> 0 else rotation)
+      rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
       compositeMask = tool_set.alterMask(compositeMask,rotation=rotation,sizeChange=sizeChange,interpolation=interpolation,location=location)
       return compositeMask
@@ -767,3 +851,86 @@ class ProjectModel:
                             edge['softwareVersion'] if 'softwareVersion' in edge else None, \
                             'editable' in edge and edge['editable'] == 'no'), \
           recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no')
+
+class VideoProjectModel(ImageProjectModel):
+
+    def __init__(self, projectFileName, importImage=False, notify=None):
+       ImageProjectModel.__init__(self,projectFileName,notify=notify)
+
+    def _openProject(self,projectFileName):
+       return VideoGraph(projectFileName)
+
+    def getTerminalToBasePairs(self, suffix='.mp4'):
+       return ProjectModel.getTerminalToBasePairs(self,suffix=suffix)
+
+    def getMetaDiff(self):
+      """ Return the Frame meta-data differences between nodes referenced by 'start' and 'end'                                                                                            
+      """
+      e = self.G.get_edge(self.start, self.end)
+      if e is None:
+          return None
+      return VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
+
+    def _compareImages(self,start,destination,op, invert=False,arguments={}):
+       startIm,startFileName = self.getImageAndName(start)
+       destIm,destFileName = self.getImageAndName(destination)
+       mask,analysis = Image.new("RGB", (250, 250), "black"),{}
+       maskname=start + '_' + destination + '_mask'+'.png'
+       maskSet = video_tools.formMaskDiff(startFileName, destFileName, \
+          startSegment = arguments['Start Time'] if 'Start Time' in arguments else None, \
+          endSegment = arguments['End Time'] if 'End Time' in arguments else None, \
+          applyConstraintsToOutput = op != 'SelectCutFrames')
+# for now, just save the first mask
+       if len(maskSet) > 0:
+          mask = Image.fromarray(maskSet[0]['mask'])
+          for item in maskSet:
+             item.pop('mask')
+       analysis['masks count']=len(maskSet)
+       analysis['videomasks'] = maskSet
+       metaDataDiff = video_tools.formMetaDataDiff(startFileName,destFileName)
+       analysis = analysis if analysis is not None else {}
+       analysis['metadatadiff'] = metaDataDiff
+       return maskname,mask, analysis
+
+    def getTypeName(self):
+       return 'Video'
+
+    def _constructDonorMask(self,destination):
+       """
+         Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
+         of the Donor image and its parent, it exists.
+         Otherwise, the donor image mask is the donor image (minus alpha channels):
+       """
+       startNode = self.G.get_node(self.start)
+       startFileName = startNode['file']
+       suffix = startFileName[startFileName.rfind('.'):]
+       maskname=self.start + '_' + destination + '_mask.png'
+       predecessors = self.G.predecessors(self.start)
+       analysis = {}
+       for pred in predecessors:
+          edge = self.G.get_edge(pred,self.start) 
+          if edge['op']!='Donor':
+             if 'masks count' in edge:
+                analysis['masks count'] = edge['masks count']
+             analysis['videomasks'] = video_tools.invertVideoMasks(self.G.dir,edge['videomasks'],self.start,destination)
+             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),analysis
+       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
+    
+    def _getModificationForEdge(self,edge):
+       mod = ImageProjectModel._getModificationForEdge(self,edge)
+       if 'videomasks' in edge and len(edge['videomasks'])> 0:
+          mod.setMaskSet( VideoMaskSetInfo(edge['videomasks']))
+       return mod
+
+class VideoMaskSetInfo:
+    columnNames = ['Start','End','Frames','File']
+    columnValues = {}
+
+    def __init__(self,maskset):
+      self.columnValues = {}
+      for i in range(len(maskset)):
+        self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
+      
+    def _convert(self,item):
+       return {'Start':item['starttime'],'End':item['endtime'],'Frames':item['frames'],'File':item['videosegment']}
+

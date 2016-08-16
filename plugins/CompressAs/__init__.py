@@ -107,7 +107,7 @@ def operation():
             'Save as a JPEG using original tables', 'PIL', '1.1.7']
     
 def args():
-    return [('donor', None)]
+    return [('donor', None, 'JPEG with donor QT')]
 
 def suffix():
     return '.jpg'

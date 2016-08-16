@@ -1,16 +1,55 @@
 from Tkinter import *
+from datetime import datetime
 import tkMessageBox
 from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage
-from scenario_model import ProjectModel,Modification
+from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile,validateTimeString,validateCoordinates
+from scenario_model import Modification
 from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory,getOperation
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 
+def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
+    """
+     argumentTuple is (name,dict(values, type,descriptipn))
+     type is list, imagefile, donor, float, int, time.  float and int have a range in the follow format: [-80:80]
+      
+    """
+    res = None
+    if argumentTuple[1]['type'] == 'imagefile':
+       val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select " + argumentTuple[0],filetypes = filetypes)
+       if (val != None and len(val)> 0):
+           res=val
+    elif argumentTuple[1]['type'].startswith('donor'):
+       d = ImageNodeCaptureDialog(parent, parent.scModel)
+       res = d.selectedImage
+    elif argumentTuple[1]['type'].startswith('float'):
+       v = argumentTuple[1]['type']
+       vals = [float(x) for x in v[v.rfind('[')+1:-1].split(':')]
+       res = tkSimpleDialog.askfloat("Set Parameter " + argumentTuple[0], argumentTuple[1]['description'],minvalue=vals[0],maxvalue=vals[1], \
+          parent=parent, initialvalue=initialvalue)
+    elif argumentTuple[1]['type'].startswith('int'):
+       v = argumentTuple[1]['type']
+       vals = [int(x) for x in v[v.rfind('[')+1:-1].split(':')]
+       res = tkSimpleDialog.askinteger("Set Parameter " + argumentTuple[0], argumentTuple[1]['description'],minvalue=vals[0],maxvalue=vals[1], \
+         parent=parent,initialvalue=initialvalue)
+    elif argumentTuple[1]['type'] == 'list':
+       d = SelectDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],argumentTuple[1]['values'])
+       res = d.choice
+    elif argumentTuple[1]['type'] == 'time':
+       d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateTimeString,initialvalue=initialvalue)
+       res = d.choice
+    elif argumentTuple[1]['type'] == 'coordinates':
+       d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateCoordinates,initialvalue=initialvalue)
+       res = d.choice
+    else:
+       d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],None,initialvalue=initialvalue)
+       res = d.choice
+    return res
+    
 def getCategory(mod):
     ops = getOperations()
     if mod.category is not None and len(mod.category)>0:
@@ -18,14 +57,6 @@ def getCategory(mod):
     if mod.operationName in ops:
       return ops[mod.operationName].category
     return None
-
-def exiftodict(exifdata): 
-   d = {}
-   for k,v in exifdata.iteritems(): 
-      old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
-      new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
-      d[k] = {'Operation':v[0],'Old':old,'New':new}
-   return d
 
 def tupletostring(tuple):
    strv = ''
@@ -50,8 +81,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    arginfo = []
    mandatoryinfo = []
 
-   def __init__(self, parent,dir,im,name, description=None):
+   def __init__(self, parent,uiProfile,dir,im,name, description=None):
       self.dir = dir
+      self.uiProfile = uiProfile
       self.im = im
       self.parent = parent
       self.argvalues=description.arguments if description is not None else {}
@@ -66,7 +98,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    def __checkParams(self):
        ok = True
        for arg in self.mandatoryinfo:
-          ok  &= (arg in self.argvalues and len(self.argvalues[arg]) > 0)
+          ok &= (arg in self.argvalues and len(str(self.argvalues[arg])) > 0)
        return ok
 
    def __addToBox(self,arg,mandatory):
@@ -82,13 +114,13 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.arginfo = []
       self.mandatoryinfo = []
       if op is not None:
-        for arg in op.mandatoryparameters:
-            self.__addToBox(arg,True)
-            self.arginfo.append(arg)
-            self.mandatoryinfo.append(arg)
-        for arg in op.optionalparameters:
-            self.__addToBox(arg,False)
-            self.arginfo.append(arg)
+        for k,v in op.mandatoryparameters.iteritems():
+            self.__addToBox(k,True)
+            self.arginfo.append((k,v))
+            self.mandatoryinfo.append(k)
+        for k,v in op.optionalparameters.iteritems():
+            self.__addToBox(k,False)
+            self.arginfo.append((k,v))
       if self.okButton is not None:
          self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -186,19 +218,16 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       if self.e2.get() is not None:
         op=getOperation(self.e2.get())
         if op is not None:
-          res = None
-          arg = self.arginfo[index]
-          if arg == 'inputmaskname':
-             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
-             if (val != None and len(val)> 0):
-                res=val
-                self.inputMaskName = res
-          else:
-            res = tkSimpleDialog.askstring("Set Parameter " + arg[0], "Value:", parent=self)
+          argumentTuple = self.arginfo[index]
+          res = promptForParameter(self, self.dir,argumentTuple, self.uiProfile.filetypes, \
+             self.argvalues[argumentTuple[0]] if argumentTuple[0] in self.argvalues else None)
+          if argumentTuple[0] == 'inputmaskname' and res:
+            self.inputMaskName = res
           if res is not None:
-            self.argvalues[arg] = res
+            self.argvalues[argumentTuple[0]] = res
             self.argBox.delete(index)
-            self.argBox.insert(index,arg + ': ' + res)
+            sep = '*: ' if argumentTuple[0] in self.mandatoryinfo else ': '
+            self.argBox.insert(index,argumentTuple[0] + sep + str(res))
           self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
 
@@ -215,9 +244,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    def apply(self):
        self.cancelled = False
        self.description.setOperationName(self.e2.get())
-       self.description.setAdditionalInfo(self.e3.get(1.0,END))
+       self.description.setAdditionalInfo(self.e3.get(1.0,END).strip())
        self.description.setInputMaskName(self.inputMaskName)
-       self.description.setArguments({k:v for (k,v) in self.argvalues.iteritems() if k in self.arginfo})
+       self.description.setArguments({k:v for (k,v) in self.argvalues.iteritems() if k in [x[0] for x in self.arginfo]})
        self.description.setSoftware(Software(self.e4.get(),self.e5.get()))
        if (self.softwareLoader.add(self.description.software)):
           self.softwareLoader.save()
@@ -228,49 +257,55 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
    im = None
    photo=None
    c= None
-   exifdiff = None
+   metadiff = None
 
-   def __init__(self,parent,dir,im,name, description=None,exifdiff=None):
+   def __init__(self,parent,dir,im,name,description=None,metadiff=None):
       self.im = im
       self.dir = dir
       self.parent = parent
       self.description=description if description is not None else Modification('','')
-      self.exifdiff = exifdiff
+      self.metadiff = metadiff
       tkSimpleDialog.Dialog.__init__(self, parent, name)
       
    def body(self, master):
-#      self.photo = ImageTk.PhotoImage(imageResize(self.im,(250,250)))
-#      self.c = Canvas(master, width=250, height=250)
-#      self.c.create_image(128,128,image=self.photo, tag='imgd')
-#      self.c.grid(row=0, column=0, columnspan=2)
-      Label(master, text="Category:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
-      Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
-      Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
-      Label(master, text="Software Name:",anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
-      Label(master, text="Software Version:",anchor=W,justify=LEFT).grid(row=4, column=0,sticky=W)
+      vscrollbar = Scrollbar(master, orient=VERTICAL)
+      Label(master, text="Operation:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      Label(master, text="Description:",anchor=W,justify=LEFT).grid(row=1, column=0,sticky=W)
+      Label(master, text="Software:",anchor=W,justify=LEFT).grid(row=2, column=0,sticky=W)
       Label(master, text=getCategory(self.description),anchor=W,justify=LEFT).grid(row=0, column=1,sticky=W)
-      Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=1,column=1,sticky=W)
-      Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
-      Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=3, column=1,sticky=W)
-      Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=4, column=1,sticky=W)
-      row=5
+      Label(master, text=self.description.operationName,anchor=W,justify=LEFT).grid(row=0,column=2,sticky=W)
+      Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=1, column=1,columnspan=3,sticky=W)
+      Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
+      Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=2, column=2,sticky=W)
+      row=3
       if len(self.description.arguments)>0:
-        Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=W)
+        Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=W)
         row+=1
         for argname,argvalue in self.description.arguments.iteritems(): 
-             Label(master, text='      ' + argname + ': ' + argvalue,justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=W)
+             Label(master, text='      ' + argname + ': ' + str(argvalue),justify=LEFT).grid(row=row, column=0, columnspan=4,sticky=W)
              row+=1
       if self.description.inputMaskName is not None:
-        Label(master, text='Mask:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=W)
-        self.inputmask = ImageTk.PhotoImage(openImage(os.path.join(self.dir,self.description.inputMaskName)))
-        self.m = Canvas(master, width=250, height=250)
-        self.moc = self.m.create_image(125,125,image=self.inputmask, tag='imgm')
-        self.m.grid(row=row+1, column=0, columnspan=2,sticky=E+W)
-        row+=2
-      if self.exifdiff is not None and len(self.exifdiff) > 0:
-         Label(master, text='EXIF Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2,sticky=E+W)
-         self.exifBox = ExifTable(master,self.exifdiff)
-         self.exifBox.grid(row=row+1,column=0, columnspan=2,sticky=E+W)
+        self.inputmaskframe = ButtonFrame(master,self.description.inputMaskName, self.dir, \
+             label='Mask ('+self.description.inputMaskName+'):',isMask=True,preserveSnapshot=True)
+        self.inputmaskframe.grid(row=row, column=0, columnspan=4,sticky=E+W)
+        row+=1
+      if self.metadiff is not None:
+        sections = self.metadiff.getSections()
+        Label(master, text=self.metadiff.getMetaType() +' Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2 if sections else 4,sticky=E+W)
+        self.metaBox = MetaDiffTable(master,self.metadiff)
+        if sections is not None:
+           self.sectionBox = Spinbox(master,values=['Section ' + section for section in sections], command=self.changeSection)
+           self.sectionBox.grid(row=row,column=1,columnspan=2,sticky=SE+NW)
+        row+=1
+        self.metaBox.grid(row=row,column=0, columnspan=4,sticky=E+W)
+        row+=1
+      if self.description.maskSet is not None:
+        self.maskBox = MaskSetTable(master,self.description.maskSet,openColumn=3,dir=self.dir)
+        self.maskBox.grid(row=row,column=0, columnspan=4,sticky=SE+NW)
+        row+=1
+
+   def changeSection(self):
+      self.metaBox.setSection(self.sectionBox.get()[8:])
 
    def cancel(self):
        tkSimpleDialog.Dialog.cancel(self)
@@ -289,10 +324,10 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
 
    def __init__(self,parent,scModel):
       self.scModel = scModel
-      tkSimpleDialog.Dialog.__init__(self, parent, "Select Image Node")
+      tkSimpleDialog.Dialog.__init__(self, parent, "Select " + scModel.getTypeName() + " Node")
 
    def body(self, master):
-      Label(master, text="Image Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      Label(master, text=self.scModel.getTypeName() + " Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       self.box = AutocompleteEntryInText(master,values=self.scModel.getNodeNames(), takefocus=True)
       self.box.grid(row=0,column=1)
       self.c = Canvas(master, width=250, height=250)
@@ -334,7 +369,6 @@ class CompareDialog(tkSimpleDialog.Dialog):
 
       iframe = Frame(master, bd=2, relief=SUNKEN)
       iframe.grid_rowconfigure(1, weight=1)
-#      iframe.grid_columnconfigure(0, weight=1)
       Label(iframe, text='  '.join([key + ': ' + str(value) for key,value in self.analysis.items()]),anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       iframe.grid(row=1,column=0,columnspan=2, sticky=N+S+E+W)
 
@@ -402,21 +436,19 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
       if self.optocall is not None:
         op=self.pluginOps[self.optocall]
         arginfo = op['arguments']
+        operation = getOperation(op['operation'][0])
         if arginfo is not None:
           arg = arginfo[index]
-          if arg[0] == 'donor':
-            d = ImageNodeCaptureDialog(self, self.scModel)
-            res = d.selectedImage
-          elif arg[0] == 'inputmaskname':
-             val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
-             if (val != None and len(val)> 0):
-                res=val
-          else:
-            res = tkSimpleDialog.askstring("Set Parameter " + arg[0], "Value:", parent=self)
+          argumentTuple = (arg[0],operation.mandatoryparameters[arg[0]]) if operation is not None and arg[0] in operation.mandatoryparameters else None
+          argumentTuple = (arg[0],operation.optionalparameters[arg[0]]) if operation is not None and arg[0] in operation.optionalparameters else argumentTuple
+          argumentTuple = ('donor',{'type':'donor','description':'Donor'}) if arg[0] == 'donor' else argumentTuple
+          argumentTuple = ('inputmaskname', {'type':'imagefile','description':'Input Mask File'}) if arg[0] == 'inputmaskname' else argumentTuple
+          argumentTuple = (arg[0],{'type':'string','description': arg[2] if len(arg) > 2 else 'Not Available'}) if argumentTuple is None else argumentTuple
+          res = promptForParameter(self, self.dir, argumentTuple, self.parent.uiProfile.filetypes, arg[1])
           if res is not None:
             self.argvalues[arg[0]] = res
             self.argBox.delete(index)
-            self.argBox.insert(index,arg[0] + ': ' + res)
+            self.argBox.insert(index,arg[0] + ': ' + str(res))
            
    def newop(self, event):
       self.argvalues= {}
@@ -487,22 +519,145 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
    def getGroup(self):
       return self.grouptocall
 
-class ExifTable(Frame):
+class ActionableTableCanvas(TableCanvas):
 
-    def __init__(self, master,items,**kwargs):
+   def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.',**kwargs):
+       self.openColumn = openColumn
+       self.dir = dir
+       TableCanvas.__init__(self,parent=parent,model=model,width=width,height=height,**kwargs)
+
+   def handle_double_click(self, event):
+      row = self.get_row_clicked(event)
+      self.openFile(row)
+
+   def openFile(self,row):
+      model=self.getModel()      
+      f = model.getValueAt(row,self.openColumn)
+      openFile(os.path.join(self.dir,f))
+
+   def popupMenu(self, event, rows=None, cols=None, outside=None):
+        """Add left and right click behaviour for canvas, should not have to override
+            this function, it will take its values from defined dicts in constructor"""
+
+        defaultactions = {"Set Fill Color" : lambda : self.setcellColor(rows,cols,key='bg'),
+                        "Set Text Color" : lambda : self.setcellColor(rows,cols,key='fg'),
+                        "Open":  lambda : self.openFile(row),
+                        "Copy" : lambda : self.copyCell(rows, cols),
+                        "View Record" : lambda : self.getRecordInfo(row),
+                        "Select All" : self.select_All,
+                        "Filter Records" : self.showFilteringBar,
+                        "Export csv": self.exportTable,
+                        "Plot Selected" : self.plotSelected,
+                        "Plot Options" : self.plotSetup,
+                        "Export Table" : self.exportTable,
+                        "Preferences" : self.showtablePrefs,
+                        "Formulae->Value" : lambda : self.convertFormulae(rows, cols)}
+
+        if self.openColumn:
+          main = ["Open","Set Fill Color","Set Text Color","Copy"]
+        else:
+          main = ["Set Fill Color","Set Text Color","Copy"]
+        general = ["Select All", "Filter Records", "Preferences"]
+        filecommands = ['Export csv']
+        plotcommands = ['Plot Selected','Plot Options']
+        utilcommands = ["View Record", "Formulae->Value"]
+
+        def createSubMenu(parent, label, commands):
+            menu = Menu(parent, tearoff = 0)
+            popupmenu.add_cascade(label=label,menu=menu)
+            for action in commands:
+                menu.add_command(label=action, command=defaultactions[action])
+            return menu
+
+        def add_commands(fieldtype):
+            """Add commands to popup menu for column type and specific cell"""
+            functions = self.columnactions[fieldtype]
+            for f in functions.keys():
+                func = getattr(self, functions[f])
+                popupmenu.add_command(label=f, command= lambda : func(row,col))
+            return
+
+        popupmenu = Menu(self, tearoff = 0)
+        def popupFocusOut(event):
+            popupmenu.unpost()
+
+        if outside == None:
+            #if outside table, just show general items
+            row = self.get_row_clicked(event)
+            col = self.get_col_clicked(event)
+            coltype = self.model.getColumnType(col)
+            def add_defaultcommands():
+                """now add general actions for all cells"""
+                for action in main:
+                    popupmenu.add_command(label=action, command=defaultactions[action])
+                return
+
+#            if self.columnactions.has_key(coltype):
+#                add_commands(coltype)
+            add_defaultcommands()
+
+        for action in general:
+            popupmenu.add_command(label=action, command=defaultactions[action])
+
+        popupmenu.add_separator()
+        createSubMenu(popupmenu, 'File', filecommands)
+        createSubMenu(popupmenu, 'Plot', plotcommands)
+        if outside == None:
+            createSubMenu(popupmenu, 'Utils', utilcommands)
+        popupmenu.bind("<FocusOut>", popupFocusOut)
+        popupmenu.focus_set()
+        popupmenu.post(event.x_root, event.y_root)
+        return popupmenu
+
+
+class MaskSetTable(Frame):
+
+    section = None
+    def __init__(self, master,items,openColumn=3,dir='.',**kwargs):
         self.items = items
+        Frame.__init__(self, master,  **kwargs)
+        self._drawMe(dir,openColumn)
+  
+    def _drawMe(self,dir,openColumn):
+       model = TableModel()
+       for c in self.items.columnNames:
+          model.addColumn(c)
+       model.importDict(self.items.columnValues)
+
+       self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True,height=125,openColumn=openColumn,dir=dir)
+       self.table.updateModel(model)
+       self.table.createTableFrame()
+
+
+class MetaDiffTable(Frame):
+
+    section = None
+    def __init__(self, master,items,section=None,**kwargs):
+        self.items = items
+        self.section = section
         Frame.__init__(self, master, **kwargs)
         self._drawMe()
   
+    def setSection(self,section):
+        if section == self.section:
+            return
+        self.section = section
+        self.table.getModel().setupModel(self.items.toColumns(section))
+        self.table.redrawTable()
+
     def _drawMe(self):
        model = TableModel()
-       for c in  ['Operation','Old','New']:
+       for c in  self.items.getColumnNames(self.section):
           model.addColumn(c)
-       model.importDict(exiftodict(self.items))
+       model.importDict(self.items.toColumns(self.section))
 
-       self.table = TableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True)
+       self.grid_rowconfigure(0, weight=1)
+       self.grid_columnconfigure(0, weight=1)
+
+       self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True,height=125)
        self.table.updateModel(model)
        self.table.createTableFrame()
+       
   
 
 class ListDialog(Toplevel):
@@ -600,10 +755,10 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
    def useinputmask(self):
        if self.useInputMaskVar.get() == 'yes':
-          self.im = openImage(os.path.join(self.dir,self.modification.inputMaskName))
+          self.im = openImage(os.path.join(self.dir,self.modification.inputMaskName),isMask=True,preserveSnapshot=True)
           self.selectMaskName = self.modification.inputMaskName
        elif self.modification.changeMaskName is not None:
-          self.im = openImage(os.path.join(self.dir,self.modification.changeMaskName))
+          self.im = openImage(os.path.join(self.dir,self.modification.changeMaskName),isMask=True,preserveSnapshot=True)
           self.selectMaskName = self.modification.changeMaskName
        else:
           self.im = Image.fromarray(np.zeros((250,250)))
@@ -611,11 +766,11 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
        self.c.itemconfig(self.image_on_canvas, image = self.photo)
 
    def changemask(self):
-        val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select Input Mask", \
-              filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        val = tkFileDialog.askopenfilename(initialdir = self.dir, title = "Select Input Mask", \
+              filetypes = self.parent.uiProfile.filetypes)
         if (val != None and len(val)> 0):
             self.selectMaskName = val
-            self.im = openImage(val)
+            self.im = openImage(val,isMask=True,preserveSnapshot=os.path.split(os.path.abspath(val))[0]==dir)
             self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im,(250,250))))
             self.c.itemconfig(self.image_on_canvas, image = self.photo)
 
@@ -663,3 +818,82 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
        self.im.save(val)
        self.ok()
 
+
+class ButtonFrame(Frame):
+ 
+   def __init__(self,master,fileName,dir,label=None,isMask=False,preserveSnapshot=False,**kwargs):
+      Frame.__init__(self,master,**kwargs)
+      self.fileName = fileName
+      self.dir = dir
+      Label(self, text=label if label else fileName,anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      img = openImage(os.path.join(dir,fileName),isMask=isMask,preserveSnapshot=preserveSnapshot)
+      self.img = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(img,(125,125),img.size)))
+      w = Button(self, text=fileName, width=10, command=self.openMask, default=ACTIVE,image=self.img)
+      w.grid(row=1,sticky=E+W)
+
+   def openMask(self):
+      openFile(os.path.join(self.dir,self.fileName))
+
+
+class SelectDialog(tkSimpleDialog.Dialog):
+
+   cancelled = True
+
+   def __init__(self, parent,name,description, values):
+      self.description = description
+      self.values = values
+      self.parent = parent
+      self.name  = name
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      Label(master, text=self.description).grid(row=0, sticky=W)
+      self.e1 = AutocompleteEntryInText(master,values=self.values,takefocus=True)
+      self.e1.grid(row=1, column=0)
+
+   def cancel(self):
+      if self.cancelled:
+        self.choice = None
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.cancelled = False
+      self.choice = self.e1.get()
+
+class EntryDialog(tkSimpleDialog.Dialog):
+
+   cancelled = True
+
+   def __init__(self, parent,name,description, validateFunc,initialvalue=None):
+      self.description = description
+      self.validateFunc = validateFunc
+      self.parent = parent
+      self.name  = name
+      self.initialvalue = initialvalue
+      tkSimpleDialog.Dialog.__init__(self, parent, name)
+      
+   def body(self, master):
+      Label(master, text=self.description).grid(row=0, sticky=W)
+      self.e1 = Entry(master,takefocus=True)
+      if self.initialvalue:
+        self.e1.insert(0,self.initialvalue)
+      self.e1.grid(row=1, column=0)
+
+   def cancel(self):
+      if self.cancelled:
+         self.choice = None
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.cancelled = False
+      self.choice = self.e1.get()
+
+   def validate(self): 
+      v = self.e1.get()
+      if self.validateFunc and not self.validateFunc(v):
+         tkMessageBox.showwarning(
+              "Bad input",
+              "Illegal values, please try again"
+         )
+         return 0
+      return 1

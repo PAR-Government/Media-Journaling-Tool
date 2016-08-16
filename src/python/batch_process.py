@@ -169,7 +169,7 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
 
         # create link
         sm.selectImage(nodes[-1])
-        sm.addNextImage(eImg, tool_set.openImage(eImg), mod=opDetails,
+        sm.addNextImage(eImg, mod=opDetails,
                         sendNotifications=False, position=position)
 
         sm.save()
