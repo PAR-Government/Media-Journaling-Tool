@@ -549,6 +549,12 @@ class ImageProjectModel:
     def saveas(self,pathname):
        self.G.saveas(pathname)
 
+    def get_property(self,name):
+      return self.G.get_property(name)
+
+    def set_property(self,name,value):
+      self.G.set_property(name,value)
+
     def save(self):
        self.G.save()
 

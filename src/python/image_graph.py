@@ -89,6 +89,12 @@ class ImageGraph:
       self.G.graph['username']=get_username()
       self.G.graph['projecttype']=projecttype
 
+  def get_property(self,name):
+    return self.G.graph[name] if name in self.G.graph else None
+
+  def set_property(self,name,value):
+    self.G.graph[name] = value
+
   def openImage(self,fileName,mask=False):
     return openImage(fileName)
 

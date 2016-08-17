@@ -1150,7 +1150,16 @@
         "checkLengthSame",
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true
     }, 
@@ -1162,7 +1171,16 @@
         "checkLengthSame",
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true
     }, 
@@ -1174,7 +1192,16 @@
         "checkLengthSame",
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
       "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ArtifactsCGIObjectCGI.",
       "includeInMask": true
     }, 
@@ -1186,7 +1213,16 @@
         "checkLengthSame",
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
       "includeInMask": true
     }, 

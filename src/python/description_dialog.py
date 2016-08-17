@@ -67,6 +67,50 @@ def tupletostring(tuple):
        strv = strv + str(item) + ' '
    return strv
 
+class PropertyDialog(tkSimpleDialog.Dialog):
+
+   parent = None
+   cancelled = True
+
+   def __init__(self, parent, properties):
+     self.parent = parent
+     self.properties = properties
+     self.values = [None for prop in properties]
+     tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
+
+   def body(self, master):
+        row = 0
+        for prop in self.properties:
+           Label(master, text=prop[0]).grid(row=row,sticky=W)
+           if prop[2] == 'list':
+             self.values[row] = AutocompleteEntryInText(master,values=prop[3],takefocus=(row == 0),initialValue=self.parent.scModel.get_property(prop[1]))
+           elif prop[2] == 'text':
+             self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
+             v = self.parent.scModel.get_property(prop[1])
+             if v:
+                 self.values[row].insert(1.0,v)
+           else:
+             self.values[row] = Entry(master,takefocus=(row==0),width=80)
+             v = self.parent.scModel.get_property(prop[1])
+             if v:
+                 self.values[row].insert(0,v)
+           self.values[row].grid(row=row,column=1,sticky=E+W)
+           row+=1
+
+   def cancel(self):
+      if self.cancelled:
+         self.description = None
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.cancelled = False
+      i = 0
+      for prop in self.properties:
+          v= self.values[i].get() if prop[2] != 'text' else self.values[i].get(1.0,END).strip()
+          if v and len(v) > 0:
+            self.parent.scModel.set_property(prop[1],v)
+          i+=1
+
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
    description = None

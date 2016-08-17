@@ -487,8 +487,8 @@ def formMaskDiff(fileOne, fileTwo,startSegment=None,endSegment=None,applyConstra
      if endSegment:
        command.extend(['-t', getDuration(startSegment,endSegment)])
    command.extend(['-i', fileTwo,'-filter_complex', 'blend=all_mode=difference', outFileName])
-   print command
    call(command)
-   return buildMasksFromCombinedVideo(outFileName,startTime=toMilliSeconds(startSegment))
-
+   result = buildMasksFromCombinedVideo(outFileName,startTime=toMilliSeconds(startSegment))
+   os.remove(outFileName)
+   return result
 
