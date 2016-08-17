@@ -9,6 +9,8 @@ def loadS3(values):
   DIR=values[0][values[0].find('/')+1:]
   s3.download_file( BUCKET,DIR + "/operations.json", "operations.json")
   s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
+  s3.download_file( BUCKET,DIR + "/video_operations.json", "video_operations.json")
+  s3.download_file( BUCKET,DIR + "/video_software.csv", "video_software.csv")
 
 def loadHTTP(values):
     import requests
@@ -26,3 +28,12 @@ def loadHTTP(values):
     if r.status_code < 300:
       with open('software.csv', 'w') as f:
           f.write(r.content)
+    r = requests.get(values[0] + '/video_operations.json',headers=head)
+    if r.status_code < 300:
+      with open('operations.json', 'w') as f:
+          f.write(r.content)
+    r = requests.get(values[0] + '/video_software.csv',headers=head)
+    if r.status_code < 300:
+      with open('software.csv', 'w') as f:
+          f.write(r.content)
+

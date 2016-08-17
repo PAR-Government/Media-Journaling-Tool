@@ -12,17 +12,49 @@ import ttk
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
+from software_loader import Software, loadOperations, loadSoftware,getOperation
 from tool_set import *
-from software_loader import Software, loadOperations, loadSoftware
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
 from group_operations import ToJPGGroupOperation
 from web_tools import *
 
+"""
+  Main UI Driver for MaskGen
+"""
 
-# this program creates a canvas and puts a single polygon on the canvas
+class UIProfile:
+    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("bmp files","*.bmp"),("all files","*.*")]
+    suffixes = [".jpg",".png",".tiff"]
+    operations='operations.json'
+    software='software.csv'
+    name = 'Image'
+    def getFactory(self): 
+      return imageProjectModelFactory
 
-defaultypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("all files","*.*")]
+    def addProcessCommand(self,menu,parent):
+      menu.add_command(label="Create JPEG", command=parent.createJPEG, accelerator="Ctrl+J")
+      menu.add_separator()
+
+    def addAccelerators(self,parent):
+      parent.bind_all('<Control-j>',parent.gcreateJPEG)
+
+class VideoProfile:
+    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
+    suffixes = [".mp4",".avi",".mov"]
+    operations='video_operations.json'
+    software='video_software.csv'
+    name = 'Video'
+    def getFactory(self): 
+      return videoProjectModelFactory
+
+    def addAccelerators(self,parent):
+      return None
+
+    def addProcessCommand(self,menu,func):
+      return None
+#      menu.add_command(label="Create JPEG", command=func, accelerator="Ctrl+J")
+#      menu.add_separator()
 
 class MakeGenUI(Frame):
 
@@ -47,6 +79,7 @@ class MakeGenUI(Frame):
     filteredgemenu = None
     canvas = None
     errorlistDialog = None
+    uiProfile = UIProfile()
    
     gfl = GroupFilterLoader()
 
@@ -72,9 +105,9 @@ class MakeGenUI(Frame):
        if (not self._check_dir(dir)):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
-       self.scModel.startNew(val)
+       self.scModel.startNew(val,suffixes=self.uiProfile.suffixes)
        if self.scModel.getProjectData('typespref') is None:
-          self.scModel.setProjectData('typespref',defaultypes)
+          self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
        self._setTitle()
        self.drawState()
        self.canvas.update()
@@ -88,7 +121,7 @@ class MakeGenUI(Frame):
         if (val != None and len(val)>0):
           self.scModel.load(val)
           if self.scModel.getProjectData('typespref') is None:
-              self.scModel.setProjectData('typespref',defaultypes)
+              self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
           self._setTitle()
           self.drawState()
           self.canvas.update()
@@ -198,9 +231,9 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(file,im,mod=d.description)
+            msg = self.scModel.addNextImage(file,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -225,7 +258,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(filename,im,mod=d.description)
+            msg = self.scModel.addNextImage(filename,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
             else:
@@ -331,8 +364,8 @@ class MakeGenUI(Frame):
          try:
            loadS3([val])
            self.prefLoader.save('s3info',val)
-           loadOperations("operations.json")
-           loadSoftware("software.csv")
+           loadOperations(self.uiProfile.operations)
+           loadSoftware(self.uiProfile.software)
            graph_rules.setup()
          except ClientError as e:
            tkMessageBox.showwarning("S3 Download failure",str(e))
@@ -416,8 +449,9 @@ class MakeGenUI(Frame):
        self.setSelectState('normal')
 
     def connectEvent(self,modification):
-        if (modification.operationName == 'PasteSplice'):
-           tkMessageBox.showinfo("Splice Requirement", "A splice operation should be accompanied by a donor image.")
+        op = getOperation(modification.operationName)
+        if op and 'checkForDonor' in op.rules:
+           tkMessageBox.showinfo("Donor Requirement", "This operation should be accompanied by a donor image.")
 
     def remove(self):
        self.canvas.remove()
@@ -429,7 +463,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
+       d = DescriptionCaptureDialog(self,self.uiProfile, self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description)
        self.drawState()
@@ -438,7 +472,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(), exifdiff=self.scModel.getExifDiff())
+       d = DescriptionViewDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
 
     def viewselectmask(self):
        im,filename = self.scModel.getSelectMask()
@@ -483,7 +517,7 @@ class MakeGenUI(Frame):
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
-        self.processmenu.add_command(label="Add Images", command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add " + self.uiProfile.name, command=self.add, accelerator="Ctrl+A")
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P", state='disabled')
         self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile, state='disabled')
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
@@ -491,8 +525,7 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
         self.processmenu.add_command(label="Next w/Filter Sequence", command=self.nextfiltergroupsequence, state='disabled')
         self.processmenu.add_separator()
-        self.processmenu.add_command(label="Create JPEG", command=self.createJPEG, accelerator="Ctrl+J")
-        self.processmenu.add_separator()
+        self.uiProfile.addProcessCommand(self.processmenu,self)
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z",state='disabled')
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
@@ -505,7 +538,7 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-l>',self.gnextadd)
         self.bind_all('<Control-f>',self.gnextfilter)
         self.bind_all('<Control-z>',self.gundo)
-        self.bind_all('<Control-j>',self.gcreateJPEG)
+        self.uiProfile.addAccelerators(self)
 
         self.grid()
         self.master.rowconfigure(0,weight=1)
@@ -574,7 +607,7 @@ class MakeGenUI(Frame):
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N+S)
         self.hscrollbar.grid(row=1, column=0, sticky=E+W)
-        self.canvas = MaskGraphCanvas(mframe,self.scModel,self.graphCB, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
+        self.canvas = MaskGraphCanvas(mframe,self.uiProfile,self.scModel,self.graphCB, width=768, height=512, scrollregion=(0, 0, 4000, 4000), yscrollcommand=self.vscrollbar.set,xscrollcommand=self.hscrollbar.set)
         self.canvas.grid(row=0, column=0,sticky=N+S+E+W)
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
@@ -594,15 +627,16 @@ class MakeGenUI(Frame):
        elif eventName == 'n':
            self.drawState()
 
-    def __init__(self,dir,master=None,pluginops={},base=None):
+    def __init__(self,dir,master=None,pluginops={},base=None,uiProfile = UIProfile()):
         Frame.__init__(self, master)
+        self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        self.scModel = createProject(dir, notify=self.connectEvent,base=base)
+        self.scModel = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
         if self.scModel is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)
         if self.scModel.getProjectData('typespref') is None:
-            self.scModel.setProjectData('typespref',defaultypes)
+            self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
         self.createWidgets()
 
 
@@ -613,11 +647,13 @@ def main(argv=None):
 
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
-   parser.add_argument('--base', help='base image',nargs=1)
+   parser.add_argument('--videodir', help='video directory',nargs=1)
+   parser.add_argument('--base', help='base image or video',nargs=1)
    parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
    imgdir = ['.']
    argv = argv[1:]
+   uiProfile = UIProfile()
    args = parser.parse_args(argv)
    if args.imagedir is not None:
        imgdir = args.imagedir
@@ -625,11 +661,14 @@ def main(argv=None):
        loadHTTP(args.http)
    elif args.s3 is not None:
        loadS3(args.s3)
-   loadOperations("operations.json")
-   loadSoftware("software.csv")
+   if args.videodir is not None:
+     uiProfile = VideoProfile()
+     imgdir = args.videodir
+   loadOperations(uiProfile.operations)
+   loadSoftware(uiProfile.software)
    root= Tk()
 
-   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None)
+   gui = MakeGenUI(imgdir[0],master=root,pluginops=plugins.loadPlugins(), base=args.base[0] if args.base is not None else None,uiProfile=uiProfile)
    gui.mainloop()
 
 if __name__ == "__main__":

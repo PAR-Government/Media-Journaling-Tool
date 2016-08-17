@@ -1,4 +1,6 @@
 from software_loader import getOperations,SoftwareLoader,getOperation
+from tool_set import validateTimeString,validateAndConvertTypedValue
+
 
 rules = {}
 sloader = SoftwareLoader()
@@ -18,21 +20,25 @@ def initialCheck(op,graph,frm,to):
   edge = graph.get_edge(frm,to)
   versionResult= checkVersion(edge, op,graph,frm,to)
   mandatoryResult= checkMandatory(edge, op,graph,frm,to)
+  argResult= checkArguments(edge, op,graph,frm,to)
   result = []
   if versionResult is not  None:
     result.append(versionResult)
+  if argResult is not  None:
+    result.extend(argResult)
   if mandatoryResult is not  None:
     result.extend(mandatoryResult)
   return result
 
-
 def checkMandatory(edge,op,graph,frm,to):
+  if op == 'Donor':
+    return None
   opObj = getOperation(op)
   if opObj is None:
     return [op + ' is not a valid operation'] if op != 'Donor' else []
   args = edge['arguments'] if 'arguments' in edge  else []
-  missing = [param for param in opObj.mandatoryparameters if (param not in args or len(args[param])== 0) and param == 'inputmask']
-  if 'inputmaskname' in opObj.mandatoryparameters and ('inputmaskname' not in edge or len(edge['inputmaskname']) == 0):
+  missing = [param for param in opObj.mandatoryparameters.keys() if (param not in args or len(str(args[param]))== 0) and param == 'inputmask']
+  if 'inputmaskname' in opObj.mandatoryparameters.keys() and ('inputmaskname' not in edge or len(edge['inputmaskname']) == 0):
     missing.append('inputmask')
   return [('Mandatory parameter ' + m + ' is missing') for m in missing]
 
@@ -46,6 +52,23 @@ def checkVersion(edge,op,graph,frm,to):
     if sversion not in sloader.get_versions(sname):
       return sversion + ' not in approved set for software ' + sname
   return None
+
+def checkArguments(edge,op,graph,frm,to):
+  if op == 'Donor':
+    return None
+  opObj = getOperation(op)
+  args = [(k,v) for k,v in opObj.mandatoryparameters.iteritems()]
+  args.extend([(k,v) for k,v in opObj.optionalparameters.iteritems()])
+  results = []
+  for argName,argDef in args:
+    try:
+      argValue = getValue(edge,'arguments.' + argName)
+      if argValue:
+        validateAndConvertTypedValue(argName,argValue,opObj)
+    except ValueError as e:
+       results.append(argName + str(e))
+  return results
+
 
 def setup():
   ops = getOperations()
@@ -61,6 +84,28 @@ def checkForDonor(graph,frm,to):
    if len(pred) < 2:
      return 'donor image missing'
    return None
+
+def checkLengthSame(graph,frm,to):
+   """ the length of video should not change 
+   """
+   edge = graph.get_edge(frm,to)
+   durationChangeTuple = getValue(edge,'metadatadiff[0].duration')
+   if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
+     return "Length of video has changed"
+
+def checkLengthSmaller(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   durationChangeTuple = getValue(edge,'metadatadiff[0].duration')
+   if durationChangeTuple is None or \
+      (durationChangeTuple[0] == 'change' and durationChangeTuple[1] < durationChangeTuple[2]):
+     return "Length of video is not shorter"
+
+def checkLengthBigger(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   durationChangeTuple = getValue(edge,'metadatadiff[0].duration')
+   if durationChangeTuple is None or \
+      (durationChangeTuple[0] == 'change' and durationChangeTuple[1] > durationChangeTuple[2]):
+     return "Length of video is not longer"
 
 def checkDonor(graph,frm,to):
    pred = graph.predecessors(to)
@@ -95,3 +140,45 @@ def getSizeChange(graph,frm,to):
        y = int(xyparts[1].strip())
        return (x,y)
    return None
+
+def getValue(obj,path,convertFunction=None):
+    """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
+        obj is a node or edge
+        path is a dictionary path: a.b.c
+        convertFunction converts the value
+
+        This function recurses
+    """
+    if not path:
+      return convertFunction(obj) if convertFunction and obj else obj
+
+    current = obj
+    part = path
+    splitpos = path.find(".")
+
+    if splitpos > 0:
+      part = path[0:splitpos]
+      path = path[splitpos+1:]
+    else:
+      path = None
+
+    bpos= part.find('[')
+    pos = 0
+    if bpos > 0:
+      pos = int(part[bpos+1:-1])
+      part = part[0:bpos]
+
+    if part in current:
+      current = current[part]
+      if type(current) is list:
+        if bpos>0:
+          current = current[pos]
+        else:
+          result = []
+          for item in current:
+            v = getValue(item, path,convertFunction)
+            if v:
+              result.append(v)
+          return result
+      return getValue(current, path,convertFunction)
+    return None
