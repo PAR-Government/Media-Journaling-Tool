@@ -23,6 +23,11 @@ from web_tools import *
   Main UI Driver for MaskGen
 """
 
+
+"""
+  Profiles are used to customize the bevahior depending on the type of project.
+  There are two profiles: video and image
+"""
 class UIProfile:
     filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("bmp files","*.bmp"),("all files","*.*")]
     suffixes = [".jpg",".png",".tiff"]
@@ -39,6 +44,9 @@ class UIProfile:
     def addAccelerators(self,parent):
       parent.bind_all('<Control-j>',parent.gcreateJPEG)
 
+    def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
+        return CompareDialog(master,im2,mask,nodeId,analysis)
+
 class VideoProfile:
     filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
     suffixes = [".mp4",".avi",".mov"]
@@ -53,8 +61,9 @@ class VideoProfile:
 
     def addProcessCommand(self,menu,func):
       return None
-#      menu.add_command(label="Create JPEG", command=func, accelerator="Ctrl+J")
-#      menu.add_separator()
+
+    def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
+        return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
 
 class MakeGenUI(Frame):
 
@@ -80,6 +89,7 @@ class MakeGenUI(Frame):
     canvas = None
     errorlistDialog = None
     uiProfile = UIProfile()
+    menuindices= {}
    
     gfl = GroupFilterLoader()
 
@@ -194,7 +204,7 @@ class MakeGenUI(Frame):
        self.scModel.undo()
        self.drawState()
        self.canvas.update()
-       self.processmenu.entryconfig(6,state='disabled')
+       self.processmenu.entryconfig(self.menuindices['undo'],state='disabled')
        self.setSelectState('disabled')
 
     def updateFileTypes(self, filename):
@@ -239,7 +249,7 @@ class MakeGenUI(Frame):
             else:
               self.drawState()
               self.canvas.add(self.scModel.start, self.scModel.end)
-              self.processmenu.entryconfig(6,state='normal')
+              self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def nextauto(self):
         destination = self.scModel.scanNextImageUnConnectedImage()
@@ -249,7 +259,7 @@ class MakeGenUI(Frame):
             self.scModel.connect(destination,mod=d.description)
             self.drawState()
             self.canvas.add(self.scModel.start, self.scModel.end)
-            self.processmenu.entryconfig(6,state='normal')
+            self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def nextautofromfile(self):
         im,filename = self.scModel.scanNextImage()
@@ -264,7 +274,7 @@ class MakeGenUI(Frame):
             else:
               self.drawState()
               self.canvas.add(self.scModel.start, self.scModel.end)
-              self.processmenu.entryconfig(6,state='normal')
+              self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def resolvePluginValues(self,args):
       result = {}
@@ -278,7 +288,7 @@ class MakeGenUI(Frame):
           self.canvas.add(pair[0],pair[1])
         if len (pairs) > 0:
           self.drawState()
-          self.processmenu.entryconfig(6,state='normal')
+          self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def nextfilter(self):
         im,filename = self.scModel.currentImage()
@@ -318,7 +328,7 @@ class MakeGenUI(Frame):
             self.scModel.select((start,end))
             self.drawState()
             if ok:
-               self.processmenu.entryconfig(6,state='normal')
+               self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def nextfiltergroupsequence(self):
         im,filename = self.scModel.currentImage()
@@ -337,7 +347,7 @@ class MakeGenUI(Frame):
                self._addPairs(pairs)  
                im,filename = self.scModel.getImageAndName(self.scModel.end)
             self.drawState()
-            self.processmenu.entryconfig(6,state='normal')
+            self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def drawState(self):
         sim = self.scModel.startImage()
@@ -425,7 +435,7 @@ class MakeGenUI(Frame):
     def connectto(self):
        self.drawState()
        self.canvas.connectto()
-       self.processmenu.entryconfig(6,state='normal')
+       self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
     def exportpath(self):
        val = tkFileDialog.askdirectory(initialdir = '.',title = "Export " + self.scModel.startImageName() + " To Directory")
@@ -456,7 +466,7 @@ class MakeGenUI(Frame):
     def remove(self):
        self.canvas.remove()
        self.drawState()
-       self.processmenu.entryconfig(6,state='normal')
+       self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
        self.setSelectState('disabled')
 
     def edit(self):
@@ -527,6 +537,7 @@ class MakeGenUI(Frame):
         self.processmenu.add_separator()
         self.uiProfile.addProcessCommand(self.processmenu,self)
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z",state='disabled')
+        self.menuindices['undo'] = self.processmenu.index(END)
         menubar.add_cascade(label="Process", menu=self.processmenu)
         self.master.config(menu=menubar)
         self.bind_all('<Control-q>',self.gquit)

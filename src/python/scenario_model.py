@@ -94,6 +94,16 @@ class MetaDiff:
      return d
 
 class VideoMetaDiff:
+   """
+    Video Meta-data changes are represented by section. 
+    A special section called Global represents meta-data for the entire video.
+    Other sections are in the individual streams (e.g. video and audio) of frames.
+    A table of columns is produced per section.  The columns are Id, Operation, Old and New.
+    Operations are add, delete and change.
+    For streams, each row is identified by a time and meta-data name. 
+    When frames are added, the New column contains the number of frames added followed by the end time in seconds: 30:=434.4343434
+    When frames are deleted, the Old column contains the number of frames removed followed by the end time in seconds: 30:=434.4343434
+   """
    diffData = None
 
    def __init__(self,diffData):
@@ -139,15 +149,23 @@ class VideoMetaDiff:
 
 
 class Modification:
+   """
+   Represents a single manipulation to a source node, resulting in the target node
+   """
    operationName = None
    additionalInfo = ''
    # for backward compatibility and ease of access, input mask name is both arguments and 
    # an instance variable 
    inputMaskName=None
+   #set of masks used for videos
    maskSet = None
+   # Record the link in the composite.  Uses 'no' and 'yes' to mirror JSON read-ability
    recordMaskInComposite = 'no'
+   # arguments used by the operation
    arguments = {}
+   # represents the composite selection mask, if different from the link mask
    selectMaskName = None
+   # instance of Software
    software = None
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
@@ -364,7 +382,7 @@ class ImageProjectModel:
 
     def getComposite(self):
       """
-       get the composite image for the selected node.
+       Get the composite image for the selected node.
        If the composite does not exist AND the node is a leaf node, then create the composite
        Return None if the node is not a leaf node
       """
@@ -397,6 +415,11 @@ class ImageProjectModel:
       return self._constructComposites(result,stopAtNode=stopAtNode)
 
     def constructComposite(self):
+       """
+        Construct the composite mask for the selected node.
+        Does not save the composite in the node.
+        Returns the composite mask if successful, otherwise None
+       """
        selectedNode = self.end if self.end is not None else self.start
        baseNodes = self._findBaseNodes(selectedNode)
        if len(baseNodes) > 0:
@@ -409,8 +432,10 @@ class ImageProjectModel:
 
     def constructComposites(self):
       """
-        find all valid base node, leaf node tuples.
-        Construct the composite make along the paths from base to lead node
+        Remove all prior constructed composites.
+        Find all valid base node, leaf node tuples.
+        Construct the composite make along the paths from base to lead node.
+        Save the composite in the associated leaf nodes.
       """
       composites = []
       endPointTuples = self._getTerminalAndBaseNodeTuples()
@@ -562,6 +587,9 @@ class ImageProjectModel:
        return self.getImage(self.end)
 
     def getSelectMask(self):
+       """
+       A selectMask is a mask the is used in composite mask production, overriding the default link mask
+       """
        if self.end is None:
           return None,None
        mask = self.G.get_edge_image(self.start,self.end,'maskname')
@@ -871,6 +899,17 @@ class VideoProjectModel(ImageProjectModel):
           return None
       return VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
 
+    def compare(self, destination,seamAnalysis=False, arguments={}):
+       """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+           Return both images, the mask set and the meta-data diff results
+       """
+       startIm,startFileName = self.getImageAndName(self.start)
+       destIm,destFileName = self.getImageAndName(destination)
+       maskname, mask, analysis = self._compareImages(self.start,destination,'noOp')
+       analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
+       analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
+       return  startIm, destIm, mask,analysis
+
     def _compareImages(self,start,destination,op, invert=False,arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
@@ -923,6 +962,9 @@ class VideoProjectModel(ImageProjectModel):
        return mod
 
 class VideoMaskSetInfo:
+    """
+    Set of change masks video clips
+    """
     columnNames = ['Start','End','Frames','File']
     columnValues = {}
 

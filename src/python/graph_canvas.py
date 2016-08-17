@@ -179,7 +179,7 @@ class MaskGraphCanvas(tk.Canvas):
                  tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
             else:
                 im1,im2,mask,analysis = self.scModel.compare(nodeId,seamAnalysis=False)
-                CompareDialog(self.master,im2,mask,nodeId,analysis)
+                self.uiProfile.createCompareDialog(self.master,im2,mask,nodeId,analysis, self.scModel.get_dir())
             self.deselectCursor(None)
             if (ok):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
