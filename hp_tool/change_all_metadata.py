@@ -54,7 +54,7 @@ def main():
     args = parser.parse_args()
 
     # parse data
-    newData = build_new_meta(args.file, args.purge)
+    newData = parse_file(args.file, args.purge)
     process(args.dir, newData, args.recursive)
 
 

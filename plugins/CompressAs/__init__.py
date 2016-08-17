@@ -12,6 +12,7 @@ possible future features:
 import os
 from PIL import Image
 from bitstring import BitArray
+from subprocess import call
 
 def parse_tables(imageFile):
     """
@@ -81,7 +82,9 @@ def save_as(source, target, qTables):
 
     # much of the time, images will have thumbnail tables included.
     # from what I've seen the thumbnail tables always come first...
+    thumbTable = []
     if len(qTables) > 2:
+        thumbTable = qTables[0:2]
         finalTable = qTables[-2:]
     elif len(qTables) < 2:
         finalTable = [qTables, qTables]
@@ -91,6 +94,14 @@ def save_as(source, target, qTables):
     # write jpeg with specified tables
     im = Image.open(source)
     im.save(target, subsampling=1, qtables=finalTable)
+    if thumbTable:
+        im.thumbnail((128,128), Image.ANTIALIAS)
+        im.save('temp.jpg', subsampling=1, qtables=thumbTable)
+        exifStr = 'exiftool -overwrite_original -P -m "-ThumbnailImage<=temp.jpg" ' + target
+        call(exifStr)
+        call(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
+        os.remove('temp.jpg')
+    im.close()
     im.close()
 
 def transform(img,source,target, **kwargs):
