@@ -47,6 +47,9 @@ class UIProfile:
     def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
         return CompareDialog(master,im2,mask,nodeId,analysis)
 
+    def projectProperties(self):
+        return [('User Name','username','string'),('Description','projectdescription','text')]
+
 class VideoProfile:
     filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
     suffixes = [".mp4",".avi",".mov"]
@@ -64,6 +67,9 @@ class VideoProfile:
 
     def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
         return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
+
+    def projectProperties(self):
+        return [('User Name','username','string'),('Description','projectdescription','string')]
 
 class MakeGenUI(Frame):
 
@@ -122,6 +128,7 @@ class MakeGenUI(Frame):
        self.drawState()
        self.canvas.update()
        self.setSelectState('disabled')
+       self.getproperties()
  
     def about(self):
         tkMessageBox.showinfo('About','Version: ' + self.scModel.getVersion())
@@ -144,7 +151,7 @@ class MakeGenUI(Frame):
           self.updateFileTypes(val[0])
           try:
             self.canvas.addNew([self.scModel.addImage(f) for f in val])
-            self.processmenu.entryconfig(6,state='normal')
+            self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
           except IOError:
             tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
           self.setSelectState('normal')
@@ -387,6 +394,9 @@ class MakeGenUI(Frame):
         else:
            self.errorlistDialog.setItems(errorList)
 
+    def getproperties(self):
+        d = PropertyDialog(self,self.uiProfile.projectProperties())
+
     def groupmanager(self):
         d = GroupManagerDialog(self)
 
@@ -521,6 +531,7 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="Group Manager", command=self.groupmanager)
         filemenu.add_separator()
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
+        filemenu.add_cascade(label="Properties",command=self.getproperties)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
 
