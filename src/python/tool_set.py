@@ -13,6 +13,9 @@ import re
 
 
 def openFile(fileName):
+   """
+    Open a file using a native OS associated program
+   """
    import os
    import sys
    cmd = 'open'
@@ -24,7 +27,8 @@ def openFile(fileName):
    
 
 """
-   These functions are designed to support mask generation.
+   Support UID discovery using a class that supports a method getpwuid().
+   tool_set.setPwdX(classInstance) to set the class.  By default, the os UID is used.
 """
 
 try:
@@ -70,6 +74,10 @@ def imageResizeRelative(img,dim,otherIm):
    return img.resize((wsize,hsize), Image.ANTIALIAS)
 
 def validateCoordinates(v):
+   """
+   Coordinates are [x,y] or (x,y) or x,y where x and y are integers.
+   Return False if the coordinates are invalid.
+   """
    try:
       return len([int(re.sub('[()]','',x)) for x in v.split(',')]) == 2
    except ValueError:
@@ -120,23 +128,41 @@ def validateAndConvertTypedValue(argName,argValue,operationDef):
    return argValue
 
 def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
+   """
+   Open and return an image from the file. If the file is a video, find the first non-uniform frame.
+   videoFrameTime, integer time in milliseconds, is provided, then find the frame after that point in time
+   preserveSnapshot, False by default, informs the function to save the frame image after extraction for videos
+   """
    import os
+   from scipy import ndimage
+
    snapshotFileName = filename
    if not filename[filename.rfind('.')+1:] in ['png','jpg','gif','tiff','jpeg','bmp']:
      snapshotFileName = filename[0:filename.rfind ('.')-len(filename)]+'.png'
+
    if not os.path.exists(snapshotFileName) and snapshotFileName != filename:
      cap = cv2.VideoCapture(filename)
-     frame = None
+     bestSoFar = None
+     bestVariance = -1
+     maxTry = 20
      try:
        while(cap.isOpened()):
          ret, frame = cap.read()
-         if not videoFrameTime or videoFrameTime < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
-           break
          if not ret:
+            break
+         if videoFrameTime and videoFrameTime < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
+           bestSoFar = frame
+           break
+         varianceOfImage = math.sqrt(ndimage.measurements.variance(frame)) 
+         if bestVariance < varianceOfImage:
+            bestSoFar = frame
+            bestVariance = varianceOfImage
+         maxTry-=1
+         if not videoFrameTime and maxTry <= 0:
            break
      finally:
        cap.release()
-     img = Image.fromarray(frame)
+     img = Image.fromarray(bestSoFar)
      img = img.convert('L')  if isMask else img
      if preserveSnapshot:
        img.save(snapshotFileName)

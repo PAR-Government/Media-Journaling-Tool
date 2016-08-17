@@ -15,6 +15,12 @@ from tool_set import *
 igversion='0.1'
 
 def getPathValues(d,path):
+      """
+      Given a nest structure, 
+      return all the values reference by the given path.
+      Always returns a list.
+      If the value is not found, the list is empty
+      """
       if type(d) is list:
          result = []
          for item in d:
@@ -55,6 +61,11 @@ class ImageGraph:
   idc = 0
   dir = os.path.abspath('.')
   filesToRemove = set()
+  # Will likely change this to be externally managed, except 'ownership'
+  # ownership indicates that ownership of the image must be checked prior to deletion,
+  # otherwise the image graph is assumed to be the owner
+  # ownership occurs if the image file is copied into the project directory
+  # These paths are all the paths associated with image or video files for a link (edge).
   edgeFilePaths = { 'inputmaskname':'inputmaskownership', \
                     'maskname':None, \
                     'compositemaskname': None, \
@@ -133,7 +144,7 @@ class ImageGraph:
     return nname
     
   def undo(self):
-    for d in self.U:
+    for d in list(self.U):
       action = d.pop('action')
       if action == 'removeNode':
          k = os.path.join(self.dir,d['file'])
@@ -155,9 +166,7 @@ class ImageGraph:
              os.remove(os.path.join(self.dir,d['file']))
          self.G.remove_node(d['name'])
       elif action == 'addEdge':
-         if (d['ownership'] == 'yes'):
-             os.remove(os.path.join(self.dir,d['maskname']))
-         self.G.remove_edge(d['start'],d['end'])
+         self.remove_edge(d['start'],d['end'])
     self.U = []
 
   def removeCompositeFromNode(self,nodeName):
@@ -240,7 +249,7 @@ class ImageGraph:
          description=description, username=get_username(), opsys=getOS(), \
          **kwargs)
     self.U = []
-    self.U.append(dict(action='addEdge', ownership='yes', start=start,end=end, **self.G.edge[start][end]))
+    self.U.append(dict(action='addEdge', start=start,end=end, **self.G.edge[start][end]))
     return mask
 
   def get_composite_mask(self,name):
@@ -258,7 +267,10 @@ class ImageGraph:
   def get_edge(self,start,end):
     return self.G[start][end] if (self.G.has_edge(start,end)) else None
 
-  def _fileRemover(self,actionList, edgeFunc, start,end,edge):
+  def _edgeFileRemover(self,actionList, edgeFunc, start,end,edge):
+    """
+      Remove an edge and all owned files
+    """
     if edgeFunc is not None:
        edgeFunc(edge)
     for path,ownership in self.edgeFilePaths.iteritems():
@@ -273,13 +285,13 @@ class ImageGraph:
     self.U = []
     self.E = []
     def fileRemover(start,end,edge):
-       self._fileRemover(self.E,edgeFunc,start,end,edge)
+       self._edgeFileRemover(self.E,edgeFunc,start,end,edge)
     #remove predecessor edges
     for p in self.G.predecessors(node):
-      maskRemover(p,node,self.G.edge[p][node])
+      fileRemover(p,node,self.G.edge[p][node])
     # remove edges or deep dive removal
-    nodes_to_remove = queue_nodes(self.G,[node],node,maskRemover) if children else \
-    remove_edges(self.G,[node], node, maskRemover)
+    nodes_to_remove = queue_nodes(self.G,[node],node,fileRemover) if children else \
+    remove_edges(self.G,[node], node, fileRemover)
     for n in nodes_to_remove:
       if (self.G.has_node(n)):
         f = os.path.abspath(os.path.join(self.dir,self.G.node[n]['file']))
@@ -295,7 +307,7 @@ class ImageGraph:
   def remove_edge(self,start,end,edgeFunc=None):
     self.U = []
     edge = self.G.edge[start][end]
-    self._fileRemover(self.U,edgeFunc,start,end,edge)
+    self._edgeFileRemover(self.U,edgeFunc,start,end,edge)
     self.G.remove_edge(start,end)
 
   def has_neighbors(self,node):
