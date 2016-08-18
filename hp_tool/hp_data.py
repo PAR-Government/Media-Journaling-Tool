@@ -12,6 +12,11 @@ import datetime
 import sys
 import csv
 import boto3
+import hashlib
+import subprocess
+from PIL import Image, ImageStat
+import numpy
+
 
 exts = ('.jpg', '.jpeg', '.tif', '.tiff', '.nef', '.cr2', '.avi', '.mov', '.mp4')
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P'}
@@ -37,6 +42,7 @@ def copyrename(image, path, usrname, org, seq, other):
     newPathName = os.path.join(path, newNameStr + currentExt)
     shutil.copy2(image, newPathName)
     return newPathName
+
 
 def parse_prefs(data):
     """
@@ -75,6 +81,7 @@ def parse_prefs(data):
             sys.exit(0)
 
     return newData
+
 
 def pad_to_5_str(num):
     """
@@ -117,6 +124,7 @@ def grab_range(files):
 
     return allFiles[start:end+1]
 
+
 def grab_dir(path, r=False):
     """
     Grabs all image files in a directory
@@ -138,6 +146,7 @@ def grab_dir(path, r=False):
 
     return imageList
 
+
 def write_seq(prefs, newSeq):
     """
     Updates the sequence value in a file
@@ -156,6 +165,7 @@ def write_seq(prefs, newSeq):
     f.write(newData)
     f.close()
 
+
 def add_seq(filename):
     """
     Appends a sequence field and an initial sequence to a file
@@ -165,6 +175,7 @@ def add_seq(filename):
     """
     with open(filename, 'ab') as f:
         f.write('\nseq=00000')
+
 
 def build_keyword_file(image, keywords, csvFile):
     """
@@ -178,6 +189,7 @@ def build_keyword_file(image, keywords, csvFile):
         keywordWriter = csv.writer(csv_keywords, lineterminator='\n')
         for word in keywords:
             keywordWriter.writerow([image, word])
+
 
 def build_xmetadata_file(image, data, csvFile):
     """
@@ -193,6 +205,7 @@ def build_xmetadata_file(image, data, csvFile):
         xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
         xmetadataWriter.writerow(fullData)
 
+
 def build_history_file(image, newName, csvFile):
     """
     Creates an easy-to-follow history for keeping record of image names
@@ -202,10 +215,12 @@ def build_history_file(image, newName, csvFile):
     :param csvFile: csv file to store information
     :return: None
     """
-
+    md5 = hashlib.md5(open(image, 'rb').read()).hexdigest()
     with open(csvFile, 'a') as csv_history:
+
         historyWriter = csv.writer(csv_history, lineterminator='\n')
-        historyWriter.writerow([image, ' --> ', newName])
+        historyWriter.writerow([image, newName, md5])
+
 
 def parse_extra(data, csvFile):
     """
@@ -217,10 +232,107 @@ def parse_extra(data, csvFile):
     """
     keys = ['Filename'] + data[::2]
     values = data[1::2]
-    with open(csvFile, 'w') as csv_metadata:
-        xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
-        xmetadataWriter.writerow(keys)
-    return values
+    if valid_keys(keys):
+        with open(csvFile, 'w') as csv_metadata:
+            xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
+            xmetadataWriter.writerow(keys)
+        return values
+
+
+def load_keys():
+    keys = []
+    try:
+        with open('key_value_pairs.csv') as csvFile:
+            keyReader = csv.reader(csvFile)
+            for row in keyReader:
+                keys.append(row[0])
+    except IOError:
+        print 'No key validation file found'
+        sys.exit()
+    return keys
+
+
+def valid_keys(testKeys):
+    trueKeys = load_keys()
+    if set(testKeys).issubset(trueKeys):
+        return True
+    else:
+        return False
+
+
+def get_id(image):
+
+    exiftoolOutput = subprocess.Popen(['exiftool', '-SerialNumber', image],
+                                        stdout=subprocess.PIPE).communicate()[0]
+    if exiftoolOutput:
+        return exiftoolOutput.split(':',1)[1].strip()
+    else:
+        sys.exit('Error: A camera serial number was not provided and none could be found in image data.')
+
+
+def get_lens_id(image):
+    exiftoolOutput = subprocess.Popen(['exiftool', '-SerialNumber', image],
+                                      stdout=subprocess.PIPE).communicate()[0]
+    if exiftoolOutput:
+        return exiftoolOutput.split(':', 1)[1].strip()
+    else:
+        return 'builtin'
+
+
+def tally_images(filenames, model, localId,  lens, csvFile):
+    if lens is None:
+        lens = get_lens_id(filenames)
+    if localId is None:
+        localId = 'null'
+
+    finalList = []
+    for filename in filenames:
+        with Image.open(filename) as im:
+            width, height = im.size
+            im.convert('L')
+            imStat = ImageStat.Stat(im)
+            avgLum = imStat.mean[0]
+
+        if avgLum < 85:
+            lum = 'low'
+        elif avgLum >= 85 and avgLum <= 170:
+            lum = 'medium'
+        else:
+            lum = 'high'
+
+        ext = os.path.splitext(filename)[1]
+        # headers = ['Model', 'Lens', 'Extension', 'Size (px)', 'Luminance', 'F#',
+        #            'Exposure Time', 'ISO', 'Bit Depth', 'Count']
+        imageChars = ['Model: ' + model, 'LocalID: '+ localId, 'Lens: ' + lens,  'Extension: ' + ext,
+                        'Size: ' + str(width * height), 'Luminance: ' + lum]
+
+        exifData = subprocess.Popen(['exiftool', '-FNumber', '-ExposureTime', '-ISO', '-BitsPerSample', '-Make', filename],
+                                        stdout=subprocess.PIPE).communicate()[0]
+        # parse exiftool output string intolist
+        exifList = exifData[:-1].replace('\r', '').split('\n')
+        keyList = []
+        for item in exifList:
+            data = item.split(':', 1)
+            key = data[0].strip()
+            val = data[1].strip()
+            imageChars += [key + ': ' + val]
+            keyList += [key]
+
+        if exifList in finalList:
+            incrIdx = finalList.index([exifList]) + 1
+            finalList[incrIdx] = finalList[incrIdx] + 1
+        else:
+            finalList.append(imageChars)
+            finalList.append(1)
+
+    with open(csvFile, 'wb') as csv_tally:
+        tallyWriter = csv.writer(csv_tally, lineterminator='\n')
+        #tallyWriter.writerow(headers)
+        i = 0
+        while i < len(finalList):
+            tallyWriter.writerow(finalList[i] + ['Count:' + str(finalList[i+1])])
+            i += 2
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -235,9 +347,12 @@ def main():
     parser.add_argument('-P', '--preferences',      default='preferences.txt',      help='User preferences file')
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
     parser.add_argument('-B', '--s3Bucket',                                         help='S3 bucket/path')
+    parser.add_argument('-i', '--id',                                               help='Camera serial #')
+    parser.add_argument('-l', '--lid',              default='',                     help='Local ID no. (cage #, etc.)')
+    parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
+
     args = parser.parse_args()
 
-    newData = change_all_metadata.parse_file(args.metadata)
     if args.s3Bucket:
         values = args.s3Bucket
         s3 = boto3.client('s3', 'us-east-1')
@@ -259,6 +374,12 @@ def main():
     else:
         imageList.extend(grab_dir(args.dir, args.recursive))
 
+    # check camera model before any processing
+    if args.id:
+        camera = args.id
+    else:
+        camera = get_id(imageList[0])
+
     # copy
     try:
         count = int(prefs['seq'])
@@ -269,7 +390,12 @@ def main():
     csv_history = os.path.join(args.secondary, 'history.csv')
     csv_keywords = os.path.join(args.secondary, 'keywords.csv')
     csv_metadata = os.path.join(args.secondary, 'xdata.csv')
-    extraValues = parse_extra(args.extraMetadata, csv_metadata)
+    try:
+        extraValues = parse_extra(args.extraMetadata, csv_metadata)
+    except TypeError:
+        extraValues = None
+
+    newNameList = []
     for image in imageList:
         newName = copyrename(image, args.secondary, prefs['username'], prefs['organization'], pad_to_5_str(count), args.additionalInfo)
         build_history_file(image, newName, csv_history)
@@ -277,12 +403,18 @@ def main():
             build_keyword_file(image, args.keywords, csv_keywords)
         if args.extraMetadata:
             build_xmetadata_file(image, extraValues, csv_metadata)
+        newNameList += [newName]
         count += 1
 
     write_seq(args.preferences, pad_to_5_str(count))
 
     # change metadata of copies
+    newData = change_all_metadata.parse_file(args.metadata)
     change_all_metadata.process(args.secondary, newData, quiet=True)
+
+    # write final csv
+    csv_tally = os.path.join(args.secondary, 'tally.csv')
+    tally_images(newNameList, camera, args.lid, args.lens, csv_tally)
 
 
 if __name__ == '__main__':
