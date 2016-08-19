@@ -171,10 +171,14 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
        img.save(snapshotFileName)
      return img
    else:
-     with open(snapshotFileName,"rb") as fp:
-        img = Image.open(fp)
-        img.load()
-        return img
+     try:
+       with open(snapshotFileName,"rb") as fp:
+          img = Image.open(fp)
+          img.load()
+          return img
+     except IOError as e:
+        print e
+        return openImage('./icons/RedX.png')
 
 def createMask(img1, img2, invert, seamAnalysis=False,arguments={}):
       mask,analysis = __composeMask(img1,img2,invert,seamAnalysis=seamAnalysis,arguments=arguments)
