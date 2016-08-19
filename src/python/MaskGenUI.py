@@ -682,10 +682,11 @@ class MakeGenUI(Frame):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        self.scModel = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
-        if self.scModel is None:
+        tuple = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
+        if tuple is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)
+        self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
             preferredFT = self.profileLoader.get_key('filetypes')
             if preferredFT:
@@ -693,6 +694,8 @@ class MakeGenUI(Frame):
             else:
               self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
         self.createWidgets()
+        if tuple[1]:
+          self.getproperties()
 
 
 
