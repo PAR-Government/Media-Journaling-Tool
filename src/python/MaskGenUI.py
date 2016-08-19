@@ -28,8 +28,29 @@ from web_tools import *
   Profiles are used to customize the bevahior depending on the type of project.
   There are two profiles: video and image
 """
+
+def toFileTypeString(types):
+    str = ''
+    for ft in types:
+       str += ft[1] + ' '
+    return str
+
+def fromFileTypeString(types, profileTypes):
+    typelist = types.split(' ')
+    result = []
+    for ft in typelist:
+        ft = ft.strip()
+        if len(ft) == 0:
+          continue
+        ptype = [x for x in profileTypes if x[1] == ft]
+        if len(ptype)>0:
+          result.append(ptype[0])
+        else:
+          result.append((ft,ft))
+    return result
+
 class UIProfile:
-    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("bmp files","*.bmp"),("all files","*.*")]
+    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("all files","*.*")]
     suffixes = [".jpg",".png",".tiff"]
     operations='operations.json'
     software='software.csv'
@@ -48,7 +69,8 @@ class UIProfile:
         return CompareDialog(master,im2,mask,nodeId,analysis)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','text')]
+        return [('User Name','username','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
+
 
 class VideoProfile:
     filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
@@ -69,7 +91,7 @@ class VideoProfile:
         return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','string')]
+        return [('User Name','username','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
 
 class MakeGenUI(Frame):
 
@@ -206,6 +228,12 @@ class MakeGenUI(Frame):
             self.prefLoader.save('username', newName)
             setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
 
+    def setfiletypes(self):
+        filetypes = self.getFileTypes()
+        newtypesStr = tkSimpleDialog.askstring("Set File Types", "Types", initialvalue=toFileTypeString(filetypes))
+        if newtypesStr is not None:
+            self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
+            self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
 
     def undo(self):
        self.scModel.undo()
@@ -517,6 +545,7 @@ class MakeGenUI(Frame):
 
         settingsmenu = Menu(tearoff=0)
         settingsmenu.add_command(label="Username", command=self.setusername)
+        settingsmenu.add_command(label="File Types", command=self.setfiletypes)
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About",command=self.about)
@@ -653,13 +682,20 @@ class MakeGenUI(Frame):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        self.scModel = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
-        if self.scModel is None:
+        tuple = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
+        if tuple is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)
+        self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
-            self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
+            preferredFT = self.prefLoader.get_key('filetypes')
+            if preferredFT:
+              self.scModel.setProjectData('typespref',preferredFT)
+            else:
+              self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
         self.createWidgets()
+        if tuple[1]:
+          self.getproperties()
 
 
 

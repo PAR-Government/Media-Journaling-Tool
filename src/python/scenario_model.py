@@ -35,7 +35,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
     """
 
     if (dir.endswith(".json")):
-       return projectModelFactory(os.path.abspath(dir),notify=notify)
+       return projectModelFactory(os.path.abspath(dir),notify=notify),False
     selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
         print 'Cannot add base image/video to an existing project'
@@ -68,7 +68,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
     model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
        model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes)
-    return model
+    return model,True
 
 class MetaDiff:
    diffData = None
@@ -548,12 +548,6 @@ class ImageProjectModel:
 
     def saveas(self,pathname):
        self.G.saveas(pathname)
-
-    def get_property(self,name):
-      return self.G.get_property(name)
-
-    def set_property(self,name,value):
-      self.G.set_property(name,value)
 
     def save(self):
        self.G.save()

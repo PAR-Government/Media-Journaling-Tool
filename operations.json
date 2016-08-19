@@ -1066,7 +1066,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the bmp format.",
       "includeInMask": false
     }, 
@@ -1077,7 +1082,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the jpeg format.",
       "includeInMask": false
     }, 
@@ -1088,7 +1098,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the png format.",
       "includeInMask": false
     }, 
@@ -1099,7 +1114,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the tif format.",
       "includeInMask": false
     }, 
