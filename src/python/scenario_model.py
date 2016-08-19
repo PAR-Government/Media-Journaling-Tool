@@ -62,13 +62,14 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
       print 'Base project file ' + projectFile + ' not found'
       return None
     image = None
-    if  not projectFile.endswith(".json"):
+    existingProject = projectFile.endswith(".json")
+    if  not existingProject:
         image = projectFile
         projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
     model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
        model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes)
-    return model,True
+    return model,not existingProject
 
 class MetaDiff:
    diffData = None
@@ -660,6 +661,8 @@ class ImageProjectModel:
        for node in self.G.get_nodes():
          if not self.G.has_neighbors(node):
              total_errors.append((str(node),str(node),str(node) + ' is not connected to other nodes'))
+
+       total_errors.extend(self.G.file_check())
 
        for frm,to in self.G.get_edges():
           edge = self.G.get_edge(frm,to)

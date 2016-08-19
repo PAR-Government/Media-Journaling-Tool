@@ -28,7 +28,7 @@ class MaskGraphCanvas(tk.Canvas):
     lassobox = None
     
     drag_item = None
-    drag_data = {}
+    drag_data = None
 
     def __init__(self, master,uiProfile,scModel,callback,**kwargs):
         self.scModel = scModel
@@ -134,7 +134,7 @@ class MaskGraphCanvas(tk.Canvas):
         """End drag of an object"""
 
         # reset the drag information
-        self.setDragData(None,0,0)
+        self.setDragData(None)
 
     def selectCursor(self,event):
         self.config(cursor='crosshair')
@@ -152,6 +152,7 @@ class MaskGraphCanvas(tk.Canvas):
        else:
          for item in self.lassoitems:
             self.moveItem(event,item)
+         self.setDragData((event.x,event.y))
 
     def startregion(self,event):
        x = self.canvasx(event.x)
@@ -159,6 +160,8 @@ class MaskGraphCanvas(tk.Canvas):
        self.region =(x,y)
 
     def stopregion(self,event):
+       if self.lassobox:
+          self.delete(self.lassobox)
        if self.lassoitems:
          for item in self.lassoitems:
             self.itemToCanvas[item].deselectgroup()
@@ -224,21 +227,15 @@ class MaskGraphCanvas(tk.Canvas):
                self.callback(event,"n")
             return
 
-        self.setDragData(item,event.x,event.y)
+        self.setDragData((event.x,event.y),item=item)
 
-    def setDragData(self, item,x,y):
-        if item is None and self.drag_item is not None and self.drag_item  in  self.drag_data:
-          self.drag_data.pop(self.drag_item )
+    def setDragData(self, tuple,item=None):
         self.drag_item = item
-        self.drag_data[item] = {'x':x,'y':y}
+        self.drag_data = tuple
    
     def getDragData(self,item,x,y):
-       if item not in self.drag_data:
-           b = None# self.bbox(item)
-           return {'x':b[0],'y':b[1]} if b else {'x':x,'y':y}
-       return self.drag_data[item]
+       return self.drag_data if self.drag_data else (x,y)
    
-
     def showNode(self,node):
        item_id = self.toItemIds[node][1]
        self._mark(item_id)
@@ -254,19 +251,19 @@ class MaskGraphCanvas(tk.Canvas):
         if self.drag_item is None:
            return
         self.moveItem(event,self.drag_item)
+        # record the new position
+        self.setDragData((event.x,event.y),item=self.drag_item)
 
     def moveItem(self,event,item):
         # compute how much this object has moved
         xp = event.x
         yp = event.y
         dragInfo = self.getDragData(item,event.x,event.y)
-        delta_x = xp - dragInfo['x']
-        delta_y = yp - dragInfo['y']
+        delta_x = xp - dragInfo[0]
+        delta_y = yp - dragInfo[1]
 
         # move the object the appropriate amount
         self.move(item, delta_x, delta_y)
-        # record the new position
-        self.setDragData(item, xp, yp)
 
         # Redraw any edges
         b = self.bbox(item)

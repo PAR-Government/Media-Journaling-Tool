@@ -410,6 +410,23 @@ class ImageGraph:
               edge[ownership] = 'yes'
            moveFile(self.dir,currentdir,pathvalue)
 
+  def file_check(self):
+    missing = []
+    for nname in self.G.nodes():
+      node = self.G.node[nname]
+      if not os.path.exists(os.path.join(self.dir,node['file'])):
+         missing.append((str(nname),str(nname),str(nname) + ' is missing image file in project'))
+    for edgename in self.G.edges():
+      edge= self.G[edgename[0]][edgename[1]]
+      for path,ownership in self.edgeFilePaths.iteritems():
+        for pathvalue in getPathValues(edge,path):
+          if len(pathvalue) == 0:
+             continue
+          newpathname = os.path.join(self.dir,pathvalue)
+          if not os.path.exists(os.path.join(self.dir,node['file'])):
+             missing.append((str(edgename[0]),str(edgename[1]),str(edgename[0]) + ' => ' + str(edgename[1]) + ' is missing ' + path + ' file in project'))
+    return missing
+        
   def create_archive(self, location):
     self.save()
     fname = os.path.join(location,self.G.name + '.tgz')

@@ -1412,7 +1412,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false
     }, 
@@ -1681,7 +1686,6 @@
       "name": "TransformResample", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
       ], 
       "optionalparameters": {
         "inputmaskname": {

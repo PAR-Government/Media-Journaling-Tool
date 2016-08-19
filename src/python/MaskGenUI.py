@@ -73,7 +73,7 @@ class UIProfile:
 
 
 class VideoProfile:
-    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
+    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
     suffixes = [".mp4",".avi",".mov"]
     operations='video_operations.json'
     software='video_software.csv'
