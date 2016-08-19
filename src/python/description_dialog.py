@@ -321,7 +321,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=1, column=1,columnspan=3,sticky=W)
       Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
       Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=2, column=2,sticky=W)
-      row=3
+      Label(master, text='Automated: ' + self.description.automated,anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
+      row=4
       if len(self.description.arguments)>0:
         Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=W)
         row+=1

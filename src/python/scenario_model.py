@@ -167,6 +167,8 @@ class Modification:
    selectMaskName = None
    # instance of Software
    software = None
+   #automated
+   automated = None
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
@@ -174,9 +176,11 @@ class Modification:
         selectMaskName=None, \
         inputMaskName=None,
         software=None, \
-        maskSet=None):
+        maskSet=None, \
+        automated=None):
      self.additionalInfo  = additionalInfo
      self.maskSet = maskSet
+     self.automated = automated
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
@@ -187,6 +191,9 @@ class Modification:
      if recordMaskInComposite is not None:
         self.recordMaskInComposite = recordMaskInComposite
  
+   def setAutomated(self, val):
+      self.automated = 'yes' if val == 'yes' else 'no'
+
    def setMaskSet(self,maskset):
       self.maskSet = maskset
 
@@ -477,6 +484,7 @@ class ImageProjectModel:
             softwareVersion=('' if mod.software is None else mod.software.version), \
             inputmaskname=mod.inputMaskName, \
             selectmaskname=mod.selectMaskName, \
+            automated=mod.automated, \
             **additionalParameters)
 
     def getSeriesName(self):
@@ -743,6 +751,7 @@ class ImageProjectModel:
       software = Software(op[3],op[4],internal=True)
       description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications'})
       description.setSoftware(software)
+      description.setAutomated('yes')
 
       msg2 = self.addNextImage(target,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
@@ -884,7 +893,8 @@ class ImageProjectModel:
           software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
                             edge['softwareVersion'] if 'softwareVersion' in edge else None, \
                             'editable' in edge and edge['editable'] == 'no'), \
-          recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no')
+          recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no', \
+          automated = edge['automated'] if 'automated' in edge else 'no')
 
 class VideoProjectModel(ImageProjectModel):
 
