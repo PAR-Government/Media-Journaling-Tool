@@ -137,7 +137,10 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
    from scipy import ndimage
 
    snapshotFileName = filename
-   if not filename[filename.rfind('.')+1:] in ['png','jpg','gif','tiff','jpeg','bmp']:
+   if not os.path.exists(filename):
+      return openImage('./icons/RedX.png')
+
+   if filename[filename.rfind('.')+1:] in ['avi','mp4','mov','flv','qt','wmv','m4p','mpeg','mpv','m4v']:
      snapshotFileName = filename[0:filename.rfind ('.')-len(filename)]+'.png'
 
    if not os.path.exists(snapshotFileName) and snapshotFileName != filename:

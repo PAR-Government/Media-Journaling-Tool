@@ -33,6 +33,14 @@ def getPathValues(d,path):
          nextpath = path[0:pos]
          return getPathValues(d[nextpath],path[pos+1:]) if nextpath in d else []
 
+def getPathPartAndValue(path,data):
+    if path in data:
+        return path,data[path]
+    pos = path.rfind('.')
+    if pos <0:
+       return None,None
+    return getPathPartAndValue(path[0:pos],data)
+
 def get_pre_name(file):
   pos = file.rfind('.')
   return file[0:pos] if (pos > 0) else file
@@ -67,6 +75,7 @@ class ImageGraph:
   # ownership occurs if the image file is copied into the project directory
   # These paths are all the paths associated with image or video files for a link (edge).
   edgeFilePaths = { 'inputmaskname':'inputmaskownership', \
+                    'arguments.XMP File Name':'xmpfileownership', \
                     'maskname':None, \
                     'compositemaskname': None, \
                     'selectmaskname':'selectmaskownership', \
@@ -89,11 +98,6 @@ class ImageGraph:
       self.G.graph['username']=get_username()
       self.G.graph['projecttype']=projecttype
 
-  def get_property(self,name):
-    return self.G.graph[name] if name in self.G.graph else None
-
-  def set_property(self,name,value):
-    self.G.graph[name] = value
 
   def openImage(self,fileName,mask=False):
     return openImage(fileName)
@@ -244,8 +248,9 @@ class ImageGraph:
     newmaskpathname = os.path.join(self.dir,maskname)
     mask.save(newmaskpathname)
     for path,ownership in self.edgeFilePaths.iteritems():
-      if ownership and path in kwargs:
-        pathvalue,ownershipvalue= self._handle_inputfile(kwargs[path])
+      vals = getPathValues(kwargs,path)
+      if ownership and len(vals) > 0:
+        pathvalue,ownershipvalue= self._handle_inputfile(vals[0])
         kwargs[path] = pathvalue
         kwargs[ownership] = ownershipvalue
     # do not remove old version of mask if not saved previously
@@ -405,6 +410,23 @@ class ImageGraph:
               edge[ownership] = 'yes'
            moveFile(self.dir,currentdir,pathvalue)
 
+  def file_check(self):
+    missing = []
+    for nname in self.G.nodes():
+      node = self.G.node[nname]
+      if not os.path.exists(os.path.join(self.dir,node['file'])):
+         missing.append((str(nname),str(nname),str(nname) + ' is missing image file in project'))
+    for edgename in self.G.edges():
+      edge= self.G[edgename[0]][edgename[1]]
+      for path,ownership in self.edgeFilePaths.iteritems():
+        for pathvalue in getPathValues(edge,path):
+          if len(pathvalue) == 0:
+             continue
+          newpathname = os.path.join(self.dir,pathvalue)
+          if not os.path.exists(os.path.join(self.dir,node['file'])):
+             missing.append((str(edgename[0]),str(edgename[1]),str(edgename[0]) + ' => ' + str(edgename[1]) + ' is missing ' + path + ' file in project'))
+    return missing
+        
   def create_archive(self, location):
     self.save()
     fname = os.path.join(location,self.G.name + '.tgz')
@@ -443,15 +465,29 @@ class ImageGraph:
       else:
           self._updatePathValue(d[path[0:pos]],path[pos+1:], value)
 
+  def _buildPath(self, value, edgePaths):
+      if type(value) is dict and edgePaths[0] in value:
+         return edgePaths[0] + (("." + self._buildPath(value[edgePaths[0]],edgePaths[1:])) if len(edgePaths)>1 else '')
+      return ''
+
+  def _buildStructure(self,path,value):
+       pos = path.find('.')
+       if pos > 0:
+             return {path[0:pos]:self._buildStructure(path[pos+1:],value)}
+       return {path:value}
+
   def _updateEdgePathValue(self, start, end, path, value):
-        if path in self.edgeFilePaths:
-           ownership = self.edgeFilePaths[path]
-           if ownership:
-              filenamevalue,ownershipvalue = self._handle_inputfile(value)
-              self._updatePathValue(self.G[start][end],path,filenamevalue)
-              self._updatePathValue(self.G[start][end],ownership,ownershipvalue)
-              return
         self._updatePathValue(self.G[start][end],path,value)
+        for edgePath in self.edgeFilePaths:
+            struct  = self._buildStructure(path,value)
+            revisedPath = self._buildPath(struct, edgePath.split('.'))
+            if revisedPath == edgePath:
+                ownership = self.edgeFilePaths[revisedPath]
+                if ownership:
+                   filenamevalue,ownershipvalue = self._handle_inputfile(getPathValues(struct, revisedPath)[0])
+                   self._updatePathValue(self.G[start][end],revisedPath,filenamevalue)
+                   self._updatePathValue(self.G[start][end],ownership,ownershipvalue)
+                return
  
   def create_path_archive(self, location, end):
     self.save()
