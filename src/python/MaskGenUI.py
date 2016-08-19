@@ -688,7 +688,7 @@ class MakeGenUI(Frame):
           sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
-            preferredFT = self.profileLoader.get_key('filetypes')
+            preferredFT = self.prefLoader.get_key('filetypes')
             if preferredFT:
               self.scModel.setProjectData('typespref',preferredFT)
             else:
