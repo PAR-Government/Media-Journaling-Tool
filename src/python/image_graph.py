@@ -33,6 +33,14 @@ def getPathValues(d,path):
          nextpath = path[0:pos]
          return getPathValues(d[nextpath],path[pos+1:]) if nextpath in d else []
 
+def getPathPartAndValue(path,data):
+    if path in data:
+        return path,data[path]
+    pos = path.rfind('.')
+    if pos <0:
+       return None,None
+    return getPathPartAndValue(path[0:pos],data)
+
 def get_pre_name(file):
   pos = file.rfind('.')
   return file[0:pos] if (pos > 0) else file
@@ -240,8 +248,9 @@ class ImageGraph:
     newmaskpathname = os.path.join(self.dir,maskname)
     mask.save(newmaskpathname)
     for path,ownership in self.edgeFilePaths.iteritems():
-      if ownership and path in kwargs:
-        pathvalue,ownershipvalue= self._handle_inputfile(kwargs[path])
+      vals = getPathValues(kwargs,path)
+      if ownership and len(vals) > 0:
+        pathvalue,ownershipvalue= self._handle_inputfile(vals[0])
         kwargs[path] = pathvalue
         kwargs[ownership] = ownershipvalue
     # do not remove old version of mask if not saved previously

@@ -69,7 +69,7 @@ class UIProfile:
         return CompareDialog(master,im2,mask,nodeId,analysis)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','text')]
+        return [('User Name','username','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
 
 
 class VideoProfile:
@@ -91,7 +91,7 @@ class VideoProfile:
         return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','string')]
+        return [('User Name','username','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
 
 class MakeGenUI(Frame):
 

@@ -43,6 +43,9 @@ def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
     elif argumentTuple[1]['type'] == 'list':
        d = SelectDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],argumentTuple[1]['values'])
        res = d.choice
+    elif argumentTuple[1]['type'] == 'yesno':
+       d = SelectDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],['yes','no'])
+       res = d.choice
     elif argumentTuple[1]['type'] == 'time':
        d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateTimeString,initialvalue=initialvalue)
        res = d.choice
