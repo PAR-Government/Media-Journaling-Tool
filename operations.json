@@ -1126,7 +1126,20 @@
     {
       "category": "Paste", 
       "name": "PasteClone", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {
+         "clone rotated": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the clone is rotated during the paste operation"
+         },
+         "clone resized": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the clone is resized during the paste operation"
+         },
+         "clone cropped": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the clone is cropped the paste operation. Ideally, crop should occur on a separate path as a SelectRegion operation just prior to donation."
+         }
+      }, 
       "rules": [
         "checkSize"
       ], 
@@ -1141,7 +1154,19 @@
         "inputmaskname": {
           "type":"imagefile",
           "description":"An image file containing a mask describing the area copied."
-        }
+        },
+         "duplicate rotated": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the duplicate is rotated during the paste operation"
+         },
+         "duplicate resized": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the duplicate is resized during the paste operation"
+         },
+         "duplicate cropped": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the duplicate is cropped the paste operation. Ideally, crop should as part of an alternate path throug a SelectRegion operation just prior to donation."
+         }
       },
       "rules": [
         "checkSize"
@@ -1153,7 +1178,20 @@
     {
       "category": "Paste", 
       "name": "PasteSplice", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {
+         "donor rotated": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the donor is rotated during the paste operation"
+         },
+         "donor resized": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the donor is resized during the paste operation"
+         },
+         "donor cropped": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
+         }
+      }, 
       "rules": [
         "checkSize", 
         "checkForDonor"

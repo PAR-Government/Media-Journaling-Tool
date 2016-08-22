@@ -122,6 +122,9 @@ def validateAndConvertTypedValue(argName,argValue,operationDef):
       elif argDef['type'] == 'time':
          if not validateTimeString(argValue):
            raise ValueError(argName + ' is not a valid time (e.g. HH:MM:SS.micro)')
+      elif argDef['type'] == 'yesno':
+         if argValue.lower() not in ['yes','no']:
+           raise ValueError(argName + ' is not yes or no')
       elif argDef['type'] == 'coorindates':
          if not validateCoordinates(argValue):
            raise ValueError(argName + ' is not a valid coordinate (e.g. (6,4)')
