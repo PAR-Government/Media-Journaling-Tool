@@ -91,6 +91,8 @@ class MetaDiff:
      for k,v in self.diffData.iteritems(): 
         old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
         new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+        old = old.encode('ascii', 'xmlcharrefreplace')
+        new = new.encode('ascii', 'xmlcharrefreplace')
         d[k] = {'Operation':v[0],'Old':old,'New':new}
      return d
 
@@ -146,6 +148,8 @@ class VideoMetaDiff:
         dictKey = k if prefix == '' else prefix + ': ' + str(k)
         old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
         new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+        old = old.encode('ascii', 'xmlcharrefreplace')
+        new = new.encode('ascii', 'xmlcharrefreplace')
         d[dictKey] = {'Operation':v[0],'Old':old,'New':new}
 
 
@@ -875,8 +879,8 @@ class ImageProjectModel:
       return Modification(edge['op'], \
           edge['description'], \
           arguments = edge['arguments'] if 'arguments' in edge else {}, \
-          inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
-          selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and len(edge['selectmaskname'])>0 else None, \
+          inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and edge['inputmaskname'] and len(edge['inputmaskname']) > 0 else None, \
+          selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and edge['selectmaskname'] and len(edge['selectmaskname'])>0 else None, \
           changeMaskName=  edge['maskname'] if 'maskname' in edge else None, \
           software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
                             edge['softwareVersion'] if 'softwareVersion' in edge else None, \

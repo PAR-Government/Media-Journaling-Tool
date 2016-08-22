@@ -28,7 +28,7 @@ def getPathValues(d,path):
          return result
       pos = path.find('.')
       if pos < 0:
-         return [d[path]] if path in d else []
+         return [d[path]] if path in d and d[path] else []
       else:
          nextpath = path[0:pos]
          return getPathValues(d[nextpath],path[pos+1:]) if nextpath in d else []
@@ -251,8 +251,9 @@ class ImageGraph:
       vals = getPathValues(kwargs,path)
       if ownership and len(vals) > 0:
         pathvalue,ownershipvalue= self._handle_inputfile(vals[0])
-        kwargs[path] = pathvalue
-        kwargs[ownership] = ownershipvalue
+        if vals[0]:
+          kwargs[path] = pathvalue
+          kwargs[ownership] = ownershipvalue
     # do not remove old version of mask if not saved previously
     if newmaskpathname in self.filesToRemove:
        self.filesToRemove.remove(newmaskpathname)
@@ -286,7 +287,7 @@ class ImageGraph:
        edgeFunc(edge)
     for path,ownership in self.edgeFilePaths.iteritems():
        for pathvalue in getPathValues(edge,path):
-          if ownership not in edge or edge[ownership] == 'yes':
+          if pathvalue and len(pathvalue)> 0 and (ownership not in edge or edge[ownership] == 'yes'):
             f = os.path.abspath(os.path.join(self.dir,pathvalue))
             if (os.path.exists(f)):
                self.filesToRemove.add(f)
@@ -351,7 +352,7 @@ class ImageGraph:
   def load(self,pathname):
     global igversion
     with open(pathname,"r") as f:
-      self.G = json_graph.node_link_graph(json.load(f))
+      self.G = json_graph.node_link_graph(json.load(f,encoding='cp1252'),multigraph=False,directed=True)
       if 'igversion' in self.G.graph:
         if self.G.graph['igversion'] != igversion:
           raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
@@ -373,13 +374,13 @@ class ImageGraph:
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
      self._copy_contents(currentdir)
      with open(filename, 'w') as f:
-        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2)
+        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='cp1252')
      self.filesToRemove.clear()
 
   def save(self):
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
      with open(filename, 'w') as f:
-        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2)
+        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='cp1252')
      for f in self.filesToRemove:
        os.remove(f)
      self.filesToRemove.clear()
@@ -404,7 +405,7 @@ class ImageGraph:
       edge= self.G[edgename[0]][edgename[1]]
       for path,ownership in self.edgeFilePaths.iteritems():
         for pathvalue in getPathValues(edge,path):
-           if len(pathvalue) == 0:
+           if not pathvalue or len(pathvalue) == 0:
                continue
            if ownership:
               edge[ownership] = 'yes'
@@ -420,7 +421,7 @@ class ImageGraph:
       edge= self.G[edgename[0]][edgename[1]]
       for path,ownership in self.edgeFilePaths.iteritems():
         for pathvalue in getPathValues(edge,path):
-          if len(pathvalue) == 0:
+          if not pathvalue or len(pathvalue) == 0:
              continue
           newpathname = os.path.join(self.dir,pathvalue)
           if not os.path.exists(os.path.join(self.dir,node['file'])):
@@ -444,7 +445,7 @@ class ImageGraph:
   def _archive_edge(self,edge, archive_name,archive):
     for path,ownership in self.edgeFilePaths.iteritems():
       for pathvalue in getPathValues(edge,path):
-         if len(pathvalue) == 0:
+         if not pathvalue or len(pathvalue) == 0:
              continue
          newpathname = os.path.join(self.dir,pathvalue)
          archive.add(newpathname,arcname=os.path.join(archive_name,pathvalue))
