@@ -35,7 +35,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
     """
 
     if (dir.endswith(".json")):
-       return projectModelFactory(os.path.abspath(dir),notify=notify)
+       return projectModelFactory(os.path.abspath(dir),notify=notify),False
     selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
         print 'Cannot add base image/video to an existing project'
@@ -62,13 +62,14 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
       print 'Base project file ' + projectFile + ' not found'
       return None
     image = None
-    if  not projectFile.endswith(".json"):
+    existingProject = projectFile.endswith(".json")
+    if  not existingProject:
         image = projectFile
         projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
     model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
        model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes)
-    return model
+    return model,not existingProject
 
 class MetaDiff:
    diffData = None
@@ -90,6 +91,8 @@ class MetaDiff:
      for k,v in self.diffData.iteritems(): 
         old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
         new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+        old = old.encode('ascii', 'xmlcharrefreplace')
+        new = new.encode('ascii', 'xmlcharrefreplace')
         d[k] = {'Operation':v[0],'Old':old,'New':new}
      return d
 
@@ -145,6 +148,8 @@ class VideoMetaDiff:
         dictKey = k if prefix == '' else prefix + ': ' + str(k)
         old = v[1] if v[0].lower()=='change' or v[0].lower()=='delete' else ''
         new = v[2] if v[0].lower()=='change' else (v[1] if v[0].lower()=='add' else '')
+        old = old.encode('ascii', 'xmlcharrefreplace')
+        new = new.encode('ascii', 'xmlcharrefreplace')
         d[dictKey] = {'Operation':v[0],'Old':old,'New':new}
 
 
@@ -167,6 +172,8 @@ class Modification:
    selectMaskName = None
    # instance of Software
    software = None
+   #automated
+   automated = None
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
@@ -174,9 +181,11 @@ class Modification:
         selectMaskName=None, \
         inputMaskName=None,
         software=None, \
-        maskSet=None):
+        maskSet=None, \
+        automated=None):
      self.additionalInfo  = additionalInfo
      self.maskSet = maskSet
+     self.automated = automated
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
@@ -187,6 +196,9 @@ class Modification:
      if recordMaskInComposite is not None:
         self.recordMaskInComposite = recordMaskInComposite
  
+   def setAutomated(self, val):
+      self.automated = 'yes' if val == 'yes' else 'no'
+
    def setMaskSet(self,maskset):
       self.maskSet = maskset
 
@@ -477,6 +489,7 @@ class ImageProjectModel:
             softwareVersion=('' if mod.software is None else mod.software.version), \
             inputmaskname=mod.inputMaskName, \
             selectmaskname=mod.selectMaskName, \
+            automated=mod.automated, \
             **additionalParameters)
 
     def getSeriesName(self):
@@ -548,12 +561,6 @@ class ImageProjectModel:
 
     def saveas(self,pathname):
        self.G.saveas(pathname)
-
-    def get_property(self,name):
-      return self.G.get_property(name)
-
-    def set_property(self,name,value):
-      self.G.set_property(name,value)
 
     def save(self):
        self.G.save()
@@ -667,6 +674,8 @@ class ImageProjectModel:
          if not self.G.has_neighbors(node):
              total_errors.append((str(node),str(node),str(node) + ' is not connected to other nodes'))
 
+       total_errors.extend(self.G.file_check())
+
        for frm,to in self.G.get_edges():
           edge = self.G.get_edge(frm,to)
           op = edge['op'] 
@@ -743,6 +752,7 @@ class ImageProjectModel:
       software = Software(op[3],op[4],internal=True)
       description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications'})
       description.setSoftware(software)
+      description.setAutomated('yes')
 
       msg2 = self.addNextImage(target,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
@@ -878,13 +888,14 @@ class ImageProjectModel:
       return Modification(edge['op'], \
           edge['description'], \
           arguments = edge['arguments'] if 'arguments' in edge else {}, \
-          inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and len(edge['inputmaskname']) > 0 else None, \
-          selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and len(edge['selectmaskname'])>0 else None, \
+          inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and edge['inputmaskname'] and len(edge['inputmaskname']) > 0 else None, \
+          selectMaskName = edge['selectmaskname'] if 'selectmaskname' in edge and edge['selectmaskname'] and len(edge['selectmaskname'])>0 else None, \
           changeMaskName=  edge['maskname'] if 'maskname' in edge else None, \
           software=Software(edge['softwareName'] if 'softwareName' in edge else None, \
                             edge['softwareVersion'] if 'softwareVersion' in edge else None, \
                             'editable' in edge and edge['editable'] == 'no'), \
-          recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no')
+          recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no', \
+          automated = edge['automated'] if 'automated' in edge else 'no')
 
 class VideoProjectModel(ImageProjectModel):
 

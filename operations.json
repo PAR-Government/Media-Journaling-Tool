@@ -1066,7 +1066,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the bmp format.",
       "includeInMask": false
     }, 
@@ -1077,7 +1082,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the jpeg format.",
       "includeInMask": false
     }, 
@@ -1088,7 +1098,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the png format.",
       "includeInMask": false
     }, 
@@ -1099,14 +1114,32 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "XMP File Name": {
+          "type":"xmpfile",
+          "description":"XMP file provided when exporting from a raw image."
+        }
+      }, 
       "description": "Export the image in the tif format.",
       "includeInMask": false
     }, 
     {
       "category": "Paste", 
       "name": "PasteClone", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {
+         "clone rotated": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the clone is rotated during the paste operation"
+         },
+         "clone resized": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the clone is resized during the paste operation"
+         },
+         "clone cropped": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the clone is cropped the paste operation. Ideally, crop should occur on a separate path as a SelectRegion operation just prior to donation."
+         }
+      }, 
       "rules": [
         "checkSize"
       ], 
@@ -1121,7 +1154,19 @@
         "inputmaskname": {
           "type":"imagefile",
           "description":"An image file containing a mask describing the area copied."
-        }
+        },
+         "duplicate rotated": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the duplicate is rotated during the paste operation"
+         },
+         "duplicate resized": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the duplicate is resized during the paste operation"
+         },
+         "duplicate cropped": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the duplicate is cropped the paste operation. Ideally, crop should as part of an alternate path throug a SelectRegion operation just prior to donation."
+         }
       },
       "rules": [
         "checkSize"
@@ -1133,7 +1178,20 @@
     {
       "category": "Paste", 
       "name": "PasteSplice", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {
+         "donor rotated": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the donor is rotated during the paste operation"
+         },
+         "donor resized": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the donor is resized during the paste operation"
+         },
+         "donor cropped": {
+	    "type": "yesno",
+	    "description" : "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
+         }
+      }, 
       "rules": [
         "checkSize", 
         "checkForDonor"
@@ -1160,7 +1218,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+        }
+      }, 
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.",
       "includeInMask": false
     }, 
@@ -1171,7 +1234,12 @@
       "rules": [
         "checkSize"
       ], 
-      "optionalparameters": {}, 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+        }
+      }, 
       "description": "Remove a limited selection within an image.",
       "includeInMask": true
     }, 
@@ -1266,7 +1334,6 @@
       "name": "TransformResample", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
       ], 
       "optionalparameters": {
         "inputmaskname": {
