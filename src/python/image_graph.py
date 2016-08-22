@@ -352,7 +352,10 @@ class ImageGraph:
   def load(self,pathname):
     global igversion
     with open(pathname,"r") as f:
-      self.G = json_graph.node_link_graph(json.load(f,encoding='cp1252'),multigraph=False,directed=True)
+      try:
+         self.G = json_graph.node_link_graph(json.load(f,encoding='cp1252'),multigraph=False,directed=True)
+      except  ValueError:
+         self.G = json_graph.node_link_graph(json.load(f),multigraph=False,directed=True)
       if 'igversion' in self.G.graph:
         if self.G.graph['igversion'] != igversion:
           raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
