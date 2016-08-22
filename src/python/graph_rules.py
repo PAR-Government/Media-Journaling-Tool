@@ -19,6 +19,7 @@ def run_rules(op, graph, frm,to):
 def initialCheck(op,graph,frm,to):
   edge = graph.get_edge(frm,to)
   versionResult= checkVersion(edge, op,graph,frm,to)
+  errorsResult= checkErrors(edge, op,graph,frm,to)
   mandatoryResult= checkMandatory(edge, op,graph,frm,to)
   argResult= checkArguments(edge, op,graph,frm,to)
   result = []
@@ -28,7 +29,13 @@ def initialCheck(op,graph,frm,to):
     result.extend(argResult)
   if mandatoryResult is not  None:
     result.extend(mandatoryResult)
+  if errorsResult is not  None:
+    result.extend(errorsResult)
   return result
+
+def checkErrors(edge,op,graph,frm,to):
+  if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
+    return[('Link has mask processing errors')]
 
 def checkMandatory(edge,op,graph,frm,to):
   if op == 'Donor':
