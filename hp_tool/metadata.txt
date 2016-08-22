@@ -1,0 +1,6 @@
+CopyrightNotice=© 2016 PAR Government Systems - Under contract of MediFor
+By-line=Andrew Smith
+Credit=PAR Government
+UsageTerms=CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/legalcodes
+Copyright=
+Artist=
