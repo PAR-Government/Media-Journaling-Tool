@@ -160,9 +160,9 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
         softwareDetails = Software(software, version)
         if additional:
             opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,
-                                                    arguments=additional)
+                                                    arguments=additional, automated='yes')
         else:
-            opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm)
+            opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
 
         position = ((startNode['xpos'] + 50 if startNode.has_key('xpos') else
                      80), (startNode['ypos'] + 50 if startNode.has_key('ypos') else 200))
