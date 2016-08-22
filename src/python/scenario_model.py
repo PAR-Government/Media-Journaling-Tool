@@ -185,7 +185,7 @@ class Modification:
         automated=None):
      self.additionalInfo  = additionalInfo
      self.maskSet = maskSet
-     self.automated = automated
+     self.automated = automated if automated else 'no'
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
