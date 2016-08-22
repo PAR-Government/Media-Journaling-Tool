@@ -12,10 +12,10 @@ import datetime
 import sys
 import csv
 import boto3
+import botocore
 import hashlib
 import subprocess
 from PIL import Image, ImageStat
-import numpy
 
 
 exts = ('.jpg', '.jpeg', '.tif', '.tiff', '.nef', '.cr2', '.avi', '.mov', '.mp4')
@@ -89,9 +89,8 @@ def pad_to_5_str(num):
     :param num: int to be padded
     :return: padded string
     """
-    seq = str(num)
-    diff = '0' * (5 - len(seq))
-    return diff + seq
+
+    return '{:=05d}'.format(num)
 
 
 def grab_individuals(files):
@@ -325,13 +324,26 @@ def tally_images(filenames, model, localId,  lens, csvFile):
             finalList.append(imageChars)
             finalList.append(1)
 
-    with open(csvFile, 'wb') as csv_tally:
+    with open(csvFile, 'ab') as csv_tally:
         tallyWriter = csv.writer(csv_tally, lineterminator='\n')
         #tallyWriter.writerow(headers)
         i = 0
         while i < len(finalList):
             tallyWriter.writerow(finalList[i] + ['Count:' + str(finalList[i+1])])
             i += 2
+
+
+def s3_prefs(values, upload=False):
+    s3 = boto3.client('s3', 'us-east-1')
+    BUCKET = values[0][0:values[0].find('/')]
+    DIR = values[0][values[0].find('/') + 1:]
+    if upload:
+        try:
+            s3.upload_file('preferences.txt', BUCKET, DIR + '/preferences.txt')
+        except WindowsError:
+            sys.exit('local file preferences.txt not found!')
+    else:
+        s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
 
 
 def main():
@@ -347,21 +359,20 @@ def main():
     parser.add_argument('-P', '--preferences',      default='preferences.txt',      help='User preferences file')
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
     parser.add_argument('-B', '--s3Bucket',                                         help='S3 bucket/path')
-    parser.add_argument('-i', '--id',                                               help='Camera serial #')
+    parser.add_argument('-i', '--id',               required=True,                  help='Camera serial #')
     parser.add_argument('-l', '--lid',              default='',                     help='Local ID no. (cage #, etc.)')
     parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
 
     args = parser.parse_args()
+    try:
+        s3_prefs([args.s3Bucket])
+    except botocore.exceptions.ClientError:
+        try:
+            s3_prefs([args.s3Bucket], upload=True)
+        except botocore.exceptions.ClientError:
+            sys.exit('Bucket/path not found!')
 
-    if args.s3Bucket:
-        values = args.s3Bucket
-        s3 = boto3.client('s3', 'us-east-1')
-        BUCKET = values[0][0:values[0].find('/')]
-        DIR = values[0][values[0].find('/') + 1:]
-        s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
-        prefs = parse_prefs('preferences.txt')
-    else:
-        prefs = parse_prefs(args.preferences)
+    prefs = parse_prefs('preferences.txt')
 
     # grab files
     imageList = []
@@ -407,10 +418,12 @@ def main():
         count += 1
 
     write_seq(args.preferences, pad_to_5_str(count))
+    s3_prefs([args.s3Bucket], upload=True)
 
     # change metadata of copies
     newData = change_all_metadata.parse_file(args.metadata)
     change_all_metadata.process(args.secondary, newData, quiet=True)
+
 
     # write final csv
     csv_tally = os.path.join(args.secondary, 'tally.csv')
