@@ -487,8 +487,32 @@ def formMaskDiff(fileOne, fileTwo,startSegment=None,endSegment=None,applyConstra
      if endSegment:
        command.extend(['-t', getDuration(startSegment,endSegment)])
    command.extend(['-i', fileTwo,'-filter_complex', 'blend=all_mode=difference', outFileName])
-   call(command)
-   result = buildMasksFromCombinedVideo(outFileName,startTime=toMilliSeconds(startSegment))
-   os.remove(outFileName)
-   return result
+   p = Popen(command,stderr=PIPE)
+   errors = []
+   sendErrors = False
+   try:
+     while True:
+       line = p.stderr.readline()  
+       if line:
+         errors.append(line)
+       else:
+         break
+     sendErrors = p.wait() != 0
+   except OSError as e:
+     sendErrors = True
+     errors.append(str(e))
+   finally:
+      p.stderr.close()
+
+   if not sendErrors:
+     result = buildMasksFromCombinedVideo(outFileName,startTime=toMilliSeconds(startSegment))
+   else:
+     result = []
+
+   try:
+     os.remove(outFileName)
+   except IOError:
+     print 'video diff process failed'
+
+   return result,errors if sendErrors  else []
 

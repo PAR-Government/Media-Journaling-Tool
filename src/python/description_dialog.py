@@ -341,6 +341,15 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
              label='Mask ('+self.description.inputMaskName+'):',isMask=True,preserveSnapshot=True)
         self.inputmaskframe.grid(row=row, column=0, columnspan=4,sticky=E+W)
         row+=1
+      if self.description.errors and len(self.description.errors) > 0:
+        Label(master, text="Errors from mask processing :",anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=E+W)
+        row+=1
+        self.errorText = Text(master,height=10,width=40,font=('Times', '14'), relief=RAISED,borderwidth=2)
+        self.errorText.grid(row=row, column=0,columnspan=4,sticky=E+W)
+        row+=1
+        for error in self.description.errors:
+            self.errorText.insert(END,error)
+        self.errorText.config(state=DISABLED)
       if self.metadiff is not None:
         sections = self.metadiff.getSections()
         Label(master, text=self.metadiff.getMetaType() +' Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2 if sections else 4,sticky=E+W)
