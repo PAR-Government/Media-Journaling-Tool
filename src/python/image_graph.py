@@ -436,31 +436,42 @@ class ImageGraph:
     fname = os.path.join(location,self.G.name + '.tgz')
     archive = tarfile.open(fname,"w:gz")
     archive.add(os.path.join(self.dir,self.G.name + ".json"),arcname=os.path.join(self.G.name,self.G.name + ".json"))
+    errors = []
     for nname in self.G.nodes():
        node = self.G.node[nname]
-       archive.add(os.path.join(self.dir,node['file']),arcname=os.path.join(self.G.name,node['file']))
+       if os.path.exists(os.path.join(self.dir,node['file'])):
+         archive.add(os.path.join(self.dir,node['file']),arcname=os.path.join(self.G.name,node['file']))
+       else:
+         errors.append((str(nname),str(nname),str(nname) + " missing file"))
     for edgename in self.G.edges():
       edge= self.G[edgename[0]][edgename[1]]
-      self._archive_edge(edge,self.G.name, archive)
+      errors.extend(self._archive_edge(edgename[0],edgename[1],edge,self.G.name, archive))
     archive.close()
-    return fname
+    return fname,errors
 
-  def _archive_edge(self,edge, archive_name,archive):
+  def _archive_edge(self,start,end,edge, archive_name,archive):
+    errors = []
     for path,ownership in self.edgeFilePaths.iteritems():
       for pathvalue in getPathValues(edge,path):
          if not pathvalue or len(pathvalue) == 0:
              continue
          newpathname = os.path.join(self.dir,pathvalue)
-         archive.add(newpathname,arcname=os.path.join(archive_name,pathvalue))
+         if os.path.exists(newpathname):
+           archive.add(newpathname,arcname=os.path.join(archive_name,pathvalue))
+         else:
+           errors.append((str(start),str(end),str(start) + ' => ' + str(end) + ': ' + ' missing ' + pathvalue))
+    return errors
 
   def _archive_path(self, child, archive_name, archive, pathGraph):
      node = self.G.node[child]
      pathGraph.add_node(child,**node)
      archive.add(os.path.join(self.dir,node['file']),arcname=os.path.join(archive_name,node['file']))
+     errors = []
      for parent in self.G.predecessors(child):
-       self._archive_edge(self.G[parent][child],archive_name,archive)
+       errors.extend(self._archive_edge(self.G[parent][child],archive_name,archive))
        pathGraph.add_edge(parent,child,**self.G[parent][child])
-       self._archive_path(parent,archive_name, archive,pathGraph)
+       errors.extend(self._archive_path(parent,archive_name, archive,pathGraph))
+     return errors
 
   def _updatePathValue(self,d,path,value):
       pos = path.find('.')
@@ -500,7 +511,7 @@ class ImageGraph:
       archive_name=node['file'].replace('.','_')
       archive = tarfile.open(os.path.join(location,archive_name + '.tgz'),"w:gz")
       pathGraph = nx.DiGraph(name="Empty")
-      self._archive_path(end,archive_name, archive,pathGraph)
+      errors = self._archive_path(end,archive_name, archive,pathGraph)
       filename=os.path.abspath(os.path.join(self.dir,archive_name + '.json'))
 
       old = None
@@ -516,6 +527,7 @@ class ImageGraph:
         shutil.copy2(old,filename)
       else:
         os.remove(filename)
+      return errors
 
 class VideoGraph(ImageGraph):
 
