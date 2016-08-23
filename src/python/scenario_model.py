@@ -524,10 +524,13 @@ class ImageProjectModel:
       return self.end if self.end is not None else self.start 
 
     def startImageName(self):
-      return self.start if self.start is not None else ""
+      return self.G.get_node(self.start)['file'] if self.start is not None else ""
     
     def nextImageName(self):
-      return self.end if self.end is not None else ""
+      return self.G.get_node(self.end)['file'] if self.end is not None else ""
+
+    def nextId(self):
+      return self.end
 
     def undo(self):
        """ Undo the last graph edit """

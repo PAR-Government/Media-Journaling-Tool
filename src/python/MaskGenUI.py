@@ -54,6 +54,7 @@ class UIProfile:
     suffixes = [".jpg",".png",".tiff"]
     operations='operations.json'
     software='software.csv'
+    filetypespref = 'filetypes'
     name = 'Image'
     def getFactory(self): 
       return imageProjectModelFactory
@@ -78,6 +79,7 @@ class VideoProfile:
     operations='video_operations.json'
     software='video_software.csv'
     name = 'Video'
+    filetypespref = 'videofiletypes'
     def getFactory(self): 
       return videoProjectModelFactory
 
@@ -232,7 +234,7 @@ class MakeGenUI(Frame):
         filetypes = self.getFileTypes()
         newtypesStr = tkSimpleDialog.askstring("Set File Types", "Types", initialvalue=toFileTypeString(filetypes))
         if newtypesStr is not None:
-            self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
+            self.prefLoader.save(self.uiProfile.filetypespref, fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
             self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
 
     def undo(self):
@@ -356,7 +358,7 @@ class MakeGenUI(Frame):
                   tkMessageBox.showwarning("Next Filter",msg)
                   break
                ok = True
-               end = self.scModel.nextImageName()
+               end = self.scModel.nextId()
                # reset back to the start image
                self.scModel.selectImage(start)
             #select the last one completed
@@ -697,7 +699,7 @@ class MakeGenUI(Frame):
           sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
-            preferredFT = self.prefLoader.get_key('filetypes')
+            preferredFT = self.prefLoader.get_key(self.uiProfile.filetypespref)
             if preferredFT:
               self.scModel.setProjectData('typespref',preferredFT)
             else:
