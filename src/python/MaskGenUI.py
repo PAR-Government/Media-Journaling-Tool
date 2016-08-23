@@ -432,7 +432,7 @@ class MakeGenUI(Frame):
         if (self.errorlistDialog is None):
            self.errorlistDialog = ListDialog(self,errorList,"Validation Errors")
         else:
-           self.errorlistDialog.setItemss(errorList)
+           self.errorlistDialog.setItems(errorList)
 
     def getproperties(self):
         d = PropertyDialog(self,self.uiProfile.projectProperties())
