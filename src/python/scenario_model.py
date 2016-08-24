@@ -173,7 +173,7 @@ class Modification:
    # instance of Software
    software = None
    #automated
-   automated = None
+   automated = 'no'
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
@@ -185,7 +185,7 @@ class Modification:
         automated=None):
      self.additionalInfo  = additionalInfo
      self.maskSet = maskSet
-     self.automated = automated
+     self.automated = automated if automated else 'no'
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
@@ -287,14 +287,14 @@ class ImageProjectModel:
        initialYpos = ypos
        for suffix in suffixes:
          p = [filename for filename in os.listdir(dir) if filename.lower().endswith(suffix) and not filename.endswith('_mask' + suffix)]
-         p.sort()
+         p = sorted(p,key= lambda s: s.lower())
          for filename in p:
              pathname = os.path.abspath(os.path.join(dir,filename))
              nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
              ypos+=50
              if ypos == 520:
                  ypos=initialYpos
-                 xpos+=20
+                 xpos+=50
              if filename==baseImageFileName:
                self.start = nname
                self.end = None
@@ -589,6 +589,12 @@ class ImageProjectModel:
        if name is None or name=='':
            return Image.fromarray(np.zeros((250,250,4)).astype('uint8'));
        return self.G.get_image(name)
+
+    def getStartImageFile(self):
+       return os.path.join(self.G.dir, self.G.get_node(self.start)['file'])
+
+    def getNextImageFile(self):
+       return os.path.join(self.G.dir, self.G.get_node(self.next)['file'])
 
     def startImage(self):
        return self.getImage(self.start)

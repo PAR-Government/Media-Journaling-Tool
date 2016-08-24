@@ -1056,7 +1056,7 @@
         "checkSize"
       ], 
       "optionalparameters": {}, 
-      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
+      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
       "includeInMask": true
     }, 
     {
@@ -1122,30 +1122,6 @@
       }, 
       "description": "Export the image in the tif format.",
       "includeInMask": false
-    }, 
-    {
-      "category": "Paste", 
-      "name": "PasteClone", 
-      "mandatoryparameters": {
-         "clone rotated": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the clone is rotated during the paste operation"
-         },
-         "clone resized": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the clone is resized during the paste operation"
-         },
-         "clone cropped": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the clone is cropped the paste operation. Ideally, crop should occur on a separate path as a SelectRegion operation just prior to donation."
-         }
-      }, 
-      "rules": [
-        "checkSize"
-      ], 
-      "optionalparameters": {}, 
-      "description": "Paste a region selected using a clone tool into the same image.",
-      "includeInMask": true
     }, 
     {
       "category": "Paste", 

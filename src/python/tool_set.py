@@ -143,7 +143,7 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
    if not os.path.exists(filename):
       return openImage('./icons/RedX.png')
 
-   if filename[filename.rfind('.')+1:] in ['avi','mp4','mov','flv','qt','wmv','m4p','mpeg','mpv','m4v']:
+   if filename[filename.rfind('.')+1:].lower() in ['avi','mp4','mov','flv','qt','wmv','m4p','mpeg','mpv','m4v']:
      snapshotFileName = filename[0:filename.rfind ('.')-len(filename)]+'.png'
 
    if not os.path.exists(snapshotFileName) and snapshotFileName != filename:
