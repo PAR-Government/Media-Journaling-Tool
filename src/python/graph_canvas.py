@@ -239,12 +239,14 @@ class MaskGraphCanvas(tk.Canvas):
     def showNode(self,node):
        item_id = self.toItemIds[node][1]
        self._mark(item_id)
+       self.center_on_node(node)
         
     def showEdge(self,start,end):
         if (start,end) not in self.toItemIds:
            self._mark(self._draw_edge(start,end))
         else:
            self._mark(self.toItemIds[(start,end)][1])
+        self.center_on_node(start)
 
     def onNodeMotion(self, event):
         """Handle dragging of an object"""

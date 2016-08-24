@@ -68,7 +68,8 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
         projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
     model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
-       model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes)
+       model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes, \
+                           sortalg=lambda f: -os.stat(os.path.join(dir, f)).st_mtime)
     return model,not existingProject
 
 class MetaDiff:
@@ -283,7 +284,7 @@ class ImageProjectModel:
     def get_dir(self):
        return self.G.dir
 
-    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=100,ypos=30,suffixes=[]):
+    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=100,ypos=30,suffixes=[],sortalg=lambda s: s.lower()):
        """
          Bulk add all images from a given directory into the project.
          Position the images in a grid, separated by 50 vertically with a maximum height of 520.
@@ -292,19 +293,20 @@ class ImageProjectModel:
          upong completion of the operation.  Otherwise, the last not imported is selected"
        """
        initialYpos = ypos
+       totalSet = []
        for suffix in suffixes:
-         p = [filename for filename in os.listdir(dir) if filename.lower().endswith(suffix) and not filename.endswith('_mask' + suffix)]
-         p = sorted(p,key= lambda s: s.lower())
-         for filename in p:
-             pathname = os.path.abspath(os.path.join(dir,filename))
-             nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
-             ypos+=50
-             if ypos == 450:
-                 ypos=initialYpos
-                 xpos+=50
-             if filename==baseImageFileName:
-               self.start = nname
-               self.end = None
+         totalSet.extend( [filename for filename in os.listdir(dir) if filename.lower().endswith(suffix) and not filename.endswith('_mask' + suffix)])
+       totalSet = sorted(totalSet,key= sortalg)
+       for filename in totalSet:
+           pathname = os.path.abspath(os.path.join(dir,filename))
+           nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
+           ypos+=50
+           if ypos == 450:
+              ypos=initialYpos
+              xpos+=50
+           if filename==baseImageFileName:
+             self.start = nname
+             self.end = None
 
     def addImage(self, pathname):
        nname = self.G.add_node(pathname)
@@ -549,7 +551,8 @@ class ImageProjectModel:
        self.G = self._openProject(projectFile)
        self.start = None
        self.end = None
-       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1],suffixes=suffixes)
+       self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1],suffixes=suffixes, \
+                           sortalg=lambda f: -os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
 
     def load(self,pathname):
        """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """ 
@@ -691,9 +694,21 @@ class ImageProjectModel:
        """ Return the list of errors from all validation rules on the graph. """
            
        total_errors = []
+
+       if len(self.G.get_nodes()) == 0:
+          return total_errors
+
        for node in self.G.get_nodes():
          if not self.G.has_neighbors(node):
              total_errors.append((str(node),str(node),str(node) + ' is not connected to other nodes'))
+
+       nodeSet = set(self.G.get_nodes())
+       for found in self.G.findRelationsToNode(nodeSet.pop()):
+          if found in nodeSet:
+             nodeSet.remove(found)
+
+       for node in nodeSet:
+          total_errors.append((str(node),str(node),str(node) + ' is part of an unconnected subgraph'))
 
        total_errors.extend(self.G.file_check())
 

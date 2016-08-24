@@ -316,6 +316,19 @@ class ImageGraph:
        self.U.append(e)
     self.E=[]
 
+  def findRelationsToNode(self,node):
+    nodeSet = set()
+    nodeSet.add(node)
+    q = set(self.G.successors(node))
+    q = q | set(self.G.predecessors(node))
+    while len(q) > 0:
+       n = q.pop()
+       if n not in nodeSet:
+          nodeSet.add(n)
+          q = q | set(self.G.successors(n))
+          q = q | set(self.G.predecessors(n))
+    return nodeSet
+
   def remove_edge(self,start,end,edgeFunc=None):
     self.U = []
     edge = self.G.edge[start][end]

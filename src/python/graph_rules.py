@@ -18,6 +18,9 @@ def run_rules(op, graph, frm,to):
 
 def initialCheck(op,graph,frm,to):
   edge = graph.get_edge(frm,to)
+  operationResult= checkOperation(edge, op,graph,frm,to)
+  if operationResult is not None:
+    return operationResult
   versionResult= checkVersion(edge, op,graph,frm,to)
   errorsResult= checkErrors(edge, op,graph,frm,to)
   mandatoryResult= checkMandatory(edge, op,graph,frm,to)
@@ -32,6 +35,13 @@ def initialCheck(op,graph,frm,to):
   if errorsResult is not  None:
     result.extend(errorsResult)
   return result
+
+def checkOperation(edge,op,graph,frm,to):
+  if op == 'Donor':
+    return None
+  opObj = getOperation(op)
+  if opObj is None:
+    return ['Operation ' + op + ' is invalid']
 
 def checkErrors(edge,op,graph,frm,to):
   if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
