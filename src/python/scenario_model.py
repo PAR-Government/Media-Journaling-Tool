@@ -388,6 +388,7 @@ class ImageProjectModel:
        if self.start is None:
           return
        try:
+         errors = False
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
          if maskname is None:
              maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
@@ -464,7 +465,7 @@ class ImageProjectModel:
          for baseNode in endPointTuple[1]:
              composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
       for composite in composites:
-         self.G.addCompositeToNodes((composite[0],composite[1], Image.fromarray(composite[2])))
+         self.G.addCompositeToNode((composite[0],composite[1], Image.fromarray(composite[2])))
       return composites
 
     def addNextImage(self, pathname, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50)):
@@ -596,12 +597,12 @@ class ImageProjectModel:
 
     def getImage(self,name):
        if name is None or name=='':
-           return Image.fromarray(np.zeros((250,250,4)).astype('uint8'));
+           return Image.fromarray(np.zeros((250,250,4)).astype('uint8'))
        return self.G.get_image(name)[0]
 
     def getImageAndName(self,name):
        if name is None or name=='':
-           return Image.fromarray(np.zeros((250,250,4)).astype('uint8'));
+           return Image.fromarray(np.zeros((250,250,4)).astype('uint8'))
        return self.G.get_image(name)
 
     def getStartImageFile(self):
@@ -932,7 +933,7 @@ class VideoProjectModel(ImageProjectModel):
        return VideoGraph(projectFileName)
 
     def getTerminalToBasePairs(self, suffix='.mp4'):
-       return ProjectModel.getTerminalToBasePairs(self,suffix=suffix)
+       return ImageProjectModel.getTerminalToBasePairs(self,suffix=suffix)
 
     def getMetaDiff(self):
       """ Return the Frame meta-data differences between nodes referenced by 'start' and 'end'                                                                                            
