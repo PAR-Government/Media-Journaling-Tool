@@ -95,13 +95,12 @@ def save_as(source, target, qTables):
     im = Image.open(source)
     im.save(target, subsampling=1, qtables=finalTable)
     if thumbTable:
-        im.thumbnail((128,128), Image.ANTIALIAS)
+        im.thumbnail((128,128))
         im.save('temp.jpg', subsampling=1, qtables=thumbTable)
         exifStr = 'exiftool -overwrite_original -P -m "-ThumbnailImage<=temp.jpg" ' + target
         call(exifStr)
         call(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         os.remove('temp.jpg')
-    im.close()
     im.close()
 
 def transform(img,source,target, **kwargs):

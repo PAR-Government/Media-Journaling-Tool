@@ -128,7 +128,7 @@ class ImageGraph:
     return fname
 
   def _saveImage(self,pathname,image):
-    image.save(newpathname,exif=image.info['exif'])
+    image.save(pathname,exif=image.info['exif'])
 
   def add_node(self,pathname, seriesname=None, image=None, **kwargs):
     fname = os.path.split(pathname)[1]

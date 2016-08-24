@@ -98,7 +98,7 @@ def save_as(imageFile, qTables):
     im.save(newName, subsampling=1, qtables=finalTable)
 
     if thumbTable:
-        im.thumbnail((128,128), Image.ANTIALIAS)
+        im.thumbnail((128,128))
         im.save('temp.jpg', subsampling=1, qtables=thumbTable)
         exifStr = 'exiftool -overwrite_original -P -m "-ThumbnailImage<=temp.jpg" ' + newName
         call(exifStr)
