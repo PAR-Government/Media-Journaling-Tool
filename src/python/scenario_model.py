@@ -609,7 +609,7 @@ class ImageProjectModel:
        return os.path.join(self.G.dir, self.G.get_node(self.start)['file'])
 
     def getNextImageFile(self):
-       return os.path.join(self.G.dir, self.G.get_node(self.next)['file'])
+       return os.path.join(self.G.dir, self.G.get_node(self.end)['file'])
 
     def startImage(self):
        return self.getImage(self.start)
@@ -817,6 +817,8 @@ class ImageProjectModel:
        selectionSet = [node for node in self.G.get_nodes() if not self.G.has_neighbors(node) and node != self.start]
        selectionSet.sort()
        if (len(selectionSet) > 0):
+           seriesname = self.getSeriesName()
+           seriesname = seriesname if seriesname is not None else self.start
            matchNameSet = [name for name in selectionSet if name.startswith(self.start)]
            selectionSet = matchNameSet if len(matchNameSet) > 0 else selectionSet
        return selectionSet[0] if len(selectionSet) > 0 else None
@@ -858,17 +860,20 @@ class ImageProjectModel:
       return nfile,im
 
     def export(self, location):
-      self.G.create_archive(location)
+      path,errors = self.G.create_archive(location)
+      return errors
 
     def exporttos3(self, location):
       import boto3
-      path = self.G.create_archive(tempfile.gettempdir())
-      s3 = boto3.client('s3','us-east-1')
-      BUCKET = location.split('/')[0].strip()
-      DIR= location.split('/')[1].strip()
-      print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1] 
-      s3.upload_file(path, BUCKET, DIR + '/' + os.path.split(path)[1])
-      os.remove(path)
+      path,errors = self.G.create_archive(tempfile.gettempdir())
+      if len(errors) == 0:
+        s3 = boto3.client('s3','us-east-1')
+        BUCKET = location.split('/')[0].strip()
+        DIR= location.split('/')[1].strip()
+        print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1] 
+        s3.upload_file(path, BUCKET, DIR + '/' + os.path.split(path)[1])
+        os.remove(path)
+      return errors
 
     def export_path(self, location):
       if self.end is None and self.start is not None:
