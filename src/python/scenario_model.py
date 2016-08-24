@@ -283,7 +283,7 @@ class ImageProjectModel:
     def get_dir(self):
        return self.G.dir
 
-    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=20,ypos=50,suffixes=[]):
+    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=100,ypos=30,suffixes=[]):
        """
          Bulk add all images from a given directory into the project.
          Position the images in a grid, separated by 50 vertically with a maximum height of 520.
@@ -299,7 +299,7 @@ class ImageProjectModel:
              pathname = os.path.abspath(os.path.join(dir,filename))
              nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
              ypos+=50
-             if ypos == 520:
+             if ypos == 450:
                  ypos=initialYpos
                  xpos+=50
              if filename==baseImageFileName:

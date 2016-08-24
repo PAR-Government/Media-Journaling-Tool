@@ -160,7 +160,7 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
            bestSoFar = frame
            break
          varianceOfImage = math.sqrt(ndimage.measurements.variance(frame)) 
-         if frame and bestVariance < varianceOfImage:
+         if frame is not None and bestVariance < varianceOfImage:
             bestSoFar = frame
             bestVariance = varianceOfImage
          maxTry-=1
@@ -168,7 +168,7 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
            break
      finally:
        cap.release()
-     if not bestSoFar:
+     if bestSoFar is None:
         print 'invalid or corrupted file '+ filename
         return openImage('./icons/RedX.png')
      img = Image.fromarray(bestSoFar)

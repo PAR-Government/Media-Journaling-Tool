@@ -224,6 +224,8 @@ class MaskGraphCanvas(tk.Canvas):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
                self.callback(event,"n")
             return
+#        else:
+#           self.onTokenRightClick(event,showMenu=False)
 
         self.setDragData((event.x,event.y),item=item)
 
@@ -304,7 +306,7 @@ class MaskGraphCanvas(tk.Canvas):
     def compareto(self):
         self.selectCursor('compare')
 
-    def onTokenRightClick(self, event):
+    def onTokenRightClick(self, event, showMenu=True):
        self._unmark()
        item = self._get_id(event)
        eventname = 'rcNode'
@@ -317,7 +319,7 @@ class MaskGraphCanvas(tk.Canvas):
                self.scModel.selectEdge(e[0],e[1])
                eventname= 'rcEdge' if self.scModel.isEditableEdge(e[0],e[1]) else 'rcNonEditEdge'
            self._mark(item)
-           self.callback(event,eventname)
+           self.callback(event,eventname if showMenu else 'n')
            if (e is not None):
              edge =  self.scModel.getGraph().get_edge(e[0],e[1])
              if (edge is not None):
