@@ -8,7 +8,7 @@ def transform(img,source,target, **kwargs):
     return False
     
 def operation():
-    return ['OutputPNG','Output', 
+    return ['OutputPng','Output', 
             'Save an image as .PNG', 'PIL', '1.1.7']
     
 def args():
