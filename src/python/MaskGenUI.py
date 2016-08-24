@@ -290,8 +290,11 @@ class MakeGenUI(Frame):
 
     def nextauto(self):
         destination = self.scModel.scanNextImageUnConnectedImage()
+        if destination is None:
+            tkMessageBox.showwarning("Auto Connect","No suitable loaded images found")
+            return
         im,filename = self.scModel.getImageAndName(destination)
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.connect(destination,mod=d.description)
             self.drawState()
@@ -303,7 +306,7 @@ class MakeGenUI(Frame):
         if (filename is None): 
             tkMessageBox.showwarning("Auto Connect","Next image file cannot be automatically determined")
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg = self.scModel.addNextImage(filename,mod=d.description)
             if msg is not None:
