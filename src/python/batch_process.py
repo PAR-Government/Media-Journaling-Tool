@@ -33,25 +33,6 @@ def check_ops(ops, soft, args):
 
     return
 
-def check_one_function(args):
-    """
-    Error-checking function that ensures only 1 operation is performed
-    """
-    sum = bool(args.plugin) + bool(args.sourceDir) + bool(args.jpg)
-
-    if sum > 1:
-        print 'ERROR: Can only specify one of the following: '
-        print '    --sourceDir: creates project/adds specified operation to project'
-        print '    --plugin (performs the specified plugin'
-        print '    --jpg: creates jpg image from last node and copies metadata from base'
-        sys.exit(0)
-    elif sum == 0:
-        print 'ERROR: Must specify exactly 1 of the following: '
-        print '    --sourceDir: creates project/adds specified operation to project'
-        print '    --plugin (performs the specified plugin'
-        print '    --jpg: creates jpg image from last node and copies metadata from base'
-        sys.exit(0)
-
 def check_additional_args(additionalArgs, op):
     """
     Parse additional arguments (rotation, etc.) and validate
@@ -112,19 +93,23 @@ def create_image_list(fileList):
     return [i for i in os.listdir(fileList) if i.endswith(ext)]
 
 
-def process(sourceDir, endDir, projectDir, op, software, version, descr, inputMaskPath, additional):
+def process(sourceDir, endDir, projectDir, op, software, version, opDescr, inputMaskPath, additional,
+            prjDescr, techSummary, username):
     """
     Perform the bulk journaling. If no endDir is specified, it is assumed that the user wishes
     to add on to existing projects in projectDir.
     :param sourceDir: Directory of source images
     :param endDir: Directory of manipulated images (1 manipulation stage). Optional.
     :param projectDir: Directory for projects to be placed
-    :param op: Operation performed between source and ending dir
+    :param opDescr: Operation performed between source and ending dir
     :param software: Manipulation software used
     :param version: Version of manipulation software
     :param descr: Description of manipulation. Optional
     :param inputMaskPath: Directory of input masks. Optional.
-    :param additional: Dictionary of additional args ({rotation:90,...}). Optional.
+    :param additional: Dictionary of additional args ({rotation:90,...})
+    :param prjDescr: project description (str)
+    :param techSummary: project's technical summary (str)
+    :param username: project username
     :return: None
     """
 
@@ -157,68 +142,81 @@ def process(sourceDir, endDir, projectDir, op, software, version, descr, inputMa
         else:
             maskIm = None
 
-        # find project dir
-        if new:
-            project = find_json_path(sImgName, projectDir)
-        else:
-            projectName = '_'.join(sImgName.split('_')[:-1])
-            project = find_json_path(projectName, projectDir)
+        project = find_json_path(sImgName, projectDir)
 
         # open the project
         sm = scenario_model.ImageProjectModel(project)
         if new:
             sm.addImage(os.path.join(sourceDir, sImg))
+            lastNodeName = sImgName
+            sm.setProjectData('projectdescription', prjDescr)
+            sm.setProjectData('technicalsummary', techSummary)
+            if username:
+                sm.setProjectData('username', username)
             eImg = os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
         else:
             eImg = os.path.join(sourceDir, sImg)
+            lastNodeName = sm.G.get_edges()[-1][-1]
 
-        # find most recently placed node
-        nodes = sm.G.get_nodes()
-        nodes.sort()
-        startNode = sm.G.get_node(nodes[-1])
+        lastNode = sm.G.get_node(lastNodeName)
 
         # prepare details for new link
         softwareDetails = Software(software, version)
         if additional:
-            opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,
+            opDetails = scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,
                                                     arguments=additional, automated='yes')
         else:
-            opDetails = scenario_model.Modification(op, descr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
+            opDetails = scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
 
-        position = ((startNode['xpos'] + 50 if startNode.has_key('xpos') else
-                     80), (startNode['ypos'] + 50 if startNode.has_key('ypos') else 200))
+        position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
+                     80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
 
         # create link
-        sm.selectImage(nodes[-1])
+        sm.selectImage(lastNodeName)
         sm.addNextImage(eImg, mod=opDetails,
                         sendNotifications=False, position=position)
-
         sm.save()
 
         print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
         processNo += 1
 
 
-def process_plugin(projects, plugin):
+def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username):
     """
     Perform a plugin operation on all projects in directory
     :param projects: directory of projects
     :param plugin: plugin to perform
     :return: None
     """
-    projectList = bulk_export.pick_dirs(projects)
-    total = len(projectList)
+    if sourceDir:
+        new = True
+        iterator = create_image_list(sourceDir)
+    else:
+        new = False
+        iterator = bulk_export.pick_dirs(projects)
+
+    total = len(iterator)
     processNo = 1
-    for project in projectList:
-        sm = scenario_model.ImageProjectModel(project)
-        nodes = sm.G.get_nodes()
-        nodes.sort()
-        sm.selectImage(nodes[-1])
+    for i in iterator:
+        if new:
+            sImgName = ''.join(i.split('.')[:-1])
+            project = find_json_path(sImgName, projects)
+            sm = scenario_model.ImageProjectModel(project)
+            sm.setProjectData('projectdescription', prjDescr)
+            sm.setProjectData('technicalsummary', techSummary)
+            if username:
+                sm.setProjectData('username', username)
+            sm.addImage(os.path.join(sourceDir, i))
+            lastNode = sImgName
+        else:
+            sm = scenario_model.ImageProjectModel(i)
+            lastNode = sm.G.get_edges()[-1][-1]
+        sm.selectImage(lastNode)
         im, filename = sm.currentImage()
         plugins.loadPlugins()
         sm.imageFromPlugin(plugin, im, filename)
         sm.save()
-        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
+        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + i
         processNo += 1
 
 def process_jpg(projects):
@@ -241,7 +239,7 @@ def process_jpg(projects):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projects',                                    help='Projects directory')
+    parser.add_argument('--projects',             required=True,         help='Projects directory')
     parser.add_argument('--plugin',               default=None,          help='Perform specified plugin operation')
     parser.add_argument('--sourceDir',            default=None,          help='Directory of starting images')
     parser.add_argument('--endDir',               default=None,          help='Directory of manipulated images')
@@ -253,27 +251,29 @@ def main():
     parser.add_argument('--additional', nargs='+',default={},            help='additional operation arguments, e.g. rotation')
     parser.add_argument('--continueWithWarning',  action='store_true',   help='Tag to ignore version warning')
     parser.add_argument('--jpg',                  action='store_true',   help='Create JPEG and copy metadata from base')
+    parser.add_argument('--projectDescription',   default=None,          help='Description to set to all projects')
+    parser.add_argument('--technicalSummary',     default=None,          help='Technical Summary to set to all projects')
+    parser.add_argument('--username',             default=None,          help='Username for projects')
     parser.add_argument('--s3',                   default=None,          help='S3 Bucket/Path to upload projects to')
     args = parser.parse_args()
 
     ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
 
-    # make sure only 1 operation per command
-    check_one_function(args)
-
     # perform the specified operation
     if args.plugin:
-        print 'Performing plugin operation ' + args.plugin + ' assuming sourceDir as donor.'
-        process_plugin(args.projects, args.plugin)
-    elif args.jpg:
-        print 'Performing JPEG save & copying metadata from base.'
-        process_jpg(args.projects)
-    else:
+        print 'Performing plugin operation ' + args.plugin + '...'
+        process_plugin(args.sourceDir, args.projects, args.plugin, args.projectDescription,
+                       args.technicalSummary, args.username)
+    elif args.sourceDir:
         check_ops(ops, soft, args)
         additionalArgs = check_additional_args(args.additional, software_loader.getOperation(args.op))
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
-                args.softwareVersion, args.description, args.inputmaskpath, additionalArgs)
+                args.softwareVersion, args.description, args.inputmaskpath, additionalArgs,
+                args.projectDescription, args.technicalSummary, args.username)
+    if args.jpg:
+        print 'Performing JPEG save & copying metadata from base...'
+        process_jpg(args.projects)
 
     # bulk export to s3
     if args.s3:

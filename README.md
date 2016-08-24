@@ -254,7 +254,7 @@ python src/python/batch_process.py <args>
 Mandatory arguments:
 --projects <dir>: directory of project directories.
 
-One (and only one) of these three arguments must be present (see below for an explanation):
+At least one of these three arguments must be present (see below for an explanation):
 --sourceDir <dir>: directory of images
 --plugin <pluginName>: plugin to perform
 --jpg: Copies quantization tables and exif data from base image to save new jpeg image.
@@ -266,9 +266,12 @@ These arguments may be used only if using sourceDir:
 --endDir <dir>: directory of manipulated images (optional)
 --inputMaskPath <dir>: directory containing input masks (optional)
 --description <"descr">: description of manipulation performed (optional)
---additional <"name1 value1 name2 value2...">: additional operation arguments, such as rotation angle (optional)
+--additional <name1 value1 name2 value2...>: additional operation arguments, such as rotation (optional)
 
 Optional arguments:
+--projectDescription <"descr">: description of project (only used if creating new projects)
+--technicalSummary <"descr">: technical summary of project (only used if creating new projects)
+--username <"name">: username associated with the project
 --continueWithWarning: use this tag to ignore warnings that check for valid operations, software, etc.
 --s3 <bucket/path>: if included, will automatically upload projects to specified S3 bucket after performing operation
 ```
@@ -286,13 +289,22 @@ python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --op Color
 ```
 python src/python/batch_process.py --projects <DIR> --plugin ColorEqHist
 ```
-4. Using --jpg will perform antiforensic jpeg export and exif copy on existing projects.
+4. Using both --sourceDir and --plugin will assume you wish to create new projects using the images in sourceDir as base and performing the plugin operation on them.
+```
+python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --plugin ColorEqHist
+```
+5. Using --jpg will perform antiforensic jpeg export and exif copy on existing projects.
 ```
 python src/python/batch_process.py --projects <DIR> --jpg
+```
+6. --jpg can be appended to any other input to also perform that functionality after the specified operation/plugin.
+```
+python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --plugin ColorEqHist --jpg
 ```
 
 All images that are to be placed in the same project should have the same basename. Manipulated images should be appended with an underscore followed by some text and a number (i.e. image.jpg, image_01.jpg). 
 For example :
+
 sourceDir|endDir
 ---------|------
 imageA.jpg|imageA_01.png
