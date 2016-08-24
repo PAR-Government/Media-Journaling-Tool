@@ -10,6 +10,7 @@ import tool_set
 import bulk_export
 import group_operations
 import plugins
+import software_loader
 
 
 def check_ops(ops, soft, args):
@@ -29,6 +30,7 @@ def check_ops(ops, soft, args):
         print 'ERROR: Invalid software/version: ' + args.softwareName + ' ' + args.softwareVersion
         print 'Reference the software.csv file for accepted names and versions. They are case-sensitive.'
         sys.exit(0)
+
     return
 
 def check_one_function(args):
@@ -49,6 +51,26 @@ def check_one_function(args):
         print '    --plugin (performs the specified plugin'
         print '    --jpg: creates jpg image from last node and copies metadata from base'
         sys.exit(0)
+
+def check_additional_args(additionalArgs, op):
+    """
+    Parse additional arguments (rotation, etc.) and validate
+    :param additionalArgs: user input list of additional parameters e.g. [rotation, 60...]
+    :param op: operation object (use software_loader.getOperation('operationname')
+    :return: dictionary containing parsed arguments e.g. {rotation: 60}
+    """
+    # parse additional arguments (rotation, etc.)
+    # http://stackoverflow.com/questions/6900955/python-convert-list-to-dictionary
+    if additionalArgs != {}:
+        parsedArgs = dict(itertools.izip_longest(*[iter(additionalArgs)] * 2, fillvalue=""))
+        for key in parsedArgs:
+            parsedArgs[key] = tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op)
+    else:
+        parsedArgs = additionalArgs
+    for key in op.mandatoryparameters.keys():
+        if key not in parsedArgs.keys():
+            sys.exit('Missing required additional argument: ' + key)
+    return parsedArgs
 
 def find_corresponding_image(image, imageList):
     """
@@ -90,7 +112,7 @@ def create_image_list(fileList):
     return [i for i in os.listdir(fileList) if i.endswith(ext)]
 
 
-def process(sourceDir, endDir, projectDir, op, category, software, version, descr, inputMaskPath, additional):
+def process(sourceDir, endDir, projectDir, op, software, version, descr, inputMaskPath, additional):
     """
     Perform the bulk journaling. If no endDir is specified, it is assumed that the user wishes
     to add on to existing projects in projectDir.
@@ -98,7 +120,6 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
     :param endDir: Directory of manipulated images (1 manipulation stage). Optional.
     :param projectDir: Directory for projects to be placed
     :param op: Operation performed between source and ending dir
-    :param category: Operation category
     :param software: Manipulation software used
     :param version: Version of manipulation software
     :param descr: Description of manipulation. Optional
@@ -144,7 +165,7 @@ def process(sourceDir, endDir, projectDir, op, category, software, version, desc
             project = find_json_path(projectName, projectDir)
 
         # open the project
-        sm = scenario_model.ProjectModel(project)
+        sm = scenario_model.ImageProjectModel(project)
         if new:
             sm.addImage(os.path.join(sourceDir, sImg))
             eImg = os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
@@ -189,7 +210,7 @@ def process_plugin(projects, plugin):
     total = len(projectList)
     processNo = 1
     for project in projectList:
-        sm = scenario_model.ProjectModel(project)
+        sm = scenario_model.ImageProjectModel(project)
         nodes = sm.G.get_nodes()
         nodes.sort()
         sm.selectImage(nodes[-1])
@@ -210,7 +231,7 @@ def process_jpg(projects):
     total = len(projectList)
     processNo = 1
     for project in projectList:
-        sm = scenario_model.ProjectModel(project)
+        sm = scenario_model.ImageProjectModel(project)
         plugins.loadPlugins()
         op = group_operations.ToJPGGroupOperation(sm)
         op.performOp()
@@ -220,19 +241,19 @@ def process_jpg(projects):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projects',                                   help='Projects directory')
-    parser.add_argument('--plugin',              default=None,          help='Perform specified plugin operation')
-    parser.add_argument('--sourceDir',           default=None,          help='Directory of starting images')
-    parser.add_argument('--endDir',              default=None,          help='Directory of manipulated images')
-    parser.add_argument('--op',                  default=None,          help='Operation Name')
-    parser.add_argument('--softwareName',        default=None,          help='Software Name')
-    parser.add_argument('--softwareVersion',     default=None,          help='Software Version')
-    parser.add_argument('--description',         default=None,          help='Description, in quotes')
-    parser.add_argument('--inputmaskpath',       default=None,          help='Directory of input masks')
-    parser.add_argument('--additional',          default=None,          help='additional operation arguments, e.g. rotation')
-    parser.add_argument('--continueWithWarning', action='store_true',   help='Tag to ignore version warning')
-    parser.add_argument('--jpg',                 action='store_true',   help='Create JPEG and copy metadata from base')
-    parser.add_argument('--s3',                  default=None,          help='S3 Bucket/Path to upload projects to')
+    parser.add_argument('--projects',                                    help='Projects directory')
+    parser.add_argument('--plugin',               default=None,          help='Perform specified plugin operation')
+    parser.add_argument('--sourceDir',            default=None,          help='Directory of starting images')
+    parser.add_argument('--endDir',               default=None,          help='Directory of manipulated images')
+    parser.add_argument('--op',                   default=None,          help='Operation Name')
+    parser.add_argument('--softwareName',         default=None,          help='Software Name')
+    parser.add_argument('--softwareVersion',      default=None,          help='Software Version')
+    parser.add_argument('--description',          default=None,          help='Description, in quotes')
+    parser.add_argument('--inputmaskpath',        default=None,          help='Directory of input masks')
+    parser.add_argument('--additional', nargs='+',default={},            help='additional operation arguments, e.g. rotation')
+    parser.add_argument('--continueWithWarning',  action='store_true',   help='Tag to ignore version warning')
+    parser.add_argument('--jpg',                  action='store_true',   help='Create JPEG and copy metadata from base')
+    parser.add_argument('--s3',                   default=None,          help='S3 Bucket/Path to upload projects to')
     args = parser.parse_args()
 
     ops = loadOperations("operations.json")
@@ -240,14 +261,6 @@ def main():
 
     # make sure only 1 operation per command
     check_one_function(args)
-
-    # parse additional arguments (rotation, etc.)
-    # http://stackoverflow.com/questions/6900955/python-convert-list-to-dictionary
-    if args.additional:
-        add = args.additional.split(' ')
-        additionalArgs = dict(itertools.izip_longest(*[iter(add)] * 2, fillvalue=""))
-    else:
-        additionalArgs = args.additional
 
     # perform the specified operation
     if args.plugin:
@@ -258,10 +271,11 @@ def main():
         process_jpg(args.projects)
     else:
         check_ops(ops, soft, args)
-        category = ops[args.op].category
-        process(args.sourceDir, args.endDir, args.projects, args.op, category, args.softwareName,
+        additionalArgs = check_additional_args(args.additional, software_loader.getOperation(args.op))
+        process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
                 args.softwareVersion, args.description, args.inputmaskpath, additionalArgs)
 
+    # bulk export to s3
     if args.s3:
         bulk_export.upload_projects(args.s3, args.projects)
 
