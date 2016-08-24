@@ -174,6 +174,8 @@ class Modification:
    software = None
    #automated
    automated = 'no'
+   #errors
+   errors = []
 
    def __init__(self, operationName, additionalInfo, arguments={}, \
         recordMaskInComposite=None, \
@@ -182,10 +184,12 @@ class Modification:
         inputMaskName=None,
         software=None, \
         maskSet=None, \
-        automated=None):
+        automated=None, \
+        errors = []):
      self.additionalInfo  = additionalInfo
      self.maskSet = maskSet
      self.automated = automated if automated else 'no'
+     self.errors = errors if errors else []
      self.setOperationName(operationName)
      self.setArguments(arguments)
      if inputMaskName is not None:
@@ -196,6 +200,9 @@ class Modification:
      if recordMaskInComposite is not None:
         self.recordMaskInComposite = recordMaskInComposite
  
+   def setErrors(self, val):
+      self.errors = val if val else []
+
    def setAutomated(self, val):
       self.automated = 'yes' if val == 'yes' else 'no'
 
@@ -276,7 +283,7 @@ class ImageProjectModel:
     def get_dir(self):
        return self.G.dir
 
-    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=20,ypos=50,suffixes=[]):
+    def addImagesFromDir(self,dir,baseImageFileName=None,xpos=100,ypos=30,suffixes=[]):
        """
          Bulk add all images from a given directory into the project.
          Position the images in a grid, separated by 50 vertically with a maximum height of 520.
@@ -292,7 +299,7 @@ class ImageProjectModel:
              pathname = os.path.abspath(os.path.join(dir,filename))
              nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
              ypos+=50
-             if ypos == 520:
+             if ypos == 450:
                  ypos=initialYpos
                  xpos+=50
              if filename==baseImageFileName:
@@ -363,7 +370,7 @@ class ImageProjectModel:
        exifDiff = exif.compareexif(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}
        analysis['exifdiff'] = exifDiff
-       return maskname,mask, analysis
+       return maskname,mask, analysis,[]
 
     def getNodeNames(self):
       return self.G.get_nodes()
@@ -383,14 +390,16 @@ class ImageProjectModel:
        try:
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
          if maskname is None:
-             maskname, mask, analysis = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
+             maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
+         if errors:
+           mod.errors = errors
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
-         return None
+         return ("Errors occured" if errors and len(errors)>0 else None), True
        except ValueError, msg:
-         return msg
+         return msg,False
 
     def getComposite(self):
       """
@@ -469,8 +478,9 @@ class ImageProjectModel:
           self.start = self.end
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),xpos=position[0],ypos=position[1])
        try:
-         maskname, mask, analysis = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
+         maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
+         self.errors = errors
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
@@ -490,6 +500,7 @@ class ImageProjectModel:
             inputmaskname=mod.inputMaskName, \
             selectmaskname=mod.selectMaskName, \
             automated=mod.automated, \
+            errors=mod.errors, \
             **additionalParameters)
 
     def getSeriesName(self):
@@ -513,10 +524,13 @@ class ImageProjectModel:
       return self.end if self.end is not None else self.start 
 
     def startImageName(self):
-      return self.start if self.start is not None else ""
+      return self.G.get_node(self.start)['file'] if self.start is not None else ""
     
     def nextImageName(self):
-      return self.end if self.end is not None else ""
+      return self.G.get_node(self.end)['file'] if self.end is not None else ""
+
+    def nextId(self):
+      return self.end
 
     def undo(self):
        """ Undo the last graph edit """
@@ -901,7 +915,8 @@ class ImageProjectModel:
                             edge['softwareVersion'] if 'softwareVersion' in edge else None, \
                             'editable' in edge and edge['editable'] == 'no'), \
           recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no', \
-          automated = edge['automated'] if 'automated' in edge else 'no')
+          automated = edge['automated'] if 'automated' in edge else 'no', \
+          errors = edge['errors'] if 'errors' in edge else [])
 
 class VideoProjectModel(ImageProjectModel):
 
@@ -928,9 +943,10 @@ class VideoProjectModel(ImageProjectModel):
        """
        startIm,startFileName = self.getImageAndName(self.start)
        destIm,destFileName = self.getImageAndName(destination)
-       maskname, mask, analysis = self._compareImages(self.start,destination,'noOp')
+       maskname, mask, analysis,errors = self._compareImages(self.start,destination,'noOp')
        analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
        analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
+       analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
        return  startIm, destIm, mask,analysis
 
     def _compareImages(self,start,destination,op, invert=False,arguments={}):
@@ -938,7 +954,7 @@ class VideoProjectModel(ImageProjectModel):
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = Image.new("RGB", (250, 250), "black"),{}
        maskname=start + '_' + destination + '_mask'+'.png'
-       maskSet = video_tools.formMaskDiff(startFileName, destFileName, \
+       maskSet,errors = video_tools.formMaskDiff(startFileName, destFileName, \
           startSegment = arguments['Start Time'] if 'Start Time' in arguments else None, \
           endSegment = arguments['End Time'] if 'End Time' in arguments else None, \
           applyConstraintsToOutput = op != 'SelectCutFrames')
@@ -952,7 +968,7 @@ class VideoProjectModel(ImageProjectModel):
        metaDataDiff = video_tools.formMetaDataDiff(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}
        analysis['metadatadiff'] = metaDataDiff
-       return maskname,mask, analysis
+       return maskname,mask, analysis,errors
 
     def getTypeName(self):
        return 'Video'

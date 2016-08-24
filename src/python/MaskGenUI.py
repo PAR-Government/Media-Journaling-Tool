@@ -54,6 +54,7 @@ class UIProfile:
     suffixes = [".jpg",".png",".tiff"]
     operations='operations.json'
     software='software.csv'
+    filetypespref = 'filetypes'
     name = 'Image'
     def getFactory(self): 
       return imageProjectModelFactory
@@ -78,6 +79,7 @@ class VideoProfile:
     operations='video_operations.json'
     software='video_software.csv'
     name = 'Video'
+    filetypespref = 'videofiletypes'
     def getFactory(self): 
       return videoProjectModelFactory
 
@@ -232,7 +234,7 @@ class MakeGenUI(Frame):
         filetypes = self.getFileTypes()
         newtypesStr = tkSimpleDialog.askstring("Set File Types", "Types", initialvalue=toFileTypeString(filetypes))
         if newtypesStr is not None:
-            self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
+            self.prefLoader.save(self.uiProfile.filetypespref, fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
             self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
 
     def undo(self):
@@ -356,7 +358,7 @@ class MakeGenUI(Frame):
                   tkMessageBox.showwarning("Next Filter",msg)
                   break
                ok = True
-               end = self.scModel.nextImageName()
+               end = self.scModel.nextId()
                # reset back to the start image
                self.scModel.selectImage(start)
             #select the last one completed
@@ -384,15 +386,27 @@ class MakeGenUI(Frame):
             self.drawState()
             self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
+    def openStartImage(self):
+        sim = self.scModel.getStartImageFile()
+        openFile(sim)
+
+    def openNextImage(self):
+        if self.scModel.end:
+          nim = self.scModel.getNextImageFile()
+          openFile(nim)
+
+    def openMaskImage(self):
+        return
+
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
         self.img1= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim,(250,250),nim.size)))
         self.img2= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim,(250,250),sim.size)))
         self.img3= ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(),(250,250),nim.size))
-        self.img1c.itemconfig(self.img1oc, image=self.img1)
-        self.img2c.itemconfig(self.img2oc, image=self.img2)
-        self.img3c.itemconfig(self.img3oc, image=self.img3)
+        self.img1c.config( image=self.img1)
+        self.img2c.config( image=self.img2)
+        self.img3c.config( image=self.img3)
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
         self.maskvar.set(self.scModel.maskStats())
@@ -602,19 +616,16 @@ class MakeGenUI(Frame):
 
         img1f = img2f = img3f = self.master
 
-        self.img1c = Canvas(img1f, width=256, height=256)
-        self.img1c.grid(row = 1, column = 0)
-        self.img2c = Canvas(img2f, width=256, height=256)
-        self.img2c.grid(row = 1, column = 1)
-        self.img3c = Canvas(img3f, width=256, height=256)
-        self.img3c.grid(row = 1, column = 2)
-
         self.img1 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
-        self.img1oc = self.img1c.create_image(125,125,image=self.img1, tag='img1')
         self.img2 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
-        self.img2oc = self.img2c.create_image(125,125,image=self.img2, tag='img2')
         self.img3 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
-        self.img3oc = self.img3c.create_image(125,125,image=self.img3, tag='img3')
+
+        self.img1c = Button(img1f,width=250,command=self.openStartImage,image=self.img1)
+        self.img1c.grid(row = 1, column = 0)
+        self.img2c = Button(img1f,width=250,command=self.openNextImage,image=self.img2)
+        self.img2c.grid(row = 1, column = 1)
+        self.img3c = Button(img1f,width=250,command=self.openMaskImage,image=self.img3)
+        self.img3c.grid(row = 1, column = 2)
 
         self.l1 = Label(img1f, text="") 
         self.l1.grid(row=0,column=0)
@@ -688,7 +699,7 @@ class MakeGenUI(Frame):
           sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
-            preferredFT = self.prefLoader.get_key('filetypes')
+            preferredFT = self.prefLoader.get_key(self.uiProfile.filetypespref)
             if preferredFT:
               self.scModel.setProjectData('typespref',preferredFT)
             else:

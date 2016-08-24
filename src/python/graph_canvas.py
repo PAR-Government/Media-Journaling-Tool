@@ -206,11 +206,9 @@ class MaskGraphCanvas(tk.Canvas):
               elif (len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0],nodeId))):
                  d = DescriptionCaptureDialog(self.master,self.uiProfile,self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                   msg = self.scModel.connect(nodeId,mod=d.description)
+                   msg,ok = self.scModel.connect(nodeId,mod=d.description)
                    if msg is not None:
                      tkMessageBox.showwarning("Connect Error", msg)
-                   else:
-                     ok = True
                  else:
                    ok = False
               elif (len(preds) == 1):
@@ -226,6 +224,8 @@ class MaskGraphCanvas(tk.Canvas):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
                self.callback(event,"n")
             return
+#        else:
+#           self.onTokenRightClick(event,showMenu=False)
 
         self.setDragData((event.x,event.y),item=item)
 
@@ -306,7 +306,7 @@ class MaskGraphCanvas(tk.Canvas):
     def compareto(self):
         self.selectCursor('compare')
 
-    def onTokenRightClick(self, event):
+    def onTokenRightClick(self, event, showMenu=True):
        self._unmark()
        item = self._get_id(event)
        eventname = 'rcNode'
@@ -319,7 +319,7 @@ class MaskGraphCanvas(tk.Canvas):
                self.scModel.selectEdge(e[0],e[1])
                eventname= 'rcEdge' if self.scModel.isEditableEdge(e[0],e[1]) else 'rcNonEditEdge'
            self._mark(item)
-           self.callback(event,eventname)
+           self.callback(event,eventname if showMenu else 'n')
            if (e is not None):
              edge =  self.scModel.getGraph().get_edge(e[0],e[1])
              if (edge is not None):
@@ -379,7 +379,8 @@ class MaskGraphCanvas(tk.Canvas):
         else:
           y = int(wy/10)
 
-        nodeC = NodeObj(self,id)
+        n = self.scModel.getGraph().get_node(id)
+        nodeC = NodeObj(self,id,n['file'])
         wid = self.create_window(x, y, window=nodeC, anchor=tk.CENTER,
                                   tags='node')
         node['xpos']=x
@@ -406,10 +407,11 @@ class MaskGraphCanvas(tk.Canvas):
 class NodeObj(tk.Canvas):
     node_name = ''
     marker = None
-    def __init__(self, master, node_name):
+    def __init__(self, master, node_id,node_name):
         tk.Canvas.__init__(self, width=20, height=20, highlightthickness=0)
 
         self.master = master
+        self.node_id = node_id
         self.node_name = node_name
 
         self.bind('<ButtonPress-1>', self._host_event('onNodeButtonPress'))
@@ -466,7 +468,7 @@ class NodeObj(tk.Canvas):
             event.x += self.winfo_x()
             event.y += self.winfo_y()
             event.obtype = 'node'
-            event.item_name = self.node_name
+            event.item_name = self.node_id
             return func(event)
         return _wrapper
 
