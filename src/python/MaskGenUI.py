@@ -51,7 +51,7 @@ def fromFileTypeString(types, profileTypes):
 
 class UIProfile:
     filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("all files","*.*")]
-    suffixes = [".jpg",".png",".tiff"]
+    suffixes = ["*.nef",".jpg",".png",".tiff","*.bmp"]
     operations='operations.json'
     software='software.csv'
     filetypespref = 'filetypes'
@@ -74,8 +74,8 @@ class UIProfile:
 
 
 class VideoProfile:
-    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
-    suffixes = [".mp4",".avi",".mov"]
+    filetypes = [("avi files","*.avi"),("mpeg files","*.mp4"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
+    suffixes = [".avi",".mp4",".mov","*.wmv"]
     operations='video_operations.json'
     software='video_software.csv'
     name = 'Video'
@@ -118,8 +118,10 @@ class MakeGenUI(Frame):
     filteredgemenu = None
     canvas = None
     errorlistDialog = None
+    exportErrorlistDialog = None
     uiProfile = UIProfile()
     menuindices= {}
+    
    
     gfl = GroupFilterLoader()
 
@@ -197,17 +199,29 @@ class MakeGenUI(Frame):
     def export(self):
        val = tkFileDialog.askdirectory(initialdir = '.',title = "Export To Directory")
        if (val is not None and len(val)>0):
-         self.scModel.export(val)
-         tkMessageBox.showinfo("Export", "Complete")
+         errorList = self.scModel.export(val)
+         if len(errorList)>0:
+           if self.exportErrorlistDialog is None:
+              self.exportErrorlistDialog = ListDialog(self,errorList,"Export Errors")
+           else:
+              self.exportErrorlistDialog.setItems(errorList)
+         else:
+           tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
        info = self.prefLoader.get_key('s3info')
        val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder", initialvalue=info if info is not None else '')
        if (val is not None and len(val)>0):
          try:
-           self.scModel.exporttos3(val)
-           tkMessageBox.showinfo("Export to S3", "Complete")
-           self.prefLoader.save('s3info',val)
+           errorList = self.scModel.exporttos3(val)
+           if len(errorList)>0:
+             if self.exportErrorlistDialog is None:
+                self.exportErrorlistDialog = ListDialog(self,errorList,"Export Errors")
+             else:
+                self.exportErrorlistDialog.setItems(errorList)
+           else:
+             tkMessageBox.showinfo("Export to S3", "Complete")
+             self.prefLoader.save('s3info',val)
          except IOError:
            tkMessageBox.showinfo("Error", "Failed to upload export")
   
@@ -290,8 +304,11 @@ class MakeGenUI(Frame):
 
     def nextauto(self):
         destination = self.scModel.scanNextImageUnConnectedImage()
+        if destination is None:
+            tkMessageBox.showwarning("Auto Connect","No suitable loaded images found")
+            return
         im,filename = self.scModel.getImageAndName(destination)
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.connect(destination,mod=d.description)
             self.drawState()
@@ -303,7 +320,7 @@ class MakeGenUI(Frame):
         if (filename is None): 
             tkMessageBox.showwarning("Auto Connect","Next image file cannot be automatically determined")
             return
-        d = DescriptionCaptureDialog(self,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg = self.scModel.addNextImage(filename,mod=d.description)
             if msg is not None:
@@ -414,6 +431,8 @@ class MakeGenUI(Frame):
     def doneWithWindow(self,window):
         if window == self.errorlistDialog:
            self.errorlistDialog = None
+        if window == self.exportErrorlistDialog:
+           self.exportErrorlistDialog = None
 
     def fetchS3(self):
        import graph_rules
