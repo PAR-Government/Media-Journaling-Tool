@@ -205,7 +205,7 @@ def build_xmetadata_file(image, data, csvFile):
         xmetadataWriter.writerow(fullData)
 
 
-def build_history_file(image, newName, csvFile):
+def build_history_file(imageList, newNameList, info, csvFile):
     """
     Creates an easy-to-follow history for keeping record of image names
     oldImageFile --> newImageFile
@@ -214,12 +214,15 @@ def build_history_file(image, newName, csvFile):
     :param csvFile: csv file to store information
     :return: None
     """
-    md5 = hashlib.md5(open(image, 'rb').read()).hexdigest()
+
     with open(csvFile, 'a') as csv_history:
-
         historyWriter = csv.writer(csv_history, lineterminator='\n')
-        historyWriter.writerow([image, newName, md5])
-
+        historyWriter.writerow(['Original Name', 'New Name', 'MD5', 'Serial Number', 'Local ID', 'Lens ID',
+                                'HD Location', 'Shutter Speed', 'FNumber', 'Exposure Comp', 'ISO', 'Noise Reduction',
+                                'White Balance', 'Exposure Mode', 'Flash', 'Autofocus', 'KValue', 'Location'])
+        for imNo in range(len(imageList)):
+            md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
+            historyWriter.writerow([imageList[imNo], newNameList[imNo], md5] + info)
 
 def parse_extra(data, csvFile):
     """
@@ -231,17 +234,21 @@ def parse_extra(data, csvFile):
     """
     keys = ['Filename'] + data[::2]
     values = data[1::2]
-    if valid_keys(keys):
-        with open(csvFile, 'w') as csv_metadata:
-            xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
-            xmetadataWriter.writerow(keys)
-        return values
+    #if valid_keys(keys):
+    with open(csvFile, 'w') as csv_metadata:
+        xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
+        xmetadataWriter.writerow(keys)
+    return values
 
 
 def load_keys():
+    """
+    load keyword validation file
+    :return: list valid keys
+    """
     keys = []
     try:
-        with open('key_value_pairs.csv') as csvFile:
+        with open('extra.csv') as csvFile:
             keyReader = csv.reader(csvFile)
             for row in keyReader:
                 keys.append(row[0])
@@ -252,6 +259,11 @@ def load_keys():
 
 
 def valid_keys(testKeys):
+    """
+    check if user keys are in the master list
+    :param testKeys: keys to check
+    :return: Boolean describing whether keys are valid
+    """
     trueKeys = load_keys()
     if set(testKeys).issubset(trueKeys):
         return True
@@ -260,7 +272,11 @@ def valid_keys(testKeys):
 
 
 def get_id(image):
-
+    """
+    Check exif data for camera serial number
+    :param image: image filename to check
+    :return: string with serial number ID
+    """
     exiftoolOutput = subprocess.Popen(['exiftool', '-SerialNumber', image],
                                         stdout=subprocess.PIPE).communicate()[0]
     if exiftoolOutput:
@@ -270,6 +286,11 @@ def get_id(image):
 
 
 def get_lens_id(image):
+    """
+    Check exif data for camera lens serial number
+    :param image: image filename to check
+    :return: string with serial number ID
+    """
     exiftoolOutput = subprocess.Popen(['exiftool', '-SerialNumber', image],
                                       stdout=subprocess.PIPE).communicate()[0]
     if exiftoolOutput:
@@ -279,6 +300,16 @@ def get_lens_id(image):
 
 
 def tally_images(filenames, model, localId,  lens, csvFile):
+    """
+    Tallies similar images. Produces CSV file with counts.
+    Feature not currently in use, but may be utilized later.
+    :param filenames: list of filenames of images to check
+    :param model: camera model serial no. of images
+    :param localId: local id no. of camera
+    :param lens: lens serial no.
+    :param csvFile: csv file to write to
+    :return: None. Writes to a CSV file
+    """
     if lens is None:
         lens = get_lens_id(filenames)
     if localId is None:
@@ -334,6 +365,12 @@ def tally_images(filenames, model, localId,  lens, csvFile):
 
 
 def s3_prefs(values, upload=False):
+    """
+    Parse S3 data and download/upload preferences file
+    :param values: bucket/path of s3
+    :param upload: Will upload pref file if specified, download otherwise
+    :return: None
+    """
     s3 = boto3.client('s3', 'us-east-1')
     BUCKET = values[0][0:values[0].find('/')]
     DIR = values[0][values[0].find('/') + 1:]
@@ -345,6 +382,92 @@ def s3_prefs(values, upload=False):
     else:
         s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
 
+
+def parse_image_info(image, id, localid, lens, hd, sspeed, fstop, expcomp, iso, noisered, whitebal,
+                     expmode, flash, autofocus, kvalue, location):
+    """
+    Prepare list of values about the specified image.
+    If an argument is entered as an empty string, will check image's exif data for it.
+    :param image: filename of image to check
+    ...
+    :return: list containing only values of each argument. The value will be N/A if empty string
+    is supplied and no exif data can be found.
+    """
+    exiftoolstr = ''
+    data = [id, localid, lens, hd] + ['N/A'] * 9 + [kvalue, location]
+    missingIdx = []
+
+    if sspeed:
+        data[4] = sspeed
+    else:
+        exiftoolstr += '-ExposureTime '
+        missingIdx.append(4)
+
+    if fstop:
+        data[5] = fstop
+    else:
+        exiftoolstr += '-FNumber '
+        missingIdx.append(5)
+
+    if expcomp:
+        data[6] = expcomp
+    else:
+        exiftoolstr += '-ExposureCompensation '
+        missingIdx.append(6)
+
+    if iso:
+        data[7] = iso
+    else:
+        exiftoolstr += '-ISO '
+        missingIdx.append(7)
+
+    if noisered:
+        data[8] = noisered
+    else:
+        exiftoolstr += '-NoiseReduction '
+        missingIdx.append(8)
+
+    if whitebal:
+        data[9] = whitebal
+    else:
+        exiftoolstr += '-WhiteBalance '
+        missingIdx.append(9)
+
+    if expmode:
+        data[10] = expmode
+    else:
+        exiftoolstr += '-ExposureMode '
+        missingIdx.append(10)
+
+    if flash:
+        data[11] = flash
+    else:
+        exiftoolstr += '-Flash '
+        missingIdx.append(11)
+
+    if autofocus:
+        data[12] = autofocus
+    else:
+        exiftoolstr += '-FocusMode '
+        missingIdx.append(12)
+
+    if exiftoolstr:
+        exifData = subprocess.Popen('exiftool -f ' + exiftoolstr + image, stdout=subprocess.PIPE).communicate()[0]
+        exifList = exifData[:-1].replace('\r', '').split('\n')
+        newExifList = []
+        for item in exifList:
+            newExifItem = item.split(':', 1)
+            key = newExifItem[0].strip()
+            val = newExifItem[1].strip()
+            if val == '-':
+                val = 'N/A'
+            newExifList.append(val)
+        j=0
+        for i in missingIdx:
+            data[i] = newExifList[j]
+            j += 1
+
+    return data
 
 def main():
     parser = argparse.ArgumentParser()
@@ -358,10 +481,24 @@ def main():
     parser.add_argument('-S', '--secondary',        default=os.getcwd(),            help='Secondary storage location for copies')
     parser.add_argument('-P', '--preferences',      default='preferences.txt',      help='User preferences file')
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
-    parser.add_argument('-B', '--s3Bucket',                                         help='S3 bucket/path')
+    parser.add_argument('-B', '--s3Bucket',         required=True,                  help='S3 bucket/path')
+
     parser.add_argument('-i', '--id',               required=True,                  help='Camera serial #')
-    parser.add_argument('-l', '--lid',              default='',                     help='Local ID no. (cage #, etc.)')
-    parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
+    parser.add_argument('-o', '--lid',              default='N/A',                  help='Local ID no. (cage #, etc.)')
+    parser.add_argument('-L', '--lens',             default='N/A',                  help='Lens serial #')
+    parser.add_argument('-H', '--hd',               default='N/A',                  help='Hard drive location letter')
+    parser.add_argument('-s', '--sspeed',           default='',                     help='Shutter Speed')
+    parser.add_argument('-t', '--fstop',            default='',                     help='fstop')
+    parser.add_argument('-e', '--expcomp',          default='',                     help='Exposure Compensation')
+    parser.add_argument('-I', '--iso',              default='',                     help='ISO')
+    parser.add_argument('-n', '--noisered',         default='',                     help='Noise Reduction')
+    parser.add_argument('-w', '--whitebal',         default='',                     help='White Balance')
+    parser.add_argument('-k', '--kvalue',           default='N/A',                  help='KValue')
+    parser.add_argument('-E', '--expmode',          default='',                     help='Exposure Mode')
+    parser.add_argument('-F', '--flash',            default='',                     help='Flash Fired')
+    parser.add_argument('-a', '--autofocus',        default='',                     help='autofocus')
+    parser.add_argument('-l', '--location',         default='N/A',                  help='location')
+
 
     args = parser.parse_args()
     try:
@@ -373,6 +510,7 @@ def main():
             sys.exit('Bucket/path not found!')
 
     prefs = parse_prefs('preferences.txt')
+    print 'Successfully pulled preferences'
 
     # grab files
     imageList = []
@@ -384,12 +522,13 @@ def main():
         imageList.extend(grab_range(fRange))
     else:
         imageList.extend(grab_dir(args.dir, args.recursive))
+    print 'Successfully grabbed images'
 
-    # check camera model before any processing
-    if args.id:
-        camera = args.id
-    else:
-        camera = get_id(imageList[0])
+    imageInfo = parse_image_info(imageList[0], args.id, args.lid, args.lens, args.hd, args.sspeed, args.fstop,
+                            args.expcomp, args.iso, args.noisered, args.whitebal, args.expmode, args.flash,
+                            args.autofocus, args.kvalue, args.location)
+    print 'Successfully built image info:'
+    print imageInfo
 
     # copy
     try:
@@ -409,26 +548,29 @@ def main():
     newNameList = []
     for image in imageList:
         newName = copyrename(image, args.secondary, prefs['username'], prefs['organization'], pad_to_5_str(count), args.additionalInfo)
-        build_history_file(image, newName, csv_history)
         if args.keywords:
-            build_keyword_file(image, args.keywords, csv_keywords)
+            build_keyword_file(newName, args.keywords, csv_keywords)
         if args.extraMetadata:
-            build_xmetadata_file(image, extraValues, csv_metadata)
+            build_xmetadata_file(newName, extraValues, csv_metadata)
         newNameList += [newName]
         count += 1
+    print 'Successfully copy and rename of files'
 
     write_seq(args.preferences, pad_to_5_str(count))
     s3_prefs([args.s3Bucket], upload=True)
+    print 'Successful preferences update'
 
     # change metadata of copies
     newData = change_all_metadata.parse_file(args.metadata)
     change_all_metadata.process(args.secondary, newData, quiet=True)
+    print 'Successfully updated metadata'
 
+    build_history_file(imageList, newNameList, imageInfo, csv_history)
+    print 'Successfully built history'
 
     # write final csv
-    csv_tally = os.path.join(args.secondary, 'tally.csv')
-    tally_images(newNameList, camera, args.lid, args.lens, csv_tally)
-
+    # csv_tally = os.path.join(args.secondary, 'tally.csv')
+    # tally_images(newNameList, camera, args.lid, args.lens, csv_tally)
 
 if __name__ == '__main__':
     main()
