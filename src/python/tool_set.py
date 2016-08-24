@@ -122,6 +122,9 @@ def validateAndConvertTypedValue(argName,argValue,operationDef):
       elif argDef['type'] == 'time':
          if not validateTimeString(argValue):
            raise ValueError(argName + ' is not a valid time (e.g. HH:MM:SS.micro)')
+      elif argDef['type'] == 'yesno':
+         if argValue.lower() not in ['yes','no']:
+           raise ValueError(argName + ' is not yes or no')
       elif argDef['type'] == 'coorindates':
          if not validateCoordinates(argValue):
            raise ValueError(argName + ' is not a valid coordinate (e.g. (6,4)')
@@ -137,7 +140,10 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
    from scipy import ndimage
 
    snapshotFileName = filename
-   if not filename[filename.rfind('.')+1:] in ['png','jpg','gif','tiff','jpeg','bmp']:
+   if not os.path.exists(filename):
+      return openImage('./icons/RedX.png')
+
+   if filename[filename.rfind('.')+1:].lower() in ['avi','mp4','mov','flv','qt','wmv','m4p','mpeg','mpv','m4v']:
      snapshotFileName = filename[0:filename.rfind ('.')-len(filename)]+'.png'
 
    if not os.path.exists(snapshotFileName) and snapshotFileName != filename:
@@ -154,7 +160,7 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
            bestSoFar = frame
            break
          varianceOfImage = math.sqrt(ndimage.measurements.variance(frame)) 
-         if bestVariance < varianceOfImage:
+         if frame is not None and bestVariance < varianceOfImage:
             bestSoFar = frame
             bestVariance = varianceOfImage
          maxTry-=1
@@ -162,16 +168,23 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
            break
      finally:
        cap.release()
+     if bestSoFar is None:
+        print 'invalid or corrupted file '+ filename
+        return openImage('./icons/RedX.png')
      img = Image.fromarray(bestSoFar)
      img = img.convert('L')  if isMask else img
      if preserveSnapshot:
        img.save(snapshotFileName)
      return img
    else:
-     with open(snapshotFileName,"rb") as fp:
-        img = Image.open(fp)
-        img.load()
-        return img
+     try:
+       with open(snapshotFileName,"rb") as fp:
+          img = Image.open(fp)
+          img.load()
+          return img
+     except IOError as e:
+        print e
+        return openImage('./icons/RedX.png')
 
 def createMask(img1, img2, invert, seamAnalysis=False,arguments={}):
       mask,analysis = __composeMask(img1,img2,invert,seamAnalysis=seamAnalysis,arguments=arguments)

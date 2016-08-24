@@ -28,11 +28,33 @@ from web_tools import *
   Profiles are used to customize the bevahior depending on the type of project.
   There are two profiles: video and image
 """
+
+def toFileTypeString(types):
+    str = ''
+    for ft in types:
+       str += ft[1] + ' '
+    return str
+
+def fromFileTypeString(types, profileTypes):
+    typelist = types.split(' ')
+    result = []
+    for ft in typelist:
+        ft = ft.strip()
+        if len(ft) == 0:
+          continue
+        ptype = [x for x in profileTypes if x[1] == ft]
+        if len(ptype)>0:
+          result.append(ptype[0])
+        else:
+          result.append((ft,ft))
+    return result
+
 class UIProfile:
-    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("bmp files","*.bmp"),("all files","*.*")]
+    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("all files","*.*")]
     suffixes = [".jpg",".png",".tiff"]
     operations='operations.json'
     software='software.csv'
+    filetypespref = 'filetypes'
     name = 'Image'
     def getFactory(self): 
       return imageProjectModelFactory
@@ -48,14 +70,16 @@ class UIProfile:
         return CompareDialog(master,im2,mask,nodeId,analysis)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','text')]
+        return [('User Name','username','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
+
 
 class VideoProfile:
-    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),("all files","*.*")]
+    filetypes = [("mpeg files","*.mp4"),("avi files","*.avi"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
     suffixes = [".mp4",".avi",".mov"]
     operations='video_operations.json'
     software='video_software.csv'
     name = 'Video'
+    filetypespref = 'videofiletypes'
     def getFactory(self): 
       return videoProjectModelFactory
 
@@ -69,7 +93,7 @@ class VideoProfile:
         return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','string')]
+        return [('User Name','username','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
 
 class MakeGenUI(Frame):
 
@@ -206,6 +230,12 @@ class MakeGenUI(Frame):
             self.prefLoader.save('username', newName)
             setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
 
+    def setfiletypes(self):
+        filetypes = self.getFileTypes()
+        newtypesStr = tkSimpleDialog.askstring("Set File Types", "Types", initialvalue=toFileTypeString(filetypes))
+        if newtypesStr is not None:
+            self.prefLoader.save(self.uiProfile.filetypespref, fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
+            self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
 
     def undo(self):
        self.scModel.undo()
@@ -328,7 +358,7 @@ class MakeGenUI(Frame):
                   tkMessageBox.showwarning("Next Filter",msg)
                   break
                ok = True
-               end = self.scModel.nextImageName()
+               end = self.scModel.nextId()
                # reset back to the start image
                self.scModel.selectImage(start)
             #select the last one completed
@@ -356,15 +386,27 @@ class MakeGenUI(Frame):
             self.drawState()
             self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
 
+    def openStartImage(self):
+        sim = self.scModel.getStartImageFile()
+        openFile(sim)
+
+    def openNextImage(self):
+        if self.scModel.end:
+          nim = self.scModel.getNextImageFile()
+          openFile(nim)
+
+    def openMaskImage(self):
+        return
+
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
         self.img1= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim,(250,250),nim.size)))
         self.img2= ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim,(250,250),sim.size)))
         self.img3= ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(),(250,250),nim.size))
-        self.img1c.itemconfig(self.img1oc, image=self.img1)
-        self.img2c.itemconfig(self.img2oc, image=self.img2)
-        self.img3c.itemconfig(self.img3oc, image=self.img3)
+        self.img1c.config( image=self.img1)
+        self.img2c.config( image=self.img2)
+        self.img3c.config( image=self.img3)
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
         self.maskvar.set(self.scModel.maskStats())
@@ -517,6 +559,7 @@ class MakeGenUI(Frame):
 
         settingsmenu = Menu(tearoff=0)
         settingsmenu.add_command(label="Username", command=self.setusername)
+        settingsmenu.add_command(label="File Types", command=self.setfiletypes)
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About",command=self.about)
@@ -573,19 +616,16 @@ class MakeGenUI(Frame):
 
         img1f = img2f = img3f = self.master
 
-        self.img1c = Canvas(img1f, width=256, height=256)
-        self.img1c.grid(row = 1, column = 0)
-        self.img2c = Canvas(img2f, width=256, height=256)
-        self.img2c.grid(row = 1, column = 1)
-        self.img3c = Canvas(img3f, width=256, height=256)
-        self.img3c.grid(row = 1, column = 2)
-
         self.img1 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
-        self.img1oc = self.img1c.create_image(125,125,image=self.img1, tag='img1')
         self.img2 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
-        self.img2oc = self.img2c.create_image(125,125,image=self.img2, tag='img2')
         self.img3 = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))
-        self.img3oc = self.img3c.create_image(125,125,image=self.img3, tag='img3')
+
+        self.img1c = Button(img1f,width=250,command=self.openStartImage,image=self.img1)
+        self.img1c.grid(row = 1, column = 0)
+        self.img2c = Button(img1f,width=250,command=self.openNextImage,image=self.img2)
+        self.img2c.grid(row = 1, column = 1)
+        self.img3c = Button(img1f,width=250,command=self.openMaskImage,image=self.img3)
+        self.img3c.grid(row = 1, column = 2)
 
         self.l1 = Label(img1f, text="") 
         self.l1.grid(row=0,column=0)
@@ -653,13 +693,20 @@ class MakeGenUI(Frame):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        self.scModel = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
-        if self.scModel is None:
+        tuple = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
+        if tuple is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)
+        self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
-            self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
+            preferredFT = self.prefLoader.get_key(self.uiProfile.filetypespref)
+            if preferredFT:
+              self.scModel.setProjectData('typespref',preferredFT)
+            else:
+              self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
         self.createWidgets()
+        if tuple[1]:
+          self.getproperties()
 
 
 

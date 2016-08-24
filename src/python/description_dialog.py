@@ -23,6 +23,10 @@ def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
        val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select " + argumentTuple[0],filetypes = filetypes)
        if (val != None and len(val)> 0):
            res=val
+    elif argumentTuple[1]['type'] == 'xmpfile':
+       val = tkFileDialog.askopenfilename(initialdir = dir, title = "Select " + argumentTuple[0],filetypes = [('XMP','*.xmp')])
+       if (val != None and len(val)> 0):
+           res=val
     elif argumentTuple[1]['type'].startswith('donor'):
        d = ImageNodeCaptureDialog(parent, parent.scModel)
        res = d.selectedImage
@@ -38,6 +42,9 @@ def promptForParameter(parent,dir,argumentTuple,filetypes, initialvalue):
          parent=parent,initialvalue=initialvalue)
     elif argumentTuple[1]['type'] == 'list':
        d = SelectDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],argumentTuple[1]['values'])
+       res = d.choice
+    elif argumentTuple[1]['type'] == 'yesno':
+       d = SelectDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],['yes','no'])
        res = d.choice
     elif argumentTuple[1]['type'] == 'time':
        d = EntryDialog(parent,"Set Parameter " + argumentTuple[0],argumentTuple[1]['description'],validateTimeString,initialvalue=initialvalue)
@@ -83,15 +90,15 @@ class PropertyDialog(tkSimpleDialog.Dialog):
         for prop in self.properties:
            Label(master, text=prop[0]).grid(row=row,sticky=W)
            if prop[2] == 'list':
-             self.values[row] = AutocompleteEntryInText(master,values=prop[3],takefocus=(row == 0),initialValue=self.parent.scModel.get_property(prop[1]))
+             self.values[row] = AutocompleteEntryInText(master,values=prop[3],takefocus=(row == 0),initialValue=self.parent.scModel.getProjectData(prop[1]))
            elif prop[2] == 'text':
              self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
-             v = self.parent.scModel.get_property(prop[1])
+             v = self.parent.scModel.getProjectData(prop[1])
              if v:
                  self.values[row].insert(1.0,v)
            else:
              self.values[row] = Entry(master,takefocus=(row==0),width=80)
-             v = self.parent.scModel.get_property(prop[1])
+             v = self.parent.scModel.getProjectData(prop[1])
              if v:
                  self.values[row].insert(0,v)
            self.values[row].grid(row=row,column=1,sticky=E+W)
@@ -108,7 +115,7 @@ class PropertyDialog(tkSimpleDialog.Dialog):
       for prop in self.properties:
           v= self.values[i].get() if prop[2] != 'text' else self.values[i].get(1.0,END).strip()
           if v and len(v) > 0:
-            self.parent.scModel.set_property(prop[1],v)
+            self.parent.scModel.setProjectData(prop[1],v)
           i+=1
 
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
@@ -321,7 +328,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
       Label(master, text=self.description.additionalInfo,anchor=W,justify=LEFT).grid(row=1, column=1,columnspan=3,sticky=W)
       Label(master, text=self.description.getSoftwareName(),anchor=W,justify=LEFT).grid(row=2, column=1,sticky=W)
       Label(master, text=self.description.getSoftwareVersion(),anchor=W,justify=LEFT).grid(row=2, column=2,sticky=W)
-      row=3
+      Label(master, text='Automated: ' + self.description.automated,anchor=W,justify=LEFT).grid(row=3, column=0,sticky=W)
+      row=4
       if len(self.description.arguments)>0:
         Label(master, text='Parameters:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=W)
         row+=1
@@ -333,6 +341,15 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
              label='Mask ('+self.description.inputMaskName+'):',isMask=True,preserveSnapshot=True)
         self.inputmaskframe.grid(row=row, column=0, columnspan=4,sticky=E+W)
         row+=1
+      if self.description.errors and len(self.description.errors) > 0:
+        Label(master, text="Errors from mask processing :",anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=4,sticky=E+W)
+        row+=1
+        self.errorText = Text(master,height=10,width=40,font=('Times', '14'), relief=RAISED,borderwidth=2)
+        self.errorText.grid(row=row, column=0,columnspan=4,sticky=E+W)
+        row+=1
+        for error in self.description.errors:
+            self.errorText.insert(END,error)
+        self.errorText.config(state=DISABLED)
       if self.metadiff is not None:
         sections = self.metadiff.getSections()
         Label(master, text=self.metadiff.getMetaType() +' Changes:',anchor=W,justify=LEFT).grid(row=row, column=0,columnspan=2 if sections else 4,sticky=E+W)
@@ -772,9 +789,17 @@ class ListDialog(Toplevel):
 #       return None
 
    def body(self, master):
-      self.itemBox = Listbox(master,width=80)
+      self.yscrollbar = Scrollbar(master,orient=VERTICAL)
+      self.xscrollbar = Scrollbar(master,orient=HORIZONTAL)
+      self.itemBox = Listbox(master,width=80,yscrollcommand=self.yscrollbar.set,xscrollcommand=self.xscrollbar.set)
       self.itemBox.bind("<Double-Button-1>", self.change)
-      self.itemBox.grid(row=0,column=0)
+      self.itemBox.grid(row=0,column=0, sticky=E+W)
+      self.xscrollbar.config(command=self.itemBox.xview)
+      self.xscrollbar.grid(row=1,column=0,stick=E+W)
+      self.yscrollbar.config(command=self.itemBox.xview)
+      self.yscrollbar.grid(row=0,column=1,stick=N+S)
+      self.master.grid_rowconfigure(0, weight=1)
+      self.master.grid_columnconfigure(0, weight=1)
       for item in self.items:
          self.itemBox.insert(END,item[2])
 

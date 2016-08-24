@@ -1,6 +1,6 @@
 ﻿# Dependencies
 
-Install Python 2.7 (supposedly works with Anaconda)
+Install Python 2.7 (Works with Anaconda)
 
 Install Tkinter
 
@@ -29,8 +29,21 @@ pip install scikit-image
 pip install tkintertable
 pip install bitstring
 
+
 For optional use with S3
 pip install boto3
+```
+
+## For Anaconda
+Replace:
+```
+pip install pillow
+```
+with:
+```
+conda remove PIL
+conda remove pillow
+pip install Image
 ```
 
 # Usage

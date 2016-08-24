@@ -4,6 +4,8 @@ import tkMessageBox
 import tkSimpleDialog as tkd
 from functools import wraps
 import numpy as np
+import os
+import platform
 from math import atan2, pi, cos, sin
 from description_dialog import DescriptionCaptureDialog,CompareDialog
 
@@ -22,7 +24,11 @@ class MaskGraphCanvas(tk.Canvas):
     lastNodeAdded = None
     uiProfile = None
     
-    drag_data = {'x': 0, 'y': 0, 'item': None}
+    lassoitems = None
+    lassobox = None
+    
+    drag_item = None
+    drag_data = None
 
     def __init__(self, master,uiProfile,scModel,callback,**kwargs):
         self.scModel = scModel
@@ -30,7 +36,9 @@ class MaskGraphCanvas(tk.Canvas):
         self.callback = callback
         self.master = master
         tk.Canvas.__init__(self, master, **kwargs)
-        self.bind('<ButtonPress-1>', self.deselectCursor)
+        self.bind('<ButtonPress-1>', self.startregion)
+        self.bind('<ButtonRelease-1>', self.stopregion)
+        self.bind('<B1-Motion>', self.regionmove)
         self._plot_graph()
    
     def clear(self):
@@ -126,15 +134,48 @@ class MaskGraphCanvas(tk.Canvas):
         """End drag of an object"""
 
         # reset the drag information
-        self.drag_data['item'] = None
-        self.drag_data['x'] = 0
-        self.drag_data['y'] = 0
+        self.setDragData(None)
 
     def selectCursor(self,event):
         self.config(cursor='crosshair')
         self.crossHairConnect = not (event == 'compare')
         for k,v in self.itemToCanvas.items():
            v.config(cursor='crosshair')
+
+    def regionmove(self,event):
+       if self.lassobox:
+          self.delete(self.lassobox)
+       if not self.lassoitems:
+          x = self.canvasx(event.x)
+          y = self.canvasy(event.y)
+          self.lassobox = self.create_rectangle(self.region[0],self.region[1],x,y)
+       else:
+         for item in self.lassoitems:
+            self.moveItem(event,item)
+         self.setDragData((event.x,event.y))
+
+    def startregion(self,event):
+       x = self.canvasx(event.x)
+       y = self.canvasy(event.y)
+       self.region =(x,y)
+
+    def stopregion(self,event):
+       if self.lassobox:
+          self.delete(self.lassobox)
+       if self.lassoitems:
+         for item in self.lassoitems:
+            self.itemToCanvas[item].deselectgroup()
+         self.lassoitems = None
+         return
+       x = self.canvasx(event.x)
+       y = self.canvasy(event.y)
+       items = self.find_enclosed(min(self.region[0],x),min(y,self.region[1]), \
+                                     max(self.region[0],x),max(y,self.region[1]))
+
+       self.lassoitems = [ item for item in items
+          if item in self.itemToCanvas and isinstance(self.itemToCanvas[item],NodeObj)]
+       for item in self.lassoitems :
+          self.itemToCanvas[item].selectgroup()
 
     def deselectCursor(self, event):
         cursor = self.cget("cursor")
@@ -165,11 +206,9 @@ class MaskGraphCanvas(tk.Canvas):
               elif (len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0],nodeId))):
                  d = DescriptionCaptureDialog(self.master,self.uiProfile,self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                   msg = self.scModel.connect(nodeId,mod=d.description)
+                   msg,ok = self.scModel.connect(nodeId,mod=d.description)
                    if msg is not None:
                      tkMessageBox.showwarning("Connect Error", msg)
-                   else:
-                     ok = True
                  else:
                    ok = False
               elif (len(preds) == 1):
@@ -185,11 +224,18 @@ class MaskGraphCanvas(tk.Canvas):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
                self.callback(event,"n")
             return
+#        else:
+#           self.onTokenRightClick(event,showMenu=False)
 
-        self.drag_data["item"] = item
-        self.drag_data["x"] = event.x
-        self.drag_data["y"] = event.y
+        self.setDragData((event.x,event.y),item=item)
 
+    def setDragData(self, tuple,item=None):
+        self.drag_item = item
+        self.drag_data = tuple
+   
+    def getDragData(self,item,x,y):
+       return self.drag_data if self.drag_data else (x,y)
+   
     def showNode(self,node):
        item_id = self.toItemIds[node][1]
        self._mark(item_id)
@@ -202,23 +248,27 @@ class MaskGraphCanvas(tk.Canvas):
 
     def onNodeMotion(self, event):
         """Handle dragging of an object"""
-        if self.drag_data['item'] is None:
-            return
-        # compute how much this object has moved
-        xp = restrictPosition(event.x)
-        yp = restrictPosition(event.y)
-        delta_x = xp - self.drag_data['x']
-        delta_y = yp - self.drag_data['y']
-        # move the object the appropriate amount
-        self.move(self.drag_data['item'], delta_x, delta_y)
+        if self.drag_item is None:
+           return
+        self.moveItem(event,self.drag_item)
         # record the new position
-        self.drag_data["x"] = xp
-        self.drag_data["y"] = yp
+        self.setDragData((event.x,event.y),item=self.drag_item)
+
+    def moveItem(self,event,item):
+        # compute how much this object has moved
+        xp = event.x
+        yp = event.y
+        dragInfo = self.getDragData(item,event.x,event.y)
+        delta_x = xp - dragInfo[0]
+        delta_y = yp - dragInfo[1]
+
+        # move the object the appropriate amount
+        self.move(item, delta_x, delta_y)
 
         # Redraw any edges
-        b = self.bbox(self.drag_data['item'])
+        b = self.bbox(item)
         from_xy = ( (b[0]+b[2])/2, (b[1]+b[3])/2 )
-        from_node = self.itemToNodeIds[self.drag_data['item']]
+        from_node = self.itemToNodeIds[item]
         node = self.scModel.getGraph().get_node(from_node)
         node['xpos']=restrictPosition(from_xy[0])
         node['ypos']=restrictPosition(from_xy[1])
@@ -256,7 +306,7 @@ class MaskGraphCanvas(tk.Canvas):
     def compareto(self):
         self.selectCursor('compare')
 
-    def onTokenRightClick(self, event):
+    def onTokenRightClick(self, event, showMenu=True):
        self._unmark()
        item = self._get_id(event)
        eventname = 'rcNode'
@@ -269,7 +319,7 @@ class MaskGraphCanvas(tk.Canvas):
                self.scModel.selectEdge(e[0],e[1])
                eventname= 'rcEdge' if self.scModel.isEditableEdge(e[0],e[1]) else 'rcNonEditEdge'
            self._mark(item)
-           self.callback(event,eventname)
+           self.callback(event,eventname if showMenu else 'n')
            if (e is not None):
              edge =  self.scModel.getGraph().get_edge(e[0],e[1])
              if (edge is not None):
@@ -329,7 +379,8 @@ class MaskGraphCanvas(tk.Canvas):
         else:
           y = int(wy/10)
 
-        nodeC = NodeObj(self,id)
+        n = self.scModel.getGraph().get_node(id)
+        nodeC = NodeObj(self,id,n['file'])
         wid = self.create_window(x, y, window=nodeC, anchor=tk.CENTER,
                                   tags='node')
         node['xpos']=x
@@ -356,16 +407,17 @@ class MaskGraphCanvas(tk.Canvas):
 class NodeObj(tk.Canvas):
     node_name = ''
     marker = None
-    def __init__(self, master, node_name):
+    def __init__(self, master, node_id,node_name):
         tk.Canvas.__init__(self, width=20, height=20, highlightthickness=0)
 
         self.master = master
+        self.node_id = node_id
         self.node_name = node_name
 
         self.bind('<ButtonPress-1>', self._host_event('onNodeButtonPress'))
         self.bind('<ButtonRelease-1>', self._host_event('onNodeButtonRelease'))
         self.bind('<B1-Motion>', self._host_event('onNodeMotion'))
-        self.bind('<Button-2>', self._host_event('onTokenRightClick'))
+        self.bind('<Button-2>' if platform.system() == 'Darwin' else '<Button-3>', self._host_event('onTokenRightClick'))
         self.bind('<Double-Button-1>', self._host_event('onTokenRightClick'))
 #        self.bind('<Key>', self._host_event('onNodeKey'))
 #        self.bind('<Enter>', lambda e: self.focus_set())
@@ -376,7 +428,8 @@ class NodeObj(tk.Canvas):
 
     def render(self, node_name):
         """Draw on canvas what we want node to look like"""
-        self.label = self.create_text(0, 0, text=node_name)
+        self.label = self.create_text(0, 0, text=node_name,font='Times 10 bold')
+        self.ismarked = False
         self.marker = self.create_oval(0,0,15,15, fill='red',outline='black')
 
          # Figure out how big we really need to be
@@ -392,10 +445,18 @@ class NodeObj(tk.Canvas):
         self.coords(self.marker, mid[0]-5,0, mid[0]+5,10)
 
     def unmark(self):
+        self.ismarked= False
         self.itemconfig(self.marker,fill='red')
 
     def mark(self):
+        self.ismarked= True
         self.itemconfig(self.marker,fill='yellow')
+
+    def selectgroup(self):
+        self.itemconfig(self.marker,fill='white',dash=4)
+
+    def deselectgroup(self):
+        self.itemconfig(self.marker,fill='yellow' if self.ismarked  else 'red', dash=1)
 
     def _host_event(self, func_name):
         """Wrapper to correct the event's x,y coordinates and pass to host
@@ -407,7 +468,7 @@ class NodeObj(tk.Canvas):
             event.x += self.winfo_x()
             event.y += self.winfo_y()
             event.obtype = 'node'
-            event.item_name = self.node_name
+            event.item_name = self.node_id
             return func(event)
         return _wrapper
 
@@ -453,7 +514,18 @@ class LineTextObj(tk.Canvas):
         self.marker = self.master.create_line(*coords, **cfg)
         includeInMask = ('recordMaskInComposite' in self.edge and self.edge['recordMaskInComposite'] == 'yes')
         name = self.edge['op'] + '*' if includeInMask else self.edge['op']
-        self.label = self.create_text(2,2, text=name, anchor=tk.NW)
+        if len(name)>25:
+           l = len(name)/2
+           pos = 0
+           sel = 0
+           for c in name:
+              if c.isupper():
+                sel = pos
+              if pos > l:
+                 break
+              pos+=1
+           name = name[0:sel] + os.linesep + name[sel:] 
+        self.label = self.create_text(2,2, text=name, anchor=tk.NW,font='Times 10 bold italic')
          # Figure out how big we really need to be
         bbox = self.bbox(self.label)
         bbox = [abs(x) for x in bbox]
