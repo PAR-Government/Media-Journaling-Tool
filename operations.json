@@ -1125,6 +1125,22 @@
     }, 
     {
       "category": "Paste", 
+      "name": "PasteClone", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the area copied."
+	}
+      }, 
+      "description": "Paste a region selected using a clone tool into the same image.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Paste", 
       "name": "PasteDuplicate", 
       "mandatoryparameters": {
         "inputmaskname": {
