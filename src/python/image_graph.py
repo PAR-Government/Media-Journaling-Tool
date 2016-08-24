@@ -542,5 +542,5 @@ class VideoGraph(ImageGraph):
                      preserveSnapshot=imgDir== os.path.abspath(self.dir))
 
   def _saveImage(self,pathname,image):
-    image.save(newpathname,exif=image.info['exif'])
+    image.save(pathname,exif=image.info['exif'])
 
