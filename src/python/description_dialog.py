@@ -768,12 +768,21 @@ class ListDialog(Toplevel):
       self.items = items
       self.parent = parent
       Toplevel.__init__(self, parent)
+      self.resizable(width=True,height=True)
       self.title(name)
       self.parent = parent
       body = Frame(self)
       self.body(body)
-      body.pack(padx=5, pady=5)
-      self.buttonbox()
+      body.grid(row=0,column=0,sticky=N+E+S+W)
+      self.grid_propagate(True)
+      self.grid_rowconfigure(0, weight=1)
+      self.grid_columnconfigure(0, weight=1)
+      body.grid_rowconfigure(0, weight=1)
+      body.grid_columnconfigure(0, weight=1)
+      w = Button(body, text="OK", width=10, command=self.cancel, default=ACTIVE)
+      w.grid(row=2,column=0)
+      self.bind("<Return>", self.cancel)
+      self.bind("<Escape>", self.cancel)
       self.protocol("WM_DELETE_WINDOW", self.cancel)
       self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
                                 parent.winfo_rooty()+50))
@@ -785,21 +794,16 @@ class ListDialog(Toplevel):
       for item in self.items:
          self.itemBox.insert(END,item[2])
 
-#   def grab_set(self):
-#       return None
-
    def body(self, master):
       self.yscrollbar = Scrollbar(master,orient=VERTICAL)
       self.xscrollbar = Scrollbar(master,orient=HORIZONTAL)
       self.itemBox = Listbox(master,width=80,yscrollcommand=self.yscrollbar.set,xscrollcommand=self.xscrollbar.set)
       self.itemBox.bind("<Double-Button-1>", self.change)
-      self.itemBox.grid(row=0,column=0, sticky=E+W)
+      self.itemBox.grid(row=0,column=0, sticky=E+W+N+S)
       self.xscrollbar.config(command=self.itemBox.xview)
       self.xscrollbar.grid(row=1,column=0,stick=E+W)
       self.yscrollbar.config(command=self.itemBox.xview)
       self.yscrollbar.grid(row=0,column=1,stick=N+S)
-      self.master.grid_rowconfigure(0, weight=1)
-      self.master.grid_columnconfigure(0, weight=1)
       for item in self.items:
          self.itemBox.insert(END,item[2])
 
@@ -814,13 +818,8 @@ class ListDialog(Toplevel):
       index = int(self.itemBox.curselection()[0])
       self.parent.selectLink(self.items[index][0],self.items[index][1])
 
-   def buttonbox(self):
-      box = Frame(self)
-      w = Button(box, text="OK", width=10, command=self.cancel, default=ACTIVE)
-      w.pack(side=LEFT, padx=5, pady=5)
-      self.bind("<Return>", self.cancel)
-      self.bind("<Escape>", self.cancel)
-      box.pack()
+
+
 
 class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
