@@ -511,7 +511,7 @@ def main():
     parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
     parser.add_argument('-H', '--hd',               default='N/A',                  help='Hard drive location letter')
     parser.add_argument('-s', '--sspeed',           default='',                     help='Shutter Speed')
-    parser.add_argument('-N', '--fnum ',            default='',                     help='f-number')
+    parser.add_argument('-N', '--fnum',             default='',                     help='f-number')
     parser.add_argument('-e', '--expcomp',          default='',                     help='Exposure Compensation')
     parser.add_argument('-I', '--iso',              default='',                     help='ISO')
     parser.add_argument('-n', '--noisered',         default='',                     help='Noise Reduction')
