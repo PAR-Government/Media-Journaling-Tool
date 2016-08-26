@@ -366,7 +366,7 @@ def s3_prefs(values, upload=False):
         s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
 
 
-def parse_image_info(imageList, camera, localid, lens, hd, sspeed, fstop, expcomp, iso, noisered, whitebal,
+def parse_image_info(imageList, camera, localid, lens, hd, sspeed, fnum, expcomp, iso, noisered, whitebal,
                      expmode, flash, autofocus, kvalue, location):
     """
     Prepare list of values about the specified image.
@@ -418,8 +418,8 @@ def parse_image_info(imageList, camera, localid, lens, hd, sspeed, fstop, expcom
         exiftoolstr += '-ExposureTime '
         missingIdx.append(4)
 
-    if fstop:
-        master[5] = fstop
+    if fnum:
+        master[5] = fnum
     else:
         exiftoolstr += '-FNumber '
         missingIdx.append(5)
@@ -511,7 +511,7 @@ def main():
     parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
     parser.add_argument('-H', '--hd',               default='N/A',                  help='Hard drive location letter')
     parser.add_argument('-s', '--sspeed',           default='',                     help='Shutter Speed')
-    parser.add_argument('-t', '--fstop',            default='',                     help='fstop')
+    parser.add_argument('-N', '--fnum ',            default='',                     help='f-number')
     parser.add_argument('-e', '--expcomp',          default='',                     help='Exposure Compensation')
     parser.add_argument('-I', '--iso',              default='',                     help='ISO')
     parser.add_argument('-n', '--noisered',         default='',                     help='Noise Reduction')
@@ -551,7 +551,7 @@ def main():
     print 'Successfully grabbed images'
 
     print 'Collecting image data, this will take time for large amounts of images...'
-    imageInfo = parse_image_info(imageList, args.id, args.lid, args.lens, args.hd, args.sspeed, args.fstop,
+    imageInfo = parse_image_info(imageList, args.id, args.lid, args.lens, args.hd, args.sspeed, args.fnum,
                             args.expcomp, args.iso, args.noisered, args.whitebal, args.expmode, args.flash,
                             args.autofocus, args.kvalue, args.location)
     print 'Successfully built image info!'
