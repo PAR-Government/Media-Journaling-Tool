@@ -27,19 +27,42 @@ def parse_file(data, purge=False):
     return newData
 
 def process(dir, metadata, recursive=False, purge=False, quiet=False):
-    exifToolInput = ['exiftool']
+    exifToolInput = ['exiftool', '-progress']
     for key, value in metadata.iteritems():
         exifToolInput.append('-' + key + '=' + value)
     if recursive:
-        exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-r', '-L', '-m', '-P', '-progress', dir))
+        exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-r', '-L', '-m', '-P'))
     else:
-        exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-L', '-m', '-P', '-progress', dir))
+        exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-L', '-m', '-P'))
+
+    if type(dir) is str:
+        exifToolInput.append(dir)
+    elif type(dir) is list:
+        for item in dir:
+            exifToolInput.append(item)
 
     if quiet:
-        del exifToolInput[-2]
+        del exifToolInput[1]
 
     # run exiftool
     call(exifToolInput)
+
+# def process(dir, metadata, recursive=False, purge=False, quiet=False):
+#     exifToolInput = 'exiftool'
+#     for key, value in metadata.iteritems():
+#         exifToolInput += '-' + key + '=' + value + ' '
+#     if recursive:
+#         exifToolInput += '-XMPToolkit= -overwrite_original -r -L -m -P' + ' '.join(dir)
+#         exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-r', '-L', '-m', '-P', '-progress', ))
+#     else:
+#         exifToolInput += '-XMPToolkit= -overwrite_original -r -L -m -P' + ' '.join(dir)
+#         exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-L', '-m', '-P', '-progress', ' '.join(dir)))
+#
+#     if quiet:
+#         del exifToolInput[-2]
+#
+#     # run exiftool
+#     call(exifToolInput)
 
 
 def main():
