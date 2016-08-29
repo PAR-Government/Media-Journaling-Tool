@@ -205,7 +205,7 @@ def build_xmetadata_file(image, data, csvFile):
         xmetadataWriter.writerow(fullData)
 
 
-def build_rit_file(imageList, newNameList, info, csvFile):
+def build_rit_file(imageList, info, csvFile, newNameList=None):
     """
     Creates an easy-to-follow history for keeping record of image names
     oldImageFile --> newImageFile
@@ -221,9 +221,14 @@ def build_rit_file(imageList, newNameList, info, csvFile):
         historyWriter.writerow(['Original Name', 'New Name', 'MD5', 'Serial Number', 'Local ID', 'Lens ID',
                                 'HD Location', 'Shutter Speed', 'FNumber', 'Exposure Comp', 'ISO', 'Noise Reduction',
                                 'White Balance', 'Exposure Mode', 'Flash', 'Autofocus', 'KValue', 'Location', 'Bit Depth'])
-        for imNo in range(len(imageList)):
-            md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-            historyWriter.writerow([imageList[imNo], newNameList[imNo], md5] + info[imNo])
+        if newNameList:
+            for imNo in range(len(imageList)):
+                md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
+                historyWriter.writerow([imageList[imNo], newNameList[imNo], md5] + info[imNo])
+        else:
+            for imNo in range(len(imageList)):
+                md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
+                historyWriter.writerow(['-', imageList[imNo], md5] + info[imNo])
 
 
 def build_history_file(imageList, newNameList, csvFile):
@@ -596,7 +601,7 @@ def main():
 
     if args.rit:
         csv_rit = os.path.join(args.secondary, 'rit.csv')
-        build_rit_file(imageList, newNameList, imageInfo, csv_rit)
+        build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
 
     # history file:
     csv_history = os.path.join(args.secondary, 'history.csv')
