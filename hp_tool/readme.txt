@@ -2,23 +2,46 @@ hp_data
 Renames files, copies them into a new directory with new name, and changes select metadata fields.
 
 Requires install of Exiftool (http://www.sno.phy.queensu.ca/~phil/exiftool/)
+Dependencies:
+boto3, botocore (only for optional use of s3)
+change_all_metadata.py (included)
 --------------------------------------------
 Usage:
 
 python hp_data.py <args>
 --------------------------------------------
 arguments currently supported:
--D <dir>: Directory of images to be copied
--f <files>: Specific files to be copied
--r <files>: Will take a range of files to be copied
--R: Include to also grab images from subdirectories if using -D
--S <dir>: Secondary directory for images to be copied to
--m <file>: metadata text file. Uses metadata.txt in current working directory (cwd) by default
--P <file>: preferences text file. Uses preferences.txt in cwd by default
--A <str>: Adds additional info to new filenames
--X <extraData>: additional metadata to be stored externally (xdata.csv)
--K <keywords>: keywords associated with image set, to be stored externally (keywords.csv)
--B <dir>: S3 bucket/path to download preferences and upload CSV's with keywords and other external metadata
+(either switch, - or -- can be used)
+-S, --secondary <dir>: Secondary directory for images to be copied to. If not provided, will copy to current working directory (cwd)
+-D, --dir <dir>: Directory of images to be copied
+-R, --recursive: Include to also grab images from subdirectories if using -D
+-f, --files <files>: Specific files to be copied
+-r, --range <files>: Will take a range of files to be copied
+-m, --metadata <file>: metadata text file. Uses metadata.txt in cwd by default
+-X, --extraMetadata <key value...>: additional metadata to be stored externally (xdata.csv)
+-K, --keywords <keywords>: keywords associated with image set, to be stored externally (keywords.csv)
+-P, --preferences <file>: preferences text file. Uses preferences.txt in cwd by default
+-A, --additionalInfo <str>: Adds additional info to new filenames
+-B, --S3Bucket <dir>: S3 bucket/path to download preferences file
+-T, --rit: generates csv for RIT
+
+The following arguments set data in the output tally and RIT CSVs only:
+-i, --id <data>: Camera serial number
+-o, --lid <data>: Local ref number (RIT cage #, etc)
+-L, --lens <data>: Lens serial number
+-H, --hd <data>: Custom hard drive location (e.g. A)
+-s, --sspeed <data>: Shutter speed
+-N, --fnum <data>: F-number
+-e, --expcomp <data>: Exposure Compensation
+-I, --iso <data>: ISO
+-n, --noisered <data>: Noise reduction
+-w, --whitebal <data>: White balance mode
+-k, --kval <data>: Color temperature (in K)
+-E, --expmode <data>: Exposure mode
+-F, --flash <data>: Flash setting
+-a, --autofocus <data>: Focus setting
+-l, --location <data>: General location
+
 --------------------------------------------
 The Keywords argument (-K)
 This argument allows the user to attach keywords to the image set.
@@ -38,7 +61,7 @@ image2.jpg, keyword1
 image2.jpg, keyword2
 ...
 
-This file is saved with the renamed images and should be uploaded with the image set.
+This file is saved with the renamed images.
 --------------------------------------------
 The Extra Metadata argument (-X)
 This argument allows the user to set metadata that is to be stored externally in a CSV file. Unlike keywords,
@@ -59,7 +82,7 @@ image3.jpg, value1, value2, value3...
 ...
 Note that the first row and column simply has the word "Filename".
 
-This file is saved with the renamed images and should be uploaded with the image set.
+This file is saved with the renamed images.
 --------------------------------------------
 Format of metadata text file:
 TAG1=VALUE1
@@ -81,5 +104,18 @@ P, PAR
 
 The seq line is used to generate the new filename. The tool will automatically generate/maintain this number. Do not change it.
 A user may optionally specify an S3 bucket/path with the -B switch. Using this will search for preferences.txt 
-in the specified location on the configured AWS cloud.
+in the specified location on the configured AWS cloud, ensuring the seq number will always be updated.
 --------------------------------------------
+RIT CSV
+The RIT CSV (generated if specified with -T, --rit switch) includes the following information:
+Orig Filename | New Filename | md5 | Camera serial number | Local ID number | Lens Serial Number | 
+HD location | S. Speed | F-Num | Exposure | ISO | Noise Reduction | White Balance | Exposure | 
+Flash | Autofocus | K-Value | Location | Bit depth | File type
+
+--------------------------------------------
+Tally CSV
+The tally CSV includes the following information:
+Camera serial number | Local ID number | Lens serial number | File extension | S. Speed | ISO | Bit depth | Tally
+
+The tally counts how many images in that set had the same of these settings.
+The tally CSV can be updated once it is generated, just make sure the CSV file is in the desired output directory.
