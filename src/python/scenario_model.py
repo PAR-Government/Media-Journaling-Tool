@@ -326,13 +326,13 @@ class ImageProjectModel:
             inputmaskname=mod.inputMaskName, \
             selectmaskname=mod.selectMaskName)
 
-    def compare(self, destination,seamAnalysis=False, arguments={}):
+    def compare(self, destination, arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask and the analysis results (a dictionary)
        """
        im1 = self.getImage(self.start)
        im2 = self.getImage(destination)
-       mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis,arguments=arguments)
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, arguments=arguments)
        return im1,im2,mask,analysis
 
     def getMetaDiff(self):
@@ -350,29 +350,40 @@ class ImageProjectModel:
        terminalNodes = [node for node in self.G.get_nodes() if len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
        return [(node,self._findBaseNodes(node)) for node in terminalNodes]
 
-    def _constructDonorMask(self,destination):
-       """
-         Used for Donor images, the mask recording a 'donation' is the inversion of the difference
-         of the Donor image and its parent, it exists.
-         Otherwise, the donor image mask is the donor image (minus alpha channels):
-       """
-       maskname=self.start + '_' + destination + '_mask'+'.png'
-       predecessors = self.G.predecessors(self.start)
-       for pred in predecessors:
-          edge = self.G.get_edge(pred,self.start) 
-          if edge['op']!='Donor':
-             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),{}
-       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
+    def _addAnalysis(self,startIm,destIm,op,analysis,mask,arguments={}):
+       import importlib
+       opData = getOperation(op)
+       for analysisOp in opData.analysisOperations:
+         mod_name, func_name = analysisOp.rsplit('.',1)
+         mod = importlib.import_module(mod_name)
+         func = getattr(mod, func_name)
+         func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
 
     def _compareImages(self,start,destination, op, invert=False, arguments={}):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
-       mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
+       errors = []
        maskname=start + '_' + destination + '_mask'+'.png'
-       exifDiff = exif.compareexif(startFileName,destFileName)
-       analysis = analysis if analysis is not None else {}
-       analysis['exifdiff'] = exifDiff
-       return maskname,mask, analysis,[]
+       if op == 'Donor':
+          predecessors = self.G.predecessors(destination)
+          mask = None
+          for pred in predecessors:
+            edge = self.G.get_edge(pred,destination) 
+            if edge['op']!='Donor':
+               mask,analysis = tool_set.interpolateMask(self.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
+               if mask is not None:
+                 mask = Image.fromarray(mask)
+          if mask is None:
+            mask = tool_set.convertToMask(self.G.get_image(self.start)[0])
+            analysis = {}
+            errors = ["Could not compute SIFT Matrix"]
+       else:
+          mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
+          exifDiff = exif.compareexif(startFileName,destFileName)
+          analysis = analysis if analysis is not None else {}
+          analysis['exifdiff'] = exifDiff
+          self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
+       return maskname,mask, analysis,errors
 
     def getNodeNames(self):
       return self.G.get_nodes()
@@ -398,10 +409,7 @@ class ImageProjectModel:
        if self.findChild(destination,self.start):
           return "Cannot connect to ancestor node",False
        try:
-         errors = False
-         maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
-         if maskname is None:
-             maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
+         maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
          if errors:
            mod.errors = errors
@@ -921,10 +929,11 @@ class ImageProjectModel:
       # merge masks first, the mask is the same size as the input image
       # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
+      edgeMask = self.G.get_edge_image(source,target,'maskname')[0]
+      selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
+      edgeMask = np.asarray(selectMask if selectMask is not None else edgeMask)
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
-        edgeMask = self.G.get_edge_image(source,target,'maskname')[0]
-        compositeMask = tool_set.mergeMask(compositeMask,np.asarray(selectMask if selectMask is not None else edgeMask))
+        compositeMask = tool_set.mergeMask(compositeMask,edgeMask)
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated
@@ -934,7 +943,10 @@ class ImageProjectModel:
       args = edge['arguments'] if 'arguments' in edge else {}
       rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
-      compositeMask = tool_set.alterMask(compositeMask,rotation=rotation,sizeChange=sizeChange,interpolation=interpolation,location=location)
+      tm= edge['transform matrix'] if 'transform matrix' in edge  else None
+      tm = tm if 'apply transform' not in edge or edge['apply transform'] == 'yes' else None
+      compositeMask = tool_set.alterMask(compositeMask,edgeMask,rotation=rotation,\
+                  sizeChange=sizeChange,interpolation=interpolation,location=location,transformMatrix=tm)
       return compositeMask
 
     def _getModificationForEdge(self,edge):
@@ -970,7 +982,7 @@ class VideoProjectModel(ImageProjectModel):
           return None
       return VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
 
-    def compare(self, destination,seamAnalysis=False, arguments={}):
+    def compare(self, destination,arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask set and the meta-data diff results
        """
@@ -983,6 +995,8 @@ class VideoProjectModel(ImageProjectModel):
        return  startIm, destIm, mask,analysis
 
     def _compareImages(self,start,destination,op, invert=False,arguments={}):
+       if op == 'Donor':
+          return self._constructDonorMask(start,destination,arguments=arguments)
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
        mask,analysis = Image.new("RGB", (250, 250), "black"),{}
@@ -1001,31 +1015,31 @@ class VideoProjectModel(ImageProjectModel):
        metaDataDiff = video_tools.formMetaDataDiff(startFileName,destFileName)
        analysis = analysis if analysis is not None else {}
        analysis['metadatadiff'] = metaDataDiff
+       self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
        return maskname,mask, analysis,errors
 
     def getTypeName(self):
        return 'Video'
 
-    def _constructDonorMask(self,destination):
+    def _constructDonorMask(self,start,destination,invert=False,arguments=None):
        """
          Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
          of the Donor image and its parent, it exists.
          Otherwise, the donor image mask is the donor image (minus alpha channels):
        """
-       startNode = self.G.get_node(self.start)
+       
        startFileName = startNode['file']
        suffix = startFileName[startFileName.rfind('.'):]
-       maskname=self.start + '_' + destination + '_mask.png'
-       predecessors = self.G.predecessors(self.start)
+       predecessors = self.G.predecessors(destination)
        analysis = {}
        for pred in predecessors:
-          edge = self.G.get_edge(pred,self.start) 
+          edge = self.G.get_edge(pred,destination)
           if edge['op']!='Donor':
              if 'masks count' in edge:
                 analysis['masks count'] = edge['masks count']
              analysis['videomasks'] = video_tools.invertVideoMasks(self.G.dir,edge['videomasks'],self.start,destination)
-             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),analysis
-       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),{}
+             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),analysis,errors
+       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),analysis,errors
     
     def _getModificationForEdge(self,edge):
        mod = ImageProjectModel._getModificationForEdge(self,edge)
