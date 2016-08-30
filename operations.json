@@ -1243,6 +1243,7 @@
         "checkSize"
       ], 
       "optionalparameters": {}, 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
       "includeInMask": false
     }, 
@@ -1254,6 +1255,7 @@
         "checkSize"
       ], 
       "optionalparameters": {}, 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false
     }, 
@@ -1285,7 +1287,8 @@
           "type":"imagefile",
           "description":"An image file containing a mask describing the areas affected."
 	}
-      },  
+      }, 
+      "analysisOperations": [ "tool_set.siftAnalysis"],  
       "description": "Alter the shape and dimensions of a given selection or image.",
       "includeInMask": false
     }, 
@@ -1296,6 +1299,7 @@
       "rules": [
         "checkSize"
       ], 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {
         "inputmaskname": {
           "type":"imagefile",
@@ -1317,6 +1321,7 @@
       "rules": [
         "checkSize"
       ], 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {},
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false
@@ -1333,6 +1338,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       },  
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Reduce or increasing the number of pixels in an image.",
       "includeInMask": false
     }, 
@@ -1341,7 +1347,6 @@
       "name": "TransformResize", 
       "mandatoryparameters": {}, 
       "rules": [
-        "sizeChanged"
       ], 
       "optionalparameters": {
         "interpolation": {
@@ -1350,6 +1355,7 @@
 	   "description":"Interpolation is used to resize composite images."
         }
       }, 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Alter the dimensions of an image.",
       "includeInMask": false
     }, 
@@ -1364,6 +1370,7 @@
       }, 
       "rules": [
       ], 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {}, 
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false
@@ -1373,7 +1380,7 @@
       "name": "TransformScale", 
       "mandatoryparameters": {}, 
       "rules": [
-        "sizeChanged"
+        "checkSize"
       ], 
       "optionalparameters": {}, 
       "description": "Change the size of an image or layer while preserving dimensions.",
@@ -1390,7 +1397,8 @@
       }, 
       "rules": [
         "seamCarvingCheck"
-      ], 
+      ],
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {}, 
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false
@@ -1408,6 +1416,7 @@
           "description":"An image file containing a mask describing the area affected."
 	}
       }, 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
       "includeInMask": false
     }, 
@@ -1424,6 +1433,7 @@
           "description":"An image file containing a mask describing preserved and sliced areas"
 	}
       },
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
       "includeInMask": false
     }, 
@@ -1440,6 +1450,7 @@
           "description":"An image file containing a mask describing preserved and sliced areas"
 	}
       }, 
+      "analysisOperations": [ "tool_set.siftAnalysis"], 
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false
     }

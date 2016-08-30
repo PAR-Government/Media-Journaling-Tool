@@ -23,8 +23,9 @@ class Operation:
    optionalparameters = []
    mandatoryparameters = []
    rules = []
+   analysisOperations = []
 
-   def __init__(self, name='', category='', includeInMask=False, rules=[],optionalparameters=[],mandatoryparameters=[],description=None):
+   def __init__(self, name='', category='', includeInMask=False, rules=[],optionalparameters=[],mandatoryparameters=[],description=None,analysisOperations=[]):
      self.name = name
      self.category = category
      self.includeInMask = includeInMask
@@ -32,6 +33,7 @@ class Operation:
      self.mandatoryparameters = mandatoryparameters
      self.optionalparameters = optionalparameters
      self.description = description
+     self.analysisOperations=analysisOperations
 
     
    def to_JSON(self):
@@ -67,7 +69,7 @@ def loadJSON(fileName):
     with open(fileName,'r') as f:
       ops = json.load(f)
       for op in ops['operations']:
-        res[op['name']]= Operation(name=op['name'],category=op['category'],includeInMask=op['includeInMask'], rules=op['rules'],optionalparameters=op['optionalparameters'],mandatoryparameters=op['mandatoryparameters'],description=op['description'] if 'description' in op else None)
+        res[op['name']]= Operation(name=op['name'],category=op['category'],includeInMask=op['includeInMask'], rules=op['rules'],optionalparameters=op['optionalparameters'],mandatoryparameters=op['mandatoryparameters'],description=op['description'] if 'description' in op else None, analysisOperations=op['analysisOperations'] if 'analysisOperations' in op else [])
     return res
 
 def loadOperations(fileName):
