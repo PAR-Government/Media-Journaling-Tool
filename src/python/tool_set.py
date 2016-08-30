@@ -18,13 +18,12 @@ def openFile(fileName):
    """
    import os
    import sys
-   cmd = 'open'
    if sys.platform.startswith('linux'):
-      cmd = 'xdg-open'
+     os.system('xdg-open "' + fileName + '"')
    elif sys.platform.startswith('win'):
-      cmd = 'start'
-   os.system(cmd + ' "' + fileName + '"')
-   
+     os.startfile(fileName)
+   else:
+     os.system('open "' + fileName + '"')
 
 """
    Support UID discovery using a class that supports a method getpwuid().
