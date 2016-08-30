@@ -381,6 +381,12 @@ class ImageProjectModel:
       e = self.G.get_edge(start,end)
       return 'editable' not in e or e['editable'] == 'yes'
 
+    def findChild(self,parent, child):
+       for suc in self.G.successors(parent):
+          if suc == child or self.findChild(suc,child):
+             return True
+       return False
+       
     def connect(self,destination,mod=Modification('Donor',''), invert=False, sendNotifications=True):
        """ Given a image node name, connect the new node to the end of the currently selected node.
             Create the mask, inverting the mask if requested.
@@ -388,7 +394,9 @@ class ImageProjectModel:
             Return an error message on failure, otherwise return None
        """
        if self.start is None:
-          return
+          return "Node node selected",False
+       if self.findChild(destination,self.start):
+          return "Cannot connect to ancestor node",False
        try:
          errors = False
          maskname, mask, analysis =  self._constructDonorMask(destination) if mod.operationName == 'Donor' else (None,None,None)
@@ -711,6 +719,10 @@ class ImageProjectModel:
           total_errors.append((str(node),str(node),str(node) + ' is part of an unconnected subgraph'))
 
        total_errors.extend(self.G.file_check())
+
+       cycleNode= self.G.getCycleNode()
+       if cycleNode is not None:
+         total_errors.append((str(node),str(node),"Graph has a cycle"))
 
        for frm,to in self.G.get_edges():
           edge = self.G.get_edge(frm,to)

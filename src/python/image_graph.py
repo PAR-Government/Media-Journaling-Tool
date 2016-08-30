@@ -381,6 +381,11 @@ class ImageGraph:
         self.G.remove_node('idcount')
     self.dir = os.path.abspath(os.path.split(pathname)[0])
      
+  def getCycleNode(self):
+     l = list(nx.simple_cycles(self.G))
+     if len(l) > 0:
+       return l[0]
+  
   def saveas(self, pathname):
      currentdir = self.dir
      fname = os.path.split(pathname)[1]
