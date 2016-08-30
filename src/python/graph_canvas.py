@@ -212,8 +212,9 @@ class MaskGraphCanvas(tk.Canvas):
                  else:
                    ok = False
               elif (len(preds) == 1):
-                 self.scModel.connect(nodeId)
-                 ok = True
+                 msg,ok = self.scModel.connect(nodeId)
+                 if msg is not None:
+                     tkMessageBox.showwarning("Connect Error", msg)
               else:
                  tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
             else:
