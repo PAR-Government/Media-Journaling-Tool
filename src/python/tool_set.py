@@ -213,6 +213,14 @@ def deserializeMatrix(dict):
      m[r,:]= dict['r'+str(r)]
    return m
 
+def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
+    globalchange = img1.size != img2.size
+    if mask is not None and not globalchange:
+      totalPossible = sum(img1.size)*255
+      totalChanged = totalPossible - sum(sum(np.asarray(mask)))
+      globalchange = (float(totalChanged)/float(totalPossible) > 0.85)
+    analysis['apply transform'] = 'no' if globalchange else 'yes'
+
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
     mask2=mask
     if img1.size != img2.size:
@@ -307,15 +315,14 @@ def __sift(img1,img2,mask1=None,mask2=None):
    return None
 
 def __applyTransform(compositeMask,mask,TM):
-     mask = np.asarray(mask)
-     maskInverted =255-mask
+     mask = np.copy(np.asarray(mask))
+     maskInverted = 255-mask
      maskInverted[maskInverted>0] = 1
      compositeMaskFlipped = 255 - compositeMask
      compositeMaskAltered = compositeMaskFlipped*maskInverted
      newMask = cv2.warpPerspective(compositeMaskAltered, TM, (mask.shape[1],mask.shape[0]))
-     maskInverted = np.copy(mask)
-     maskInverted[maskInverted>0] = 1
-     compositeMaskAltered = compositeMaskFlipped*maskInverted
+     mask[mask>0] = 1
+     compositeMaskAltered = compositeMaskFlipped*mask
      newMask[compositeMaskAltered>0] = 255
      return 255-newMask
 

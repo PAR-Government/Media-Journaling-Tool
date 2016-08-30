@@ -326,13 +326,13 @@ class ImageProjectModel:
             inputmaskname=mod.inputMaskName, \
             selectmaskname=mod.selectMaskName)
 
-    def compare(self, destination,seamAnalysis=False, arguments={}):
+    def compare(self, destination, arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask and the analysis results (a dictionary)
        """
        im1 = self.getImage(self.start)
        im2 = self.getImage(destination)
-       mask, analysis = tool_set.createMask(im1,im2, invert=False, seamAnalysis=seamAnalysis,arguments=arguments)
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, arguments=arguments)
        return im1,im2,mask,analysis
 
     def getMetaDiff(self):
@@ -918,9 +918,10 @@ class ImageProjectModel:
       # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
       # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
       edgeMask = self.G.get_edge_image(source,target,'maskname')[0]
+      selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
+      edgeMask = np.asarray(selectMask if selectMask is not None else edgeMask)
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
-        compositeMask = tool_set.mergeMask(compositeMask,np.asarray(selectMask if selectMask is not None else edgeMask))
+        compositeMask = tool_set.mergeMask(compositeMask,edgeMask)
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated
@@ -931,6 +932,7 @@ class ImageProjectModel:
       rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
       tm= edge['transform matrix'] if 'transform matrix' in edge  else None
+      tm = tm if 'apply transform' not in edge or edge['apply transform'] == 'yes' else None
       compositeMask = tool_set.alterMask(compositeMask,edgeMask,rotation=rotation,\
                   sizeChange=sizeChange,interpolation=interpolation,location=location,transformMatrix=tm)
       return compositeMask
@@ -968,7 +970,7 @@ class VideoProjectModel(ImageProjectModel):
           return None
       return VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
 
-    def compare(self, destination,seamAnalysis=False, arguments={}):
+    def compare(self, destination,arguments={}):
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask set and the meta-data diff results
        """
