@@ -529,11 +529,9 @@ class MakeGenUI(Frame):
        self.drawState()
        self.setSelectState('normal')
 
-    def connectEvent(self,modification):
-        return
-        #op = getOperation(modification.operationName)
-        #if op and 'checkForDonor' in op.rules:
-        #  tkMessageBox.showinfo("Donor Requirement", "This operation should be accompanied by a donor image.")
+    def changeEvent(self,recipient,eventType):
+        if eventType == 'label':
+            self.canvas.redrawNode(recipient)
 
     def remove(self):
        self.canvas.remove()
@@ -713,7 +711,7 @@ class MakeGenUI(Frame):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        tuple = createProject(dir, notify=self.connectEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
+        tuple = createProject(dir, notify=self.changeEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
         if tuple is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)

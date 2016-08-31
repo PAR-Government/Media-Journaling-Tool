@@ -299,7 +299,7 @@ class ImageProjectModel:
        totalSet = sorted(totalSet,key= sortalg)
        for filename in totalSet:
            pathname = os.path.abspath(os.path.join(dir,filename))
-           nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos)
+           nname = self.G.add_node(pathname,xpos=xpos,ypos=ypos,nodetype='base')
            ypos+=50
            if ypos == 450:
               ypos=initialYpos
@@ -490,6 +490,7 @@ class ImageProjectModel:
        msg,status = self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications,skipRules=skipRules)
        return msg,status
 
+       
     def _connectNextImage(self,destination,mod,invert=False,sendNotifications=True,skipRules=False):
        try:
          maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
@@ -500,10 +501,12 @@ class ImageProjectModel:
          edgeErrors = graph_rules.run_rules(mod.operationName,self.G,self.start,destination)
          msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 and not skipRules else ''
          if (self.notify is not None and sendNotifications):
-            self.notify(mod)
+            self.notify((self.start,destination),'connect')
          msgFromErrors = "Comparison errors occured" if errors and len(errors)>0 else ''
          msg = os.linesep.join([msgFromRules,msgFromErrors]).strip()
          msg = msg if len(msg) > 0 else None
+         self.labelNodes(self.start)
+         self.labelNodes(destination)
          return msg, True
        except ValueError as e:
          return 'Exception (' + e + ')' ,False
@@ -687,12 +690,16 @@ class ImageProjectModel:
        if (self.start is not None and self.end is not None):
            self.G.remove_edge(self.start, self.end)
            self.end = None
+           self.labelNodes(self.start)
+           self.labelNodes(self.end)
        else:
          name = self.start if self.end is None else self.end
          p = self.G.predecessors(self.start) if self.end is None else [self.start]
          self.G.remove(name, None)
          self.start = p[0] if len(p) > 0  else None
          self.end = None
+         for node in p:
+           self.labelNodes(node)
 
     def getProjectData(self, item):
         return self.G.getDataItem(item)
@@ -741,11 +748,31 @@ class ImageProjectModel:
               total_errors.extend( [(str(frm),str(to),str(frm) + ' => ' + str(to) + ': ' + err) for err in errors])
        return total_errors
 
-    def _findBaseNodes(self,node):
+    def __assignLabel(self,node, label):
+       prior = self.G.get_node(node)['nodetype'] if 'nodetype' in self.G.get_node(node) else None
+       if prior != label:
+          self.G.get_node(node)['nodetype'] = label
+          if self.notify is not None:
+            self.notify(node,'label')
+
+    def labelNodes(self,destination):
+       baseNodes = self._findBaseNodes(destination)
+       candidateBaseDonorNodes = self._findBaseNodes(destination,excludeDonor=False)
+       baseDonorNodes = [node for node in candidateBaseDonorNodes if node not in baseNodes]
+       for node in baseDonorNodes:
+          self.__assignLabel(node,'donor')
+       for node in baseNodes:
+          self.__assignLabel(node,'base')
+       if len(self.G.successors(destination)) == 0:
+          self.__assignLabel(destination,'final')
+       elif destination not in candidateBaseDonorNodes: 
+          self.__assignLabel(destination,'interim')
+
+    def _findBaseNodes(self,node,excludeDonor = True):
        preds = self.G.predecessors(node)
        res = [node] if len(preds) == 0 else []
        for pred in preds:
-          res.extend(self._findBaseNodes(pred) if self.G.get_edge(pred,node)['op'] != 'Donor' else [])
+          res.extend(self._findBaseNodes(pred) if (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor) else [])
        return res
 
     def isDonorEdge(self,start,end):
