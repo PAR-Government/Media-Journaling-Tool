@@ -294,10 +294,10 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(file,mod=d.description)
+            msg,status = self.scModel.addNextImage(file,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
-            else:
+            if status:
               self.drawState()
               self.canvas.add(self.scModel.start, self.scModel.end)
               self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
@@ -322,10 +322,10 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg = self.scModel.addNextImage(filename,mod=d.description)
+            msg,status = self.scModel.addNextImage(filename,mod=d.description)
             if msg is not None:
               tkMessageBox.showwarning("Auto Connect",msg)
-            else:
+            if status:
               self.drawState()
               self.canvas.add(self.scModel.start, self.scModel.end)
               self.processmenu.entryconfig(self.menuindices['undo'],state='normal')
@@ -530,9 +530,10 @@ class MakeGenUI(Frame):
        self.setSelectState('normal')
 
     def connectEvent(self,modification):
-        op = getOperation(modification.operationName)
-        if op and 'checkForDonor' in op.rules:
-           tkMessageBox.showinfo("Donor Requirement", "This operation should be accompanied by a donor image.")
+        return
+        #op = getOperation(modification.operationName)
+        #if op and 'checkForDonor' in op.rules:
+        #  tkMessageBox.showinfo("Donor Requirement", "This operation should be accompanied by a donor image.")
 
     def remove(self):
        self.canvas.remove()
