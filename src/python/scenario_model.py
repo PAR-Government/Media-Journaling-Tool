@@ -373,6 +373,7 @@ class ImageProjectModel:
                mask,analysis = tool_set.interpolateMask(self.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
                if mask is not None:
                  mask = Image.fromarray(mask)
+                 break
           if mask is None:
             mask = tool_set.convertToMask(self.G.get_image(self.start)[0])
             analysis = {}
@@ -408,17 +409,7 @@ class ImageProjectModel:
           return "Node node selected",False
        if self.findChild(destination,self.start):
           return "Cannot connect to ancestor node",False
-       try:
-         maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
-         self.end = destination
-         if errors:
-           mod.errors = errors
-         im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
-         if (self.notify is not None and sendNotifications):
-            self.notify(mod)
-         return ("Errors occured" if errors and len(errors)>0 else None), True
-       except ValueError, msg:
-         return msg,False
+       return self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications)
 
     def getComposite(self):
       """
@@ -486,7 +477,7 @@ class ImageProjectModel:
          self.G.addCompositeToNode((composite[0],composite[1], Image.fromarray(composite[2])))
       return composites
 
-    def addNextImage(self, pathname, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50)):
+    def addNextImage(self, pathname, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50),skipRules=False):
        """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
             Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
             to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -496,16 +487,26 @@ class ImageProjectModel:
        if (self.end is not None):
           self.start = self.end
        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),xpos=position[0],ypos=position[1])
+       msg,status = self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications,skipRules=skipRules)
+       return msg,status
+
+    def _connectNextImage(self,destination,mod,invert=False,sendNotifications=True,skipRules=False):
        try:
          maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
          self.end = destination
-         self.errors = errors
+         if errors:
+           mod.errors = errors
          im = self.__addEdge(self.start,self.end,mask,maskname,mod,analysis)
+         edgeErrors = graph_rules.run_rules(mod.operationName,self.G,self.start,destination)
+         msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 and not skipRules else ''
          if (self.notify is not None and sendNotifications):
             self.notify(mod)
-         return None
-       except ValueError, msg:
-         return msg
+         msgFromErrors = "Comparison errors occured" if errors and len(errors)>0 else ''
+         msg = os.linesep.join([msgFromRules,msgFromErrors]).strip()
+         msg = msg if len(msg) > 0 else None
+         return msg, True
+       except ValueError as e:
+         return 'Exception (' + e + ')' ,False
 
     def __addEdge(self,start,end,mask,maskname,mod,additionalParameters):
        if len(mod.arguments)>0:
@@ -806,19 +807,20 @@ class ImageProjectModel:
         msg = exif.copyexif(filename,target)
       description = Modification(op[0],filter + ':' + op[2])
       sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
+      skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
       software = Software(op[3],op[4],internal=True)
-      description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications'})
+      description.setArguments({k:v for k,v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'skipRules'})
       description.setSoftware(software)
       description.setAutomated('yes')
 
-      msg2 = self.addNextImage(target,mod=description,sendNotifications=sendNotifications,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
+      msg2,status = self.addNextImage(target,mod=description,sendNotifications=sendNotifications,skipRules=skipRules,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
       if msg2 is not None:
           if msg is None:
              msg = msg2
           else:
              msg = msg + "\n" + msg2
-      else:
+      if status:
           pairs.append((self.start, self.end))
           if 'donor' in kwargs:
              _end = self.end
@@ -840,9 +842,9 @@ class ImageProjectModel:
       return result
 
     def _pluginError(self,filter, msg):
-         if msg is not None:
+         if msg is not None and len(msg) > 0:
             return 'Plugin ' + filter + ' Error:\n' + msg
-         return msg
+         return None
 
     def scanNextImageUnConnectedImage(self):
        """Scan for an image node with the same prefix as the currently select image node. 
