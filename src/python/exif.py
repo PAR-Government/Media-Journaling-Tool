@@ -36,16 +36,16 @@ def compareexif(source,target):
   metasource = getexif(source)
   metatarget = getexif(target)
   diff = {}
-  for k,v in metasource.iteritems():
-     mk = unicode(metatarget[k].decode('cp1252'))
-     v = unicode(v.decode('cp1252'))
+  for k,sv in metasource.iteritems():
+     sv = unicode(sv.decode('cp1252'))
      if k in metatarget:
-       if mk != v:
-         diff[k] = ('change',v,mk)
+       tv = unicode(metatarget[k].decode('cp1252'))
+       if tv != sv:
+         diff[k] = ('change',sv,tv)
      else:
-         diff[k] = ('delete',v)
-  for k,v in metatarget.iteritems():
+         diff[k] = ('delete',sv)
+  for k,tv in metatarget.iteritems():
      if k not in metasource:
-         diff[k] = ('add',v)
+         diff[k] = ('add',tv)
   return diff
 

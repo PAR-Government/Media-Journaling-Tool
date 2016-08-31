@@ -15,13 +15,13 @@ def otsu(hist):
     wB = wB + hist[ii]
     if wB == 0:
         continue
-    wF = total - wB;
+    wF = total - wB
     if wF == 0:
         break
     sumB = sumB +  ii * hist[ii]
     mB = sumB / wB
-    mF = (sum1 - sumB) / wF;
-    between = wB * wF * (mB - mF) * (mB - mF);
+    mF = (sum1 - sumB) / wF
+    between = wB * wF * (mB - mF) * (mB - mF)
     if between >= maximum:
         level = ii
         maximum = between

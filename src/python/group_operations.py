@@ -48,14 +48,14 @@ class ToJPGGroupOperation(BaseOperation):
            for pair in self.pairs:
              self.scModel.selectImage(pair[0])
              im,filename=self.scModel.getImageAndName(pair[0])
-             msg,pairs = self.scModel.imageFromPlugin('CompressAs',im,filename,donor=pair[1])
+             msg,pairs = self.scModel.imageFromPlugin('CompressAs',im,filename,donor=pair[1],sendNotifications=False)
              if msg is not None:
                  break
              newPairs.extend(pairs)
              start = self.scModel.end
              im,filename=self.scModel.getImageAndName(start)
              self.scModel.selectImage(start)
-             msg,pairs = self.scModel.imageFromPlugin('ExifMetaCopy',im,filename,donor=pair[1])
+             msg,pairs = self.scModel.imageFromPlugin('ExifMetaCopy',im,filename,donor=pair[1],sendNotifications=False)
              if msg is not None:
                  break
              newPairs.extend(pairs)

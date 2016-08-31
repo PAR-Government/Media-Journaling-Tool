@@ -288,7 +288,7 @@ def __sift(img1,img2,mask1=None,mask2=None):
    #k1, d1 = descriptor.compute(img1, kp1)
    #k2, d2 = descriptor.compute(img2, kp2)
 
-   matches = flann.knnMatch(d1,d2,k=2)
+   matches = flann.knnMatch(d1,d2,k=2) if d1 is not None and d2 is not None else []
 
    # store all the good matches as per Lowe's ratio test.
    good = [m for m,n in matches if m.distance < 0.8*n.distance]

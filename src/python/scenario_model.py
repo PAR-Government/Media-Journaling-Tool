@@ -343,7 +343,7 @@ class ImageProjectModel:
           return None
       return MetaDiff(e['exifdiff']) if 'exifdiff' in e and len(e['exifdiff']) > 0 else None
 
-    def _getTerminalAndBaseNodeTuples(self):
+    def getTerminalAndBaseNodeTuples(self):
        """
          Return a tuple (lead node, base node) for each valid (non-donor) path through the graph
        """
@@ -430,7 +430,7 @@ class ImageProjectModel:
       mask,filename = self.G.get_composite_mask(nodeName)
       if mask is None:
           # verify the node is a leaf node
-          endPointTuples = self._getTerminalAndBaseNodeTuples()
+          endPointTuples = self.getTerminalAndBaseNodeTuples()
           if nodeName in [x[0] for x in endPointTuples]:
             self.constructComposites()
           mask,filename = self.G.get_composite_mask(nodeName)
@@ -478,7 +478,7 @@ class ImageProjectModel:
         Save the composite in the associated leaf nodes.
       """
       composites = []
-      endPointTuples = self._getTerminalAndBaseNodeTuples()
+      endPointTuples = self.getTerminalAndBaseNodeTuples()
       for endPointTuple in endPointTuples:
          for baseNode in endPointTuple[1]:
              composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
@@ -757,17 +757,18 @@ class ImageProjectModel:
         """
          find all pairs of leaf nodes to matching base nodes
         """
-        endPointTuples = self._getTerminalAndBaseNodeTuples()
+        endPointTuples = self.getTerminalAndBaseNodeTuples()
         pairs = []
         for endPointTuple in endPointTuples:
-           matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if self.G.get_pathname(baseNode).lower().endswith(suffix)]
+           matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if suffix is None or self.G.get_pathname(baseNode).lower().endswith(suffix)] 
            if len(matchBaseNodes) > 0:
+              # if more than one base node, use the one that matches the name of the project
               projectNodeIndex = matchBaseNodes.index(self.G.get_name()) if self.G.get_name() in matchBaseNodes else 0
               baseNode = matchBaseNodes[projectNodeIndex]
               startNode = endPointTuple[0]
               # perfect match
-              if baseNode == self.G.get_name():
-                  return [(startNode,baseNode)]
+              #if baseNode == self.G.get_name():
+              #    return [(startNode,baseNode)]
               pairs.append((startNode,baseNode))
         return pairs
                   
