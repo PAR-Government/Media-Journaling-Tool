@@ -371,7 +371,6 @@ class ImageProjectModel:
             edge = self.G.get_edge(pred,destination) 
             if edge['op']!='Donor':
                mask,analysis = tool_set.interpolateMask(self.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
-               print mask
                if mask is not None:
                  mask = Image.fromarray(mask)
                  break

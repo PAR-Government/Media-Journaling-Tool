@@ -191,7 +191,7 @@ def interpolateMask(mask,img1, img2, invert=False,arguments={}):
      maskInverted[maskInverted>0] = 1
      TM= __sift(img1,img2,mask2=maskInverted)
      if TM is not None:
-       newMask = cv2.warpPerspective(mask, TM, im1.size)
+       newMask = cv2.warpPerspective(mask, TM, img1.size)
        analysis = {}
        analysis['transform matrix'] = serializeMatrix(TM)
        return newMask,analysis
