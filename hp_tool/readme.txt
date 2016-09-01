@@ -23,9 +23,10 @@ arguments currently supported:
 -P, --preferences <file>: preferences text file. Uses preferences.txt in cwd by default
 -A, --additionalInfo <str>: Adds additional info to new filenames
 -B, --S3Bucket <dir>: S3 bucket/path to download preferences file
--T, --rit: generates csv for RIT
+-T, --tally: generates tally file
 
 The following arguments set data in the output tally and RIT CSVs only:
+-C, --collection <data>: Collection Req. #
 -i, --id <data>: Camera serial number
 -o, --lid <data>: Local ref number (RIT cage #, etc)
 -L, --lens <data>: Lens serial number
@@ -41,6 +42,7 @@ The following arguments set data in the output tally and RIT CSVs only:
 -F, --flash <data>: Flash setting
 -a, --autofocus <data>: Focus setting
 -l, --location <data>: General location
+-c, --filter <data>: Specify on-board filter
 
 --------------------------------------------
 The Keywords argument (-K)
@@ -107,15 +109,18 @@ A user may optionally specify an S3 bucket/path with the -B switch. Using this w
 in the specified location on the configured AWS cloud, ensuring the seq number will always be updated.
 --------------------------------------------
 RIT CSV
-The RIT CSV (generated if specified with -T, --rit switch) includes the following information:
-Orig Filename | New Filename | md5 | Camera serial number | Local ID number | Lens Serial Number | 
-HD location | S. Speed | F-Num | Exposure | ISO | Noise Reduction | White Balance | Exposure | 
-Flash | Autofocus | K-Value | Location | Bit depth | File type
+The RIT CSV includes the following information for each image:
+ImageFilename	CollectionRequestID	HDLocation	OriginalImageName	MD5	DeviceSN	DeviceLocalID	LensSN	LensLocalId	
+FileType	JpgQuality	ShutterSpeed	Aperture	ExpCompensation	ISO	NoiseReduction	WhiteBalance	DegreesKelvin	
+ExposureMode	FlashFired	FocusMode	CreationDate	Location	GPSLatitude	OnboardFilter	GPSLongitude	
+BitDepth	ImageWidth	ImageHeight
+
 
 --------------------------------------------
 Tally CSV
 The tally CSV includes the following information:
-Camera serial number | Local ID number | Lens serial number | File extension | S. Speed | ISO | Bit depth | Tally
+DeviceSN	DeviceLocalID	LensSN	LocalLensID	Extension	ShutterSpeed	Aperture	ISO	BitDepth	Tally
+
 
 The tally counts how many images in that set had the same of these settings.
 The tally CSV can be updated once it is generated, just make sure the CSV file is in the desired output directory.
