@@ -309,7 +309,7 @@ class ImageProjectModel:
              self.end = None
 
     def addImage(self, pathname):
-       nname = self.G.add_node(pathname)
+       nname = self.G.add_node(pathname,nodetype='base')
        self.start = nname
        self.end = None
        return nname
@@ -486,7 +486,7 @@ class ImageProjectModel:
        """
        if (self.end is not None):
           self.start = self.end
-       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),xpos=position[0],ypos=position[1])
+       destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),xpos=position[0],ypos=position[1],nodetype='base')
        msg,status = self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications,skipRules=skipRules)
        return msg,status
 
@@ -751,7 +751,7 @@ class ImageProjectModel:
     def __assignLabel(self,node, label):
        prior = self.G.get_node(node)['nodetype'] if 'nodetype' in self.G.get_node(node) else None
        if prior != label:
-          self.G.get_node(node)['nodetype'] = label
+          self.G.update_node(node,nodetype=label)
           if self.notify is not None:
             self.notify(node,'label')
 

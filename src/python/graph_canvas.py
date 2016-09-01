@@ -89,6 +89,7 @@ class MaskGraphCanvas(tk.Canvas):
        if wid is not None:
          n = self.scModel.getGraph().get_node(nodeid)
          self.move(wid,0,0)
+         self.update_idletasks()
 
     def addNew(self,ids):
        wx,wy = self.winfo_width(), self.winfo_height()
@@ -235,6 +236,9 @@ class MaskGraphCanvas(tk.Canvas):
 #           self.onTokenRightClick(event,showMenu=False)
 
         self.setDragData((event.x,event.y),item=item)
+
+    def draw_edge(start,end):
+       self._mark(self._draw_edge(start,end))
 
     def setDragData(self, tuple,item=None):
         self.drag_item = item
@@ -391,7 +395,7 @@ class MaskGraphCanvas(tk.Canvas):
         n = self.scModel.getGraph().get_node(id)
         if 'nodetype' not in n:
            self.scModel.labelNodes(id)
-        nodeC = NodeObj(self,id,n['file'],n['nodetype'])
+        nodeC = NodeObj(self,id,n['file'],n)
         wid = self.create_window(x, y, window=nodeC, anchor=tk.CENTER,
                                   tags='node')
         node['xpos']=x
@@ -418,13 +422,13 @@ class MaskGraphCanvas(tk.Canvas):
 class NodeObj(tk.Canvas):
     node_name = ''
     marker = None
-    def __init__(self, master, node_id,node_name,node_label):
+    def __init__(self, master, node_id,node_name,node):
         tk.Canvas.__init__(self, width=24, height=24, highlightthickness=0)
 
         self.master = master
         self.node_id = node_id
         self.node_name = node_name
-        self.node_label = node_label
+        self.node = node
 
         self.bind('<ButtonPress-1>', self._host_event('onNodeButtonPress'))
         self.bind('<ButtonRelease-1>', self._host_event('onNodeButtonRelease'))
@@ -442,10 +446,10 @@ class NodeObj(tk.Canvas):
         """Draw on canvas what we want node to look like"""
         self.label = self.create_text(0, 0, text=node_name,font='Times 10 bold')
         self.ismarked = False
-        if self.node_label == 'base':
+        if self.node['nodetype'] == 'base':
           self.marker = self.create_rectangle(0,0,10,10, fill='white',outline='white')
           polygon_star(self,20,8,7,3,fill='red',outline='black')
-        elif self.node_label == 'final':
+        elif self.node['nodetype'] == 'final':
           self.marker = self.create_rectangle(0,0,24,24, fill='red',outline='black')
         else:
           self.marker = self.create_oval(0,0,18,18, fill='red',outline='black')

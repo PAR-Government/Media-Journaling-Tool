@@ -530,8 +530,10 @@ class MakeGenUI(Frame):
        self.setSelectState('normal')
 
     def changeEvent(self,recipient,eventType):
-        if eventType == 'label':
-            self.canvas.redrawNode(recipient)
+        if eventType == 'label' and self.canvas is not None:
+           self.canvas.redrawNode(recipient)
+#        elif eventType == 'connect':
+#           self.canvas.showEdge(recipient[0],recipient[1])
 
     def remove(self):
        self.canvas.remove()

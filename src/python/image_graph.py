@@ -210,6 +210,11 @@ class ImageGraph:
        return im,value
      return None,None
 
+  def update_node(self,node,**kwargs):
+    if self.G.has_node(node):
+      for k,v in kwargs.iteritems():
+        self.G.node[node][k] = v
+
   def update_edge(self, start, end,**kwargs):
     if start is None or end is None:
       return
