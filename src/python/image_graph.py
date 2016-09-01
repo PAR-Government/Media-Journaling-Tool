@@ -366,7 +366,7 @@ class ImageGraph:
     global igversion
     with open(pathname,"r") as f:
       try:
-         self.G = json_graph.node_link_graph(json.load(f,encoding='cp1252'),multigraph=False,directed=True)
+         self.G = json_graph.node_link_graph(json.load(f,encoding='latin'),multigraph=False,directed=True)
       except  ValueError:
          self.G = json_graph.node_link_graph(json.load(f),multigraph=False,directed=True)
       if 'igversion' in self.G.graph:
@@ -395,13 +395,13 @@ class ImageGraph:
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
      self._copy_contents(currentdir)
      with open(filename, 'w') as f:
-        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='cp1252')
+        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='latin')
      self.filesToRemove.clear()
 
   def save(self):
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
      with open(filename, 'w') as f:
-        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='cp1252')
+        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='latin')
      for f in self.filesToRemove:
        os.remove(f)
      self.filesToRemove.clear()
