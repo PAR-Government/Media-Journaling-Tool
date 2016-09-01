@@ -132,18 +132,18 @@ def grab_dir(path, r=False):
     :return: list of images in directory
     """
     imageList = []
+    names = os.listdir(path)
     if r:
-        for dirname, dirnames, filenames in os.walk(path):
+        for dirname, dirnames, filenames in os.walk(path, topdown=True):
             for filename in filenames:
                 if filename.lower().endswith(exts):
                     imageList.append(os.path.join(dirname, filename))
     else:
-        names = os.listdir(path)
         for f in names:
             if f.lower().endswith(exts):
                 imageList.append(os.path.join(path, f))
 
-    return imageList
+    return sorted(imageList, key=str.lower)
 
 
 def write_seq(prefs, newSeq):
@@ -218,18 +218,19 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
 
     with open(csvFile, 'a') as csv_history:
         historyWriter = csv.writer(csv_history, lineterminator='\n')
-        historyWriter.writerow(['Collection Req #', 'Original Name', 'New Name', 'MD5', 'Serial Number', 'Local ID', 'Lens Serial Number', 'Local lens ID',
-                                'HD Location', 'Shutter Speed', 'FNumber', 'Exposure Comp', 'ISO', 'Noise Reduction',
-                                'White Balance', 'Exposure Mode', 'Flash', 'Autofocus', 'KValue', 'Location', 'Onboard Filter',
-                                'Bit Depth', 'Extension', 'GPS Lat', 'GPS Long', 'CreateDate'])
+        historyWriter.writerow(['ImageFilename', 'CollectionRequestID', 'HDLocation', 'OriginalImageName', 'MD5',
+                                'DeviceSN', 'DeviceLocalID', 'LensSN', 'LensLocalId', 'FileType', 'JpgQuality',
+                               'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
+                               'DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'Location',
+                               'GPSLatitude', 'OnboardFilter', 'GPSLongitude', 'BitDepth', 'ImageWidth', 'ImageHeight'])
         if newNameList:
-            for imNo in range(len(imageList)):
+            for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-                historyWriter.writerow([info[imNo][0], imageList[imNo], newNameList[imNo], md5] + info[imNo][1:])
+                historyWriter.writerow([newNameList[imNo], info[imNo][0], info[imNo][1], imageList[imNo], md5] + info[imNo][2:])
         else:
-            for imNo in range(len(imageList)):
+            for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-                historyWriter.writerow([info[imNo][0], '', imageList[imNo], md5] + info[imNo][1:])
+                historyWriter.writerow(['', info[imNo][0:2], imageList[imNo], md5] + info[imNo][2:])
 
 
 def build_history_file(imageList, newNameList, csvFile):
@@ -337,16 +338,15 @@ def tally_images(data, csvFile):
 
     with open(csvFile, 'wb') as csv_tally:
         tallyWriter = csv.writer(csv_tally, lineterminator='\n')
-        tallyWriter.writerow(['Serial Number', 'Local ID', 'Lens Serial Number', 'Local Lens ID', 'Extension',
-                                  'Shutter Speed', 'FNumber', 'ISO', 'Bit Depth', 'Tally'])
+        tallyWriter.writerow(['DeviceSN', 'DeviceLocalID', 'LensSN', 'LocalLensID', 'Extension',
+                                'ShutterSpeed', 'Aperture', 'ISO', 'BitDepth', 'Tally'])
         for line in data:
-            trueLine = line[1:5] + [line[19]] + [line[6]] + [line[7]] + [line[9]] + [line[18]]
+            trueLine = line[2:6] + [line[6]] + [line[8]] + [line[9]] + [line[11]] + [line[23]]
             if trueLine not in final:
                 final.append(trueLine)
                 final.append(1)
             else:
                 lineIdx = final.index(trueLine)
-                #final[lineIdx + 1] = int(final[lineIdx + 1] + 1
                 final[lineIdx + 1] += 1
         i = 0
         while i < len(final):
@@ -372,122 +372,149 @@ def s3_prefs(values, upload=False):
         s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
 
 
-def parse_image_info(imageList, collReq, camera, localcam, lens, locallens, hd, sspeed, fnum, expcomp, iso, noisered, whitebal,
-                     expmode, flash, autofocus, kvalue, location, obfilter):
+def parse_image_info(imageList, path='', rec=False, collReq='', camera='', localcam='', lens='', locallens='', hd='',
+                     sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
+                     focusMode='', kvalue='', location='', obfilter=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
-    :param image: filename of image to check
+    :param imageList: list of images to examine
+    :param path: base image directory
     ...
     :return: list containing only values of each argument. The value will be N/A if empty string
     is supplied and no exif data can be found.
 
     GUIDE of INDICES: (We'll make this a dictionary eventually)
-    0: Collection request #
-    1: camera serial number
-    2: local ID number (e.g. RIT Cage #)
-    3: Lens serial number
-    4: Local lens serial number
-    5: Hard Drive Location
-    6: Shutter Speed
-    7: F-Number
-    8: Exposure Compensation
-    9: ISO
-    10: Noise Reduction
-    11: White Balance
-    12: Exposure Mode
-    13: Flash
-    14: Autofocus
-    15: K-Value
-    16: Location
-    17: Onboard Filter
-    18: Bit Depth
-    19: File extension
-    20: GPS Lat
-    21: GPS Long
-    22: Create Date
+    0: CollectionRequestID
+    1: HD Location
+    2. DeviceSN
+    3. DeviceLocalID
+    4. LensSN
+    5. LensLocalID
+    6. FileType
+    7. JPGQuality
+    8. ShutterSpeed
+    9. Aperture
+    10. ExpCompensation
+    11. ISO
+    12. NoiseReduction
+    13. WhiteBalance
+    14. DegreesKelvin
+    15. ExposureMode
+    16. FlashFired
+    17. FocusMode
+    18. CreationDate
+    19. Location
+    20. GPSLatitude
+    21. OnboardFilter
+    22. GPSLongitude
+    23. BitDepth
+    24. ImageWidth
+    25. ImageHeight
     """
     exiftoolstr = ''
     data = []
-    master = [collReq, '', localcam, '', locallens, hd] + [''] * 9 + [kvalue, location, obfilter] + [''] * 5
+    master = [collReq, hd, '', localcam, '', locallens] + [''] * 8 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4
     missingIdx = []
 
     if camera:
-        master[1] = camera
+        master[2] = camera
     else:
         exiftoolstr += '-SerialNumber '
-        missingIdx.append(1)
+        missingIdx.append(2)
 
     if lens:
-        master[3] = lens
+        master[4] = lens
     else:
         exiftoolstr += '-LensSerialNumber '
-        missingIdx.append(3)
+        missingIdx.append(4)
+
+    exiftoolstr += '-JPEG_Quality '
+    missingIdx.append(7)
 
     if sspeed:
-        master[6] = sspeed
+        master[8] = sspeed
     else:
         exiftoolstr += '-ExposureTime '
-        missingIdx.append(6)
-
-    if fnum:
-        master[7] = fnum
-    else:
-        exiftoolstr += '-FNumber '
-        missingIdx.append(7)
-
-    if expcomp:
-        master[8] = expcomp
-    else:
-        exiftoolstr += '-ExposureCompensation '
         missingIdx.append(8)
 
-    if iso:
-        master[9] = iso
+    if fnum:
+        master[9] = fnum
     else:
-        exiftoolstr += '-ISO '
+        exiftoolstr += '-FNumber '
         missingIdx.append(9)
 
-    if noisered:
-        master[10] = noisered
+    if expcomp:
+        master[10] = expcomp
     else:
-        exiftoolstr += '-NoiseReduction '
+        exiftoolstr += '-ExposureCompensation '
         missingIdx.append(10)
 
-    if whitebal:
-        master[11] = whitebal
+    if iso:
+        master[11] = iso
     else:
-        exiftoolstr += '-WhiteBalance '
+        exiftoolstr += '-ISO '
         missingIdx.append(11)
 
-    if expmode:
-        master[12] = expmode
+    if noisered:
+        master[12] = noisered
     else:
-        exiftoolstr += '-ExposureMode '
+        exiftoolstr += '-NoiseReduction '
         missingIdx.append(12)
 
-    if flash:
-        master[13] = flash
+    if whitebal:
+        master[13] = whitebal
     else:
-        exiftoolstr += '-Flash '
+        exiftoolstr += '-WhiteBalance '
         missingIdx.append(13)
 
-    if autofocus:
-        master[14] = autofocus
+    if expmode:
+        master[15] = expmode
+    else:
+        exiftoolstr += '-ExposureMode '
+        missingIdx.append(15)
+
+    if flash:
+        master[16] = flash
+    else:
+        exiftoolstr += '-Flash '
+        missingIdx.append(16)
+
+    if focusMode:
+        master[17] = focusMode
     else:
         exiftoolstr += '-FocusMode '
-        missingIdx.append(14)
+        missingIdx.append(17)
 
-    exiftoolstr += '-BitsPerSample -GPSLatitude -GPSLongitude -CreateDate '
-    missingIdx.extend([18, 20, 21, 22])
+
+    exiftoolstr += '-BitsPerSample -GPSLatitude -GPSLongitude -CreateDate -ImageWidth -ImageHeight '
+    missingIdx.extend([23, 20, 22, 18, 24, 25])
 
     if exiftoolstr:
-        exifData = subprocess.Popen('exiftool -f ' + exiftoolstr + ' '.join(imageList),
-                                    stdout=subprocess.PIPE).communicate()[0]
+        counter = 0
+        exifDataStr = ''
+        exifData = []
+        if path:
+            if rec:
+                exifDataStr += subprocess.Popen('exiftool -f -r ' + exiftoolstr + path, stdout=subprocess.PIPE).communicate()[0]
+            else:
+                exifDataStr += subprocess.Popen('exiftool -f ' + exiftoolstr + path, stdout=subprocess.PIPE).communicate()[0]
+            exifData = exifDataStr.split('\r\n')[:-3]
+        else:
+            while counter < len(imageList):
+                if len(imageList) - counter > 500:
+                    exifDataStr += subprocess.Popen('exiftool -f ' + exiftoolstr + ' '.join(imageList[counter:counter+500]),
+                                                stdout=subprocess.PIPE).communicate()[0]
+                elif len(imageList) - counter <= 500:
+                    exifDataStr += subprocess.Popen('exiftool -f ' + exiftoolstr + ' '.join(imageList[counter:]),
+                                                stdout=subprocess.PIPE).communicate()[0]
+                exifDataList = exifDataStr.split('\r\n')[:-2]
+                exifData.extend(exifDataList[:])
+                counter += 500
+
         sub = '====='
         imageIndices = []
         newExifData = []
-        exifData = exifData.split('\r\n')[:-2]
         for idx, item in enumerate(exifData):
             if sub in item:
                 imageIndices.append(idx)
@@ -501,23 +528,19 @@ def parse_image_info(imageList, collReq, camera, localcam, lens, locallens, hd, 
         j = 0
         for i in xrange(len(imageList)):
             data.append(master[:])
-            data[i][19] = os.path.splitext(imageList[i])[1]
+            data[i][6] = os.path.splitext(imageList[i])[1]
             newExifSubset = newExifData[j:j + diff]
             k = 0
             for dataIdx in missingIdx:
-                try:
-                    data[i][dataIdx] = newExifSubset[k]
-                    k += 1
-                except IndexError:
-                    print 'Error!'
-
+                data[i][dataIdx] = newExifSubset[k]
+                k += 1
             j += diff
 
     return data
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-D', '--dir',              default=os.getcwd(),            help='Specify directory')
+    parser.add_argument('-D', '--dir',              default='',                     help='Specify directory')
     parser.add_argument('-R', '--recursive',        action='store_true',            help='Operate on subdirectories')
     parser.add_argument('-f', '--files',                                            help='Specify certain files')
     parser.add_argument('-r', '--range',                                            help='Specify range of files')
@@ -529,7 +552,7 @@ def main():
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
     parser.add_argument('-B', '--s3Bucket',         default ='',                    help='S3 bucket/path')
 
-    parser.add_argument('-T', '--rit',              action='store_true',            help='Produce output for RIT')
+    parser.add_argument('-T', '--tally',            action='store_true',            help='Produce output for RIT')
     parser.add_argument('-i', '--id',               default='',                     help='Camera serial #')
     parser.add_argument('-o', '--localid',          default='',                     help='Local ID no. (cage #, etc.)')
     parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
@@ -544,7 +567,7 @@ def main():
     parser.add_argument('-k', '--kvalue',           default='',                     help='KValue')
     parser.add_argument('-E', '--expmode',          default='',                     help='Exposure Mode')
     parser.add_argument('-F', '--flash',            default='',                     help='Flash Fired')
-    parser.add_argument('-a', '--autofocus',        default='',                     help='autofocus')
+    parser.add_argument('-a', '--focusmode',        default='',                     help='Focus Mode')
     parser.add_argument('-l', '--location',         default='',                     help='location')
     parser.add_argument('-c', '--filter',           default='',                     help='On-board filter')
     parser.add_argument('-C', '--collection',       default='',                     help='Collection Req #')
@@ -577,9 +600,12 @@ def main():
     print 'Successfully grabbed images'
 
     print 'Collecting image data, this will take time for large amounts of images...'
-    imageInfo = parse_image_info(imageList, args.collection, args.id, args.localid, args.lens, args.locallens, args.hd, args.sspeed,
-                                 args.fnum, args.expcomp, args.iso, args.noisered, args.whitebal, args.expmode,
-                                 args.flash, args.autofocus, args.kvalue, args.location, args.filter)
+    imageInfo = parse_image_info(imageList, path=args.dir, rec=args.recursive, collReq=args.collection,
+                                 camera=args.id, localcam=args.localid, lens=args.lens, locallens=args.locallens,
+                                 hd=args.hd, sspeed=args.sspeed, fnum=args.fnum, expcomp=args.expcomp,
+                                 iso=args.iso, noisered=args.noisered, whitebal=args.whitebal,
+                                 expmode=args.expmode, flash=args.flash, focusMode=args.focusmode,
+                                 kvalue=args.kvalue, location=args.location, obfilter=args.filter)
     print 'Successfully built image info!'
 
     # copy
@@ -617,25 +643,30 @@ def main():
     # change metadata of copies
     print 'Updating metadata...'
     newData = change_all_metadata.parse_file(args.metadata)
-    change_all_metadata.process(newNameList, newData, quiet=True)
+    if args.dir:
+        change_all_metadata.process(args.secondary, newData, quiet=True)
+    else:
+        change_all_metadata.process(newNameList, newData, quiet=True)
 
-    if args.rit:
-        print 'Building RIT file'
-        csv_rit = os.path.join(args.secondary, 'rit.csv')
-        build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
-        'Success'
+
+    print 'Building RIT file'
+    csv_rit = os.path.join(args.secondary, 'rit.csv')
+    build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
+    'Success'
 
     # history file:
     print 'Building history file'
     csv_history = os.path.join(args.secondary, 'history.csv')
     build_history_file(imageList, newNameList, csv_history)
-    print 'Successfully built history'
 
-    # write final csv
-    print 'Building tally file'
-    csv_tally = os.path.join(args.secondary, 'tally.csv')
-    tally_images(imageInfo, csv_tally)
-    print 'Successfully tallied image data'
+    if args.tally:
+        # write final csv
+        print 'Building tally file'
+        csv_tally = os.path.join(args.secondary, 'tally.csv')
+        tally_images(imageInfo, csv_tally)
+        print 'Successfully tallied image data'
+
+    print 'Complete!'
 
 if __name__ == '__main__':
     main()
