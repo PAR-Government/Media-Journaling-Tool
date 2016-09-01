@@ -329,9 +329,9 @@ def __composeMask(img1, img2, invert,arguments={}):
     img1, img2 = __alignChannels(img1,img2)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
-    #  rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
-    #  if abs(rotation) > 0.0001:
-    #    return  __compareRotatedImage(rotation, img1, img2,invert,arguments)
+    rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
+    if abs(rotation) > 0.0001 and img1.shape != img2.shape:
+       return  __compareRotatedImage(rotation, img1, img2,invert,arguments)
     if (sum(img1.shape) > sum(img2.shape)):
       return __composeCropImageMask(img1,img2)
     if (sum(img1.shape) < sum(img2.shape)):

@@ -509,7 +509,7 @@ class ImageProjectModel:
          self.labelNodes(destination)
          return msg, True
        except ValueError as e:
-         return 'Exception (' + e + ')' ,False
+         return 'Exception (' + str(e) + ')' ,False
 
     def __addEdge(self,start,end,mask,maskname,mod,additionalParameters):
        if len(mod.arguments)>0:
