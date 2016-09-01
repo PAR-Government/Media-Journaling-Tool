@@ -84,6 +84,14 @@ class MaskGraphCanvas(tk.Canvas):
 
         self.move(tk.ALL, delta_x, delta_y)
 
+    def redrawNode(self,nodeid):
+       wid = self.toItemIds[nodeid][1] if nodeid in self.toItemIds else None
+       if wid is not None:
+         n = self.scModel.getGraph().get_node(nodeid)
+#         self.move(wid,0,0)
+         self.itemToCanvas[wid].render()
+         self.update_idletasks()
+
     def addNew(self,ids):
        wx,wy = self.winfo_width(), self.winfo_height()
        center =  (0,50)
@@ -229,6 +237,9 @@ class MaskGraphCanvas(tk.Canvas):
 #           self.onTokenRightClick(event,showMenu=False)
 
         self.setDragData((event.x,event.y),item=item)
+
+    def draw_edge(start,end):
+       self._mark(self._draw_edge(start,end))
 
     def setDragData(self, tuple,item=None):
         self.drag_item = item
@@ -383,7 +394,9 @@ class MaskGraphCanvas(tk.Canvas):
           y = int(wy/10)
 
         n = self.scModel.getGraph().get_node(id)
-        nodeC = NodeObj(self,id,n['file'])
+        if 'nodetype' not in n:
+           self.scModel.labelNodes(id)
+        nodeC = NodeObj(self,id,n['file'],n)
         wid = self.create_window(x, y, window=nodeC, anchor=tk.CENTER,
                                   tags='node')
         node['xpos']=x
@@ -410,12 +423,13 @@ class MaskGraphCanvas(tk.Canvas):
 class NodeObj(tk.Canvas):
     node_name = ''
     marker = None
-    def __init__(self, master, node_id,node_name):
-        tk.Canvas.__init__(self, width=20, height=20, highlightthickness=0)
+    def __init__(self, master, node_id,node_name,node):
+        tk.Canvas.__init__(self, width=24, height=24, highlightthickness=0)
 
         self.master = master
         self.node_id = node_id
         self.node_name = node_name
+        self.node = node
 
         self.bind('<ButtonPress-1>', self._host_event('onNodeButtonPress'))
         self.bind('<ButtonRelease-1>', self._host_event('onNodeButtonRelease'))
@@ -427,18 +441,25 @@ class NodeObj(tk.Canvas):
 #        self.bind('<Leave>', lambda e: self.master.focus())
 
         # Draw myself
-        self.render(node_name)
+        self.render()
 
-    def render(self, node_name):
+    def render(self):
         """Draw on canvas what we want node to look like"""
-        self.label = self.create_text(0, 0, text=node_name,font='Times 10 bold')
+        self.delete(tk.ALL)
+        self.label = self.create_text(0, 0, text=self.node_name,font='Times 10 bold')
         self.ismarked = False
-        self.marker = self.create_oval(0,0,15,15, fill='red',outline='black')
+        if self.node['nodetype'] == 'base':
+          self.marker = self.create_rectangle(0,0,10,10, fill='white',outline='white')
+          polygon_star(self,20,8,7,3,fill='red',outline='black')
+        elif self.node['nodetype'] == 'final':
+          self.marker = self.create_rectangle(0,0,24,24, fill='red',outline='black')
+        else:
+          self.marker = self.create_oval(0,0,18,18, fill='red',outline='black')
 
          # Figure out how big we really need to be
         bbox = self.bbox(self.label)
         bbox = [abs(x) for x in bbox]
-        br = ( max((bbox[0] + bbox[2]),20), max((bbox[1]+bbox[3]),20) )
+        br = ( max((bbox[0] + bbox[2]),24), max((bbox[1]+bbox[3]),25) )
 
         self.config(width=br[0], height=br[1]+7)
 
@@ -484,7 +505,7 @@ class LineTextObj(tk.Canvas):
         self.master = master
         self.edge_name = edge_name
 
-        self.bind('<Button-2>', self._host_event('onTokenRightClick'))
+        self.bind('<Button-2>' if platform.system() == 'Darwin' else '<Button-3>', self._host_event('onTokenRightClick'))
         self.bind('<Double-Button-1>', self._host_event('onTokenRightClick'))
 #        self.bind('<Enter>', lambda e: self.focus_set())
 #        self.bind('<Leave>', lambda e: self.master.focus())
@@ -558,3 +579,13 @@ class LineTextObj(tk.Canvas):
             event.item_name = self.edge_name
             return func(event)
         return _wrapper
+
+def polygon_star(canvas, x,y,p,t, outline="#476042", fill='yellow', width = 1):
+   points = []
+   for i in (1,-1):
+      points.extend((x,      y + i*p))
+      points.extend((x + i*t, y + i*t))
+      points.extend((x + i*p, y))
+      points.extend((x + i*t, y - i * t))
+   return canvas.create_polygon(points, outline=outline, 
+                         fill=fill, width=width)

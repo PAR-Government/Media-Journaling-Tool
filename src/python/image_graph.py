@@ -210,6 +210,11 @@ class ImageGraph:
        return im,value
      return None,None
 
+  def update_node(self,node,**kwargs):
+    if self.G.has_node(node):
+      for k,v in kwargs.iteritems():
+        self.G.node[node][k] = v
+
   def update_edge(self, start, end,**kwargs):
     if start is None or end is None:
       return
@@ -339,10 +344,10 @@ class ImageGraph:
      return len(self.G.predecessors(node)) + len(self.G.successors(node))  > 0
 
   def predecessors(self,node):
-     return self.G.predecessors(node)
+     return self.G.predecessors(node) if self.G.has_node(node) else []
 
   def successors(self,node):
-     return self.G.successors(node)
+     return self.G.successors(node) if self.G.has_node(node) else []
 
   def has_node(self, name):
      return self.G.has_node(name)
