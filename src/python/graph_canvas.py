@@ -88,9 +88,9 @@ class MaskGraphCanvas(tk.Canvas):
        wid = self.toItemIds[nodeid][1] if nodeid in self.toItemIds else None
        if wid is not None:
          n = self.scModel.getGraph().get_node(nodeid)
-         self.move(wid,0,0)
-         tk.Canvas.update(self)
-#_idletasks()
+#         self.move(wid,0,0)
+         self.itemToCanvas[wid].render()
+         self.update_idletasks()
 
     def addNew(self,ids):
        wx,wy = self.winfo_width(), self.winfo_height()
@@ -441,11 +441,12 @@ class NodeObj(tk.Canvas):
 #        self.bind('<Leave>', lambda e: self.master.focus())
 
         # Draw myself
-        self.render(node_name)
+        self.render()
 
-    def render(self, node_name):
+    def render(self):
         """Draw on canvas what we want node to look like"""
-        self.label = self.create_text(0, 0, text=node_name,font='Times 10 bold')
+        self.delete(tk.ALL)
+        self.label = self.create_text(0, 0, text=self.node_name,font='Times 10 bold')
         self.ismarked = False
         if self.node['nodetype'] == 'base':
           self.marker = self.create_rectangle(0,0,10,10, fill='white',outline='white')
