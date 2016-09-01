@@ -37,9 +37,9 @@ def compareexif(source,target):
   metatarget = getexif(target)
   diff = {}
   for k,sv in metasource.iteritems():
-     sv = unicode(sv)
+     sv = unicode(sv.decode('cp1252'))
      if k in metatarget:
-       tv = unicode(metatarget[k])
+       tv = unicode(metatarget[k].decode('cp1252'))
        if tv != sv:
          diff[k] = ('change',sv,tv)
      else:
