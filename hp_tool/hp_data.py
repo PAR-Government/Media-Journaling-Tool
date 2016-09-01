@@ -552,7 +552,7 @@ def main():
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
     parser.add_argument('-B', '--s3Bucket',         default ='',                    help='S3 bucket/path')
 
-    parser.add_argument('-T', '--tally',            action='store_true',            help='Produce output for RIT')
+    parser.add_argument('-T', '--tally',            action='store_true',            help='Produce tally output')
     parser.add_argument('-i', '--id',               default='',                     help='Camera serial #')
     parser.add_argument('-o', '--localid',          default='',                     help='Local ID no. (cage #, etc.)')
     parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
