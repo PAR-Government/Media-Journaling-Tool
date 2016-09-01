@@ -32,14 +32,21 @@ def getexif(source):
     print "Exiftool not installed"
   return meta
 
+def _decodeStr(sv):
+  try:
+     sv = unicode(sv.decode('cp1252'))
+  except:
+     sv = unicode(sv.decode('latin','ignore'))
+  return sv
+       
 def compareexif(source,target):
   metasource = getexif(source)
   metatarget = getexif(target)
   diff = {}
   for k,sv in metasource.iteritems():
-     sv = unicode(sv.decode('cp1252'))
+     sv = _decodeStr(sv)
      if k in metatarget:
-       tv = unicode(metatarget[k].decode('cp1252'))
+       tv = _decodeStr(sv)
        if tv != sv:
          diff[k] = ('change',sv,tv)
      else:
