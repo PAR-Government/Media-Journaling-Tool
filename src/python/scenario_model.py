@@ -689,9 +689,9 @@ class ImageProjectModel:
        """ Remove the selected node or edge """
        if (self.start is not None and self.end is not None):
            self.G.remove_edge(self.start, self.end)
-           self.end = None
            self.labelNodes(self.start)
            self.labelNodes(self.end)
+           self.end = None
        else:
          name = self.start if self.end is None else self.end
          p = self.G.predecessors(self.start) if self.end is None else [self.start]
@@ -755,24 +755,38 @@ class ImageProjectModel:
           if self.notify is not None:
             self.notify(node,'label')
 
+
     def labelNodes(self,destination):
-       baseNodes = self._findBaseNodes(destination)
-       candidateBaseDonorNodes = self._findBaseNodes(destination,excludeDonor=False)
+       baseNodes = []
+       candidateBaseDonorNodes = []
+       for terminal in self._findTerminalNodes(destination):
+         baseNodes.extend( self._findBaseNodes(terminal))
+         candidateBaseDonorNodes.extend(self._findBaseNodes(terminal,excludeDonor=False))
        baseDonorNodes = [node for node in candidateBaseDonorNodes if node not in baseNodes]
        for node in baseDonorNodes:
           self.__assignLabel(node,'donor')
        for node in baseNodes:
           self.__assignLabel(node,'base')
        if len(self.G.successors(destination)) == 0:
-          self.__assignLabel(destination,'final')
-       elif destination not in candidateBaseDonorNodes: 
+          if len(self.G.predecessors(destination)) == 0:
+            self.__assignLabel(destination,'base')
+          else:
+            self.__assignLabel(destination,'final')
+       elif len(self.G.predecessors(destination)) > 0: 
           self.__assignLabel(destination,'interim')
+
+    def _findTerminalNodes(self,node):
+       succs = self.G.successors(node)
+       res = [node] if len(succs) == 0 else []
+       for succ in succs:
+          res.extend(self._findTerminalNodes(succ))
+       return res
 
     def _findBaseNodes(self,node,excludeDonor = True):
        preds = self.G.predecessors(node)
        res = [node] if len(preds) == 0 else []
        for pred in preds:
-          res.extend(self._findBaseNodes(pred) if (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor) else [])
+          res.extend(self._findBaseNodes(pred,excludeDonor=excludeDonor) if (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor) else [])
        return res
 
     def isDonorEdge(self,start,end):

@@ -89,7 +89,8 @@ class MaskGraphCanvas(tk.Canvas):
        if wid is not None:
          n = self.scModel.getGraph().get_node(nodeid)
          self.move(wid,0,0)
-         self.update_idletasks()
+         tk.Canvas.update(self)
+#_idletasks()
 
     def addNew(self,ids):
        wx,wy = self.winfo_width(), self.winfo_height()

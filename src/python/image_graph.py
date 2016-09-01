@@ -344,10 +344,10 @@ class ImageGraph:
      return len(self.G.predecessors(node)) + len(self.G.successors(node))  > 0
 
   def predecessors(self,node):
-     return self.G.predecessors(node)
+     return self.G.predecessors(node) if self.G.has_node(node) else []
 
   def successors(self,node):
-     return self.G.successors(node)
+     return self.G.successors(node) if self.G.has_node(node) else []
 
   def has_node(self, name):
      return self.G.has_node(name)
