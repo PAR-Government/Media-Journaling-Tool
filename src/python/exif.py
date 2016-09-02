@@ -34,9 +34,9 @@ def getexif(source):
 
 def _decodeStr(sv):
   try:
-     sv = unicode(sv.decode('cp1252'))
+     sv = unicode(sv.decode('latin'))
   except:
-     sv = unicode(sv.decode('latin','ignore'))
+     sv = unicode(sv.decode('cp1252','ignore'))
   return sv
        
 def compareexif(source,target):
