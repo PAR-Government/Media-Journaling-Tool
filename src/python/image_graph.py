@@ -11,6 +11,7 @@ from datetime import datetime
 from software_loader import Software, SoftwareLoader, getOS
 import tarfile
 from tool_set import *
+from zipfile import *
 
 igversion='0.1'
 
@@ -454,10 +455,32 @@ class ImageGraph:
              missing.append((str(edgename[0]),str(edgename[1]),str(edgename[0]) + ' => ' + str(edgename[1]) + ' is missing ' + path + ' file in project'))
     return missing
         
+  
   def create_archive(self, location):
+    fname,errors = self._create_archive(location)
+    tries = 0
+    while not self._check_archive_integrity(fname) and tries < 3:
+      fname,errors = self._create_archive(location)
+      tries+=1
+    return None, ("Failed to create archive" if tries == 3 else errors)
+
+  def _check_archive_integrity(self,fname):
+       print 'archive integrity check for ' + fname
+       try:
+         archive = tarfile.open(fname,"r:gz",errorlevel=2)
+#         archive = ZipFile(fname,"r")
+         for i in archive.getmembers():
+           print 'found ' + i.name
+         archive.close()
+       except:
+         print 'bad archive'
+         return False
+       return True
+
+  def _create_archive(self, location):
     self.save()
     fname = os.path.join(location,self.G.name + '.tgz')
-    archive = tarfile.open(fname,"w:gz")
+    archive = tarfile.open(fname,"w:gz",errorlevel=2)
     archive.add(os.path.join(self.dir,self.G.name + ".json"),arcname=os.path.join(self.G.name,self.G.name + ".json"))
     errors = []
     for nname in self.G.nodes():

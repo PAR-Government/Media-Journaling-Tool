@@ -446,27 +446,37 @@ class NodeObj(tk.Canvas):
     def render(self):
         """Draw on canvas what we want node to look like"""
         self.delete(tk.ALL)
-        self.label = self.create_text(0, 0, text=self.node_name,font='Times 10 bold')
+        node_text = self.node_name
+        if len(node_text)>20:
+           mid = len(node_text)/2
+           node_text = node_text[0:mid] + os.linesep + node_text[mid:]
+        self.label = self.create_text(0, 0, text=node_text,font='Times 10 bold')
         self.ismarked = False
-        if self.node['nodetype'] == 'base':
-          self.marker = self.create_rectangle(0,0,10,10, fill='white',outline='white')
-          polygon_star(self,20,8,7,3,fill='red',outline='black')
-        elif self.node['nodetype'] == 'final':
-          self.marker = self.create_rectangle(0,0,24,24, fill='red',outline='black')
-        else:
-          self.marker = self.create_oval(0,0,18,18, fill='red',outline='black')
 
-         # Figure out how big we really need to be
         bbox = self.bbox(self.label)
         bbox = [abs(x) for x in bbox]
-        br = ( max((bbox[0] + bbox[2]),24), max((bbox[1]+bbox[3]),25) )
+        br = ( (bbox[0] + bbox[2]), (bbox[1]+bbox[3]))
 
-        self.config(width=br[0], height=br[1]+7)
+        self.config(width=br[0]+10, height=br[1]+20)
 
         # Place label and marker
-        mid = ( int(br[0]/2.0), int(br[1]/2.0)+7 )
+        mid = ( int(br[0]/2.0)+5, int(br[1]/2.0)+12 )
         self.coords(self.label, mid)
-        self.coords(self.marker, mid[0]-5,0, mid[0]+5,10)
+
+        lowx = mid[0]-5
+        lowy = 0
+        highx = mid[0]+5
+        highy=0
+        if self.node['nodetype'] == 'base':
+          self.marker = polygon_star(self,lowx+10,7,7,3,fill='red',outline='black')
+        elif self.node['nodetype'] == 'final':
+          self.marker = self.create_rectangle(lowx+0,0,lowx+12,12, fill='red',outline='black')
+        else:
+          self.marker = self.create_oval(lowx+0,0,lowx+12,12, fill='red',outline='black')
+
+         # Figure out how big we really need to be
+
+#        self.coords(self.marker, mid[0]-5,0, mid[0]+5,10)
 
     def unmark(self):
         self.ismarked= False
