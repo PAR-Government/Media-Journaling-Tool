@@ -69,7 +69,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
     model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
        model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes, \
-                           sortalg=lambda f: -os.stat(os.path.join(dir, f)).st_mtime)
+                           sortalg=lambda f: os.stat(os.path.join(dir, f)).st_mtime)
     return model,not existingProject
 
 class MetaDiff:
@@ -576,7 +576,7 @@ class ImageProjectModel:
        self.start = None
        self.end = None
        self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1],suffixes=suffixes, \
-                           sortalg=lambda f: -os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
+                           sortalg=lambda f: os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
 
     def load(self,pathname):
        """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """ 
