@@ -210,10 +210,10 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       catlist = list(cats.keys())
       catlist.sort()
       oplist = cats[catlist[0]] if len(cats)>0 else []
-      self.e1 = AutocompleteEntryInText(master,values=catlist,takefocus=False)
-      self.e2 = AutocompleteEntryInText(master,values=oplist,takefocus=False)
-      self.e4 = AutocompleteEntryInText(master,values=self.softwareLoader.get_names(),takefocus=False)
-      self.e5 = AutocompleteEntryInText(master,values=[],takefocus=False)
+      self.e1 = AutocompleteEntryInText(master,values=catlist,takefocus=False, width=40)
+      self.e2 = AutocompleteEntryInText(master,values=oplist,takefocus=False, width=40)
+      self.e4 = AutocompleteEntryInText(master,values=sorted(self.softwareLoader.get_names()),takefocus=False, width=40)
+      self.e5 = AutocompleteEntryInText(master,values=[],takefocus=False, width=40)
       self.e1.bind("<Return>", self.newcategory)
       self.e1.bind("<<ComboboxSelected>>", self.newcategory)
       self.e2.bind("<Return>", self.newcommand)
@@ -242,11 +242,11 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
          self.newcommand(None)
 
       if self.description.software is not None:
-         self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.description.software.name)
-         self.e5.set_completion_list(self.softwareLoader.get_versions(self.description.software.name,version=self.description.software.version),initialValue=self.description.software.version)
+         self.e4.set_completion_list(sorted(self.softwareLoader.get_names()),initialValue=self.description.software.name)
+         self.e5.set_completion_list(sorted(self.softwareLoader.get_versions(self.description.software.name,version=self.description.software.version)),initialValue=self.description.software.version)
       else:
-         self.e4.set_completion_list(self.softwareLoader.get_names(),initialValue=self.softwareLoader.get_preferred_name())
-         self.e5.set_completion_list(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name()),initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
+         self.e4.set_completion_list(sorted(self.softwareLoader.get_names()),initialValue=self.softwareLoader.get_preferred_name())
+         self.e5.set_completion_list(sorted(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name())),initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
 
 
       return self.e1 # initial focus
