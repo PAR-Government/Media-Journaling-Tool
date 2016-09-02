@@ -10,9 +10,10 @@ possible future features:
 """
 
 import os
+import tempfile
 from PIL import Image
 from bitstring import BitArray
-from subprocess import call
+from subprocess import call,Popen, PIPE
 
 def parse_tables(imageFile):
     """
@@ -73,6 +74,26 @@ def sort_tables(tablesList):
             newTables.append(tempTable)
     return newTables
 
+def runexiftool(args):
+  exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
+  command = [exifcommand]
+  command.extend(args)
+  try:
+    p = Popen(command,stdout=PIPE,stderr=PIPE)
+    try:
+      while True:
+        line = p.stdout.readline()  
+        if line is None or len(line) == 0:
+           break
+        print line
+    finally:
+      p.stdout.close()
+      p.stderr.close()
+  except OSError as e:
+    print "Exiftool not installed"
+    raise e
+
+
 def save_as(source, target, qTables):
     """
     Saves image file using quantization tables
@@ -96,12 +117,15 @@ def save_as(source, target, qTables):
     im.save(target, subsampling=1, qtables=finalTable)
     if thumbTable:
         im.thumbnail((128,128))
-        im.save('temp.jpg', subsampling=1, qtables=thumbTable)
-        exifStr = 'exiftool -overwrite_original -P -m "-ThumbnailImage<=temp.jpg" ' + target
-        call(exifStr)
-        call(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
-        os.remove('temp.jpg')
+        tempFile = tempfile.mkstemp(suffix='.jpg')[1]
+        im.save(tempFile, subsampling=1, qtables=thumbTable)
+        try:
+          runexiftool(['-overwrite_original','-P','-m','-"ThumbnailImage<=' + tempFile + '"',target])
+          runexiftool(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
+        finally:
+          os.remove(tempFile)
     im.close()
+
 
 def transform(img,source,target, **kwargs):
 

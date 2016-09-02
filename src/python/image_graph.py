@@ -459,10 +459,10 @@ class ImageGraph:
   def create_archive(self, location):
     fname,errors = self._create_archive(location)
     tries = 0
-    while not self._check_archive_integrity(fname) and tries < 3:
+    while (len(errors)>0 or not self._check_archive_integrity(fname)) and tries < 3:
       fname,errors = self._create_archive(location)
       tries+=1
-    return None, ("Failed to create archive" if tries == 3 else errors)
+    return fname, (["Failed to create archive"] if (tries == 3 and len(errors) == 0) else errors)
 
   def _check_archive_integrity(self,fname):
        print 'archive integrity check for ' + fname
