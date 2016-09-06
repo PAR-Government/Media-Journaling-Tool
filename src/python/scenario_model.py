@@ -69,7 +69,7 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
     model=  projectModelFactory(projectFile,notify=notify)
     if  image is not None:
        model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes, \
-                           sortalg=lambda f: -os.stat(os.path.join(dir, f)).st_mtime)
+                           sortalg=lambda f: os.stat(os.path.join(dir, f)).st_mtime)
     return model,not existingProject
 
 class MetaDiff:
@@ -353,13 +353,15 @@ class ImageProjectModel:
     def _addAnalysis(self,startIm,destIm,op,analysis,mask,arguments={}):
        import importlib
        opData = getOperation(op)
+       if opData is None:
+          return
        for analysisOp in opData.analysisOperations:
          mod_name, func_name = analysisOp.rsplit('.',1)
          mod = importlib.import_module(mod_name)
          func = getattr(mod, func_name)
          func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
 
-    def _compareImages(self,start,destination, op, invert=False, arguments={}):
+    def _compareImages(self,start,destination, op, invert=False, arguments={},skipDonorAnalysis=False):
        startIm,startFileName = self.getImageAndName(start)
        destIm,destFileName = self.getImageAndName(destination)
        errors = []
@@ -367,17 +369,19 @@ class ImageProjectModel:
        if op == 'Donor':
           predecessors = self.G.predecessors(destination)
           mask = None
-          for pred in predecessors:
-            edge = self.G.get_edge(pred,destination) 
-            if edge['op']!='Donor':
-               mask,analysis = tool_set.interpolateMask(self.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
-               if mask is not None:
-                 mask = Image.fromarray(mask)
-                 break
+          if not skipDonorAnalysis:
+            errors = ["Could not compute SIFT Matrix"]
+            for pred in predecessors:
+              edge = self.G.get_edge(pred,destination) 
+              if edge['op']!='Donor':
+                 mask,analysis = tool_set.interpolateMask(self.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
+                 if mask is not None:
+                   errors = []
+                   mask = Image.fromarray(mask)
+                   break
           if mask is None:
             mask = tool_set.convertToMask(self.G.get_image(self.start)[0])
             analysis = {}
-            errors = ["Could not compute SIFT Matrix"]
        else:
           mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
           exifDiff = exif.compareexif(startFileName,destFileName)
@@ -399,7 +403,7 @@ class ImageProjectModel:
              return True
        return False
        
-    def connect(self,destination,mod=Modification('Donor',''), invert=False, sendNotifications=True):
+    def connect(self,destination,mod=Modification('Donor',''), invert=False, sendNotifications=True,skipDonorAnalysis=False):
        """ Given a image node name, connect the new node to the end of the currently selected node.
             Create the mask, inverting the mask if requested.
             Send a notification to the register caller if requested.
@@ -409,7 +413,7 @@ class ImageProjectModel:
           return "Node node selected",False
        if self.findChild(destination,self.start):
           return "Cannot connect to ancestor node",False
-       return self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications)
+       return self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications,skipDonorAnalysis=skipDonorAnalysis)
 
     def getComposite(self):
       """
@@ -491,9 +495,9 @@ class ImageProjectModel:
        return msg,status
 
        
-    def _connectNextImage(self,destination,mod,invert=False,sendNotifications=True,skipRules=False):
+    def _connectNextImage(self,destination,mod,invert=False,sendNotifications=True,skipRules=False,skipDonorAnalysis=False):
        try:
-         maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments)
+         maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments,skipDonorAnalysis=skipDonorAnalysis)
          self.end = destination
          if errors:
            mod.errors = errors
@@ -572,7 +576,7 @@ class ImageProjectModel:
        self.start = None
        self.end = None
        self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1],suffixes=suffixes, \
-                           sortalg=lambda f: -os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
+                           sortalg=lambda f: os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
 
     def load(self,pathname):
        """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """ 
@@ -774,6 +778,8 @@ class ImageProjectModel:
             self.__assignLabel(destination,'final')
        elif len(self.G.predecessors(destination)) > 0: 
           self.__assignLabel(destination,'interim')
+       elif 'nodetype' not in self.G.get_node(destination):
+          self.__assignLabel(destination,'base')
 
     def _findTerminalNodes(self,node):
        succs = self.G.successors(node)
@@ -782,11 +788,30 @@ class ImageProjectModel:
           res.extend(self._findTerminalNodes(succ))
        return res
 
+    def _findTerminalNodes(self,node):
+       return self._findTerminalNodesWithCycleDetection(node,visitSet=[])
+
+    def _findTerminalNodesWithCycleDetection(self,node,visitSet=[]):
+       succs = self.G.successors(node)
+       res = [node] if len(succs) == 0 else []
+       for succ in succs:
+          if succ in visitSet:
+             continue
+          visitSet.append(succ)
+          res.extend(self._findTerminalNodesWithCycleDetection(succ,visitSet=visitSet))
+       return res
+
     def _findBaseNodes(self,node,excludeDonor = True):
+       return self._findBaseNodesWithCycleDetection(node,excludeDonor=excludeDonor,visitSet=[])
+
+    def _findBaseNodesWithCycleDetection(self,node,excludeDonor = True,visitSet=[]):
        preds = self.G.predecessors(node)
        res = [node] if len(preds) == 0 else []
        for pred in preds:
-          res.extend(self._findBaseNodes(pred,excludeDonor=excludeDonor) if (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor) else [])
+          if pred in visitSet:
+             continue
+          visitSet.append(pred)
+          res.extend(self._findBaseNodesWithCycleDetection(pred,excludeDonor=excludeDonor,visitSet=visitSet) if (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor) else [])
        return res
 
     def isDonorEdge(self,start,end):
@@ -840,7 +865,7 @@ class ImageProjectModel:
       try:
          copyExif = plugins.callPlugin(filter,im,filename,target,**self._resolvePluginValues(kwargs))
       except Exception as e:
-         msg = str(e.message)
+         msg = str(e)
          copyExif = False
       if msg is not None:
           return self._pluginError(filter,msg),[]
@@ -867,7 +892,7 @@ class ImageProjectModel:
              _end = self.end
              _start = self.start
              self.selectImage(kwargs['donor'])
-             self.connect(_end)
+             self.connect(_end,skipDonorAnalysis=True)
              pairs.append((kwargs['donor'],_end))
              self.select((_start, _end))
       os.remove(target)
@@ -946,9 +971,9 @@ class ImageProjectModel:
       import boto3
       path,errors = self.G.create_archive(tempfile.gettempdir())
       if len(errors) == 0:
-        s3 = boto3.client('s3','us-east-1')
-        BUCKET = location.split('/')[0].strip()
-        DIR= location.split('/')[1].strip()
+        s3= boto3.client('s3','us-east-1')
+        BUCKET= location.split('/')[0].strip()
+        DIR= location[location.find('/')+1:].strip()
         print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1] 
         s3.upload_file(path, BUCKET, DIR + '/' + os.path.split(path)[1])
         os.remove(path)
@@ -1038,7 +1063,7 @@ class VideoProjectModel(ImageProjectModel):
        analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
        return  startIm, destIm, mask,analysis
 
-    def _compareImages(self,start,destination,op, invert=False,arguments={}):
+    def _compareImages(self,start,destination,op, invert=False,arguments={},skipDonorAnalysis=False):
        if op == 'Donor':
           return self._constructDonorMask(start,destination,arguments=arguments)
        startIm,startFileName = self.getImageAndName(start)
