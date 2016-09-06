@@ -51,7 +51,7 @@ pip install Image
 ## Starting the UI
 
 Add src/python to your PYTHONPATH.
-Assumes operations.csv and software.csv are located in the same directory as the tool.
+Assumes operations.json and software.csv are located in the same directory as the tool.
 
 
 ```
