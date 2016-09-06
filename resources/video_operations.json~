@@ -1,0 +1,1803 @@
+{
+  "operations": [
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectAddLightSource", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFading", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Decrease opacity of an image or a layer.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectReduceInterlaceFlicker", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Smooth the artifacts resultant from interlacing.",
+      "includeInMask": false
+    }, 	
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterAddNoise", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Add random variations of brightness or color information.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterBlur", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Make details unclear or less distinct.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectWarpStabilize", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Distort and/or crop video layers in order to remove camera shake",
+      "includeInMask": false
+    }, 	
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterMedianSmoothing", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Execute a nonlinear digital filtering technique, often used to remove noise while preserving edges.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterSharpening", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Enhance edge definition within an image.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectFilterSmoothing", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Smooth textures while preserving edge detail.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectGradientEffect", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Apply a filter for scaling intensity.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectSoftEdgeBrushing", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Use a brush tool with a variable feathered edge.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AdditionalEffect", 
+      "name": "AdditionalEffectAddTransitions", 
+      "mandatoryparameters": {}, 
+      "rules": [], 
+      "optionalparameters": {}, 
+      "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
+      "includeInMask": false
+    }, 	
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintAberrationCorrection", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Realign Chromatic Aberration.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFAHiding", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Remove the sensor discrepancies from an individual camera.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFAInterpolation", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Modify the sensor discrepancies from an individual camera.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFAResize", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Modify the sensor discrepancies from an individual camera.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintCFARotation", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Modify the sensor discrepancies from an individual camera.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintENFAlternation", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Apply evolutionary Neural Fuzzy filters to blur images.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCameraFingerprint", 
+      "name": "AntiForensicCameraFingerprintPhotoResponseNonUniformity", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter an image's noise pattern to match that of another capture device.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicCompression", 
+      "name": "AntiForensicCompressionCompressionNormalization", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter compression artifacts to appear uniform.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicFilter", 
+      "name": "AntiForensicCopyExif", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter image metadata.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifCameraModelPara", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter image metadata to display another camera model as capture device.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifDateTime", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter Image Metadata to display a different capture time.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifManipulationSoftware", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter Image Metadata to display a different or no image editing program.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicExif", 
+      "name": "AntiForensicExifQuantizationTable", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize",
+	"checkForDonor"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter Image Metadata to display a different type or no compression.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "AntiForensicFilter", 
+      "name": "AntiForensicFilterNoiseRestoration", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Add random variations of brightness or color information to replicate a different capture device.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIArtificialLighting", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Add sources of illumination that were not originally present.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIArtificialReflection", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Add sources of reflection that were not originally present.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIArtificialShadow", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Add shadows that were not originally present.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "ArtifactsCGI", 
+      "name": "ArtifactsCGIObjectCGI", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Create objects that were not originally present in an image.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendColorBurn", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the blending mode within an image either globally or selectively.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendColorInterpolation", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Fill of transparent areas of a current layer with a smooth mix of the colors from the opaque areas.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendDissolve", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorBlendMultiply", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Using the color information in each channel, calculate a color by multiplying the base color by a blend color. The result color is always a darker color. Multiplying any color with black produces black. Multiplying any color with white leaves the color unchanged. When painting with a color other than black or white, successive strokes with a painting tool produce progressively darker colors.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorColorBalance", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorFill", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Uniformly alter the color of an image within a given selection.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorHue", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the color of a selection or image without adjusting saturation or luminance.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorMatchColor", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Use a tool to paint an area with the same color values as a selected donor area.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorOpacity", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Change the transparency of a given color overlay.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorReplaceColor", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Create a selection based on hue that is then painted over with another color value.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorSaturation", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the color intensity of a given hue.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorVibranceContentBoosting", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Increase intensity of muted colors.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Color", 
+      "name": "ColorVibranceReduction", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Reduce intensity of muted colors.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Creation", 
+      "name": "CreationFilterGT", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Create an object not originally in the image",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillBackground", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Apply an adjustment to a selection of non foreground objects.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillContentAwareFill", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Synthesize nearby content for seamless blending with the surrounding content.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillForeground", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Apply an adjustment to a selection of specified foreground objects.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillGradient", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Apply a donor adjustment within a selection with scaling intensities.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillHealingBrush", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Replace imagery within a given brush diameter with a average from surrounding pixels.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillImageInterpolation", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Replace large selections with an averaging of surrounding pixel groups.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillInpainting", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Replace areas of an image with semantically similar pixel values to create a seamless image.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillLocalRetouching", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Create adjustments within a localized selection.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillPaintBrushTool", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Use a brush to append pixel values within a given diameter.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillPaintBucket", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Apply a paintbucket to uniformly fill a given selection.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillPattern", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Use a specified selection pattern to uniformly fill an area.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Fill", 
+      "name": "FillRubberStamp", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Use mapped donor imagery from a given area to fill an extended work area or canvas.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterBlurMotion", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Modify an image or image selection to create the illusion of motion.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterBlurNoise", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Modify an image or image selection to create the illusion of Camera Noise.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterCameraRawFilter", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Make edits to raw imagery in a raw processor.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Filter", 
+      "name": "FilterColorLUT", 
+      "mandatoryparameters": {}, 
+      "rules": [], 
+      "optionalparameters": {
+          "lookuptable": {
+	    "type":"string",
+	    "description":"Name of the lookup table"
+          }
+      },
+      "description": "Uses a look up table to color grade layers of footage.",
+      "includeInMask": false
+    }, 	
+    {
+      "category": "Filter", 
+      "name": "FilterKeying", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Remove a color from a layer of video.",
+      "includeInMask": false
+    }, 	
+    {
+      "category": "Intensity", 
+      "name": "IntensityBrightness", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Shift midtone luminance values on a histogram to higher or lower values.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityContrast", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityCurves", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Shift luminance values on a histogram with an editable and flexible curve.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityDarken", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Shift lower luminance values on a histogram to a higher or lower values.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityDesaturate", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Reduce the given intensity of colors.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityExposure", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Shift all luminance values on a histogram to higher or lower values.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityHardlight", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Increase the contrast of high values in a luminance histogram.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityHighlight", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Change the high values of a luminance histogram.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityLevels", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Adjust brightness, contrast, and tonal range by specifying the location of complete black, complete white, and midtones in a histogram.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityLighten", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the luminance of an image or selection.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensityLuminosity", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the values of a luminance histogram.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Intensity", 
+      "name": "IntensitySoftlight", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Decrease the contrast in high value areas of the luminance histogram.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupDigitalPenDraw", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupHandwriting", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupOverlayObject", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ArtifactsCGIObjectCGI.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Markup", 
+      "name": "MarkupOverlayText", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputBmp", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the bmp format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputJpg", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the jpeg format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputPng", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the png format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputXVID", 
+      "mandatoryparameters": {}, 
+      "rules": [
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the xvid format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputMOV", 
+      "mandatoryparameters": {}, 
+      "rules": [
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the MOV format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputMP4", 
+      "mandatoryparameters": {}, 
+      "rules": [
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the MP4 format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputAVI", 
+      "mandatoryparameters": {}, 
+      "rules": [
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the AVI format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Output", 
+      "name": "OutputTif", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Export the image in the tif format.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Paste", 
+      "name": "PasteClone", 
+      "mandatoryparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Paste a region selected using a clone tool into the same image.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Paste", 
+      "name": "PasteFrames", 
+      "mandatoryparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "rules": [
+        "checkDonor",
+        "checkLengthBigger"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Adding a series of frames from a video clip",
+      "includeInMask": true
+    }, 	
+    {
+      "category": "Paste", 
+      "name": "PasteOverlay",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkDonor",
+        "checkLengthSame"
+      ], 
+      "optionalparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "Stop time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Paste", 
+      "name": "PasteImageSplice", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize", 
+        "checkForDonor"
+      ], 
+      "optionalparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "Stop time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "PostProcessing", 
+      "name": "PostProcessingSizeUpDownOrgExif", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
+      "includeInMask": false
+    },
+    {
+      "category": "Select", 
+      "name": "SelectRegionFromImage", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectRegionFromFrames", 
+      "mandatoryparameters": {},
+      "rules": [],
+      "optionalparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Create a limited selection,removing background,from a donor video.  The result should be a black back ground.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectRemoveFromFrames", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      }, 
+      "description": "Remove a region from a series of frames.",
+      "includeInMask": true
+    }, 
+    {
+      "category": "Select", 
+      "name": "SelectCutFrames", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkLengthSmaller"
+      ], 
+      "optionalparameters": { 
+        "Start Time": {
+          "type":"time",
+          "description": "Start time of the image clip (HH:MI:SS.micro)"
+        },
+        "End Time": {
+          "type":"time",
+          "description": "End time of the image clip (HH:MI:SS.micro)"
+        }
+      },
+      "description": "Remove a series of frames from a video clip.",
+      "includeInMask": false
+    }, 	
+    {
+      "category": "TimeAlteration", 
+      "name": "TimeAlterationEcho", 
+      "mandatoryparameters": {
+         "Echo Time": {
+           "type": "float[-100:100]",
+           "description": "The time, in seconds, between echoes. Negative values create echoes from previous frames; positive values create echoes from upcoming frames."
+         },
+         "Number of Echos": {
+	   "type": "int[0:1000000]",
+           "description": "The number of echoes. For example, if the value is 2, the result is a combination of three frames: the current time, the current time + Echo Time, and the current time + (2 * Echo Time)."
+         },
+         "Starting Intensities": {
+	    "type": "int[0:100000]",
+	    "description":"The opacity of the first image in the echo sequence"
+         },
+         "Operator": {
+	    "type":"string",
+	    "description":"The operation used. For example: Add,Maximum,Minimum,Screen,Composite In Back,Composite In Front and Blend"
+         }
+      },
+      "rules": ["checkLengthSame"],
+      "optionalparameters": {
+      }, 
+      "description": "Duplicate video frames and replay them at a delay to create a trail.",
+      "includeInMask": false
+    },	
+    {
+      "category": "TimeAlteration", 
+      "name": "TimeAlterationPosterizeTime", 
+      "mandatoryparameters": {
+        "Frame Rate": {
+	  "type": "float[0:1000000]",	
+	  "description": "Frames per second"
+	}
+      }, 
+      "rules": ["checkLengthSame"],
+      "optionalparameters": {}, 
+      "description": "Lock a layer to a specific frame rate.",
+      "includeInMask": false
+    },	
+    {
+      "category": "TimeAlteration",
+      "name": "TimeAlterationDifferenceEffect",
+      "mandatoryparameters": { 
+        "Time Offset": {
+	  "type": "float[0:1000000]",
+          "description":"The relative time in the comparison layer, in seconds, where the layers are compared"
+	},
+	"Target Layer": {
+	 "type":"int[0:100]",
+	 "description":"Target layer number to be compared to the effect layer"
+	},
+        "Alpha Channel": {
+	 "type":"list",
+	 "values":["Original","Target","Blend","Max","Full On","Lightness Of Result","Max Of Result","Alpha Difference","Alpha Difference Only"],
+	 "description":"Specifies how the alpha channel is calculated."
+	}
+      },
+      "rules": ["checkLengthSame"],
+      "optionalparameters": {},
+      "description": "Calculate the color difference between two layers as a useful aid in color correction",
+      "includeInMask": false
+    },
+    {
+      "category": "TimeAlteration", 
+      "name": "TimeAlterationDisplacementEffect", 
+      "mandatoryparameters": {
+        "Max Displacement Time": {
+	  "type":"int[0:100000000]",
+	  "description":"Sets the maximum time, in seconds, from which pixels are replaced, before or after the current time."
+	},
+        "Time Resolution": {
+	  "type":"float[0:10000000]",
+	  "description": "Sets the number of frames per second in which to replace pixels"
+        }
+      },
+      "rules": ["checkLengthSame"],
+      "optionalparameters": {}, 
+      "description": "Distorts the image by shifting pixels across time.",
+      "includeInMask": false
+    },	
+    {
+      "category": "TimeAlteration", 
+      "name": "TimeAlterationWarp", 
+      "mandatoryparameters": {
+        "Method": {
+          "type":"list",
+	  "values":["Whole Frames","Frame Mix","Pixel Motion"],
+	  "description":"The Method setting determines how interpolated frames are generated."
+        },
+        "Vector Detail": {
+	  "type":"int[0:100]",
+	  "description": "Determine how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
+        }
+      },
+      "rules": [],
+      "optionalparameters": {
+        "Smoothing": {
+  	  "type":"list",
+	  "values":["Build From One Image","Correct Luminance Changes","Filtering"],
+	  "description":"These controls affect the sharpness of the image."
+
+        },
+        "Weighting": {
+	   "type":"string",
+	   "description":"Weighting red, green, and blue channels in calculations used to analyze the image.  Suggest comma-separated values for RGB."
+        },
+        "Adjust Time By": {
+          "type": "float[0:100]",
+          "description":"Choose Speed to specify a time adjustment as a percentage"
+        }
+      },
+      "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
+      "includeInMask": false
+    },	
+    {
+      "category": "Transform", 
+      "name": "TransformAffine", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformContentAwareScale", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Resize an image without changing important visual content.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformCrop", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "location": {
+           "type":"coordinates",
+           "description": "Tuple in form of (x,y) describing the upper left crop corner."
+	}
+      },
+      "description": "Removing edge content from an image.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformDistort", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the shape and dimensions of a given selection or image.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformFlip", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformMove", 
+      "mandatoryparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the component that was moved"
+        }
+      }, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {},
+      "description": "Reposition a selection within a larger composition.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformResample", 
+      "mandatoryparameters": {}, 
+      "rules": [
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Reduce or increasing the number of pixels in an image.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformResize", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "sizeChanged"
+      ], 
+      "optionalparameters": {
+        "interpolation": {
+	   "type":"list",
+	   "values":["nearest","lanczos","bilinear","bicubic","cubic"],
+	   "description":"Interpolation is used to resize composite images."
+        }
+      },
+      "description": "Alter the dimensions of an image.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformRotate", 
+      "mandatoryparameters": {
+        "rotation" : {
+	   "type"  : "int[-360:360]",
+           "description" : "The rotation should be provided in degrees counter-clockwise (0 to 360)"
+         }
+      },
+      "rules": [], 
+      "optionalparameters": {}, 
+      "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformScale", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "sizeChanged"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Change the size of an image or layer while preserving dimensions.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformSeamCarving", 
+      "mandatoryparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing preserved and sliced areas"
+	}
+      }, 
+      "rules": [
+        "seamCarvingCheck"
+      ], 
+      "optionalparameters": {}, 
+      "description": "Resize an image while preserving the integrity of content.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformShear", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Warp the shape of an object or a selection with anchored endpoints.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformSkew", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
+      "includeInMask": false
+    }, 
+    {
+      "category": "Transform", 
+      "name": "TransformWarp", 
+      "mandatoryparameters": {}, 
+      "rules": [
+        "checkSize"
+      ], 
+      "optionalparameters": {
+        "inputmaskname": {
+          "type":"imagefile",
+          "description":"An image file containing a mask describing the areas affected."
+	}
+      }, 
+      "description": "Freely alter the shape or dimensions of a given selection or image.",
+      "includeInMask": false
+    },
+    {
+      "category": "Transform", 
+      "name": "TransformDownSample", 
+      "mandatoryparameters": {
+        "scale": {
+          "type": "string",
+	  "description":"Down sample instructions such as 640:480."
+	}
+      }, 
+      "rules": [ ], 
+      "optionalparameters": {},
+      "description": "Down sample a video to a lower frame resolution.",
+      "includeInMask": false
+    }
+  ]
+}
