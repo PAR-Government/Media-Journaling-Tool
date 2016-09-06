@@ -23,7 +23,7 @@ def imageProjectModelFactory(name,**kwargs):
 def videoProjectModelFactory(name,**kwargs):
     return VideoProjectModel(name,**kwargs)
 
-def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=imageProjectModelFactory):
+def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=imageProjectModelFactory,organization=None):
     """ This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
         Otherwise, the directory is inspected for images.
@@ -67,6 +67,8 @@ def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=im
         image = projectFile
         projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
     model=  projectModelFactory(projectFile,notify=notify)
+    if organization is not None:
+      model.setProjectData('organization',organization)
     if  image is not None:
        model.addImagesFromDir(dir,baseImageFileName=os.path.split(image)[1],suffixes=suffixes, \
                            sortalg=lambda f: os.stat(os.path.join(dir, f)).st_mtime)
@@ -569,10 +571,12 @@ class ImageProjectModel:
       self.start= edge[0]
       self.end = edge[1]
 
-    def startNew(self,imgpathname,suffixes=[]):
+    def startNew(self,imgpathname,suffixes=[],organization=None):
        """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
        projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
        self.G = self._openProject(projectFile)
+       if organization is not None:
+         self.G.setDataItem('organization',organization)
        self.start = None
        self.end = None
        self.addImagesFromDir(os.path.split(imgpathname)[0],baseImageFileName=os.path.split(imgpathname)[1],suffixes=suffixes, \

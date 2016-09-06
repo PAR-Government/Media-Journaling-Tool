@@ -66,6 +66,8 @@ def saveJSON(filename):
 
 def loadJSON(fileName):
     res = {}
+    if not (os.path.exists(fileName)):
+      fileName = os.path.join('resources',fileName)
     with open(fileName,'r') as f:
       ops = json.load(f)
       for op in ops['operations']:
@@ -88,6 +90,8 @@ def toSoftware(columns):
    return [x.strip() for x in columns[1:] if len(x)>0]
 
 def loadCSV(fileName,toObjectFunction):
+   if not (os.path.exists(fileName)):
+     fileName = os.path.join('resources',fileName)
    d={}
    with open(fileName) as f:
      for l in f.readlines():

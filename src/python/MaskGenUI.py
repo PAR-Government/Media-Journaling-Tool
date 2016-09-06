@@ -70,7 +70,7 @@ class UIProfile:
         return CompareDialog(master,im2,mask,nodeId,analysis)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
+        return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
 
 
 class VideoProfile:
@@ -93,7 +93,7 @@ class VideoProfile:
         return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
+        return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
 
 class MakeGenUI(Frame):
 
@@ -147,7 +147,7 @@ class MakeGenUI(Frame):
        if (not self._check_dir(dir)):
          tkMessageBox.showinfo("Error", "Directory already associated with a project")
          return
-       self.scModel.startNew(val,suffixes=self.uiProfile.suffixes)
+       self.scModel.startNew(val,suffixes=self.uiProfile.suffixes, organization=self.prefLoader.get_key('organization'))
        if self.scModel.getProjectData('typespref') is None:
           self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
        self._setTitle()
@@ -237,12 +237,22 @@ class MakeGenUI(Frame):
            self.canvas.add(pair[0],pair[1])
        self.drawState()
 
+    def setorganization(self):
+        name = self.prefLoader.get_key('organization')
+        if name is None:
+            name = 'Performer'
+        newName = tkSimpleDialog.askstring("Set Organization", "Name", initialvalue=name)
+        if newName is not None:
+            self.prefLoader.save('organization', newName)
+            self.scModel.setProjectData('organization', newName)
+
     def setusername(self):
         name = get_username()
         newName = tkSimpleDialog.askstring("Set Username", "Username", initialvalue=name)
         if newName is not None:
             self.prefLoader.save('username', newName)
             setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
+            self.scModel.setProjectData('username', newName)
 
     def setfiletypes(self):
         filetypes = self.getFileTypes()
@@ -579,7 +589,9 @@ class MakeGenUI(Frame):
 
         settingsmenu = Menu(tearoff=0)
         settingsmenu.add_command(label="Username", command=self.setusername)
+        settingsmenu.add_command(label="Organization", command=self.setorganization)
         settingsmenu.add_command(label="File Types", command=self.setfiletypes)
+
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About",command=self.about)
@@ -713,7 +725,7 @@ class MakeGenUI(Frame):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        tuple = createProject(dir, notify=self.changeEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory())
+        tuple = createProject(dir, notify=self.changeEvent,base=base,suffixes=uiProfile.suffixes,projectModelFactory=uiProfile.getFactory(),organization=self.prefLoader.get_key('organization'))
         if tuple is None:
           print 'Invalid project director ' + dir
           sys.exit(-1)
