@@ -1,4 +1,4 @@
-from image_graph import ImageGraph,VideoGraph
+from image_graph import ImageGraph,VideoGraph,createGraph
 import shutil
 import exif
 import os
@@ -22,6 +22,16 @@ def imageProjectModelFactory(name,**kwargs):
 
 def videoProjectModelFactory(name,**kwargs):
     return VideoProjectModel(name,**kwargs)
+
+def loadProject(projectFileName):
+    """
+      Given JSON file name, open then the appropriate type of project
+    """
+    graph = createGraph(projectFileName)
+    if graph.get_project_type() == 'image':
+       return ImageProjectModel(projectFileName,graph=graph)
+    else:
+       return VideoProjectModel(projectFileName,graph=graph)
 
 def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=imageProjectModelFactory,organization=None):
     """ This utility function creates a ProjectModel given a directory.
@@ -276,8 +286,8 @@ class ImageProjectModel:
     start = None
     end = None
 
-    def __init__(self, projectFileName, importImage=False, notify=None):
-      self._setup(projectFileName)
+    def __init__(self, projectFileName, graph=None,importImage=False, notify=None):
+      self._setup(projectFileName,graph=graph)
       self.notify = notify
 
     def getTypeName(self):
@@ -587,10 +597,10 @@ class ImageProjectModel:
        self._setup(pathname)
 
     def _openProject(self,projectFileName):
-      return ImageGraph(projectFileName)
+      return createGraph(projectFileName,projecttype='image')
 
-    def _setup(self,projectFileName):
-       self.G  = self._openProject(projectFileName)
+    def _setup(self,projectFileName,graph=None):
+       self.G  = self._openProject(projectFileName) if graph is None else graph
        self.start = None
        self.end = None
        n = self.G.get_nodes()
@@ -604,6 +614,19 @@ class ImageProjectModel:
               if (len(p)>0):
                  self.start = p[0]
                  self.end = n[0]
+
+    def getStartType(self):
+       return self.getNodeFileType(self.start) if self.start is not None else 'image'
+
+    def getEndType(self):
+       return self.getNodeFileType(self.end) if self.end is not None else 'image'
+
+    def getNodeFileType(self, nodeid):
+       node = self.G.get_node(nodeid)
+       if node is not None and 'filetype' in node:
+          return node['filetype']
+       else:
+          return tool_set.fileType(self.G.get_image_path(nodeid))
 
     def saveas(self,pathname):
        self.G.saveas(pathname)
@@ -1040,11 +1063,11 @@ class ImageProjectModel:
 
 class VideoProjectModel(ImageProjectModel):
 
-    def __init__(self, projectFileName, importImage=False, notify=None):
-       ImageProjectModel.__init__(self,projectFileName,notify=notify)
+    def __init__(self, projectFileName, graph=None, importImage=False, notify=None):
+       ImageProjectModel.__init__(self,projectFileName,graph=graph,importImage=importImage,notify=notify)
 
     def _openProject(self,projectFileName):
-       return VideoGraph(projectFileName)
+      return createGraph(projectFileName,projecttype='video')
 
     def getTerminalToBasePairs(self, suffix='.mp4'):
        return ImageProjectModel.getTerminalToBasePairs(self,suffix=suffix)

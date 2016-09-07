@@ -317,6 +317,10 @@ imageC.jpg|imageC_01.png
 
 It is recommended the user view generated graphs by opening the projects in MaskGenUI once the processing is complete to verify.
 
+## Bulk Operations
+'''
+python -m maskgen.batch.bulk_validate --projectDir <directoryOfProjects>
+python -m maskgen.batch.bulk_export  -s <S3 bucker/folder> --dir <directoryOfProjects>
 # Known Issues
 
 # Latest Changes

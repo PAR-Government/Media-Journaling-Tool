@@ -10,7 +10,10 @@ from scipy import ndimage
 from scipy import misc
 import getpass
 import re
+import imghdr
 
+def fileType(fileName):
+  return 'image' if imghdr.what(fileName) is not None else 'video'
 
 def openFile(fileName):
    """

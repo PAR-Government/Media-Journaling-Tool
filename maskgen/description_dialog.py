@@ -128,15 +128,19 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
    c= None
    moc = None
    cancelled = True
+   sourcefiletype = 'image'
+   targetfiletype = 'image'
    argvalues = {}
    arginfo = []
    mandatoryinfo = []
 
-   def __init__(self, parent,uiProfile,dir,im,name, description=None):
+   def __init__(self, parent,uiProfile,sourcefiletype,targetfiletype,dir,im,name, description=None):
       self.dir = dir
       self.uiProfile = uiProfile
       self.im = im
       self.parent = parent
+      self.sourcefiletype = sourcefiletype
+      self.targetfiletype = targetfiletype
       self.argvalues=description.arguments if description is not None else {}
       self.description=description if description is not None else Modification('','')
       self.softwareLoader = SoftwareLoader()
@@ -176,7 +180,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
          self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
    def newcategory(self, event):
-      opByCat = getOperationsByCategory()
+      opByCat = getOperationsByCategory(self.sourcefiletype,self.targetfiletype)
       if self.e1.get() in opByCat:
         oplist = opByCat[self.e1.get()]
         self.e2.set_completion_list(oplist)
@@ -206,7 +210,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.argBox.grid(row=row,column =0, columnspan=2, sticky=E+W)
       row+=1
 
-      cats = getOperationsByCategory()
+      cats = getOperationsByCategory(self.sourcefiletype,self.targetfiletype)
       catlist = list(cats.keys())
       catlist.sort()
       oplist = cats[catlist[0]] if len(cats)>0 else []

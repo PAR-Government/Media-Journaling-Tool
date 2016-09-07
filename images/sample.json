@@ -1,7 +1,7 @@
 {
   "directed": true, 
   "graph": {
-    "igversion": "0.1", 
+    "organization": "PAR", 
     "idcount": 21, 
     "name": "sample", 
     "typespref": [
@@ -21,19 +21,22 @@
         "all files", 
         "*.*"
       ]
-    ]
+    ], 
+    "igversion": "0.1"
   }, 
   "nodes": [
     {
-      "xpos": 250, 
-      "ownership": "no", 
+      "xpos": 239, 
+      "nodetype": "interim", 
+      "file": "orig_input.png", 
       "ypos": 149, 
       "seriesname": "orig_input", 
-      "file": "orig_input.png", 
+      "ownership": "no", 
       "id": "orig_input"
     }, 
     {
       "xpos": 230, 
+      "nodetype": "interim", 
       "file": "input_mod_2.png", 
       "ypos": 368, 
       "seriesname": "orig_input", 
@@ -43,6 +46,7 @@
     }, 
     {
       "xpos": 237, 
+      "nodetype": "interim", 
       "file": "input_mod_1.png", 
       "ypos": 263, 
       "seriesname": "orig_input", 
@@ -52,15 +56,17 @@
     }, 
     {
       "xpos": 299, 
+      "nodetype": "base", 
       "ctime": "2016-07-28 13:06:28", 
-      "ownership": "no", 
       "ypos": 61, 
       "seriesname": "sample", 
+      "ownership": "no", 
       "file": "sample.jpg", 
       "id": "sample"
     }, 
     {
       "xpos": 612, 
+      "nodetype": "final", 
       "ownership": "yes", 
       "ypos": 669, 
       "seriesname": "orig_input", 
@@ -70,6 +76,7 @@
     }, 
     {
       "xpos": 141, 
+      "nodetype": "interim", 
       "file": "input_mod_2_3.png", 
       "ypos": 512, 
       "seriesname": "orig_input", 
@@ -79,6 +86,7 @@
     }, 
     {
       "xpos": 444, 
+      "nodetype": "interim", 
       "file": "hat_splice.png", 
       "ypos": 180, 
       "seriesname": "hat", 
@@ -88,14 +96,16 @@
     }, 
     {
       "xpos": 443, 
-      "ownership": "no", 
+      "nodetype": "donor", 
+      "file": "hat.jpg", 
       "ypos": 52, 
       "seriesname": "hat", 
-      "file": "hat.jpg", 
+      "ownership": "no", 
       "id": "hat"
     }, 
     {
       "xpos": 329, 
+      "nodetype": "interim", 
       "ownership": "yes", 
       "ypos": 608, 
       "seriesname": "orig_input", 
@@ -218,30 +228,27 @@
     {
       "username": "ericrobertson", 
       "maskname": "sample_orig_input_mask.png", 
-      "psnr": 101.8345154087617, 
-      "description": "\n", 
-      "source": 3, 
+      "errors": [], 
+      "description": "", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "editable": "yes", 
-      "softwareName": "Gimp", 
+      "softwareVersion": "12.1", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "source": 3, 
+      "ssim": 0.9999999855200266, 
+      "psnr": 101.8345154087617, 
+      "recordMaskInComposite": "no", 
+      "automated": "no", 
+      "inputmaskname": null, 
       "exifdiff": {
         "Compression": [
           "add", 
           "Deflate/Inflate"
         ], 
-        "File Type Extension": [
-          "change", 
-          "jpg", 
-          "png"
-        ], 
         "Bits Per Sample": [
           "delete", 
           "8"
-        ], 
-        "File Size": [
-          "change", 
-          "55 kB", 
-          "342 kB"
         ], 
         "Interlace": [
           "add", 
@@ -259,15 +266,9 @@
           "delete", 
           "1.01"
         ], 
-        "File Inode Change Date/Time": [
-          "change", 
-          "2016:07:28 13:05:24-04:00", 
-          "2016:07:16 12:52:09-04:00"
-        ], 
-        "File Modification Date/Time": [
-          "change", 
-          "2016:06:01 14:49:52-04:00", 
-          "2016:06:29 15:37:28-04:00"
+        "Exif Byte Order": [
+          "delete", 
+          "Little-endian (Intel, II)"
         ], 
         "Pixels Per Unit Y": [
           "add", 
@@ -277,35 +278,21 @@
           "add", 
           "2835"
         ], 
-        "Exif Byte Order": [
+        "Resolution Unit": [
           "delete", 
-          "Little-endian (Intel, II)"
+          "None"
         ], 
         "Pixel Units": [
           "add", 
           "meters"
         ], 
-        "MIME Type": [
-          "change", 
-          "image/jpeg", 
-          "image/png"
-        ], 
         "Color Components": [
           "delete", 
           "3"
         ], 
-        "File Type": [
-          "change", 
-          "JPEG", 
-          "PNG"
-        ], 
         "Filter": [
           "add", 
           "Adaptive"
-        ], 
-        "Software": [
-          "delete", 
-          "Google"
         ], 
         "Color Type": [
           "add", 
@@ -323,9 +310,9 @@
           "add", 
           "2.2"
         ], 
-        "Resolution Unit": [
+        "Software": [
           "delete", 
-          "None"
+          "Google"
         ], 
         "Modify Date": [
           "add", 
@@ -339,11 +326,6 @@
           "delete", 
           "YCbCr4:2:0 (2 2)"
         ], 
-        "File Name": [
-          "change", 
-          "sample.jpg", 
-          "orig_input.png"
-        ], 
         "Encoding Process": [
           "delete", 
           "Baseline DCT, Huffman coding"
@@ -353,13 +335,9 @@
           "1"
         ]
       }, 
-      "inputmaskownership": "no", 
-      "softwareVersion": "2.4", 
-      "ssim": 0.9999999855200266, 
-      "shape change": "(0, 0)", 
-      "inputmaskname": "", 
       "target": 0, 
-      "op": "OutputPng"
+      "op": "AdditionalEffectSoftEdgeBrushing", 
+      "shape change": "(0, 0)"
     }, 
     {
       "username": "ericrobertson", 

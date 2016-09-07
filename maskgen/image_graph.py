@@ -64,6 +64,26 @@ def remove_edges(g,nodes,node,func):
     func(node,s,g.edge[node][s])
   return nodes
 
+def loadJSONGraph(pathname):
+  with open(pathname,"r") as f:
+    try:
+      return json_graph.node_link_graph(json.load(f,encoding='utf-8'),multigraph=False,directed=True)
+    except  ValueError:
+      return json_graph.node_link_graph(json.load(f),multigraph=False,directed=True)
+
+def createGraph(pathname,projecttype=None):
+   """
+     Factory for an Project Graph, existing or new
+   """
+   G = None
+   if (os.path.exists(pathname) and pathname.endswith('.json')):
+     G = loadJSONGraph(pathname)
+     projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
+   if projecttype == 'video':
+     return VideoGraph(pathname,graph=G)
+   else:
+     return ImageGraph(pathname,graph=G)
+
 class ImageGraph:
   G = nx.DiGraph(name="Empty")
   U = []
@@ -88,17 +108,11 @@ class ImageGraph:
   def get_name(self):
     return self.G.name
 
-  def __init__(self, pathname,projecttype='image'):
+  def __init__(self, pathname,graph=None,projecttype='image'):
     fname = os.path.split(pathname)[1]
     name = get_pre_name(fname)
-    self.dir = os.path.abspath(os.path.split(pathname)[0])
-    self.G = nx.DiGraph(name=name)
-    if (os.path.exists(pathname)):
-      self.load(pathname)
-    else:
-      self.G.graph['username']=get_username()
-      self.G.graph['projecttype']=projecttype
-
+    self.G = graph if graph is not None else nx.DiGraph(name=name)
+    self._setup(pathname,projecttype)
 
   def openImage(self,fileName,mask=False):
     return openImage(fileName)
@@ -106,6 +120,9 @@ class ImageGraph:
   def get_nodes(self):
     return self.G.nodes()
 
+  def get_project_type(self):
+    return self.G.graph['projecttype']
+ 
   def edges_iter(self, node):
     return self.G.edges_iter(node)
 
@@ -282,6 +299,9 @@ class ImageGraph:
     im = self.openImage(filename)
     return im,filename
 
+  def get_image_path(self,name):
+    return os.path.abspath(os.path.join(self.dir,self.G.node[name]['file']))
+
   def get_edge(self,start,end):
     return self.G[start][end] if (self.G.has_edge(start,end)) else None
 
@@ -368,24 +388,23 @@ class ImageGraph:
   def getVersion(self):
     return igversion
 
-  def load(self,pathname):
+  def _setup(self,pathname,projecttype):
     global igversion
-    with open(pathname,"r") as f:
-      try:
-         self.G = json_graph.node_link_graph(json.load(f,encoding='latin'),multigraph=False,directed=True)
-      except  ValueError:
-         self.G = json_graph.node_link_graph(json.load(f),multigraph=False,directed=True)
-      if 'igversion' in self.G.graph:
+    if 'igversion' in self.G.graph:
         if self.G.graph['igversion'] != igversion:
           raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
-      self.G.graph['igversion'] = igversion
-      if 'idcount' in self.G.graph:
-        self.idc = self.G.graph['idcount']
-      elif self.G.has_node('idcount'):
-        self.idc = self.G.node['idcount']['count']
-        self.G.graph['idcount']=self.idc
-        self.G.remove_node('idcount')
+    self.G.graph['igversion'] = igversion
+    if 'idcount' in self.G.graph:
+      self.idc = self.G.graph['idcount']
+    elif self.G.has_node('idcount'):
+      self.idc = self.G.node['idcount']['count']
+      self.G.graph['idcount']=self.idc
+      self.G.remove_node('idcount')
     self.dir = os.path.abspath(os.path.split(pathname)[0])
+    if 'username' not in self.G.graph:
+      self.G.graph['username']=get_username()
+    if 'projecttype' not in self.G.graph:
+      self.G.graph['projecttype']=projecttype
      
   def getCycleNode(self):
      l = list(nx.simple_cycles(self.G))
@@ -401,13 +420,13 @@ class ImageGraph:
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
      self._copy_contents(currentdir)
      with open(filename, 'w') as f:
-        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='latin')
+        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='utf-8')
      self.filesToRemove.clear()
 
   def save(self):
      filename=os.path.abspath(os.path.join(self.dir,self.G.name + '.json'))
      with open(filename, 'w') as f:
-        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='latin')
+        jg = json.dump(json_graph.node_link_data(self.G),f,indent=2,encoding='utf-8')
      for f in self.filesToRemove:
        os.remove(f)
      self.filesToRemove.clear()
@@ -577,8 +596,8 @@ class ImageGraph:
 
 class VideoGraph(ImageGraph):
 
-  def __init__(self, pathname):
-    ImageGraph.__init__(self,pathname,projecttype='video')
+  def __init__(self, pathname,graph=None):
+    ImageGraph.__init__(self,pathname,graph=graph,projecttype='video')
 
   def openImage(self,fileName, metadata={},mask=False):
     imgDir = os.path.split(os.path.abspath(fileName))[0]

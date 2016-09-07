@@ -24,8 +24,9 @@ class Operation:
    mandatoryparameters = []
    rules = []
    analysisOperations = []
+   transitions= []
 
-   def __init__(self, name='', category='', includeInMask=False, rules=[],optionalparameters=[],mandatoryparameters=[],description=None,analysisOperations=[]):
+   def __init__(self, name='', category='', includeInMask=False, rules=[],optionalparameters=[],mandatoryparameters=[],description=None,analysisOperations=[],transitions=[]):
      self.name = name
      self.category = category
      self.includeInMask = includeInMask
@@ -34,7 +35,7 @@ class Operation:
      self.optionalparameters = optionalparameters
      self.description = description
      self.analysisOperations=analysisOperations
-
+     self.transitions=transitions
     
    def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, 
@@ -48,9 +49,16 @@ def getOperations():
   global operations
   return operations
 
-def getOperationsByCategory():
+def getOperationsByCategory(sourcetype, targettype):
   global operationsByCategory
-  return operationsByCategory
+  result = {}
+  transition = sourcetype + '.' + targettype
+  for name,op in operations.iteritems():
+     if transition in op.transitions:
+        if op.category not in result:
+          result[op.category] = []
+        result[op.category].append(op.name)
+  return result
 
 def getSoftwareSet():
   global softwareset
@@ -71,7 +79,7 @@ def loadJSON(fileName):
     with open(fileName,'r') as f:
       ops = json.load(f)
       for op in ops['operations']:
-        res[op['name']]= Operation(name=op['name'],category=op['category'],includeInMask=op['includeInMask'], rules=op['rules'],optionalparameters=op['optionalparameters'],mandatoryparameters=op['mandatoryparameters'],description=op['description'] if 'description' in op else None, analysisOperations=op['analysisOperations'] if 'analysisOperations' in op else [])
+        res[op['name']]= Operation(name=op['name'],category=op['category'],includeInMask=op['includeInMask'], rules=op['rules'],optionalparameters=op['optionalparameters'],mandatoryparameters=op['mandatoryparameters'],description=op['description'] if 'description' in op else None, analysisOperations=op['analysisOperations'] if 'analysisOperations' in op else [],transitions=op['transitions'] if 'transitions' in op else [])
     return res
 
 def loadOperations(fileName):

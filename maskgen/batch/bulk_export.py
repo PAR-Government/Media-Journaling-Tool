@@ -1,13 +1,13 @@
 import os
 import sys
 import argparse
-import scenario_model
+import maskgen.scenario_model
 
-def pick_dirs(directory):
+def pick_projects(directory):
     """
     Finds all subdirectories in directory containing a .json file
     :param directory: string containing directory of subdirectories to search
-    :return: list containing valid project directories
+    :return: list projects found under the given directory
     """
     ext = '.json'
     subs = [x[0] for x in os.walk(directory)]
@@ -28,12 +28,12 @@ def upload_projects(values, dir):
     :param dir: directory of project directories
     """
 
-    projects = pick_dirs(dir)
+    projects = pick_projects(dir)
     if not projects:
         sys.exit('No projects found!')
 
     for project in projects:
-        sm = scenario_model.ProjectModel(project)
+        sm = scenario_model.loadProject(project)
         sm.exporttos3(values)
 
 

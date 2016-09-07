@@ -1,6 +1,6 @@
 import argparse
 import os
-import scenario_model
+import maskgen.scenario_model
 import bulk_export
 
 def main():
@@ -8,11 +8,11 @@ def main():
     parser.add_argument('-d', '--dir', required=True, help='Directory of projects')
     args = parser.parse_args()
 
-    dirs = bulk_export.pick_dirs(args.dir)
+    dirs = bulk_export.pick_projects(args.dir)
     total = len(dirs)
     count = 1
     for d in dirs:
-        sm = scenario_model.ImageProjectModel(d)
+        sm = scenario_model.loadProject(d)
         p = sm.getNodeNames()
         for node in p:
             sm.labelNodes(node)

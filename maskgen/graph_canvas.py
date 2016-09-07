@@ -205,14 +205,14 @@ class MaskGraphCanvas(tk.Canvas):
             nodeId = self.itemToNodeIds[item]
             node = self.scModel.getGraph().get_node(nodeId)
             preds = self.scModel.getGraph().predecessors(nodeId)
-            im = self.scModel.getImage(nodeId)
-            file = node['file']
+            im,filename = self.scModel.getImageAndName(nodeId)
+            file = os.path.split(filename)[1]
             ok = False
             if self.crossHairConnect:
               if nodeId == self.scModel.start:
                  tkMessageBox.showwarning("Error", "Cannot connect to the same node")
               elif (len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0],nodeId))):
-                 d = DescriptionCaptureDialog(self.master,self.uiProfile,self.scModel.get_dir(),im,file)
+                 d = DescriptionCaptureDialog(self.master,self.uiProfile,self.scModel.getStartType(),self.scModel.getNodeFileType(nodeId),self.scModel.get_dir(),im,file)
                  if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                    msg,ok = self.scModel.connect(nodeId,mod=d.description)
                    if msg is not None:

@@ -302,7 +302,8 @@ class MakeGenUI(Frame):
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
             return
-        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(file)[1])
+        filetype = fileType(file)
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.getStartType(),filetype,self.scModel.get_dir(),im,os.path.split(file)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg,status = self.scModel.addNextImage(file,mod=d.description)
             if msg is not None:
@@ -318,7 +319,8 @@ class MakeGenUI(Frame):
             tkMessageBox.showwarning("Auto Connect","No suitable loaded images found")
             return
         im,filename = self.scModel.getImageAndName(destination)
-        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        filetype = fileType(filename)
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.getStartType(),filetype,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.connect(destination,mod=d.description)
             self.drawState()
@@ -330,7 +332,8 @@ class MakeGenUI(Frame):
         if (filename is None): 
             tkMessageBox.showwarning("Auto Connect","Next image file cannot be automatically determined")
             return
-        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.get_dir(),im,os.path.split(filename)[1])
+        filetype = fileType(filename)
+        d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.getStartType(),filetype,self.scModel.get_dir(),im,os.path.split(filename)[1])
         if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg,status = self.scModel.addNextImage(filename,mod=d.description)
             if msg is not None:
@@ -555,7 +558,7 @@ class MakeGenUI(Frame):
        im,filename = self.scModel.currentImage()
        if (im is None): 
             return
-       d = DescriptionCaptureDialog(self,self.uiProfile, self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
+       d = DescriptionCaptureDialog(self,self.uiProfile,self.scModel.getStartType(), self.scModel.getEndType(),self.scModel.get_dir(),im,os.path.split(filename)[1],description=self.scModel.getDescription())
        if (d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
            self.scModel.update_edge(d.description)
        self.drawState()
@@ -571,7 +574,7 @@ class MakeGenUI(Frame):
        if (im is None): 
             return
        name = self.scModel.start + ' to ' + self.scModel.end
-       d = CompositeCaptureDialog(self,self.scModel.get_dir(),im,name,self.scModel.getDescription())
+       d = CompositeCaptureDialog(self,self.scModel.getStartType(),self.scModel.getEndType(),self.scModel.get_dir(),im,name,self.scModel.getDescription())
        if not d.cancelled:
          self.scModel.update_edge(d.modification)
 

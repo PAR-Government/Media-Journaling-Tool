@@ -4,13 +4,12 @@ Bulk Image Journal Processing
 import argparse
 import sys
 import itertools
-from software_loader import *
-import scenario_model
-import tool_set
+from maskgen.software_loader import *
+import maskgen.scenario_model
+import maskgen.tool_set
 import bulk_export
-import group_operations
-import plugins
-import software_loader
+import maskgen.group_operations
+import maskgen.plugins
 
 
 def check_ops(ops, soft, args):
@@ -193,7 +192,7 @@ def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username)
         iterator = create_image_list(sourceDir)
     else:
         new = False
-        iterator = bulk_export.pick_dirs(projects)
+        iterator = bulk_export.pick_projects(projects)
 
     total = len(iterator)
     processNo = 1
@@ -225,11 +224,11 @@ def process_jpg(projects):
     :param projects: directory of projects
     :return: None
     """
-    projectList = bulk_export.pick_dirs(projects)
+    projectList = bulk_export.pick_projects(projects)
     total = len(projectList)
     processNo = 1
     for project in projectList:
-        sm = scenario_model.ImageProjectModel(project)
+        sm = scenario_model.loadProject(project)
         plugins.loadPlugins()
         op = group_operations.ToJPGGroupOperation(sm)
         op.performOp()
@@ -267,7 +266,7 @@ def main():
                        args.technicalSummary, args.username)
     elif args.sourceDir:
         check_ops(ops, soft, args)
-        additionalArgs = check_additional_args(args.additional, software_loader.getOperation(args.op))
+        additionalArgs = check_additional_args(args.additional, getOperation(args.op))
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
                 args.softwareVersion, args.description, args.inputmaskpath, additionalArgs,
                 args.projectDescription, args.technicalSummary, args.username)

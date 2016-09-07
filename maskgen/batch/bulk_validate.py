@@ -1,9 +1,9 @@
 import argparse
 
-import scenario_model
-from software_loader import *
+from maskgen import scenario_model
+from maskgen.software_loader import *
 import bulk_export
-import graph_rules
+from maskgen import graph_rules
 import csv
 import os
 
@@ -17,17 +17,16 @@ def main():
 
     graph_rules.setup()
 
-    projectList = bulk_export.pick_dirs(args.projectDir)
+    projectList = bulk_export.pick_projects(args.projectDir)
 
     with open(os.path.join(args.projectDir,'ErrorReport.csv'), 'wb') as csvfile:
         errorWriter = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for project in projectList:
             name = os.path.basename(project)
-            sm = scenario_model.ProjectModel(os.path.join(project, name + '.json'))
+            sm = scenario_model.loadProject(project)
             errorList = sm.validate()
             for err in errorList:
                 errorWriter.writerow((name, str(err)))
-
 
 if __name__ == '__main__':
     main()
