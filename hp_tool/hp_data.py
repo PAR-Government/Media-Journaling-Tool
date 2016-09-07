@@ -82,7 +82,12 @@ def parse_prefs(data):
 
     return newData
 
-def parse_GPS(coordinate):
+def convert_GPS(coordinate):
+    """
+    Converts lat/long output from exiftool (DMS) to decimal degrees
+    :param coordinate: string of coordinate in the form 'X degrees Y' Z' N/S/W/E'
+    :return: (string) input coordinate in decimal degrees, rounded to 6 decimal places
+    """
     coord = coordinate.split(' ')
     whole = float(coord[0])
     direction = coord[-1]
@@ -550,8 +555,8 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 k += 1
             j += diff
             if data[i][20] and data[i][22]:
-                data[i][20] = parse_GPS(data[i][20])
-                data[i][22] = parse_GPS(data[i][22])
+                data[i][20] = convert_GPS(data[i][20])
+                data[i][22] = convert_GPS(data[i][22])
 
     return data
 
