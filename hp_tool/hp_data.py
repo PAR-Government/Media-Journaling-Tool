@@ -11,8 +11,8 @@ import change_all_metadata
 import datetime
 import sys
 import csv
-import boto3
-import botocore
+# import boto3
+# import botocore
 import hashlib
 import subprocess
 from PIL import Image, ImageStat
@@ -572,7 +572,6 @@ def main():
     parser.add_argument('-S', '--secondary',        default=os.getcwd(),            help='Secondary storage location for copies')
     parser.add_argument('-P', '--preferences',      default='preferences.txt',      help='User preferences file')
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
-    parser.add_argument('-B', '--s3Bucket',         default ='',                    help='S3 bucket/path')
 
     parser.add_argument('-T', '--tally',            action='store_true',            help='Produce tally output')
     parser.add_argument('-i', '--id',               default='',                     help='Camera serial #')
@@ -595,17 +594,8 @@ def main():
     parser.add_argument('-C', '--collection',       default='',                     help='Collection Assignment ID')
 
     args = parser.parse_args()
-    if args.s3Bucket:
-        try:
-            s3_prefs([args.s3Bucket])
-        except botocore.exceptions.ClientError:
-            try:
-                s3_prefs([args.s3Bucket], upload=True)
-            except botocore.exceptions.ClientError:
-                sys.exit('Bucket/path not found!')
-        prefs = parse_prefs('preferences.txt')
-    else:
-        prefs = parse_prefs(args.preferences)
+
+    prefs = parse_prefs(args.preferences)
 
     print 'Successfully pulled preferences'
 
@@ -660,8 +650,6 @@ def main():
     print 'Successfully copy and rename of files'
 
     write_seq(args.preferences, pad_to_5_str(count))
-    if args.s3Bucket:
-        s3_prefs([args.s3Bucket], upload=True)
     print 'Successful preferences update'
 
     # change metadata of copies
