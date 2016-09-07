@@ -55,9 +55,9 @@ def parse_prefs(data):
     try:
         with open(data) as f:
             for line in f:
-                line = line.rstrip('\n')
+                line = line.strip('\n')
                 (tag, descr) = line.split('=')
-                newData[tag.lower()] = descr
+                newData[tag.lower().strip()] = descr
     except IOError:
         print('Input file: ' + data + ' not found. ' + 'Please try again.')
         sys.exit()
@@ -226,7 +226,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-                historyWriter.writerow([newNameList[imNo], info[imNo][0], info[imNo][1], imageList[imNo], md5] + info[imNo][2:])
+                historyWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5] + info[imNo][2:])
         else:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
@@ -248,7 +248,7 @@ def build_history_file(imageList, newNameList, csvFile):
         historyWriter.writerow(['Original Name', 'New Name', 'MD5'])
         for imNo in range(len(imageList)):
             md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-            historyWriter.writerow([imageList[imNo], newNameList[imNo], md5])
+            historyWriter.writerow([os.path.basename(imageList[imNo]), os.path.basename(newNameList[imNo]), md5])
 
 def parse_extra(data, csvFile):
     """
