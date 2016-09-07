@@ -237,7 +237,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
 
     with open(csvFile, 'a') as csv_history:
         historyWriter = csv.writer(csv_history, lineterminator='\n')
-        historyWriter.writerow(['ImageFilename', 'CollectionRequestID', 'HDLocation', 'OriginalImageName', 'MD5',
+        historyWriter.writerow(['ImageFilename', 'CollectionAssignmentID', 'HDLocation', 'OriginalImageName', 'MD5',
                                 'DeviceSN', 'DeviceLocalID', 'LensSN', 'LensLocalId', 'FileType', 'JpgQuality',
                                'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                'DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'Location',
@@ -527,7 +527,6 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 elif len(imageList) - counter <= 500:
                     exifDataStr += subprocess.Popen(['exiftool','-f'] + exiftoolargs + imageList[counter:],
                                                 stdout=subprocess.PIPE).communicate()[0]
-                    # -2?
                 exifDataList = exifDataStr.split(os.linesep)[:-2]
                 exifData.extend(exifDataList[:])
                 counter += 500
@@ -593,7 +592,7 @@ def main():
     parser.add_argument('-a', '--focusmode',        default='',                     help='Focus Mode')
     parser.add_argument('-l', '--location',         default='',                     help='location')
     parser.add_argument('-c', '--filter',           default='',                     help='On-board filter')
-    parser.add_argument('-C', '--collection',       default='',                     help='Collection Req #')
+    parser.add_argument('-C', '--collection',       default='',                     help='Collection Assignment ID')
 
     args = parser.parse_args()
     if args.s3Bucket:
