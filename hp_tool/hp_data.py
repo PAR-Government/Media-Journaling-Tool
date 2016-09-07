@@ -412,7 +412,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     24. ImageWidth
     25. ImageHeight
     """
-    exiftoolstr = ''
+    exiftoolargs = []
     data = []
     master = [collReq, hd, '', localcam, '', locallens] + [''] * 8 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4
     missingIdx = []
@@ -420,95 +420,96 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     if camera:
         master[2] = camera
     else:
-        exiftoolstr += '-SerialNumber '
+        exiftoolargs.append('-SerialNumber')
         missingIdx.append(2)
 
     if lens:
         master[4] = lens
     else:
-        exiftoolstr += '-LensSerialNumber '
+        exiftoolargs.append('-LensSerialNumber')
         missingIdx.append(4)
 
-    exiftoolstr += '-JPEG_Quality '
+    exiftoolargs.append('-JPEG_Quality')
     missingIdx.append(7)
 
     if sspeed:
         master[8] = sspeed
     else:
-        exiftoolstr += '-ExposureTime '
+        exiftoolargs.append('-ExposureTime')
         missingIdx.append(8)
 
     if fnum:
         master[9] = fnum
     else:
-        exiftoolstr += '-FNumber '
+        exiftoolargs.append('-FNumber')
         missingIdx.append(9)
 
     if expcomp:
         master[10] = expcomp
     else:
-        exiftoolstr += '-ExposureCompensation '
+        exiftoolargs.append('-ExposureCompensation')
         missingIdx.append(10)
 
     if iso:
         master[11] = iso
     else:
-        exiftoolstr += '-ISO '
+        exiftoolargs.append('-ISO')
         missingIdx.append(11)
 
     if noisered:
         master[12] = noisered
     else:
-        exiftoolstr += '-NoiseReduction '
+        exiftoolargs.append('-NoiseReduction')
         missingIdx.append(12)
 
     if whitebal:
         master[13] = whitebal
     else:
-        exiftoolstr += '-WhiteBalance '
+        exiftoolargs.append('-WhiteBalance')
         missingIdx.append(13)
 
     if expmode:
         master[15] = expmode
     else:
-        exiftoolstr += '-ExposureMode '
+        exiftoolargs.append('-ExposureMode')
         missingIdx.append(15)
 
     if flash:
         master[16] = flash
     else:
-        exiftoolstr += '-Flash '
+        exiftoolargs.append('-Flash')
         missingIdx.append(16)
 
     if focusMode:
         master[17] = focusMode
     else:
-        exiftoolstr += '-FocusMode '
+        exiftoolargs.append('-FocusMode')
         missingIdx.append(17)
 
 
-    exiftoolstr += '-BitsPerSample -GPSLatitude -GPSLongitude -CreateDate -ImageWidth -ImageHeight '
+    exiftoolargs.extend(['-BitsPerSample','-GPSLatitude','-GPSLongitude','-CreateDate','-ImageWidth','-ImageHeight'])
     missingIdx.extend([23, 20, 22, 18, 24, 25])
 
-    if exiftoolstr:
+    if len(exiftoolargs) > 0:
         counter = 0
         exifDataStr = ''
         exifData = []
         if path:
             if rec:
-                exifDataStr += subprocess.Popen('exiftool -f -r ' + exiftoolstr + path, stdout=subprocess.PIPE).communicate()[0]
+                exifDataStr += subprocess.Popen(['exiftool', '-f', '-r'] + exiftoolargs + [path], stdout=subprocess.PIPE).communicate()[0]
             else:
-                exifDataStr += subprocess.Popen('exiftool -f ' + exiftoolstr + path, stdout=subprocess.PIPE).communicate()[0]
-            exifData = exifDataStr.split('\r\n')[:-3]
+                exifDataStr += subprocess.Popen(['exiftool','-f'] + exiftoolargs + [path], stdout=subprocess.PIPE).communicate()[0]
+            exifData = exifDataStr.split(os.linesep)[:-3]
         else:
             while counter < len(imageList):
                 if len(imageList) - counter > 500:
-                    exifDataStr += subprocess.Popen('exiftool -f ' + exiftoolstr + ' '.join(imageList[counter:counter+500]),
+                    exifDataStr += subprocess.Popen(['exiftool', '-f'] + exiftoolargs + imageList[counter:counter+500],
                                                 stdout=subprocess.PIPE).communicate()[0]
                 elif len(imageList) - counter <= 500:
-                    exifDataStr += subprocess.Popen('exiftool -f ' + exiftoolstr + ' '.join(imageList[counter:]),
+                    exifDataStr += subprocess.Popen(['exiftool','-f'] + exiftoolargs + imageList[counter:],
                                                 stdout=subprocess.PIPE).communicate()[0]
-                exifDataList = exifDataStr.split('\r\n')[:-2]
+                    # -2?
+                exifDataList = exifDataStr.split(os.linesep)[:-2]
                 exifData.extend(exifDataList[:])
                 counter += 500
 
