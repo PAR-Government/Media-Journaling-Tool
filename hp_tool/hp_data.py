@@ -57,7 +57,7 @@ def parse_prefs(data):
             for line in f:
                 line = line.strip('\n')
                 (tag, descr) = line.split('=')
-                newData[tag.lower().strip()] = descr
+                newData[tag.lower().strip()] = descr.strip()
     except IOError:
         print('Input file: ' + data + ' not found. ' + 'Please try again.')
         sys.exit()
