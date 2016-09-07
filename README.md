@@ -46,12 +46,16 @@ conda remove pillow
 pip install Image
 ```
 
+OpenCV is installed with:
+```
+conda install -c https://conda.binstar.org/menpo opencv
+```
 # Usage
 
 ## Starting the UI
 
 Add src/python to your PYTHONPATH.
-Assumes operations.csv and software.csv are located in the same directory as the tool.
+Assumes operations.json and software.csv are located in the same directory as the tool.
 
 
 ```
