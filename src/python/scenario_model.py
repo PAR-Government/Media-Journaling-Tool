@@ -814,8 +814,10 @@ class ImageProjectModel:
        for pred in preds:
           if pred in visitSet:
              continue
-          visitSet.append(pred)
-          res.extend(self._findBaseNodesWithCycleDetection(pred,excludeDonor=excludeDonor,visitSet=visitSet) if (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor) else [])
+          isNotDonor = (self.G.get_edge(pred,node)['op'] != 'Donor' or not excludeDonor)
+          if isNotDonor:
+            visitSet.append(pred)
+          res.extend(self._findBaseNodesWithCycleDetection(pred,excludeDonor=excludeDonor,visitSet=visitSet) if isNotDonor else [])
        return res
 
     def isDonorEdge(self,start,end):

@@ -46,6 +46,10 @@ conda remove pillow
 pip install Image
 ```
 
+OpenCV is installed with:
+```
+conda install -c https://conda.binstar.org/menpo opencv
+```
 # Usage
 
 ## Starting the UI
