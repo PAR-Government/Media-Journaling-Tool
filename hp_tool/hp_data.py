@@ -82,6 +82,25 @@ def parse_prefs(data):
 
     return newData
 
+def convert_GPS(coordinate):
+    """
+    Converts lat/long output from exiftool (DMS) to decimal degrees
+    :param coordinate: string of coordinate in the form 'X degrees Y' Z' N/S/W/E'
+    :return: (string) input coordinate in decimal degrees, rounded to 6 decimal places
+    """
+    coord = coordinate.split(' ')
+    whole = float(coord[0])
+    direction = coord[-1]
+    min = float(coord[2][:-1])
+    sec = float(coord[3][:-1])
+
+    dec = min + (sec/60)
+    dd = round(whole + dec/60, 6)
+
+    if direction == 'S' or direction == 'W':
+        dd *= -1
+
+    return str(dd)
 
 def pad_to_5_str(num):
     """
@@ -218,7 +237,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
 
     with open(csvFile, 'a') as csv_history:
         historyWriter = csv.writer(csv_history, lineterminator='\n')
-        historyWriter.writerow(['ImageFilename', 'CollectionRequestID', 'HDLocation', 'OriginalImageName', 'MD5',
+        historyWriter.writerow(['ImageFilename', 'CollectionAssignmentID', 'HDLocation', 'OriginalImageName', 'MD5',
                                 'DeviceSN', 'DeviceLocalID', 'LensSN', 'LensLocalId', 'FileType', 'JpgQuality',
                                'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                'DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'Location',
@@ -508,7 +527,6 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 elif len(imageList) - counter <= 500:
                     exifDataStr += subprocess.Popen(['exiftool','-f'] + exiftoolargs + imageList[counter:],
                                                 stdout=subprocess.PIPE).communicate()[0]
-                    # -2?
                 exifDataList = exifDataStr.split(os.linesep)[:-2]
                 exifData.extend(exifDataList[:])
                 counter += 500
@@ -520,8 +538,8 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
             if sub in item:
                 imageIndices.append(idx)
             else:
-                val = item.split(':', 1)[1]
-                if val == ' -':
+                val = item.split(':', 1)[1].strip()
+                if val == '-':
                     val = ''
                 newExifData.append(val)
         data = []
@@ -536,6 +554,9 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 data[i][dataIdx] = newExifSubset[k]
                 k += 1
             j += diff
+            if data[i][20] and data[i][22]:
+                data[i][20] = convert_GPS(data[i][20])
+                data[i][22] = convert_GPS(data[i][22])
 
     return data
 
@@ -571,7 +592,7 @@ def main():
     parser.add_argument('-a', '--focusmode',        default='',                     help='Focus Mode')
     parser.add_argument('-l', '--location',         default='',                     help='location')
     parser.add_argument('-c', '--filter',           default='',                     help='On-board filter')
-    parser.add_argument('-C', '--collection',       default='',                     help='Collection Req #')
+    parser.add_argument('-C', '--collection',       default='',                     help='Collection Assignment ID')
 
     args = parser.parse_args()
     if args.s3Bucket:
@@ -617,8 +638,10 @@ def main():
         add_seq(args.preferences)
 
 
-    csv_keywords = os.path.join(args.secondary, 'keywords.csv')
-    csv_metadata = os.path.join(args.secondary, 'xdata.csv')
+    csv_keywords = os.path.join(args.secondary, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
+                    prefs['organization'] + prefs['username'] + '-' + 'keywords.csv')
+    csv_metadata = os.path.join(args.secondary, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
+                    prefs['organization'] + prefs['username'] + '-' + 'xdata.csv')
     try:
         extraValues = parse_extra(args.extraMetadata, csv_metadata)
     except TypeError:
@@ -651,19 +674,19 @@ def main():
 
 
     print 'Building RIT file'
-    csv_rit = os.path.join(args.secondary, 'rit.csv')
+    csv_rit = os.path.join(args.secondary, os.path.basename(newNameList[0])[0:11] + 'rit.csv')
     build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
     'Success'
 
     # history file:
     print 'Building history file'
-    csv_history = os.path.join(args.secondary, 'history.csv')
+    csv_history = os.path.join(args.secondary, os.path.basename(newNameList[0])[0:11] + 'history.csv')
     build_history_file(imageList, newNameList, csv_history)
 
     if args.tally:
         # write final csv
         print 'Building tally file'
-        csv_tally = os.path.join(args.secondary, 'tally.csv')
+        csv_tally = os.path.join(args.secondary, os.path.basename(newNameList[0])[0:11] + 'tally.csv')
         tally_images(imageInfo, csv_tally)
         print 'Successfully tallied image data'
 

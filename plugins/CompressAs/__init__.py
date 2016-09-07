@@ -117,12 +117,13 @@ def save_as(source, target, qTables):
     im.save(target, subsampling=1, qtables=finalTable)
     if thumbTable:
         im.thumbnail((128,128))
-        tempFile = tempfile.mkstemp(suffix='.jpg')[1]
+        fd, tempFile = tempfile.mkstemp(suffix='.jpg')
         im.save(tempFile, subsampling=1, qtables=thumbTable)
         try:
           runexiftool(['-overwrite_original','-P','-m','-"ThumbnailImage<=' + tempFile + '"',target])
           runexiftool(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         finally:
+          os.close(fd)
           os.remove(tempFile)
     im.close()
 
