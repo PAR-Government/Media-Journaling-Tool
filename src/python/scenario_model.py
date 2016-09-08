@@ -361,7 +361,10 @@ class ImageProjectModel:
          mod_name, func_name = analysisOp.rsplit('.',1)
          mod = importlib.import_module(mod_name)
          func = getattr(mod, func_name)
-         func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
+         try:
+           func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
+         except:
+	   print 'Failed analysis'
 
     def _compareImages(self,start,destination, op, invert=False, arguments={},skipDonorAnalysis=False):
        startIm,startFileName = self.getImageAndName(start)
