@@ -49,13 +49,17 @@ def fromFileTypeString(types, profileTypes):
           result.append((ft,ft))
     return result
 
+def projectProperties(self):
+    return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
+
 class UIProfile:
-    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("all files","*.*")]
-    suffixes = ["*.nef",".jpg",".png",".tiff","*.bmp"]
+    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("avi files","*.avi"),("mpeg files","*.mp4"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
+    suffixes = ["*.nef",".jpg",".png",".tiff","*.bmp",".avi",".mp4",".mov","*.wmv"]
     operations='operations.json'
     software='software.csv'
     filetypespref = 'filetypes'
-    name = 'Image'
+    name = 'Image/Video'
+
     def getFactory(self): 
       return imageProjectModelFactory
 
@@ -66,34 +70,6 @@ class UIProfile:
     def addAccelerators(self,parent):
       parent.bind_all('<Control-j>',parent.gcreateJPEG)
 
-    def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
-        return CompareDialog(master,im2,mask,nodeId,analysis)
-
-    def projectProperties(self):
-        return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
-
-
-class VideoProfile:
-    filetypes = [("avi files","*.avi"),("mpeg files","*.mp4"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
-    suffixes = [".avi",".mp4",".mov","*.wmv"]
-    operations='video_operations.json'
-    software='video_software.csv'
-    name = 'Video'
-    filetypespref = 'videofiletypes'
-    def getFactory(self): 
-      return videoProjectModelFactory
-
-    def addAccelerators(self,parent):
-      return None
-
-    def addProcessCommand(self,menu,func):
-      return None
-
-    def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
-        return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
-
-    def projectProperties(self):
-        return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
 
 class MakeGenUI(Frame):
 
@@ -469,7 +445,7 @@ class MakeGenUI(Frame):
            self.errorlistDialog.setItems(errorList)
 
     def getproperties(self):
-        d = PropertyDialog(self,self.uiProfile.projectProperties())
+        d = PropertyDialog(self,projectProperties())
 
     def groupmanager(self):
         d = GroupManagerDialog(self)
@@ -751,7 +727,6 @@ def main(argv=None):
 
    parser = argparse.ArgumentParser(description='')
    parser.add_argument('--imagedir', help='image directory',nargs=1)
-   parser.add_argument('--videodir', help='video directory',nargs=1)
    parser.add_argument('--base', help='base image or video',nargs=1)
    parser.add_argument('--s3', help="s3 bucket/directory ",nargs='+')
    parser.add_argument('--http', help="http address and header params",nargs='+')
@@ -765,9 +740,6 @@ def main(argv=None):
        loadHTTP(args.http)
    elif args.s3 is not None:
        loadS3(args.s3)
-   if args.videodir is not None:
-     uiProfile = VideoProfile()
-     imgdir = args.videodir
    loadOperations(uiProfile.operations)
    loadSoftware(uiProfile.software)
    root= Tk()

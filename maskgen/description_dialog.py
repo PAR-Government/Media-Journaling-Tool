@@ -170,10 +170,18 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       self.mandatoryinfo = []
       if op is not None:
         for k,v in op.mandatoryparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+               continue
+            if 'target' in v and v['target'] != self.targetfiletype:
+               continue
             self.__addToBox(k,True)
             self.arginfo.append((k,v))
             self.mandatoryinfo.append(k)
         for k,v in op.optionalparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+               continue
+            if 'target' in v and v['target'] != self.targetfiletype:
+               continue
             self.__addToBox(k,False)
             self.arginfo.append((k,v))
       if self.okButton is not None:
@@ -389,10 +397,10 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
 
    def __init__(self,parent,scModel):
       self.scModel = scModel
-      tkSimpleDialog.Dialog.__init__(self, parent, "Select " + scModel.getTypeName() + " Node")
+      tkSimpleDialog.Dialog.__init__(self, parent, "Select Node")
 
    def body(self, master):
-      Label(master, text=self.scModel.getTypeName() + " Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
+      Label(master, text="Node Name:",anchor=W,justify=LEFT).grid(row=0, column=0,sticky=W)
       self.box = AutocompleteEntryInText(master,values=self.scModel.getNodeNames(), takefocus=True)
       self.box.grid(row=0,column=1)
       self.c = Canvas(master, width=250, height=250)
@@ -1008,3 +1016,10 @@ class EntryDialog(tkSimpleDialog.Dialog):
          )
          return 0
       return 1
+
+
+def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir,linktype):
+   if linktype == 'image.image':
+     return CompareDialog(master,im2,mask,nodeId,analysis)
+   elif linktype == 'video.video':
+     return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)

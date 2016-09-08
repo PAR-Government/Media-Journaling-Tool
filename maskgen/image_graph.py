@@ -79,10 +79,7 @@ def createGraph(pathname,projecttype=None):
    if (os.path.exists(pathname) and pathname.endswith('.json')):
      G = loadJSONGraph(pathname)
      projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
-   if projecttype == 'video':
-     return VideoGraph(pathname,graph=G)
-   else:
-     return ImageGraph(pathname,graph=G)
+   return ImageGraph(pathname,graph=G,projecttype=projecttype)
 
 class ImageGraph:
   G = nx.DiGraph(name="Empty")
@@ -108,20 +105,24 @@ class ImageGraph:
   def get_name(self):
     return self.G.name
 
-  def __init__(self, pathname,graph=None,projecttype='image'):
+  def __init__(self, pathname,graph=None,projecttype=None):
     fname = os.path.split(pathname)[1]
     name = get_pre_name(fname)
     self.G = graph if graph is not None else nx.DiGraph(name=name)
     self._setup(pathname,projecttype)
 
-  def openImage(self,fileName,mask=False):
-    return openImage(fileName)
+  def openImage(self,fileName,mask=False,metadata={}):
+    imgDir = os.path.split(os.path.abspath(fileName))[0]
+    return openImage(fileName, \
+                     videoFrameTime=None if 'change_pts_time' not in metadata else metadata['change_pts_time'], \
+                     isMask=mask, \
+                     preserveSnapshot=imgDir== os.path.abspath(self.dir))
 
   def get_nodes(self):
     return self.G.nodes()
 
   def get_project_type(self):
-    return self.G.graph['projecttype']
+    return  self.G.graph['projecttype'] if 'projecttype' in self.G.graph else None
  
   def edges_iter(self, node):
     return self.G.edges_iter(node)
@@ -403,7 +404,7 @@ class ImageGraph:
     self.dir = os.path.abspath(os.path.split(pathname)[0])
     if 'username' not in self.G.graph:
       self.G.graph['username']=get_username()
-    if 'projecttype' not in self.G.graph:
+    if 'projecttype' not in self.G.graph and projecttype is not None:
       self.G.graph['projecttype']=projecttype
      
   def getCycleNode(self):
@@ -594,18 +595,4 @@ class ImageGraph:
         os.remove(filename)
       return errors
 
-class VideoGraph(ImageGraph):
-
-  def __init__(self, pathname,graph=None):
-    ImageGraph.__init__(self,pathname,graph=graph,projecttype='video')
-
-  def openImage(self,fileName, metadata={},mask=False):
-    imgDir = os.path.split(os.path.abspath(fileName))[0]
-    return openImage(fileName, \
-                     videoFrameTime=None if 'change_pts_time' not in metadata else metadata['change_pts_time'], \
-                     isMask=mask, \
-                     preserveSnapshot=imgDir== os.path.abspath(self.dir))
-
-  def _saveImage(self,pathname,image):
-    image.save(pathname,exif=image.info['exif'])
 

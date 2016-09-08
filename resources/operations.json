@@ -1061,7 +1061,7 @@
         },
         "End Time": {
           "type":"time",
-	  "source":"image",
+	  "source":"video",
           "description": "End time of the image clip (HH:MI:SS.micro)"
         }
       }, 

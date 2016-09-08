@@ -175,7 +175,7 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
         return openImage('./icons/RedX.png')
      img = Image.fromarray(bestSoFar)
      img = img.convert('L')  if isMask else img
-     if preserveSnapshot:
+     if preserveSnapshot and snapshotFileName != filename:
        img.save(snapshotFileName)
      return img
    else:

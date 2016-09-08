@@ -1,4 +1,4 @@
-from image_graph import ImageGraph,VideoGraph,createGraph
+from image_graph import createGraph
 import shutil
 import exif
 import os
@@ -20,18 +20,12 @@ def toIntTuple(tupleString):
 def imageProjectModelFactory(name,**kwargs):
     return ImageProjectModel(name,**kwargs)
 
-def videoProjectModelFactory(name,**kwargs):
-    return VideoProjectModel(name,**kwargs)
-
 def loadProject(projectFileName):
     """
       Given JSON file name, open then the appropriate type of project
     """
     graph = createGraph(projectFileName)
-    if graph.get_project_type() == 'image':
-       return ImageProjectModel(projectFileName,graph=graph)
-    else:
-       return VideoProjectModel(projectFileName,graph=graph)
+    return ImageProjectModel(projectFileName,graph=graph)
 
 def createProject(dir,notify=None,base=None,suffixes = [],projectModelFactory=imageProjectModelFactory,organization=None):
     """ This utility function creates a ProjectModel given a directory.
@@ -263,6 +257,174 @@ class Modification:
      self.category = op.category if op is not None else None
      self.recordMaskInComposite='yes' if op is not None and op.includeInMask else 'no'
 
+class LinkTool:
+
+   def __init__(self):
+      return
+
+   def compareImages(self, start,destination,scModel,op,invert=False, arguments={},skipDonorAnalysis=False):
+       return None,None,{},[]
+
+   def _addAnalysis(self,startIm,destIm,op,analysis,mask,arguments={}):
+       import importlib
+       opData = getOperation(op)
+       if opData is None:
+          return
+       for analysisOp in opData.analysisOperations:
+         mod_name, func_name = analysisOp.rsplit('.',1)
+         mod = importlib.import_module(mod_name)
+         func = getattr(mod, func_name)
+         func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
+
+class ImageImageLinkTool(LinkTool):
+
+   def __init__(self):
+       LinkTool.__init__(self)
+
+   def compare(self, start, end,scModel, arguments={}):
+       """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+           Return both images, the mask and the analysis results (a dictionary)
+       """
+       im1 = scModel.getImage(start)
+       im2 = scModel.getImage(end)
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, arguments=arguments)
+       return im1,im2,mask,analysis
+
+   def compareImages(self,start,destination,scModel, op, invert=False, arguments={},skipDonorAnalysis=False):
+       startIm,startFileName = scModel.getImageAndName(start)
+       destIm,destFileName = scModel.getImageAndName(destination)
+       errors = []
+       maskname=start + '_' + destination + '_mask'+'.png'
+       if op == 'Donor':
+          predecessors = scModel.G.predecessors(destination)
+          mask = None
+          if not skipDonorAnalysis:
+            errors = ["Could not compute SIFT Matrix"]
+            for pred in predecessors:
+              edge = scModel.G.get_edge(pred,destination) 
+              if edge['op']!='Donor':
+                 mask,analysis = tool_set.interpolateMask(scModel.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
+                 if mask is not None:
+                   errors = []
+                   mask = Image.fromarray(mask)
+                   break
+          if mask is None:
+            mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
+            analysis = {}
+       else:
+          mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
+          exifDiff = exif.compareexif(startFileName,destFileName)
+          analysis = analysis if analysis is not None else {}
+          analysis['exifdiff'] = exifDiff
+          self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
+       return maskname,mask, analysis,errors
+
+class ImageVideoLinkTool(LinkTool):
+
+   def __init__(self):
+       LinkTool.__init__(self)
+
+   def compare(self, start, end,scModel, arguments={}):
+       """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+           Return both images, the mask and the analysis results (a dictionary)
+       """
+       im1 = scModel.getImage(start)
+       im2 = scModel.getImage(end)
+       mask, analysis = tool_set.createMask(im1,im2, invert=False, arguments=arguments)
+       return im1,im2,mask,analysis
+
+   def compareImages(self,start,destination,scModel, op, invert=False, arguments={},skipDonorAnalysis=False):
+       startIm,startFileName = scModel.getImageAndName(start)
+       destIm,destFileName = scModel.getImageAndName(destination)
+       errors = []
+       maskname=start + '_' + destination + '_mask'+'.png'
+       if op == 'Donor':
+          predecessors = scModel.G.predecessors(destination)
+          mask = None
+          if not skipDonorAnalysis:
+            errors = ["Could not compute SIFT Matrix"]
+            for pred in predecessors:
+              edge = scModel.G.get_edge(pred,destination) 
+              if edge['op']!='Donor':
+                 mask,analysis = tool_set.interpolateMask(scModel.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
+                 if mask is not None:
+                   errors = []
+                   mask = Image.fromarray(mask)
+                   break
+          if mask is None:
+            mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
+            analysis = {}
+       else:
+          mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
+          exifDiff = exif.compareexif(startFileName,destFileName)
+          analysis = analysis if analysis is not None else {}
+          analysis['exifdiff'] = exifDiff
+          self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
+       return maskname,mask, analysis,errors
+
+
+class VideoVideoLinkTool(LinkTool):
+
+   def __init__(self):
+       LinkTool.__init__(self)
+
+   def compare(self,start,end,scModel,arguments={}):
+       """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+           Return both images, the mask set and the meta-data diff results
+       """
+       startIm,startFileName = scModel.getImageAndName(start)
+       destIm,destFileName = scModel.getImageAndName(end)
+       maskname, mask, analysis,errors = self.compareImages(start,end,'noOp',skipDonorAnalysis=True,arguments=arguments)
+       analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
+       analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
+       analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
+       return  startIm, destIm, mask,analysis
+
+   def _constructDonorMask(self,start,destination,scModel,invert=False,arguments=None):
+       """
+         Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
+         of the Donor image and its parent, it exists.
+         Otherwise, the donor image mask is the donor image (minus alpha channels):
+       """
+       startFileName = startNode['file']
+       suffix = startFileName[startFileName.rfind('.'):]
+       predecessors = scModel.G.predecessors(destination)
+       analysis = {}
+       for pred in predecessors:
+          edge = scModel.G.get_edge(pred,destination)
+          if edge['op']!='Donor':
+             if 'masks count' in edge:
+                analysis['masks count'] = edge['masks count']
+             analysis['videomasks'] = video_tools.invertVideoMasks(scModel.G.dir,edge['videomasks'],start,destination)
+             return maskname,tool_set.invertMask(scModel.G.get_edge_image(pred,start,'maskname')[0]),analysis,errors
+       return maskname,tool_set.convertToMask(scModel.G.get_image(scModel.start)[0]),analysis,errors
+
+   def compareImages(self,start,destination,scModel,op, invert=False,arguments={},skipDonorAnalysis=False):
+       if op == 'Donor':
+          return self._constructDonorMask(start,destination,arguments=arguments)
+       startIm,startFileName = scModel.getImageAndName(start)
+       destIm,destFileName = scModel.getImageAndName(destination)
+       mask,analysis = Image.new("RGB", (250, 250), "black"),{}
+       maskname=start + '_' + destination + '_mask'+'.png'
+       maskSet,errors = video_tools.formMaskDiff(startFileName, destFileName, \
+          startSegment = arguments['Start Time'] if 'Start Time' in arguments else None, \
+          endSegment = arguments['End Time'] if 'End Time' in arguments else None, \
+          applyConstraintsToOutput = op != 'SelectCutFrames')
+# for now, just save the first mask
+       if len(maskSet) > 0:
+          mask = Image.fromarray(maskSet[0]['mask'])
+          for item in maskSet:
+             item.pop('mask')
+       analysis['masks count']=len(maskSet)
+       analysis['videomasks'] = maskSet
+       metaDataDiff = video_tools.formMetaDataDiff(startFileName,destFileName)
+       analysis = analysis if analysis is not None else {}
+       analysis['metadatadiff'] = metaDataDiff
+       self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
+       return maskname,mask, analysis,errors
+
+
+linkTools = { 'image.image' : ImageImageLinkTool(),'video.video': VideoVideoLinkTool(), 'image.video': ImageVideoLinkTool() }
 
 class ImageProjectModel:
     """
@@ -289,9 +451,6 @@ class ImageProjectModel:
     def __init__(self, projectFileName, graph=None,importImage=False, notify=None):
       self._setup(projectFileName,graph=graph)
       self.notify = notify
-
-    def getTypeName(self):
-       return 'Image'
 
     def get_dir(self):
        return self.G.dir
@@ -342,18 +501,18 @@ class ImageProjectModel:
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask and the analysis results (a dictionary)
        """
-       im1 = self.getImage(self.start)
-       im2 = self.getImage(destination)
-       mask, analysis = tool_set.createMask(im1,im2, invert=False, arguments=arguments)
-       return im1,im2,mask,analysis
+       return getLinkTool(self.start, destination).compare(self.start,destination,self,arguments=arguments)
 
     def getMetaDiff(self):
       """ Return the EXIF differences between nodes referenced by 'start' and 'end' 
-      """
+          Return the Frame meta-data differences between nodes referenced by 'start' and 'end'
+       """     
       e = self.G.get_edge(self.start, self.end)
       if e is None:
           return None
-      return MetaDiff(e['exifdiff']) if 'exifdiff' in e and len(e['exifdiff']) > 0 else None
+      videodiff = VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
+      imagediff = MetaDiff(e['exifdiff']) if 'exifdiff' in e and len(e['exifdiff']) > 0 else None
+      return imagediff if imagediff is not None else videodiff
 
     def getTerminalAndBaseNodeTuples(self):
        """
@@ -362,45 +521,6 @@ class ImageProjectModel:
        terminalNodes = [node for node in self.G.get_nodes() if len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
        return [(node,self._findBaseNodes(node)) for node in terminalNodes]
 
-    def _addAnalysis(self,startIm,destIm,op,analysis,mask,arguments={}):
-       import importlib
-       opData = getOperation(op)
-       if opData is None:
-          return
-       for analysisOp in opData.analysisOperations:
-         mod_name, func_name = analysisOp.rsplit('.',1)
-         mod = importlib.import_module(mod_name)
-         func = getattr(mod, func_name)
-         func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
-
-    def _compareImages(self,start,destination, op, invert=False, arguments={},skipDonorAnalysis=False):
-       startIm,startFileName = self.getImageAndName(start)
-       destIm,destFileName = self.getImageAndName(destination)
-       errors = []
-       maskname=start + '_' + destination + '_mask'+'.png'
-       if op == 'Donor':
-          predecessors = self.G.predecessors(destination)
-          mask = None
-          if not skipDonorAnalysis:
-            errors = ["Could not compute SIFT Matrix"]
-            for pred in predecessors:
-              edge = self.G.get_edge(pred,destination) 
-              if edge['op']!='Donor':
-                 mask,analysis = tool_set.interpolateMask(self.G.get_edge_image(pred,destination,'maskname')[0],startIm,destIm,arguments=arguments,invert=invert)
-                 if mask is not None:
-                   errors = []
-                   mask = Image.fromarray(mask)
-                   break
-          if mask is None:
-            mask = tool_set.convertToMask(self.G.get_image(self.start)[0])
-            analysis = {}
-       else:
-          mask,analysis = tool_set.createMask(startIm,destIm, invert=invert,arguments=arguments)
-          exifDiff = exif.compareexif(startFileName,destFileName)
-          analysis = analysis if analysis is not None else {}
-          analysis['exifdiff'] = exifDiff
-          self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
-       return maskname,mask, analysis,errors
 
     def getNodeNames(self):
       return self.G.get_nodes()
@@ -506,7 +626,15 @@ class ImageProjectModel:
        msg,status = self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications,skipRules=skipRules)
        return msg,status
 
-       
+    def getLinkType(self,start,end):
+       return self.getNodeFileType(start) + '.' + self.getNodeFileType(end)
+
+    def getLinkTool(self,start,end):
+       return linkTools[self.getLinkType(start,end)]
+
+    def _compareImages(self,start,destination,opName,invert=False,arguments={}, skipDonorAnalysis=True):
+       return getLinkTool(self.start, destination).compareImages(self.start,destination,self,arguments=arguments,skipDonorAnalysis=skipDonorAnalysis,invert=invert)
+
     def _connectNextImage(self,destination,mod,invert=False,sendNotifications=True,skipRules=False,skipDonorAnalysis=False):
        try:
          maskname, mask, analysis,errors = self._compareImages(self.start,destination,mod.operationName,invert=invert,arguments=mod.arguments,skipDonorAnalysis=skipDonorAnalysis)
@@ -1059,91 +1187,8 @@ class ImageProjectModel:
                             'editable' in edge and edge['editable'] == 'no'), \
           recordMaskInComposite = edge['recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no', \
           automated = edge['automated'] if 'automated' in edge else 'no', \
-          errors = edge['errors'] if 'errors' in edge else [])
-
-class VideoProjectModel(ImageProjectModel):
-
-    def __init__(self, projectFileName, graph=None, importImage=False, notify=None):
-       ImageProjectModel.__init__(self,projectFileName,graph=graph,importImage=importImage,notify=notify)
-
-    def _openProject(self,projectFileName):
-      return createGraph(projectFileName,projecttype='video')
-
-    def getTerminalToBasePairs(self, suffix='.mp4'):
-       return ImageProjectModel.getTerminalToBasePairs(self,suffix=suffix)
-
-    def getMetaDiff(self):
-      """ Return the Frame meta-data differences between nodes referenced by 'start' and 'end'                                                                                            
-      """
-      e = self.G.get_edge(self.start, self.end)
-      if e is None:
-          return None
-      return VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
-
-    def compare(self, destination,arguments={}):
-       """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
-           Return both images, the mask set and the meta-data diff results
-       """
-       startIm,startFileName = self.getImageAndName(self.start)
-       destIm,destFileName = self.getImageAndName(destination)
-       maskname, mask, analysis,errors = self._compareImages(self.start,destination,'noOp')
-       analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
-       analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
-       analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
-       return  startIm, destIm, mask,analysis
-
-    def _compareImages(self,start,destination,op, invert=False,arguments={},skipDonorAnalysis=False):
-       if op == 'Donor':
-          return self._constructDonorMask(start,destination,arguments=arguments)
-       startIm,startFileName = self.getImageAndName(start)
-       destIm,destFileName = self.getImageAndName(destination)
-       mask,analysis = Image.new("RGB", (250, 250), "black"),{}
-       maskname=start + '_' + destination + '_mask'+'.png'
-       maskSet,errors = video_tools.formMaskDiff(startFileName, destFileName, \
-          startSegment = arguments['Start Time'] if 'Start Time' in arguments else None, \
-          endSegment = arguments['End Time'] if 'End Time' in arguments else None, \
-          applyConstraintsToOutput = op != 'SelectCutFrames')
-# for now, just save the first mask
-       if len(maskSet) > 0:
-          mask = Image.fromarray(maskSet[0]['mask'])
-          for item in maskSet:
-             item.pop('mask')
-       analysis['masks count']=len(maskSet)
-       analysis['videomasks'] = maskSet
-       metaDataDiff = video_tools.formMetaDataDiff(startFileName,destFileName)
-       analysis = analysis if analysis is not None else {}
-       analysis['metadatadiff'] = metaDataDiff
-       self._addAnalysis(startIm,destIm,op,analysis,mask,arguments=arguments)
-       return maskname,mask, analysis,errors
-
-    def getTypeName(self):
-       return 'Video'
-
-    def _constructDonorMask(self,start,destination,invert=False,arguments=None):
-       """
-         Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
-         of the Donor image and its parent, it exists.
-         Otherwise, the donor image mask is the donor image (minus alpha channels):
-       """
-       
-       startFileName = startNode['file']
-       suffix = startFileName[startFileName.rfind('.'):]
-       predecessors = self.G.predecessors(destination)
-       analysis = {}
-       for pred in predecessors:
-          edge = self.G.get_edge(pred,destination)
-          if edge['op']!='Donor':
-             if 'masks count' in edge:
-                analysis['masks count'] = edge['masks count']
-             analysis['videomasks'] = video_tools.invertVideoMasks(self.G.dir,edge['videomasks'],self.start,destination)
-             return maskname,tool_set.invertMask(self.G.get_edge_image(pred,self.start,'maskname')[0]),analysis,errors
-       return maskname,tool_set.convertToMask(self.G.get_image(self.start)[0]),analysis,errors
-    
-    def _getModificationForEdge(self,edge):
-       mod = ImageProjectModel._getModificationForEdge(self,edge)
-       if 'videomasks' in edge and len(edge['videomasks'])> 0:
-          mod.setMaskSet( VideoMaskSetInfo(edge['videomasks']))
-       return mod
+          errors = edge['errors'] if 'errors' in edge else [], \
+          maskSet=(VideoMaskSetInfo(edge['videomasks']) if ('videomasks' in edge and len(edge['videomasks'])> 0) else None))
 
 class VideoMaskSetInfo:
     """

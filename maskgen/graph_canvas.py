@@ -7,7 +7,7 @@ import numpy as np
 import os
 import platform
 from math import atan2, pi, cos, sin
-from description_dialog import DescriptionCaptureDialog,CompareDialog
+from description_dialog import DescriptionCaptureDialog,createCompareDialog
 
 def restrictPosition(position):
    return max (position,5)
@@ -227,7 +227,7 @@ class MaskGraphCanvas(tk.Canvas):
                  tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
             else:
                 im1,im2,mask,analysis = self.scModel.compare(nodeId)
-                self.uiProfile.createCompareDialog(self.master,im2,mask,nodeId,analysis, self.scModel.get_dir())
+                createCompareDialog(self.master,im2,mask,nodeId,analysis, self.scModel.get_dir(),self.scModel.getLinkType(self.scModel.start, nodeId))
             self.deselectCursor(None)
             if (ok):
                self._mark(self._draw_edge(self.scModel.start,self.scModel.end))
