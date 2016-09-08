@@ -19,7 +19,7 @@ def getexif(source):
     p = Popen([exifcommand,source],stdout=PIPE,stderr=PIPE)
     try:
       while True:
-        line = p.stdout.readline()  
+        line = unicode(p.stdout.readline(),'utf-8')
         if line is None or len(line) == 0:
            break
         pos = line.find(': ')
@@ -32,11 +32,12 @@ def getexif(source):
     print "Exiftool not installed"
   return meta
 
-def _decodeStr(sv):
-  try:
-     sv = unicode(sv.decode('latin'))
-  except:
-     sv = unicode(sv.decode('cp1252','ignore'))
+def _decodeStr(name,sv):
+#  try:
+#  sv = sv.encode('latin')
+#  except:
+#     print name, type(sv)
+#     sv = sv.decode('cp1252','ignore')
   return sv
        
 def compareexif(source,target):
@@ -44,15 +45,15 @@ def compareexif(source,target):
   metatarget = getexif(target)
   diff = {}
   for k,sv in metasource.iteritems():
-     sv = _decodeStr(sv)
+     sv = _decodeStr(k,sv)
      if k in metatarget:
-       tv = _decodeStr(sv)
+       tv = _decodeStr(k,sv)
        if tv != sv:
          diff[k] = ('change',sv,tv)
      else:
          diff[k] = ('delete',sv)
   for k,tv in metatarget.iteritems():
      if k not in metasource:
-         diff[k] = ('add',tv)
+         diff[k] = ('add',_decodeStr(k,tv))
   return diff
 
