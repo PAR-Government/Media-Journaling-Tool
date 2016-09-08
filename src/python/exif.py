@@ -19,7 +19,14 @@ def getexif(source):
     p = Popen([exifcommand,source],stdout=PIPE,stderr=PIPE)
     try:
       while True:
-        line = unicode(p.stdout.readline(),'utf-8')
+        line = p.stdout.readline()
+        try:
+           line = unicode(line,'utf-8')
+        except:
+           try:
+             line = unicode(line,'latin').encode('ascii',errors='xmlcharrefreplace')
+           except:
+             continue
         if line is None or len(line) == 0:
            break
         pos = line.find(': ')
