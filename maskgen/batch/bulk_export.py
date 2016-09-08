@@ -33,7 +33,7 @@ def upload_projects(values, dir):
         sys.exit('No projects found!')
 
     for project in projects:
-        sm = scenario_model.loadProject(project)
+        sm = maskgen.scenario_model.loadProject(project)
         sm.exporttos3(values)
 
 
