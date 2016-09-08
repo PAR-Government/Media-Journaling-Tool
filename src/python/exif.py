@@ -54,6 +54,6 @@ def compareexif(source,target):
          diff[k] = ('delete',sv)
   for k,tv in metatarget.iteritems():
      if k not in metasource:
-         diff[k] = ('add',_decodeStr(k,sv))
+         diff[k] = ('add',_decodeStr(k,tv))
   return diff
 
