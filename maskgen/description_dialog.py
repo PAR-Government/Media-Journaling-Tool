@@ -93,6 +93,7 @@ class PropertyDialog(tkSimpleDialog.Dialog):
     def __init__(self, parent, properties):
         self.parent = parent
         self.properties = properties
+        self.description = None
         self.values = [None for prop in properties]
         tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
 
@@ -490,22 +491,25 @@ class CompareDialog(tkSimpleDialog.Dialog):
 
 
 class VideoCompareDialog(tkSimpleDialog.Dialog):
+
     def __init__(self, parent, im, mask, name, analysis, dir):
         self.im = im
         self.dir = dir
         self.mask = mask
         self.analysis = analysis
+        self.metaBox = None
+        self.sectionBox = None
         tkSimpleDialog.Dialog.__init__(self, parent, "Compare to " + name)
 
     def body(self, master):
         row = 0
-        metadiff = self.analysis['metadatadiff']
-        maskSet = self.analysis['videomasks']
-        sections = metadiff.getSections()
-        Label(master, text=metadiff.getMetaType() + ' Changes:', anchor=W, justify=LEFT).grid(row=row, column=0,
+        meta_diff = self.analysis['metadatadiff']
+        mask_set = self.analysis['videomasks']
+        sections = meta_diff.getSections()
+        Label(master, text=meta_diff.getMetaType() + ' Changes:', anchor=W, justify=LEFT).grid(row=row, column=0,
                                                                                               columnspan=2 if sections else 4,
                                                                                               sticky=E + W)
-        self.metaBox = MetaDiffTable(master, metadiff)
+        self.metaBox = MetaDiffTable(master, meta_diff)
         if sections is not None:
             self.sectionBox = Spinbox(master, values=['Section ' + section for section in sections],
                                       command=self.changeSection)
@@ -513,8 +517,8 @@ class VideoCompareDialog(tkSimpleDialog.Dialog):
         row += 1
         self.metaBox.grid(row=row, column=0, columnspan=4, sticky=E + W)
         row += 1
-        if maskSet is not None:
-            self.maskBox = MaskSetTable(master, maskSet, openColumn=3, dir=self.dir)
+        if mask_set is not None:
+            self.maskBox = MaskSetTable(master, mask_set, openColumn=3, dir=self.dir)
             self.maskBox.grid(row=row, column=0, columnspan=4, sticky=SE + NW)
         row += 1
 

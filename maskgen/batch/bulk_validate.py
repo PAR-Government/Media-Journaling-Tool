@@ -12,21 +12,21 @@ def main():
     parser.add_argument('--projectDir', help='Directory of projects')
     args = parser.parse_args()
 
-    ops = loadOperations("operations.json")
-    soft = loadSoftware("software.csv")
+    loadOperations("operations.json")
+    loadSoftware("software.csv")
 
     graph_rules.setup()
 
-    projectList = bulk_export.pick_projects(args.projectDir)
+    project_list = bulk_export.pick_projects(args.projectDir)
 
     with open(os.path.join(args.projectDir,'ErrorReport.csv'), 'wb') as csvfile:
-        errorWriter = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        for project in projectList:
+        error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for project in project_list:
             name = os.path.basename(project)
             sm = scenario_model.loadProject(project)
-            errorList = sm.validate()
-            for err in errorList:
-                errorWriter.writerow((name, str(err)))
+            error_list = sm.validate()
+            for err in error_list:
+                error_writer.writerow((name, str(err)))
 
 if __name__ == '__main__':
     main()

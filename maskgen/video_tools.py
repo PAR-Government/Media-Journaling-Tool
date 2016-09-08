@@ -207,10 +207,10 @@ def _invertSegment(dir, segmentFileName, prefix, starttime, codec='mp4v'):
     fourcc = capIn.get(cv2.cv.CV_CAP_PROP_FOURCC)
     if fourcc == 0:
         fourcc = cv2.cv.CV_FOURCC(*codec)
-    capOut = cv2.VideoWriter(os.path.join(dir, maskFileName), fourcc, \
-                             capIn.get(cv2.cv.CV_CAP_PROP_FPS), \
+    capOut = cv2.VideoWriter(os.path.join(dir, maskFileName), fourcc,
+                             capIn.get(cv2.cv.CV_CAP_PROP_FPS),
                              (int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)),
-                              int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))), \
+                              int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))),
                              False)
     try:
         ret = True
@@ -443,7 +443,6 @@ def formMetaDataDiff(file_one, file_two):
 
 # video_tools.processSet('/Users/ericrobertson/Documents/movie',[('videoSample','videoSample1'),('videoSample1','videoSample2'),('videoSample2','videoSample3'),('videoSample4','videoSample5'),('videoSample5','videoSample6'),('videoSample6','videoSample7'),('videoSample7','videoSample8'),('videoSample8','videoSample9'),('videoSample9','videoSample10'),('videoSample11','videoSample12'),('videoSample12','videoSample13'),('videoSample13','videoSample14'),('videoSample14','videoSample15')] ,'.mp4')
 def processSet(directory, set_of_pairs, postfix):
-    first = None
     for pair in set_of_pairs:
         res_meta, res_frame = formMetaDataDiff(os.path.join(dir, pair[0] + postfix), os.path.join(directory, pair[1] + postfix))
         result_file = os.path.join(directory, pair[0] + "_" + pair[1] + ".json")

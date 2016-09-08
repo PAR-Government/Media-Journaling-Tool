@@ -4,40 +4,40 @@ import platform
 import os
 import json
 
-globalImage = {}
+global_image = {}
 imageLoaded = False
 
+
 class MaskGenLoader:
+    def __init__(self):
+        self.load()
 
-   def __init__(self):
-     self.load()
+    def load(self):
+        global global_image
+        global imageLoaded
+        if imageLoaded:
+            return
+        file_path = os.path.join(expanduser("~"), ".maskgen2")
+        if os.path.exists(file_path):
+            with open(file_path, "r") as jsonfile:
+                global_image = json.load(jsonfile)
+        imageLoaded = True
 
-   def load(self):
-     global globalImage
-     global imageLoaded
-     if imageLoaded:
-       return
-     file = os.path.join(expanduser("~"),".maskgen2")
-     if os.path.exists(file):
-        with open(file,"r") as jsonfile:
-          globalImage = json.load(jsonfile)
-     imageLoaded = True
+    def get_key(self, image_id):
+        global global_image
+        return global_image[image_id] if image_id in global_image else None
 
-   def get_key(self,id):
-     global globalImage
-     return globalImage[id] if id in globalImage else None
+    def save(self, image_id, data):
+        global global_image
+        global_image[image_id] = data
+        file_path = os.path.join(expanduser("~"), ".maskgen2")
+        with open(file_path, 'w') as f:
+            json.dump(global_image, f, indent=2)
 
-   def save(self,id,data):
-     global globalImage
-     globalImage[id] = data
-     file = os.path.join(expanduser("~"),".maskgen2")
-     with open(file, 'w') as f:
-       json.dump(globalImage,f,indent=2)
-
-   def saveall(self,idanddata):
-     global globalImage
-     for id,data in idanddata:
-       globalImage[id] = data
-     file = os.path.join(expanduser("~"),".maskgen2")
-     with open(file, 'w') as f:
-       json.dump(globalImage,f,indent=2)
+    def saveall(self, idanddata):
+        global global_image
+        for image_id, data in idanddata:
+            global_image[image_id] = data
+        file_path = os.path.join(expanduser("~"), ".maskgen2")
+        with open(file_path, 'w') as f:
+            json.dump(global_image, f, indent=2)
