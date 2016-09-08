@@ -44,7 +44,7 @@ def check_additional_args(additionalArgs, op):
     if additionalArgs != {}:
         parsedArgs = dict(itertools.izip_longest(*[iter(additionalArgs)] * 2, fillvalue=""))
         for key in parsedArgs:
-            parsedArgs[key] = tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op)
+            parsedArgs[key] = maskgen.tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op)
     else:
         parsedArgs = additionalArgs
     for key in op.mandatoryparameters.keys():
@@ -144,7 +144,7 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
         project = find_json_path(sImgName, projectDir)
 
         # open the project
-        sm = scenario_model.ImageProjectModel(project)
+        sm = maskgen.scenario_model.ImageProjectModel(project)
         if new:
             sm.addImage(os.path.join(sourceDir, sImg))
             lastNodeName = sImgName
@@ -162,10 +162,10 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
         # prepare details for new link
         softwareDetails = Software(software, version)
         if additional:
-            opDetails = scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,
+            opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,
                                                     arguments=additional, automated='yes')
         else:
-            opDetails = scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
+            opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
 
         position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
                      80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
@@ -200,7 +200,7 @@ def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username)
         if new:
             sImgName = ''.join(i.split('.')[:-1])
             project = find_json_path(sImgName, projects)
-            sm = scenario_model.ImageProjectModel(project)
+            sm = maskgen.scenario_model.ImageProjectModel(project)
             sm.setProjectData('projectdescription', prjDescr)
             sm.setProjectData('technicalsummary', techSummary)
             if username:
@@ -208,11 +208,11 @@ def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username)
             sm.addImage(os.path.join(sourceDir, i))
             lastNode = sImgName
         else:
-            sm = scenario_model.ImageProjectModel(i)
+            sm = maskgen.scenario_model.ImageProjectModel(i)
             lastNode = sm.G.get_edges()[-1][-1]
         sm.selectImage(lastNode)
         im, filename = sm.currentImage()
-        plugins.loadPlugins()
+        maskgen.plugins.loadPlugins()
         sm.imageFromPlugin(plugin, im, filename)
         sm.save()
         print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + i
@@ -228,9 +228,9 @@ def process_jpg(projects):
     total = len(projectList)
     processNo = 1
     for project in projectList:
-        sm = scenario_model.loadProject(project)
-        plugins.loadPlugins()
-        op = group_operations.ToJPGGroupOperation(sm)
+        sm = maskgen.scenario_model.loadProject(project)
+        maskgen.plugins.loadPlugins()
+        op = maskgen.group_operations.ToJPGGroupOperation(sm)
         op.performOp()
         sm.save()
         print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
