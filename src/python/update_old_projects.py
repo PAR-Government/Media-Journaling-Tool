@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import cv2
 from PIL import Image
 import scenario_model
 import bulk_export
@@ -31,17 +32,20 @@ def replace_op_names(d):
 
 def inspect_masks(d):
     global localOps
-    with open(d) as data_file:
-        data = json.load(data_file)
+    with open(d, 'r+') as f:
+        data = json.load(f)
         numLinks = len(data['links'])
         for link in xrange(numLinks):
             currentLink = data['links'][link]
             if currentLink['op'] in localOps:
                 imageFile = os.path.join(os.path.dirname(d), currentLink['maskname'])
-                im = Image.open(imageFile)
-                print 'haha!'
-
-
+                im = cv2.imread(imageFile, 0)
+                if cv2.countNonZero(im) > im.size/2:
+                    currentLink['arguments']['local'] = 'yes'
+                else:
+                    currentLink['arguments']['local'] = 'no'
+        f.seek(0)
+        json.dump(data, f, indent=2)
 
 def main():
     parser = argparse.ArgumentParser()
