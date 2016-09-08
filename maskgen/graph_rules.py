@@ -187,7 +187,7 @@ def getValue(obj,path,convertFunction=None):
 
     if part in current:
       current = current[part]
-      if type(current) is list:
+      if type(current) is list or type(current) is tuple:
         if bpos>0:
           current = current[pos]
         else:

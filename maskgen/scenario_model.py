@@ -389,18 +389,17 @@ class VideoVideoLinkTool(LinkTool):
          of the Donor image and its parent, it exists.
          Otherwise, the donor image mask is the donor image (minus alpha channels):
        """
-       startFileName = startNode['file']
-       suffix = startFileName[startFileName.rfind('.'):]
        predecessors = scModel.G.predecessors(destination)
        analysis = {}
+       maskname = start + '_' + destination + '_mask' + '.png'
        for pred in predecessors:
           edge = scModel.G.get_edge(pred,destination)
           if edge['op']!='Donor':
              if 'masks count' in edge:
                 analysis['masks count'] = edge['masks count']
              analysis['videomasks'] = video_tools.invertVideoMasks(scModel.G.dir,edge['videomasks'],start,destination)
-             return maskname,tool_set.invertMask(scModel.G.get_edge_image(pred,start,'maskname')[0]),analysis,errors
-       return maskname,tool_set.convertToMask(scModel.G.get_image(scModel.start)[0]),analysis,errors
+             return maskname,tool_set.invertMask(scModel.G.get_edge_image(pred,start,'maskname')[0]),analysis,[]
+       return maskname,tool_set.convertToMask(scModel.G.get_image(scModel.start)[0]),analysis,[]
 
    def compareImages(self,start,destination,scModel,op, invert=False,arguments={},skipDonorAnalysis=False):
        if op == 'Donor':
