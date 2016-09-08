@@ -119,10 +119,10 @@ def validateCoordinates(v):
 
 def validateTimeString(v):
     try:
-        stdt = datetime.strptime(v, '%H:%M:%S.%f')
+        datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
-            stdt = datetime.strptime(v, '%H:%M:%S')
+            datetime.strptime(v, '%H:%M:%S')
         except ValueError:
             return False
     return True
@@ -388,7 +388,7 @@ def __composeMask(img1, img2, invert, arguments={}):
         if img1.shape == img2.shape:
             return __diffMask(img1, img2, invert)
     except ValueError as e:
-        print 'Mask generation failure ' + e
+        print 'Mask generation failure ' + str(e)
     mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), {}
 
@@ -622,13 +622,13 @@ def fixTransparency(img):
     return Image.fromarray(xx)
 
 
-def __findNeighbors(paths, next):
+def __findNeighbors(paths, next_pixels):
     newpaths = list()
     s = set()
     for path in paths:
         x = path[len(path) - 1]
-        for i in np.intersect1d(np.array([x - 1, x, x + 1]), next):
-            if (i not in s):
+        for i in np.intersect1d(np.array([x - 1, x, x + 1]), next_pixels):
+            if i not in s:
                 newpaths.append(path + [i])
                 s.add(i)
     return newpaths
