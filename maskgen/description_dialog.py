@@ -5,7 +5,7 @@ from group_filter import GroupFilter,GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import Image, ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile,validateTimeString,validateCoordinates
+from tool_set import imageResize,imageResizeRelative, fixTransparency,openImage,openFile,validateTimeString,validateCoordinates,getMaskFileTypes, getFileTypes
 from scenario_model import Modification
 from software_loader import Software, SoftwareLoader, getOS, getOperations,getOperationsByCategory,getOperation
 import os
@@ -282,7 +282,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         op=getOperation(self.e2.get())
         if op is not None:
           argumentTuple = self.arginfo[index]
-          res = promptForParameter(self, self.dir,argumentTuple, self.uiProfile.filetypes, \
+          res = promptForParameter(self, self.dir,argumentTuple, getFileTypes(), \
              self.argvalues[argumentTuple[0]] if argumentTuple[0] in self.argvalues else None)
           if argumentTuple[0] == 'inputmaskname' and res:
             self.inputMaskName = res
@@ -556,7 +556,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
           argumentTuple = ('donor',{'type':'donor','description':'Donor'}) if arg[0] == 'donor' else argumentTuple
           argumentTuple = ('inputmaskname', {'type':'imagefile','description':'Input Mask File'}) if arg[0] == 'inputmaskname' else argumentTuple
           argumentTuple = (arg[0],{'type':'string','description': arg[2] if len(arg) > 2 else 'Not Available'}) if argumentTuple is None else argumentTuple
-          res = promptForParameter(self, self.dir, argumentTuple, self.parent.uiProfile.filetypes, arg[1])
+          res = promptForParameter(self, self.dir, argumentTuple, getFileTypes(), arg[1])
           if res is not None:
             self.argvalues[arg[0]] = res
             self.argBox.delete(index)
@@ -886,7 +886,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
    def changemask(self):
         val = tkFileDialog.askopenfilename(initialdir = self.dir, title = "Select Input Mask", \
-              filetypes = self.parent.uiProfile.filetypes)
+              filetypes = getMaskFileTypes())
         if (val != None and len(val)> 0):
             self.selectMaskName = val
             self.im = openImage(val,isMask=True,preserveSnapshot=os.path.split(os.path.abspath(val))[0]==dir)

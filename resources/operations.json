@@ -1658,7 +1658,7 @@
         "checkSize"
       ], 
       "optionalparameters": {}, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1671,7 +1671,7 @@
         "checkSize"
       ], 
       "optionalparameters": {}, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1689,7 +1689,7 @@
            "description": "Tuple in form of (x,y) describing the upper left crop corner."
 	}
       },
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Removing edge content from an image.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1707,7 +1707,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Alter the shape and dimensions of a given selection or image.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1725,7 +1725,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1743,7 +1743,7 @@
         "checkSize"
       ], 
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1760,7 +1760,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Reduce or increasing the number of pixels in an image.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1779,7 +1779,7 @@
 	   "description":"Interpolation is used to resize composite images."
         }
       },
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
       "transitions": ["image.image"]
@@ -1795,7 +1795,7 @@
       },
       "rules": [], 
       "optionalparameters": {}, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1824,7 +1824,7 @@
         "seamCarvingCheck"
       ], 
       "optionalparameters": {}, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1842,7 +1842,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1860,7 +1860,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]
@@ -1878,7 +1878,7 @@
           "description":"An image file containing a mask describing the areas affected."
 	}
       }, 
-      "analysisOperations": [ "tool_set.siftAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
       "transitions": ["image.image","video.video"]

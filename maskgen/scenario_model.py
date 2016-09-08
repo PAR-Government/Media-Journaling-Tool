@@ -272,9 +272,12 @@ class LinkTool:
           return
        for analysisOp in opData.analysisOperations:
          mod_name, func_name = analysisOp.rsplit('.',1)
-         mod = importlib.import_module(mod_name)
-         func = getattr(mod, func_name)
-         func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
+         try:
+           mod = importlib.import_module(mod_name)
+           func = getattr(mod, func_name)
+           func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
+         except Exception as e:
+            print 'Failed to run analysis ' + analysisOp + ': ' + str(e)
 
 class ImageImageLinkTool(LinkTool):
 
@@ -374,7 +377,7 @@ class VideoVideoLinkTool(LinkTool):
        """
        startIm,startFileName = scModel.getImageAndName(start)
        destIm,destFileName = scModel.getImageAndName(end)
-       maskname, mask, analysis,errors = self.compareImages(start,end,'noOp',skipDonorAnalysis=True,arguments=arguments)
+       maskname, mask, analysis,errors = self.compareImages(start,end,scModel,'noOp',skipDonorAnalysis=True,arguments=arguments)
        analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
        analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
        analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
@@ -401,7 +404,7 @@ class VideoVideoLinkTool(LinkTool):
 
    def compareImages(self,start,destination,scModel,op, invert=False,arguments={},skipDonorAnalysis=False):
        if op == 'Donor':
-          return self._constructDonorMask(start,destination,arguments=arguments)
+          return self._constructDonorMask(start,destination,scModel,arguments=arguments)
        startIm,startFileName = scModel.getImageAndName(start)
        destIm,destFileName = scModel.getImageAndName(destination)
        mask,analysis = Image.new("RGB", (250, 250), "black"),{}
@@ -501,7 +504,7 @@ class ImageProjectModel:
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask and the analysis results (a dictionary)
        """
-       return getLinkTool(self.start, destination).compare(self.start,destination,self,arguments=arguments)
+       return sefl.getLinkTool(self.start, destination).compare(self.start,destination,self,arguments=arguments)
 
     def getMetaDiff(self):
       """ Return the EXIF differences between nodes referenced by 'start' and 'end' 
@@ -633,7 +636,7 @@ class ImageProjectModel:
        return linkTools[self.getLinkType(start,end)]
 
     def _compareImages(self,start,destination,opName,invert=False,arguments={}, skipDonorAnalysis=True):
-       return getLinkTool(self.start, destination).compareImages(self.start,destination,self,arguments=arguments,skipDonorAnalysis=skipDonorAnalysis,invert=invert)
+       return self.getLinkTool(self.start, destination).compareImages(self.start,destination,self,opName,arguments=arguments,skipDonorAnalysis=skipDonorAnalysis,invert=invert)
 
     def _connectNextImage(self,destination,mod,invert=False,sendNotifications=True,skipRules=False,skipDonorAnalysis=False):
        try:

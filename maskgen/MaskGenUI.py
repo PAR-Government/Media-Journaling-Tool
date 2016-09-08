@@ -49,15 +49,13 @@ def fromFileTypeString(types, profileTypes):
           result.append((ft,ft))
     return result
 
-def projectProperties(self):
+def projectProperties():
     return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
 
 class UIProfile:
-    filetypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("avi files","*.avi"),("mpeg files","*.mp4"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv'),("all files","*.*")]
     suffixes = ["*.nef",".jpg",".png",".tiff","*.bmp",".avi",".mp4",".mov","*.wmv"]
     operations='operations.json'
     software='software.csv'
-    filetypespref = 'filetypes'
     name = 'Image/Video'
 
     def getFactory(self): 
@@ -125,7 +123,7 @@ class MakeGenUI(Frame):
          return
        self.scModel.startNew(val,suffixes=self.uiProfile.suffixes, organization=self.prefLoader.get_key('organization'))
        if self.scModel.getProjectData('typespref') is None:
-          self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
+          self.scModel.setProjectData('typespref',getFileTypes())
        self._setTitle()
        self.drawState()
        self.canvas.update()
@@ -140,7 +138,7 @@ class MakeGenUI(Frame):
         if (val != None and len(val)>0):
           self.scModel.load(val)
           if self.scModel.getProjectData('typespref') is None:
-              self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
+              self.scModel.setProjectData('typespref',getFileTypes())
           self._setTitle()
           self.drawState()
           self.canvas.update()
@@ -148,7 +146,7 @@ class MakeGenUI(Frame):
              self.setSelectState('normal')
 
     def add(self):
-        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.get_dir(), title = "Select image file(s)",filetypes =self.getFileTypes())
+        val = tkFileDialog.askopenfilenames(initialdir = self.scModel.get_dir(), title = "Select image file(s)",filetypes =self.getPreferredFileTypes())
         if (val != None and len(val)> 0):
           self.updateFileTypes(val[0])
           try:
@@ -230,12 +228,12 @@ class MakeGenUI(Frame):
             setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
             self.scModel.setProjectData('username', newName)
 
-    def setfiletypes(self):
-        filetypes = self.getFileTypes()
+    def setPreferredFileTypes(self):
+        filetypes = self.getPreferredFileTypes()
         newtypesStr = tkSimpleDialog.askstring("Set File Types", "Types", initialvalue=toFileTypeString(filetypes))
         if newtypesStr is not None:
-            self.prefLoader.save(self.uiProfile.filetypespref, fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
-            self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr,self.uiProfile.filetypes))
+            self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr,getFileTypes()))
+            self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr,getFileTypes()))
 
     def undo(self):
        self.scModel.undo()
@@ -252,7 +250,7 @@ class MakeGenUI(Frame):
         place=0
         top=None
         allPlace=0
-        prefs = self.getFileTypes()
+        prefs = self.getPreferredFileTypes()
         for pref in prefs:
            if pref[1] == '*.*':
              allPlace = place  
@@ -269,11 +267,11 @@ class MakeGenUI(Frame):
            prefs[0] = prefs[allPlace]
            prefs[allPlace] = top
 
-    def getFileTypes(self):
+    def getPreferredFileTypes(self):
         return [tuple(x) for x in self.scModel.getProjectData('typespref')]
             
     def nextadd(self):
-        val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select image file",filetypes = self.getFileTypes())
+        val = tkFileDialog.askopenfilename(initialdir = self.scModel.get_dir(), title = "Select image file",filetypes = self.getPreferredFileTypes())
         self.updateFileTypes(val)
         file,im = self.scModel.openImage(val)
         if (file is None or file == ''): 
@@ -569,7 +567,7 @@ class MakeGenUI(Frame):
         settingsmenu = Menu(tearoff=0)
         settingsmenu.add_command(label="Username", command=self.setusername)
         settingsmenu.add_command(label="Organization", command=self.setorganization)
-        settingsmenu.add_command(label="File Types", command=self.setfiletypes)
+        settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
 
 
         filemenu = Menu(menubar, tearoff=0)
@@ -710,11 +708,11 @@ class MakeGenUI(Frame):
           sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
-            preferredFT = self.prefLoader.get_key(self.uiProfile.filetypespref)
+            preferredFT = self.prefLoader.get_key('filetypes')
             if preferredFT:
               self.scModel.setProjectData('typespref',preferredFT)
             else:
-              self.scModel.setProjectData('typespref',self.uiProfile.filetypes)
+              self.scModel.setProjectData('typespref',getFileTypes())
         self.createWidgets()
         if tuple[1]:
           self.getproperties()
