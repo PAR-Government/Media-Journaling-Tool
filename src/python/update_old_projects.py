@@ -2,7 +2,6 @@ import argparse
 import os
 import json
 import cv2
-from PIL import Image
 import scenario_model
 import bulk_export
 
@@ -26,7 +25,7 @@ def label_project_nodes(project):
 def replace_op_names(data):
     """
     Replaces select operation names
-    :param d: json file
+    :param data: json file
     :return: None. Updates json.
     """
     global replacements
@@ -42,7 +41,7 @@ def inspect_masks(d, data):
     find masks that could represent local operations, and add 'local' arg if less than 50% of pixels changed
     :param d: project directory
     :param data: json data
-    :return: None. Updates the json file.
+    :return: None. Updates json.
     """
     global localOps
     numLinks = len(data['links'])
