@@ -1432,7 +1432,7 @@
       "optionalparameters": {}, 
       "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
       "includeInMask": false,
-      "transitions": ["image.image","video.video"]
+      "transitions": ["image.image"]
     },
     {
       "category": "Select", 

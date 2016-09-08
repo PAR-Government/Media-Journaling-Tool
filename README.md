@@ -17,29 +17,19 @@ pip install awscli
 
 ## Install commands
 
+### Open CV
 ```
-pip install pillow
 brew tap homebrew/science
 brew install opencv
-pip install numpy
-pip install matplotlib
-pip install networkx
-pip install moviepy
-pip install scikit-image
-pip install tkintertable
-pip install bitstring
 
-
-For optional use with S3
-pip install boto3
+```
+### Tool
+```
+python setup.py develop
 ```
 
 ## For Anaconda
-Replace:
-```
-pip install pillow
-```
-with:
+You may need to update pillow:
 ```
 conda remove PIL
 conda remove pillow
@@ -54,22 +44,20 @@ conda install -c https://conda.binstar.org/menpo opencv
 
 ## Starting the UI
 
-Add src/python to your PYTHONPATH.
-Assumes operations.json and software.csv are located in the same directory as the tool.
+Assumes operations.json and software.csv are located in the same directory as the tool.  The backup files in the resources are used when the local versions are not found.
 
 
 ```
-% export PYTHONPATH=${PYTHONPATH}:src/python
-% python src/python/MaskGenUI.py  --imagedir images
+% python -m maskgen.MaskGenUI --imagedir images
 ```
 
 The imagedir argument is a project directory with a project JSON file in the project directory.
 
 
-If the project JSON is not found and the imagedir contains is a set of images, then the images are sorted alphabetically, in the order JPG, PNG and TIFF, respectively. The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
+If the project JSON is not found and the imagedir contains is a set of images, then the images are sorted by time stamp, oldest to newest.  The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
 
 ```
-% python src/python/MaskGenUI.py  --imagedir images --base images/baseimage.jpg
+% python -m maskgen.MaskGenUI  --imagedir images --base images/baseimage.jpg
 ```
 
 If the operations.csv and software.csv are to be downloaded from a S3 bucket, then
@@ -78,14 +66,9 @@ If the operations.csv and software.csv are to be downloaded from a S3 bucket, th
 
 ### Video Projects
 
-Video projects are similar to image projects, using a different set of software and operations.  The tool assumes  video_operations.csv and video_software.csv are located in the same directory as the tool.
+Video projects are similar to image projects.
 
-```
-% export PYTHONPATH=${PYTHONPATH}:src/python
-% python src/python/MaskGenUI.py  --videodir video
-```
-
-If the project JSON is not found and the videodir contains is a set of videos, then the videos are sorted alphabetically, in the order MP4, AVI, MOV, respectively. The first video file in the sorted list is used as the base video of the project and as a basis for the project name.  All videos in the videodir are imported into the project. An alternative base video can be chosen using the --base command parameter. 
+If the project JSON is not found and the videodir contains is a set of videos, then the videos are sorted by timestamp, oldest to newest. The first video file in the sorted list is used as the base video of the project and as a basis for the project name.  All videos in the videodir are imported into the project. An alternative base video can be chosen using the --base command parameter. 
 
 When using video, the displays used to show images show a select frame from the video.
 
@@ -253,7 +236,7 @@ The journaling tool currently supports a rudimentary batch processing feature. T
 
 At its core, the batch tool requires only 1 directory, a directory of project directories. It can be run with the following:
 ```
-python src/python/batch_process.py <args>
+python -m maskgen.batch.batch_process <args>
 
 Mandatory arguments:
 --projects <dir>: directory of project directories.
@@ -283,27 +266,27 @@ Optional arguments:
 Different arguments will trigger different functionality:
 1. Using both --sourceDir and --endDir will create new projects, using the images in sourceDir as base, and link them with the specified operation. This will also create the project directories and JSON files if necessary.
 ```
-python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --endDir <DIR> --op ColorColorBalance --softwareName GIMP --softwareVersion 2.8
+python -m maskgen.batch.batch_process --projects <DIR> --sourceDir <DIR> --endDir <DIR> --op ColorColorBalance --softwareName GIMP --softwareVersion 2.8
 ```
 2. --sourceDir without --endDir will add the images in the source directory to the current project and link them to the most recent node with the specified operation.
 ```
-python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --op ColorColorBalance --softwareName GIMP --softwareVersion 2.8
+python -m maskgen.batch.batch_process --projects <DIR> --sourceDir <DIR> --op ColorColorBalance --softwareName GIMP --softwareVersion 2.8
 ```
 3. Use --plugin to specify a plugin to perform on the most recent image node.
 ```
-python src/python/batch_process.py --projects <DIR> --plugin ColorEqHist
+python -m maskgen.batch.batch_process --projects <DIR> --plugin ColorEqHist
 ```
 4. Using both --sourceDir and --plugin will assume you wish to create new projects using the images in sourceDir as base and performing the plugin operation on them.
 ```
-python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --plugin ColorEqHist
+python -m maskgen.batch.batch_process --projects <DIR> --sourceDir <DIR> --plugin ColorEqHist
 ```
 5. Using --jpg will perform antiforensic jpeg export and exif copy on existing projects.
 ```
-python src/python/batch_process.py --projects <DIR> --jpg
+python -m maskgen.batch.batch_process --projects <DIR> --jpg
 ```
 6. --jpg can be appended to any other input to also perform that functionality after the specified operation/plugin.
 ```
-python src/python/batch_process.py --projects <DIR> --sourceDir <DIR> --plugin ColorEqHist --jpg
+python -m maskgen.batch.batch_process --projects <DIR> --sourceDir <DIR> --plugin ColorEqHist --jpg
 ```
 
 All images that are to be placed in the same project should have the same basename. Manipulated images should be appended with an underscore followed by some text and a number (i.e. image.jpg, image_01.jpg). 

@@ -504,7 +504,7 @@ class ImageProjectModel:
        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
            Return both images, the mask and the analysis results (a dictionary)
        """
-       return sefl.getLinkTool(self.start, destination).compare(self.start,destination,self,arguments=arguments)
+       return self.getLinkTool(self.start, destination).compare(self.start,destination,self,arguments=arguments)
 
     def getMetaDiff(self):
       """ Return the EXIF differences between nodes referenced by 'start' and 'end' 

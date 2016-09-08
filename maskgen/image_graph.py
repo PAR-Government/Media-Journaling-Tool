@@ -136,14 +136,14 @@ class ImageGraph:
   def new_name(self, fname,suffix=None):
     if suffix is None:
      suffix = get_suffix(fname)
-    nname = get_pre_name(fname)
+    origname = nname = get_pre_name(fname)
     while (self.G.has_node(nname)):
-      posUS = nname.rfind('_')
-      if posUS > 0 and nname[posUS+1:].isdigit():
-         nname = '{}_{:=02d}'.format(nname[:posUS], self.nextId())
+      posUS = origname.rfind('_')
+      if posUS > 0 and origname[posUS+1:].isdigit():
+         nname = '{}_{:=02d}'.format(origname[:posUS], self.nextId())
       else:
-         nname = '{}_{:=02d}'.format(nname, self.nextId())
-      fname = nname + suffix
+         nname = '{}_{:=02d}'.format(origname, self.nextId())
+    fname = nname + suffix
     return fname
 
   def _saveImage(self,pathname,image):
@@ -151,11 +151,13 @@ class ImageGraph:
 
   def add_node(self,pathname, seriesname=None, image=None, **kwargs):
     fname = os.path.split(pathname)[1]
+    origdir = os.path.split(os.path.abspath(pathname))[0]
     origname = nname = get_pre_name(fname)
     suffix = get_suffix(fname)
-    while (self.G.has_node(nname)):
-      nname = '{}_{:=02d}'.format(nname, self.nextId())
-      fname = nname + suffix
+    newfname = self.new_name(fname,suffix)
+    nname = get_pre_name(newfname)
+    if os.path.abspath(self.dir) != origdir:
+        fname = newfname
     newpathname = os.path.join(self.dir,fname)
     includePathInUndo = (newpathname in self.filesToRemove)
     if (not os.path.exists(newpathname)):

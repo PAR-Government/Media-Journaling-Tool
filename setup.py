@@ -8,5 +8,5 @@ setup(name='maskgen',
       author_email='eric_robertson@partech.com',
       license='APL',
       packages=['maskgen'],
-      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring'],
+      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring','boto3','numpy','moviepy'],
       zip_safe=False)
