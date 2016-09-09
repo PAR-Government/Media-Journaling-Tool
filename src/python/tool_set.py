@@ -269,12 +269,10 @@ def __sift(img1,img2,mask1=None,mask2=None):
 #   img2 = img2.astype('uint8')
    img1 = np.asarray(img1.convert('L'))
    img2 = np.asarray(img2.convert('L'))
-   mask1 = np.asarray(mask1)
-   mask2 = np.asarray(mask2)
    if mask1 is not None:
-      img1 = img1*mask1
+      img1 = img1*np.asarray(mask1)
    if mask2 is not None:
-      img2 = img2*mask2
+      img2 = img2*np.asarray(mask2)
 
    #sift = cv2.ORB_create()
    detector = cv2.FeatureDetector_create("SIFT")
