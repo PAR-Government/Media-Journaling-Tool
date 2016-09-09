@@ -58,10 +58,10 @@ def check_mandatory(edge, op, graph, frm, to):
         return [op + ' is not a valid operation'] if op != 'Donor' else []
     args = edge['arguments'] if 'arguments' in edge  else []
     missing = [param for param in opObj.mandatoryparameters.keys() if
-               (param not in args or len(str(args[param])) == 0) and param == 'inputmask']
+               (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname']
     if 'inputmaskname' in opObj.mandatoryparameters.keys() and (
-            'inputmaskname' not in edge or len(edge['inputmaskname']) == 0):
-        missing.append('inputmask')
+            'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0):
+        missing.append('inputmaskname')
     return [('Mandatory parameter ' + m + ' is missing') for m in missing]
 
 
