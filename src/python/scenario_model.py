@@ -736,6 +736,10 @@ class ImageProjectModel:
        for node in self.G.get_nodes():
          if not self.G.has_neighbors(node):
              total_errors.append((str(node),str(node),str(node) + ' is not connected to other nodes'))
+         predecessors = self.G.predecessors(node)
+         if len(predecessors) == 1 and self.G.get_edge(predecessors[0],node)['op'] == 'Donor':
+             total_errors.append((str(predecessors[0]), str(node), str(node) +
+                                ' donor links must coincide with another link to the same destintion node'))
 
        nodeSet = set(self.G.get_nodes())
        for found in self.G.findRelationsToNode(nodeSet.pop()):
