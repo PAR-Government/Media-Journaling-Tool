@@ -880,10 +880,14 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     selectMaskName = None
     cancelled = True
     modification = None
+    start_type = None
+    end_type = None
 
-    def __init__(self, parent, dir, im, name, modification):
+    def __init__(self, parent,start_type, end_type,  dir, im, name, modification):
         self.dir = dir
         self.im = im
+        self.start_type = start_type
+        self.end_type = end_type
         self.parent = parent
         self.name = name
         self.modification = modification

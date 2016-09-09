@@ -1770,13 +1770,12 @@
       "name": "TransformResize", 
       "mandatoryparameters": {}, 
       "rules": [
-        "sizeChanged"
       ], 
       "optionalparameters": {
         "interpolation": {
 	   "type":"list",
 	   "values":["nearest","lanczos","bilinear","bicubic","cubic"],
-	   "description":"Interpolation is used to resize composite images."
+	   "description":"Interpolation is used to resize entire composite images."
         }
       },
       "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
