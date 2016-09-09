@@ -883,7 +883,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     start_type = None
     end_type = None
 
-    def __init__(self, parent,start_type, end_type,  dir, im, name, modification):
+    def __init__(self, parent, start_type, end_type,  dir, im, name, modification):
         self.dir = dir
         self.im = im
         self.start_type = start_type

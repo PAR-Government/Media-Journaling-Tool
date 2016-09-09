@@ -109,7 +109,7 @@ class MakeGenUI(Frame):
 
     def new(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
-                                           filetypes=self.getFileTypes())
+                                           filetypes=getFileTypes())
         if val is None or val == '':
             return
         dir = os.path.split(val)[0]

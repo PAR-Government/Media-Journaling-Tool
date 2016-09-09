@@ -3,7 +3,7 @@
   "graph": {
     "username": "ericrobertson", 
     "igversion": "0.1", 
-    "idcount": 21, 
+    "idcount": 23, 
     "projecttype": "image", 
     "name": "sample", 
     "typespref": [
@@ -28,10 +28,10 @@
   }, 
   "nodes": [
     {
-      "xpos": 299, 
+      "xpos": 325, 
       "nodetype": "base", 
       "ctime": "2016-07-28 13:06:28", 
-      "ypos": 61, 
+      "ypos": 14, 
       "seriesname": "sample", 
       "ownership": "no", 
       "file": "sample.jpg", 
@@ -67,10 +67,10 @@
       "id": "orig_input"
     }, 
     {
-      "xpos": 612, 
+      "xpos": 439, 
       "nodetype": "final", 
       "ownership": "yes", 
-      "ypos": 669, 
+      "ypos": 785, 
       "seriesname": "orig_input", 
       "file": "input_mod_2_21.jpg", 
       "id": "input_mod_2_21", 

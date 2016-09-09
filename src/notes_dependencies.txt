@@ -1,8 +1,0 @@
-Install Tkinter
-
-pip install pillow
-brew tap homebrew/science
-brew install opencv
-pip install numpy
-pip install matplotlib
-

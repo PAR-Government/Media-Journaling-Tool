@@ -3,7 +3,6 @@ Renames files, copies them into a new directory with new name, and changes selec
 
 Requires install of Exiftool (http://www.sno.phy.queensu.ca/~phil/exiftool/)
 Dependencies:
-boto3, botocore (only for optional use of s3)
 change_all_metadata.py (included)
 --------------------------------------------
 Usage:
@@ -22,7 +21,6 @@ arguments currently supported:
 -K, --keywords <keywords>: keywords associated with image set, to be stored externally (keywords.csv)
 -P, --preferences <file>: preferences text file. Uses preferences.txt in cwd by default
 -A, --additionalInfo <str>: Adds additional info to new filenames
--B, --S3Bucket <dir>: S3 bucket/path to download preferences file
 -T, --tally: generates tally file
 
 The following arguments set data in the output tally and RIT CSVs only:
@@ -105,12 +103,11 @@ D, Drexel,
 P, PAR
 
 The seq line is used to generate the new filename. The tool will automatically generate/maintain this number. Do not change it.
-A user may optionally specify an S3 bucket/path with the -B switch. Using this will search for preferences.txt 
-in the specified location on the configured AWS cloud, ensuring the seq number will always be updated.
+It is recommended to store this file somewhere externally, so that it can be pulled and used regardless of the user's machine.
 --------------------------------------------
 RIT CSV
 The RIT CSV includes the following information for each image:
-ImageFilename	CollectionRequestID	HDLocation	OriginalImageName	MD5	DeviceSN	DeviceLocalID	LensSN	LensLocalId	
+ImageFilename	CollectionAssignmentID	HDLocation	OriginalImageName	MD5	DeviceSN	DeviceLocalID	LensSN	LensLocalId
 FileType	JpgQuality	ShutterSpeed	Aperture	ExpCompensation	ISO	NoiseReduction	WhiteBalance	DegreesKelvin	
 ExposureMode	FlashFired	FocusMode	CreationDate	Location	GPSLatitude	OnboardFilter	GPSLongitude	
 BitDepth	ImageWidth	ImageHeight
