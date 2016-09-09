@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageOps
-from operator import mul
 import math
 from datetime import datetime
 from skimage.measure import compare_ssim
@@ -229,12 +228,12 @@ def interpolateMask(mask, img1, img2, invert=False, arguments={}):
     mask = np.asarray(mask)
     maskInverted = np.copy(mask) if invert else 255 - mask
     maskInverted[maskInverted > 0] = 1
-    TM = __sift(img1, img2, mask2=maskInverted)
+    TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
     if TM is not None:
-        newMask = cv2.warpPerspective(mask, TM, img1.size)
+        newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
-        return newMask, analysis
+        return newMask if computed_mask is None else computed_mask, analysis
     else:
         return None, None
 
@@ -267,7 +266,7 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, arguments={}):
 def siftAnalysis(analysis, img1, img2, mask=None, arguments={}):
     if img1.size != img2.size:
         mask2 = misc.imresize(mask, np.asarray(img2).shape, interp='nearest')
-    matrix = __sift(img1, img2, mask1=mask, mask2=mask2)
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
@@ -287,30 +286,33 @@ def __indexOf(source, dest):
                 break
     return positions
 
+def __toGrey(img):
+    splits = img.split()
+    img_array = np.asarray(img.convert('RGB'))
+    if (len(splits)) > 3:
+       alpha = np.asarray(splits[3])
+       zeros = np.zeros(alpha.shape)
+       zeros[alpha>0] = 1
+       img_array2 = np.zeros(img_array.shape)
+       for i in range(3):
+           img_array2[:,:,i] = img_array[:,:,i]*zeros
+       img_array = img_array2
+    return img_array.astype('uint8')
+
 
 def __sift(img1, img2, mask1=None, mask2=None):
-    #   maxv = max(np.max(img1),np.max(img2))
-    #   minv= min(np.min(img1),np.min(img2))
-    #   img1 = (img1/(maxv-minv) * 255)
-    #   img1 = img1.astype('uint8')
-    #   img2 = (img2/(maxv-minv) * 255)
-    #   img2 = img2.astype('uint8')
-    img1 = np.asarray(img1.convert('L'))
-    img2 = np.asarray(img2.convert('L'))
+    img1 = __toGrey(img1)
+    img2 = __toGrey(img2)
     if mask1 is not None:
         img1 = img1 * np.asarray(mask1)
     if mask2 is not None:
-        img2 = img2 * np.asarray(mask2)
+        for i in range(3):
+            img2[:, :, i] = img2[:, :, i] * np.asarray(mask2)
 
-    # sift = cv2.ORB_create()
     detector = cv2.FeatureDetector_create("SIFT")
-    sift = cv2.SIFT()
-    descriptor = cv2.DescriptorExtractor_create("BRIEF")
+    extractor = cv2.DescriptorExtractor_create("SIFT")
     matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
 
-    # find the keypoints and descriptors with SIFT
-    #   kp1, des1 = sift.detectAndCompute(img1,None)
-    #  kp2, des2 = sift.detectAndCompute(img2,None)
 
     FLANN_INDEX_KDTREE = 0
     FLANN_INDEX_LSH = 6
@@ -323,16 +325,17 @@ def __sift(img1, img2, mask1=None, mask2=None):
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-    kp1, d1 = sift.detectAndCompute(img1, None)
-    kp2, d2 = sift.detectAndCompute(img2, None)
+    kp1a = detector.detect(img1)
+    kp2a = detector.detect(img2)
 
-    # detect keypoints
-    # kp1 = detector.detect(img1)
-    # kp2 = detector.detect(img2)
+    (kp1, d1) = extractor.compute(img1, kp1a)
+    (kp2, d2) = extractor.compute(img2, kp2a)
 
-    # descriptors
-    # k1, d1 = descriptor.compute(img1, kp1)
-    # k2, d2 = descriptor.compute(img2, kp2)
+    d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
+    d1 = np.sqrt(d1)
+
+    d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
+    d2 = np.sqrt(d2)
 
     matches = flann.knnMatch(d1, d2, k=2) if d1 is not None and d2 is not None else []
 
@@ -342,18 +345,25 @@ def __sift(img1, img2, mask1=None, mask2=None):
     if len(good) > 10:
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-        # new_src_pts = cv2.convexHull(src_pts)
-        # positions = __indexOf(src_pts,new_src_pts)
-        # new_dst_pts = dst_pts[positions]
+        #new_src_pts = cv2.convexHull(src_pts)
+        new_src_pts = src_pts
+        #positions = __indexOf(src_pts,new_src_pts)
+        #new_dst_pts = dst_pts[positions]
+        new_dst_pts = dst_pts
 
-        # M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC,5.0)
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-        matchesMask = mask.ravel().tolist()
+        M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC,5.0)
+        #M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        #matchesMask = mask.ravel().tolist()
 
-        #     y,x = img1.shape
-        #     pts = np.float32([ [0,0],[0,y-1],[x-1,y-1],[x-1,0] ]).reshape(-1,1,2)
-        #     dst = cv2.perspectiveTransform(pts,M)
-        return M
+        #y,x = img1.shape
+        #pts = np.float32([ [0,0],[0,y-1],[x-1,y-1],[x-1,0] ]).reshape(-1,1,2)
+        #dst = cv2.perspectiveTransform(pts,M)
+        #mask = np.zeros((img1.shape[0],img1.shape[1]))
+        #new_src_pts1 = [point[0] for point in new_src_pts.astype('int32')]
+        #new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
+        #cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
+        ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+        return M,None#mask.astype('uint8')
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
@@ -673,3 +683,34 @@ def __seamMask(mask):
         for i in range(len(first)):
             mask[first[i], i] = 255
         return mask
+
+
+def __add_edge(edges, edge_points, points, i, j):
+    if (i, j) in edges or (j, i) in edges:
+        return
+    edges.add((i, j))
+    edge_points.extend([points[i],points[j]])
+
+
+def __calc_alpha2(alpha, points):
+    from scipy.spatial import Delaunay
+
+    tri = Delaunay(points)
+    edges = set()
+    edge_points = []
+    # loop over triangles:
+    for ia, ib, ic in tri.vertices:
+        pa = points[ia]
+        pb = points[ib]
+        pc = points[ic]
+        a = np.sqrt((pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2)
+        b = np.sqrt((pb[0] - pc[0]) ** 2 + (pb[1] - pc[1]) ** 2)
+        c = np.sqrt((pc[0] - pa[0]) ** 2 + (pc[1] - pa[1]) ** 2)
+        s = (a + b + c) / 2.0
+        area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+        circum_r = a * b * c / (4.0 * area)
+        if circum_r < 10.0/alpha:
+            __add_edge(edges, edge_points, points, ia, ib)
+            __add_edge(edges, edge_points, points, ib, ic)
+            __add_edge(edges, edge_points, points, ic, ia)
+    return edge_points

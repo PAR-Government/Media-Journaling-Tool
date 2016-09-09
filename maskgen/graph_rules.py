@@ -45,7 +45,6 @@ def check_operation(edge, op, graph, frm, to):
     if opObj is None:
         return ['Operation ' + op + ' is invalid']
 
-
 def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
