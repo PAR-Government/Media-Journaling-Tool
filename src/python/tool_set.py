@@ -210,7 +210,7 @@ def interpolateMask(mask,img1, img2, invert=False,arguments={}):
      maskInverted[maskInverted>0] = 1
      TM= __sift(img1,img2,mask2=maskInverted)
      if TM is not None:
-       newMask = cv2.warpPerspective(mask, TM, img1.size)
+       newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP)
        analysis = {}
        analysis['transform matrix'] = serializeMatrix(TM)
        return newMask,analysis
@@ -259,52 +259,52 @@ def __indexOf(source, dest):
            positions.append(spos)
            break
    return positions
+
+
+def __toGrey(img):
+    splits = img.split()
+    img_array = np.asarray(img.convert('RGB'))
+    if (len(splits)) > 3:
+       alpha = np.asarray(splits[3])
+       zeros = np.zeros(alpha.shape)
+       zeros[alpha>0] = 1
+       img_array2 = np.zeros(img_array.shape)
+       for i in range(3):
+           img_array2[:,:,i] = img_array[:,:,i]*zeros
+       img_array = img_array2
+    return img_array.astype('uint8')
          
 def __sift(img1,img2,mask1=None,mask2=None):
-#   maxv = max(np.max(img1),np.max(img2))
-#   minv= min(np.min(img1),np.min(img2))
-#   img1 = (img1/(maxv-minv) * 255)
-#   img1 = img1.astype('uint8')
-#   img2 = (img2/(maxv-minv) * 255)
-#   img2 = img2.astype('uint8')
-   img1 = np.asarray(img1.convert('L'))
-   img2 = np.asarray(img2.convert('L'))
+   img1 = __toGrey(img1)
+   img2 = __toGrey(img2)
    if mask1 is not None:
-      img1 = img1*np.asarray(mask1)
+     img1 = img1 * np.asarray(mask1)
    if mask2 is not None:
-      img2 = img2*np.asarray(mask2)
+     for i in range(3):
+        img2[:, :, i] = img2[:, :, i] * np.asarray(mask2)
 
-   #sift = cv2.ORB_create()
    detector = cv2.FeatureDetector_create("SIFT")
-   sift= cv2.SIFT()
-   descriptor = cv2.DescriptorExtractor_create("BRIEF")
+   extractor = cv2.DescriptorExtractor_create("SIFT")
    matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
-
-   # find the keypoints and descriptors with SIFT
-#   kp1, des1 = sift.detectAndCompute(img1,None)
- #  kp2, des2 = sift.detectAndCompute(img2,None)
 
    FLANN_INDEX_KDTREE = 0
    FLANN_INDEX_LSH = 6
    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-#index_params= dict(algorithm         = FLANN_INDEX_LSH,
-#                   table_number      = 6,  
-#                   key_size          = 12,     
-#                   multi_probe_level = 1) 
    search_params = dict(checks = 50)
 
    flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-   kp1, d1 = sift.detectAndCompute(img1,None)
-   kp2, d2 = sift.detectAndCompute(img2,None)
+   kp1a = detector.detect(img1)
+   kp2a = detector.detect(img2)
 
-   # detect keypoints
-   #kp1 = detector.detect(img1)
-   #kp2 = detector.detect(img2)
+   (kp1, d1) = extractor.compute(img1, kp1a)
+   (kp2, d2) = extractor.compute(img2, kp2a)
 
-   # descriptors
-   #k1, d1 = descriptor.compute(img1, kp1)
-   #k2, d2 = descriptor.compute(img2, kp2)
+   d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
+   d1 = np.sqrt(d1)
+
+   d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
+   d2 = np.sqrt(d2)
 
    matches = flann.knnMatch(d1,d2,k=2) if d1 is not None and d2 is not None else []
 
@@ -314,21 +314,9 @@ def __sift(img1,img2,mask1=None,mask2=None):
    if len(good)>10:
      src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
      dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-     #new_src_pts = cv2.convexHull(src_pts)
-     #positions = __indexOf(src_pts,new_src_pts)
-     #new_dst_pts = dst_pts[positions]
-
-     #M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC,5.0)
      M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
      matchesMask = mask.ravel().tolist()
-
-#     y,x = img1.shape
-#     pts = np.float32([ [0,0],[0,y-1],[x-1,y-1],[x-1,0] ]).reshape(-1,1,2)
-#     dst = cv2.perspectiveTransform(pts,M)
      return M
-
-     #img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
-   # Sort them in the order of their distance.
    return None
 
 def __applyTransform(compositeMask,mask,TM):

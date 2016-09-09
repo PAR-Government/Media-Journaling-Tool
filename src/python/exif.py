@@ -40,11 +40,6 @@ def getexif(source):
   return meta
 
 def _decodeStr(name,sv):
-#  try:
-#  sv = sv.encode('latin')
-#  except:
-#     print name, type(sv)
-#     sv = sv.decode('cp1252','ignore')
   return sv
        
 def compareexif(source,target):
@@ -52,15 +47,14 @@ def compareexif(source,target):
   metatarget = getexif(target)
   diff = {}
   for k,sv in metasource.iteritems():
-     sv = _decodeStr(k,sv)
      if k in metatarget:
-       tv = _decodeStr(k,sv)
+       tv = metatarget[k]
        if tv != sv:
          diff[k] = ('change',sv,tv)
      else:
          diff[k] = ('delete',sv)
   for k,tv in metatarget.iteritems():
      if k not in metasource:
-         diff[k] = ('add',_decodeStr(k,tv))
+         diff[k] = ('add',tv)
   return diff
 
