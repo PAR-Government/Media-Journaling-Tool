@@ -10,7 +10,26 @@ from scipy import ndimage
 from scipy import misc
 import getpass
 import re
+import imghdr
 
+
+imagefiletypes = [("jpeg files","*.jpg"),("png files","*.png"),("tiff files","*.tiff"),("Raw NEF",".nef"),("bmp files","*.bmp"),("avi files","*.avi")]
+
+videofiletypes = [("mpeg files","*.mp4"),("mov files","*.mov"),('wmv','*.wmv'),('m4p','*.m4p'),('m4v','*.m4v'),('f4v','*.flv')]
+
+suffixes = ["*.nef",".jpg",".png",".tiff","*.bmp",".avi",".mp4",".mov","*.wmv","*.ppm","*.pbm","*.gif"]
+maskfiletypes = [("png files","*.png"),("zipped masks","*.tgz"),("mpeg files","*.mp4")]
+
+def getMaskFileTypes():
+   return maskfiletypes
+
+def getFileTypes():
+   return imagefiletypes + videofiletypes
+
+def fileType(fileName):
+  pos=fileName.rfind('.')
+  suffix = fileName[pos+1:] if pos > 0 else ''
+  return 'image' if (suffix in imagefiletypes or imghdr.what(fileName) is not None) else 'video'
 
 def openFile(fileName):
    """
@@ -172,7 +191,7 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
         return openImage('./icons/RedX.png')
      img = Image.fromarray(bestSoFar)
      img = img.convert('L')  if isMask else img
-     if preserveSnapshot:
+     if preserveSnapshot and snapshotFileName != filename:
        img.save(snapshotFileName)
      return img
    else:
@@ -221,10 +240,9 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     analysis['apply transform'] = 'no' if globalchange else 'yes'
 
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
-    mask2=mask
     if img1.size != img2.size:
-       mask2 = misc.imresize(mask,img2.size,interp='nearest')
-    matrix = __sift(img1,img2,mask1=mask,mask2=mask)
+       mask2 = misc.imresize(mask,np.asarray(img2).shape,interp='nearest')
+    matrix = __sift(img1,img2,mask1=mask,mask2=mask2)
     if matrix is not None:
       analysis['transform matrix'] = serializeMatrix(matrix)   
 
@@ -252,9 +270,9 @@ def __sift(img1,img2,mask1=None,mask2=None):
    img1 = np.asarray(img1.convert('L'))
    img2 = np.asarray(img2.convert('L'))
    if mask1 is not None:
-      img1 = img1*mask1
+      img1 = img1*np.asarray(mask1)
    if mask2 is not None:
-      img2 = img2*mask2
+      img2 = img2*np.asarray(mask2)
 
    #sift = cv2.ORB_create()
    detector = cv2.FeatureDetector_create("SIFT")
