@@ -118,7 +118,11 @@ def save_as(source, target, qTables):
     if thumbTable:
         im.thumbnail((128,128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
-        im.save(tempFile, subsampling=1, qtables=thumbTable)
+        try:
+            im.save(tempFile, subsampling=1, qtables=thumbTable)
+        except OverflowError:
+            thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
+            im.save(tempFile, subsampling=1, qtables=thumbTable)
         try:
           runexiftool(['-overwrite_original','-P','-m','-"ThumbnailImage<=' + tempFile + '"',target])
           runexiftool(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
