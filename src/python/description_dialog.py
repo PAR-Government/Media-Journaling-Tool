@@ -180,6 +180,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
       if self.e1.get() in opByCat:
         oplist = opByCat[self.e1.get()]
         self.e2.set_completion_list(oplist)
+        self.newcommand(event)
       else:
         self.e2.set_completion_list([])
 
