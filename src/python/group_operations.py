@@ -31,11 +31,14 @@ class ToJPGGroupOperation(BaseOperation):
    def filterPairs(self, pairs):
        if len(pairs) == 0:
           return pairs
-       pred = self.scModel.getDescriptionForPredecessor(pairs[0][0])
-       if str(pred.operationName) == 'AntiForensicCopyExif':
+       result = []
+       for pair in pairs:
+         pred = self.scModel.getDescriptionForPredecessor(pair[0])
+         if str(pred.operationName) == 'AntiForensicCopyExif':
            print 'Error: Last operation is ExifMetaCopy. Use CompressAs plugin with base image as donor.'
        else:
-           return pairs
+           result.append(pair)
+       return result
 
    def performOp(self):
        """
