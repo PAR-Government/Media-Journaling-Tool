@@ -8,7 +8,6 @@ from tool_set import *
 
 igversion = '0.1'
 
-
 def getPathValues(d, path):
     """
     Given a nest structure,
