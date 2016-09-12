@@ -9,6 +9,13 @@ from description_dialog import DescriptionCaptureDialog, createCompareDialog
 def restrictPosition(position):
     return max(position, 5)
 
+def condenseName(name):
+    if len(name) > 13:
+      pos = name.rfind('_')
+      pos = name.rfind('-') if pos < 0 else pos + 1
+      pos = 5 if pos < 0 or pos > 10 else len(name)-pos - 1
+      return name[0:5] + '...' + name[-pos:]
+    return name
 
 class MaskGraphCanvas(tk.Canvas):
     crossHairConnect = False
@@ -154,6 +161,7 @@ class MaskGraphCanvas(tk.Canvas):
         if not self.lassoitems:
             x = self.canvasx(event.x)
             y = self.canvasy(event.y)
+            self.setDragData((event.x, event.y))
             self.lassobox = self.create_rectangle(self.region[0], self.region[1], x, y)
         else:
             for item in self.lassoitems:
@@ -377,13 +385,13 @@ class MaskGraphCanvas(tk.Canvas):
         ya = b + m * sin(beta)
         return (xa, ya)
 
-    def _draw_node(self, id):
-        if id in self.toItemIds:
-            marker, wid = self.toItemIds[id]
+    def _draw_node(self, node_id):
+        if node_id in self.toItemIds:
+            marker, wid = self.toItemIds[node_id]
             return wid
         wx, wy = self.winfo_width(), self.winfo_height()
 
-        node = self.scModel.getGraph().get_node(id)
+        node = self.scModel.getGraph().get_node(node_id)
         if (node.has_key('xpos')):
             x = node['xpos']
         else:
@@ -393,16 +401,17 @@ class MaskGraphCanvas(tk.Canvas):
         else:
             y = int(wy / 10)
 
-        n = self.scModel.getGraph().get_node(id)
+        n = self.scModel.getGraph().get_node(node_id)
         if 'nodetype' not in n:
-            self.scModel.labelNodes(id)
-        nodeC = NodeObj(self, id, n['file'], n)
+            self.scModel.labelNodes(node_id)
+
+        nodeC = NodeObj(self, node_id, condenseName(n['file']), n)
         wid = self.create_window(x, y, window=nodeC, anchor=tk.CENTER,
                                  tags='node')
         node['xpos'] = x
         node['ypos'] = y
-        self.toItemIds[id] = (nodeC.marker, wid)
-        self.itemToNodeIds[wid] = id
+        self.toItemIds[node_id] = (nodeC.marker, wid)
+        self.itemToNodeIds[wid] = node_id
         self.itemToCanvas[wid] = nodeC
         return wid
 

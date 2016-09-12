@@ -284,7 +284,7 @@ class LinkTool:
             try:
                 mod = importlib.import_module(mod_name)
                 func = getattr(mod, func_name)
-                func(analysis, startIm, destIm, mask=mask, arguments=arguments)
+                func(analysis, startIm, destIm, mask=tool_set.invertMask(mask), arguments=arguments)
             except Exception as e:
                 print 'Failed to run analysis ' + analysisOp + ': ' + str(e)
 
