@@ -1,3 +1,5 @@
+import os
+import datetime
 import networkx as nx
 from networkx.readwrite import json_graph
 import json
@@ -93,11 +95,11 @@ class ImageGraph:
     # otherwise the image graph is assumed to be the owner
     # ownership occurs if the image file is copied into the project directory
     # These paths are all the paths associated with image or video files for a link (edge).
-    edgeFilePaths = {'inputmaskname': 'inputmaskownership', \
-                     'arguments.XMP File Name': 'xmpfileownership', \
-                     'maskname': None, \
-                     'compositemaskname': None, \
-                     'selectmaskname': 'selectmaskownership', \
+    edgeFilePaths = {'inputmaskname': 'inputmaskownership',
+                     'arguments.XMP File Name': 'xmpfileownership',
+                     'maskname': None,
+                     'compositemaskname': None,
+                     'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}
 
     def getUIGraph(self):
@@ -114,9 +116,9 @@ class ImageGraph:
 
     def openImage(self, fileName, mask=False, metadata={}):
         imgDir = os.path.split(os.path.abspath(fileName))[0]
-        return openImage(fileName, \
-                         videoFrameTime=None if 'change_pts_time' not in metadata else metadata['change_pts_time'], \
-                         isMask=mask, \
+        return openImage(fileName,
+                         videoFrameTime=None if 'change_pts_time' not in metadata else metadata['change_pts_time'],
+                         isMask=mask,
                          preserveSnapshot=imgDir == os.path.abspath(self.dir))
 
     def get_nodes(self):
