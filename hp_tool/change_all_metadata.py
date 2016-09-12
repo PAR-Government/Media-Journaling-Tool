@@ -15,12 +15,11 @@ def parse_file(data, purge=False):
     try:
         with open(data) as f:
             for line in f:
-                line = line.rstrip('\n')
                 (tag, descr) = line.split('=')
                 if purge:
-                    newData[tag] = ''
+                    newData[tag.lower().strip()] = ''
                 else:
-                    newData[tag] = descr
+                    newData[tag.lower().strip()] = descr.strip()
     except IOError:
         print('Input file: ' + data + ' not found. ' + 'Please try again.')
         sys.exit()
