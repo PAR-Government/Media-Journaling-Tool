@@ -237,7 +237,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
 
     with open(csvFile, 'a') as csv_history:
         historyWriter = csv.writer(csv_history, lineterminator='\n')
-        historyWriter.writerow(['ImageFilename', 'CollectionAssignmentID', 'HDLocation', 'OriginalImageName', 'MD5',
+        historyWriter.writerow(['ImageFilename', 'CollectionRequestID', 'HDLocation', 'OriginalImageName', 'MD5',
                                 'DeviceSN', 'DeviceLocalID', 'LensSN', 'LensLocalId', 'FileType', 'JpgQuality',
                                'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                'DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'Location',
@@ -591,7 +591,7 @@ def main():
     parser.add_argument('-a', '--focusmode',        default='',                     help='Focus Mode')
     parser.add_argument('-l', '--location',         default='',                     help='location')
     parser.add_argument('-c', '--filter',           default='',                     help='On-board filter')
-    parser.add_argument('-C', '--collection',       default='',                     help='Collection Assignment ID')
+    parser.add_argument('-C', '--collection',       default='',                     help='Collection Request ID')
 
     args = parser.parse_args()
 

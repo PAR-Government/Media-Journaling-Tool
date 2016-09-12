@@ -240,8 +240,7 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     analysis['apply transform'] = 'no' if globalchange else 'yes'
 
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
-    if img1.size != img2.size:
-       mask2 = misc.imresize(mask,np.asarray(img2).shape,interp='nearest')
+    mask2 = misc.imresize(mask, np.asarray(img2).shape, interp='nearest') if mask is not None and img1.size != img2.size else mask
     matrix = __sift(img1,img2,mask1=mask,mask2=mask2)
     if matrix is not None:
       analysis['transform matrix'] = serializeMatrix(matrix)   
@@ -278,7 +277,8 @@ def __sift(img1,img2,mask1=None,mask2=None):
    img1 = __toGrey(img1)
    img2 = __toGrey(img2)
    if mask1 is not None:
-     img1 = img1 * np.asarray(mask1)
+     for i in range(3):
+        img1[:, :, i] = img1[:, :, i] * np.asarray(mask1)
    if mask2 is not None:
      for i in range(3):
         img2[:, :, i] = img2[:, :, i] * np.asarray(mask2)
@@ -325,7 +325,7 @@ def __applyTransform(compositeMask,mask,TM):
      maskInverted[maskInverted>0] = 1
      compositeMaskFlipped = 255 - compositeMask
      compositeMaskAltered = compositeMaskFlipped*maskInverted
-     newMask = cv2.warpPerspective(compositeMaskAltered, TM, (mask.shape[1],mask.shape[0]))
+     newMask = cv2.warpPerspective(compositeMaskAltered, TM, (mask.shape[1],mask.shape[0]),flags=cv2.WARP_INVERSE_MAP)
      mask[mask>0] = 1
      compositeMaskAltered = compositeMaskFlipped*mask
      newMask[compositeMaskAltered>0] = 255
