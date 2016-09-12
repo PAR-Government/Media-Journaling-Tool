@@ -263,7 +263,7 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, arguments={}):
     analysis['apply transform'] = 'no' if globalchange else 'yes'
 
 
-def siftAnalysis(analysis, img1, img2, mask=None, arguments={}):
+def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
     mask2 = misc.imresize(mask, np.asarray(img2).shape, interp='nearest') if mask is not None and img1.size != img2.size else mask
     matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
     if matrix is not None:
@@ -370,20 +370,20 @@ def __sift(img1, img2, mask1=None, mask2=None):
     return None
 
 
-def __applyTransform(compositeMask, mask, TM):
+def __applyTransform(compositeMask, mask, transform_matrix):
     mask = np.copy(np.asarray(mask))
     maskInverted = 255 - mask
     maskInverted[maskInverted > 0] = 1
     compositeMaskFlipped = 255 - compositeMask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
-    newMask = cv2.warpPerspective(compositeMaskAltered, TM, (mask.shape[1], mask.shape[0]),flags=cv2.WARP_INVERSE_MAP)
+    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]))#, flags=cv2.WARP_INVERSE_MAP)
     mask[mask > 0] = 1
     compositeMaskAltered = compositeMaskFlipped * mask
     newMask[compositeMaskAltered > 0] = 255
     return 255 - newMask
 
 
-def __composeMask(img1, img2, invert, arguments={}):
+def __composeMask(img1, img2, invert, arguments=dict()):
     img1, img2 = __alignChannels(img1, img2)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
@@ -553,7 +553,6 @@ def __sizeDiff(z1, z2):
 
 def invertMask(mask):
     return ImageOps.invert(mask)
-
 
 def convertToMask(im):
     """
