@@ -1122,7 +1122,6 @@
       "name": "TransformCrop", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
       ], 
       "optionalparameters": {
         "location": {
