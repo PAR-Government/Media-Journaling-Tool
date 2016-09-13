@@ -325,7 +325,7 @@ def __applyTransform(compositeMask,mask,TM):
      maskInverted[maskInverted>0] = 1
      compositeMaskFlipped = 255 - compositeMask
      compositeMaskAltered = compositeMaskFlipped*maskInverted
-     newMask = cv2.warpPerspective(compositeMaskAltered, TM, (mask.shape[1],mask.shape[0]),flags=cv2.WARP_INVERSE_MAP)
+     newMask = cv2.warpPerspective(compositeMaskAltered, TM, (mask.shape[1],mask.shape[0]))
      mask[mask>0] = 1
      compositeMaskAltered = compositeMaskFlipped*mask
      newMask[compositeMaskAltered>0] = 255

@@ -362,7 +362,7 @@ class ImageProjectModel:
          mod = importlib.import_module(mod_name)
          func = getattr(mod, func_name)
          try:
-           func(analysis,startIm,destIm,mask=mask,arguments=arguments)          
+           func(analysis,startIm,destIm,mask=tool_set.invertMask(mask),arguments=arguments)          
          except:
 	   print 'Failed analysis'
 
