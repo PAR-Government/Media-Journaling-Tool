@@ -423,6 +423,7 @@ class VideoVideoLinkTool(LinkTool):
         mask, analysis = Image.new("RGB", (250, 250), "black"), {}
         maskname = start + '_' + destination + '_mask' + '.png'
         maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+                                                   op,
                                                    startSegment=arguments[
                                                        'Start Time'] if 'Start Time' in arguments else None,
                                                    endSegment=arguments[
@@ -1257,4 +1258,4 @@ class VideoMaskSetInfo:
 
     def _convert(self, item):
         return {'Start': item['starttime'], 'End': item['endtime'], 'Frames': item['frames'],
-                'File': item['videosegment']}
+                'File': item['videosegment'] if 'videosegment' in item else ''}

@@ -690,7 +690,8 @@ class ActionableTableCanvas(TableCanvas):
     def openFile(self, row):
         model = self.getModel()
         f = model.getValueAt(row, self.openColumn)
-        openFile(os.path.join(self.dir, f))
+        if f is not None and len(str(f)) > 0:
+          openFile(os.path.join(self.dir, f))
 
     def popupMenu(self, event, rows=None, cols=None, outside=None):
         """Add left and right click behaviour for canvas, should not have to override

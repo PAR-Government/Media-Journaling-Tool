@@ -5,7 +5,6 @@ import os
 import json
 from datetime import datetime
 
-
 def otsu(hist):
     total = sum(hist)
     sumB = 0
@@ -189,7 +188,14 @@ def _grayToRGB(frame):
     """
     #  cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
     result = np.zeros((frame.shape[0], frame.shape[1], 3))
-    result[:, :, 1] = frame
+    if len (frame.shape) == 2:
+        result[:, :, 1] = frame
+    else:
+        summary = np.zeros((frame.shape[0], frame.shape[1]))
+        for d in range(frame.shape[2]):
+            summary[:,:] += frame[:,:,d]
+        summary[summary>0] = 255
+        result[:,:,1] =summary
     return result.astype('uint8')
 
 
@@ -494,7 +500,7 @@ def getDuration(st, et):
 
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
-def formMaskDiff(fileOne, fileTwo, startSegment=None, endSegment=None, applyConstraintsToOutput=True):
+def formMaskDiff2(fileOne, fileTwo, startSegment=None, endSegment=None, applyConstraintsToOutput=True):
     """
     Construct a diff video.  The FFMPEG provides degrees of difference by intensity variation in the green channel.
     The normal intensity is around 98.
@@ -543,3 +549,179 @@ def formMaskDiff(fileOne, fileTwo, startSegment=None, endSegment=None, applyCons
         print 'video diff process failed'
 
     return result, errors if sendErrors  else []
+
+class GrayFrameWriter:
+
+    capOut = None
+    codec = 'mp4v'
+    suffix = 'mp4'
+    fourcc = cv2.cv.CV_FOURCC(*codec)
+    filename = None
+    fps = 0
+    mask_prefix = None
+
+    def __init__(self, mask_prefix, fps):
+        self.fps = fps
+        self.mask_prefix = mask_prefix
+
+    def write(self,mask,mask_time):
+        if self.capOut is None:
+            self.filename = _composeMaskName(self.mask_prefix, mask_time, self.suffix)
+            self.capOut = cv2.VideoWriter(self.filename,
+                                          self.fourcc,
+                                          self.fps,
+                                          (mask.shape[1],mask.shape[0]),
+                                          False)
+        self.capOut.write(_grayToRGB(mask))
+
+    def close(self):
+        if self.capOut is not None:
+          self.capOut.release()
+        self.capOut = None
+
+class VidAnalysisComponents:
+    vid_one = None
+    vid_two = None
+    frame_one = None
+    elapsed_time_one = None
+    frame_two = None
+    elapsed_time_two = None
+    mask = None
+    writer = None
+
+    def __init__(self):
+        pass
+
+def cutDetect(vidAnalysisComponents, ranges=list()):
+    """
+    Find a region of cut frames given the current starting point
+    :param vidAnalysisComponents:
+    :param ranges: collection of meta-data describing then range of cut frames
+    :return:
+    """
+    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_two.isOpened():
+        cut = {}
+        cut['starttime'] = vidAnalysisComponents.elapsed_time_one
+        end_time = None
+        count = 1
+        cut['mask'] = vidAnalysisComponents.mask
+        while (vidAnalysisComponents.vid_one.isOpened()):
+            ret_one, frame_one = vidAnalysisComponents.vid_one.read()
+            if not ret_one:
+                vidAnalysisComponents.vid_one.release()
+                break
+            end_time = vidAnalysisComponents.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            diff = 0 if vidAnalysisComponents.frame_two is None else np.abs(frame_one - vidAnalysisComponents.frame_two)
+            if __changeCount(diff) == 0 and vidAnalysisComponents.vid_two.isOpened():
+                break
+            count+=1
+        cut['endtime'] = end_time
+        cut['frames'] = count
+        ranges.append(cut)
+
+def addDetect(vidAnalysisComponents, ranges=list()):
+    """
+    Find a region of added frames given the current starting point
+    :param vidAnalysisComponents:
+    :param ranges: collection of meta-data describing then range of add frames
+    :return:
+    """
+    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_one.isOpened():
+        addition = {}
+        addition['starttime'] = vidAnalysisComponents.elapsed_time_one
+        end_time = None
+        count = 1
+        addition['mask'] = vidAnalysisComponents.mask
+        while (vidAnalysisComponents.vid_two.isOpened()):
+            ret_two, frame_two = vidAnalysisComponents.vid_two.read()
+            if not ret_two:
+                vidAnalysisComponents.vid_two.release()
+                break
+            end_time = vidAnalysisComponents.vid_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            diff = 0 if vidAnalysisComponents.frame_one is None else np.abs(vidAnalysisComponents.frame_one - frame_two)
+            if __changeCount(diff) == 0 and vidAnalysisComponents.vid_one.isOpened():
+                break
+            count+=1
+        addition['endtime'] = end_time
+        addition['frames'] = count
+        ranges.append(addition)
+
+def __changeCount(mask):
+    if isinstance(mask,np.ndarray):
+        return __changeCount(sum(mask))
+    return mask
+
+def addChange(vidAnalysisComponents, ranges=list()):
+    """
+       Find a region of changed frames given the current starting point
+       :param vidAnalysisComponents:
+       :param ranges: collection of meta-data describing then range of changed frames
+       :return:
+       """
+    if __changeCount(vidAnalysisComponents.mask) > 0:
+        vidAnalysisComponents.writer.write(vidAnalysisComponents.mask,vidAnalysisComponents.elapsed_time_one)
+        if len(ranges) == 0 or 'End Time' in ranges[-1]:
+            change = dict()
+            change['mask'] = vidAnalysisComponents.mask
+            change['starttime'] = vidAnalysisComponents.elapsed_time_one
+            change['frames'] = 1
+            ranges.append(change)
+        else:
+            ranges[-1]['frames']+=1
+    elif len(ranges) > 0 and 'End Time' not in ranges[-1]:
+        change = ranges[-1]
+        change['videosegment'] = os.path.split(vidAnalysisComponents.writer.filename)[1]
+        change['endtime'] = vidAnalysisComponents.elapsed_time_one
+        vidAnalysisComponents.writer.close()
+
+def formMaskDiff(fileOne, fileTwo, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
+    opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
+    analysis_components = VidAnalysisComponents()
+    analysis_components.vid_one = cv2.VideoCapture(fileOne)
+    analysis_components.vid_two = cv2.VideoCapture(fileTwo)
+    analysis_components.writer = GrayFrameWriter(fileOne[0:fileOne.rfind('.')],
+                                                  analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
+    ranges = list()
+    try:
+        while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
+            ret_one, analysis_components.frame_one = analysis_components.vid_one.read()
+            if not ret_one:
+                analysis_components.vid_one.release()
+                break
+            ret_two, analysis_components.frame_two = analysis_components.vid_two.read()
+            if not ret_two:
+                analysis_components.vid_two.release()
+                break
+            elapsed_time = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            if startSegment and startSegment > elapsed_time:
+                continue
+            if endSegment and endSegment < elapsed_time:
+                break
+            # if applyConstraintsToOutput:
+            #     elapsed_time = analysis_components.frame_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            #     if startSegment and startSegment > elapsed_time:
+            #          continue
+            #    if endSegment and endSegment < elapsed_time:
+            #        break
+            analysis_components.elapsed_time_one = elapsed_time
+            analysis_components.elapsed_time_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            diff = np.abs(analysis_components.frame_one - analysis_components.frame_two)
+            analysis_components.mask = np.zeros(analysis_components.frame_one.shape).astype('uint8')
+            analysis_components.mask[diff > 0.0001] = 1
+            opFunc(analysis_components,ranges)
+        analysis_components.mask = 0
+        opFunc(analysis_components,ranges)
+        analysis_components.writer.close()
+    finally:
+        analysis_components.vid_one.release()
+        analysis_components.vid_two.release()
+        analysis_components.writer.close()
+    return ranges,[]
+
+def main(argv=None):
+    print formMaskDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4',
+                         '/Users/ericrobertson/Documents/movie/videoSample1.mp4', 'SelectCutFrames')
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

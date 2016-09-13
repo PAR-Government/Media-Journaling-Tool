@@ -1,45 +1,11 @@
-Issues:
-> = fixed
-# = not fixed
-- = not going to fix
+9/13/2016 10:00 am EST
+* Add analysis for cut and added frames.
+* Added a new 'change' analysis without ffmpeg.  
+** One operation 'TransformDownSample' to use the old technique for comparison. 
+* Added the SelectImageFromFrame operation to go from video to single image.  This is the only operation from video to image.  The image to video operation is PasteImageSpliceToFrames.
 
-> (1) window...fixed resolution...smaller monitor...file names get hidden
-# (2) Pan or zoom images
-> (3) output file name on a line, if too long, gets mangled.  Not sure if this is fixable.
-> (4) first item combo item in the combo box list does not work...operation list...additional info would not appear
-# (5) repeat original ...black image...next. open image, next.
-> (6) save and overwrite the original image...save over it (used by another program)...
-# (7) 'Undo' can only undo one operation
-# (8) 'Undo' state is not represented in the main menu...it is always avaible, even when no action can be taken
-> (9) 'Undo' does not work with remove it does not rebuild the removed masks
-> (10) Need to add the ability to change a link's data (description and operation)
-> (11) Add a way to visualize a link description
-# (12) Is there a direct way to pull from a clipboard?
-> (13) Add note about anaconda and pillow incompatibility with tool
-# (14) Can search for next image based on image meta-data...modified date...date created...last date modified.
-> (15) Bulk Load images
-# (16) Introduce efficiency in pulling in Donor images.  Need to rethink the Donor mask.
-> (17) Ctrl-Z for undo
-> (18) local filter. see 22
-> (19) Description/Operation dialog was not setting default values.
-> (20) Cursor was not being deselected when a 'canceled' occured during connecting two nodes
-> (21) Find and connect next image from a from loaded file (change Ctrl-L) to do this.  Ctrl-P replaced the old functionality (for auto pick)
-> (22) Add and connect next image from plugin filter
-> (23) Creating a new project should allow the selection of the image directory
-> (24) Fixed wrong menu item for edges on graph
-> (25) Unify the project concept: one project per directory.  Copy images into project directory where necessary
-> (26) Record user name for each edge (manipulation)
-- (27) Enforce connectto to allow connections to nodes with output links
---user beware instead
-> (28) Do not allow edit of a link that has been created with a plugin
-# (29) Over-writing an initial image messes up the diplay in the tool since the initial image is no longer available.  Should a copy be made?
-- (30) Reload and regenerate mask for link option on link menu.  
---replaced with remove and add back link
-> (31) Alpha channels not visible
-> (32) Mask generation failing for images with alpha channels
-> (33) Masks need to be inverted for acceptance by evaluation team
-> (34) Center on selected image not working with graph scroll bars
-# (35) When first loading up, the current link is not high-lighted in the graph
-# (36) When chnging a owned mask on edge, the old one should be removed (see update_edge)
->(37) Undo does not handle the removal of edge input masks
+
+Pending:
+* Storing Masks in non-video form.  At the moment, masks are mp4 videos. 
+* Audio masks
 

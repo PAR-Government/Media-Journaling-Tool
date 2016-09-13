@@ -1345,7 +1345,7 @@
     }, 
     {
       "category": "Paste", 
-      "name": "PasteFrames", 
+      "name": "PasteFrames",
       "mandatoryparameters": { 
         "Start Time": {
           "type":"time",
@@ -1386,7 +1386,7 @@
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": true,
       "transitions": ["video.video"]
-    }, 
+    },
     {
       "category": "Paste", 
       "name": "PasteImageSpliceToFrames", 
@@ -1528,7 +1528,24 @@
       "description": "Remove a limited selection within an image.",
       "includeInMask": true,
       "transitions": ["image.image"]
-    }, 
+    },
+    {
+      "category": "Select",
+      "name": "SelectImageFromFrame",
+      "mandatoryparameters": {
+         "Frame Time": {
+          "type":"time",
+          "description": "Presentation time of the select frame (HH:MI:SS.micro)"
+        }
+      },
+      "rules": [
+      ],
+      "optionalparameters": {
+      },
+      "description": "Select a single frame into an image.",
+      "includeInMask": false,
+      "transitions": ["video.image"]
+    },
     {
       "category": "TimeAlteration", 
       "name": "TimeAlterationEcho", 
