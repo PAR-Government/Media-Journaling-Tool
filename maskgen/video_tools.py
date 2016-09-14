@@ -4,6 +4,8 @@ from subprocess import call, Popen, PIPE
 import os
 import json
 from datetime import datetime
+import tool_set
+
 
 def otsu(hist):
     total = sum(hist)
@@ -60,7 +62,6 @@ def otsu(hist):
 #  topRange = i
 #  return bottomRange,topRange
 
-
 def _buildHist(filename):
     cap = cv2.VideoCapture(filename)
     hist = np.zeros(256).astype('int64')
@@ -86,7 +87,7 @@ def _buildMasks(filename, histandcount):
         ret, frame = cap.read()
         if not ret:
             break
-        gray = _grayToRGB(frame)
+        gray = tool_set.grayToRGB(frame)
         result = np.ones(gray.shape) * 255
         totalMatch = 0
         for value in values:
@@ -106,20 +107,20 @@ def buildMasksFromCombinedVideoOld(filename):
     return _buildMasks(filename, hist)
 
 
-def buildMasksFromCombinedVideo(filename, codec='mp4v', suffix='mp4', startSegment=None, endSegment=None, startTime=0):
+def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, startTime=0):
     maskprefix = filename[0:filename.rfind('.')]
     capIn = cv2.VideoCapture(filename)
-    capOut = None
+    capOut = tool_set.GrayBlockWriter(filename[0:filename.rfind('.')],
+                             capIn.get(cv2.cv.CV_CAP_PROP_FPS))
     try:
         ranges = []
         start = None
-        fourcc = cv2.cv.CV_FOURCC(*codec)
         count = 0
         fgbg = cv2.BackgroundSubtractorMOG2()
         first = True
         sample = None
         kernel = np.ones((5, 5), np.uint8)
-        while (capIn.isOpened()):
+        while capIn.isOpened():
             ret, frame = capIn.read()
             if sample is None:
                 sample = np.ones(frame[:, :, 0].shape) * 255
@@ -150,57 +151,25 @@ def buildMasksFromCombinedVideo(filename, codec='mp4v', suffix='mp4', startSegme
                 if start is None:
                     start = elapsed_time + startTime
                     sample = result
-                    capOut = cv2.VideoWriter(_composeMaskName(maskprefix, start, suffix), fourcc,
-                                             capIn.get(cv2.cv.CV_CAP_PROP_FPS), (result.shape[1], result.shape[0]),
-                                             False)
-                capOut.write(_grayToRGB(result))
+                    capOut.release()
+                capOut.write(result)
             else:
                 if start is not None:
                     ranges.append(
                         {'starttime': start, 'endtime': elapsed_time + startTime, 'frames': count, 'mask': sample,
-                         'videosegment': os.path.split(_composeMaskName(maskprefix, start, suffix))[1]})
+                         'videosegment': os.path.split(tool_set.tool_set.composeVideoMaskName(maskprefix, start))[1]})
                     capOut.release()
                     count = 0
                 start = None
                 capOut = None
         if start is not None:
             ranges.append({'starttime': start, 'endtime': elapsed_time + startTime, 'frames': count, 'mask': sample,
-                           'videosegment': os.path.split(_composeMaskName(maskprefix, start, suffix))[1]})
+                           'videosegment': os.path.split(tool_set.tool_set.composeVideoMaskName(maskprefix, start))[1]})
             capOut.release()
     finally:
         capIn.release()
-        if capOut:
-            capOut.release()
+        capOut.close()
     return ranges
-
-
-def _rgbToGray(frame):
-    """
-      returnp  green only
-    """
-    #  cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    return frame[:, :, 1]
-
-
-def _grayToRGB(frame):
-    """
-      project gray into Green
-    """
-    #  cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
-    result = np.zeros((frame.shape[0], frame.shape[1], 3))
-    if len (frame.shape) == 2:
-        result[:, :, 1] = frame
-    else:
-        summary = np.zeros((frame.shape[0], frame.shape[1]))
-        for d in range(frame.shape[2]):
-            summary[:,:] += frame[:,:,d]
-        summary[summary>0] = 255
-        result[:,:,1] =summary
-    return result.astype('uint8')
-
-
-def _composeMaskName(maskprefix, starttime, suffix):
-    return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
 
 def _invertSegment(dir, segmentFileName, prefix, starttime, codec='mp4v'):
@@ -208,7 +177,7 @@ def _invertSegment(dir, segmentFileName, prefix, starttime, codec='mp4v'):
      Invert a single video file (gray scale)
      """
     suffix = segmentFileName[segmentFileName.rfind('.') + 1:]
-    maskFileName = _composeMaskName(prefix, str(starttime), suffix)
+    maskFileName = tool_set.composeVideoMaskName(prefix, str(starttime), suffix)
     capIn = cv2.VideoCapture(os.path.join(dir, segmentFileName))
     fourcc = capIn.get(cv2.cv.CV_CAP_PROP_FOURCC)
     if fourcc == 0:
@@ -225,7 +194,7 @@ def _invertSegment(dir, segmentFileName, prefix, starttime, codec='mp4v'):
             if ret:
                 result = _rgbToGray(frame)
                 result = abs(result - np.ones(result.shape) * 255)
-                capOut.write(_grayToRGB(result))
+                capOut.write(tool_set.grayToRGB(result))
     finally:
         capIn.release()
         if capOut:
@@ -550,34 +519,6 @@ def formMaskDiff2(fileOne, fileTwo, startSegment=None, endSegment=None, applyCon
 
     return result, errors if sendErrors  else []
 
-class GrayFrameWriter:
-
-    capOut = None
-    codec = 'mp4v'
-    suffix = 'mp4'
-    fourcc = cv2.cv.CV_FOURCC(*codec)
-    filename = None
-    fps = 0
-    mask_prefix = None
-
-    def __init__(self, mask_prefix, fps):
-        self.fps = fps
-        self.mask_prefix = mask_prefix
-
-    def write(self,mask,mask_time):
-        if self.capOut is None:
-            self.filename = _composeMaskName(self.mask_prefix, mask_time, self.suffix)
-            self.capOut = cv2.VideoWriter(self.filename,
-                                          self.fourcc,
-                                          self.fps,
-                                          (mask.shape[1],mask.shape[0]),
-                                          False)
-        self.capOut.write(_grayToRGB(mask))
-
-    def close(self):
-        if self.capOut is not None:
-          self.capOut.release()
-        self.capOut = None
 
 class VidAnalysisComponents:
     vid_one = None
@@ -672,14 +613,14 @@ def addChange(vidAnalysisComponents, ranges=list()):
         change = ranges[-1]
         change['videosegment'] = os.path.split(vidAnalysisComponents.writer.filename)[1]
         change['endtime'] = vidAnalysisComponents.elapsed_time_one
-        vidAnalysisComponents.writer.close()
+        vidAnalysisComponents.writer.release()
 
 def formMaskDiff(fileOne, fileTwo, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2.VideoCapture(fileOne)
     analysis_components.vid_two = cv2.VideoCapture(fileTwo)
-    analysis_components.writer = GrayFrameWriter(fileOne[0:fileOne.rfind('.')],
+    analysis_components.writer = tool_set.GrayBlockWriter(fileOne[0:fileOne.rfind('.')] + '_' + fileTwo[0:fileTwo.rfind('.')],
                                                   analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
     ranges = list()
     try:
@@ -711,12 +652,30 @@ def formMaskDiff(fileOne, fileTwo, opName, startSegment=None, endSegment=None, a
             opFunc(analysis_components,ranges)
         analysis_components.mask = 0
         opFunc(analysis_components,ranges)
-        analysis_components.writer.close()
+        analysis_components.writer.release()
     finally:
         analysis_components.vid_one.release()
         analysis_components.vid_two.release()
         analysis_components.writer.close()
     return ranges,[]
+
+def interpolateMask(mask_file_name_prefix,
+                    directory,
+                    video_masks,
+                    start_file_name,
+                    dest_file_name):
+    """
+    :param mask_file_name_prefix:
+    :param directory:
+    :param video_masks:
+    :param start_file_name:
+    :param dest_file_name:
+    :return: maskname, mask, analysis, errors
+    """
+    if tool_set.fileType(start_file_name) == 'image':
+        
+      return None
+    return None
 
 def main(argv=None):
     print formMaskDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4',

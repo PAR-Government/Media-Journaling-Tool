@@ -10,6 +10,7 @@ from scipy import misc
 import getpass
 import re
 import imghdr
+import h5py
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
                   ("bmp files", "*.bmp"), ("avi files", "*.avi")]
@@ -35,12 +36,15 @@ def fileType(fileName):
     return 'image' if (suffix in imagefiletypes or imghdr.what(fileName) is not None) else 'video'
 
 
+
 def openFile(fileName):
     """
      Open a file using a native OS associated program
     """
     import os
     import sys
+    if fileName.endswith('.hdf5'):
+        fileName = convertToMP4(fileName)
     if sys.platform.startswith('linux'):
         os.system('xdg-open "' + fileName + '"')
     elif sys.platform.startswith('win'):
@@ -224,7 +228,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return openImage('./icons/RedX.png')
 
 
-def interpolateMask(mask, img1, img2, invert=False, arguments={}):
+def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     mask = np.asarray(mask)
     maskInverted = np.copy(mask) if invert else 255 - mask
     maskInverted[maskInverted > 0] = 1
@@ -264,7 +268,7 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, arguments={}):
 
 
 def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
-    mask2 = misc.imresize(mask, np.asarray(img2).shape, interp='nearest') if mask is not None and img1.size != img2.size else mask
+    mask2 = cv2.resize(np.asarray(mask), img2.size) if mask is not None and img1.size != img2.size else mask
     matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
@@ -367,7 +371,7 @@ def __sift(img1, img2, mask1=None, mask2=None):
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
-    return None
+    return None,None
 
 
 def __applyTransform(compositeMask, mask, transform_matrix):
@@ -589,16 +593,13 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         upperBound = (res.shape[0] + (sizeChange[0] / 2), res.shape[1] + (sizeChange[1] / 2))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if expectedSize != res.shape:
-        try:
-            res = misc.imresize(res, expectedSize, interp=__checkInterpolation(interpolation))
-        except KeyError:
-            res = misc.imresize(res, expectedSize, interp='nearest')
+        res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
     return res
 
 
 def mergeMask(compositeMask, newMask):
     if compositeMask.shape != newMask.shape:
-        compositeMask = misc.imresize(compositeMask, newMask.shape, interp='nearest')
+        compositeMask = cv2.resize(compositeMask, (newMask.shape[1], newMask.shape[0]))
     else:
         compositeMask = np.copy(compositeMask)
     compositeMask[newMask == 0] = 0
@@ -713,3 +714,174 @@ def __calc_alpha2(alpha, points):
             __add_edge(edges, edge_points, points, ib, ic)
             __add_edge(edges, edge_points, points, ic, ia)
     return edge_points
+
+def grayToRGB(frame):
+    """
+      project gray into Green
+    """
+    #  cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
+    result = np.zeros((frame.shape[0], frame.shape[1], 3))
+    if len (frame.shape) == 2:
+        result[:, :, 1] = frame
+    else:
+        summary = np.zeros((frame.shape[0], frame.shape[1]))
+        for d in range(frame.shape[2]):
+            summary[:,:] += frame[:,:,d]
+        summary[summary>0] = 255
+        result[:,:,1] =summary
+    return result.astype('uint8')
+
+def composeVideoMaskName(maskprefix, starttime, suffix):
+    """
+    :param maskprefix:
+    :param starttime:
+    :param suffix:
+    :return: A mask file name using the provided components
+    """
+    return maskprefix + '_mask_' + str(starttime) + '.' + suffix
+
+def convertToMP4(file_name):
+    fn = file_name[:file_name.rfind('.')] + '.mp4'
+    if os.path.exists(fn):
+        if os.stat(file_name).st_mtime < os.stat(fn).st_mtime:
+            return fn
+        else:
+            os.remove(fn)
+    reader = GrayBlockReader(file_name,convert=True)
+    while True:
+        mask = reader.read()
+        if mask is None:
+            break
+    return fn
+
+class GrayBlockReader:
+
+    pos = 0
+    convert = False
+    writer = None
+
+    def __init__(self,  filename, convert=False):
+        self.filename = filename
+        self.h_file = h5py.File(filename, 'r')
+        self.dset = self.h_file.get('masks').get('masks')
+        self.fps = self.h_file.attrs['fps']
+        self.start_time = self.h_file.attrs['start_time']
+        self.convert = convert
+        self.writer = GrayFrameWriter(self.h_file.attrs['prefix'],
+                                      self.fps) if self.convert else DummyWriter()
+
+    def read(self):
+        if self.dset is None:
+            return None
+        if self.pos >= self.dset.shape[0]:
+            self.dset = None
+            return None
+        mask = self.dset[self.pos,:,:]
+        self.writer.write(mask,self.start_time + (self.pos*self.fps))
+        self.pos += 1
+        return mask.astype('uint8')
+
+    def release(self):
+        None
+
+    def close(self):
+        self.h_file.close()
+        if self.writer is not None:
+            self.writer.close()
+
+class DummyWriter:
+    def write(self, mask, mask_time):
+        None
+
+    def close(self):
+        None
+
+class GrayBlockWriter:
+    """
+      Write Gray scale (Mask) images to a compressed block file
+      """
+    h_file = None
+    suffix = 'hdf5'
+    filename = None
+    fps = 0
+    mask_prefix = None
+    pos = 0
+    dset = None
+
+    def __init__(self, mask_prefix, fps):
+        self.fps = fps
+        self.mask_prefix = mask_prefix
+
+    def write(self, mask, mask_time):
+        if self.h_file is None:
+            self.filename = composeVideoMaskName(self.mask_prefix,mask_time,self.suffix)
+            if os.path.exists(self.filename):
+                os.remove(self.filename)
+            self.h_file = h5py.File(self.filename, 'w')
+            self.h_file.attrs['fps'] = self.fps
+            self.h_file.attrs['prefix'] = self.mask_prefix
+            self.h_file.attrs['start_time'] = mask_time
+            self.grp = self.h_file.create_group('masks')
+            self.dset = self.grp.create_dataset("masks",
+                                                (10,mask.shape[0], mask.shape[1]),
+                                                compression="gzip",
+                                                chunks=True,
+                                                maxshape=(None, mask.shape[0], mask.shape[1]))
+            self.pos = 0
+        if self.dset.shape[0] < (self.pos+1):
+             self.dset.resize((self.pos+1,mask.shape[0], mask.shape[1]))
+        if len(mask.shape)>2:
+            new_mask = np.ones((mask.shape[0],mask.shape[1]))*255
+            for i in range(mask.shape[2]):
+                new_mask[mask[:,:,i]>0] = 0
+        self.dset[self.pos,:,:] = new_mask
+        self.pos+=1
+
+    def get_file_name(self):
+        return self.filename
+
+    def close(self):
+        self.release()
+
+    def release(self):
+        self.grp = None
+        self.dset = None
+        if self.h_file is not None:
+            self.h_file.close()
+        self.h_file = None
+
+
+class GrayFrameWriter:
+    """
+    Write Gray scale (Mask) video images
+    """
+    capOut = None
+    codec = 'mp4v'
+    suffix = 'mp4'
+    fourcc = cv2.cv.CV_FOURCC(*codec)
+    filename = None
+    fps = 0
+    mask_prefix = None
+
+    def __init__(self, mask_prefix, fps):
+        self.fps = fps
+        self.mask_prefix = mask_prefix
+
+    def write(self,mask,mask_time):
+        if self.capOut is None:
+            self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
+            self.capOut = cv2.VideoWriter(self.filename,
+                                          self.fourcc,
+                                          self.fps,
+                                          (mask.shape[1],mask.shape[0]),
+                                          False)
+        self.capOut.write(grayToRGB(mask))
+
+    def close(self):
+        if self.capOut is not None:
+          self.capOut.release()
+        self.capOut = None
+
+    def release(self):
+        self.close()
+

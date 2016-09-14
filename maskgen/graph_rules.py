@@ -108,7 +108,7 @@ def set_rules(op, ruleNames):
 def checkForDonor(graph, frm, to):
     pred = graph.predecessors(to)
     if len(pred) < 2:
-        return 'donor image missing'
+        return 'donor image/video missing'
     return None
 
 
@@ -136,20 +136,22 @@ def checkLengthBigger(graph, frm, to):
             (durationChangeTuple[0] == 'change' and durationChangeTuple[1] > durationChangeTuple[2]):
         return "Length of video is not longer"
 
-
-def checkDonor(graph, frm, to):
-    pred = graph.predecessors(to)
-    if len(pred) < 2:
-        return 'donor must be associated with a image node that has a inbound paste operation'
-    return None
-
-
 def seamCarvingCheck(graph, frm, to):
     change = getSizeChange(graph, frm, to)
     if change is not None and change[0] != 0 and change[1] != 0:
         return 'seam carving should not alter both dimensions of an image'
     return None
 
+def checkSIFT(graph, frm, to):
+    """
+    Currently a marker for SIFT.
+    TODO: This operation should check SIFT transform matrix for images and video in the edge
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    return None
 
 def sizeChanged(graph, frm, to):
     change = getSizeChange(graph, frm, to)

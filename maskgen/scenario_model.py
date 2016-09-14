@@ -310,20 +310,33 @@ class ImageImageLinkTool(LinkTool):
         if op == 'Donor':
             predecessors = scModel.G.predecessors(destination)
             mask = None
+            expect_donor_mask = False
             if not skipDonorAnalysis:
                 errors = ["Could not compute SIFT Matrix"]
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, destination)
-                    if edge['op'] != 'Donor':
+                    op = plugins.getOperation(edge['op'])
+                    expect_donor_mask = op is not None and 'checkSIFT' in op.rules
+                    if expect_donor_mask:
                         mask, analysis = tool_set.interpolateMask(
                             scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
                             arguments=arguments, invert=invert)
                         if mask is not None:
                             errors = []
                             mask = Image.fromarray(mask)
-                            break
+                        break
+            if mask is None:
+                predecessors = scModel.G.predecessors(start)
+                for pred in predecessors:
+                    edge = scModel.G.get_edge(pred, start)
+                    # probably should change this to == 'SelectRegion'
+                    if edge['op'] != 'Donor':
+                        mask = tool_set.invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0])
+                        break
             if mask is None:
                 mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
+                if expect_donor_mask:
+                    errors = ["Donor image has insufficient features for SIFT and does not have a predecessor node."]
                 analysis = {}
         else:
             mask, analysis = tool_set.createMask(startIm, destIm, invert=invert, arguments=arguments)
@@ -359,7 +372,8 @@ class ImageVideoLinkTool(LinkTool):
                 errors = ["Could not compute SIFT Matrix"]
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, destination)
-                    if edge['op'] != 'Donor':
+                    op = plugins.getOperation(edge['op'])
+                    if op is not None and 'checkSIFT' in op.rules:
                         mask, analysis = tool_set.interpolateMask(
                             scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
                             arguments=arguments, invert=invert)
@@ -402,18 +416,22 @@ class VideoVideoLinkTool(LinkTool):
           of the Donor image and its parent, it exists.
           Otherwise, the donor image mask is the donor image (minus alpha channels):
         """
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
         predecessors = scModel.G.predecessors(destination)
         analysis = {}
-        maskname = start + '_' + destination + '_mask' + '.png'
+        errors = ["Could not compute SIFT Matrix"]
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
-            if edge['op'] != 'Donor':
-                if 'masks count' in edge:
-                    analysis['masks count'] = edge['masks count']
-                analysis['videomasks'] = video_tools.invertVideoMasks(scModel.G.dir, edge['videomasks'], start,
-                                                                      destination)
-                return maskname, tool_set.invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0]), analysis, []
-        return maskname, tool_set.convertToMask(scModel.G.get_image(scModel.start)[0]), analysis, []
+            op = plugins.getOperation(edge['op'])
+            if op is not None and 'checkSIFT' in op.rules:
+                maskname, mask, analysis, errors = video_tools.interpolateMask(
+                    start + '_' + destination + '_mask',
+                    scModel.G.dir,
+                    edge['videomasks'],
+                    startFileName,
+                    destFileName)
+        return maskname, mask, analysis, errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
         if op == 'Donor':
@@ -1123,8 +1141,6 @@ class ImageProjectModel:
         selectionSet = [node for node in self.G.get_nodes() if not self.G.has_neighbors(node) and node != self.start]
         selectionSet.sort()
         if (len(selectionSet) > 0):
-            seriesname = self.getSeriesName()
-            seriesname = seriesname if seriesname is not None else self.start
             matchNameSet = [name for name in selectionSet if name.startswith(self.start)]
             selectionSet = matchNameSet if len(matchNameSet) > 0 else selectionSet
         return selectionSet[0] if len(selectionSet) > 0 else None
