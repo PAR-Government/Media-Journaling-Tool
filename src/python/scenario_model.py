@@ -385,6 +385,17 @@ class ImageProjectModel:
                    mask = Image.fromarray(mask)
                    break
           if mask is None:
+              analysis = {}
+              predecessors = self.G.predecessors(self.start)
+              for pred in predecessors:
+                  edge = self.G.get_edge(pred, self.start)
+                  if edge['op'] != 'Donor':
+                      errors = []
+                      mask = tool_set.invertMask(self.G.get_edge_image(pred, self.start, 'maskname')[0])
+                      break
+          if mask is None:
+            if not skipDonorAnalysis:
+              errors = ['Donor image has insufficient features for SIFT and does not have a predecessor node']
             mask = tool_set.convertToMask(self.G.get_image(self.start)[0])
             analysis = {}
        else:

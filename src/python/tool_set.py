@@ -240,7 +240,7 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     analysis['apply transform'] = 'no' if globalchange else 'yes'
 
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
-    mask2 = misc.imresize(mask, np.asarray(img2).shape, interp='nearest') if mask is not None and img1.size != img2.size else mask
+    mask2 = cv2.resize(np.asarray(mask), img2.size) if mask is not None and img1.size != img2.size else mask
     matrix = __sift(img1,img2,mask1=mask,mask2=mask2)
     if matrix is not None:
       analysis['transform matrix'] = serializeMatrix(matrix)   
@@ -523,15 +523,12 @@ def alterMask(compositeMask,edgeMask,rotation=0.0, sizeChange=(0,0),interpolatio
       upperBound = (res.shape[0] + (sizeChange[0]/2),res.shape[1] + (sizeChange[1]/2))
       res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if expectedSize != res.shape:
-      try:
-         res = misc.imresize(res,expectedSize,interp=__checkInterpolation(interpolation))
-      except KeyError:   
-         res = misc.imresize(res,expectedSize,interp='nearest')
+       res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
     return res
 
 def mergeMask(compositeMask, newMask):
    if compositeMask.shape != newMask.shape:
-      compositeMask = misc.imresize(compositeMask,newMask.shape,interp='nearest')
+      compositeMask = cv2.resize(compositeMask,(newMask.shape[1],newMask.shape[0]))
    else:
       compositeMask = np.copy(compositeMask)
    compositeMask[newMask==0] = 0
