@@ -197,6 +197,12 @@ class MakeGenUI(Frame):
          val.close()
 
     def export(self):
+       errorList = self.scModel.validate()
+       if errorList is not None and len(errorList) > 0:
+          errorlistDialog = DecisionListDialog(self,errorList,"Validation Errors")
+          errorlistDialog.wait(self)
+          if not errorlistDialog.isok:
+              return
        val = tkFileDialog.askdirectory(initialdir = '.',title = "Export To Directory")
        if (val is not None and len(val)>0):
          errorList = self.scModel.export(val)
@@ -209,6 +215,12 @@ class MakeGenUI(Frame):
            tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
+       errorList = self.scModel.validate()
+       if errorList is not None and len(errorList) > 0:
+          errorlistDialog = DecisionListDialog(self,errorList,"Validation Errors")
+          errorlistDialog.wait(self)
+          if not errorlistDialog.isok:
+              return
        info = self.prefLoader.get_key('s3info')
        val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder", initialvalue=info if info is not None else '')
        if (val is not None and len(val)>0):
