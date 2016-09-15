@@ -12,6 +12,7 @@ possible future features:
 import os
 import tempfile
 from PIL import Image
+import numpy as np
 from bitstring import BitArray
 from subprocess import call,Popen, PIPE
 
@@ -82,7 +83,7 @@ def runexiftool(args):
     p = Popen(command,stdout=PIPE,stderr=PIPE)
     try:
       while True:
-        line = p.stdout.readline()  
+        line = p.stdout.readline()
         if line is None or len(line) == 0:
            break
         print line
@@ -93,8 +94,49 @@ def runexiftool(args):
     print "Exiftool not installed"
     raise e
 
+def check_rotate(im, jpg):
+    """
+    1 = Horizontal (normal)
+    2 = Mirror horizontal
+    3 = Rotate 180
+    4 = Mirror vertical
+    5 = Mirror horizontal and rotate 270 CW
+    6 = Rotate 90 CW
+    7 = Mirror horizontal and rotate 90 CW
+    8 = Rotate 270 CW
+    """
+    rotateStr = Popen(['exiftool', '-n', '-Orientation', jpg],
+                        stdout=PIPE).communicate()[0]
 
-def save_as(source, target, qTables):
+    rotation = rotateStr.split(':')[1].strip()
+
+    if rotation == '-':
+        return im
+
+    arr = np.array(im)
+    if rotation == '2':
+        rotatedArr = np.fliplr(arr)
+    elif rotation == '3':
+        rotatedArr = np.rot90(arr,2)
+    elif rotation == '4':
+        rotatedArr = np.flipud(arr)
+    elif rotation == '5':
+        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.rot90(rotatedArr,3)
+    elif rotation == '6':
+        rotatedArr = np.rot90(arr)
+    elif rotation == '7':
+        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.rot90(rotatedArr)
+    elif rotation == '8':
+        rotatedArr = np.rot90(arr, 3)
+    else:
+        rotatedArr = arr
+
+    rotatedIm = Image.fromarray(rotatedArr)
+    return rotatedIm
+
+def save_as(source, target, donor, qTables):
     """
     Saves image file using quantization tables
     :param imageFile: string filename of image
@@ -114,6 +156,7 @@ def save_as(source, target, qTables):
 
     # write jpeg with specified tables
     im = Image.open(source)
+    im = check_rotate(im, donor)
     im.save(target, subsampling=1, qtables=finalTable)
     if thumbTable:
         im.thumbnail((128,128))
@@ -137,7 +180,7 @@ def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     tables_zigzag = parse_tables(donor[1])
     tables_sorted = sort_tables(tables_zigzag)
-    save_as(source, target, tables_sorted)
+    save_as(source, target, donor[1], tables_sorted)
     
     return False,None
     
