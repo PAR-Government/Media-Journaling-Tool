@@ -887,7 +887,7 @@ class ImageProjectModel:
       shutil.copy2(filename, target)
       msg = None
       try:
-         copyExif = plugins.callPlugin(filter,im,filename,target,**self._resolvePluginValues(kwargs))
+         copyExif,warningMessage = plugins.callPlugin(filter,im,filename,target,**self._resolvePluginValues(kwargs))
       except Exception as e:
          msg = str(e)
          copyExif = False
@@ -905,11 +905,9 @@ class ImageProjectModel:
 
       msg2,status = self.addNextImage(target,mod=description,sendNotifications=sendNotifications,skipRules=skipRules,position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
       pairs = []
-      if msg2 is not None:
-          if msg is None:
-             msg = msg2
-          else:
-             msg = msg + "\n" + msg2
+      msg= '\n'.join([msg if msg else '',
+                 warningMessage if warningMessage else '',
+                 msg2 if msg2 else '']).strip()
       if status:
           pairs.append((self.start, self.end))
           if 'donor' in kwargs:
