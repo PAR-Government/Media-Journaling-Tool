@@ -1,10 +1,21 @@
 from subprocess import call
+from PIL import Image
+
+def update_size(imageFile):
+    with Image.open(imageFile) as im:
+        width, height = im.size
+    call(['exiftool', '-P', '-q', '-m', '-ExifImageWidth=' + str(width),
+                                        '-ImageWidth=' + str(width),
+                                        '-ExifImageHeight=' + str(height),
+                                        '-ImageHeight=' + str(height),
+                                        imageFile])
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     call(['exiftool', '-q','-all=', target])
     call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
     call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
+    update_size(target)
     return False,'EXIF Copy does not correct for orientation changes'
 
 def suffix():
