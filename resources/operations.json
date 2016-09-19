@@ -1363,7 +1363,7 @@
     {
       "category": "Paste", 
       "name": "PasteImageSpliceToFrames", 
-      "mandatoryparameters": {   
+      "mandatoryparameters": {
          "donor rotated": {
 	    "type": "yesno",
 	    "description" : "Enter yes if the donor is rotated during the paste operation"
@@ -1380,7 +1380,7 @@
       "rules": [
         "checkSize",
         "checkSIFT",
-        "checkForDonor"
+        "checkForDonorWithRegion"
       ], 
       "optionalparameters": { 
         "Start Time": {
@@ -1782,11 +1782,11 @@
            "description" : "The rotation should be provided in degrees counter-clockwise (0 to 360)"
          }
       },
-      "rules": [], 
+      "rules": [],
       "optionalparameters": {}, 
       "analysisOperations": [ "maskgen.tool_set.siftAnalysis"],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
-      "includeInMask": false,
+      "includeInMask" : false,
       "transitions": ["image.image","video.video"]
     }, 
     {
