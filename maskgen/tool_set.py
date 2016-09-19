@@ -770,6 +770,9 @@ class GrayBlockReader:
         self.writer = GrayFrameWriter(self.h_file.attrs['prefix'],
                                       self.fps) if self.convert else DummyWriter()
 
+    def current_frame_time(self):
+        return self.start_time + (self.pos*self.fps)
+
     def read(self):
         if self.dset is None:
             return None
@@ -777,7 +780,7 @@ class GrayBlockReader:
             self.dset = None
             return None
         mask = self.dset[self.pos,:,:]
-        self.writer.write(mask,self.start_time + (self.pos*self.fps))
+        self.writer.write(mask,self.current_frame_time())
         self.pos += 1
         return mask.astype('uint8')
 
@@ -830,6 +833,7 @@ class GrayBlockWriter:
             self.pos = 0
         if self.dset.shape[0] < (self.pos+1):
              self.dset.resize((self.pos+1,mask.shape[0], mask.shape[1]))
+        new_mask = mask
         if len(mask.shape)>2:
             new_mask = np.ones((mask.shape[0],mask.shape[1]))*255
             for i in range(mask.shape[2]):
@@ -852,6 +856,40 @@ class GrayBlockWriter:
 
 
 class GrayFrameWriter:
+    """
+    Write Gray scale (Mask) video images
+    """
+    capOut = None
+    codec = 'mp4v'
+    suffix = 'mp4'
+    fourcc = cv2.cv.CV_FOURCC(*codec)
+    filename = None
+    fps = 0
+    mask_prefix = None
+
+    def __init__(self, mask_prefix, fps):
+        self.fps = fps
+        self.mask_prefix = mask_prefix
+
+    def write(self,mask,mask_time):
+        if self.capOut is None:
+            self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
+            self.capOut = cv2.VideoWriter(self.filename,
+                                          self.fourcc,
+                                          self.fps,
+                                          (mask.shape[1],mask.shape[0]),
+                                          False)
+        self.capOut.write(grayToRGB(mask))
+
+    def close(self):
+        if self.capOut is not None:
+          self.capOut.release()
+        self.capOut = None
+
+    def release(self):
+        self.close()
+
+class GrayFrameReader:
     """
     Write Gray scale (Mask) video images
     """

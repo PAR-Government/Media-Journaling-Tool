@@ -152,19 +152,18 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
                     start = elapsed_time + startTime
                     sample = result
                     capOut.release()
-                capOut.write(result)
+                capOut.write(result,elapsed_time)
             else:
                 if start is not None:
                     ranges.append(
                         {'starttime': start, 'endtime': elapsed_time + startTime, 'frames': count, 'mask': sample,
-                         'videosegment': os.path.split(tool_set.tool_set.composeVideoMaskName(maskprefix, start))[1]})
+                         'videosegment': os.path.split(capOut.filename)[1]})
                     capOut.release()
                     count = 0
                 start = None
-                capOut = None
         if start is not None:
             ranges.append({'starttime': start, 'endtime': elapsed_time + startTime, 'frames': count, 'mask': sample,
-                           'videosegment': os.path.split(tool_set.tool_set.composeVideoMaskName(maskprefix, start))[1]})
+                           'videosegment': os.path.split(capOut.filename)[1]})
             capOut.release()
     finally:
         capIn.release()
@@ -172,34 +171,23 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
     return ranges
 
 
-def _invertSegment(dir, segmentFileName, prefix, starttime, codec='mp4v'):
+def _invertSegment(segmentFileName, prefix):
     """
      Invert a single video file (gray scale)
      """
-    suffix = segmentFileName[segmentFileName.rfind('.') + 1:]
-    maskFileName = tool_set.composeVideoMaskName(prefix, str(starttime), suffix)
-    capIn = cv2.VideoCapture(os.path.join(dir, segmentFileName))
-    fourcc = capIn.get(cv2.cv.CV_CAP_PROP_FOURCC)
-    if fourcc == 0:
-        fourcc = cv2.cv.CV_FOURCC(*codec)
-    capOut = cv2.VideoWriter(os.path.join(dir, maskFileName), fourcc,
-                             capIn.get(cv2.cv.CV_CAP_PROP_FPS),
-                             (int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)),
-                              int(capIn.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))),
-                             False)
+    capIn = tool_set.GrayBlockReader(segmentFileName)
+    capOut = tool_set.GrayBlockWriter(prefix,capIn.fps)
     try:
-        ret = True
-        while (ret and capIn.isOpened()):
+        while True:
+            frame_time = capIn.current_frame_time()
             ret, frame = capIn.read()
             if ret:
-                result = _rgbToGray(frame)
                 result = abs(result - np.ones(result.shape) * 255)
-                capOut.write(tool_set.grayToRGB(result))
+                capOut.write(result,frame_time)
     finally:
-        capIn.release()
-        if capOut:
-            capOut.release()
-    return maskFileName
+        capIn.close()
+        capOut.close()
+    return capOut.filename
 
 
 def invertVideoMasks(dir, videomasks, start, end):
@@ -213,7 +201,7 @@ def invertVideoMasks(dir, videomasks, start, end):
     result = []
     for maskdata in videomasks:
         maskdata = maskdata.copy()
-        maskdata['videosegment'] = _invertSegment(dir, maskdata['videosegment'], prefix, maskdata['starttime'])
+        maskdata['videosegment'] = _invertSegment(maskdata['videosegment'], prefix)
         result.append(maskdata)
     return result
 
@@ -469,16 +457,14 @@ def getDuration(st, et):
 
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
-def formMaskDiff2(fileOne, fileTwo, startSegment=None, endSegment=None, applyConstraintsToOutput=True):
+def formMaskDiff2(fileOne, fileTwo, prefix, op, startSegment=None, endSegment=None, applyConstraintsToOutput=True):
     """
     Construct a diff video.  The FFMPEG provides degrees of difference by intensity variation in the green channel.
     The normal intensity is around 98.
     """
     ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
-    prefixOne = fileOne[0:fileOne.rfind('.')]
-    prefixTwo = os.path.split(fileTwo[0:fileTwo.rfind('.')])[1]
     postFix = fileOne[fileOne.rfind('.'):]
-    outFileName = prefixOne + '_' + prefixTwo + postFix
+    outFileName = prefix + postFix
     command = [ffmpegcommand, '-y']
     if startSegment:
         command.extend(['-ss', startSegment])
@@ -615,12 +601,14 @@ def addChange(vidAnalysisComponents, ranges=list()):
         change['endtime'] = vidAnalysisComponents.elapsed_time_one
         vidAnalysisComponents.writer.release()
 
-def formMaskDiff(fileOne, fileTwo, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
+def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
+    #if opFunc == addChange:
+    #    return formMaskDiff2(fileOne, fileTwo, name_prefix, opName)
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2.VideoCapture(fileOne)
     analysis_components.vid_two = cv2.VideoCapture(fileTwo)
-    analysis_components.writer = tool_set.GrayBlockWriter(fileOne[0:fileOne.rfind('.')] + '_' + fileTwo[0:fileTwo.rfind('.')],
+    analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
                                                   analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
     ranges = list()
     try:
@@ -659,6 +647,16 @@ def formMaskDiff(fileOne, fileTwo, opName, startSegment=None, endSegment=None, a
         analysis_components.writer.close()
     return ranges,[]
 
+def _getVideoFrame(video,frame_time):
+    while video.isOpened():
+        ret, frame = video.read()
+        if not ret:
+            break
+        elapsed_time = video.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+        if elapsed_time >= frame_time:
+            return frame,elapsed_time
+    return None
+
 def interpolateMask(mask_file_name_prefix,
                     directory,
                     video_masks,
@@ -673,13 +671,42 @@ def interpolateMask(mask_file_name_prefix,
     :return: maskname, mask, analysis, errors
     """
     if tool_set.fileType(start_file_name) == 'image':
-        
-      return None
-    return None
+        image = tool_set.openImage(start_file_name)
+        new_mask_set = []
+        for mask_set in video_masks:
+            change = dict()
+            reader = tool_set.GrayBlockReader(mask_set(os.path.join(directory,
+                                                                    mask_set['videosegment'])))
+            writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
+                                              reader.fps)
+            destination_video = cv2.VideoCapture(dest_file_name)
+            first_mask = None
+            count = 0
+            while True:
+                frame_time = reader.current_frame_time()
+                mask = reader.read()
+                if mask is not None:
+                    frame,frame_time = _getVideoFrame(destination_video,frame_time)
+                    if frame is None:
+                        new_mask = np.ones(mask.shape) * 255
+                    else:
+                        new_mask, analysis = tool_set.interpolateMask(mask,image, frame)
+                        if first_mask is None:
+                            change['mask'] = first_mask
+                            change['starttime'] = frame_time
+                    count+=1
+                    writer.write(new_mask,frame_time)
+            change['endtime'] = frame_time
+            change['frames'] = count
+            change['videosegment'] = os.path.split(writer.filename)[1]
+            if first_mask is not None:
+                new_mask_set.append(change)
+        new_mask_set,[]
+    return None,["Donor masks cannot be adjusted."]
 
 def main(argv=None):
-    print formMaskDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4',
-                         '/Users/ericrobertson/Documents/movie/videoSample1.mp4', 'SelectCutFrames')
+    print formMaskDiff2('/Users/ericrobertson/Documents/movie/videoSample5.mp4',
+                         '/Users/ericrobertson/Documents/movie/videoSample6.mp4', "/Users/ericrobertson/Documents/movie/v5_v6", 'SelectCutFrames')
 
 if __name__ == "__main__":
     import sys

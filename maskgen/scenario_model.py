@@ -410,37 +410,38 @@ class VideoVideoLinkTool(LinkTool):
         analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return startIm, destIm, mask, analysis
 
-    def _constructDonorMask(self, start, destination, scModel, invert=False, arguments=None):
+    def _constructDonorMask(self, startFileName, destFileName, start, destination, scModel, invert=False, arguments=None):
         """
           Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
           of the Donor image and its parent, it exists.
           Otherwise, the donor image mask is the donor image (minus alpha channels):
         """
-        startIm, startFileName = scModel.getImageAndName(start)
-        destIm, destFileName = scModel.getImageAndName(destination)
         predecessors = scModel.G.predecessors(destination)
-        analysis = {}
         errors = ["Could not compute SIFT Matrix"]
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
             op = plugins.getOperation(edge['op'])
             if op is not None and 'checkSIFT' in op.rules:
-                maskname, mask, analysis, errors = video_tools.interpolateMask(
-                    start + '_' + destination + '_mask',
+                return video_tools.interpolateMask(
+                    os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
                     scModel.G.dir,
                     edge['videomasks'],
                     startFileName,
                     destFileName)
-        return maskname, mask, analysis, errors
+        return None,errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
-        if op == 'Donor':
-            return self._constructDonorMask(start, destination, scModel, arguments=arguments)
+
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = Image.new("RGB", (250, 250), "black"), {}
         maskname = start + '_' + destination + '_mask' + '.png'
-        maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+        if op == 'Donor':
+            maskSet, errors = self._constructDonorMask(startFileName, destFileName,
+                              start, destination, scModel, invert=invert, arguments=arguments)
+        else:
+            maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+                                                   os.path.join(scModel.G.dir, start + '_' + destination),
                                                    op,
                                                    startSegment=arguments[
                                                        'Start Time'] if 'Start Time' in arguments else None,
