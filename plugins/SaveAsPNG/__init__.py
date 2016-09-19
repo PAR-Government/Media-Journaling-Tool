@@ -5,7 +5,7 @@ def transform(img,source,target, **kwargs):
     im = Image.open(source)
     im.save(target)
     
-    return False
+    return False,None
     
 def operation():
     return ['OutputPng','Output', 

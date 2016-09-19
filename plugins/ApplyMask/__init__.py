@@ -13,7 +13,7 @@ def transform(img,source,target,**kwargs):
 #    for i in range(cv_image.shape[2]): 
     cv_image[:,:,3][bmask]=0
     Image.fromarray(cv_image,'RGBA').save(target)
-    return True
+    return True,None
 
 # the actual link name to be used. 
 # the category to be shown

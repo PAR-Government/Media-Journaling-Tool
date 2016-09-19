@@ -210,11 +210,35 @@ def interpolateMask(mask,img1, img2, invert=False,arguments={}):
      maskInverted[maskInverted>0] = 1
      TM= __sift(img1,img2,mask2=maskInverted)
      if TM is not None:
-       newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP)
+       newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP,borderMode=cv2.BORDER_CONSTANT, borderValue=255)
        analysis = {}
        analysis['transform matrix'] = serializeMatrix(TM)
        return newMask,analysis
      else:
+       try:
+         contours,hier = cv2.findContours(255-mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+         minp = None
+         maxp = None
+         for contour in contours:
+            for point in contour:
+               if type(point[0]) is np.ndarray:
+                  point = point[0]
+               if minp is None:
+                  minp = point
+               else:
+                  minp = (min(minp[0],point[0]),min(minp[1],point[1]))
+               if maxp is None:
+                  maxp = point
+               else:
+                  maxp = (max(maxp[0],point[0]),max(maxp[1],point[1]))
+         w = maxp[0] - minp[0] + 1
+         h = maxp[1] - minp[1] + 1
+         x = minp[0]
+         y = minp[1]
+         if (img1.size[0]-w)<2 and (img1.size[1]-h)<2:
+           return mask[x:x+h,y:y+w],{}
+       except:
+         return None,None 
        return None,None
 
 def serializeMatrix(m):
@@ -238,8 +262,11 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
       totalChanged = totalPossible - sum(sum(np.asarray(mask)))
       globalchange = (float(totalChanged)/float(totalPossible) > 0.85)
     analysis['apply transform'] = 'no' if globalchange else 'yes'
+    return globalchange
 
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
+    if globalTransformAnalysis(analysis,img1,img2,mask=mask,arguments=arguments):
+      return
     mask2 = cv2.resize(np.asarray(mask), img2.size) if mask is not None and img1.size != img2.size else mask
     matrix = __sift(img1,img2,mask1=mask,mask2=mask2)
     if matrix is not None:
@@ -285,11 +312,11 @@ def __sift(img1,img2,mask1=None,mask2=None):
 
    detector = cv2.FeatureDetector_create("SIFT")
    extractor = cv2.DescriptorExtractor_create("SIFT")
-   matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
+   #matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
 
    FLANN_INDEX_KDTREE = 0
    FLANN_INDEX_LSH = 6
-   index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+   index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 16)
    search_params = dict(checks = 50)
 
    flann = cv2.FlannBasedMatcher(index_params, search_params)
@@ -310,11 +337,14 @@ def __sift(img1,img2,mask1=None,mask2=None):
 
    # store all the good matches as per Lowe's ratio test.
    good = [m for m,n in matches if m.distance < 0.8*n.distance]
+   # threshold. L2 distance on feature vectors
 
    if len(good)>10:
      src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
      dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+     # lower '5.0'
+     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 3.0)
+     # restrict some affine
      matchesMask = mask.ravel().tolist()
      return M
    return None
@@ -369,7 +399,7 @@ def __resize(img,dimensions):
       img = np.concatenate((img,np.zeros((img.shape[0],diff-(diff/2)))),axis=1)
    return img
 
-def __rotateImage(rotation, mask, img, expectedDims, cval=0):
+def __rotateImage(rotation, img, expectedDims, cval=0):
 #   (h, w) = image.shape[:2]
 #   center = (w / 2, h / 2) if rotationPoint=='center' else (0,0)
 #   M = cv2.getRotationMatrix2D(center, rotation, 1.0)
@@ -515,7 +545,7 @@ def alterMask(compositeMask,edgeMask,rotation=0.0, sizeChange=(0,0),interpolatio
     if transformMatrix is not None:
        res = __applyTransform(compositeMask,edgeMask,deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
-       res = __rotateImage(rotation,edgeMask,res,(compositeMask.shape[0]+sizeChange[0],compositeMask.shape[1]+sizeChange[1]),cval=255)
+       res = __rotateImage(rotation,res,(compositeMask.shape[0]+sizeChange[0],compositeMask.shape[1]+sizeChange[1]),cval=255)
     if location != (0,0):
       sizeChange = (-location[0],-location[1]) if sizeChange == (0,0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0],res.shape[1] + sizeChange[1])
