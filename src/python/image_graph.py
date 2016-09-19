@@ -13,7 +13,8 @@ import tarfile
 from tool_set import *
 from zipfile import *
 
-igversion='0.1'
+igversion='0.2'
+igcompatibleversions=['0.1','0.2']
 
 def getPathValues(d,path):
       """
@@ -372,13 +373,14 @@ class ImageGraph:
 
   def load(self,pathname):
     global igversion
+    global igcompatibleversions
     with open(pathname,"r") as f:
       try:
          self.G = json_graph.node_link_graph(json.load(f,encoding='utf-8'),multigraph=False,directed=True)
       except  ValueError:
          self.G = json_graph.node_link_graph(json.load(f),multigraph=False,directed=True)
       if 'igversion' in self.G.graph:
-        if self.G.graph['igversion'] != igversion:
+        if self.G.graph['igversion'] not in igcompatibleversions:
           raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
       self.G.graph['igversion'] = igversion
       if 'idcount' in self.G.graph:
