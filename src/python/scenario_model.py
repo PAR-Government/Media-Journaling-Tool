@@ -429,6 +429,9 @@ class ImageProjectModel:
           return "Node node selected",False
        if self.findChild(destination,self.start):
           return "Cannot connect to ancestor node",False
+       for suc in self.G.successors(self.start):
+          if suc == destination:
+            return "Cannot connect to the same node twice",False
        return self._connectNextImage(destination,mod,invert=invert,sendNotifications=sendNotifications,skipDonorAnalysis=skipDonorAnalysis)
 
     def getComposite(self):
