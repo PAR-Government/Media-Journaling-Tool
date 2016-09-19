@@ -1227,7 +1227,7 @@
       }, 
       "rules": [
       ], 
-      "analysisOperations": [ "tool_set.siftAnalysis","tool_set.globalTransformAnalysis"], 
+      "analysisOperations": [ "tool_set.siftAnalysis"],
       "optionalparameters": {}, 
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false
