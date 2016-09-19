@@ -999,34 +999,6 @@
     }, 
     {
       "category": "Paste", 
-      "name": "PasteDuplicate", 
-      "mandatoryparameters": {
-        "inputmaskname": {
-          "type":"imagefile",
-          "description":"An image file containing a mask describing the area copied."
-        },
-        "duplicate rotated": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the duplicate is rotated during the paste operation"
-        },
-        "duplicate resized": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the duplicate is resized during the paste operation"
-        },
-        "duplicate cropped": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the duplicate is cropped the paste operation. Ideally, crop should as part of an alternate path throug a SelectRegion operation just prior to donation."
-        }
-      },
-      "rules": [
-        "checkSize"
-      ], 
-      "optionalparameters": {}, 
-      "description": "Paste a region selected from the same image. The pasted region can be resized and rotated as one operation.",
-      "includeInMask": true
-    }, 
-    {
-      "category": "Paste", 
       "name": "PasteSplice", 
       "mandatoryparameters": {
          "donor rotated": {
