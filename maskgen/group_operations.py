@@ -47,7 +47,7 @@ class ToJPGGroupOperation(BaseOperation):
        newPairs = []
        msg = None
        if not self.pairs:
-           msg = 'Last operation is ExifMetaCopy. Use CompressAs plugin with base image as donor.'
+           msg = 'Could not find paths from base to terminal nodes where the the last operation is not ExifMetaCopy.'
            newPairs = None
        else:
            for pair in self.pairs:

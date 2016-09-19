@@ -1180,7 +1180,7 @@
       "name": "OutputPng", 
       "mandatoryparameters": {},
       "rules": [
-        "checkSize"
+        "checkSizeAndExif"
       ], 
       "optionalparameters": {
         "XMP File Name": {
@@ -1197,7 +1197,7 @@
       "name": "OutputTif", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSizeAndExif"
       ], 
       "optionalparameters": {
         "XMP File Name": {
@@ -1287,36 +1287,7 @@
       "description": "Paste a region selected using a clone tool into the same image.",
       "includeInMask": true,
       "transitions": ["image.image","video.video"]
-    }, 
-    {
-      "category": "Paste", 
-      "name": "PasteDuplicate", 
-      "mandatoryparameters": {
-        "inputmaskname": {
-          "type":"imagefile",
-          "description":"An image file containing a mask describing the area copied."
-        },
-        "duplicate rotated": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the duplicate is rotated during the paste operation"
-        },
-        "duplicate resized": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the duplicate is resized during the paste operation"
-        },
-        "duplicate cropped": {
-	    "type": "yesno",
-	    "description" : "Enter yes if the duplicate is cropped the paste operation. Ideally, crop should as part of an alternate path throug a SelectRegion operation just prior to donation."
-        }
-      },
-      "rules": [
-        "checkSize"
-      ], 
-      "optionalparameters": {}, 
-      "description": "Paste a region selected from the same image. The pasted region can be resized and rotated as one operation.",
-      "includeInMask": true,
-      "transitions": ["image.image"]
-    }, 
+    },
     {
       "category": "Paste", 
       "name": "PasteSplice", 
@@ -1337,7 +1308,7 @@
       "rules": [
         "checkSize",
         "checkSIFT",
-        "checkForDonor"
+        "checkForDonorWithRegion"
       ], 
       "optionalparameters": {}, 
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",

@@ -239,6 +239,30 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
         analysis['transform matrix'] = serializeMatrix(TM)
         return newMask if computed_mask is None else computed_mask, analysis
     else:
+        try:
+            contours, hier = cv2.findContours(255 - mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            minpoint = None
+            maxpoint = None
+            for contour in contours:
+                for point in contour:
+                    if type(point[0]) is np.ndarray:
+                        point = point[0]
+                    if minpoint is None:
+                        minpoint = point
+                    else:
+                        minpoint = (min(minpoint[0], point[0]), min(minpoint[1], point[1]))
+                    if maxpoint is None:
+                        maxpoint = point
+                    else:
+                        maxpoint = (max(maxpoint[0], point[0]), max(maxpoint[1], point[1]))
+            w = maxpoint[0] - minpoint[0] + 1
+            h = maxpoint[1] - minpoint[1] + 1
+            x = minpoint[0]
+            y = minpoint[1]
+            if (img1.size[0] - w) < 2 and (img1.size[1] - h) < 2:
+                return mask[x:x + h, y:y + w], {}
+        except:
+            return None, None
         return None, None
 
 
@@ -315,12 +339,11 @@ def __sift(img1, img2, mask1=None, mask2=None):
 
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
-    matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
 
 
     FLANN_INDEX_KDTREE = 0
     FLANN_INDEX_LSH = 6
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=16)
     # index_params= dict(algorithm         = FLANN_INDEX_LSH,
     #                   table_number      = 6,
     #                   key_size          = 12,
@@ -355,7 +378,7 @@ def __sift(img1, img2, mask1=None, mask2=None):
         #new_dst_pts = dst_pts[positions]
         new_dst_pts = dst_pts
 
-        M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC,5.0)
+        M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, 3.0)
         #M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         #matchesMask = mask.ravel().tolist()
 
@@ -428,7 +451,7 @@ def __resize(img, dimensions):
     return img
 
 
-def __rotateImage(rotation, mask, img, expectedDims, cval=0):
+def __rotateImage(rotation, img, expectedDims, cval=0):
     #   (h, w) = image.shape[:2]
     #   center = (w / 2, h / 2) if rotationPoint=='center' else (0,0)
     #   M = cv2.getRotationMatrix2D(center, rotation, 1.0)
@@ -584,7 +607,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     if transformMatrix is not None:
         res = __applyTransform(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
-        res = __rotateImage(rotation, edgeMask, res,
+        res = __rotateImage(rotation,  res,
                             (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=255)
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange

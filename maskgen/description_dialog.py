@@ -838,13 +838,16 @@ class ListDialog(Toplevel):
         self.grid_columnconfigure(0, weight=1)
         body.grid_rowconfigure(0, weight=1)
         body.grid_columnconfigure(0, weight=1)
-        w = Button(body, text="OK", width=10, command=self.cancel, default=ACTIVE)
+        w = self.buttons(body)
         w.grid(row=2, column=0)
         self.bind("<Return>", self.cancel)
         self.bind("<Escape>", self.cancel)
         self.protocol("WM_DELETE_WINDOW", self.cancel)
         self.geometry("+%d+%d" % (parent.winfo_rootx() + 50,
                                   parent.winfo_rooty() + 50))
+
+    def buttons(self, frame):
+        return Button(frame, text="OK", width=10, command=self.cancel, default=ACTIVE)
 
     def setItems(self, items):
         self.items = items
@@ -876,6 +879,27 @@ class ListDialog(Toplevel):
         index = int(self.itemBox.curselection()[0])
         self.parent.selectLink(self.items[index][0], self.items[index][1])
 
+
+class DecisionListDialog(ListDialog):
+    isok = False
+
+    def __init__(self, parent, items, name):
+        ListDialog.__init__(self, parent, items, name)
+
+    def setok(self):
+        self.isok = True
+        self.cancel()
+
+    def wait(self, root):
+        root.wait_window(self)
+
+    def buttons(self, frame):
+        box = Frame(frame)
+        w1 = Button(box, text="Cancel", width=10, command=self.cancel, default=ACTIVE)
+        w2 = Button(box, text="Continue", width=10, command=self.setok, default=ACTIVE)
+        w1.pack(side=LEFT, padx=5, pady=5)
+        w2.pack(side=RIGHT, padx=5, pady=5)
+        return box
 
 class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     im = None

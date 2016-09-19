@@ -105,6 +105,27 @@ def set_rules(op, ruleNames):
     rules[op] = [globals().get(name) for name in ruleNames if len(name) > 0]
 
 
+def findOp(graph, node_id, op):
+    preds = graph.predecessors(node_id)
+    if preds is None or len(preds) == 0:
+        return False
+    for pred in preds:
+        if graph.get_edge(pred, node_id)['op'] == op:
+            return True
+        elif findOp(graph, pred, op):
+            return True
+    return False
+
+
+def checkForDonorWithRegion(graph, frm, to):
+    pred = graph.predecessors(to)
+    if len(pred) < 2:
+        return 'donor image missing'
+    donor = pred[0] if pred[1] == frm else pred[1]
+    if not findOp(graph, donor, 'SelectRegion'):
+        return 'SelectRegion missing on path to donor'
+    return None
+
 def checkForDonor(graph, frm, to):
     pred = graph.predecessors(to)
     if len(pred) < 2:
@@ -159,6 +180,21 @@ def sizeChanged(graph, frm, to):
         return 'operation should change the size of the image'
     return None
 
+
+def checkSizeAndExif(graph, frm, to):
+    change = getSizeChange(graph, frm, to)
+    if change is not None and (change[0] != 0 or change[1] != 0):
+        edge = graph.get_edge(frm, to)
+        orientation = getValue(edge, 'exifdiff.Orientation')
+        if type(orientation) is list:
+            orientation = orientation[-1]
+        if '270' in orientation or '90' in orientation:
+            frm_shape = graph.get_image(frm)[0].size
+            to_shape = graph.get_image(to)[0].size
+            if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
+                return None
+        return 'operation is not permitted to change the size of the image'
+    return None
 
 def checkSize(graph, frm, to):
     change = getSizeChange(graph, frm, to)
