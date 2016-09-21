@@ -547,9 +547,23 @@ def convertToMask(im):
     gray_image = np.ones(imGrayA.shape).astype('uint8')
     gray_image[imGrayA<255] = 0
     gray_image = gray_image * 255
-    if imA.shape[2] == 4:
+    if len(imA.shape) == 3 and imA.shape[2] == 4:
       gray_image[imA[:,:,3]==0]=255
     return Image.fromarray(gray_image)
+
+def __toMask(im):
+    """
+    Performs same functionality as convertToMask, but takes and returns np array
+    """
+    if len(im.shape) < 3:
+        return im
+    imGray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    gray_image = np.ones(imGray.shape).astype('uint8')
+    gray_image[imGray<255] = 0
+    gray_image = gray_image * 255
+    if im.shape[2] == 4:
+      gray_image[im[:,:,3]==0]=255
+    return gray_image
 
 def __checkInterpolation(val):
    validVals = ['nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic']
@@ -574,6 +588,7 @@ def alterMask(compositeMask,edgeMask,rotation=0.0, sizeChange=(0,0),interpolatio
 def mergeMask(compositeMask, newMask):
    if compositeMask.shape != newMask.shape:
       compositeMask = cv2.resize(compositeMask,(newMask.shape[1],newMask.shape[0]))
+      newMask = __toMask(newMask)
    else:
       compositeMask = np.copy(compositeMask)
    compositeMask[newMask==0] = 0

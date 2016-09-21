@@ -92,6 +92,13 @@ def create_image_list(fileList):
     ext = ('.jpg', '.tif', '.png')
     return [i for i in os.listdir(fileList) if i.endswith(ext)]
 
+def generate_composites(projectsDir):
+    projects = bulk_export.pick_dirs(projectsDir)
+    for prj in projects:
+        sm = scenario_model.ImageProjectModel(prj)
+        sm.constructComposites()
+        sm.save()
+
 
 def process(sourceDir, endDir, projectDir, op, software, version, opDescr, inputMaskPath, additional,
             prjDescr, techSummary, username):
@@ -274,6 +281,9 @@ def main():
     if args.jpg:
         print 'Performing JPEG save & copying metadata from base...'
         process_jpg(args.projects)
+
+    # generate composites
+    generate_composites(args.projects)
 
     # bulk export to s3
     if args.s3:
