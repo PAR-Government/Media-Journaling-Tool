@@ -57,6 +57,15 @@ def inspect_masks(d, data):
             else:
                 currentLink['arguments']['local'] = 'no'
 
+def generate_composites(project):
+    """
+    Generate composite mask for a given project
+    :param project: path to a project json file
+    :return: None.
+    """
+    sm = scenario_model.ImageProjectModel(project)
+    sm.constructComposites()
+    sm.save()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -68,11 +77,13 @@ def main():
     count = 1
     for d in dirs:
         label_project_nodes(d)
+        generate_composites(d)
         with open(d, 'r+') as f:
             data = json.load(f)
             replace_op_names(data)
             inspect_masks(d, data)
             f.seek(0)
+            f.truncate()
             json.dump(data, f, indent=2)
         print 'Project updated [' + str(count) + '/' + str(total) + '] '+ os.path.basename(d)
         count+=1
