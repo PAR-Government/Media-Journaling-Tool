@@ -290,6 +290,9 @@ class LinkTool:
 
 
 class ImageImageLinkTool(LinkTool):
+    """
+    Supports mask construction and meta-data comparison when linking images to images.
+    """
     def __init__(self):
         LinkTool.__init__(self)
 
@@ -315,7 +318,7 @@ class ImageImageLinkTool(LinkTool):
                 errors = ["Could not compute SIFT Matrix"]
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, destination)
-                    op = plugins.getOperation(edge['op'])
+                    op = getOperation(edge['op'])
                     expect_donor_mask = op is not None and 'checkSIFT' in op.rules
                     if expect_donor_mask:
                         mask, analysis = tool_set.interpolateMask(
@@ -346,44 +349,32 @@ class ImageImageLinkTool(LinkTool):
             self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
         return maskname, mask, analysis, errors
 
-
-class ImageVideoLinkTool(LinkTool):
+class VideoImageLinkTool(ImageImageLinkTool):
+    """
+    Supports mask construction and meta-data comparison when linking video to image.
+    """
     def __init__(self):
-        LinkTool.__init__(self)
+        ImageImageLinkTool.__init__(self)
 
     def compare(self, start, end, scModel, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
             Return both images, the mask and the analysis results (a dictionary)
         """
-        im1 = scModel.getImage(start)
-        im2 = scModel.getImage(end)
+        im1, startFileName = scModel.getImageAndName(start, arguments=arguments)
+        im2, destFileName = scModel.getImageAndName(end)
         mask, analysis = tool_set.createMask(im1, im2, invert=False, arguments=arguments)
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
-        startIm, startFileName = scModel.getImageAndName(start)
+        args = dict(arguments)
+        args['skipSnapshot'] = True
+        startIm, startFileName = scModel.getImageAndName(start,arguments=args)
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = []
         maskname = start + '_' + destination + '_mask' + '.png'
         if op == 'Donor':
-            predecessors = scModel.G.predecessors(destination)
-            mask = None
-            if not skipDonorAnalysis:
-                errors = ["Could not compute SIFT Matrix"]
-                for pred in predecessors:
-                    edge = scModel.G.get_edge(pred, destination)
-                    op = plugins.getOperation(edge['op'])
-                    if op is not None and 'checkSIFT' in op.rules:
-                        mask, analysis = tool_set.interpolateMask(
-                            scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
-                            arguments=arguments, invert=invert)
-                        if mask is not None:
-                            errors = []
-                            mask = Image.fromarray(mask)
-                            break
-            if mask is None:
-                mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
-                analysis = {}
+            errors = ["An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
+            analysis = {}
         else:
             mask, analysis = tool_set.createMask(startIm, destIm, invert=invert, arguments=arguments)
             exifDiff = exif.compareexif(startFileName, destFileName)
@@ -392,8 +383,10 @@ class ImageVideoLinkTool(LinkTool):
             self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
         return maskname, mask, analysis, errors
 
-
 class VideoVideoLinkTool(LinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking video to video.
+     """
     def __init__(self):
         LinkTool.__init__(self)
 
@@ -405,9 +398,12 @@ class VideoVideoLinkTool(LinkTool):
         destIm, destFileName = scModel.getImageAndName(end)
         maskname, mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp', skipDonorAnalysis=True,
                                                               arguments=arguments)
-        analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
-        analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
-        analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
+        if 'metadatadiff' in analysis:
+           analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
+        if 'videomasks' in analysis:
+           analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
+        if 'errors' in analysis:
+            analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return startIm, destIm, mask, analysis
 
     def _constructDonorMask(self, startFileName, destFileName, start, destination, scModel, invert=False, arguments=None):
@@ -420,8 +416,8 @@ class VideoVideoLinkTool(LinkTool):
         errors = ["Could not compute SIFT Matrix"]
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
-            op = plugins.getOperation(edge['op'])
-            if op is not None and 'checkSIFT' in op.rules:
+            op = getOperation(edge['op'])
+            if op is not None :#and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
                     os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
                     scModel.G.dir,
@@ -461,9 +457,38 @@ class VideoVideoLinkTool(LinkTool):
         self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
         return maskname, mask, analysis, errors
 
+class ImageVideoLinkTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask, analysis = Image.new("RGB", (250, 250), "black"), {}
+        maskname = start + '_' + destination + '_mask' + '.png'
+        maskSet =[]
+        errors = []
+        if op == 'Donor':
+            maskSet, errors = self._constructDonorMask(startFileName, destFileName,
+                                                       start, destination, scModel, invert=invert, arguments=arguments)
+        # for now, just save the first mask
+        if len(maskSet) > 0:
+            mask = Image.fromarray(maskSet[0]['mask'])
+            for item in maskSet:
+                item.pop('mask')
+        analysis['masks count'] = len(maskSet)
+        analysis['videomasks'] = maskSet
+        analysis = analysis if analysis is not None else {}
+        self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
+        return maskname, mask, analysis, errors
+
+
 
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
-             'image.video': ImageVideoLinkTool()}
+             'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool()}
 
 
 class ImageProjectModel:
@@ -589,6 +614,9 @@ class ImageProjectModel:
             return "Node node selected", False
         if self.findChild(destination, self.start):
             return "Cannot connect to ancestor node", False
+        for suc in self.G.successors(self.start):
+            if suc == destination:
+                return "Cannot connect to the same node twice", False
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
@@ -838,10 +866,10 @@ class ImageProjectModel:
             return Image.fromarray(np.zeros((250, 250, 4)).astype('uint8'))
         return self.G.get_image(name)[0]
 
-    def getImageAndName(self, name):
+    def getImageAndName(self, name, arguments=dict()):
         if name is None or name == '':
             return Image.fromarray(np.zeros((250, 250, 4)).astype('uint8'))
-        return self.G.get_image(name)
+        return self.G.get_image(name,metadata=arguments)
 
     def getStartImageFile(self):
         return os.path.join(self.G.dir, self.G.get_node(self.start)['file'])

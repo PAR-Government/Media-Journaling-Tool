@@ -1,5 +1,4 @@
 import os
-import datetime
 import networkx as nx
 from networkx.readwrite import json_graph
 import json
@@ -117,9 +116,10 @@ class ImageGraph:
     def openImage(self, fileName, mask=False, metadata={}):
         imgDir = os.path.split(os.path.abspath(fileName))[0]
         return openImage(fileName,
-                         videoFrameTime=None if 'change_pts_time' not in metadata else metadata['change_pts_time'],
+                         videoFrameTime=None if 'Frame Time' not in metadata else getMilliSeconds(metadata['Frame Time']),
                          isMask=mask,
-                         preserveSnapshot=imgDir == os.path.abspath(self.dir))
+                         preserveSnapshot= (imgDir == os.path.abspath(self.dir) and \
+                                            ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
 
     def get_nodes(self):
         return self.G.nodes()
@@ -302,9 +302,9 @@ class ImageGraph:
             return im, filename
         return None, None
 
-    def get_image(self, name):
+    def get_image(self, name, metadata=dict()):
         filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['file']))
-        im = self.openImage(filename)
+        im = self.openImage(filename,metadata=metadata)
         return im, filename
 
     def get_image_path(self, name):

@@ -186,13 +186,14 @@ def checkSizeAndExif(graph, frm, to):
     if change is not None and (change[0] != 0 or change[1] != 0):
         edge = graph.get_edge(frm, to)
         orientation = getValue(edge, 'exifdiff.Orientation')
-        if type(orientation) is list:
-            orientation = orientation[-1]
-        if '270' in orientation or '90' in orientation:
-            frm_shape = graph.get_image(frm)[0].size
-            to_shape = graph.get_image(to)[0].size
-            if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
-                return None
+        if orientation is not None:
+            if type(orientation) is list:
+                orientation = orientation[-1]
+            if '270' in orientation or '90' in orientation:
+                frm_shape = graph.get_image(frm)[0].size
+                to_shape = graph.get_image(to)[0].size
+                if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
+                    return None
         return 'operation is not permitted to change the size of the image'
     return None
 

@@ -5,6 +5,8 @@ import os
 import json
 from datetime import datetime
 import tool_set
+from PIL import Image
+import time
 
 
 def otsu(hist):
@@ -655,7 +657,7 @@ def _getVideoFrame(video,frame_time):
         elapsed_time = video.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
         if elapsed_time >= frame_time:
             return frame,elapsed_time
-    return None
+    return None,None
 
 def interpolateMask(mask_file_name_prefix,
                     directory,
@@ -675,38 +677,68 @@ def interpolateMask(mask_file_name_prefix,
         new_mask_set = []
         for mask_set in video_masks:
             change = dict()
-            reader = tool_set.GrayBlockReader(mask_set(os.path.join(directory,
-                                                                    mask_set['videosegment'])))
+            reader = tool_set.GrayBlockReader(os.path.join(directory,
+                                                                    mask_set['videosegment']))
             writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
                                               reader.fps)
             destination_video = cv2.VideoCapture(dest_file_name)
-            first_mask = None
-            count = 0
-            while True:
-                frame_time = reader.current_frame_time()
-                mask = reader.read()
-                if mask is not None:
+            try:
+                first_mask = None
+                count = 0
+                while True:
+                    frame_time = reader.current_frame_time()
+                    mask = reader.read()
+                    if mask is None:
+                        break
                     frame,frame_time = _getVideoFrame(destination_video,frame_time)
                     if frame is None:
-                        new_mask = np.ones(mask.shape) * 255
+                         new_mask = np.ones(mask.shape) * 255
                     else:
-                        new_mask, analysis = tool_set.interpolateMask(mask,image, frame)
+                        new_mask, analysis = tool_set.interpolateMask(mask,image, Image.fromarray(frame))
                         if first_mask is None:
-                            change['mask'] = first_mask
+                            change['mask'] = new_mask
                             change['starttime'] = frame_time
+                            first_mask = new_mask
                     count+=1
                     writer.write(new_mask,frame_time)
-            change['endtime'] = frame_time
-            change['frames'] = count
-            change['videosegment'] = os.path.split(writer.filename)[1]
-            if first_mask is not None:
-                new_mask_set.append(change)
-        new_mask_set,[]
-    return None,["Donor masks cannot be adjusted."]
+                change['endtime'] = frame_time
+                change['frames'] = count
+                change['videosegment'] = os.path.split(writer.filename)[1]
+                if first_mask is not None:
+                    new_mask_set.append(change)
+            finally:
+                reader.close()
+                writer.close()
+                destination_video.release()
+        return new_mask_set,[]
+    # Masks cannot be generated for video to video....yet
+    return [],[]
+
+def pullFrameNumber(video_file, frame_number):
+    """
+
+    :param video_file:
+    :param frame_number:
+    :return:
+    """
+
+    frame = None
+    video_capture = cv2.VideoCapture(video_file)
+    while (video_capture.isOpened() and frame_number > 0):
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+        frame_number-=1
+    elapsed_time = video_capture.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+    video_capture.release()
+    Image.fromarray(frame).save(video_file[0:video_file.rfind('.')] + '.png')
+    return time.strftime("%H:%M:%S", time.gmtime(elapsed_time / 1000)) + '.%03d' % (elapsed_time % 1000)
 
 def main(argv=None):
-    print formMaskDiff2('/Users/ericrobertson/Documents/movie/videoSample5.mp4',
-                         '/Users/ericrobertson/Documents/movie/videoSample6.mp4', "/Users/ericrobertson/Documents/movie/v5_v6", 'SelectCutFrames')
+    print pullFrameNumber('/Users/ericrobertson/Documents/movie/videoSample5.mp4',
+                            50)
+    #print formMaskDiff2('/Users/ericrobertson/Documents/movie/videoSample5.mp4',
+    #                     '/Users/ericrobertson/Documents/movie/videoSample6.mp4', "/Users/ericrobertson/Documents/movie/v5_v6", 'SelectCutFrames')
 
 if __name__ == "__main__":
     import sys

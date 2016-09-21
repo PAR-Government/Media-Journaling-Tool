@@ -119,6 +119,16 @@ def validateCoordinates(v):
     except ValueError:
         return False
 
+def getMilliSeconds(v):
+    dt = None
+    try:
+        dt =  datetime.strptime(v, '%H:%M:%S.%f')
+    except ValueError:
+        try:
+            dt =  datetime.strptime(v, '%H:%M:%S')
+        except ValueError:
+            return None
+    return dt.hour*360000 + dt.minute*60000 + dt.second*1000 + dt.microsecond/1000
 
 def validateTimeString(v):
     try:
@@ -187,7 +197,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                                                       'm4v']:
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
-    if not os.path.exists(snapshotFileName) and snapshotFileName != filename:
+    if videoFrameTime is not None or (not os.path.exists(snapshotFileName) and snapshotFileName != filename):
         cap = cv2.VideoCapture(filename)
         bestSoFar = None
         bestVariance = -1
