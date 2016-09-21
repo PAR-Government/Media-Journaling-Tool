@@ -297,7 +297,7 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, arguments={}):
     if mask is not None and not globalchange:
         totalPossible = sum(img1.size) * 255
         totalChanged = totalPossible - sum(sum(np.asarray(mask)))
-        globalchange = (float(totalChanged) / float(totalPossible) > 0.85)
+        globalchange = (float(totalChanged) / float(totalPossible) > 0.75)
     analysis['apply transform'] = 'no' if globalchange else 'yes'
     return globalchange
 

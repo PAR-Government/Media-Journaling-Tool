@@ -619,11 +619,11 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
             if not ret_one:
                 analysis_components.vid_one.release()
                 break
+            elapsed_time = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
             ret_two, analysis_components.frame_two = analysis_components.vid_two.read()
             if not ret_two:
                 analysis_components.vid_two.release()
                 break
-            elapsed_time = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
             if startSegment and startSegment > elapsed_time:
                 continue
             if endSegment and endSegment < elapsed_time:
