@@ -7,7 +7,8 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 
-igversion = '0.1'
+igversion='0.2'
+igcompatibleversions=['0.1','0.2']
 
 def getPathValues(d, path):
     """
@@ -400,8 +401,9 @@ class ImageGraph:
 
     def _setup(self, pathname, projecttype):
         global igversion
+        global igcompatibleversions
         if 'igversion' in self.G.graph:
-            if self.G.graph['igversion'] != igversion:
+            if self.G.graph['igversion'] not in igcompatibleversions:
                 raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
         self.G.graph['igversion'] = igversion
         if 'idcount' in self.G.graph:

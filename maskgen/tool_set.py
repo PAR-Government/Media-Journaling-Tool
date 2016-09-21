@@ -244,7 +244,7 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     maskInverted[maskInverted > 0] = 1
     TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
     if TM is not None:
-        newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP)
+        newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP,borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
         return newMask if computed_mask is None else computed_mask, analysis
@@ -299,9 +299,12 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, arguments={}):
         totalChanged = totalPossible - sum(sum(np.asarray(mask)))
         globalchange = (float(totalChanged) / float(totalPossible) > 0.85)
     analysis['apply transform'] = 'no' if globalchange else 'yes'
+    return globalchange
 
 
 def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
+    if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
+        return
     mask2 = cv2.resize(np.asarray(mask), img2.size) if mask is not None and img1.size != img2.size else mask
     matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
     if matrix is not None:
