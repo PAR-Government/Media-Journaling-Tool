@@ -26,6 +26,21 @@ def getMaskFileTypes():
 def getFileTypes():
    return imagefiletypes + videofiletypes
 
+def fileTypeChanged(file_one, file_two):
+   """
+    Return: True if the file types of the two provided files do not match
+   """
+   try:
+     one_type = imghdr.what(file_one)
+     two_type = imghdr.what(file_two)
+     return one_type != two_type
+   except:
+     pos=file_one.rfind('.')
+     suffix_one = file_one[pos+1:] if pos > 0 else ''
+     pos=file_two.rfind('.')
+     suffix_two = file_two[pos+1:] if pos > 0 else ''
+     return suffix_one.lower() != suffix_two.lower()
+
 def fileType(fileName):
   pos=fileName.rfind('.')
   suffix = fileName[pos+1:] if pos > 0 else ''

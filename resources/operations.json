@@ -5,7 +5,8 @@
       "name": "AdditionalEffectAddLightSource", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -21,7 +22,8 @@
       "name": "AdditionalEffectFading", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -37,7 +39,8 @@
       "name": "AdditionalEffectFilterAddNoise", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -53,7 +56,8 @@
       "name": "AdditionalEffectFilterBlur", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -69,7 +73,8 @@
       "name": "AdditionalEffectFilterMedianSmoothing", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -85,7 +90,8 @@
       "name": "AdditionalEffectFilterSharpening", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -101,7 +107,8 @@
       "name": "AdditionalEffectFilterSmoothing", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -117,7 +124,8 @@
       "name": "AdditionalEffectGradientEffect", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -133,7 +141,8 @@
       "name": "AdditionalEffectSoftEdgeBrushing", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -150,7 +159,8 @@
       "name": "AntiForensicCopyExif", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Alter image metadata.",
@@ -173,7 +183,8 @@
       "name": "ArtifactsCGIArtificialLighting", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -189,7 +200,8 @@
       "name": "ArtifactsCGIArtificialReflection", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -205,7 +217,8 @@
       "name": "ArtifactsCGIArtificialShadow", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -221,7 +234,8 @@
       "name": "ArtifactsCGIObjectCGI", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -237,7 +251,8 @@
       "name": "ColorBlendColorBurn", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -253,7 +268,8 @@
       "name": "ColorBlendColorInterpolation", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -269,7 +285,8 @@
       "name": "ColorBlendDissolve", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
        "inputmaskname": {
@@ -285,7 +302,8 @@
       "name": "ColorBlendMultiply", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -301,7 +319,8 @@
       "name": "ColorColorBalance", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -317,7 +336,8 @@
       "name": "ColorFill", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -333,7 +353,8 @@
       "name": "ColorHue", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -349,7 +370,8 @@
       "name": "ColorMatchColor", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -365,7 +387,8 @@
       "name": "ColorOpacity", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -381,7 +404,8 @@
       "name": "ColorReplaceColor", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -397,7 +421,8 @@
       "name": "ColorSaturation", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -413,7 +438,8 @@
       "name": "ColorVibranceContentBoosting", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -429,7 +455,8 @@
       "name": "ColorVibranceReduction", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -445,7 +472,8 @@
       "name": "CreationFilterGT", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -461,7 +489,8 @@
       "name": "FillBackground", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -477,7 +506,8 @@
       "name": "FillContentAwareFill", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -493,7 +523,8 @@
       "name": "FillForeground", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -509,7 +540,8 @@
       "name": "FillGradient", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -525,7 +557,8 @@
       "name": "FillHealingBrush", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -541,7 +574,8 @@
       "name": "FillImageInterpolation", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -557,7 +591,8 @@
       "name": "FillInpainting", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -573,7 +608,8 @@
       "name": "FillLocalRetouching", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -589,7 +625,8 @@
       "name": "FillPaintBrushTool", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -605,7 +642,8 @@
       "name": "FillPaintBucket", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -621,7 +659,8 @@
       "name": "FillPattern", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -637,7 +676,8 @@
       "name": "FillRubberStamp", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -653,7 +693,8 @@
       "name": "FilterBlurMotion", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -669,7 +710,8 @@
       "name": "FilterBlurNoise", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -685,7 +727,8 @@
       "name": "FilterCameraRawFilter", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -701,7 +744,8 @@
       "name": "IntensityBrightness", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Shift midtone luminance values on a histogram to higher or lower values.",
@@ -712,7 +756,8 @@
       "name": "IntensityContrast", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
@@ -723,7 +768,8 @@
       "name": "IntensityCurves", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Shift luminance values on a histogram with an editable and flexible curve.",
@@ -734,7 +780,8 @@
       "name": "IntensityDarken", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Shift lower luminance values on a histogram to a higher or lower values.",
@@ -745,7 +792,8 @@
       "name": "IntensityDesaturate", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -761,7 +809,8 @@
       "name": "IntensityExposure", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -777,7 +826,8 @@
       "name": "IntensityHardlight", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -793,7 +843,8 @@
       "name": "IntensityHighlight", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -809,7 +860,8 @@
       "name": "IntensityLevels", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -825,7 +877,8 @@
       "name": "IntensityLighten", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -841,7 +894,8 @@
       "name": "IntensityLuminosity", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -857,7 +911,8 @@
       "name": "IntensitySoftlight", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -873,7 +928,8 @@
       "name": "MarkupDigitalPenDraw", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
@@ -884,7 +940,8 @@
       "name": "MarkupHandwriting", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
@@ -895,7 +952,8 @@
       "name": "MarkupOverlayObject", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ArtifactsCGIObjectCGI.",
@@ -906,7 +964,8 @@
       "name": "MarkupOverlayText", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
@@ -986,7 +1045,8 @@
          }
       }, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1016,7 +1076,8 @@
       }, 
       "rules": [
         "checkSize", 
-        "checkForDonorWithRegion"
+        "checkForDonorWithRegion",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
@@ -1027,7 +1088,8 @@
       "name": "PostProcessingSizeUpDownOrgExif", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
@@ -1038,7 +1100,8 @@
       "name": "SelectRegion", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1054,7 +1117,8 @@
       "name": "SelectRemove", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1070,7 +1134,8 @@
       "name": "TransformAffine", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "analysisOperations": [ "tool_set.siftAnalysis"], 
@@ -1082,7 +1147,8 @@
       "name": "TransformContentAwareScale", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "analysisOperations": [ "tool_set.siftAnalysis"], 
@@ -1094,6 +1160,7 @@
       "name": "TransformCrop", 
       "mandatoryparameters": {}, 
       "rules": [
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "location": {
@@ -1109,7 +1176,8 @@
       "name": "TransformDistort", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1126,7 +1194,8 @@
       "name": "TransformFlip", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {
@@ -1148,7 +1217,8 @@
         }
       }, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {},
@@ -1160,6 +1230,7 @@
       "name": "TransformResample", 
       "mandatoryparameters": {}, 
       "rules": [
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1176,6 +1247,7 @@
       "name": "TransformResize", 
       "mandatoryparameters": {}, 
       "rules": [
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "interpolation": {
@@ -1198,6 +1270,7 @@
          }
       }, 
       "rules": [
+	"checkFileTypeChange"
       ], 
       "analysisOperations": [ "tool_set.siftAnalysis"],
       "optionalparameters": {}, 
@@ -1209,7 +1282,8 @@
       "name": "TransformScale", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {}, 
       "description": "Change the size of an image or layer while preserving dimensions.",
@@ -1225,7 +1299,8 @@
 	}
       }, 
       "rules": [
-        "seamCarvingCheck"
+        "seamCarvingCheck",
+	"checkFileTypeChange"
       ],
       "analysisOperations": [ "tool_set.siftAnalysis"], 
       "optionalparameters": {}, 
@@ -1237,7 +1312,8 @@
       "name": "TransformShear", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1254,7 +1330,8 @@
       "name": "TransformSkew", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
@@ -1271,7 +1348,8 @@
       "name": "TransformWarp", 
       "mandatoryparameters": {}, 
       "rules": [
-        "checkSize"
+        "checkSize",
+	"checkFileTypeChange"
       ], 
       "optionalparameters": {
         "inputmaskname": {
