@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
-from software_loader import Software, loadOperations, loadSoftware, getOperation
+from software_loader import loadOperations, loadSoftware, getOperation
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader

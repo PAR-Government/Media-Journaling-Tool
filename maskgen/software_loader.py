@@ -115,22 +115,32 @@ def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
 
 
-def loadCSV(fileName, toObjectFunction):
-    if not (os.path.exists(fileName)):
-        fileName = os.path.join('resources', fileName)
-    d = {}
-    with open(fileName) as f:
-        for l in f.readlines():
-            columns = l.split(',')
-            key = columns[0].strip()
-            if len(key) > 0:
-                d[key] = toObjectFunction(columns)
-    return d
 
 
 def loadSoftware(fileName):
     global softwareset
-    softwareset = loadCSV(fileName, toSoftware)
+    if not (os.path.exists(fileName)):
+        fileName = os.path.join('resources', fileName)
+    softwareset = {'image':{},'video':{}}
+    with open(fileName) as f:
+        line_no = 0
+        for l in f.readlines():
+            line_no+=1
+            l = l.strip()
+            if len(l) == 0:
+                continue
+            columns = l.split(',')
+            if len(columns) < 3:
+                print 'Invalid software description on line ' + str(line_no) + ': ' + l
+            software_type = columns[0].strip()
+            software_name = columns[1].strip()
+            versions = [x.strip() for x in columns[2:] if len(x) > 0]
+            if software_type not in ['both','image','video']:
+                print 'Invalid software type on line ' + str(line_no) + ': ' + l
+            elif len(software_name) > 0:
+                types = ['image', 'video'] if software_type == 'both' else [software_type]
+                for stype in types:
+                  softwareset[stype][software_name] = versions
     return softwareset
 
 
@@ -140,7 +150,10 @@ def getOS():
 
 def validateSoftware(softwareName, softwareVersion):
     global softwareset
-    return softwareName in softwareset and softwareVersion in softwareset[softwareName]
+    for software_type,typed_software_set in softwareset.iteritems():
+        if softwareName in typed_software_set and softwareVersion in typed_software_set[softwareName]:
+            return True
+    return False
 
 
 class Software:
@@ -163,7 +176,6 @@ class SoftwareLoader:
         self.load()
 
     def load(self):
-        global softwareset
         res = {}
         self.preference = self.loader.get_key('software_pref')
         newset = self.loader.get_key('software')
@@ -195,18 +207,23 @@ class SoftwareLoader:
             return self.software.keys()[0]
         return None
 
-    def get_names(self):
+    def get_names(self, software_type):
         global softwareset
-        return list(softwareset.keys())
+        return list(softwareset[software_type].keys())
 
-    def get_versions(self, name, version=None):
+    def get_versions(self, name, software_type=None, version=None):
         global softwareset
-        versions = softwareset[name] if name in softwareset else []
-        if version is not None and version not in versions:
-            print version + ' not in approved set for software ' + name
-            versions = list(versions)
-            versions.append(version)
-        return versions
+        types_to_check = ['image', 'video'] if software_type is None else [software_type]
+        for type_to_check in types_to_check:
+            versions = softwareset[type_to_check][name] if name in softwareset[type_to_check] else None
+            if versions is None:
+                continue
+            if version is not None and version not in versions:
+                versions = list(versions)
+                versions.append(version)
+                print version + ' not in approved set for software ' + name
+            return versions
+        return []
 
     def add(self, software):
         isChanged = False

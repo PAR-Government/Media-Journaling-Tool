@@ -161,7 +161,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
     def newsoftware(self, event):
         sname = self.e4.get()
-        self.e5.set_completion_list(self.softwareLoader.get_versions(sname),
+        self.e5.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
     def __checkParams(self):
@@ -240,7 +240,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         oplist = cats[catlist[0]] if len(cats) > 0 else []
         self.e1 = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40)
         self.e2 = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40)
-        self.e4 = AutocompleteEntryInText(master, values=sorted(self.softwareLoader.get_names()), takefocus=False,
+        self.e4 = AutocompleteEntryInText(master, values=sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), takefocus=False,
                                           width=40)
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
@@ -271,16 +271,18 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             self.newcommand(None)
 
         if self.description.software is not None:
-            self.e4.set_completion_list(sorted(self.softwareLoader.get_names()),
+            self.e4.set_completion_list(sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower),
                                         initialValue=self.description.software.name)
             self.e5.set_completion_list(sorted(self.softwareLoader.get_versions(self.description.software.name,
+                                                                                software_type=self.sourcefiletype,
                                                                                 version=self.description.software.version)),
                                         initialValue=self.description.software.version)
         else:
-            self.e4.set_completion_list(sorted(self.softwareLoader.get_names()),
+            self.e4.set_completion_list(sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower),
                                         initialValue=self.softwareLoader.get_preferred_name())
             self.e5.set_completion_list(
-                sorted(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name())),
+                sorted(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name(),
+                                                        software_type=self.sourcefiletype)),
                 initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
 
         return self.e1  # initial focus
