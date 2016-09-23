@@ -12,9 +12,11 @@ import datetime
 import sys
 import csv
 import hashlib
+import pandas as pd
+import itertools
 import subprocess
 
-exts = ('.jpg', '.jpeg', '.tif', '.tiff', '.nef', '.cr2', '.avi', '.mov', '.mp4')
+exts = {'IMAGE':['.jpg', '.jpeg', '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P'}
 
 def copyrename(image, path, usrname, org, seq, other):
@@ -137,7 +139,7 @@ def grab_range(files):
     return allFiles[start:end+1]
 
 
-def grab_dir(path, r=False):
+def grab_dir(inpath, outdir=None, r=False):
     """
     Grabs all image files in a directory
     :param path: path to directory of desired files
@@ -145,19 +147,52 @@ def grab_dir(path, r=False):
     :return: list of images in directory
     """
     imageList = []
-    names = os.listdir(path)
+    names = os.listdir(inpath)
+    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'])
     if r:
-        for dirname, dirnames, filenames in os.walk(path, topdown=True):
+        for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
-                if filename.lower().endswith(exts):
+                if filename.lower().endswith(valid_exts):
                     imageList.append(os.path.join(dirname, filename))
     else:
         for f in names:
-            if f.lower().endswith(exts):
-                imageList.append(os.path.join(path, f))
+            if f.lower().endswith(valid_exts):
+                imageList.append(os.path.join(inpath, f))
 
-    return sorted(imageList, key=str.lower)
+    imageList = sorted(imageList, key=str.lower)
 
+    if outdir:
+        repeated = []
+        ritCSV = None
+        for f in os.listdir(outdir):
+            if f.endswith('.csv') and 'rit' in f:
+                ritCSV = os.path.join(outdir, f)
+                rit = pd.read_csv(ritCSV)
+                repeated = rit['OriginalImageName'].tolist()
+                test1 = repeated[0]
+                test2 = repeated[2]
+                # for image in range(0, len(repeated)):
+                #     repeated[image] = repeated[image][1:].strip()
+                # break
+        removeList = []
+        for name in imageList:
+            for repeatedName in repeated:
+                if repeatedName in name:
+                    removeList.append(name)
+                    # imageList.remove(name)
+                    # repeated.remove(repeatedName)
+                    break
+
+        for imageName in removeList:
+            imageList.remove(imageName)
+        # matching = [s for s in some_list if "abc" in s]
+        # imageBaseNames = [os.path.basename(p) for p in imageList]
+        # for name in repeated:
+        #     if name in imageBaseNames:
+        #         indicesToRemove = imageBaseNames.index(name)
+        # del imageList[indicesToRemove]
+
+    return imageList
 
 def write_seq(prefs, newSeq):
     """
@@ -198,10 +233,12 @@ def build_keyword_file(image, keywords, csvFile):
     :return: None
     """
     with open(csvFile, 'a') as csv_keywords:
-        keywordWriter = csv.writer(csv_keywords, lineterminator='\n')
-        for word in keywords:
-            keywordWriter.writerow([image, word])
-
+        keywordWriter = csv.writer(csv_keywords, lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
+        if keywords:
+            for word in keywords:
+                keywordWriter.writerow([image, word])
+        else:
+            keywordWriter.writerow([image])
 
 def build_xmetadata_file(image, data, csvFile):
     """
@@ -214,7 +251,7 @@ def build_xmetadata_file(image, data, csvFile):
     """
     fullData = [image] + data
     with open(csvFile, 'a') as csv_metadata:
-        xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
+        xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
         xmetadataWriter.writerow(fullData)
 
 
@@ -229,41 +266,44 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
     :return: None
     """
     newFile = not os.path.isfile(csvFile)
-    with open(csvFile, 'a') as csv_history:
-        historyWriter = csv.writer(csv_history, lineterminator='\n')
+    with open(csvFile, 'a') as csv_rit:
+        ritWriter = csv.writer(csv_rit, lineterminator='\n', quoting=csv.QUOTE_ALL)
         if newFile:
-            historyWriter.writerow(['ImageFilename', 'CollectionRequestID', 'HDLocation', 'OriginalImageName', 'MD5',
-                                    'DeviceSN', 'DeviceLocalID', 'LensSN', 'LensLocalId', 'FileType', 'JpgQuality',
-                                   'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
-                                   'DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'Location',
-                                   'GPSLatitude', 'OnboardFilter', 'GPSLongitude', 'BitDepth', 'ImageWidth', 'ImageHeight'])
+            ritWriter.writerow(['ImageFilename', 'HP-CollectionRequestID', 'HP-HDLocation', 'OriginalImageName', 'MD5',
+                                    'CameraModel', 'DeviceSN', 'HP-DeviceLocalID', 'LensModel','LensSN', 'HP-LensLocalId', 'FileType', 'HP-JpgQuality',
+                                    'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
+                                    'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
+                                    'GPSLatitude', 'HP-OnboardFilter', 'GPSLongitude', 'BitDepth', 'ImageWidth', 'ImageHeight',
+                                    'HP-OBFilterType', 'HP-LensFilter', 'Type', 'Reflections', 'Shadows'])
         if newNameList:
             for imNo in xrange(len(imageList)):
-                md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-                historyWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5] + info[imNo][2:])
+                md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
+                ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5, info[imNo][29]] +
+                                   info[imNo][2:4] + [info[imNo][30]] + info[imNo][4:29] + info[imNo][31:33])
         else:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-                historyWriter.writerow(['', info[imNo][0:2], os.path.basename(imageList[imNo]), md5] + info[imNo][2:])
+                ritWriter.writerow(['', info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5] + info[imNo][2:])
 
 
-def build_history_file(imageList, newNameList, csvFile):
+def build_history_file(imageList, newNameList, data, csvFile):
     """
     Creates an easy-to-follow history for keeping record of image names
     oldImageFile --> newImageFile
     :param image: old image file
     :param newName: new image file
+    :param data: image information list
     :param csvFile: csv file to store information
     :return: None
     """
     newFile = not os.path.isfile(csvFile)
     with open(csvFile, 'a') as csv_history:
-        historyWriter = csv.writer(csv_history, lineterminator='\n')
+        historyWriter = csv.writer(csv_history, lineterminator='\n', quoting=csv.QUOTE_ALL)
         if newFile:
-            historyWriter.writerow(['Original Name', 'New Name', 'MD5'])
+            historyWriter.writerow(['Original Name', 'New Name', 'MD5', 'Type'])
         for imNo in range(len(imageList)):
-            md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-            historyWriter.writerow([os.path.basename(imageList[imNo]), newNameList[imNo], md5])
+            md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
+            historyWriter.writerow([os.path.basename(imageList[imNo]), os.path.basename(newNameList[imNo]), md5, data[imNo][28]])
 
 def parse_extra(data, csvFile):
     """
@@ -352,7 +392,7 @@ def tally_images(data, csvFile):
         print 'No tally file found. Creating...'
 
     with open(csvFile, 'wb') as csv_tally:
-        tallyWriter = csv.writer(csv_tally, lineterminator='\n')
+        tallyWriter = csv.writer(csv_tally, lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
         tallyWriter.writerow(['DeviceSN', 'DeviceLocalID', 'LensSN', 'LocalLensID', 'Extension',
                                 'ShutterSpeed', 'Aperture', 'ISO', 'BitDepth', 'Tally'])
         for line in data:
@@ -386,10 +426,22 @@ def s3_prefs(values, upload=False):
     else:
         s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
 
+def frac2dec(fracStr):
+    return fracStr
+    # try:
+    #     return float(fracStr)
+    # except ValueError:
+    #     try:
+    #         num, denom = fracStr.split('/')
+    #         return float(num)/float(denom)
+    #     except ValueError:
+    #         print 'The troublesome file is: ' + fracStr
+    #         return fracStr
 
 def parse_image_info(imageList, path='', rec=False, collReq='', camera='', localcam='', lens='', locallens='', hd='',
                      sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
-                     focusMode='', kvalue='', location='', obfilter=''):
+                     focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
+                     cameramodel='', lensmodel='', jq='', reflections='', shadows=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
@@ -421,15 +473,22 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     18. CreationDate
     19. Location
     20. GPSLatitude
-    21. OnboardFilter
+    21. OnboardFilter (T/F)
     22. GPSLongitude
     23. BitDepth
     24. ImageWidth
     25. ImageHeight
+    26. OBFilterType
+    27. LensFilter
+    28. Type (IMAGE or VIDEO)
+    29. CameraModel
+    30. LensModel
+    31. Reflections
+    32. Shadows
     """
     exiftoolargs = []
     data = []
-    master = [collReq, hd, '', localcam, '', locallens] + [''] * 8 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4
+    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4 + [obfiltertype, lensfilter, '', '', '', reflections, shadows]
     missingIdx = []
 
     if camera:
@@ -444,13 +503,10 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         exiftoolargs.append('-LensSerialNumber')
         missingIdx.append(4)
 
-    exiftoolargs.append('-JPEG_Quality')
-    missingIdx.append(7)
-
     if sspeed:
         master[8] = sspeed
     else:
-        exiftoolargs.append('-ExposureTime')
+        exiftoolargs.append('-ShutterSpeed')
         missingIdx.append(8)
 
     if fnum:
@@ -495,11 +551,23 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         exiftoolargs.append('-Flash')
         missingIdx.append(16)
 
-    if focusMode:
-        master[17] = focusMode
+    if focusmode:
+        master[17] = focusmode
     else:
-        exiftoolargs.append('-FocusMode')
+        exiftoolargs.append('-Focusmode')
         missingIdx.append(17)
+
+    if cameramodel:
+        master[29] = cameramodel
+    else:
+        exiftoolargs.append('-Model')
+        missingIdx.append(29)
+
+    if lensmodel:
+        master[30] = lensmodel
+    else:
+        exiftoolargs.append('-LensModel')
+        missingIdx.append(30)
 
 
     exiftoolargs.extend(['-BitsPerSample','-GPSLatitude','-GPSLongitude','-CreateDate','-ImageWidth','-ImageHeight'])
@@ -543,18 +611,111 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         j = 0
         for i in xrange(len(imageList)):
             data.append(master[:])
+            ex = os.path.splitext(imageList[i])[1]
             data[i][6] = os.path.splitext(imageList[i])[1]
+            if ex.lower() in exts['IMAGE']:
+                data[i][28] = 'image'
+            else:
+                data[i][28] = 'video'
             newExifSubset = newExifData[j:j + diff]
             k = 0
             for dataIdx in missingIdx:
                 data[i][dataIdx] = newExifSubset[k]
                 k += 1
             j += diff
+            data[i][8] = frac2dec(data[i][8])
             if data[i][20] and data[i][22]:
                 data[i][20] = convert_GPS(data[i][20])
                 data[i][22] = convert_GPS(data[i][22])
 
     return data
+
+def process(preferences='', metadata='', files='', range='', imgdir='', outputdir='', recursive=False, xdata='',
+            keywords='', additionalInfo='', tally=False, **kwargs):
+    userInfo = parse_prefs(preferences)
+    print 'Successfully pulled preferences'
+
+    print 'Collecting images...',
+    imageList = []
+
+    if files:
+        imageList.extend(grab_individuals(files))
+    elif range:
+        fRange = range.split(' ')
+        imageList.extend(grab_range(fRange))
+    else:
+        imageList.extend(grab_dir(imgdir, outputdir, recursive))
+    print ' done'
+
+    if not imageList:
+        print 'No new images found'
+        return imageList, []
+
+    print 'Building image info...',
+    imageInfo = parse_image_info(imageList, path=imgdir, rec=recursive, **kwargs)
+    print ' done'
+
+    # copy
+    try:
+        count = int(userInfo['seq'])
+    except KeyError:
+        count = 0
+        add_seq(preferences)
+
+    csv_keywords = os.path.join(outputdir, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
+                                userInfo['organization'] + userInfo['username'] + '-' + 'keywords.csv')
+
+
+    csv_metadata = os.path.join(outputdir, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
+                                userInfo['organization'] + userInfo['username'] + '-' + 'xdata.csv')
+
+    try:
+        extraValues = parse_extra(xdata, csv_metadata)
+    except TypeError:
+        extraValues = None
+
+    print 'Copying files...',
+    newNameList = []
+    for image in imageList:
+        newName = copyrename(image, outputdir, userInfo['username'], userInfo['organization'], pad_to_5_str(count), additionalInfo)
+        if keywords:
+            build_keyword_file(newName, keywords, csv_keywords)
+        if extraValues:
+            build_xmetadata_file(newName, extraValues, csv_metadata)
+        newNameList += [newName]
+        count += 1
+    print ' done'
+
+    write_seq(preferences, pad_to_5_str(count))
+    print 'Prefs updated with new sequence number'
+
+    print 'Updating metadata...'
+    newData = change_all_metadata.parse_file(metadata)
+    if imgdir:
+        change_all_metadata.process(outputdir, newData, quiet=True)
+    else:
+        change_all_metadata.process(newNameList, newData, quiet=True)
+
+    print 'Building RIT file'
+    csv_rit = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'rit.csv')
+    build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
+    'Success'
+
+    # history file:
+    print 'Building history file'
+    csv_history = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'history.csv')
+    build_history_file(imageList, newNameList, imageInfo, csv_history)
+
+    if tally:
+        # write final csv
+        print 'Building tally file'
+        csv_tally = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'tally.csv')
+        tally_images(imageInfo, csv_tally)
+        print 'Successfully tallied image data'
+
+    print '\nComplete!'
+
+    return imageList, newNameList
 
 def main():
     parser = argparse.ArgumentParser()
@@ -570,10 +731,13 @@ def main():
     parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
 
     parser.add_argument('-T', '--tally',            action='store_true',            help='Produce tally output')
+    parser.add_argument('-z', '--cameramodel',      default='',                     help='Camera model')
     parser.add_argument('-i', '--id',               default='',                     help='Camera serial #')
     parser.add_argument('-o', '--localid',          default='',                     help='Local ID no. (cage #, etc.)')
+    parser.add_argument('-Z', '--lensmodel',        default='',                     help='Lens model')
     parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
     parser.add_argument('-O', '--locallens',        default='',                     help='Lens local ID')
+    parser.add_argument('-j', '--jpegquality',      default='',                     help='Approx. JPEG quality')
     parser.add_argument('-H', '--hd',               default='',                     help='Hard drive location letter')
     parser.add_argument('-s', '--sspeed',           default='',                     help='Shutter Speed')
     parser.add_argument('-N', '--fnum',             default='',                     help='f-number')
@@ -586,95 +750,32 @@ def main():
     parser.add_argument('-F', '--flash',            default='',                     help='Flash Fired')
     parser.add_argument('-a', '--focusmode',        default='',                     help='Focus Mode')
     parser.add_argument('-l', '--location',         default='',                     help='location')
-    parser.add_argument('-c', '--filter',           default='',                     help='On-board filter')
+    parser.add_argument('-b', '--filter',           required=True,                  help='On-board filter (T/F)')
+    parser.add_argument('-B', '--filtertype',       default='',                     help='What type of ob filter')
+    parser.add_argument('-c', '--lensfilter',       default='',                     help='Lens filter type')
     parser.add_argument('-C', '--collection',       default='',                     help='Collection Request ID')
+    parser.add_argument('--reflections',            action='store_true',            help='Include to specify reflections in these images')
+    parser.add_argument('--shadows',                action='store_true',            help='Include to specify shadows in these images')
 
     args = parser.parse_args()
 
-    prefs = parse_prefs(args.preferences)
-
-    print 'Successfully pulled preferences'
-
-    # grab files
-    imageList = []
-
-    if args.files:
-        imageList.extend(grab_individuals(args.files))
-    elif args.range:
-        fRange = args.range.split(' ')
-        imageList.extend(grab_range(fRange))
+    # parse filter arg
+    if args.filter.lower().startswith('t'):
+        boolfilter = True
+    elif args.filter.lower().startswith('f'):
+        boolfilter = False
     else:
-        imageList.extend(grab_dir(args.dir, args.recursive))
-    print 'Successfully grabbed images'
-
-    print 'Collecting image data, this will take time for large amounts of images...'
-    imageInfo = parse_image_info(imageList, path=args.dir, rec=args.recursive, collReq=args.collection,
-                                 camera=args.id, localcam=args.localid, lens=args.lens, locallens=args.locallens,
-                                 hd=args.hd, sspeed=args.sspeed, fnum=args.fnum, expcomp=args.expcomp,
-                                 iso=args.iso, noisered=args.noisered, whitebal=args.whitebal,
-                                 expmode=args.expmode, flash=args.flash, focusMode=args.focusmode,
-                                 kvalue=args.kvalue, location=args.location, obfilter=args.filter)
-    print 'Successfully built image info!'
-
-    # copy
-    try:
-        count = int(prefs['seq'])
-    except KeyError:
-        count = 0
-        add_seq(args.preferences)
+        'Error: Please specify whether or not an on-board filter was used with "true" or "false"'
+        sys.exit(0)
 
 
-    csv_keywords = os.path.join(args.secondary, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
-                    prefs['organization'] + prefs['username'] + '-' + 'keywords.csv')
-    csv_metadata = os.path.join(args.secondary, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
-                    prefs['organization'] + prefs['username'] + '-' + 'xdata.csv')
-    try:
-        extraValues = parse_extra(args.extraMetadata, csv_metadata)
-    except TypeError:
-        extraValues = None
-
-    print 'Copying files...'
-    newNameList = []
-    for image in imageList:
-        newName = copyrename(image, args.secondary, prefs['username'], prefs['organization'], pad_to_5_str(count), args.additionalInfo)
-        if args.keywords:
-            build_keyword_file(newName, args.keywords, csv_keywords)
-        if args.extraMetadata:
-            build_xmetadata_file(newName, extraValues, csv_metadata)
-        newNameList += [newName]
-        count += 1
-    print 'Successfully copy and rename of files'
-
-    write_seq(args.preferences, pad_to_5_str(count))
-    print 'Successful preferences update'
-
-    # change metadata of copies
-    print 'Updating metadata...'
-    newData = change_all_metadata.parse_file(args.metadata)
-    if args.dir:
-        change_all_metadata.process(args.secondary, newData, quiet=True)
-    else:
-        change_all_metadata.process(newNameList, newData, quiet=True)
-
-
-    print 'Building RIT file'
-    csv_rit = os.path.join(args.secondary, os.path.basename(newNameList[0])[0:11] + 'rit.csv')
-    build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
-    'Success'
-
-    # history file:
-    print 'Building history file'
-    csv_history = os.path.join(args.secondary, os.path.basename(newNameList[0])[0:11] + 'history.csv')
-    build_history_file(imageList, newNameList, csv_history)
-
-    if args.tally:
-        # write final csv
-        print 'Building tally file'
-        csv_tally = os.path.join(args.secondary, os.path.basename(newNameList[0])[0:11] + 'tally.csv')
-        tally_images(imageInfo, csv_tally)
-        print 'Successfully tallied image data'
-
-    print 'Complete!'
+    kwargs = {'collReq':args.collection, 'camera':args.id, 'localcam':args.localid, 'lens':args.lens, 'locallens':args.locallens,
+              'hd':args.hd, 'sspeed':args.sspeed, 'fnum':args.fnum, 'expcomp':args.expcomp, 'iso':args.iso, 'noisered':args.noisered,
+              'whitebal':args.whitebal, 'expmode':args.expmode, 'flash':args.flash, 'focusmode':args.focusmode, 'kvalue':args.kvalue,
+              'location':args.location, 'obfilter':boolfilter, 'obfiltertype':args.filtertype, 'lensfilter':args.lensfilter, 'reflections':args.reflections,
+              'shadows':args.shadows}
+    process(preferences=args.preferences, metadata=args.metadata, files=args.files, range=args.range,
+            imgdir=args.dir, outputdir=args.secondary, recursive=args.recursive, keywords=args.keywords, xdata=args.extraMetadata, **kwargs)
 
 if __name__ == '__main__':
     main()
