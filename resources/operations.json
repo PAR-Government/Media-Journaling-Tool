@@ -153,7 +153,6 @@
       "description": "Use a brush tool with a variable feathered edge.",
       "includeInMask": false
     }, 
-
     {
       "category": "AntiForensicFilter", 
       "name": "AntiForensicCopyExif", 
@@ -169,13 +168,18 @@
     {
       "category": "AntiForensicExif", 
       "name": "AntiForensicExifQuantizationTable", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {
+         "rotate" : {
+            "type": "yesno",
+	    "description": "Rotate the image counter to the Orientation of copied EXIF."
+         }
+      }, 
       "rules": [
         "checkSize",
 	"checkForDonor"
       ], 
       "optionalparameters": {}, 
-      "description": "Alter Image Metadata to display a different type or no compression.",
+      "description": "Alter Image to be compliant with another images quantization and EXIF.",
       "includeInMask": false
     }, 
     {
@@ -554,23 +558,6 @@
     }, 
     {
       "category": "Fill", 
-      "name": "FillHealingBrush", 
-      "mandatoryparameters": {}, 
-      "rules": [
-        "checkSize",
-	"checkFileTypeChange"
-      ], 
-      "optionalparameters": {
-        "inputmaskname": {
-          "type":"imagefile",
-          "description":"An image file containing a mask describing the areas affected."
-	}
-      }, 
-      "description": "Replace imagery within a given brush diameter with a average from surrounding pixels.",
-      "includeInMask": false
-    }, 
-    {
-      "category": "Fill", 
       "name": "FillImageInterpolation", 
       "mandatoryparameters": {}, 
       "rules": [
@@ -672,9 +659,15 @@
       "includeInMask": false
     }, 
     {
-      "category": "Fill", 
-      "name": "FillRubberStamp", 
-      "mandatoryparameters": {}, 
+      "category": "Paste", 
+      "name": "PasteSampled",
+      "mandatoryparameters": {
+         "purpose" : {
+	    "type":"list",
+	    "values":["remove", "clone", "heal"],
+	    "description": "Purpose: remove an object, clone (combination of add and remove), or healing using sampled pixels."
+         }
+      }, 
       "rules": [
         "checkSize",
 	"checkFileTypeChange"
@@ -682,11 +675,11 @@
       "optionalparameters": {
         "inputmaskname": {
           "type":"imagefile",
-          "description":"An image file containing a mask describing the areas affected."
+          "description":"An image file with a transparency highlighting the sampled areas of the image."
 	}
       }, 
-      "description": "Use mapped donor imagery from a given area to fill an extended work area or canvas.",
-      "includeInMask": false
+      "description": "Use sampled imagery from a given area to fill an area on the canvas.",
+      "includeInMask": true
     }, 
     {
       "category": "Filter", 
@@ -1006,9 +999,15 @@
     {
       "category": "Output", 
       "name": "OutputPng", 
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type":"yesno",
+          "description":"Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
       "rules": [
-        "checkSizeAndExif"
+        "checkSizeAndExif",
+	"rotationCheck"
       ], 
       "optionalparameters": {
         "XMP File Name": {
@@ -1022,9 +1021,15 @@
     {
       "category": "Output", 
       "name": "OutputTif", 
-      "mandatoryparameters": {}, 
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type":"yesno",
+          "description":"Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      }, 
       "rules": [
-        "checkSizeAndExif"
+        "checkSizeAndExif",
+	"rotationCheck"
       ], 
       "optionalparameters": {
         "XMP File Name": {
@@ -1034,28 +1039,6 @@
       }, 
       "description": "Export the image in the tif format.",
       "includeInMask": false
-    }, 
-    {
-      "category": "Paste", 
-      "name": "PasteClone", 
-      "mandatoryparameters": {
-         "rubber stamp": {
-	    "type": "yesno",
-	    "description" : "Enter yes if a rubber stamp approach is used"
-         }
-      }, 
-      "rules": [
-        "checkSize",
-	"checkFileTypeChange"
-      ], 
-      "optionalparameters": {
-        "inputmaskname": {
-          "type":"imagefile",
-          "description":"An image file containing a mask describing the area copied."
-	}
-      }, 
-      "description": "Paste a region selected using a clone tool into the same image.",
-      "includeInMask": true
     }, 
     {
       "category": "Paste", 
@@ -1072,6 +1055,11 @@
          "donor cropped": {
 	    "type": "yesno",
 	    "description" : "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
+         },
+         "subject" : {
+	    "type":"list",
+	    "values":["people","face","natural object","man-made object","landscape","other"],
+	    "description": "Subject catgeory pasted to image"
          }
       }, 
       "rules": [

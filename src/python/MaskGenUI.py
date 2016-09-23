@@ -64,7 +64,7 @@ class UIProfile:
       menu.add_separator()
 
     def addAccelerators(self,parent):
-      parent.bind_all('<Control-j>',parent.gcreateJPEG)
+      parent.bind_all('<Control-j>',lambda event: parent.after(100,parent.createJPEG))
 
     def createCompareDialog(self,master,im2,mask,nodeId,analysis,dir):
         return CompareDialog(master,im2,mask,nodeId,analysis)
@@ -238,7 +238,7 @@ class MakeGenUI(Frame):
            tkMessageBox.showinfo("Error", "Failed to upload export")
   
     def createJPEG(self):
-       msg,pairs = ToJPGGroupOperation(self.scModel).performOp()
+       msg,pairs = ToJPGGroupOperation(self.scModel).performOp(self.master)
        if msg is not None:
          tkMessageBox.showwarning("Error", msg)
          if not pairs:
@@ -499,23 +499,8 @@ class MakeGenUI(Frame):
     def gsave(self, event):
         self.save()
 
-    def gnextauto(self, next):
-        self.nextauto()
-
-    def gnextadd(self, next):
-        self.nextadd()
-
-    def gnextfilter(self, next):
-        self.nextfilter()
-
-    def gcreateJPEG(self, next):
-        self.createJPEG()
-
     def gundo(self, next):
         self.undo()
-
-    def gadd(self, next):
-        self.add()
 
     def compareto(self):
       self.canvas.compareto()
@@ -641,11 +626,11 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-q>',self.gquit)
         self.bind_all('<Control-o>',self.gopen)
         self.bind_all('<Control-s>',self.gsave)
-        self.bind_all('<Control-a>',self.gadd)
+        self.bind_all('<Control-a>',lambda event: self.after(100,self.add))
         self.bind_all('<Control-n>',self.gnew)
-        self.bind_all('<Control-p>',self.gnextauto)
-        self.bind_all('<Control-l>',self.gnextadd)
-        self.bind_all('<Control-f>',self.gnextfilter)
+        self.bind_all('<Control-p>',lambda event: self.after(100,self.nextauto))
+        self.bind_all('<Control-l>',lambda event: self.after(100,self.nextadd))
+        self.bind_all('<Control-f>',lambda event: self.after(100,self.nextfilter))
         self.bind_all('<Control-z>',self.gundo)
         self.uiProfile.addAccelerators(self)
 

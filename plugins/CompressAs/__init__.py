@@ -1,7 +1,5 @@
 """
-Andrew Smith
 PAR Government Systems
-7/15/2016
 
 compress_as takes in two JPEG images, and compresses the first with the q tables of the second
 possible future features:
@@ -15,6 +13,7 @@ from PIL import Image
 import numpy as np
 from bitstring import BitArray
 from subprocess import call,Popen, PIPE
+
 
 def parse_tables(imageFile):
     """
@@ -94,7 +93,7 @@ def runexiftool(args):
     print "Exiftool not installed"
     raise e
 
-def check_rotate(im, jpg):
+def check_rotate(im, jpg_file_name):
     """
     1 = Horizontal (normal)
     2 = Mirror horizontal
@@ -105,10 +104,12 @@ def check_rotate(im, jpg):
     7 = Mirror horizontal and rotate 90 CW
     8 = Rotate 270 CW
     """
-    rotateStr = Popen(['exiftool', '-n', '-Orientation', jpg],
-                        stdout=PIPE).communicate()[0]
+    exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
+    rotateStr = Popen([exifcommand, '-n', '-Orientation', jpg_file_name],
+                        stdout=PIPE).communicate()[0]#
 
-    rotation = rotateStr.split(':')[1].strip()
+    
+    rotation = rotateStr.split(':')[1].strip() if rotateStr.rfind(':') > 0 else '-'
 
     if rotation == '-':
         return im
@@ -136,11 +137,14 @@ def check_rotate(im, jpg):
     rotatedIm = Image.fromarray(rotatedArr)
     return rotatedIm
 
-def save_as(source, target, donor, qTables):
+def save_as(source, target, donor, qTables,rotate):
     """
     Saves image file using quantization tables
-    :param imageFile: string filename of image
+    :param source: string filename of source image
+    :param target: string filename of target (result)
+    :param donor: string filename of donor JPEG
     :param qTables: list of lists containing jpg quantization tables
+    :param rotate: boolean True if counter rotation is required
     """
 
     # much of the time, images will have thumbnail tables included.
@@ -156,8 +160,10 @@ def save_as(source, target, donor, qTables):
 
     # write jpeg with specified tables
     im = Image.open(source)
-    im = check_rotate(im, donor)
+    if rotate:
+      im = check_rotate(im,donor) 
     im.save(target, subsampling=1, qtables=finalTable)
+    width, height = im.size
     if thumbTable:
         im.thumbnail((128,128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
@@ -168,7 +174,15 @@ def save_as(source, target, donor, qTables):
             im.save(tempFile, subsampling=1, qtables=thumbTable)
         try:
           runexiftool(['-overwrite_original','-P','-m','-"ThumbnailImage<=' + tempFile + '"',target])
-          runexiftool(['exiftool', '-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
+          runexiftool(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
+          runexiftool(['-q','-all=', target])
+          runexiftool(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
+          runexiftool(['-P', '-q', '-m', '-XMPToolkit=',
+                                        '-ExifImageWidth=' + str(width),
+                                        '-ImageWidth=' + str(width),
+                                        '-ExifImageHeight=' + str(height),
+                                        '-ImageHeight=' + str(height),
+                                        target])
         finally:
           os.close(fd)
           os.remove(tempFile)
@@ -176,20 +190,22 @@ def save_as(source, target, donor, qTables):
 
 
 def transform(img,source,target, **kwargs):
-
     donor = kwargs['donor']
+    rotate = kwargs['rotate'] == 'yes'
+    
     tables_zigzag = parse_tables(donor[1])
     tables_sorted = sort_tables(tables_zigzag)
-    save_as(source, target, donor[1], tables_sorted)
+    save_as(source, target, donor[1], tables_sorted,rotate)
     
     return False,None
     
 def operation():
     return ['AntiForensicExifQuantizationTable','AntiForensicExif', 
-            'Save as a JPEG using original tables', 'PIL', '1.1.7']
+            'Save as a JPEG using original tables and EXIF', 'PIL', '1.1.7']
     
 def args():
-    return [('donor', None, 'JPEG with donor QT')]
+    return [('donor', None, 'JPEG with donor QT'),
+            ('apply rotation', 'yes', 'JPEG with donor QT')]
 
 def suffix():
     return '.jpg'

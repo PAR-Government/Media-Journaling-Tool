@@ -1,5 +1,8 @@
 import plugins
 import sys
+import exif
+from description_dialog import RotateDialog
+import tkSimpleDialog
 
 class BaseOperation:
 
@@ -40,7 +43,7 @@ class ToJPGGroupOperation(BaseOperation):
            result.append(pair)
        return result
 
-   def performOp(self):
+   def performOp(self,master_ui):
        """
          Return error message valid link pairs in a tuple
        """
@@ -53,14 +56,14 @@ class ToJPGGroupOperation(BaseOperation):
            for pair in self.pairs:
              self.scModel.selectImage(pair[0])
              im,filename=self.scModel.getImageAndName(pair[0])
-             msg,pairs = self.scModel.imageFromPlugin('CompressAs',im,filename,donor=pair[1],sendNotifications=False,skipRules=True)
-             if len(pairs) == 0:
-                 break
-             newPairs.extend(pairs)
-             start = self.scModel.end
-             im,filename=self.scModel.getImageAndName(start)
-             self.scModel.selectImage(start)
-             msg,pairs = self.scModel.imageFromPlugin('ExifMetaCopy',im,filename,donor=pair[1],sendNotifications=False,skipRules=True)
+             donor_im,donor_filename=self.scModel.getImageAndName(pair[1])
+             orientation = exif.getOrientationFromExif(donor_filename)
+             rotate = 'no'
+             if orientation is not None:
+                rotated_im =  exif.rotateAccordingToExif(im,orientation)
+                dialog = RotateDialog(master_ui, donor_im, rotated_im, orientation)
+                rotate= dialog.rotate
+             msg,pairs = self.scModel.imageFromPlugin('CompressAs',im,filename,donor=pair[1],sendNotifications=False,rotate=rotate,skipRules=True)
              if len(pairs) == 0:
                  break
              newPairs.extend(pairs)
