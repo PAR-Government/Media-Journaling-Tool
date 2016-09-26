@@ -43,12 +43,14 @@ TAG2=VALUE2
 Tags should be specified according to Exiftool documentation (http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/index.html)
 
 As a standard, the following should be inserted:
-CopyrightNotice=� 2016 PAR Government Systems - Under contract of MediFor
+CopyrightNotice=� 2016 YOUR ORGANIZATION HERE - Under contract of MediFor
+(If the images were originally taken for another purpose, remove the "Under contract of MediFor" bit)
 By-line=INITIALS HERE
 Credit=ORGANIZATION HERE
 UsageTerms=CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/legalcodes
 Copyright=
 Artist=
+(These last two fields should be left blank in order to wipe them. This clears up discrepancies when viewing image metadata)
 
 --------------------------------------------
 Preferences text file:
@@ -61,7 +63,8 @@ Valid organization names:
 R, RIT,
 M, U of M,
 D, Drexel,
-P, PAR
+P, PAR,
+C, CU Denver
 
 The seq line is used to generate the new filename. The tool will automatically generate/maintain this number. Do not change it.
 It is recommended to store this file somewhere externally, so that it can be pulled and used regardless of the user's machine.
