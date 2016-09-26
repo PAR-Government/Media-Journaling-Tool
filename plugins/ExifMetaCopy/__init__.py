@@ -16,7 +16,7 @@ def transform(img,source,target, **kwargs):
     call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
     call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
     update_size(target)
-    return False,'EXIF Copy does not correct for orientation changes'
+    return False,None
 
 def suffix():
     return '.jpg'
