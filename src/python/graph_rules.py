@@ -1,5 +1,5 @@
 from software_loader import getOperations,SoftwareLoader,getOperation
-from tool_set import validateTimeString,validateAndConvertTypedValue
+from tool_set import validateTimeString,validateAndConvertTypedValue,fileTypeChanged
 
 
 rules = {}
@@ -35,7 +35,7 @@ def initialCheck(op,graph,frm,to):
   if errorsResult is not  None:
     result.extend(errorsResult)
   return result
-
+  
 def checkOperation(edge,op,graph,frm,to):
   if op == 'Donor':
     return None
@@ -122,6 +122,21 @@ def checkForDonor(graph,frm,to):
      return 'donor image missing'
    return None
 
+def rotationCheck(graph,frm,to):
+   edge = graph.get_edge(frm,to)
+   args = edge['arguments'] if 'arguments' in edge  else {}
+   frm_img = graph.get_image(frm)[0]
+   to_img = graph.get_image(to)[0]
+   if  'Image Rotated' not in args:
+	args['Image Rotated'] = ('yes' if frm_img.size[0] != frm_img.size[1] else 'no')
+        return
+   rotated = args['Image Rotated'] == 'yes'
+   if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
+       return 'Image was not rotated as stated by the parameter Image Rotated'
+   elif not rotated and frm_img.size != to_img.size:
+       return 'Image was rotated. Parameter Image Rotated is set to "no"'
+   return None
+
 def checkLengthSame(graph,frm,to):
    """ the length of video should not change 
    """
@@ -150,6 +165,14 @@ def checkDonor(graph,frm,to):
      return 'donor must be associated with a image node that has a inbound paste operation'
    return None
 
+
+def checkFileTypeChange(graph,frm,to):
+   frm_file = graph.get_image(frm)[1]
+   to_file = graph.get_image(to)[1]
+   if fileTypeChanged(to_file,frm_file):
+     return 'operation not permitted to change the type of image or video file'
+   return None
+
 def seamCarvingCheck(graph,frm,to):
    change = getSizeChange(graph,frm,to)
    if change is not None and change[0] != 0 and change[1] != 0:
@@ -167,13 +190,14 @@ def checkSizeAndExif(graph,frm,to):
    if change is not None and (change[0] != 0 or change[1] != 0):
      edge = graph.get_edge(frm,to)
      orientation = getValue(edge,'exifdiff.Orientation')
-     if type(orientation) is list:
-        orientation = orientation[-1]
-     if '270' in orientation or '90' in orientation:
-        frm_shape = graph.get_image(frm)[0].size
-        to_shape = graph.get_image(to)[0].size
-        if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
-          return None
+     if orientation is not None:
+       if type(orientation) is list or type(orientation) is tuple:
+          orientation = orientation[-1]
+       if '270' in orientation or '90' in orientation:
+          frm_shape = graph.get_image(frm)[0].size
+          to_shape = graph.get_image(to)[0].size
+          if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
+            return None
      return 'operation is not permitted to change the size of the image'
    return None
 

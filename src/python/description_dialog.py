@@ -751,6 +751,7 @@ class MetaDiffTable(Frame):
        for c in  self.items.getColumnNames(self.section):
           model.addColumn(c)
        model.importDict(self.items.toColumns(self.section))
+       model.reclist = sorted(model.reclist)
 
        self.grid_rowconfigure(0, weight=1)
        self.grid_columnconfigure(0, weight=1)
@@ -1029,3 +1030,58 @@ class EntryDialog(tkSimpleDialog.Dialog):
          )
          return 0
       return 1
+
+
+class RotateDialog(tkSimpleDialog.Dialog):
+
+   parent = None
+   cancelled = True
+   rotate = 'no'
+
+   def __init__(self, parent,donor_im, rotated_im, orientation):
+     self.parent = parent
+     self.donor_im = donor_im
+     self.rotated_im = rotated_im
+     self.orientation = orientation
+     tkSimpleDialog.Dialog.__init__(self, parent, "Image Orientation: " + self.orientation)
+
+   def body(self, master):
+      row = 0
+      Label(master, text="Base").grid(row=row,column=0,sticky=W+S+N)
+      Label(master, text="Final without rotation").grid(row=row,column=1,sticky=E+S+N)
+      row=1
+      self.donor_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.donor_im,(250,250))))
+      self.donor_canvas = Canvas(master, width=125, height=125)
+      self.donor_canvas.create_image(125,125,image=self.donor_photo, tag='imgd')
+      self.donor_canvas.grid(row=row, column=0,sticky=W+N)
+      self.rotated_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.rotated_im,(250,250))))
+      self.rotated_canvas = Canvas(master, width=125, height=125)
+      self.rotated_canvas.create_image(125,125,image=self.rotated_photo, tag='imgr')
+      self.rotated_canvas.grid(row=row, column=1,sticky=E+N)
+      row=2
+      Label(master, text="Do you wish to counter rotate image").grid(row=row,column=0,sticky=E+W,columnspan=2)
+      row=3
+      Label(master, text="to align with the orientation?").grid(row=row,column=0,sticky=E+W,columnspan=2)
+      self.buttonboxgrid(master,row+1)
+      
+
+   def buttonbox(self):
+       return
+
+   def buttonboxgrid(self,box,row):
+#        box = Frame(self)
+        okButton = Button(box, text="Yes", width=10, command=self.ok, default=ACTIVE)
+        okButton.grid(row=row,column=0)#pack(side=LEFT, padx=5, pady=5)
+        noButton = Button(box, text="No", width=10, command=self.cancel)
+        noButton.grid(row=row,column=1)#pack(side=RIGHT, padx=5, pady=5)
+        self.bind("<Escape>", self.cancel)
+        #box.pack()
+
+   def cancel(self):
+      if self.cancelled:
+         self.rotate='no'
+      tkSimpleDialog.Dialog.cancel(self)
+
+   def apply(self):
+      self.cancelled = False
+      self.rotate = 'yes'

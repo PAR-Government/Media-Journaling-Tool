@@ -1,5 +1,53 @@
 from subprocess import call,Popen, PIPE
+import numpy as np
+from PIL import Image
 import os
+
+def getOrientationFromExif(source):
+    orientations= [None, None,'Mirror horizontal','Rotate 180','Mirror vertical','Mirror horizontal and Rotate 270 CW','Rotate 90 CW','Mirror horizontal and rotate 90 CW','Rotate 270 CW']
+
+    exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
+    rotateStr = Popen([exifcommand, '-n', '-Orientation', source],
+                        stdout=PIPE).communicate()[0]
+
+    rotation = rotateStr.split(':')[1].strip() if rotateStr.rfind(':') > 0 else '-'
+
+    if rotation == '-':
+        return None
+    try:
+      rotation_index = int(rotation)
+      return orientations[rotation_index]
+    except:
+      return None
+
+def rotateAccordingToExif(im, orientation):
+    rotation = orientation
+
+    if rotation is None:
+        return im
+    arr = np.array(im)
+    if rotation == 'Mirror horizontal':
+        rotatedArr = np.fliplr(arr)
+    elif rotation == 'Rotate 180':
+        rotatedArr = np.rot90(arr,2)
+    elif rotation == 'Mirror vertical':
+        rotatedArr = np.flipud(arr)
+    elif rotation == 'Mirror horizontal and rotate 270 CW':
+        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.rot90(rotatedArr,3)
+    elif rotation == 'Rotate 90 CW':
+        rotatedArr = np.rot90(arr)
+    elif rotation == 'Mirror horizontal and rotate 90 CW':
+        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.rot90(rotatedArr)
+    elif rotation == 'Rotate 270 CW':
+        rotatedArr = np.rot90(arr, 3)
+    else:
+        rotatedArr = arr
+
+    rotatedIm = Image.fromarray(rotatedArr)
+    return rotatedIm
+
 
 def copyexif(source,target):
   exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
