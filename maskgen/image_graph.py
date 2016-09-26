@@ -226,7 +226,11 @@ class ImageGraph:
             fname = compositeTuple[0] + '_composite_mask.png'
             self.G.node[compositeTuple[0]]['compositemaskname'] = fname
             self.G.node[compositeTuple[0]]['compositebase'] = compositeTuple[1]
-            compositeTuple[2].save(os.path.abspath(os.path.join(self.dir, fname)))
+            try:
+                compositeTuple[2].save(os.path.abspath(os.path.join(self.dir, fname)))
+            except IOError:
+                compositeMask = convertToMask(compositeTuple[2])
+                compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def get_edge_image(self, start, end, path):
         edge = self.get_edge(start, end)

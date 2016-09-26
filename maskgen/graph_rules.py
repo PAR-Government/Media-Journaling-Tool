@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getOperation
-from tool_set import validateAndConvertTypedValue
+from tool_set import validateAndConvertTypedValue, fileTypeChanged
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -117,6 +117,30 @@ def findOp(graph, node_id, op):
     return False
 
 
+def rotationCheck(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge  else {}
+    frm_img = graph.get_image(frm)[0]
+    to_img = graph.get_image(to)[0]
+    if 'Image Rotated' not in args:
+        args['Image Rotated'] = ('yes' if frm_img.size[0] != frm_img.size[1] else 'no')
+        return
+    rotated = args['Image Rotated'] == 'yes'
+    if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
+        return 'Image was not rotated as stated by the parameter Image Rotated'
+    elif not rotated and frm_img.size != to_img.size:
+        return 'Image was rotated. Parameter Image Rotated is set to "no"'
+    return None
+
+
+def checkFileTypeChange(graph, frm, to):
+    frm_file = graph.get_image(frm)[1]
+    to_file = graph.get_image(to)[1]
+    if fileTypeChanged(to_file, frm_file):
+        return 'operation not permitted to change the type of image or video file'
+    return None
+
+
 def checkForDonorWithRegion(graph, frm, to):
     pred = graph.predecessors(to)
     if len(pred) < 2:
@@ -187,7 +211,7 @@ def checkSizeAndExif(graph, frm, to):
         edge = graph.get_edge(frm, to)
         orientation = getValue(edge, 'exifdiff.Orientation')
         if orientation is not None:
-            if type(orientation) is list:
+            if type(orientation) is list or type(orientation) is tuple:
                 orientation = orientation[-1]
             if '270' in orientation or '90' in orientation:
                 frm_shape = graph.get_image(frm)[0].size

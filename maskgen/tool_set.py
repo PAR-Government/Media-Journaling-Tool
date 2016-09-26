@@ -11,6 +11,7 @@ import getpass
 import re
 import imghdr
 import h5py
+import os
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
                   ("bmp files", "*.bmp"), ("avi files", "*.avi")]
@@ -29,6 +30,21 @@ def getMaskFileTypes():
 def getFileTypes():
     return imagefiletypes + videofiletypes
 
+
+def fileTypeChanged(file_one, file_two):
+    """
+     Return: True if the file types of the two provided files do not match
+    """
+    try:
+        one_type = imghdr.what(file_one)
+        two_type = imghdr.what(file_two)
+        return one_type != two_type
+    except:
+        pos = file_one.rfind('.')
+        suffix_one = file_one[pos + 1:] if pos > 0 else ''
+        pos = file_two.rfind('.')
+        suffix_two = file_two[pos + 1:] if pos > 0 else ''
+        return suffix_one.lower() != suffix_two.lower()
 
 def fileType(fileName):
     pos = fileName.rfind('.')
@@ -604,7 +620,7 @@ def convertToMask(im):
     gray_image = np.ones(imGrayA.shape).astype('uint8')
     gray_image[imGrayA < 255] = 0
     gray_image = gray_image * 255
-    if imA.shape[2] == 4:
+    if len(imA.shape) == 3 and imA.shape[2] == 4:
         gray_image[imA[:, :, 3] == 0] = 255
     return Image.fromarray(gray_image)
 
@@ -632,10 +648,24 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
     return res
 
+def __toMask(im):
+    """
+    Performs same functionality as convertToMask, but takes and returns np array
+    """
+    if len(im.shape) < 3:
+        return im
+    imGray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    gray_image = np.ones(imGray.shape).astype('uint8')
+    gray_image[imGray < 255] = 0
+    gray_image = gray_image * 255
+    if im.shape[2] == 4:
+        gray_image[im[:, :, 3] == 0] = 255
+    return gray_image
 
 def mergeMask(compositeMask, newMask):
     if compositeMask.shape != newMask.shape:
         compositeMask = cv2.resize(compositeMask, (newMask.shape[1], newMask.shape[0]))
+        newMask = __toMask(newMask)
     else:
         compositeMask = np.copy(compositeMask)
     compositeMask[newMask == 0] = 0

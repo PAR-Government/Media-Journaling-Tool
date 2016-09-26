@@ -616,3 +616,38 @@ def polygon_star(canvas, x, y, p, t, outline="#476042", fill='yellow', width=1):
         points.extend((x + i * t, y - i * t))
     return canvas.create_polygon(points, outline=outline,
                                  fill=fill, width=width)
+
+def find_level(graph, node, positions=dict()):
+    if node not in positions:
+        if len(graph.predecessors()) > 0:
+            positions[node] = 0 #9999
+            for predecessor in graph.predecessors():
+                base = find_level(graph, predecessor, positions) + 1
+                if base > positions[node]:
+                    positions[node] = base
+        else:
+            positions[node] = 0
+    return positions[node]
+
+def find_max_width(levels):
+    count_at_level = {}
+    for node,level in levels.iteritems():
+        if level in count_at_level:
+            count_at_level[level]+=1
+        else:
+            count_at_level[level]=0
+    max_count = 0
+    for level, count in count_at_level.iteritems():
+        max_count = max(max_count, count)
+    return max_count,count_at_level
+
+def layout(graph):
+    levels = {}
+    for name in graph.get_nodes():
+        find_level(graph, name, levels)
+    maximum_width = find_max_width(levels)
+
+    # Main path no Donors
+    # Final nodes should be deepest
+    # If two parents, offset from right most parent
+    # If mutiple same row, choose order by distance between parents, tie breakers sorted by length to donor
