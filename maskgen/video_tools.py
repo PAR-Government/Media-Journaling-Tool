@@ -110,7 +110,6 @@ def buildMasksFromCombinedVideoOld(filename):
 
 
 def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, startTime=0):
-    maskprefix = filename[0:filename.rfind('.')]
     capIn = cv2.VideoCapture(filename)
     capOut = tool_set.GrayBlockWriter(filename[0:filename.rfind('.')],
                              capIn.get(cv2.cv.CV_CAP_PROP_FPS))
@@ -124,10 +123,10 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
         kernel = np.ones((5, 5), np.uint8)
         while capIn.isOpened():
             ret, frame = capIn.read()
-            if sample is None:
-                sample = np.ones(frame[:, :, 0].shape) * 255
             if not ret:
                 break
+            if sample is None:
+                sample = np.ones(frame[:, :, 0].shape) * 255
             elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
             if startSegment and startSegment > elapsed_time:
                 continue
@@ -142,7 +141,7 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
             #      thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 11, 1)
             #      ret, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
             result = thresh.copy()
-            result[:, :] = 0
+            result[:, :] = 1
             result[abs(thresh) > 0.000001] = 255
             opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
             closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
@@ -150,6 +149,8 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
             result = closing
             if totalMatch > 0:
                 count += 1
+                result = result.astype('uint8')
+                result = 255 - result
                 if start is None:
                     start = elapsed_time + startTime
                     sample = result
@@ -517,6 +518,7 @@ class VidAnalysisComponents:
     elapsed_time_two = None
     mask = None
     writer = None
+    fps = None
 
     def __init__(self):
         pass
@@ -528,7 +530,9 @@ def cutDetect(vidAnalysisComponents, ranges=list()):
     :param ranges: collection of meta-data describing then range of cut frames
     :return:
     """
-    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_two.isOpened():
+    diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
+    if (__changeCount(vidAnalysisComponents.mask) > 0 and
+                diff_in_time < vidAnalysisComponents.fps_one) or not vidAnalysisComponents.vid_two.isOpened():
         cut = {}
         cut['starttime'] = vidAnalysisComponents.elapsed_time_one
         end_time = None
@@ -555,7 +559,9 @@ def addDetect(vidAnalysisComponents, ranges=list()):
     :param ranges: collection of meta-data describing then range of add frames
     :return:
     """
-    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_one.isOpened():
+    diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
+    if (__changeCount(vidAnalysisComponents.mask) > 0 and
+                diff_in_time < vidAnalysisComponents.fps_one) or not vidAnalysisComponents.vid_one.isOpened():
         addition = {}
         addition['starttime'] = vidAnalysisComponents.elapsed_time_one
         end_time = None
@@ -587,7 +593,8 @@ def addChange(vidAnalysisComponents, ranges=list()):
        :param ranges: collection of meta-data describing then range of changed frames
        :return:
        """
-    if __changeCount(vidAnalysisComponents.mask) > 0:
+    diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
+    if __changeCount(vidAnalysisComponents.mask) > 0 and diff_in_time < vidAnalysisComponents.fps:
         vidAnalysisComponents.writer.write(vidAnalysisComponents.mask,vidAnalysisComponents.elapsed_time_one)
         if len(ranges) == 0 or 'End Time' in ranges[-1]:
             change = dict()
@@ -605,14 +612,17 @@ def addChange(vidAnalysisComponents, ranges=list()):
 
 def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
-    #if opFunc == addChange:
-    #    return formMaskDiff2(fileOne, fileTwo, name_prefix, opName)
+ #   if opFunc == addChange:
+ #       return formMaskDiff2(fileOne, fileTwo, name_prefix, opName)
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2.VideoCapture(fileOne)
     analysis_components.vid_two = cv2.VideoCapture(fileTwo)
+    analysis_components.fps_one = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS)
+    analysis_components.fps_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_FPS)
     analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
                                                   analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
     ranges = list()
+    dir = os.path.split(fileOne)[0]
     try:
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
             ret_one, analysis_components.frame_one = analysis_components.vid_one.read()
@@ -637,6 +647,9 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
             analysis_components.elapsed_time_one = elapsed_time
             analysis_components.elapsed_time_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
             diff = np.abs(analysis_components.frame_one - analysis_components.frame_two)
+            #Image.fromarray(analysis_components.frame_one).save(dir + '/vidpng/v1_'+str(elapsed_time) + '.png')
+            #Image.fromarray(analysis_components.frame_two).save(dir + '/vidpng/v2_' + str(elapsed_time) + '.png')
+            #Image.fromarray(diff).save(dir + '/vidpng/diff_' + str(elapsed_time) + '.png')
             analysis_components.mask = np.zeros(analysis_components.frame_one.shape).astype('uint8')
             analysis_components.mask[diff > 0.0001] = 1
             opFunc(analysis_components,ranges)

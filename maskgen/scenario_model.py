@@ -439,10 +439,10 @@ class VideoVideoLinkTool(LinkTool):
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                    os.path.join(scModel.G.dir, start + '_' + destination),
                                                    op,
-                                                   startSegment=arguments[
-                                                       'Start Time'] if 'Start Time' in arguments else None,
-                                                   endSegment=arguments[
-                                                       'End Time'] if 'End Time' in arguments else None,
+                                                   startSegment=tool_set.getMilliSeconds(arguments[
+                                                       'Start Time']) if 'Start Time' in arguments else None,
+                                                   endSegment=tool_set.getMilliSeconds(arguments[
+                                                       'End Time']) if 'End Time' in arguments else None,
                                                    applyConstraintsToOutput=op != 'SelectCutFrames')
         # for now, just save the first mask
         if len(maskSet) > 0:

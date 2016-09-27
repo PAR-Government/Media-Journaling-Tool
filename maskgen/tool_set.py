@@ -926,7 +926,7 @@ class GrayFrameWriter:
     Write Gray scale (Mask) video images
     """
     capOut = None
-    codec = 'mp4v'
+    codec = 'fmp4'
     suffix = 'mp4'
     fourcc = cv2.cv.CV_FOURCC(*codec)
     filename = None
@@ -945,7 +945,8 @@ class GrayFrameWriter:
                                           self.fps,
                                           (mask.shape[1],mask.shape[0]),
                                           False)
-        self.capOut.write(grayToRGB(mask))
+        #rgb = grayToRGB(mask)
+        self.capOut.write(mask.astype('uint8'))
 
     def close(self):
         if self.capOut is not None:
