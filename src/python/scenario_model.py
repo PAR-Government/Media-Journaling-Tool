@@ -20,6 +20,11 @@ def toIntTuple(tupleString):
 def imageProjectModelFactory(name,**kwargs):
     return ImageProjectModel(name,**kwargs)
 
+def formatStat(val):
+   if type(val) == float:
+      return "{:5.3f}".format(val)
+   return str(val)
+
 def videoProjectModelFactory(name,**kwargs):
     return VideoProjectModel(name,**kwargs)
 
@@ -692,8 +697,8 @@ class ImageProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username','shape change','masks count']
-       return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
+       stat_names = ['ssim','psnr','shape change','masks count','change size category','change size ratio']
+       return '  '.join([ key + ': ' + formatStat(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
        if self.end is not None:
@@ -1038,7 +1043,7 @@ class ImageProjectModel:
       rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
       tm= edge['transform matrix'] if 'transform matrix' in edge  else None
-      tm = tm if 'apply transform' not in edge or edge['apply transform'] == 'yes' else None
+      tm = tm if 'global' not in edge or edge['global'] == 'no' else None
       compositeMask = tool_set.alterMask(compositeMask,edgeMask,rotation=rotation,\
                   sizeChange=sizeChange,interpolation=interpolation,location=location,transformMatrix=tm)
       return compositeMask

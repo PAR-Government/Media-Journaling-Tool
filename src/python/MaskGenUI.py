@@ -688,7 +688,7 @@ class MakeGenUI(Frame):
         iframe.grid_rowconfigure(0, weight=1)
         iframe.grid_columnconfigure(0, weight=1)
         self.maskvar = StringVar()
-        Label(iframe, textvariable=self.maskvar).grid(row=0, sticky=W)
+        Message(iframe, textvariable=self.maskvar,width=750).grid(row=0, sticky=W+E)
         iframe.grid(row=2,column=0,rowspan=1,columnspan=3, sticky=N+S+E+W)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
