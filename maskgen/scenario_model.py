@@ -75,7 +75,7 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
     if not existingProject:
         image = projectFile
         projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
-    model = projectModelFactory(projectFile, notify=notify)
+    model = projectModelFactory(projectFile, notify=notify, baseImageFileName=image)
     if organization is not None:
         model.setProjectData('organization', organization)
     if image is not None:
@@ -513,8 +513,8 @@ class ImageProjectModel:
     start = None
     end = None
 
-    def __init__(self, projectFileName, graph=None, importImage=False, notify=None):
-        self._setup(projectFileName, graph=graph)
+    def __init__(self, projectFileName, graph=None, importImage=False, notify=None,baseImageFileName=None):
+        self._setup(projectFileName, graph=graph,baseImageFileName=baseImageFileName)
         self.notify = notify
 
     def get_dir(self):
@@ -795,7 +795,8 @@ class ImageProjectModel:
     def startNew(self, imgpathname, suffixes=[], organization=None):
         """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
         projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
-        self.G = self._openProject(projectFile)
+        projectType = tool_set.fileType(imgpathname)
+        self.G = self._openProject(projectFile,projectType)
         if organization is not None:
             self.G.setDataItem('organization', organization)
         self.start = None
@@ -808,11 +809,12 @@ class ImageProjectModel:
         """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
         self._setup(pathname)
 
-    def _openProject(self, projectFileName):
-        return createGraph(projectFileName, projecttype='image')
+    def _openProject(self, projectFileName, projecttype):
+        return createGraph(projectFileName, projecttype=projecttype)
 
-    def _setup(self, projectFileName, graph=None):
-        self.G = self._openProject(projectFileName) if graph is None else graph
+    def _setup(self, projectFileName, graph=None,baseImageFileName=None):
+        projecttype = None if baseImageFileName is None else tool_set.fileType(baseImageFileName)
+        self.G = self._openProject(projectFileName,projecttype) if graph is None else graph
         self.start = None
         self.end = None
         n = self.G.get_nodes()

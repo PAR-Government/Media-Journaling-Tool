@@ -1,14 +1,39 @@
 from software_loader import getOperations, SoftwareLoader, getOperation
-from tool_set import validateAndConvertTypedValue, fileTypeChanged
+from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType
+import new
+from types import MethodType
 
 rules = {}
 global_loader = SoftwareLoader()
 
 
+class Proxy(object):
+
+    def __init__(self, target):
+        self._target = target
+
+    def __getattr__(self, name):
+        target = self._target
+        f = getattr(target, name)
+        if isinstance(f, MethodType):
+            # Rebind the method to the target.
+            return new.instancemethod(f.im_func, self, target.__class__)
+        else:
+            return f
+
+class GraphProxy(Proxy):
+    results = dict()
+    "Caching Proxy"
+    def get_image(self, name, metadata=dict()):
+        if name not in self.results:
+            self.results[name] = self._target.get_image(name, metadata=metadata)
+        return self.results[name]
+
 def run_rules(op, graph, frm, to):
     global rules
     if len(rules) == 0:
         setup()
+    graph = GraphProxy(graph)
     results = initial_check(op, graph, frm, to)
     for rule in (rules[op] if op in rules else []):
         res = rule(graph, frm, to)
@@ -57,8 +82,11 @@ def check_mandatory(edge, op, graph, frm, to):
     if opObj is None:
         return [op + ' is not a valid operation'] if op != 'Donor' else []
     args = edge['arguments'] if 'arguments' in edge  else []
+    frm_file = graph.get_image(frm)[1]
+    frm_file_type = fileType(frm_file)
     missing = [param for param in opObj.mandatoryparameters.keys() if
-               (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname']
+               (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname'
+               and ('source' not in opObj.mandatoryparameters[param] or opObj.mandatoryparameters[param]['source'] == frm_file_type)]
     if 'inputmaskname' in opObj.mandatoryparameters.keys() and (
             'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0):
         missing.append('inputmaskname')

@@ -502,7 +502,8 @@ def formMaskDiff2(fileOne, fileTwo, prefix, op, startSegment=None, endSegment=No
         result = []
 
     try:
-        os.remove(outFileName)
+        #os.remove(outFileName)
+        print outFileName
     except IOError:
         print 'video diff process failed'
 
@@ -595,7 +596,7 @@ def addChange(vidAnalysisComponents, ranges=list()):
        """
     diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
     if __changeCount(vidAnalysisComponents.mask) > 0 and diff_in_time < vidAnalysisComponents.fps:
-        vidAnalysisComponents.writer.write(vidAnalysisComponents.mask,vidAnalysisComponents.elapsed_time_one)
+        vidAnalysisComponents.writer.write(255-vidAnalysisComponents.mask,vidAnalysisComponents.elapsed_time_one)
         if len(ranges) == 0 or 'End Time' in ranges[-1]:
             change = dict()
             change['mask'] = vidAnalysisComponents.mask
@@ -617,12 +618,14 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2.VideoCapture(fileOne)
     analysis_components.vid_two = cv2.VideoCapture(fileTwo)
+    analysis_components.fps = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS)
     analysis_components.fps_one = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS)
     analysis_components.fps_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_FPS)
     analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
                                                   analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
     ranges = list()
-    dir = os.path.split(fileOne)[0]
+    #dir = os.path.split(fileOne)[0]
+    kernel = np.ones((5, 5), np.uint8)
     try:
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
             ret_one, analysis_components.frame_one = analysis_components.vid_one.read()
@@ -651,7 +654,10 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
             #Image.fromarray(analysis_components.frame_two).save(dir + '/vidpng/v2_' + str(elapsed_time) + '.png')
             #Image.fromarray(diff).save(dir + '/vidpng/diff_' + str(elapsed_time) + '.png')
             analysis_components.mask = np.zeros(analysis_components.frame_one.shape).astype('uint8')
-            analysis_components.mask[diff > 0.0001] = 1
+            analysis_components.mask[diff > 0.0001] = 255
+            #cv2.MORPH_OPEN,
+            opening = cv2.erode(analysis_components.mask, kernel,2)
+            analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             opFunc(analysis_components,ranges)
         analysis_components.mask = 0
         opFunc(analysis_components,ranges)
