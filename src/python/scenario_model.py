@@ -1038,7 +1038,7 @@ class ImageProjectModel:
       rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
       interpolation = args['interpolation'] if 'interpolation' in args and len(args['interpolation']) > 0 else 'nearest'
       tm= edge['transform matrix'] if 'transform matrix' in edge  else None
-      tm = tm if 'apply transform' not in edge or edge['apply transform'] == 'yes' else None
+      tm = tm if 'global' not in edge or edge['global'] == 'no' else None
       compositeMask = tool_set.alterMask(compositeMask,edgeMask,rotation=rotation,\
                   sizeChange=sizeChange,interpolation=interpolation,location=location,transformMatrix=tm)
       return compositeMask
