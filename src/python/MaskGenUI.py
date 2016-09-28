@@ -70,7 +70,22 @@ class UIProfile:
         return CompareDialog(master,im2,mask,nodeId,analysis)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'), ('Technical Summary','technicalsummary','text')]
+        return [('User Name', 'username', 'string'), ('Organization', 'organization', 'string'),
+                ('Description', 'projectdescription', 'text'), ('Technical Summary', 'technicalsummary', 'text'),
+                ('Manipulation Category', 'manipulationcategory', 'list', ('Provenance', '2-Unit', '4-Unit', '6-Unit')),
+                ('Manipulation Pixel Size', 'manipulationpixelsize', 'list', ('Small', 'Medium', 'Large')),
+                ('Remove', 'remove', 'yesno'),
+                ('Splice', 'splice', 'yesno'), ('Clone', 'clone', 'yesno'), ('Resize', 'resize', 'yesno'),
+                ('Seam Carving', 'seamcarving', 'yesno'), ('Warping', 'warping', 'yesno'),
+                ('Blur Local', 'blurlocal', 'yesno'),
+                ('Healing Local', 'healinglocal', 'yesno'),
+                ('Histogram Normalization Global', 'histogramnormalizationglobal', 'yesno'),
+                ('Other Enhancements', 'otherenhancements', 'yesno'), ('Man-Made', 'manmade', 'yesno'),
+                ('Face', 'face', 'yesno'), ('People', 'people', 'yesno'), ('Large Man-Made', 'largemanmade', 'yesno'),
+                ('Landscape', 'landscape', 'yesno'), ('Other Subjects', 'othersubjects', 'yesno'),
+                ('PRNU', 'prnu', 'yesno'), ('Image Compression', 'imagecompression', 'yesno'),
+                ('Laundering: Social Media', 'launderingsocialmedia', 'yesno'),
+                ('Laundering: Median Filtering', 'launderingmedianfiltering', 'yesno')]
 
 
 class VideoProfile:
@@ -93,7 +108,22 @@ class VideoProfile:
         return VideoCompareDialog(master,im2,mask,nodeId,analysis,dir)
 
     def projectProperties(self):
-        return [('User Name','username','string'),('Organization','organization','string'),('Description','projectdescription','text'),('Technical Summary','technicalsummary','text')]
+        return [('User Name', 'username', 'string'), ('Organization', 'organization', 'string'),
+                ('Description', 'projectdescription', 'text'), ('Technical Summary', 'technicalsummary', 'text'),
+                ('Manipulation Category', 'manipulationcategory', 'list', ('Provenance', '2-Unit', '4-Unit', '6-Unit')),
+                ('Manipulation Pixel Size', 'manipulationpixelsize', 'list', ('Small', 'Medium', 'Large')),
+                ('Remove', 'remove', 'yesno'),
+                ('Splice', 'splice', 'yesno'), ('Clone', 'clone', 'yesno'), ('Resize', 'resize', 'yesno'),
+                ('Seam Carving', 'seamcarving', 'yesno'), ('Warping', 'warping', 'yesno'),
+                ('Blur Local', 'blurlocal', 'yesno'),
+                ('Healing Local', 'healinglocal', 'yesno'),
+                ('Histogram Normalization Global', 'histogramnormalizationglobal', 'yesno'),
+                ('Other Enhancements', 'otherenhancements', 'yesno'), ('Man-Made', 'manmade', 'yesno'),
+                ('Face', 'face', 'yesno'), ('People', 'people', 'yesno'), ('Large Man-Made', 'largemanmade', 'yesno'),
+                ('Landscape', 'landscape', 'yesno'), ('Other Subjects', 'othersubjects', 'yesno'),
+                ('PRNU', 'prnu', 'yesno'), ('Image Compression', 'imagecompression', 'yesno'),
+                ('Laundering: Social Media', 'launderingsocialmedia', 'yesno'),
+                ('Laundering: Median Filtering', 'launderingmedianfiltering', 'yesno')]
 
 class MakeGenUI(Frame):
 

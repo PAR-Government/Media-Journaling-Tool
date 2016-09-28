@@ -1,4 +1,5 @@
 from Tkinter import *
+import ttk
 from datetime import datetime
 import tkMessageBox
 from group_filter import GroupFilter,GroupFilterLoader
@@ -86,23 +87,47 @@ class PropertyDialog(tkSimpleDialog.Dialog):
      tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
 
    def body(self, master):
+        self.radVars = []
+        self.yesbuttons = []
+        self.nobuttons = []
+        radioCount = 0
         row = 0
         for prop in self.properties:
-           Label(master, text=prop[0]).grid(row=row,sticky=W)
+           Label(master, text=prop[0]).grid(row=row,sticky=E)
            if prop[2] == 'list':
-             self.values[row] = AutocompleteEntryInText(master,values=prop[3],takefocus=(row == 0),initialValue=self.parent.scModel.getProjectData(prop[1]))
+             self.values[row] = ttk.Combobox(master, values=prop[3], takefocus=(row == 0))
+             self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E + W)
+             v = self.parent.scModel.getProjectData(prop[1])
+             if v:
+                 self.values[row].delete(0, 'end')
+                 self.values[row].insert(0, v)
            elif prop[2] == 'text':
              self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
              v = self.parent.scModel.getProjectData(prop[1])
              if v:
                  self.values[row].insert(1.0,v)
+             self.values[row].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop[2] == 'yesno':
+               self.radVars.append(StringVar())
+               self.values[row] = self.radVars[radioCount]
+               self.yesbuttons.append(Radiobutton(master, text='Yes', takefocus=(row==0), variable=self.radVars[radioCount], value='yes'))
+               self.yesbuttons[radioCount].grid(row=row, column=1, sticky=W)
+               self.yesbuttons[radioCount].deselect()
+               self.nobuttons.append(Radiobutton(master, text='No', takefocus=(row==0), variable=self.radVars[radioCount], value='no'))
+               self.nobuttons[radioCount].grid(row=row, column=1, sticky=E)
+               self.nobuttons[radioCount].select()
+               v = self.parent.scModel.getProjectData(prop[1])
+               if v:
+                   self.radVars[radioCount].set(v)
+               radioCount += 1
            else:
              self.values[row] = Entry(master,takefocus=(row==0),width=80)
              v = self.parent.scModel.getProjectData(prop[1])
              if v:
                  self.values[row].insert(0,v)
-           self.values[row].grid(row=row,column=1,sticky=E+W)
+             self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
            row+=1
+
 
    def cancel(self):
       if self.cancelled:
