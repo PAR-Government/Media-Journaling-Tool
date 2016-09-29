@@ -456,12 +456,13 @@ def __sift(img1, img2, mask1=None, mask2=None):
     FLANN_INDEX_KDTREE = 0
     FLANN_INDEX_LSH = 6
     TREES=16
+    CHECKS=50
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
     # index_params= dict(algorithm         = FLANN_INDEX_LSH,
     #                   table_number      = 6,
     #                   key_size          = 12,
     #                   multi_probe_level = 1)
-    search_params = dict(checks=50)
+    search_params = dict(checks=CHECKS)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
@@ -587,7 +588,7 @@ def __rotateImage(rotation, img, expectedDims, cval=0):
 
 def __compareRotatedImage(rotation, img1, img2, invert, arguments):
     res = __rotateImage(rotation, img1, img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert)
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,args=arguments)
     res = __rotateImage(-rotation, mask, img1.shape, cval=255)
     return res, analysis
 
