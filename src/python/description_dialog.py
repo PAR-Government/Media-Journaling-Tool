@@ -96,17 +96,16 @@ class PropertyDialog(tkSimpleDialog.Dialog):
            Label(master, text=prop[0]).grid(row=row,sticky=E)
            if prop[2] == 'list':
              self.values[row] = ttk.Combobox(master, values=prop[3], takefocus=(row == 0))
-             self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E + W)
+             self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E+W)
              v = self.parent.scModel.getProjectData(prop[1])
              if v:
-                 self.values[row].delete(0, 'end')
-                 self.values[row].insert(0, v)
+                 self.values[row].set(v)
            elif prop[2] == 'text':
              self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
              v = self.parent.scModel.getProjectData(prop[1])
              if v:
                  self.values[row].insert(1.0,v)
-             self.values[row].grid(row=row, column=1, columnspan=8, sticky=E + W)
+             self.values[row].grid(row=row, column=1, columnspan=8, sticky=E+W)
            elif prop[2] == 'yesno':
                self.radVars.append(StringVar())
                self.values[row] = self.radVars[radioCount]
@@ -127,7 +126,6 @@ class PropertyDialog(tkSimpleDialog.Dialog):
                  self.values[row].insert(0,v)
              self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
            row+=1
-
 
    def cancel(self):
       if self.cancelled:
