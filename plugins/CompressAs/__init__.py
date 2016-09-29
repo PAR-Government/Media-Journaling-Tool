@@ -165,27 +165,25 @@ def save_as(source, target, donor, qTables,rotate):
     im.save(target, subsampling=1, qtables=finalTable)
     width, height = im.size
     if thumbTable:
-        im.thumbnail((128,128))
+        im.thumbnail((128, 128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
         try:
             im.save(tempFile, subsampling=1, qtables=thumbTable)
         except OverflowError:
             thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
             im.save(tempFile, subsampling=1, qtables=thumbTable)
-        try:
-          runexiftool(['-overwrite_original','-P','-m','-"ThumbnailImage<=' + tempFile + '"',target])
-          runexiftool(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
-          runexiftool(['-q','-all=', target])
-          runexiftool(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
-          runexiftool(['-P', '-q', '-m', '-XMPToolkit=',
+            runexiftool(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
+        finally:
+            os.remove(tempFile)
+            os.close(fd)
+        runexiftool(['-overwrite_original','-q','-all=', target])
+        runexiftool(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
+        runexiftool(['-P', '-q', '-m', '-XMPToolkit=',
                                         '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
                                         '-ExifImageHeight=' + str(height),
                                         '-ImageHeight=' + str(height),
                                         target])
-        finally:
-          os.close(fd)
-          os.remove(tempFile)
     im.close()
 
 

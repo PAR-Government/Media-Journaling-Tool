@@ -10,11 +10,11 @@ def restrictPosition(position):
     return max(position, 5)
 
 def condenseName(name):
-    if len(name) > 13:
+    if len(name) > 15:
       pos = name.rfind('_')
-      pos = name.rfind('-') if pos < 0 else pos + 1
-      pos = 5 if pos < 0 or pos > 10 else len(name)-pos - 1
-      return name[0:5] + '...' + name[-pos:]
+      pos = name.rfind('-')  if pos < 0 else pos
+      pos = 7 if pos < 0 else len(name)-pos
+      return name[0:5] + '..' + name[-pos:]
     return name
 
 class MaskGraphCanvas(tk.Canvas):

@@ -1,4 +1,5 @@
 from Tkinter import *
+import ttk
 from datetime import datetime
 import tkMessageBox
 from group_filter import GroupFilter, GroupFilterLoader
@@ -87,49 +88,70 @@ def tupletostring(tuple):
 
 
 class PropertyDialog(tkSimpleDialog.Dialog):
-    parent = None
-    cancelled = True
 
-    def __init__(self, parent, properties):
-        self.parent = parent
-        self.properties = properties
-        self.description = None
-        self.values = [None for prop in properties]
-        tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
+   parent = None
+   cancelled = True
 
-    def body(self, master):
+   def __init__(self, parent, properties):
+     self.parent = parent
+     self.properties = properties
+     self.values = [None for prop in properties]
+     tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
+
+   def body(self, master):
+        self.radVars = []
+        self.yesbuttons = []
+        self.nobuttons = []
+        radioCount = 0
         row = 0
         for prop in self.properties:
-            Label(master, text=prop[0]).grid(row=row, sticky=W)
-            if prop[2] == 'list':
-                self.values[row] = AutocompleteEntryInText(master, values=prop[3], takefocus=(row == 0),
-                                                           initialValue=self.parent.scModel.getProjectData(prop[1]))
-            elif prop[2] == 'text':
-                self.values[row] = Text(master, takefocus=(row == 0), width=80, height=3, relief=RAISED, borderwidth=2)
-                v = self.parent.scModel.getProjectData(prop[1])
-                if v:
-                    self.values[row].insert(1.0, v)
-            else:
-                self.values[row] = Entry(master, takefocus=(row == 0), width=80)
-                v = self.parent.scModel.getProjectData(prop[1])
-                if v:
-                    self.values[row].insert(0, v)
-            self.values[row].grid(row=row, column=1, sticky=E + W)
-            row += 1
+           Label(master, text=prop[0]).grid(row=row,sticky=E)
+           if prop[2] == 'list':
+             self.values[row] = ttk.Combobox(master, values=prop[3], takefocus=(row == 0))
+             self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E+W)
+             v = self.parent.scModel.getProjectData(prop[1])
+             if v:
+                 self.values[row].set(v)
+           elif prop[2] == 'text':
+             self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
+             v = self.parent.scModel.getProjectData(prop[1])
+             if v:
+                 self.values[row].insert(1.0,v)
+             self.values[row].grid(row=row, column=1, columnspan=8, sticky=E+W)
+           elif prop[2] == 'yesno':
+               self.radVars.append(StringVar())
+               self.values[row] = self.radVars[radioCount]
+               self.yesbuttons.append(Radiobutton(master, text='Yes', takefocus=(row==0), variable=self.radVars[radioCount], value='yes'))
+               self.yesbuttons[radioCount].grid(row=row, column=1, sticky=W)
+               self.yesbuttons[radioCount].deselect()
+               self.nobuttons.append(Radiobutton(master, text='No', takefocus=(row==0), variable=self.radVars[radioCount], value='no'))
+               self.nobuttons[radioCount].grid(row=row, column=1, sticky=E)
+               self.nobuttons[radioCount].select()
+               v = self.parent.scModel.getProjectData(prop[1])
+               if v:
+                   self.radVars[radioCount].set(v)
+               radioCount += 1
+           else:
+             self.values[row] = Entry(master,takefocus=(row==0),width=80)
+             v = self.parent.scModel.getProjectData(prop[1])
+             if v:
+                 self.values[row].insert(0,v)
+             self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
+           row+=1
 
-    def cancel(self):
-        if self.cancelled:
-            self.description = None
-        tkSimpleDialog.Dialog.cancel(self)
+   def cancel(self):
+      if self.cancelled:
+         self.description = None
+      tkSimpleDialog.Dialog.cancel(self)
 
-    def apply(self):
-        self.cancelled = False
-        i = 0
-        for prop in self.properties:
-            v = self.values[i].get() if prop[2] != 'text' else self.values[i].get(1.0, END).strip()
-            if v and len(v) > 0:
-                self.parent.scModel.setProjectData(prop[1], v)
-            i += 1
+   def apply(self):
+      self.cancelled = False
+      i = 0
+      for prop in self.properties:
+          v= self.values[i].get() if prop[2] != 'text' else self.values[i].get(1.0,END).strip()
+          if v and len(v) > 0:
+            self.parent.scModel.setProjectData(prop[1],v)
+          i+=1
 
 
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):

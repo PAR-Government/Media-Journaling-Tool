@@ -12,7 +12,7 @@ def update_size(imageFile):
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
-    call(['exiftool', '-q','-all=', target])
+    call(['-overwrite_original', '-q', '-all=', target])
     call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
     call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
     update_size(target)

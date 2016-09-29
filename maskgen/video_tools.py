@@ -653,7 +653,8 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
             #Image.fromarray(analysis_components.frame_one).save(dir + '/vidpng/v1_'+str(elapsed_time) + '.png')
             #Image.fromarray(analysis_components.frame_two).save(dir + '/vidpng/v2_' + str(elapsed_time) + '.png')
             #Image.fromarray(diff).save(dir + '/vidpng/diff_' + str(elapsed_time) + '.png')
-            analysis_components.mask = np.zeros(analysis_components.frame_one.shape).astype('uint8')
+            analysis_components.mask = np.zeros((analysis_components.frame_one.shape[0],analysis_components.frame_one.shape[1])).astype('uint8')
+            diff  = cv2.cvtColor(diff,cv2.COLOR_RGBA2GRAY)
             analysis_components.mask[diff > 0.0001] = 255
             #cv2.MORPH_OPEN,
             opening = cv2.erode(analysis_components.mask, kernel,2)
