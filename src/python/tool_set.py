@@ -272,11 +272,25 @@ def deserializeMatrix(dict):
 
 def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     globalchange = img1.size != img2.size
-    if mask is not None and not globalchange:
-      totalPossible = sum(img1.size)*255
-      totalChanged = totalPossible - sum(sum(np.asarray(mask)))
-      globalchange = (float(totalChanged)/float(totalPossible) > 0.85)
-    analysis['apply transform'] = 'no' if globalchange else 'yes'
+    totalPossible = reduce(lambda a,x: a*x,img1.size)
+    totalChange = totalPossible
+    ratio = 1.0
+    if mask is not None:
+      mask = np.asarray(mask)
+      totalChange = sum(sum(mask.astype('float32')))/255.0
+      ratio = float(totalChange)/float(totalPossible)
+      if not globalchange:
+        kernel = np.ones((5,5),np.uint8)         
+        erosion = cv2.erode(mask,kernel,iterations = 3)
+        closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
+        contours, hierarchy = cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        p = np.asarray([item[0] for sublist in contours for item in sublist])
+        area = cv2.contourArea(cv2.convexHull(p))
+        totalArea = cv2.contourArea(np.asarray([[0,0],[0,mask.shape[0]],[mask.shape[1],mask.shape[0]], [mask.shape[1],0],[0,0]]))
+        globalchange = ratio > 0.75 or area/totalArea > 0.50
+    analysis['global'] = 'yes' if globalchange else 'no'
+    analysis['change size ratio'] = ratio
+    analysis['change size category'] = 'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large')
     return globalchange
 
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
