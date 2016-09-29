@@ -20,6 +20,11 @@ def toIntTuple(tupleString):
 def imageProjectModelFactory(name,**kwargs):
     return ImageProjectModel(name,**kwargs)
 
+def formatStat(val):
+   if type(val) == float:
+      return "{:5.3f}".format(val)
+   return str(val)
+
 def videoProjectModelFactory(name,**kwargs):
     return VideoProjectModel(name,**kwargs)
 
@@ -701,8 +706,8 @@ class ImageProjectModel:
        edge = self.G.get_edge(self.start,self.end)
        if edge is None:
          return ''
-       stat_names = ['ssim','psnr','username','shape change','masks count']
-       return '  '.join([ key + ': ' + str(value) for key,value in edge.items() if key in stat_names ])
+       stat_names = ['ssim','psnr','shape change','masks count','change size category','change size ratio']
+       return '  '.join([ key + ': ' + formatStat(value) for key,value in edge.items() if key in stat_names ])
 
     def currentImage(self):
        if self.end is not None:
