@@ -8,7 +8,7 @@ from software_loader import loadOperations, loadSoftware, getOperation
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
-from group_operations import ToJPGGroupOperation
+from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 
 """
@@ -72,11 +72,11 @@ class UIProfile:
         return imageProjectModelFactory
 
     def addProcessCommand(self, menu, parent):
-        menu.add_command(label="Create JPEG", command=parent.createJPEG, accelerator="Ctrl+J")
+        menu.add_command(label="Create JPEG/TIFF", command=parent.createJPEGorTIFF, accelerator="Ctrl+J")
         menu.add_separator()
 
     def addAccelerators(self, parent):
-        parent.bind_all('<Control-j>', lambda event: parent.after(100, parent.createJPEG))
+        parent.bind_all('<Control-j>', lambda event: parent.after(100, parent.createJPEGorTIFF))
 
 
 class MakeGenUI(Frame):
@@ -225,8 +225,8 @@ class MakeGenUI(Frame):
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to upload export")
 
-    def createJPEG(self):
-        msg, pairs = ToJPGGroupOperation(self.scModel).performOp(self.master)
+    def createJPEGorTIFF(self):
+        msg, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(self.master)
         if msg is not None:
             tkMessageBox.showwarning("Error", msg)
             if not pairs:

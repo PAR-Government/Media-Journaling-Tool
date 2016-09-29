@@ -20,7 +20,7 @@ class BaseOperation:
         return ''
 
 
-class ToJPGGroupOperation(BaseOperation):
+class CopyCompressionAndExifGroupOperation(BaseOperation):
     """
      A special group operation used to convert back to JPEG including
      EXIF Copy and Recompression with base image QT
@@ -30,7 +30,7 @@ class ToJPGGroupOperation(BaseOperation):
         BaseOperation.__init__(self, scModel)
 
     def suffix(self):
-        return '.jpg'
+        return ''
 
     def filterPairs(self, pairs):
         if len(pairs) == 0:
@@ -64,9 +64,16 @@ class ToJPGGroupOperation(BaseOperation):
                     rotated_im = exif.rotateAccordingToExif(im, orientation)
                     dialog = RotateDialog(master_ui, donor_im, rotated_im, orientation)
                     rotate = dialog.rotate
-                msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
+                if donor_filename.lower().endswith('jpg'):
+                    msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
                                                           sendNotifications=False, rotate=rotate,
                                                           skipRules=True)
+                elif donor_filename.lower().endswith('tiff') or donor_filename.lower().endswith('tif'):
+                    msg, pairs = self.scModel.imageFromPlugin('OutputTIFF', im, filename, donor=pair[1],
+                                                                  sendNotifications=False, rotate=rotate,
+                                                                  skipRules=True)
+                else:
+                    pairs = []
                 if len(pairs) == 0:
                     break
                 newPairs.extend(pairs)

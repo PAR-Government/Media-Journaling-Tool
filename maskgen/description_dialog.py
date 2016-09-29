@@ -649,6 +649,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                 for arg in arginfo:
                     if arg is not None:
                         self.argBox.insert(END, arg[0] + ': ' + str(arg[1] if arg[1] is not None else ''))
+                        if arg[1] is not None:
+                           self.argvalues[arg[0]] = arg[1]
         else:
             self.catvar.set('')
             self.opvar.set('')

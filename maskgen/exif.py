@@ -56,14 +56,32 @@ def rotateAccordingToExif(im, orientation):
 def copyexif(source, target):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     try:
-        call([exifcommand, '-all=', target])
-        call([exifcommand, '-P', '-TagsFromFile', source, '-all:all', '-unsafe', target])
+        call([exifcommand, '-overwrite_original', '-q', '-all=', target])
+        call([exifcommand, '-P', '-q', '-m', '-TagsFromFile', source, '-all:all', '-unsafe', target])
         call([exifcommand, '-XMPToolkit=', target])
         call([exifcommand, '-Warning=', target])
         return None
     except OSError:
         return 'exiftool not installed'
 
+
+def runexif(args):
+    exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
+    command = [exifcommand]
+    command.extend(args)
+    try:
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        try:
+            while True:
+                line = p.stdout.readline()
+                if line is None or len(line) == 0:
+                    break
+        finally:
+            p.stdout.close()
+            p.stderr.close()
+    except OSError as e:
+        print "Exiftool not installed"
+        raise e
 
 def getexif(source):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')

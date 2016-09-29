@@ -2,8 +2,6 @@
 PAR Government Systems
 
 compress_as takes in two JPEG images, and compresses the first with the q tables of the second
-possible future features:
--create/compress thumbnail as well
 
 """
 
@@ -12,7 +10,8 @@ import tempfile
 from PIL import Image
 import numpy as np
 from bitstring import BitArray
-from subprocess import call,Popen, PIPE
+from subprocess import Popen, PIPE
+import maskgen.exif
 
 
 def parse_tables(imageFile):
@@ -74,70 +73,10 @@ def sort_tables(tablesList):
             newTables.append(tempTable)
     return newTables
 
-def runexiftool(args):
-  exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
-  command = [exifcommand]
-  command.extend(args)
-  try:
-    p = Popen(command,stdout=PIPE,stderr=PIPE)
-    try:
-      while True:
-        line = p.stdout.readline()
-        if line is None or len(line) == 0:
-           break
-        print line
-    finally:
-      p.stdout.close()
-      p.stderr.close()
-  except OSError as e:
-    print "Exiftool not installed"
-    raise e
-
 def check_rotate(im, jpg_file_name):
-    """
-    1 = Horizontal (normal)
-    2 = Mirror horizontal
-    3 = Rotate 180
-    4 = Mirror vertical
-    5 = Mirror horizontal and rotate 270 CW
-    6 = Rotate 90 CW
-    7 = Mirror horizontal and rotate 90 CW
-    8 = Rotate 270 CW
-    """
-    exifcommand = os.getenv('MASKGEN_EXIFTOOL','exiftool')
-    rotateStr = Popen([exifcommand, '-n', '-Orientation', jpg_file_name],
-                        stdout=PIPE).communicate()[0]#
+    return maskgen.exif.rotateAccordingToExif(im,maskgen.exif.getOrientationFromExif(jpg_file_name))
 
-    
-    rotation = rotateStr.split(':')[1].strip() if rotateStr.rfind(':') > 0 else '-'
-
-    if rotation == '-':
-        return im
-
-    arr = np.array(im)
-    if rotation == '2':
-        rotatedArr = np.fliplr(arr)
-    elif rotation == '3':
-        rotatedArr = np.rot90(arr,2)
-    elif rotation == '4':
-        rotatedArr = np.flipud(arr)
-    elif rotation == '5':
-        rotatedArr = np.fliplr(arr)
-        rotatedArr = np.rot90(rotatedArr,3)
-    elif rotation == '6':
-        rotatedArr = np.rot90(arr)
-    elif rotation == '7':
-        rotatedArr = np.fliplr(arr)
-        rotatedArr = np.rot90(rotatedArr)
-    elif rotation == '8':
-        rotatedArr = np.rot90(arr, 3)
-    else:
-        rotatedArr = arr
-
-    rotatedIm = Image.fromarray(rotatedArr)
-    return rotatedIm
-
-def save_as(source, target, donor, qTables,rotate):
+def cs_save_as(source, target, donor, qTables,rotate):
     """
     Saves image file using quantization tables
     :param source: string filename of source image
@@ -172,13 +111,13 @@ def save_as(source, target, donor, qTables,rotate):
         except OverflowError:
             thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
             im.save(tempFile, subsampling=1, qtables=thumbTable)
-            runexiftool(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
+            maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
         finally:
             os.remove(tempFile)
             os.close(fd)
-        runexiftool(['-overwrite_original','-q','-all=', target])
-        runexiftool(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
-        runexiftool(['-P', '-q', '-m', '-XMPToolkit=',
+        maskgen.exif.runexif(['-overwrite_original','-q','-all=', target])
+        maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
+        maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=',
                                         '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
                                         '-ExifImageHeight=' + str(height),
@@ -193,7 +132,7 @@ def transform(img,source,target, **kwargs):
     
     tables_zigzag = parse_tables(donor[1])
     tables_sorted = sort_tables(tables_zigzag)
-    save_as(source, target, donor[1], tables_sorted,rotate)
+    cs_save_as(source, target, donor[1], tables_sorted,rotate)
     
     return False,None
     
@@ -203,7 +142,7 @@ def operation():
     
 def args():
     return [('donor', None, 'JPEG with donor QT'),
-            ('apply rotation', 'yes', 'JPEG with donor QT')]
+            ('rotate', 'yes', 'Answer yes if the image should be counter rotated according to EXIF Orientation')]
 
 def suffix():
     return '.jpg'

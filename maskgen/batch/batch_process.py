@@ -237,7 +237,7 @@ def process_jpg(projects):
     for project in projectList:
         sm = maskgen.scenario_model.loadProject(project)
         maskgen.plugins.loadPlugins()
-        op = maskgen.group_operations.ToJPGGroupOperation(sm)
+        op = maskgen.group_operations.CopyCompressionAndExifGroupOperation(sm)
         op.performOp()
         sm.save()
         print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
