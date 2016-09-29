@@ -450,7 +450,7 @@ class ImageProjectModel:
           mask,filename = self.G.get_composite_mask(nodeName)
       return mask
          
-    def _constructComposites(self,nodeAndMasks,stopAtNode=None):
+    def _constructComposites(self,nodeAndMasks,stopAtNode=None,edgeMap=dict(),level=0):
       """
         Walks up down the tree from base nodes, assemblying composite masks"
       """
@@ -462,11 +462,11 @@ class ImageProjectModel:
             edge = self.G.get_edge(nodeAndMask[1],suc)
             if edge['op'] == 'Donor':
                continue
-            compositeMask = self._extendComposite(nodeAndMask[2],edge,nodeAndMask[1],suc)
+            compositeMask = self._extendComposite(nodeAndMask[2],edge,nodeAndMask[1],suc,level=level,edgeMap=edgeMap)
             result.append((nodeAndMask[0],suc,compositeMask))
       if len(result) == 0:
          return nodeAndMasks
-      return self._constructComposites(result,stopAtNode=stopAtNode)
+      return self._constructComposites(result,stopAtNode=stopAtNode,level=level+1,edgeMap=edgeMap)
 
     def constructComposite(self):
        """
@@ -475,13 +475,18 @@ class ImageProjectModel:
         Returns the composite mask if successful, otherwise None
        """
        selectedNode = self.end if self.end is not None else self.start
+       edgeMap = dict()
        baseNodes = self._findBaseNodes(selectedNode)
        if len(baseNodes) > 0:
           baseNode = baseNodes[0]
-          composites = self._constructComposites([(baseNode,baseNode,None)],stopAtNode=selectedNode)
+          composites = self._constructComposites([(baseNode,baseNode,None)],edgeMap=edgeMap,stopAtNode=selectedNode)
           for composite in composites:
              if composite[1] == selectedNode and composite[2] is not None:
-                return Image.fromarray(composite[2])
+                intensityMap = tool_set.redistribute_intensity(edgeMap)
+                im = Image.fromarray(tool_set.toColor(composite[2],edge_map=edgeMap,intensity_map=intensityMap))
+                for k,v in edgeMap.iteritems():
+                   self.G.get_edge(k[0],k[1])['compositecolor'] = str(list(v)).replace('[','').replace(']','').replace(',','')
+                return im
        return None
 
     def constructComposites(self):
@@ -492,12 +497,16 @@ class ImageProjectModel:
         Save the composite in the associated leaf nodes.
       """
       composites = []
+      edgeMap = dict()
       endPointTuples = self.getTerminalAndBaseNodeTuples()
       for endPointTuple in endPointTuples:
          for baseNode in endPointTuple[1]:
-             composites.extend(self._constructComposites([(baseNode,baseNode,None)]))
+             composites.extend(self._constructComposites([(baseNode,baseNode,None)],edgeMap=edgeMap))
+      intensityMap = tool_set.redistributeColors(edgeMap)
       for composite in composites:
-         self.G.addCompositeToNode((composite[0],composite[1], Image.fromarray(composite[2])))
+         self.G.addCompositeToNode((composite[0],composite[1], Image.fromarray(tool_set.toColor(composite[2],edge_map=edgeMap,intensity_map=intensityMap))))
+      for k,v in edgeMap.iteritems():
+         self.G.get_edge(k[0],k[1])['compositecolor'] = str(list(v)).replace('[','').replace(']','').replace(',','')
       return composites
 
     def addNextImage(self, pathname, invert=False, mod=Modification('',''), sendNotifications=True, position=(50,50),skipRules=False):
@@ -1016,7 +1025,7 @@ class ImageProjectModel:
       startNode = self.G.get_node(self.start)
       return ((startNode['xpos'] if startNode.has_key('xpos') else 50)+augment[0],(startNode['ypos'] if startNode.has_key('ypos') else 50)+augment[1])
 
-    def _extendComposite(self,compositeMask,edge,source,target):
+    def _extendComposite(self,compositeMask,edge,source,target,level=0,edgeMap={}):
       if compositeMask is None:
           imarray = np.asarray(self.G.get_image(source)[0])
           compositeMask = np.ones((imarray.shape[0],imarray.shape[1]))*255
@@ -1027,7 +1036,8 @@ class ImageProjectModel:
       selectMask = self.G.get_edge_image(source,target,'selectmaskname')[0]
       edgeMask = np.asarray(selectMask if selectMask is not None else edgeMask)
       if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-        compositeMask = tool_set.mergeMask(compositeMask,edgeMask)
+        compositeMask = tool_set.mergeMask(compositeMask,edgeMask,level=level)
+        edgeMap[(source,target)] = level
       # change the mask to reflect the output image
       # considering the crop again, the high-lighted change is not dropped
       # considering a rotation, the mask is now rotated
