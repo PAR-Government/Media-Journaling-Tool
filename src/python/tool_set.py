@@ -245,15 +245,21 @@ def toColor(img, edge_map={},intensity_map={}):
      :param intensity_map intensity value mapped to its replacement
      :return the new color image
      """
-     for old,new in intensity_map.iteritems():
-        img[img==old] = new
-     result = cv2.applyColorMap(img.astype('uint8'),cv2.COLORMAP_HSV)
-     result[img == 255] = [255,255,255]
-     for k,v in edge_map.iteritems():
-        coords = np.where(img==intensity_map[v]) if v in intensity_map  else None
-        if coords is not None and len(coords[0])>0:
-           edge_map[k] = result[coords[0][0],coords[1][0],:]
+     for old, new in intensity_map.iteritems():
+        img[img == old] = new
+     result = cv2.applyColorMap(img.astype('uint8'), cv2.COLORMAP_HSV)
+     result[img == 255] = [255, 255, 255]
+     toPop  = []
+     for k, v in edge_map.iteritems():
+        coords = np.where(img == intensity_map[v]) if v in intensity_map  else None
+        if coords is not None and len(coords[0]) > 0:
+            edge_map[k] = result[coords[0][0], coords[1][0], :]
+        else:
+            toPop.append(k)
+     for k in toPop:
+        edge_map.pop(k)
      return result
+
 
 def interpolateMask(mask,img1, img2, invert=False,arguments={}):
      mask = np.asarray(mask)
