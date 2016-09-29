@@ -174,18 +174,18 @@ def save_as(source, target, donor, qTables,rotate):
             im.save(tempFile, subsampling=1, qtables=thumbTable)
         try:
           runexiftool(['-overwrite_original','-P','-m','-"ThumbnailImage<=' + tempFile + '"',target])
-          runexiftool(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
-          runexiftool(['-q','-all=', target])
-          runexiftool(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
-          runexiftool(['-P', '-q', '-m', '-XMPToolkit=',
+        finally:
+          os.close(fd)
+          os.remove(tempFile)
+    runexiftool(['-overwrite_original','-q','-all=', target])
+    runexiftool(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
+    runexiftool(['-P', '-q', '-m', '-XMPToolkit=',
                                         '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
                                         '-ExifImageHeight=' + str(height),
                                         '-ImageHeight=' + str(height),
                                         target])
-        finally:
-          os.close(fd)
-          os.remove(tempFile)
+
     im.close()
 
 
