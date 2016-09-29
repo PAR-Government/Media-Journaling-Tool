@@ -219,6 +219,42 @@ def openImage(filename,videoFrameTime=None,isMask=False,preserveSnapshot=False):
         print e
         return openImage('./icons/RedX.png')
 
+def redistribute_intensity(edge_map):
+     """ 
+     Produce a intensity_map that redistributes the intensity values found in the edge_map evenly over 1 to 255
+     :param edge_map contains a map between an edge identifier (s,e) and an intensity value from 1 to 255
+     :return map of intensity value from edge map to a replacement intensity value
+     """
+     intensities = sorted(edge_map.values())
+     intensity_map = {}
+     increment = int(255/(len(intensities)+1))
+     pos = 1
+     for i in intensities:
+        intensity_map[i] = pos*increment 
+        pos+=1
+     return intensity_map
+
+def toColor(img, edge_map={},intensity_map={}):
+     """
+     Produce an image that changes gray scale to color.
+     First, set the intensity values of each pixel using the intensity value from the intensity map
+     Then use a color map to build a color image
+     Then repopulate the edge_map with the assigned color for each edge
+     :param img gray scale image
+     :param edge_map edge identifier associated with an intensity value (0 to 254)
+     :param intensity_map intensity value mapped to its replacement
+     :return the new color image
+     """
+     for old,new in intensity_map.iteritems():
+        img[img==old] = new
+     result = cv2.applyColorMap(img.astype('uint8'),cv2.COLORMAP_HSV)
+     result[img == 255] = [255,255,255]
+     for k,v in edge_map.iteritems():
+        coords = np.where(img==intensity_map[v]) if v in intensity_map  else None
+        if coords is not None and len(coords[0])>0:
+           edge_map[k] = result[coords[0][0],coords[1][0],:]
+     return result
+
 def interpolateMask(mask,img1, img2, invert=False,arguments={}):
      mask = np.asarray(mask)
      maskInverted = np.copy(mask) if invert else 255-mask
@@ -272,11 +308,25 @@ def deserializeMatrix(dict):
 
 def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     globalchange = img1.size != img2.size
-    if mask is not None and not globalchange:
-      totalPossible = sum(img1.size)*255
-      totalChanged = totalPossible - sum(sum(np.asarray(mask)))
-      globalchange = (float(totalChanged)/float(totalPossible) > 0.85)
-    analysis['apply transform'] = 'no' if globalchange else 'yes'
+    totalPossible = reduce(lambda a,x: a*x,img1.size)
+    totalChange = totalPossible
+    ratio = 1.0
+    if mask is not None:
+      mask = np.asarray(mask)
+      totalChange = sum(sum(mask.astype('float32')))/255.0
+      ratio = float(totalChange)/float(totalPossible)
+      if not globalchange:
+        kernel = np.ones((5,5),np.uint8)         
+        erosion = cv2.erode(mask,kernel,iterations = 3)
+        closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
+        contours, hierarchy = cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        p = np.asarray([item[0] for sublist in contours for item in sublist])
+        area = cv2.contourArea(cv2.convexHull(p))
+        totalArea = cv2.contourArea(np.asarray([[0,0],[0,mask.shape[0]],[mask.shape[1],mask.shape[0]], [mask.shape[1],0],[0,0]]))
+        globalchange = ratio > 0.75 or area/totalArea > 0.50
+    analysis['global'] = 'yes' if globalchange else 'no'
+    analysis['change size ratio'] = ratio
+    analysis['change size category'] = 'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large')
     return globalchange
 
 def siftAnalysis(analysis,img1,img2,mask=None,arguments={}):
@@ -341,6 +391,12 @@ def __sift(img1,img2,mask1=None,mask2=None):
 
    (kp1, d1) = extractor.compute(img1, kp1a)
    (kp2, d2) = extractor.compute(img2, kp2a)
+
+   if kp2 is None or len(kp2) == 0:
+     return None
+
+   if kp1 is None or len(kp1) == 0:
+     return None
 
    d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
    d1 = np.sqrt(d1)
@@ -585,13 +641,13 @@ def alterMask(compositeMask,edgeMask,rotation=0.0, sizeChange=(0,0),interpolatio
        res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
     return res
 
-def mergeMask(compositeMask, newMask):
+def mergeMask(compositeMask, newMask,level=0):
    if compositeMask.shape != newMask.shape:
       compositeMask = cv2.resize(compositeMask,(newMask.shape[1],newMask.shape[0]))
       newMask = __toMask(newMask)
    else:
       compositeMask = np.copy(compositeMask)
-   compositeMask[newMask==0] = 0
+   compositeMask[newMask==0] = level
    return compositeMask
 
 def img_analytics(z1,z2):
