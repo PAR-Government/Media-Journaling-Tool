@@ -329,6 +329,7 @@ class ImageImageLinkTool(LinkTool):
                             mask = Image.fromarray(mask)
                         break
             if mask is None:
+                analysis = {}
                 predecessors = scModel.G.predecessors(start)
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, start)
