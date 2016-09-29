@@ -1,7 +1,7 @@
 from subprocess import call, Popen, PIPE
 import os
 import numpy as np
-from PIL import Image
+import tool_set
 
 
 def getOrientationFromExif(source):
@@ -24,46 +24,62 @@ def getOrientationFromExif(source):
         return None
 
 
-def rotateAccordingToExif(im, orientation):
+def rotateAccordingToExif(img_array, orientation):
     rotation = orientation
 
     if rotation is None:
-        return im
-    arr = np.array(im)
+        return img_array
     if rotation == 'Mirror horizontal':
-        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.fliplr(img_array)
     elif rotation == 'Rotate 180':
-        rotatedArr = np.rot90(arr, 2)
+        rotatedArr = np.rot90(img_array, 2)
     elif rotation == 'Mirror vertical':
-        rotatedArr = np.flipud(arr)
+        rotatedArr = np.flipud(img_array)
     elif rotation == 'Mirror horizontal and rotate 270 CW':
-        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.fliplr(img_array)
         rotatedArr = np.rot90(rotatedArr, 3)
     elif rotation == 'Rotate 90 CW':
-        rotatedArr = np.rot90(arr)
+        rotatedArr = np.rot90(img_array)
     elif rotation == 'Mirror horizontal and rotate 90 CW':
-        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.fliplr(img_array)
         rotatedArr = np.rot90(rotatedArr)
     elif rotation == 'Rotate 270 CW':
-        rotatedArr = np.rot90(arr, 3)
+        rotatedArr = np.rot90(img_array, 3)
     else:
-        rotatedArr = arr
+        rotatedArr = img_array
 
-    rotatedIm = Image.fromarray(rotatedArr)
-    return rotatedIm
+    return rotatedArr
 
 
 def copyexif(source, target):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     try:
-        call([exifcommand, '-all=', target])
-        call([exifcommand, '-P', '-TagsFromFile', source, '-all:all', '-unsafe', target])
+        call([exifcommand, '-overwrite_original', '-q', '-all=', target])
+        call([exifcommand, '-P', '-q', '-m', '-TagsFromFile', source, '-all:all', '-unsafe', target])
         call([exifcommand, '-XMPToolkit=', target])
         call([exifcommand, '-Warning=', target])
         return None
     except OSError:
         return 'exiftool not installed'
 
+
+def runexif(args):
+    exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
+    command = [exifcommand]
+    command.extend(args)
+    try:
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        try:
+            while True:
+                line = p.stdout.readline()
+                if line is None or len(line) == 0:
+                    break
+        finally:
+            p.stdout.close()
+            p.stderr.close()
+    except OSError as e:
+        print "Exiftool not installed"
+        raise e
 
 def getexif(source):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')

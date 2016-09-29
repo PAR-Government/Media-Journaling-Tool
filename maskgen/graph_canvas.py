@@ -320,6 +320,8 @@ class MaskGraphCanvas(tk.Canvas):
     def _mark(self, item):
         self._unmark()
         self.itemToCanvas[item].mark()
+        self.itemToCanvas[item].selectModel(self.scModel)
+        self.callback(None, 'n')
         self.marked = item
 
     def connectto(self):
@@ -454,6 +456,9 @@ class NodeObj(tk.Canvas):
         # Draw myself
         self.render()
 
+    def selectModel(self, model):
+        model.selectImage(self.node_id)
+
     def render(self):
         """Draw on canvas what we want node to look like"""
         self.delete(tk.ALL)
@@ -550,6 +555,9 @@ class LineTextObj(tk.Canvas):
         else:
             cfg['fill'] = 'blue'
         return cfg
+
+    def selectModel(self, model):
+        model.selectEdge(self.edge_name[0],self.edge_name[1])
 
     def update(self, edge):
         self.edge = edge

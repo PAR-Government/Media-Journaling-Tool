@@ -8,7 +8,7 @@ from software_loader import loadOperations, loadSoftware, getOperation
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
-from group_operations import ToJPGGroupOperation
+from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 
 """
@@ -43,6 +43,8 @@ def fromFileTypeString(types, profileTypes):
     return result
 
 
+
+
 def projectProperties():
     return [('User Name', 'username', 'string'), ('Organization', 'organization', 'string'),
             ('Description', 'projectdescription', 'text'), ('Technical Summary', 'technicalsummary', 'text'),
@@ -63,7 +65,6 @@ def projectProperties():
 
 
 class UIProfile:
-    suffixes = ["*.nef", ".jpg", ".png", ".tiff", "*.bmp", ".avi", ".mp4", ".mov", "*.wmv"]
     operations = 'operations.json'
     software = 'software.csv'
     name = 'Image/Video'
@@ -72,11 +73,11 @@ class UIProfile:
         return imageProjectModelFactory
 
     def addProcessCommand(self, menu, parent):
-        menu.add_command(label="Create JPEG", command=parent.createJPEG, accelerator="Ctrl+J")
+        menu.add_command(label="Create JPEG/TIFF", command=parent.createJPEGorTIFF, accelerator="Ctrl+J")
         menu.add_separator()
 
     def addAccelerators(self, parent):
-        parent.bind_all('<Control-j>', lambda event: parent.after(100, parent.createJPEG))
+        parent.bind_all('<Control-j>', lambda event: parent.after(100, parent.createJPEGorTIFF))
 
 
 class MakeGenUI(Frame):
@@ -123,14 +124,14 @@ class MakeGenUI(Frame):
 
     def new(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
-                                           filetypes=getFileTypes())
+                                           filetypes=self.getMergedFileTypes())
         if val is None or val == '':
             return
         dir = os.path.split(val)[0]
         if (not self._check_dir(dir)):
             tkMessageBox.showinfo("Error", "Directory already associated with a project")
             return
-        self.scModel.startNew(val, suffixes=self.uiProfile.suffixes,
+        self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
                               organization=self.prefLoader.get_key('organization'))
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes())
@@ -225,8 +226,8 @@ class MakeGenUI(Frame):
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to upload export")
 
-    def createJPEG(self):
-        msg, pairs = ToJPGGroupOperation(self.scModel).performOp(self.master)
+    def createJPEGorTIFF(self):
+        msg, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(self.master)
         if msg is not None:
             tkMessageBox.showwarning("Error", msg)
             if not pairs:
@@ -295,6 +296,8 @@ class MakeGenUI(Frame):
 
     def getPreferredFileTypes(self):
         return [tuple(x) for x in self.scModel.getProjectData('typespref')]
+
+
 
     def nextadd(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select image file",
@@ -438,9 +441,9 @@ class MakeGenUI(Frame):
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
-        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)))
-        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)))
-        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size))
+        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)).toPIL())
+        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)).toPIL())
+        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
         self.img3c.config(image=self.img3)
@@ -506,6 +509,11 @@ class MakeGenUI(Frame):
 
     def viewcomposite(self):
         im = self.scModel.constructComposite()
+        if im is not None:
+            CompositeViewDialog(self, self.scModel.start, im)
+
+    def viewdonor(self):
+        im = self.scModel.getDonor()
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im)
 
@@ -678,6 +686,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Export", command=self.exportpath)
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
+        self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
@@ -728,11 +737,31 @@ class MakeGenUI(Frame):
         elif eventName == 'n':
             self.drawState()
 
+    def getMergedSuffixes(self):
+        filetypes = self.prefLoader.get_key('filetypes')
+        filetypes = [] if filetypes is None else filetypes
+        types = [x[1] for x in filetypes]
+        for suffix in getFileTypes():
+            if suffix[1] not in types:
+                types.append(suffix[1])
+        types = [suffix[suffix.rfind('.'):] for suffix in types]
+        return types
+
+    def getMergedFileTypes(self):
+        filetypes = self.prefLoader.get_key('filetypes')
+        filetypes = [] if filetypes is None else filetypes
+        types = [tuple(x) for x in filetypes]
+        tset = set([x[1] for x in types])
+        for suffix in getFileTypes():
+            if suffix[1] not in tset:
+                types.append(suffix)
+        return types
+
     def __init__(self, dir, master=None, pluginops={}, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=uiProfile.suffixes,
+        tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:

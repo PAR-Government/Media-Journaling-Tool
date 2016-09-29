@@ -15,7 +15,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "",
       "includeInMask": false,
       "transitions": [
@@ -38,7 +38,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Decrease opacity of an image or a layer.",
       "includeInMask": false,
       "transitions": [
@@ -60,7 +60,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Smooth the artifacts resultant from interlacing.",
       "includeInMask": false,
       "transitions": [
@@ -82,7 +82,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add random variations of brightness or color information.",
       "includeInMask": false,
       "transitions": [
@@ -105,7 +105,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make details unclear or less distinct.",
       "includeInMask": false,
       "transitions": [
@@ -122,7 +122,7 @@
         "checkSize"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Distort and/or crop video layers in order to remove camera shake",
       "includeInMask": false,
       "transitions": [
@@ -144,7 +144,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Execute a nonlinear digital filtering technique, often used to remove noise while preserving edges.",
       "includeInMask": false,
       "transitions": [
@@ -167,7 +167,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Enhance edge definition within an image.",
       "includeInMask": false,
       "transitions": [
@@ -190,7 +190,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Smooth textures while preserving edge detail.",
       "includeInMask": false,
       "transitions": [
@@ -213,7 +213,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply a filter for scaling intensity.",
       "includeInMask": false,
       "transitions": [
@@ -236,7 +236,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use a brush tool with a variable feathered edge.",
       "includeInMask": false,
       "transitions": [
@@ -306,7 +306,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add sources of illumination that were not originally present.",
       "includeInMask": true,
       "transitions": [
@@ -329,7 +329,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add sources of reflection that were not originally present.",
       "includeInMask": true,
       "transitions": [
@@ -352,7 +352,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add shadows that were not originally present.",
       "includeInMask": true,
       "transitions": [
@@ -363,7 +363,12 @@
     {
       "category": "ArtifactsCGI",
       "name": "ArtifactsCGIObjectCGI",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "imagefile": {
+          "type": "imagefile",
+          "description": "An image file containing the image used.  The unused portion of the image should be transparent with an alpha-channel"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -375,7 +380,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Create objects that were not originally present in an image.",
       "includeInMask": true,
       "transitions": [
@@ -398,7 +403,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the blending mode within an image either globally or selectively.",
       "includeInMask": false,
       "transitions": [
@@ -421,7 +426,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Fill of transparent areas of a current layer with a smooth mix of the colors from the opaque areas.",
       "includeInMask": false,
       "transitions": [
@@ -444,7 +449,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": false,
       "transitions": [
@@ -467,7 +472,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Using the color information in each channel, calculate a color by multiplying the base color by a blend color. The result color is always a darker color. Multiplying any color with black produces black. Multiplying any color with white leaves the color unchanged. When painting with a color other than black or white, successive strokes with a painting tool produce progressively darker colors.",
       "includeInMask": false,
       "transitions": [
@@ -490,7 +495,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
       "includeInMask": false,
       "transitions": [
@@ -513,7 +518,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Uniformly alter the color of an image within a given selection.",
       "includeInMask": false,
       "transitions": [
@@ -536,7 +541,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the color of a selection or image without adjusting saturation or luminance.",
       "includeInMask": false,
       "transitions": [
@@ -559,7 +564,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use a tool to paint an area with the same color values as a selected donor area.",
       "includeInMask": false,
       "transitions": [
@@ -582,7 +587,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Change the transparency of a given color overlay.",
       "includeInMask": false,
       "transitions": [
@@ -605,7 +610,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Create a selection based on hue that is then painted over with another color value.",
       "includeInMask": false,
       "transitions": [
@@ -628,7 +633,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the color intensity of a given hue.",
       "includeInMask": false,
       "transitions": [
@@ -651,7 +656,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Increase intensity of muted colors.",
       "includeInMask": false,
       "transitions": [
@@ -674,7 +679,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Reduce intensity of muted colors.",
       "includeInMask": false,
       "transitions": [
@@ -697,7 +702,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Create an object not originally in the image",
       "includeInMask": false,
       "transitions": [
@@ -720,7 +725,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply an adjustment to a selection of non foreground objects.",
       "includeInMask": false,
       "transitions": [
@@ -743,8 +748,11 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
+      "compareparameters" : {
+         "tolerance" : 5.0
+      },
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -766,7 +774,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply an adjustment to a selection of specified foreground objects.",
       "includeInMask": false,
       "transitions": [
@@ -789,7 +797,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
       "includeInMask": false,
       "transitions": [
@@ -812,7 +820,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Replace large selections with an averaging of surrounding pixel groups.",
       "includeInMask": false,
       "transitions": [
@@ -835,7 +843,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Replace areas of an image with semantically similar pixel values to create a seamless image.",
       "includeInMask": false,
       "transitions": [
@@ -858,7 +866,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Create adjustments within a localized selection.",
       "includeInMask": false,
       "transitions": [
@@ -881,7 +889,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use a brush to append pixel values within a given diameter.",
       "includeInMask": false,
       "transitions": [
@@ -904,7 +912,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply a paintbucket to uniformly fill a given selection.",
       "includeInMask": false,
       "transitions": [
@@ -927,7 +935,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use a specified selection pattern to uniformly fill an area.",
       "includeInMask": false,
       "transitions": [
@@ -951,12 +959,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
@@ -971,7 +979,7 @@
           "description": "An image file with a transparency highlighting the sampled areas of the image."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
       "includeInMask": true,
       "transitions": [
@@ -994,7 +1002,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Modify an image or image selection to create the illusion of motion.",
       "includeInMask": false,
       "transitions": [
@@ -1017,7 +1025,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Modify an image or image selection to create the illusion of Camera Noise.",
       "includeInMask": false,
       "transitions": [
@@ -1040,7 +1048,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make edits to raw imagery in a raw processor.",
       "includeInMask": false,
       "transitions": [
@@ -1089,7 +1097,7 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift midtone luminance values on a histogram to higher or lower values.",
       "includeInMask": false,
       "transitions": [
@@ -1107,7 +1115,7 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
       "includeInMask": false,
       "transitions": [
@@ -1125,7 +1133,7 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift luminance values on a histogram with an editable and flexible curve.",
       "includeInMask": false,
       "transitions": [
@@ -1143,7 +1151,7 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift lower luminance values on a histogram to a higher or lower values.",
       "includeInMask": false,
       "transitions": [
@@ -1166,7 +1174,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Reduce the given intensity of colors.",
       "includeInMask": false,
       "transitions": [
@@ -1189,7 +1197,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift all luminance values on a histogram to higher or lower values.",
       "includeInMask": false,
       "transitions": [
@@ -1212,7 +1220,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Increase the contrast of high values in a luminance histogram.",
       "includeInMask": false,
       "transitions": [
@@ -1235,7 +1243,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Change the high values of a luminance histogram.",
       "includeInMask": false,
       "transitions": [
@@ -1258,7 +1266,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Adjust brightness, contrast, and tonal range by specifying the location of complete black, complete white, and midtones in a histogram.",
       "includeInMask": false,
       "transitions": [
@@ -1281,7 +1289,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the luminance of an image or selection.",
       "includeInMask": false,
       "transitions": [
@@ -1304,7 +1312,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the values of a luminance histogram.",
       "includeInMask": false,
       "transitions": [
@@ -1327,7 +1335,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Decrease the contrast in high value areas of the luminance histogram.",
       "includeInMask": false,
       "transitions": [
@@ -1348,15 +1356,15 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true,
       "transitions": [
@@ -1377,15 +1385,15 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true,
       "transitions": [
@@ -1406,15 +1414,15 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ArtifactsCGIObjectCGI.",
       "includeInMask": true,
       "transitions": [
@@ -1435,15 +1443,15 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
       "includeInMask": true,
       "transitions": [
@@ -1627,7 +1635,7 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,
       "transitions": [
@@ -1640,11 +1648,11 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
@@ -1670,11 +1678,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro)"
+          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
@@ -1708,14 +1716,14 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro)"
+          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,
       "transitions": [
@@ -1765,11 +1773,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Create a limited selection,removing background,from a donor video.  The result should be a black back ground.",
@@ -1788,11 +1796,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Remove a region from a series of frames.",
@@ -1811,11 +1819,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Remove a series of frames from a video clip.",
@@ -1850,7 +1858,7 @@
       "mandatoryparameters": {
         "Frame Time": {
           "type": "time",
-          "description": "Presentation time of the select frame (HH:MI:SS.micro)"
+          "description": "Presentation time of the select frame (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
@@ -2107,7 +2115,17 @@
     {
       "category": "Transform",
       "name": "TransformFlip",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "flip direction": {
+          "type": "list",
+          "values": [
+            "horizontal",
+            "vertical",
+            "both"
+          ],
+          "description": "Direction of flip."
+        }
+      },
       "rules": [
         "checkSize",
         "checkFileTypeChange"

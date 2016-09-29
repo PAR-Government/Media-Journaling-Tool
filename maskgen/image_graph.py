@@ -7,8 +7,8 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 
-igversion='0.2'
-igcompatibleversions=['0.1','0.2']
+igversion='0.2.1'
+igcompatibleversions=['0.1','0.2', '0.2.1']
 
 def getPathValues(d, path):
     """
@@ -99,6 +99,7 @@ class ImageGraph:
                      'arguments.XMP File Name': 'xmpfileownership',
                      'maskname': None,
                      'compositemaskname': None,
+                     'donormaskname': None,
                      'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}
 
@@ -150,13 +151,10 @@ class ImageGraph:
         fname = nname + suffix
         return fname
 
-    def _saveImage(self, pathname, image):
-        image.save(pathname, exif=image.info['exif'])
-
-    def add_node(self, pathname, seriesname=None, image=None, **kwargs):
+    def add_node(self, pathname, seriesname=None, **kwargs):
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
-        origname = nname = get_pre_name(fname)
+        origname = get_pre_name(fname)
         suffix = get_suffix(fname)
         newfname = self.new_name(fname, suffix)
         nname = get_pre_name(newfname)
@@ -168,8 +166,6 @@ class ImageGraph:
             includePathInUndo = True
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
-            elif image is not None:
-                self._saveImage(newpathname, image)
         self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname,
                         ownership=('yes' if includePathInUndo else 'no'),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
@@ -217,6 +213,16 @@ class ImageGraph:
                 self.G.node[nodeName]['compositebase'] = ''
                 os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
+    def removeDonorFromNode(self, nodeName):
+        """
+          Remove a donor image associated with a node
+        """
+        if self.G.has_node(nodeName):
+            fname = nodeName + '_donor_mask.png'
+            if 'donormaskname' in self.G.node[nodeName]:
+                self.G.node[nodeName]['donormaskname'] = ''
+                os.remove(os.path.abspath(os.path.join(self.dir, fname)))
+
     def addCompositeToNode(self, compositeTuple):
         """
         Add mask to leaf node and save mask to disk
@@ -231,6 +237,20 @@ class ImageGraph:
             except IOError:
                 compositeMask = convertToMask(compositeTuple[2])
                 compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
+
+    def addDonorToNode(self, recipientNode, mask):
+        """
+        Add mask to leaf node and save mask to disk
+        Input is a tuple (donor node name, base node name, Image mask)
+        """
+        if self.G.has_node(recipientNode):
+            fname = recipientNode + '_donor_mask.png'
+            self.G.node[recipientNode]['donormaskname'] = fname
+            try:
+                mask.save(os.path.abspath(os.path.join(self.dir, fname)))
+            except IOError:
+                donorMask = convertToMask(mask)
+                donorMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def get_edge_image(self, start, end, path):
         edge = self.get_edge(start, end)
@@ -280,6 +300,15 @@ class ImageGraph:
                 self.filesToRemove.remove(newpathname)
         return filename, 'yes' if includePathInUndo else 'no'
 
+    def update_mask(self, start,end,mask=None,errors=None,**kwargs):
+        edge = self.G[start][end]
+        newmaskpathname = os.path.join(self.dir, edge['maskname'])
+        mask.save(newmaskpathname)
+        if errors is not None:
+            edge['errors'] = errors
+        for k,v in kwargs.iteritems():
+            edge[k] = v
+
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         newmaskpathname = os.path.join(self.dir, maskname)
         mask.save(newmaskpathname)
@@ -301,8 +330,15 @@ class ImageGraph:
         return mask
 
     def get_composite_mask(self, name):
-        if name in self.G.nodes and 'compositemaskname' in self.G.node[name]:
+        if name in self.G.nodes() and 'compositemaskname' in self.G.node[name]:
             filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['compositemaskname']))
+            im = self.openImage(filename, mask=True)
+            return im, filename
+        return None, None
+
+    def get_donor_mask(self, name):
+        if name in self.G.nodes() and 'donormaskname' in self.G.node[name]:
+            filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['donormaskname']))
             im = self.openImage(filename, mask=True)
             return im, filename
         return None, None

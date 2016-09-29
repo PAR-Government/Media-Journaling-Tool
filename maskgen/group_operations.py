@@ -3,6 +3,8 @@ import sys
 import exif
 from description_dialog import RotateDialog
 import tkSimpleDialog
+import numpy as np
+import tool_set
 
 
 class BaseOperation:
@@ -20,7 +22,7 @@ class BaseOperation:
         return ''
 
 
-class ToJPGGroupOperation(BaseOperation):
+class CopyCompressionAndExifGroupOperation(BaseOperation):
     """
      A special group operation used to convert back to JPEG including
      EXIF Copy and Recompression with base image QT
@@ -30,7 +32,7 @@ class ToJPGGroupOperation(BaseOperation):
         BaseOperation.__init__(self, scModel)
 
     def suffix(self):
-        return '.jpg'
+        return ''
 
     def filterPairs(self, pairs):
         if len(pairs) == 0:
@@ -38,7 +40,7 @@ class ToJPGGroupOperation(BaseOperation):
         result = []
         for pair in pairs:
             pred = self.scModel.getDescriptionForPredecessor(pair[0])
-            if str(pred.operationName) == 'AntiForensicCopyExif':
+            if str(pred.operationName) .startswith('AntiForensicExif'):
                 print 'Error: Last operation is ExifMetaCopy. Use CompressAs plugin with base image as donor.'
             else:
                 result.append(pair)
@@ -61,12 +63,19 @@ class ToJPGGroupOperation(BaseOperation):
                 orientation = exif.getOrientationFromExif(donor_filename)
                 rotate = 'no'
                 if orientation is not None:
-                    rotated_im = exif.rotateAccordingToExif(im, orientation)
+                    rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
                     dialog = RotateDialog(master_ui, donor_im, rotated_im, orientation)
                     rotate = dialog.rotate
-                msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
+                if donor_filename.lower().endswith('jpg'):
+                    msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
                                                           sendNotifications=False, rotate=rotate,
                                                           skipRules=True)
+                elif donor_filename.lower().endswith('tiff') or donor_filename.lower().endswith('tif'):
+                    msg, pairs = self.scModel.imageFromPlugin('OutputTIFF', im, filename, donor=pair[1],
+                                                                  sendNotifications=False, rotate=rotate,
+                                                                  skipRules=True)
+                else:
+                    pairs = []
                 if len(pairs) == 0:
                     break
                 newPairs.extend(pairs)

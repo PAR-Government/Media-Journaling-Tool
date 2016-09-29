@@ -27,9 +27,11 @@ class Operation:
     rules = []
     analysisOperations = []
     transitions = []
+    compareparameters = {}
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=list(),
-                 mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list()):
+                 mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list(),
+                 compareparameters=dict()):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -39,6 +41,7 @@ class Operation:
         self.description = description
         self.analysisOperations = analysisOperations
         self.transitions = transitions
+        self.compareparameters = compareparameters
 
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
@@ -94,7 +97,8 @@ def loadJSON(fileName):
                                         description=op['description'] if 'description' in op else None,
                                         analysisOperations=op[
                                             'analysisOperations'] if 'analysisOperations' in op else [],
-                                        transitions=op['transitions'] if 'transitions' in op else [])
+                                        transitions=op['transitions'] if 'transitions' in op else [],
+                                        compareparameters=op['compareparameters'] if 'compareparameters' in op else dict())
     return res
 
 

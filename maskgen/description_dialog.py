@@ -4,7 +4,7 @@ from datetime import datetime
 import tkMessageBox
 from group_filter import GroupFilter, GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
-from PIL import Image, ImageTk
+from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getFileTypes
@@ -13,6 +13,7 @@ from software_loader import Software, SoftwareLoader, getOS, getOperations, getO
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
+from image_wrap import ImageWrapper
 
 
 def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
@@ -236,7 +237,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         self.okButton = None
 
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))))
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
@@ -464,7 +465,7 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
         self.box = AutocompleteEntryInText(master, values=self.scModel.getNodeNames(), takefocus=True)
         self.box.grid(row=0, column=1)
         self.c = Canvas(master, width=250, height=250)
-        self.photo = ImageTk.PhotoImage(Image.fromarray(np.zeros((250, 250))))
+        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((250, 250,3))))
         self.imc = self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=1, column=0, columnspan=2)
         self.box.bind("<Return>", self.newimage)
@@ -472,7 +473,7 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
 
     def newimage(self, event):
         im = self.scModel.getImage(self.box.get())
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (250, 250))))
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (250, 250))).toPIL())
         self.c.itemconfig(self.imc, image=self.photo)
 
     def cancel(self):
@@ -491,12 +492,12 @@ class CompareDialog(tkSimpleDialog.Dialog):
 
     def body(self, master):
         self.cim = Canvas(master, width=250, height=250)
-        self.photoim = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.im, (250, 250), self.im.size)))
+        self.photoim = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.im, (250, 250), self.im.size)).toPIL())
         self.imc = self.cim.create_image(125, 125, image=self.photoim, tag='imgim')
         self.cim.grid(row=0, column=0)
 
         self.cmask = Canvas(master, width=250, height=250)
-        self.photomask = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.mask, (250, 250), self.mask.size)))
+        self.photomask = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.mask, (250, 250), self.mask.size)).toPIL())
         self.maskc = self.cmask.create_image(125, 125, image=self.photomask, tag='imgmask')
         self.cmask.grid(row=0, column=1)
 
@@ -649,6 +650,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                 for arg in arginfo:
                     if arg is not None:
                         self.argBox.insert(END, arg[0] + ': ' + str(arg[1] if arg[1] is not None else ''))
+                        if arg[1] is not None:
+                           self.argvalues[arg[0]] = arg[1]
         else:
             self.catvar.set('')
             self.opvar.set('')
@@ -946,7 +949,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))))
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
@@ -978,8 +981,8 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
                                 preserveSnapshot=True)
             self.selectMaskName = self.modification.changeMaskName
         else:
-            self.im = Image.fromarray(np.zeros((250, 250)))
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))))
+            self.im = ImageWrapper(np.zeros((250, 250, 3)))
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
         self.c.itemconfig(self.image_on_canvas, image=self.photo)
 
     def changemask(self):
@@ -988,7 +991,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         if (val != None and len(val) > 0):
             self.selectMaskName = val
             self.im = openImage(val, isMask=True, preserveSnapshot=os.path.split(os.path.abspath(val))[0] == dir)
-            self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))))
+            self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
             self.c.itemconfig(self.image_on_canvas, image=self.photo)
 
     def cancel(self):
@@ -1010,7 +1013,7 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))))
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
@@ -1043,7 +1046,7 @@ class ButtonFrame(Frame):
         self.dir = dir
         Label(self, text=label if label else fileName, anchor=W, justify=LEFT).grid(row=0, column=0, sticky=W)
         img = openImage(os.path.join(dir, fileName), isMask=isMask, preserveSnapshot=preserveSnapshot)
-        self.img = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(img, (125, 125), img.size)))
+        self.img = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(img, (125, 125), img.size)).toPIL())
         w = Button(self, text=fileName, width=10, command=self.openMask, default=ACTIVE, image=self.img)
         w.grid(row=1, sticky=E + W)
 
@@ -1114,7 +1117,7 @@ class EntryDialog(tkSimpleDialog.Dialog):
         return 1
 
 
-def createCompareDialog(self, master, im2, mask, nodeId, analysis, dir, linktype):
+def createCompareDialog(master, im2, mask, nodeId, analysis, dir, linktype):
     if linktype == 'image.image':
         return CompareDialog(master, im2, mask, nodeId, analysis)
     elif linktype == 'video.video':
@@ -1138,11 +1141,11 @@ class RotateDialog(tkSimpleDialog.Dialog):
         Label(master, text="Base").grid(row=row, column=0, sticky=W + S + N)
         Label(master, text="Final without rotation").grid(row=row, column=1, sticky=E + S + N)
         row = 1
-        self.donor_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.donor_im, (250, 250))))
+        self.donor_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.donor_im, (250, 250))).toPIL())
         self.donor_canvas = Canvas(master, width=125, height=125)
         self.donor_canvas.create_image(125, 125, image=self.donor_photo, tag='imgd')
         self.donor_canvas.grid(row=row, column=0, sticky=W + N)
-        self.rotated_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.rotated_im, (250, 250))))
+        self.rotated_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.rotated_im, (250, 250))).toPIL())
         self.rotated_canvas = Canvas(master, width=125, height=125)
         self.rotated_canvas.create_image(125, 125, image=self.rotated_photo, tag='imgr')
         self.rotated_canvas.grid(row=row, column=1, sticky=E + N)

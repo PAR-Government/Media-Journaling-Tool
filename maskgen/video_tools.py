@@ -5,9 +5,8 @@ import os
 import json
 from datetime import datetime
 import tool_set
-from PIL import Image
 import time
-
+from image_wrap import ImageWrapper
 
 def otsu(hist):
     total = sum(hist)
@@ -627,18 +626,28 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
     #dir = os.path.split(fileOne)[0]
     kernel = np.ones((5, 5), np.uint8)
     try:
+        secondInMillis = 0
+        framesSinceSecond = 0
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
             ret_one, analysis_components.frame_one = analysis_components.vid_one.read()
             if not ret_one:
                 analysis_components.vid_one.release()
                 break
             elapsed_time = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            currentSecond = int(float(elapsed_time)/1000.0) *1000
+            if currentSecond > secondInMillis:
+                secondInMillis = currentSecond
+                framesSinceSecond = 1
+            else:
+                framesSinceSecond +=1
             ret_two, analysis_components.frame_two = analysis_components.vid_two.read()
             if not ret_two:
                 analysis_components.vid_two.release()
                 break
-            if startSegment and startSegment > elapsed_time:
+            if tool_set.isBeforeTime((currentSecond,framesSinceSecond),startSegment):
                 continue
+            if tool_set.isPastTime((currentSecond,framesSinceSecond),endSegment):
+                break
             if endSegment and endSegment < elapsed_time:
                 break
             # if applyConstraintsToOutput:
@@ -705,23 +714,32 @@ def interpolateMask(mask_file_name_prefix,
             try:
                 first_mask = None
                 count = 0
+                vid_frame_time=0
+                max_analysis = 0
                 while True:
                     frame_time = reader.current_frame_time()
                     mask = reader.read()
                     if mask is None:
                         break
-                    frame,frame_time = _getVideoFrame(destination_video,frame_time)
+                    if frame_time < vid_frame_time:
+                        continue
+                    frame,vid_frame_time = _getVideoFrame(destination_video,frame_time)
                     if frame is None:
                          new_mask = np.ones(mask.shape) * 255
                     else:
-                        new_mask, analysis = tool_set.interpolateMask(mask,image, Image.fromarray(frame))
+                        new_mask, analysis = tool_set.interpolateMask(ImageWrapper(mask),image, ImageWrapper(frame))
+                        if new_mask is None:
+                            new_mask = np.asarray(tool_set.convertToMask(image))
+                            max_analysis+=1
                         if first_mask is None:
                             change['mask'] = new_mask
                             change['starttime'] = frame_time
                             first_mask = new_mask
                     count+=1
-                    writer.write(new_mask,frame_time)
-                change['endtime'] = frame_time
+                    writer.write(new_mask,vid_frame_time)
+                    if max_analysis > 10:
+                        break
+                change['endtime'] = vid_frame_time
                 change['frames'] = count
                 change['videosegment'] = os.path.split(writer.filename)[1]
                 if first_mask is not None:
@@ -751,7 +769,7 @@ def pullFrameNumber(video_file, frame_number):
         frame_number-=1
     elapsed_time = video_capture.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
     video_capture.release()
-    Image.fromarray(frame).save(video_file[0:video_file.rfind('.')] + '.png')
+    ImageWrapper(frame).save(video_file[0:video_file.rfind('.')] + '.png')
     return time.strftime("%H:%M:%S", time.gmtime(elapsed_time / 1000)) + '.%03d' % (elapsed_time % 1000)
 
 def main(argv=None):

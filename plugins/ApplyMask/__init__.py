@@ -1,4 +1,3 @@
-import cv2
 from PIL import Image
 import numpy
 
@@ -7,10 +6,9 @@ def transform(img,source,target,**kwargs):
     inputmask = Image.open(kwargs['inputmaskname'])
     if inputmask.size != rgba.size:
       rgba = rgba.resize(inputmask.size, Image.ANTIALIAS)
-    cv_image = numpy.array(rgba)
+    cv_image = numpy.asarray(rgba)
     mask = numpy.array(inputmask)
     bmask = mask>0
-#    for i in range(cv_image.shape[2]): 
     cv_image[:,:,3][bmask]=0
     Image.fromarray(cv_image,'RGBA').save(target)
     return True,None
