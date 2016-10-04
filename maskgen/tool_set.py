@@ -461,12 +461,13 @@ def __sift(img1, img2, mask1=None, mask2=None):
     return None,None
 
 
-def __applyTransform(compositeMask, mask, transform_matrix):
+def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
     compositeMaskFlipped = 255 - compositeMask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
-    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]))#, flags=cv2.WARP_INVERSE_MAP)
+    flags=cv2.WARP_INVERSE_MAP if invert else cv2.CV_INTER_LINEAR#+cv2.CV_WARP_FILL_OUTLIERS
+    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags)
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     compositeMaskAltered = compositeMaskFlipped * maskAltered
@@ -644,19 +645,42 @@ def __checkInterpolation(val):
 
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None):
+              transformMatrix=None, flip=None):
     res = compositeMask
     if transformMatrix is not None:
         res = __applyTransform(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
         res = __rotateImage(rotation,  res,
                             (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=255)
+    elif flip is not None:
+        res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     if location != (0, 0):
         upperBound = (res.shape[0] + (sizeChange[0] / 2), res.shape[1] + (sizeChange[1] / 2))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
+    if expectedSize != res.shape:
+        res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
+    return res
+
+def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
+              transformMatrix=None, flip=None):
+    res = donorMask
+    if transformMatrix is not None:
+        res = __applyTransform(donorMask, edgeMask, deserializeMatrix(transformMatrix),invert=True)
+    elif abs(rotation) > 0.001:
+        res = __rotateImage(-rotation,  res,
+                            (donorMask.shape[0] + sizeChange[0], donorMask.shape[1] + sizeChange[1]), cval=255)
+    elif flip is not None:
+        res = cv2.flip(res, 0 if flip == 'horizontal' else (-1 if flip == 'both' else 1))
+    if location != (0, 0):
+        sizeChange = (location[0], location[1]) if sizeChange == (0, 0) else sizeChange
+    expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+    if location != (0, 0):
+        newRes = np.ones(expectedSize)*255
+        upperBound = (res.shape[0] + (sizeChange[0] / 2), res.shape[1] + (sizeChange[1] / 2))
+        newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0]-location[0]),0:(upperBound[1]-location[1])]
     if expectedSize != res.shape:
         res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
     return res

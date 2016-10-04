@@ -99,6 +99,7 @@ class ImageGraph:
                      'arguments.XMP File Name': 'xmpfileownership',
                      'maskname': None,
                      'compositemaskname': None,
+                     'donormaskname': None,
                      'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}
 
@@ -212,6 +213,16 @@ class ImageGraph:
                 self.G.node[nodeName]['compositebase'] = ''
                 os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
+    def removeDonorFromNode(self, nodeName):
+        """
+          Remove a donor image associated with a node
+        """
+        if self.G.has_node(nodeName):
+            fname = nodeName + '_donor_mask.png'
+            if 'donormaskname' in self.G.node[nodeName]:
+                self.G.node[nodeName]['donormaskname'] = ''
+                os.remove(os.path.abspath(os.path.join(self.dir, fname)))
+
     def addCompositeToNode(self, compositeTuple):
         """
         Add mask to leaf node and save mask to disk
@@ -226,6 +237,20 @@ class ImageGraph:
             except IOError:
                 compositeMask = convertToMask(compositeTuple[2])
                 compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
+
+    def addDonorToNode(self, recipientNode, mask):
+        """
+        Add mask to leaf node and save mask to disk
+        Input is a tuple (donor node name, base node name, Image mask)
+        """
+        if self.G.has_node(recipientNode):
+            fname = recipientNode + '_donor_mask.png'
+            self.G.node[recipientNode]['donormaskname'] = fname
+            try:
+                mask.save(os.path.abspath(os.path.join(self.dir, fname)))
+            except IOError:
+                donorMask = convertToMask(mask)
+                donorMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def get_edge_image(self, start, end, path):
         edge = self.get_edge(start, end)
@@ -298,6 +323,13 @@ class ImageGraph:
     def get_composite_mask(self, name):
         if name in self.G.nodes and 'compositemaskname' in self.G.node[name]:
             filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['compositemaskname']))
+            im = self.openImage(filename, mask=True)
+            return im, filename
+        return None, None
+
+    def get_donor_mask(self, name):
+        if name in self.G.nodes and 'donormaskname' in self.G.node[name]:
+            filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['donormaskname']))
             im = self.openImage(filename, mask=True)
             return im, filename
         return None, None

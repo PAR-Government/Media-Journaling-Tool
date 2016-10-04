@@ -102,6 +102,7 @@ def cs_save_as(source, target, donor, qTables,rotate):
       im = check_rotate(im,donor) 
     im.save(target, subsampling=1, qtables=finalTable)
     width, height = im.size
+    im.close()
     if thumbTable:
         im.thumbnail((128, 128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
@@ -122,7 +123,6 @@ def cs_save_as(source, target, donor, qTables,rotate):
                                         '-ExifImageHeight=' + str(height),
                                         '-ImageHeight=' + str(height),
                                         target])
-    im.close()
 
 
 def transform(img,source,target, **kwargs):

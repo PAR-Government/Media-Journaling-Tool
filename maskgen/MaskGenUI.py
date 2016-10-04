@@ -512,6 +512,11 @@ class MakeGenUI(Frame):
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im)
 
+    def viewdonor(self):
+        im = self.scModel.constructComposite()
+        if im is not None:
+            CompositeViewDialog(self, self.scModel.start, im)
+
     def connectto(self):
         self.drawState()
         self.canvas.connectto()
@@ -681,6 +686,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Export", command=self.exportpath)
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
+        #self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)

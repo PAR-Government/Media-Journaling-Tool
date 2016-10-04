@@ -2107,7 +2107,17 @@
     {
       "category": "Transform",
       "name": "TransformFlip",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "flip direction": {
+          "type": "list",
+          "values": [
+            "horizontal",
+            "vertical",
+            "both"
+          ],
+          "description": "Direction of flip."
+        }
+      },
       "rules": [
         "checkSize",
         "checkFileTypeChange"

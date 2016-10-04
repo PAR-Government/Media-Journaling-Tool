@@ -587,6 +587,14 @@ class ImageProjectModel:
         imagediff = MetaDiff(e['exifdiff']) if 'exifdiff' in e and len(e['exifdiff']) > 0 else None
         return imagediff if imagediff is not None else videodiff
 
+    def getDonorAndBaseNodeTuples(self):
+        """
+        Return a tuple (edge, base node) for each valid donor path through the graph
+        """
+        donorEdges = [edge for edge in self.G.get_edges() if
+                         self.G.get_edge(edge[0],edge[1])['operation'] == 'Donor']
+        return [(edge, self._findBaseNodes(edge[0])) for edge in donorEdges]
+
     def getTerminalAndBaseNodeTuples(self):
         """
           Return a tuple (lead node, base node) for each valid (non-donor) path through the graph
@@ -641,6 +649,22 @@ class ImageProjectModel:
             mask, filename = self.G.get_composite_mask(nodeName)
         return mask
 
+    def getDonor(self):
+        """
+         Get the composite image for the selected node.
+         If the composite does not exist AND the node is a leaf node, then create the composite
+         Return None if the node is not a leaf node
+        """
+        nodeName = self.start if self.end is None else self.end
+        mask, filename = self.G.get_donor_mask(nodeName)
+        if mask is None:
+            # verify the node is a leaf node
+            endPointTuples = self.getDonorAndBaseNodeTuples()
+            if nodeName in [x[0][1] for x in endPointTuples]:
+                self.constructDonors()
+            mask, filename = self.G.get_donor_mask(nodeName)
+        return mask
+
     def _constructComposites(self, nodeAndMasks, stopAtNode=None,edgeMap=dict(),level=0):
         """
           Walks up down the tree from base nodes, assemblying composite masks"
@@ -659,6 +683,18 @@ class ImageProjectModel:
         if len(result) == 0:
             return nodeAndMasks
         return self._constructComposites(result,stopAtNode=stopAtNode,level=level+1,edgeMap=edgeMap)
+
+    def _constructDonor(self, edge, mask):
+        """
+          Walks up down the tree from base nodes, assemblying composite masks"
+        """
+        for pred in self.G.predecessors(edge[0]):
+            edge = self.G.get_edge(pred, edge[0])
+            if edge['op'] == 'Donor':
+                continue
+            donorMask = self._alterDonor(mask,edge)
+            return self._constructDonor((pred, edge[0]),donorMask)
+        return mask
 
     def constructComposite(self):
         """
@@ -707,6 +743,24 @@ class ImageProjectModel:
             self.G.get_edge(k[0], k[1])['compositecolor'] = str(list(v)).replace('[', '').replace(']','').replace(
                     ',', '')
         return composites
+
+    def constructDonors(self):
+
+        """
+          Remove all prior constructed composites.
+          Find all valid base node, leaf node tuples.
+          Construct the composite make along the paths from base to lead node.
+          Save the composite in the associated leaf nodes.
+        """
+        donors = list()
+        edgeMap = dict()
+        endPointTuples = self.getDonorAndBaseNodeTuples()
+        for endPointTuple in endPointTuples:
+            donor_mask = self._constructDonor(endPointTuple[0],endPointTuple[1], edgeMap=edgeMap)
+            if donor_mask is not None:
+                self.G.addDonorToNode(endPointTuple[1], donor_mask)
+                donors.append((endPointTuple[1], donor_mask))
+        return donors
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
                      skipRules=False):
@@ -1286,11 +1340,34 @@ class ImageProjectModel:
         interpolation = args['interpolation'] if 'interpolation' in args and len(
             args['interpolation']) > 0 else 'nearest'
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+        flip = args['flip direction'] if 'flip direction' in args else None
         tm = tm if 'global' not in edge or edge['global'] == 'no' else None
         compositeMask = tool_set.alterMask(compositeMask, edgeMask, rotation=rotation,
-                                           sizeChange=sizeChange, interpolation=interpolation, location=location,
+                                           sizeChange=sizeChange, interpolation=interpolation,
+                                           location=location, flip=flip,
                                            transformMatrix=tm)
         return compositeMask
+
+    def _alterDonor(self,donorMask,edge):
+        if donorMask is None:
+            return None
+        # change the mask to reflect the output image
+        # considering the crop again, the high-lighted change is not dropped
+        # considering a rotation, the mask is now rotated
+        sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+        location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
+        rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
+        args = edge['arguments'] if 'arguments' in edge else {}
+        rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
+        interpolation = args['interpolation'] if 'interpolation' in args and len(
+            args['interpolation']) > 0 else 'nearest'
+        tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+        flip = args['flip direction'] if 'flip direction' in args else None
+        tm = tm if 'global' not in edge or edge['global'] == 'no' else None
+        return  tool_set.alterReverseMask(donorMask, None, rotation=rotation,
+                                           sizeChange=sizeChange, interpolation=interpolation,
+                                           location=location, flip=flip,
+                                           transformMatrix=None)
 
     def _getModificationForEdge(self, edge):
         return Modification(edge['op'], \

@@ -8,6 +8,7 @@ def openImageFile(filename):
    try:
       with open(filename,'rb') as f:
           im = Image.open(filename)
+          im.load()
           return ImageWrapper(np.asarray(im),info=im.info)
    except:
       info = {}
