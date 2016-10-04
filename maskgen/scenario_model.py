@@ -3,13 +3,13 @@ import shutil
 import exif
 import os
 import numpy as np
-from PIL import Image
 import tool_set
 import video_tools
 from software_loader import Software, Operation, getOperation
 import tempfile
 import plugins
 import graph_rules
+from image_wrap import ImageWrapper
 
 
 def toIntTuple(tupleString):
@@ -195,7 +195,7 @@ class Modification:
     # automated
     automated = 'no'
     # errors
-    errors = []
+    errors = list()
 
     def __init__(self, operationName, additionalInfo, arguments={},
                  recordMaskInComposite=None,
@@ -209,7 +209,7 @@ class Modification:
         self.additionalInfo = additionalInfo
         self.maskSet = maskSet
         self.automated = automated if automated else 'no'
-        self.errors = errors if errors else []
+        self.errors = errors if errors else list()
         self.setOperationName(operationName)
         self.setArguments(arguments)
         if inputMaskName is not None:
@@ -221,7 +221,7 @@ class Modification:
             self.recordMaskInComposite = recordMaskInComposite
 
     def setErrors(self, val):
-        self.errors = val if val else []
+        self.errors = val if val else list()
 
     def setAutomated(self, val):
         self.automated = 'yes' if val == 'yes' else 'no'
@@ -312,7 +312,7 @@ class ImageImageLinkTool(LinkTool):
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        errors = []
+        errors = list()
         maskname = start + '_' + destination + '_mask' + '.png'
         if op == 'Donor':
             predecessors = scModel.G.predecessors(destination)
@@ -329,8 +329,8 @@ class ImageImageLinkTool(LinkTool):
                             scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
                             arguments=arguments, invert=invert)
                         if mask is not None:
-                            errors = []
-                            mask = Image.fromarray(mask)
+                            errors = list()
+                            mask = ImageWrapper(mask)
                         break
             if mask is None:
                 analysis = {}
@@ -375,7 +375,7 @@ class VideoImageLinkTool(ImageImageLinkTool):
         args['skipSnapshot'] = True
         startIm, startFileName = scModel.getImageAndName(start,arguments=args)
         destIm, destFileName = scModel.getImageAndName(destination)
-        errors = []
+        errors = list()
         maskname = start + '_' + destination + '_mask' + '.png'
         if op == 'Donor':
             errors = ["An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
@@ -435,7 +435,7 @@ class VideoVideoLinkTool(LinkTool):
 
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = Image.new("RGB", (250, 250), "black"), {}
+        mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
         maskname = start + '_' + destination + '_mask' + '.png'
         if op == 'Donor':
             maskSet, errors = self._constructDonorMask(startFileName, destFileName,
@@ -451,7 +451,7 @@ class VideoVideoLinkTool(LinkTool):
                                                    applyConstraintsToOutput=op != 'SelectCutFrames')
         # for now, just save the first mask
         if len(maskSet) > 0:
-            mask = Image.fromarray(maskSet[0]['mask'])
+            mask = ImageWrapper(maskSet[0]['mask'])
             for item in maskSet:
                 item.pop('mask')
         analysis['masks count'] = len(maskSet)
@@ -472,16 +472,16 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = Image.new("RGB", (250, 250), "black"), {}
+        mask, analysis = ImageWrapper(np.zeros(250,250,3).astype('uint8')), {}
         maskname = start + '_' + destination + '_mask' + '.png'
         maskSet =[]
-        errors = []
+        errors = list()
         if op == 'Donor':
             maskSet, errors = self._constructDonorMask(startFileName, destFileName,
                                                        start, destination, scModel, invert=invert, arguments=arguments)
         # for now, just save the first mask
         if len(maskSet) > 0:
-            mask = Image.fromarray(maskSet[0]['mask'])
+            mask = ImageWrapper(maskSet[0]['mask'])
             for item in maskSet:
                 item.pop('mask')
         analysis['masks count'] = len(maskSet)
@@ -645,7 +645,7 @@ class ImageProjectModel:
         """
           Walks up down the tree from base nodes, assemblying composite masks"
         """
-        result = []
+        result = list()
         for nodeAndMask in nodeAndMasks:
             if nodeAndMask[1] == stopAtNode:
                 return [nodeAndMask]
@@ -676,7 +676,7 @@ class ImageProjectModel:
             for composite in composites:
                 if composite[1] == selectedNode and composite[2] is not None:
                     intensityMap = tool_set.redistribute_intensity(edgeMap)
-                    im = Image.fromarray(tool_set.toColor(composite[2], edge_map=edgeMap, intensity_map=intensityMap))
+                    im = ImageWrapper(tool_set.toColor(composite[2], edge_map=edgeMap, intensity_map=intensityMap))
                     for k, v in edgeMap.iteritems():
                         if type(v) == int:
                             continue
@@ -691,7 +691,7 @@ class ImageProjectModel:
           Construct the composite make along the paths from base to lead node.
           Save the composite in the associated leaf nodes.
         """
-        composites = []
+        composites = list()
         edgeMap = dict()
         endPointTuples = self.getTerminalAndBaseNodeTuples()
         for endPointTuple in endPointTuples:
@@ -699,7 +699,7 @@ class ImageProjectModel:
                 composites.extend(self._constructComposites([(baseNode, baseNode, None)], edgeMap=edgeMap))
         intensityMap = tool_set.redistributeColors(edgeMap)
         for composite in composites:
-            self.G.addCompositeToNode((composite[0], composite[1], Image.fromarray(
+            self.G.addCompositeToNode((composite[0], composite[1], ImageWrapper(
                 tool_set.toColor(composite[2], edge_map=edgeMap, intensity_map=intensityMap))))
         for k, v in edgeMap.iteritems():
             if type(v) == int:
@@ -887,12 +887,12 @@ class ImageProjectModel:
 
     def getImage(self, name):
         if name is None or name == '':
-            return Image.fromarray(np.zeros((250, 250, 4)).astype('uint8'))
+            return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
         return self.G.get_image(name)[0]
 
     def getImageAndName(self, name, arguments=dict()):
         if name is None or name == '':
-            return Image.fromarray(np.zeros((250, 250, 4)).astype('uint8'))
+            return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
         return self.G.get_image(name,metadata=arguments)
 
     def getStartImageFile(self):
@@ -907,7 +907,7 @@ class ImageProjectModel:
     def nextImage(self):
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
-            return Image.fromarray(np.zeros((dim[1], dim[0])).astype('uint8'))
+            return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
         return self.getImage(self.end)
 
     def getSelectMask(self):
@@ -925,7 +925,7 @@ class ImageProjectModel:
     def maskImage(self):
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
-            return Image.fromarray(np.zeros((dim[1], dim[0])).astype('uint8'))
+            return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
         return self.G.get_edge_image(self.start, self.end, 'maskname')[0]
 
     def maskStats(self):
@@ -984,7 +984,7 @@ class ImageProjectModel:
     def validate(self):
         """ Return the list of errors from all validation rules on the graph. """
 
-        total_errors = []
+        total_errors = list()
 
         if len(self.G.get_nodes()) == 0:
             return total_errors
@@ -1049,17 +1049,17 @@ class ImageProjectModel:
 
     def _findTerminalNodes(self, node):
         succs = self.G.successors(node)
-        res = [node] if len(succs) == 0 else []
+        res = [node] if len(succs) == 0 else list()
         for succ in succs:
             res.extend(self._findTerminalNodes(succ))
         return res
 
     def _findTerminalNodes(self, node):
-        return self._findTerminalNodesWithCycleDetection(node, visitSet=[])
+        return self._findTerminalNodesWithCycleDetection(node, visitSet=list())
 
     def _findTerminalNodesWithCycleDetection(self, node, visitSet=list()):
         succs = self.G.successors(node)
-        res = [node] if len(succs) == 0 else []
+        res = [node] if len(succs) == 0 else list()
         for succ in succs:
             if succ in visitSet:
                 continue
@@ -1068,11 +1068,11 @@ class ImageProjectModel:
         return res
 
     def _findBaseNodes(self, node, excludeDonor=True):
-        return self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor, visitSet=[])
+        return self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor, visitSet=list())
 
     def _findBaseNodesWithCycleDetection(self, node, excludeDonor=True, visitSet=list()):
         preds = self.G.predecessors(node)
-        res = [node] if len(preds) == 0 else []
+        res = [node] if len(preds) == 0 else list()
         for pred in preds:
             if pred in visitSet:
                 continue
@@ -1080,7 +1080,7 @@ class ImageProjectModel:
             if isNotDonor:
                 visitSet.append(pred)
             res.extend(self._findBaseNodesWithCycleDetection(pred, excludeDonor=excludeDonor,
-                                                             visitSet=visitSet) if isNotDonor else [])
+                                                             visitSet=visitSet) if isNotDonor else list())
         return res
 
     def isDonorEdge(self, start, end):
@@ -1094,7 +1094,7 @@ class ImageProjectModel:
          find all pairs of leaf nodes to matching base nodes
         """
         endPointTuples = self.getTerminalAndBaseNodeTuples()
-        pairs = []
+        pairs = list()
         for endPointTuple in endPointTuples:
             matchBaseNodes = [baseNode for baseNode in endPointTuple[1] if
                               suffix is None or self.G.get_pathname(baseNode).lower().endswith(suffix)]
@@ -1112,7 +1112,7 @@ class ImageProjectModel:
     def imageFromPlugin(self, filter, im, filename, **kwargs):
         """
           Create a new image from a plugin filter.
-          This method is given the plugin name, PIL Image, the full pathname of the image and any additional parameters
+          This method is given the plugin name, Image, the full pathname of the image and any additional parameters
           required by the plugin (name/value pairs).
           The name of the resulting image contains the prefix of the input image file name plus an additional numeric index.
           If requested by the plugin (return True), the Exif is copied from the input image to the resulting image.
@@ -1153,7 +1153,7 @@ class ImageProjectModel:
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
-        pairs = []
+        pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
                          msg2 if msg2 else '']).strip()
@@ -1264,14 +1264,14 @@ class ImageProjectModel:
 
     def _extendComposite(self,compositeMask,edge,source,target,level=0,edgeMap={}):
         if compositeMask is None:
-            imarray = np.asarray(self.G.get_image(source)[0])
+            imarray = self.G.get_image(source)[0].to_array()
             compositeMask = np.ones((imarray.shape[0], imarray.shape[1])) * 255
         # merge masks first, the mask is the same size as the input image
         # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
         # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
         edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
         selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-        edgeMask = np.asarray(selectMask if selectMask is not None else edgeMask)
+        edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
         if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
             compositeMask = tool_set.mergeMask(compositeMask, edgeMask, level=level)
             edgeMap[(source, target)] = level
@@ -1307,7 +1307,7 @@ class ImageProjectModel:
                             recordMaskInComposite=edge[
                                 'recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no',
                             automated=edge['automated'] if 'automated' in edge else 'no',
-                            errors=edge['errors'] if 'errors' in edge else [],
+                            errors=edge['errors'] if 'errors' in edge else list(),
                             maskSet=(VideoMaskSetInfo(edge['videomasks']) if (
                                 'videomasks' in edge and len(edge['videomasks']) > 0) else None))
 

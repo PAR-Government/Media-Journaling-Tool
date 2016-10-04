@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from PIL import Image, ImageOps
 import math
 from datetime import datetime
 from skimage.measure import compare_ssim
@@ -12,6 +11,7 @@ import re
 import imghdr
 import h5py
 import os
+from image_wrap import *
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
                   ("bmp files", "*.bmp"), ("avi files", "*.avi")]
@@ -50,7 +50,6 @@ def fileType(fileName):
     pos = fileName.rfind('.')
     suffix = fileName[pos + 1:] if pos > 0 else ''
     return 'image' if (suffix in imagefiletypes or imghdr.what(fileName) is not None) else 'video'
-
 
 
 def openFile(fileName):
@@ -109,10 +108,8 @@ def setPwdX(api):
 def get_username():
     return pwdAPI.getpwuid()
 
-
 def imageResize(img, dim):
-    return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
-
+    return img.resize(dim,Image.ANTIALIAS).convert('RGBA')
 
 def imageResizeRelative(img, dim, otherIm):
     wmax = max(img.size[0], otherIm[0])
@@ -122,7 +119,7 @@ def imageResizeRelative(img, dim, otherIm):
     perc = min(wpercent, hpercent)
     wsize = int((float(img.size[0]) * float(perc)))
     hsize = int((float(img.size[1]) * float(perc)))
-    return img.resize((wsize, hsize), Image.ANTIALIAS)
+    return img.resize((wsize, hsize),Image.ANTIALIAS)
 
 
 def validateCoordinates(v):
@@ -213,7 +210,10 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                                                       'm4v']:
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
-    if videoFrameTime is not None or (not os.path.exists(snapshotFileName) and snapshotFileName != filename):
+    if videoFrameTime is not None or \
+        (snapshotFileName != filename and \
+         (not os.path.exists(snapshotFileName) or \
+            os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
         cap = cv2.VideoCapture(filename)
         bestSoFar = None
         bestVariance = -1
@@ -238,29 +238,25 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         if bestSoFar is None:
             print 'invalid or corrupted file ' + filename
             return openImage('./icons/RedX.png')
-        img = Image.fromarray(bestSoFar)
-        img = img.convert('L') if isMask else img
+        img = ImageWrapper(bestSoFar, to_mask=isMask)
         if preserveSnapshot and snapshotFileName != filename:
             img.save(snapshotFileName)
         return img
     else:
         try:
-            with open(snapshotFileName, "rb") as fp:
-                img = Image.open(fp)
-                img.load()
-                return img
+            img = openImageFile(snapshotFileName)
+            return img
         except IOError as e:
             print e
             return openImage('./icons/RedX.png')
 
 
 def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
+    maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
-    maskInverted = np.copy(mask) if invert else 255 - mask
-    maskInverted[maskInverted > 0] = 1
     TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
     if TM is not None:
-        newMask = cv2.warpPerspective(mask, TM, img1.size, flags=cv2.WARP_INVERSE_MAP,borderMode=cv2.BORDER_CONSTANT, borderValue=255)
+        newMask = cv2.warpPerspective(mask, TM, (img1.size[0],img1.size[1]), flags=cv2.WARP_INVERSE_MAP,borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
         return newMask if computed_mask is None else computed_mask, analysis
@@ -374,7 +370,7 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
 def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
-    mask2 = cv2.resize(np.asarray(mask), img2.size) if mask is not None and img1.size != img2.size else mask
+    mask2 = mask.resize(img2.size) if mask is not None and img1.size != img2.size else mask
     matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
@@ -383,7 +379,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
 def createMask(img1, img2, invert, arguments={}):
     mask, analysis = __composeMask(img1, img2, invert, arguments=arguments)
     analysis['shape change'] = __sizeDiff(img1, img2)
-    return Image.fromarray(mask), analysis
+    return ImageWrapper(mask), analysis
 
 
 def __indexOf(source, dest):
@@ -395,29 +391,9 @@ def __indexOf(source, dest):
                 break
     return positions
 
-def __toGrey(img):
-    splits = img.split()
-    img_array = np.asarray(img.convert('RGB'))
-    if (len(splits)) > 3:
-       alpha = np.asarray(splits[3])
-       zeros = np.zeros(alpha.shape)
-       zeros[alpha>0] = 1
-       img_array2 = np.zeros(img_array.shape)
-       for i in range(3):
-           img_array2[:,:,i] = img_array[:,:,i]*zeros
-       img_array = img_array2
-    return img_array.astype('uint8')
-
-
 def __sift(img1, img2, mask1=None, mask2=None):
-    img1 = __toGrey(img1)
-    img2 = __toGrey(img2)
-    if mask1 is not None:
-        for i in range(3):
-            img1[:, :, i] = img1[:, :, i] * np.asarray(mask1)
-    if mask2 is not None:
-        for i in range(3):
-            img2[:, :, i] = img2[:, :, i] * np.asarray(mask2)
+    img1 = img1.to_rgb().apply_mask(mask1).to_array()
+    img2 = img2.to_rgb().apply_mask(mask2).to_array()
 
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
@@ -486,17 +462,16 @@ def __sift(img1, img2, mask1=None, mask2=None):
 
 
 def __applyTransform(compositeMask, mask, transform_matrix):
-    mask = np.copy(np.asarray(mask))
-    maskInverted = 255 - mask
+    maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
     compositeMaskFlipped = 255 - compositeMask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
     newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]))#, flags=cv2.WARP_INVERSE_MAP)
-    mask[mask > 0] = 1
-    compositeMaskAltered = compositeMaskFlipped * mask
+    maskAltered  = np.copy(mask)
+    maskAltered[maskAltered > 0] = 1
+    compositeMaskAltered = compositeMaskFlipped * maskAltered
     newMask[compositeMaskAltered > 0] = 255
     return 255 - newMask
-
 
 def __composeMask(img1, img2, invert, arguments=dict()):
     img1, img2 = __alignChannels(img1, img2)
@@ -572,20 +547,7 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
 
 
 def __alignChannels(rawimg1, rawimg2):
-    f1 = np.asarray(rawimg1)
-    f2 = np.asarray(rawimg2)
-    img1 = np.asarray(rawimg1.convert('F'))
-    img2 = np.asarray(rawimg2.convert('F'))
-    if len(f1.shape) == len(f2.shape) and len(f1.shape) == 3:
-        # this is messed up.  The conversion does not compare alpha-channels and we to see of one the images
-        # had added an alpha
-        if f2.shape[2] != f1.shape[2]:
-            if f2.shape[2] == 4:
-                img2 = img2 * f2[:, :, 3].astype('float32') / 255.0
-            elif f1.shape[2] == 4:
-                img1 = img1 * f1[:, :, 3].astype('float32') / 255.0
-    return img1, img2
-
+    return rawimg1.to_float().to_array(), rawimg2.to_float().to_array()
 
 def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
@@ -667,21 +629,13 @@ def __sizeDiff(z1, z2):
 
 
 def invertMask(mask):
-    return ImageOps.invert(mask)
+    return mask.invert()
 
 def convertToMask(im):
     """
       Takes an image and produce a mask where all black areas are white
     """
-    imGray = im.convert('L')
-    imA = np.asarray(im)
-    imGrayA = np.asarray(imGray)
-    gray_image = np.ones(imGrayA.shape).astype('uint8')
-    gray_image[imGrayA < 255] = 0
-    gray_image = gray_image * 255
-    if len(imA.shape) == 3 and imA.shape[2] == 4:
-        gray_image[imA[:, :, 3] == 0] = 255
-    return Image.fromarray(gray_image)
+    return im.to_mask()
 
 
 def __checkInterpolation(val):
@@ -724,7 +678,7 @@ def __toMask(im):
 def mergeMask(compositeMask, newMask,level=0):
     if compositeMask.shape != newMask.shape:
         compositeMask = cv2.resize(compositeMask, (newMask.shape[1], newMask.shape[0]))
-        newMask = __toMask(newMask)
+        newMask = ImageWrapper(newMask).to_mask().to_array()
     else:
         compositeMask = np.copy(compositeMask)
     compositeMask[newMask==0] = level
@@ -746,16 +700,7 @@ def __diffMask(img1, img2, invert):
 
 
 def fixTransparency(img):
-    if img.mode.find('A') < 0:
-        return img
-    xx = np.asarray(img)
-    perc = xx[:, :, 3].astype(float) / float(255)
-    xx.flags['WRITEABLE'] = True
-    for d in range(3):
-        xx[:, :, d] = xx[:, :, d] * perc
-    xx[:, :, 3] = np.ones((xx.shape[0], xx.shape[1])) * 255
-    return Image.fromarray(xx)
-
+    return img.apply_transparency()
 
 def __findNeighbors(paths, next_pixels):
     newpaths = list()

@@ -43,6 +43,8 @@ def fromFileTypeString(types, profileTypes):
     return result
 
 
+
+
 def projectProperties():
     return [('User Name', 'username', 'string'), ('Organization', 'organization', 'string'),
             ('Description', 'projectdescription', 'text'), ('Technical Summary', 'technicalsummary', 'text'),
@@ -63,7 +65,6 @@ def projectProperties():
 
 
 class UIProfile:
-    suffixes = ["*.nef", ".jpg", ".png", ".tiff", "*.bmp", ".avi", ".mp4", ".mov", "*.wmv"]
     operations = 'operations.json'
     software = 'software.csv'
     name = 'Image/Video'
@@ -123,14 +124,14 @@ class MakeGenUI(Frame):
 
     def new(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
-                                           filetypes=getFileTypes())
+                                           filetypes=self.getMergedFileTypes())
         if val is None or val == '':
             return
         dir = os.path.split(val)[0]
         if (not self._check_dir(dir)):
             tkMessageBox.showinfo("Error", "Directory already associated with a project")
             return
-        self.scModel.startNew(val, suffixes=self.uiProfile.suffixes,
+        self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
                               organization=self.prefLoader.get_key('organization'))
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes())
@@ -296,6 +297,8 @@ class MakeGenUI(Frame):
     def getPreferredFileTypes(self):
         return [tuple(x) for x in self.scModel.getProjectData('typespref')]
 
+
+
     def nextadd(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select image file",
                                            filetypes=self.getPreferredFileTypes())
@@ -438,9 +441,9 @@ class MakeGenUI(Frame):
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
-        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)))
-        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)))
-        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size))
+        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)).toPIL())
+        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)).toPIL())
+        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
         self.img3c.config(image=self.img3)
@@ -728,11 +731,27 @@ class MakeGenUI(Frame):
         elif eventName == 'n':
             self.drawState()
 
+    def getMergedSuffixes(self):
+        types = [x[1] for x in self.prefLoader.get_key('filetypes')]
+        for suffix in getFileTypes():
+            if suffix[1] not in types:
+                types.append(suffix[1])
+        types = [suffix[suffix.rfind('.'):] for suffix in types]
+        return types
+
+    def getMergedFileTypes(self):
+        types = [tuple(x) for x in self.prefLoader.get_key('filetypes')]
+        tset = set([x[1] for x in types])
+        for suffix in getFileTypes():
+            if suffix[1] not in tset:
+                types.append(suffix)
+        return types
+
     def __init__(self, dir, master=None, pluginops={}, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
         self.mypluginops = pluginops
-        tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=uiProfile.suffixes,
+        tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:

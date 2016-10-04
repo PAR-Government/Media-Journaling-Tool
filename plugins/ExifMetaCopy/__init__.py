@@ -1,9 +1,8 @@
 from subprocess import call
 from PIL import Image
 
-def emc_update_size(imageFile):
-    with Image.open(imageFile) as im:
-        width, height = im.size
+def emc_update_size(size,imageFile):
+    width, height = size
     call(['exiftool', '-P', '-q', '-m', '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
                                         '-ExifImageHeight=' + str(height),
@@ -15,7 +14,7 @@ def transform(img,source,target, **kwargs):
     call(['-overwrite_original', '-q', '-all=', target])
     call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
     call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
-    emc_update_size(target)
+    emc_update_size(img.size,target)
     return False,None
 
 def suffix():

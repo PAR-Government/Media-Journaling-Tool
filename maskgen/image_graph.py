@@ -7,8 +7,8 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 
-igversion='0.2'
-igcompatibleversions=['0.1','0.2']
+igversion='0.2.1'
+igcompatibleversions=['0.1','0.2', '0.2.1']
 
 def getPathValues(d, path):
     """
@@ -150,13 +150,10 @@ class ImageGraph:
         fname = nname + suffix
         return fname
 
-    def _saveImage(self, pathname, image):
-        image.save(pathname, exif=image.info['exif'])
-
-    def add_node(self, pathname, seriesname=None, image=None, **kwargs):
+    def add_node(self, pathname, seriesname=None, **kwargs):
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
-        origname = nname = get_pre_name(fname)
+        origname = get_pre_name(fname)
         suffix = get_suffix(fname)
         newfname = self.new_name(fname, suffix)
         nname = get_pre_name(newfname)
@@ -168,8 +165,6 @@ class ImageGraph:
             includePathInUndo = True
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
-            elif image is not None:
-                self._saveImage(newpathname, image)
         self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname,
                         ownership=('yes' if includePathInUndo else 'no'),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)

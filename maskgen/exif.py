@@ -1,7 +1,7 @@
 from subprocess import call, Popen, PIPE
 import os
 import numpy as np
-from PIL import Image
+import tool_set
 
 
 def getOrientationFromExif(source):
@@ -24,12 +24,11 @@ def getOrientationFromExif(source):
         return None
 
 
-def rotateAccordingToExif(im, orientation):
+def rotateAccordingToExif(img_array, orientation):
     rotation = orientation
 
     if rotation is None:
-        return im
-    arr = np.array(im)
+        return img_array
     if rotation == 'Mirror horizontal':
         rotatedArr = np.fliplr(arr)
     elif rotation == 'Rotate 180':
@@ -47,10 +46,9 @@ def rotateAccordingToExif(im, orientation):
     elif rotation == 'Rotate 270 CW':
         rotatedArr = np.rot90(arr, 3)
     else:
-        rotatedArr = arr
+        rotatedArr = img_array
 
-    rotatedIm = Image.fromarray(rotatedArr)
-    return rotatedIm
+    return rotatedArr
 
 
 def copyexif(source, target):

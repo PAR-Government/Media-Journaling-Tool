@@ -3,6 +3,8 @@ import sys
 import exif
 from description_dialog import RotateDialog
 import tkSimpleDialog
+import numpy as np
+import tool_set
 
 
 class BaseOperation:
@@ -61,7 +63,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                 orientation = exif.getOrientationFromExif(donor_filename)
                 rotate = 'no'
                 if orientation is not None:
-                    rotated_im = exif.rotateAccordingToExif(im, orientation)
+                    rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
                     dialog = RotateDialog(master_ui, donor_im, rotated_im, orientation)
                     rotate = dialog.rotate
                 if donor_filename.lower().endswith('jpg'):

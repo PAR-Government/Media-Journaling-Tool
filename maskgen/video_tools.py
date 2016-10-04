@@ -5,9 +5,8 @@ import os
 import json
 from datetime import datetime
 import tool_set
-from PIL import Image
 import time
-
+from image_wrap import ImageWrapper
 
 def otsu(hist):
     total = sum(hist)
@@ -714,7 +713,7 @@ def interpolateMask(mask_file_name_prefix,
                     if frame is None:
                          new_mask = np.ones(mask.shape) * 255
                     else:
-                        new_mask, analysis = tool_set.interpolateMask(mask,image, Image.fromarray(frame))
+                        new_mask, analysis = tool_set.interpolateMask(ImageWrapper(mask),ImageWrapper(image), ImageWrapper(frame))
                         if first_mask is None:
                             change['mask'] = new_mask
                             change['starttime'] = frame_time
@@ -751,7 +750,7 @@ def pullFrameNumber(video_file, frame_number):
         frame_number-=1
     elapsed_time = video_capture.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
     video_capture.release()
-    Image.fromarray(frame).save(video_file[0:video_file.rfind('.')] + '.png')
+    ImageWrapper(frame).save(video_file[0:video_file.rfind('.')] + '.png')
     return time.strftime("%H:%M:%S", time.gmtime(elapsed_time / 1000)) + '.%03d' % (elapsed_time % 1000)
 
 def main(argv=None):

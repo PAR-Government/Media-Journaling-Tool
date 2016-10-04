@@ -10,7 +10,6 @@ import tempfile
 from PIL import Image
 import numpy as np
 from bitstring import BitArray
-from subprocess import Popen, PIPE
 import maskgen.exif
 
 
@@ -74,7 +73,7 @@ def sort_tables(tablesList):
     return newTables
 
 def check_rotate(im, jpg_file_name):
-    return maskgen.exif.rotateAccordingToExif(im,maskgen.exif.getOrientationFromExif(jpg_file_name))
+    return Image.fromarray(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
 def cs_save_as(source, target, donor, qTables,rotate):
     """
