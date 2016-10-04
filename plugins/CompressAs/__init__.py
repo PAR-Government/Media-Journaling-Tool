@@ -97,12 +97,13 @@ def cs_save_as(source, target, donor, qTables,rotate):
         finalTable = qTables
 
     # write jpeg with specified tables
-    im = Image.open(source)
+    with open(source,'rb') as fp:
+        im = Image.open(fp)
+        im.load()
     if rotate:
       im = check_rotate(im,donor) 
     im.save(target, subsampling=1, qtables=finalTable)
     width, height = im.size
-    im.close()
     if thumbTable:
         im.thumbnail((128, 128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
