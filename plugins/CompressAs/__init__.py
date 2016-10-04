@@ -107,18 +107,19 @@ def cs_save_as(source, target, donor, qTables,rotate):
     if thumbTable:
         im.thumbnail((128, 128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
+        os.close(fd)
         try:
             im.save(tempFile, subsampling=1, qtables=thumbTable)
+            maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
         except OverflowError:
             thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
             im.save(tempFile, subsampling=1, qtables=thumbTable)
             maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
         finally:
             os.remove(tempFile)
-            os.close(fd)
-        maskgen.exif.runexif(['-overwrite_original','-q','-all=', target])
-        maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
-        maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=',
+    maskgen.exif.runexif(['-overwrite_original','-q','-all=', target])
+    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
+    maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=',
                                         '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
                                         '-ExifImageHeight=' + str(height),
