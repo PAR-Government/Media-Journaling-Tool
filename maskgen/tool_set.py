@@ -673,7 +673,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         res = __rotateImage(-rotation,  res,
                             (donorMask.shape[0] + sizeChange[0], donorMask.shape[1] + sizeChange[1]), cval=255)
     elif flip is not None:
-        res = cv2.flip(res, 0 if flip == 'horizontal' else (-1 if flip == 'both' else 1))
+        res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0):
         sizeChange = (location[0], location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])

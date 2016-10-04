@@ -649,14 +649,14 @@ class ImageProjectModel:
             mask, filename = self.G.get_composite_mask(nodeName)
         return mask
 
-    def getDonor(self):
+    def getDonor(self,force=False):
         """
          Get the composite image for the selected node.
          If the composite does not exist AND the node is a leaf node, then create the composite
          Return None if the node is not a leaf node
         """
         nodeName = self.start if self.end is None else self.end
-        mask, filename = self.G.get_donor_mask(nodeName)
+        mask, filename = None,None if force else self.G.get_donor_mask(nodeName)
         if mask is None:
             # verify the node is a leaf node
             endPointTuples = self.getDonorAndBaseNodeTuples()
@@ -684,16 +684,16 @@ class ImageProjectModel:
             return nodeAndMasks
         return self._constructComposites(result,stopAtNode=stopAtNode,level=level+1,edgeMap=edgeMap)
 
-    def _constructDonor(self, edge, mask):
+    def _constructDonor(self, edge_id, mask):
         """
           Walks up down the tree from base nodes, assemblying composite masks"
         """
-        for pred in self.G.predecessors(edge[0]):
-            edge = self.G.get_edge(pred, edge[0])
+        for pred in self.G.predecessors(edge_id[0]):
+            edge = self.G.get_edge(pred, edge_id[0])
             if edge['op'] == 'Donor':
                 continue
             donorMask = self._alterDonor(mask,edge)
-            return self._constructDonor((pred, edge[0]),donorMask)
+            return self._constructDonor((pred, edge_id[0]),donorMask)
         return mask
 
     def constructComposite(self):
@@ -753,12 +753,11 @@ class ImageProjectModel:
           Save the composite in the associated leaf nodes.
         """
         donors = list()
-        edgeMap = dict()
         endPointTuples = self.getDonorAndBaseNodeTuples()
         for endPointTuple in endPointTuples:
-            donor_mask = self._constructDonor(endPointTuple[0],endPointTuple[1], edgeMap=edgeMap)
+            donor_mask = self._constructDonor(endPointTuple[0],np.asarray(self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]))
             if donor_mask is not None:
-                self.G.addDonorToNode(endPointTuple[1], donor_mask)
+                self.G.addDonorToNode(endPointTuple[0][1], ImageWrapper(donor_mask))
                 donors.append((endPointTuple[1], donor_mask))
         return donors
 
@@ -1365,7 +1364,7 @@ class ImageProjectModel:
         flip = args['flip direction'] if 'flip direction' in args else None
         tm = tm if 'global' not in edge or edge['global'] == 'no' else None
         return  tool_set.alterReverseMask(donorMask, None, rotation=rotation,
-                                           sizeChange=sizeChange, interpolation=interpolation,
+                                           sizeChange=sizeChange,
                                            location=location, flip=flip,
                                            transformMatrix=None)
 
