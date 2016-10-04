@@ -1,7 +1,21 @@
 from PIL import Image
 import cv2
 import numpy as np
-import tifffile as tiff
+try:
+    from tifffile import TiffFile,imsave
+except ImportError:
+    def imsave(filename, img, **newargs):
+        import scipy.misc
+        scipy.misc.imsave(filename,img)
+    class TiffFile:
+        def __init__(self,filename):
+            pass
+        def __array__(self):
+            return []
+        def __exit__(self,x,y,z):
+            return []
+        def __enter__(self):
+            return []
 
 
 def openImageFile(filename):
@@ -13,7 +27,7 @@ def openImageFile(filename):
    except:
       info = {}
       try:
-          with tiff.TiffFile(filename) as tiffdata:
+          with TiffFile(filename) as tiffdata:
               for page in tiffdata:
                   for tag in page.tags.values():
                      t,v = tag.name, tag.value
@@ -113,7 +127,7 @@ class ImageWrapper:
             Image.fromarray(img_array).save(filename,**newargs)
             return
         newargs.pop('format')
-        tiff.imsave(filename, self.image_array,**newargs)
+        imsave(filename, self.image_array,**newargs)
         #flags =[(cv2.IMWRITE_JPEG_QUALITY,100)]if format in kwargs and format['kwargs'] == 'JPEG' else [(int(cv2.IMWRITE_PNG_COMPRESSION),0)]
         #cv2.imwrite(filename, self.image_array)
        # tiff = TIFF.open(filename,mode='w')

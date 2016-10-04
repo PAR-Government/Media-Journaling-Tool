@@ -5,7 +5,6 @@ Two TIFF images, and compresses the first with the configuration from the second
 
 """
 
-from PIL import Image
 import maskgen.exif
 from maskgen.tool_set import *
 import numpy as np

@@ -513,7 +513,7 @@ class MakeGenUI(Frame):
             CompositeViewDialog(self, self.scModel.start, im)
 
     def viewdonor(self):
-        im = self.scModel.constructComposite()
+        im = self.scModel.getDonor()
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im)
 
@@ -738,7 +738,9 @@ class MakeGenUI(Frame):
             self.drawState()
 
     def getMergedSuffixes(self):
-        types = [x[1] for x in self.prefLoader.get_key('filetypes')]
+        filetypes = self.prefLoader.get_key('filetypes')
+        filetypes = [] if filetypes is None else filetypes
+        types = [x[1] for x in filetypes]
         for suffix in getFileTypes():
             if suffix[1] not in types:
                 types.append(suffix[1])
@@ -746,7 +748,9 @@ class MakeGenUI(Frame):
         return types
 
     def getMergedFileTypes(self):
-        types = [tuple(x) for x in self.prefLoader.get_key('filetypes')]
+        filetypes = self.prefLoader.get_key('filetypes')
+        filetypes = [] if filetypes is None else filetypes
+        types = [tuple(x) for x in filetypes]
         tset = set([x[1] for x in types])
         for suffix in getFileTypes():
             if suffix[1] not in tset:

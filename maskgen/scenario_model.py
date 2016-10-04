@@ -592,7 +592,7 @@ class ImageProjectModel:
         Return a tuple (edge, base node) for each valid donor path through the graph
         """
         donorEdges = [edge for edge in self.G.get_edges() if
-                         self.G.get_edge(edge[0],edge[1])['operation'] == 'Donor']
+                         self.G.get_edge(edge[0],edge[1])['op'] == 'Donor']
         return [(edge, self._findBaseNodes(edge[0])) for edge in donorEdges]
 
     def getTerminalAndBaseNodeTuples(self):

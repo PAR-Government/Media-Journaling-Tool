@@ -9,5 +9,5 @@ setup(name='maskgen',
       license='APL',
       packages=['maskgen'],
       install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy',
-                        'h5py','libtiff'],
+                        'h5py'],
       zip_safe=False)
