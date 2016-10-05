@@ -10,6 +10,7 @@ import tempfile
 import plugins
 import graph_rules
 from image_wrap import ImageWrapper
+from PIL import Image
 
 
 def toIntTuple(tupleString):
@@ -340,6 +341,8 @@ class ImageImageLinkTool(LinkTool):
                     # probably should change this to == 'SelectRegion'
                     if edge['op'] != 'Donor':
                         mask = tool_set.invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0])
+                        if mask.size != startIm.size:
+                            mask = mask.resize(startIm.size,Image.ANTIALIAS)
                         break
             if mask is None:
                 mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
@@ -757,7 +760,7 @@ class ImageProjectModel:
         for endPointTuple in endPointTuples:
             donor_mask = self._constructDonor(endPointTuple[0],np.asarray(self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]))
             if donor_mask is not None:
-                self.G.addDonorToNode(endPointTuple[0][1], ImageWrapper(donor_mask))
+                self.G.addDonorToNode(endPointTuple[0][1], ImageWrapper(donor_mask.astype('uint8')))
                 donors.append((endPointTuple[1], donor_mask))
         return donors
 

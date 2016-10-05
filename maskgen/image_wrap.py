@@ -60,7 +60,8 @@ def totype(img_array, type):
 def get_mode(image_array):
     s = image_array.shape
     if len(s) == 2:
-        return 'F' if str(image_array.dtype).startswith('f') else 'L'
+        hasBigValues = (image_array>1).any()
+        return 'F' if str(image_array.dtype).startswith('f') and not hasBigValues else 'L'
     elif s[2] == 4:
         return 'RGBA'
     else:

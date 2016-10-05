@@ -40,7 +40,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
         result = []
         for pair in pairs:
             pred = self.scModel.getDescriptionForPredecessor(pair[0])
-            if str(pred.operationName) == 'AntiForensicCopyExif':
+            if str(pred.operationName) .startswith('AntiForensicExif'):
                 print 'Error: Last operation is ExifMetaCopy. Use CompressAs plugin with base image as donor.'
             else:
                 result.append(pair)

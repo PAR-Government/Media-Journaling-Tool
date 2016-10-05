@@ -117,7 +117,7 @@ def cs_save_as(source, target, donor, qTables,rotate):
                 im.save(tempFile, subsampling=1, qtables=thumbTable)
                 maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
             except Exception as e:
-                print 'failed'
+                print 'thumbnail generation failed'
                 print e
         finally:
             os.remove(tempFile)
