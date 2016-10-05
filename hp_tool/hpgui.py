@@ -191,7 +191,7 @@ class HPGUI(Frame):
         # self.loadButton = Button(self, text='Load CSV', command=self.open_csv, width=20)
         # self.loadButton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
         self.keywordsbutton = Button(self, text='Enter Keywords', command=self.open_keywords_sheet, state=DISABLED, width=20)
-        self.keywordsbutton.grid(row=lastRow+2, column=3, ipadx=5, ipady=5, padx=5, sticky='E')
+        self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
 
         self.menubar = Menu(self)
         self.fileMenu = Menu(self.menubar, tearoff=0)

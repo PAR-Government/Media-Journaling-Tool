@@ -110,12 +110,13 @@ class HPSpreadsheet(Toplevel):
             self.shadcol = self.pt.model.df.columns.get_loc('Shadows')
         self.modelcol = self.pt.model.df.columns.get_loc('CameraModel')
         self.hdrcol = self.pt.model.df.columns.get_loc('HP-HDR')
+        self.kincol = self.pt.model.df.columns.get_loc('HP-CameraKinematics')
 
         self.color_code_cells()
 
     def color_code_cells(self):
         notnans = self.pt.model.df.notnull()
-        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol]
+        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol, self.kincol]
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
                 x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
@@ -177,6 +178,7 @@ class HPSpreadsheet(Toplevel):
                             row + 1) + '. Value must be True or False')
 
         errors.extend(self.check_model())
+        errors.extend(self.check_kinematics())
 
         if errors:
             ErrorWindow(errors).show_errors()
@@ -198,13 +200,35 @@ class HPSpreadsheet(Toplevel):
         else:
             self.destroy()
 
+    def check_kinematics(self):
+        errors = []
+        try:
+            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Kinematics.csv')
+            df = pd.read_csv(dataFile)
+        except IOError:
+            tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found!')
+            return
+
+        data = [x.lower().strip() for x in df['Camera Kinematics']]
+        cols_to_check = [self.kincol]
+        for col in range(0, self.pt.cols):
+            if col in cols_to_check:
+                for row in range(0, self.pt.rows):
+                    val = str(self.pt.model.getValueAt(row, col))
+                    if val.lower() == 'nan' or val == '':
+                        imageName = self.pt.model.getValueAt(row, 0)
+                        errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+                    elif val.lower() not in data:
+                        errors.append('Invalid camera kinetickinetic ' + val + ' (row ' + str(row + 1) + ')')
+        return errors
+
     def check_model(self):
         errors = []
         try:
             dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Devices.csv')
             df = pd.read_csv(dataFile)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'Keywords reference not found!')
+            tkMessageBox.showwarning('Warning', 'Camera model reference not found!')
             return
 
         data = [x.lower().strip() for x in df['SeriesModel']]

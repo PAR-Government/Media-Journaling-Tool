@@ -291,7 +291,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
                                     'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                     'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
                                     'GPSLatitude', 'GPSLongitude', 'CustomRendered', 'HP-OnboardFilter', 'HP-OBFilterType', 'BitDepth', 'ImageWidth', 'ImageHeight',
-                                    'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-App'])
+                                    'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App'])
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
@@ -456,7 +456,7 @@ def remove_temp_subs(path):
 def parse_image_info(imageList, path='', rec=False, collReq='', camera='', localcam='', lens='', locallens='', hd='',
                      sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
                      focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
-                     cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app=''):
+                     cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app='', camerakinematics=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
@@ -502,13 +502,15 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     32. Reflections
     33. Shadows
     34. HDR
+    35. CameraKinematics
     35. App
     """
     exiftoolargs = []
     data = []
     if not hd:
         hd = path
-    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, app]
+    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + \
+             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app]
     missingIdx = []
 
     if camera:
