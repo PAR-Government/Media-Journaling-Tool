@@ -290,13 +290,13 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
                                     'CameraModel', 'DeviceSN', 'HP-DeviceLocalID', 'LensModel','LensSN', 'HP-LensLocalId', 'FileType', 'HP-JpgQuality',
                                     'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                     'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
-                                    'GPSLatitude', 'HP-OnboardFilter', 'GPSLongitude', 'BitDepth', 'ImageWidth', 'ImageHeight',
-                                    'HP-OBFilterType', 'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-App'])
+                                    'GPSLatitude', 'GPSLongitude', 'CustomRendered', 'HP-OnboardFilter', 'HP-OBFilterType', 'BitDepth', 'ImageWidth', 'ImageHeight',
+                                    'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-App'])
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
-                ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5, info[imNo][29]] +
-                                   info[imNo][2:4] + [info[imNo][30]] + info[imNo][4:29] + info[imNo][31:])
+                ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5, info[imNo][30]] +
+                                   info[imNo][2:4] + [info[imNo][31]] + info[imNo][4:30] + info[imNo][32:])
         else:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
@@ -320,7 +320,7 @@ def build_history_file(imageList, newNameList, data, csvFile):
             historyWriter.writerow(['Original Name', 'New Name', 'MD5', 'Type'])
         for imNo in range(len(imageList)):
             md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
-            historyWriter.writerow([os.path.basename(imageList[imNo]), os.path.basename(newNameList[imNo]), md5, data[imNo][28]])
+            historyWriter.writerow([os.path.basename(imageList[imNo]), os.path.basename(newNameList[imNo]), md5, data[imNo][29]])
 
 def parse_extra(data, csvFile):
     """
@@ -425,24 +425,6 @@ def tally_images(data, csvFile):
             tallyWriter.writerow(final[i] + [final[i+1]])
             i += 2
 
-# def s3_prefs(values, upload=False):
-#     """
-#     Parse S3 data and download/upload preferences file
-#     :param values: bucket/path of s3
-#     :param upload: Will upload pref file if specified, download otherwise
-#     :return: None
-#     """
-#     s3 = boto3.client('s3', 'us-east-1')
-#     BUCKET = values[0][0:values[0].find('/')]
-#     DIR = values[0][values[0].find('/') + 1:]
-#     if upload:
-#         try:
-#             s3.upload_file('preferences.txt', BUCKET, DIR + '/preferences.txt')
-#         except WindowsError:
-#             sys.exit('local file preferences.txt not found!')
-#     else:
-#         s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
-
 def frac2dec(fracStr):
     return fracStr
     # try:
@@ -506,26 +488,27 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     18. CreationDate
     19. Location
     20. GPSLatitude
-    21. OnboardFilter (T/F)
-    22. GPSLongitude
-    23. BitDepth
-    24. ImageWidth
-    25. ImageHeight
-    26. OBFilterType
-    27. LensFilter
-    28. Type (IMAGE or VIDEO)
-    29. CameraModel
-    30. LensModel
-    31. Reflections
-    32. Shadows
-    33. HDR
-    34. App
+    21. GPSLongitude
+    22. CustomRendered
+    23. OnboardFilter (T/F)
+    24. OBFilterType
+    25. BitDepth
+    26. ImageWidth
+    27. ImageHeight
+    28. LensFilter
+    29. Type (IMAGE or VIDEO)
+    30. CameraModel
+    31. LensModel
+    32. Reflections
+    33. Shadows
+    34. HDR
+    35. App
     """
     exiftoolargs = []
     data = []
     if not hd:
         hd = path
-    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4 + [obfiltertype, lensfilter, '', '', '', reflections, shadows, hdr, app]
+    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, app]
     missingIdx = []
 
     if camera:
@@ -595,20 +578,20 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         missingIdx.append(17)
 
     if cameramodel:
-        master[29] = cameramodel
+        master[30] = cameramodel
     else:
         exiftoolargs.append('-Model')
-        missingIdx.append(29)
-
-    if lensmodel:
-        master[30] = lensmodel
-    else:
-        exiftoolargs.append('-LensModel')
         missingIdx.append(30)
 
+    if lensmodel:
+        master[31] = lensmodel
+    else:
+        exiftoolargs.append('-LensModel')
+        missingIdx.append(31)
 
-    exiftoolargs.extend(['-BitsPerSample','-GPSLatitude','-GPSLongitude','-CreateDate','-ImageWidth','-ImageHeight'])
-    missingIdx.extend([23, 20, 22, 18, 24, 25])
+
+    exiftoolargs.extend(['-BitsPerSample','-GPSLatitude', '-GPSLongitude', '-CustomRendered', '-CreateDate','-ImageWidth','-ImageHeight'])
+    missingIdx.extend([25, 20, 21, 22, 18, 26, 27])
 
     if len(exiftoolargs) > 0:
         counter = 0
@@ -650,9 +633,9 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
             ex = os.path.splitext(imageList[i])[1]
             data[i][6] = os.path.splitext(imageList[i])[1][1:]
             if ex.lower() in exts['IMAGE']:
-                data[i][28] = 'image'
+                data[i][29] = 'image'
             else:
-                data[i][28] = 'video'
+                data[i][29] = 'video'
             newExifSubset = newExifData[j:j + diff]
             k = 0
             for dataIdx in missingIdx:
@@ -660,11 +643,11 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 k += 1
             j += diff
             data[i][8] = frac2dec(data[i][8])
-            if data[i][20] and data[i][22]:
+            if data[i][20] and data[i][21]:
                 data[i][20] = convert_GPS(data[i][20])
-                data[i][22] = convert_GPS(data[i][22])
+                data[i][21] = convert_GPS(data[i][21])
             if 'hdr' in imageList[i].lower():
-                data[i][33] = 'True'
+                data[i][34] = 'True'
 
     return data
 
