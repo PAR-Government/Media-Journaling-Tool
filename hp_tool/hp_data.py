@@ -23,20 +23,25 @@ def copyrename(image, path, usrname, org, seq, other):
     """
     Performs the copy/rename operation
     :param image: original filename (full path)
-    :param path: destination path
+    :param path: destination path. This must have 3 subdirectories: images, video, and csv
     :param usrname: username for new filename
     :param org: organization code for new filename
     :param seq: sequence # for new filename
     :param other: other info for new filename
     :return: full path of new file
     """
+    global exts
     newNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
                     org + usrname + '-' + seq
     if other:
         newNameStr = newNameStr + '-' + other
 
     currentExt = os.path.splitext(image)[1]
-    newPathName = os.path.join(path, newNameStr + currentExt)
+    if currentExt.lower() in exts['VIDEO']:
+        sub ='video'
+    else:
+        sub = 'image'
+    newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     shutil.copy2(image, newPathName)
     return newPathName
 
@@ -52,8 +57,11 @@ def parse_prefs(data):
     try:
         with open(data) as f:
             for line in f:
-                (tag, descr) = line.split('=')
-                newData[tag.lower().strip()] = descr.strip()
+                try:
+                    (tag, descr) = line.split('=')
+                    newData[tag.lower().strip()] = descr.strip()
+                except ValueError:
+                    continue
     except IOError:
         print('Input file: ' + data + ' not found. ' + 'Please try again.')
         sys.exit()
@@ -75,6 +83,14 @@ def parse_prefs(data):
         if newData['organization'] not in orgs.values():
             print 'Error: organization code: ' + newData['organization'] + ' not recognized'
             sys.exit(0)
+
+    # reset sequence if date is new
+    try:
+        if newData['date'] != datetime.datetime.now().strftime('%Y%m%d')[2:]:
+            newData['seq'] = '00000'
+    except KeyError:
+        newData['date'] = datetime.datetime.now().strftime('%Y%m%d')[2:]
+        add_date(data)
 
     return newData
 
@@ -142,7 +158,8 @@ def grab_range(files):
 def grab_dir(inpath, outdir=None, r=False):
     """
     Grabs all image files in a directory
-    :param path: path to directory of desired files
+    :param inpath: path to directory of desired files
+    :param outdir: path to output csv directory, to check for existing images
     :param r: Recursively grab images from all subdirectories as well
     :return: list of images in directory
     """
@@ -167,51 +184,47 @@ def grab_dir(inpath, outdir=None, r=False):
         for f in os.listdir(outdir):
             if f.endswith('.csv') and 'rit' in f:
                 ritCSV = os.path.join(outdir, f)
-                rit = pd.read_csv(ritCSV)
+                rit = pd.read_csv(ritCSV, dtype=str)
                 repeated = rit['OriginalImageName'].tolist()
                 test1 = repeated[0]
                 test2 = repeated[2]
-                # for image in range(0, len(repeated)):
-                #     repeated[image] = repeated[image][1:].strip()
-                # break
         removeList = []
         for name in imageList:
             for repeatedName in repeated:
-                if repeatedName in name:
-                    removeList.append(name)
-                    # imageList.remove(name)
-                    # repeated.remove(repeatedName)
-                    break
+                if repeatedName:
+                    if repeatedName in name:
+                        removeList.append(name)
+                        # imageList.remove(name)
+                        # repeated.remove(repeatedName)
+                        break
 
         for imageName in removeList:
             imageList.remove(imageName)
-        # matching = [s for s in some_list if "abc" in s]
-        # imageBaseNames = [os.path.basename(p) for p in imageList]
-        # for name in repeated:
-        #     if name in imageBaseNames:
-        #         indicesToRemove = imageBaseNames.index(name)
-        # del imageList[indicesToRemove]
-
     return imageList
 
-def write_seq(prefs, newSeq):
+
+def update_prefs(prefs, inputdir, outputdir, newSeq):
     """
     Updates the sequence value in a file
     :param prefs: the file to be updated
     :param newSeq: string containing the new 5-digit sequence value (e.g. '00001'
     :return: None
     """
-    f = open(prefs, 'r')
-    data = f.read()
-    f.close()
-
-    i = data.find('seq=')
-    currentSeq = data[i + 4:i + 10]
-    newData = data.replace(currentSeq, newSeq)
-    f = open(prefs, 'w')
-    f.write(newData)
-    f.close()
-
+    originalFileName = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'preferences.txt')
+    tmpFileName = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tmp.txt')
+    with open(tmpFileName, 'wb') as new:
+        with open(originalFileName, 'rb') as original:
+            for line in original:
+                if line.startswith('seq='):
+                    new.write('seq=' + newSeq + '\n')
+                elif line.startswith('date='):
+                    new.write('date=' + datetime.datetime.now().strftime('%Y%m%d')[2:] + '\n')
+                else:
+                    new.write(line)
+                    if not line.endswith('\n'):
+                        new.write('\n')
+    os.remove(originalFileName)
+    shutil.move(tmpFileName, originalFileName)
 
 def add_seq(filename):
     """
@@ -221,7 +234,11 @@ def add_seq(filename):
     :return: None
     """
     with open(filename, 'ab') as f:
-        f.write('\nseq=00000')
+        f.write('\nseq=00000\n')
+
+def add_date(filename):
+    with open(filename, 'ab') as f:
+        f.write('\ndate=' + datetime.datetime.now().strftime('%Y%m%d')[2:] + '\n')
 
 
 def build_keyword_file(image, keywords, csvFile):
@@ -274,12 +291,12 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
                                     'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                     'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
                                     'GPSLatitude', 'HP-OnboardFilter', 'GPSLongitude', 'BitDepth', 'ImageWidth', 'ImageHeight',
-                                    'HP-OBFilterType', 'HP-LensFilter', 'Type', 'Reflections', 'Shadows'])
+                                    'HP-OBFilterType', 'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-App'])
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
                 ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5, info[imNo][29]] +
-                                   info[imNo][2:4] + [info[imNo][30]] + info[imNo][4:29] + info[imNo][31:33])
+                                   info[imNo][2:4] + [info[imNo][30]] + info[imNo][4:29] + info[imNo][31:])
         else:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
@@ -408,40 +425,56 @@ def tally_images(data, csvFile):
             tallyWriter.writerow(final[i] + [final[i+1]])
             i += 2
 
-def s3_prefs(values, upload=False):
-    """
-    Parse S3 data and download/upload preferences file
-    :param values: bucket/path of s3
-    :param upload: Will upload pref file if specified, download otherwise
-    :return: None
-    """
-    s3 = boto3.client('s3', 'us-east-1')
-    BUCKET = values[0][0:values[0].find('/')]
-    DIR = values[0][values[0].find('/') + 1:]
-    if upload:
-        try:
-            s3.upload_file('preferences.txt', BUCKET, DIR + '/preferences.txt')
-        except WindowsError:
-            sys.exit('local file preferences.txt not found!')
-    else:
-        s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
+# def s3_prefs(values, upload=False):
+#     """
+#     Parse S3 data and download/upload preferences file
+#     :param values: bucket/path of s3
+#     :param upload: Will upload pref file if specified, download otherwise
+#     :return: None
+#     """
+#     s3 = boto3.client('s3', 'us-east-1')
+#     BUCKET = values[0][0:values[0].find('/')]
+#     DIR = values[0][values[0].find('/') + 1:]
+#     if upload:
+#         try:
+#             s3.upload_file('preferences.txt', BUCKET, DIR + '/preferences.txt')
+#         except WindowsError:
+#             sys.exit('local file preferences.txt not found!')
+#     else:
+#         s3.download_file(BUCKET, DIR + '/preferences.txt', 'preferences.txt')
 
 def frac2dec(fracStr):
     return fracStr
     # try:
     #     return float(fracStr)
     # except ValueError:
-    #     try:
-    #         num, denom = fracStr.split('/')
-    #         return float(num)/float(denom)
-    #     except ValueError:
-    #         print 'The troublesome file is: ' + fracStr
-    #         return fracStr
+    #     num, denom = fracStr.split('/')
+    #     return float(num)/float(denom)
+
+def check_create_subdirectories(path):
+    subs = ['image', 'video', 'csv']
+    for sub in subs:
+        if not os.path.exists(os.path.join(path, sub, '.hptemp')):
+            os.makedirs(os.path.join(path, sub, '.hptemp'))
+        for f in os.listdir(os.path.join(path, sub,'.hptemp')):
+            oldFile = os.path.join(path, sub, '.hptemp', f)
+            if os.path.isfile(oldFile):
+                os.remove(oldFile)
+
+
+def remove_temp_subs(path):
+    subs = ['image', 'video', 'csv']
+    for sub in subs:
+        for f in os.listdir(os.path.join(path,sub,'.hptemp')):
+            shutil.move(os.path.join(path,sub,'.hptemp',f), os.path.join(path,sub))
+        os.rmdir(os.path.join(path,sub,'.hptemp'))
+        if not os.listdir(os.path.join(path,sub)):
+            os.rmdir(os.path.join(path,sub))
 
 def parse_image_info(imageList, path='', rec=False, collReq='', camera='', localcam='', lens='', locallens='', hd='',
                      sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
                      focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
-                     cameramodel='', lensmodel='', jq='', reflections='', shadows=''):
+                     cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
@@ -485,10 +518,14 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     30. LensModel
     31. Reflections
     32. Shadows
+    33. HDR
+    34. App
     """
     exiftoolargs = []
     data = []
-    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4 + [obfiltertype, lensfilter, '', '', '', reflections, shadows]
+    if not hd:
+        hd = path
+    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', obfilter] + [''] * 4 + [obfiltertype, lensfilter, '', '', '', reflections, shadows, hdr, app]
     missingIdx = []
 
     if camera:
@@ -594,7 +631,6 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 exifDataList = exifDataStr.split(os.linesep)[:-2]
                 exifData.extend(exifDataList[:])
                 counter += 500
-
         sub = '====='
         imageIndices = []
         newExifData = []
@@ -612,7 +648,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         for i in xrange(len(imageList)):
             data.append(master[:])
             ex = os.path.splitext(imageList[i])[1]
-            data[i][6] = os.path.splitext(imageList[i])[1]
+            data[i][6] = os.path.splitext(imageList[i])[1][1:]
             if ex.lower() in exts['IMAGE']:
                 data[i][28] = 'image'
             else:
@@ -627,16 +663,24 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
             if data[i][20] and data[i][22]:
                 data[i][20] = convert_GPS(data[i][20])
                 data[i][22] = convert_GPS(data[i][22])
+            if 'hdr' in imageList[i].lower():
+                data[i][33] = 'True'
 
     return data
 
 def process(preferences='', metadata='', files='', range='', imgdir='', outputdir='', recursive=False, xdata='',
             keywords='', additionalInfo='', tally=False, **kwargs):
+
+    # parse preferences
     userInfo = parse_prefs(preferences)
     print 'Successfully pulled preferences'
 
+    # collect image list
     print 'Collecting images...',
     imageList = []
+
+    # set up the output subdirectories
+    check_create_subdirectories(outputdir)
 
     if files:
         imageList.extend(grab_individuals(files))
@@ -644,29 +688,34 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
         fRange = range.split(' ')
         imageList.extend(grab_range(fRange))
     else:
-        imageList.extend(grab_dir(imgdir, outputdir, recursive))
+        imageList.extend(grab_dir(imgdir, os.path.join(outputdir, 'csv'), recursive))
     print ' done'
 
     if not imageList:
         print 'No new images found'
+        remove_temp_subs(outputdir)
         return imageList, []
 
+    # build information list. This is the bulk of the processing, and what runs exiftool
     print 'Building image info...',
     imageInfo = parse_image_info(imageList, path=imgdir, rec=recursive, **kwargs)
     print ' done'
 
-    # copy
+    # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories
+    check_create_subdirectories(outputdir)
+
+    # prepare for the copy operation
     try:
         count = int(userInfo['seq'])
     except KeyError:
         count = 0
         add_seq(preferences)
 
-    csv_keywords = os.path.join(outputdir, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
+    csv_keywords = os.path.join(outputdir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
                                 userInfo['organization'] + userInfo['username'] + '-' + 'keywords.csv')
 
 
-    csv_metadata = os.path.join(outputdir, datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
+    csv_metadata = os.path.join(outputdir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
                                 userInfo['organization'] + userInfo['username'] + '-' + 'xdata.csv')
 
     try:
@@ -674,6 +723,8 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
     except TypeError:
         extraValues = None
 
+
+    # copy with renaming
     print 'Copying files...',
     newNameList = []
     for image in imageList:
@@ -686,24 +737,25 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
         count += 1
     print ' done'
 
-    write_seq(preferences, pad_to_5_str(count))
+    update_prefs(preferences, inputdir=imgdir, outputdir=outputdir, newSeq=pad_to_5_str(count))
     print 'Prefs updated with new sequence number'
 
     print 'Updating metadata...'
     newData = change_all_metadata.parse_file(metadata)
     if imgdir:
-        change_all_metadata.process(outputdir, newData, quiet=True)
+        change_all_metadata.process(os.path.join(outputdir, 'image', '.hptemp'), newData, quiet=True)
+        change_all_metadata.process(os.path.join(outputdir, 'video', '.hptemp'), newData, quiet=True)
     else:
         change_all_metadata.process(newNameList, newData, quiet=True)
 
     print 'Building RIT file'
-    csv_rit = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'rit.csv')
+    csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'rit.csv')
     build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
     'Success'
 
     # history file:
     print 'Building history file'
-    csv_history = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'history.csv')
+    csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'history.csv')
     build_history_file(imageList, newNameList, imageInfo, csv_history)
 
     if tally:
@@ -712,6 +764,10 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
         csv_tally = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'tally.csv')
         tally_images(imageInfo, csv_tally)
         print 'Successfully tallied image data'
+
+    # move out of tempfolder
+    print 'Cleaning up...'
+    remove_temp_subs(outputdir)
 
     print '\nComplete!'
 

@@ -1,0 +1,183 @@
+DeviceID,OrganizationSerialNumber,ManufacturerSerialNumber,Manufacturer,SeriesModel,Edition,DeviceType,Sensor,Description,LensMount,Firmware,Version,Affiliation
+2,2694CAP,WP5GA001206,Panasonic,Lumix DMC-ZS50,S,Point&Shoot,1/2.3-inch Large Pixel Sized High Sensitivity MOS Sensor,Point&Shoot Super-long LEICA lens with 30X zoom [24-720mm] brings the scene in close,builtin,default,,PAR
+3,"Cage 1GB43, 2568 CAP",RF8FGK585U,Samsung,Galaxy S5 SM G900 T,5,CellPhone,16mp,"16 MP, f/2.2, 31mm, phase detection autofocus, LED flash,1/2.6"" sensor size, 1.12 µm pixel size, geo-tagging, touch focus, face/smile detection, panorama, HDR, 2160p@30fps, 1080p@60fps, 720p@120fps, HDR, dual-video rec.2 MP, f/2.4, 22mm, 1080p@30fps,",builtin,Android,4.4.4,PAR
+4,Cage 1GB43 SN1-43,R31C10D7AVK,Samsung,Galaxy Note SGH-1717,,CellPhone,,,builtin,Android,4.0.4,PAR
+6,Cage IGB43 SN 1216,,Samsung,GT P5113,,Tablet,,,builtin,Android,4.2.2,PAR
+7,102510CM6C71,,Seek Thermal,Thermal Imaging Camera,,MultiSpectral,True Thermal,"Vanadium Oxide Micro Bolometer, Chalcogenide lens, 36 degree field of view, Magnesium housing, long wave infared 7.2-13 microns, -40C to 330C detection",builtin,default,,PAR
+8,E2281USBKBEA1147,FCCID: W9HPADP0003,Hisense,Sero 8 E2281,,Tablet,,,builtin,Android,4.4.2,PAR
+9,,TA9922ZJHP,Motorola,Sony IMX135 CMOS,2,CellPhone,Sony IMX135 CMOS,"Dual-LED flash, 4K-video 2MP front Camera ISO 50-1000 F2.25 aperature",builtin,Android,5.1,PAR-ES
+10,,,Wild Game,M68,,Point&Shoot,,game/feild camera,builtin,default,20130116_4,PAR-MK
+12,,3437663,Nikon,d5100,,DSLR,cropped,,AF-S,Nikon,1.01,PAR-ES
+16,,27ff740d,Sony,NEX-5T,,Mirrorless,,,E-Mount,NEX 5-T,1,PAR-MK
+17,ZX1F24H6BK,ZX1F24H6BK,Motorola,Droid Turbo XT1254 Android 5.1,,CellPhone,21 Megapixel,,builtin,Android,,Denver-Karlee
+18,1.42066E+11,1.42066E+11,Canon,EOS Rebel T3i,,DSLR,cropped,,EF,default,,Denver-Karlee
+19,36220475,36220475,Sony,DSC-H70,,Point&Shoot,,,builtin,defualt,,Denver-Karlee
+20,C6KRM1T5GRYG,C6KRM1T5GRYG,Apple,iPhone 6s,A1688,CellPhone,,,builtin,iOS,9.3.4,Denver-Andrew
+21,DNVGPBJXDTD2,DNVGPBJXDTD2,Apple,iPhone 5s,A1533,CellPhone,,,builtin,iOS,9.0.2,Denver-Andrew
+22,7402937,7402937,Nikon,D3100,,DSLR,14.2-megapixel DX format cropped sensor,,F-Mount,default,,Denver-James
+23,9.90001E+14,9.90001E+14,Samsung,Galaxy S6,,CellPhone,,,builtin,Android,,Denver-Cole
+24,3868316,3868316,Nikon,D3300,,DSLR,cropped,,F-Mount,default,,Denver-Megan
+25,R38GB0SM8CL,R38GB0SM8CL,Samsung,Galaxy Note 5,,CellPhone,,,builtin,Android,,Denver-Megan
+26,99096328,22021001633,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+27,99096317,52024009905,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+28,99096259,4203307417,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+29,99096274,22021006925,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+30,99096284,62024009182,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+31,99096294,22031006522,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+32,99009999,52024007901,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+34,99010000,52024003346,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+35,99010001,22021001690,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+36,99100299,1.82029E+11,Canon,5D Mk III,,DSLR,Full Frame,22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor,EF,default,,RIT
+37,99093429,3221601721,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+38,99004333,2421404270,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+39,99044105,320108864,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+40,99004809,720304145,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+41,99004285,220106797,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+42,99009923,620303469,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+43,99009944,2014611120,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+44,99094114,3751705892,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+45,99009981,320211733,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+46,99004068,520308523,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+47,99004120,220100028,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+48,99004231,520305010,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+49,99004301,1020600210,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+50,99004319,320100363,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+51,99097589,1921107539,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+52,99043742,220103997,Canon,5D Mk II,,DSLR,Full Frame,21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor,EF,default,,RIT
+53,99004059,220100245,Canon,1D Mk IV,,DSLR,APS-H,16 MP Pixel Dimensions: 4896x3264 CMOS No GPS Digic 4 processor,EF,default,,RIT
+54,99004127,520501018,Canon,1D Mk IV,,DSLR,APS-H,16 MP Pixel Dimensions: 4896x3264 CMOS No GPS Digic 4 processor,EF,default,,RIT
+55,99004051,220102608,Canon,7D,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor,EF,default,,RIT
+56,99004217,220103429,Canon,7D,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor,EF,default,,RIT
+57,99004224,320310089,Canon,7D,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor,EF,default,,RIT
+58,99004230,220104163,Canon,7D,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor,EF,default,,RIT
+59,99004288,220105337,Canon,7D,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor,EF,default,,RIT
+60,99004300,220104853,Canon,7D,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor,EF,default,,RIT
+61,99097294,50112404,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168CMOS No GPS Digic 4 processor,EF,default,,RIT
+62,99097296,570113469,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+63,99097310,570114313,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+64,99097332,570113465,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+65,99097343,5700114316,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+66,99097354,50113470,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+67,99097365,5070113494,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+68,99097376,5070113466,Canon,T1i,,DSLR,APS-C,15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor,EF,default,,RIT
+69,99099243,1.7202E+11,Canon,6D,,DSLR,Full Frame,20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor,EF,default,,RIT
+70,99099255,1.7202E+11,Canon,6D,,DSLR,Full Frame,20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor,EF,default,,RIT
+71,99099262,1.72029E+11,Canon,6D,,DSLR,Full Frame,20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor,EF,default,,RIT
+72,99099269,1.7202E+11,Canon,6D,,DSLR,Full Frame,20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor,EF,default,,RIT
+73,99099276,1.7202E+11,Canon,6D,,DSLR,Full Frame,20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor,EF,default,,RIT
+74,99099283,1.7202E+11,Canon,6D,,DSLR,Full Frame,20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor,EF,default,,RIT
+75,99094528,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+76,99094543,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+77,99094557,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+78,99094567,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+79,99094577,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+80,99094587,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+81,99094597,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+82,99094611,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+83,99094673,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+84,99094683,1.32063E+11,Canon,T3i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor,EF,default,,RIT
+85,99098607,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+86,99098617,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+87,99098627,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+88,99098637,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+89,99098648,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+90,99098607,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+91,99098617,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+92,99098627,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+93,99098637,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+94,99098648,1.02031E+11,Canon,T5i,,DSLR,APS-C,18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor,EF,default,,RIT
+95,99001749,920500204,Canon,60D IR,IR,DSLR,APS-C,6 MP Pixel Dimensions: 3072x2048 CMOS no GPS  Digic 5 processor No video IR Filter Removed,EF,default,,RIT
+96,99001750,920500173,Canon,60D IR,IR,DSLR,APS-C,6 MP Pixel Dimensions: 3072x2048 CMOS no GPS  Digic 5 processor No video IR Filter Removed,EF,default,,RIT
+97,99002867,63A90148,FujiFilm,IRUV (S3),,MultiSpectral,APS-C,6 MP Pixel Dimensions: 4256x2848 CCD no GPS  No video no IR filter,F-Mount,,,RIT
+98,99000440,42A09664,FujiFilm,X-T1,IR,MultiSpectral,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS optional GPS  Video,F-Mount,,,RIT
+99,99096380,24A54144,FujiFilm,X-E1,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+100,99096399,24A54142,FujiFilm,X-E1,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+102,99096365,21A08150,FujiFilm,X-Pro 1,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+103,99000216,51A03424,FujiFilm,X-Pro 1,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+104,99000236,51A03757,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+105,99000264,51A00603,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+106,99000282,51A03428,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+107,99000322,51A02299,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+108,99000335,52A00246,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+109,99000323,51A03005,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+110,99000336,51A03826,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+111,99000395,51A01523,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+112,99000407,51A01549,FujiFilm,X100T,,DSLR,APS-C,16 MP Pixel Dimensions: 4896x3264 CMOS no GPS,F-Mount,,,RIT
+113,,,Samsung,NX20,,Mirrorless,APS-C,20 MP Pixel Dimensions: 5472x3648 CMOS optional GPS,NX-Mount,,,RIT
+114,,,Samsung,NX210,,Mirrorless,APS-C,20 MP Pixel Dimensions: 5472x3648 CMOS optional GPS,NX-Mount,,,RIT
+115,,,Samsung,NX30,,Mirrorless,APS-C,20 MP Pixel Dimensions: 5472x3648 CMOS no GPS,NX-Mount,,,RIT
+116,99093990,99093990,Leica Camera,M9,,Mirrorless,FullFrame,18 MP Pixel Dimensions: 5212x3472 CCD no GPS,Leica M,,,RIT
+117,99000031,4687133,Leica Camera,S Typ 006,,Mirrorless,Medium Format,37.5 MP Pixel Dimensions: 7500x5000 CCD  GPS No Optical Low-Pass Filter Maestro I Image Processor,Leica S,,,RIT
+118,99004240,S65001069,Hasselblad,CFV-50c,,Digital Back,Medium Format 32.9 x 43.mm sensor size,50 MP Pixel Dimensions: 6200x8272 CMOS,V System,,,RIT
+119,99000343,SQ35000583,Hasselblad,H5D-5c,,DSLR,Medium Format 32.9 x 43.mm sensor size,50 MP Pixel Dimensions: 6200x8272 CMOS,H System,,,RIT
+120,99000149,IP001110,Phase One,IQ3,,Digital Back,"Medium Format sensor size"" 53.7 x40.4 mm",80 MP Pixel Dimensions: 10328x7760 CCD,XF System,,,RIT
+121,99004182,IP001314,Phase One,IQ3,,Digital Back,"Medium Format sensor size"" 53.7 x40.4 mm",80 MP Pixel Dimensions: 10328x7760 CCD,XF System,,,RIT
+122,99098008,GK001256,Phase One,IQ260,,Digital Back,Medium Format sensor size: 53.9 x 40.4 mm,60 MP Pixel Dimesnions: 8984x6732 CCD,IQ system,,,RIT
+123,99000077,LU010190,Mamiya,Leaf Credo,,Digital Back,Medium Format Sensor size 44x 33 mm,50 MP Pixel Dimensions: 8280 x 6208 CMOS,NA,,,RIT
+124,99000447,LU010194,Mamiya,Leaf Credo,,Digital Back,Medium Format Sensor size 44x 33 mm,50 MP Pixel Dimensions: 8280 x 6208 CMOS,NA,,,RIT
+125,99095636,4281979,Pentax,645D,,DSLR,Medium Format Sensor size 44x 33 mm,40 MP Pixel Dimensions: 7264x5440 CCD,NA,,,RIT
+126,99001030,1338,Betterlight,6K 4x5 scan back,,Digital Back,Medium Format Sensor size,48 MP Pixel Dimensions: 6000x8000 CCD,4x5 camera,,,RIT
+127,99001889,1313,Betterlight,6K 4x5 scan back,,Digital Back,Medium Format Sensor size,48 MP Pixel Dimensions: 6000x8000 CCD,4x5 camera,,,RIT
+128,99003077,1051,Betterlight,6K 4x5 scan back,,Digital Back,Medium Format Sensor size,48 MP Pixel Dimensions: 6000x8000 CCD,4x5 camera,,,RIT
+130,99095225,50034954,GoPro,Hero 2,,Action Camera,10.2 mm,11 MP Pixel Dimensions: 1920x1080 CMOS,builtin,,,RIT
+131,99095224,50034944,GoPro,Hero 2,,Action Camera,10.2 mm,11 MP Pixel Dimensions: 1920x1080 CMOS,builtin,,,RIT
+132,99098920,50045857,GoPro,Hero 3,,Action Camera,,12 MP Pixel Dimensions: 4096x2160 CMOS,builtin,,,RIT
+133,99098922,50045875,GoPro,Hero 3,,Action Camera,,12 MP Pixel Dimensions: 4096x2160 CMOS,builtin,,,RIT
+134,99000459,3126125,Sony,Action Cam,,Action Camera,,8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS,builtin,,,RIT
+135,99000484,3127007,Sony,Action Cam,,Action Camera,,8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS,builtin,,,RIT
+136,99000489,3125186,Sony,Action Cam,,Action Camera,,8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS,builtin,,,RIT
+137,99000363,3125185,Sony,Action Cam,,Action Camera,,8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS,builtin,,,RIT
+138,99093739,4141489,Pentax,Q,,Mirrorless,1/2.3 inch,12 MP Pixel Dimensions: 4000x3000 CMOS,Q-Mount,,,RIT
+139,99098937,106583,Ricoh,Theta,,360 cam,1/2.3 inch,14 MP Pixel Dimensions: 5376x2688 CMOS,builtin,,,RIT
+140,,,Hasselblad,Flextight X-1,,Film Scanner,,"Hardware Resolution: 3x8000px Max resolution 6300 CCD color bit depth 16 6300dpi (35mm), 3200 (60mm), 2040 (4x5)",NA,,,RIT
+141,,,Hasselblad,Flextight 848,,Film Scanner,,"Hardware Resolution: 3x8000px optical resolution 80-800 dpi  CCD color bit depth 16 8000dpi (35mm), 3200 (60mm), 2040 (4x5)",NA,,,RIT
+142,,,Epson,V700,,Flatbed Scanner,,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)",NA,,,RIT
+143,,,Epson,V750,,Flatbed Scanner,,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)",NA,,,RIT
+144,,,Epson,XL1640,,Flatbed Scanner,,,NA,,,RIT
+145,,,Epson,XL10000,,Flatbed Scanner,,,NA,,,RIT
+146,99097693,2062557,Nikon,D4,,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+147,99100168,2024843,Nikon,D4,s,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+148,99100176,2024885,Nikon,D4,s,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+149,99100184,2024837,Nikon,D4,s,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+150,99100192,2024841,Nikon,D4,s,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+151,99100200,2019192,Nikon,D4,s,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+152,99100208,2019196,Nikon,D4,s,DSLR,Full Frame,16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS,F-Mount,,,RIT
+153,99000133,3036606,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+154,99000150,3038418,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+155,99000239,3038419,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+156,99099948,3011684,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+157,99099956,3011878,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+158,99099965,3011879,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+159,99099976,3011685,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+160,99000299,3038207,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+161,99000304,3038206,Nikon,D810,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+162,99095343,3038178,Nikon,D800,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+163,99097681,3072654,Nikon,D800,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+164,99097682,3072658,Nikon,D800,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+165,99097683,3072653,Nikon,D800,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+166,99097685,3072650,Nikon,D800,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+167,99097688,3072697,Nikon,D800,,DSLR,Full Frame,36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS,F-Mount,,,RIT
+168,99000134,3055661,Nikon,D750,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016 CMOS optional GPS,F-Mount,,,RIT
+169,99000229,3055678,Nikon,D750,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+170,99000265,3055679,Nikon,D750,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+171,99000286,3055561,Nikon,D750,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+172,99000291,3055680,Nikon,D750,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+173,99099981,3030134,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+174,99100048,3031438,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+175,99100060,3030034,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+176,99100069,3031439,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+177,99100081,3030844,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+178,99100092,3030133,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+179,99100102,3030035,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+180,99100113,3030722,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+181,99100123,3031351,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+182,99100133,3031350,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+183,99000291,3055680,Nikon,D610,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+184,99000012,10600,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+185,99000052,10602,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+186,99000079,10599,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+187,99000094,10598,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+188,99000097,10605,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+189,99000110,10612,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+190,99000175,10615,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT
+192,99000050,10601,Nikon,D600,,DSLR,Full Frame,24 MP Pixel Dimensions: 6016x4016CMOS optional GPS,F-Mount,,,RIT

@@ -1,0 +1,6 @@
+﻿CopyrightNotice=© 2016 [YOUR ORGANIZATION] - Under contract of MediFor
+By-line=YOURINITIALSHERE
+Credit=YOURORGANIZATIONHERE 
+UsageTerms=CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/legalcodes
+Copyright=
+Artist=

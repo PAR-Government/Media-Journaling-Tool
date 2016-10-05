@@ -1,0 +1,2 @@
+username=YOURINITIALSHERE
+organization=YOURORGANIZATIONHERE (Accepted: P, PAR; R, RIT; M, U of M; D, Drexel; C, CU Denver)
