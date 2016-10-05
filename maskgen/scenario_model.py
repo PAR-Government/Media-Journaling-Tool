@@ -188,7 +188,7 @@ class Modification:
     # Record the link in the composite.  Uses 'no' and 'yes' to mirror JSON read-ability
     recordMaskInComposite = 'no'
     # arguments used by the operation
-    arguments = {}
+    arguments = dict()
     # represents the composite selection mask, if different from the link mask
     selectMaskName = None
     # instance of Software
@@ -243,7 +243,7 @@ class Modification:
         return self.inputMaskName == self.selectMaskName
 
     def setArguments(self, args):
-        self.arguments = {}
+        self.arguments = dict()
         for k, v in args.iteritems():
             self.arguments[k] = v
             if k == 'inputmaskname':
@@ -787,10 +787,21 @@ class ImageProjectModel:
         return linkTools[self.getLinkType(start, end)]
 
     def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True):
+        try:
+            for k,v in getOperation(opName).compareparameters.iteritems():
+                arguments[k] = v
+        except:
+            pass
         return self.getLinkTool(self.start, destination).compareImages(self.start, destination, self, opName,
                                                                        arguments=arguments,
                                                                        skipDonorAnalysis=skipDonorAnalysis,
                                                                        invert=invert)
+
+    def reproduceMask(self):
+        edge = self.G.get_edge(self.start, self.end)
+        maskname, mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
+                                                               arguments=edge['arguments'] if 'arguments' in edge else dict())
+        self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**analysis)
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
                           skipDonorAnalysis=False):

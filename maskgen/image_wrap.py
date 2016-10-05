@@ -183,13 +183,17 @@ class ImageWrapper:
             gray_image[self.image_array[:, :, 3] == 0] = 255
         return ImageWrapper(gray_image)
 
-    def to_float(self):
+    def to_float(self,equalize_colors=False):
         s = self.image_array.shape
         if len(s) == 2:
             return ImageWrapper(tofloat(self.image_array))
         if str(self.image_array.dtype) == 'uint8':
             img = np.asarray(Image.fromarray(self.image_array).convert('F'))
         r, g, b = self.image_array[:, :, 0], self.image_array[:, :, 1], self.image_array[:, :, 2]
+        if equalize_colors:
+            r = cv2.equalizeHist(r)
+            g = cv2.equalizeHist(g)
+            b = cv2.equalizeHist(b)
         a = tofloat(self.image_array[:, :, 3]) if s[2] == 4 else np.ones((self.size[1],self.size[0]))
         gray = ((0.2989 * r + 0.5870 * g + 0.1140 * b) * a)
         return ImageWrapper(gray.astype('float32'))

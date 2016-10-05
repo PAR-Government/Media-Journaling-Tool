@@ -1,6 +1,7 @@
 from maskgen import tool_set
 import unittest
 import numpy as np
+from maskgen import image_wrap
 
 
 class TestToolSet(unittest.TestCase):
@@ -12,7 +13,23 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
 
-    def test_gray_writing(self):
+
+
+    def test_fileMask(self):
+        pre = tool_set.openImageFile('tests/prefill.png')
+        post = tool_set.openImageFile('tests/postfill.png')
+        mask,analysis = tool_set.createMask(pre,post,invert=False,arguments={'tolerance' : 25})
+        withtolerance = sum(sum(mask.image_array))
+        mask.save('tests/maskfill.png')
+        mask, analysis = tool_set.createMask(pre, post, invert=False)
+        withouttolerance = sum(sum(mask.image_array))
+        mask, analysis = tool_set.createMask(pre, post, invert=False, arguments={'tolerance': 25,'equalize_colors':True})
+        mask.save('tests/maskfillt.png')
+        withtoleranceandqu = sum(sum(mask.image_array))
+        self.assertTrue(withouttolerance < withtolerance)
+        self.assertTrue(withtolerance < withtoleranceandqu)
+
+    def xtest_gray_writing(self):
         import os
         writer = tool_set.GrayBlockWriter('test_ts_gw', 12)
         mask_set = list()

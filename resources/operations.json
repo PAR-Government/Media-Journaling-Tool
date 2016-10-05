@@ -745,6 +745,9 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
+      "compareparameters" : {
+         "tolerance" : 5.0
+      },
       "includeInMask": false,
       "transitions": [
         "image.image",

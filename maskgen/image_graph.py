@@ -300,6 +300,15 @@ class ImageGraph:
                 self.filesToRemove.remove(newpathname)
         return filename, 'yes' if includePathInUndo else 'no'
 
+    def update_mask(self, start,end,mask=None,errors=None,**kwargs):
+        edge = self.G[start][end]
+        newmaskpathname = os.path.join(self.dir, edge['maskname'])
+        mask.save(newmaskpathname)
+        if errors is not None:
+            edge['errors'] = errors
+        for k,v in kwargs.iteritems():
+            edge[k] = v
+
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         newmaskpathname = os.path.join(self.dir, maskname)
         mask.save(newmaskpathname)

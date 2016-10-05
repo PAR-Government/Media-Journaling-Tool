@@ -376,7 +376,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert, arguments={}):
+def createMask(img1, img2, invert=False, arguments={}):
     mask, analysis = __composeMask(img1, img2, invert, arguments=arguments)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
@@ -476,7 +476,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     return 255 - newMask
 
 def __composeMask(img1, img2, invert, arguments=dict()):
-    img1, img2 = __alignChannels(img1, img2)
+    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
@@ -488,7 +488,7 @@ def __composeMask(img1, img2, invert, arguments=dict()):
         return __composeExpandImageMask(img1, img2)
     try:
         if img1.shape == img2.shape:
-            return __diffMask(img1, img2, invert)
+            return __diffMask(img1, img2, invert,args=arguments)
     except ValueError as e:
         print 'Mask generation failure ' + str(e)
     mask = np.ones(img1.shape) * 255
@@ -548,8 +548,8 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
 
-def __alignChannels(rawimg1, rawimg2):
-    return rawimg1.to_float().to_array(), rawimg2.to_float().to_array()
+def __alignChannels(rawimg1, rawimg2,equalize_colors=False):
+    return rawimg1.to_float(equalize_colors=equalize_colors).to_array(), rawimg2.to_float(equalize_colors=equalize_colors).to_array()
 
 def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
@@ -579,7 +579,7 @@ def __composeCropImageMask(img1, img2, seamAnalysis=False):
         diffIm[tuple[0]:tuple[2], tuple[1]:tuple[3]] = img2
         pinned = np.where(np.array(dims) == np.array(tuple))[0]
         analysis = img_analytics(img1, diffIm)
-        analysis['location'] = str((tuple[0], tuple[1]))
+        analysis['location'] = str((int(tuple[0]), int(tuple[1])))
         dst = np.abs(img1 - diffIm)
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
@@ -627,7 +627,7 @@ def __sizeDiff(z1, z2):
        z1 and z2 are expected to be PIL images
     """
     # size is inverted due to Image's opposite of numpy arrays
-    return str((z2.size[1] - z1.size[1], z2.size[0] - z1.size[0]))
+    return str((int(z2.size[1] - z1.size[1]),int( z2.size[0] - z1.size[0])))
 
 
 def invertMask(mask):
@@ -717,10 +717,11 @@ def img_analytics(z1, z2):
         return {'ssim': compare_ssim(z1, z2, multichannel=False), 'psnr': __colorPSNR(z1, z2)}
 
 
-def __diffMask(img1, img2, invert):
+def __diffMask(img1, img2, invert,args=None):
     dst = np.abs(img1 - img2)
     gray_image = np.zeros(img1.shape).astype('uint8')
-    gray_image[dst > 0.0001] = 255
+    difference = float(args['tolerance']) if 'tolerance' in args else 0.0001
+    gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2)
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
 
