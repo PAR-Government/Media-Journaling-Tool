@@ -170,6 +170,15 @@ class ImageWrapper:
             return ImageWrapper(img_array/max_value)
         return self
 
+    def apply_alpha_to_mask(self, image):
+        s = self.image_array.shape
+        if len(s) == 3 and self.image_array.shape[2] == 4:
+            img_array = np.asarray(image)
+            img_array = np.copy(img_array) if len(img_array.shape) == 2 else image.to_mask().to_array()
+            img_array[self.image_array[:, :, 3] == 0] = 255
+            return ImageWrapper(img_array)
+        return image
+
     def to_mask(self):
         """
           Produce a mask where all black areas are white

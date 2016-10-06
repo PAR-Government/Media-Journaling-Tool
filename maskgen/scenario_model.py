@@ -345,10 +345,12 @@ class ImageImageLinkTool(LinkTool):
                             mask = mask.resize(startIm.size,Image.ANTIALIAS)
                         break
             if mask is None:
-                mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
+                mask = tool_set.convertToMask(startIm)
                 if expect_donor_mask:
                     errors = ["Donor image has insufficient features for SIFT and does not have a predecessor node."]
                 analysis = {}
+            else:
+                mask = startIm.apply_alpha_to_mask(mask)
         else:
             mask, analysis = tool_set.createMask(startIm, destIm, invert=invert, arguments=arguments)
             exifDiff = exif.compareexif(startFileName, destFileName)
