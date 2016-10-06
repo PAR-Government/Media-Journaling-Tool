@@ -29,7 +29,30 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(withouttolerance < withtolerance)
         self.assertTrue(withtolerance < withtoleranceandqu)
 
-    def xtest_gray_writing(self):
+    def test_timeparse(self):
+        self.assertTrue(tool_set.validateTimeString('03:10:10.434'))
+        t,f = tool_set.getMilliSeconds('03:10:10.434')
+        self.assertEqual(0, f)
+        self.assertEqual(1690434, t)
+        t, f = tool_set.getMilliSeconds('03:10:10.434:23')
+        self.assertTrue(tool_set.validateTimeString('03:10:10.434:23'))
+        self.assertEqual(23, f)
+        self.assertEqual(1690434, t)
+        t, f = tool_set.getMilliSeconds('03:10:10:23')
+        self.assertTrue(tool_set.validateTimeString('03:10:10:23'))
+        self.assertEqual(23,f)
+        self.assertEqual(1690000, t)
+        t, f = tool_set.getMilliSeconds('03:10:10:A')
+        self.assertFalse(tool_set.validateTimeString('03:10:10:A'))
+        self.assertEqual(0, f)
+        self.assertEqual(None, t)
+        self.assertTrue(tool_set.isPastTime((1000,2),(1000,1)))
+        self.assertTrue(tool_set.isPastTime((1001, 1), (1000, 2)))
+        self.assertFalse(tool_set.isPastTime((1001, 1), (None, 2)))
+        self.assertFalse(tool_set.isPastTime((1001, 1), (1001, 2)))
+        self.assertFalse(tool_set.isPastTime((1000, 4), (1001, 2)))
+
+    def test_gray_writing(self):
         import os
         writer = tool_set.GrayBlockWriter('test_ts_gw', 12)
         mask_set = list()
@@ -52,6 +75,8 @@ class TestToolSet(unittest.TestCase):
         self.assertEqual(255, pos)
         self.assertEquals('test_ts_gw_mask_43.293.mp4',tool_set.convertToMP4(fn))
         self.assertTrue(os.path.exists('test_ts_gw_mask_43.293.mp4'))
+
+        self.assertTrue(tool_set.openImage('test_ts_gw_mask_43.293.mp4',tool_set.getMilliSeconds('00:00:01:2')) is not None)
         os.remove('test_ts_gw_mask_43.293.mp4')
 
 

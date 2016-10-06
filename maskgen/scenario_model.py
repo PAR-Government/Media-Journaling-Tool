@@ -475,7 +475,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = ImageWrapper(np.zeros(250,250,3).astype('uint8')), {}
+        mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
         maskname = start + '_' + destination + '_mask' + '.png'
         maskSet =[]
         errors = list()
@@ -1415,5 +1415,8 @@ class VideoMaskSetInfo:
             self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
 
     def _convert(self, item):
-        return {'Start': item['starttime'], 'End': item['endtime'], 'Frames': item['frames'],
+        return {'Start': self.tofloat(item['starttime']), 'End': self.tofloat(item['endtime']), 'Frames': item['frames'],
                 'File': item['videosegment'] if 'videosegment' in item else ''}
+
+    def tofloat(self,o):
+        o if o is None else float(o)

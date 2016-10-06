@@ -132,18 +132,64 @@ def validateCoordinates(v):
     except ValueError:
         return False
 
+def isPastTime(milliAndFrameNow, milliAndFrameMark):
+    """
+    :param milliAndFrameNow:  tuple (milliseconds, frames since time)
+    :param milliAndFrameMark: tuple (milliseconds, frames since time)
+    :return: True if milliAndFrameNow > milliAndFrameMark
+    """
+    if milliAndFrameMark is None or milliAndFrameMark[0] is None:
+        return False
+    if milliAndFrameNow[0] > milliAndFrameMark[0]:
+        return True
+    if milliAndFrameNow[0] == milliAndFrameMark[0]:
+        return milliAndFrameMark[1] is not None and milliAndFrameNow[1] > milliAndFrameMark[1]
+    return False
+
+def isBeforeTime(milliAndFrameNow, milliAndFrameMark):
+    """
+    :param milliAndFrameNow:  tuple (milliseconds, frames since time)
+    :param milliAndFrameMark: tuple (milliseconds, frames since time)
+    :return: True if milliAndFrameNow > milliAndFrameMark
+    """
+    if milliAndFrameMark is None or milliAndFrameMark[0] is None:
+        return False
+    if milliAndFrameNow[0] < milliAndFrameMark[0]:
+        return True
+    if milliAndFrameNow[0] == milliAndFrameMark[0]:
+        return milliAndFrameMark[1] is not None and milliAndFrameNow[1] < milliAndFrameMark[1]
+    return False
+
+
 def getMilliSeconds(v):
     dt = None
+    framecount = 0
+    if v.count(':') > 2:
+        try:
+            framecount = int(v[v.rfind(':') + 1:])
+            v = v[0:v.rfind(':')]
+        except:
+            return None,0
     try:
         dt =  datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
             dt =  datetime.strptime(v, '%H:%M:%S')
         except ValueError:
-            return None
-    return dt.hour*360000 + dt.minute*60000 + dt.second*1000 + dt.microsecond/1000
+            return None,0
+    return (dt.hour*360000 + dt.minute*60000 + dt.second*1000 + dt.microsecond/1000,framecount)
 
 def validateTimeString(v):
+    if v.count(':') > 3:
+       return False
+
+    framecount = 0
+    if v.count(':') > 2:
+        try:
+             framecount = int(v[v.rfind(':')+1:])
+             v = v[0:v.rfind(':')]
+        except:
+             return False
     try:
         datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -218,12 +264,20 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         bestSoFar = None
         bestVariance = -1
         maxTry = 20
+        secondInMillis = 0
+        framesSinceSecond = 0
         try:
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
-                if videoFrameTime and videoFrameTime < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
+                currentSecond = int(float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC))/1000.0)*1000
+                if currentSecond > secondInMillis:
+                    secondInMillis = currentSecond
+                    framesSinceSecond = 1
+                else:
+                    framesSinceSecond+=1
+                if isPastTime((currentSecond,framesSinceSecond),videoFrameTime):
                     bestSoFar = frame
                     break
                 varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
@@ -418,10 +472,10 @@ def __sift(img1, img2, mask1=None, mask2=None):
     (kp2, d2) = extractor.compute(img2, kp2a)
 
     if kp2 is None or len(kp2) == 0:
-        return None
+        return None,None
 
     if kp1 is None or len(kp1) == 0:
-        return None
+        return None,None
 
     d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
     d1 = np.sqrt(d1)
@@ -720,7 +774,7 @@ def img_analytics(z1, z2):
 def __diffMask(img1, img2, invert,args=None):
     dst = np.abs(img1 - img2)
     gray_image = np.zeros(img1.shape).astype('uint8')
-    difference = float(args['tolerance']) if 'tolerance' in args else 0.0001
+    difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2)
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
