@@ -420,7 +420,6 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     analysis['change size category'] = 'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large')
     return globalchange
 
-
 def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return

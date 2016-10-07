@@ -130,7 +130,6 @@ def cs_save_as(source, target, donor, qTables,rotate):
                                         '-ImageHeight=' + str(height),
                                         target])
 
-
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
