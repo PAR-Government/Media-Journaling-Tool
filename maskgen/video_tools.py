@@ -7,6 +7,7 @@ from datetime import datetime
 import tool_set
 import time
 from image_wrap import ImageWrapper
+from maskgen_loader import  MaskGenLoader
 
 def otsu(hist):
     total = sum(hist)
@@ -116,7 +117,10 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
         ranges = []
         start = None
         count = 0
-        fgbg = cv2.BackgroundSubtractorMOG2()
+        THRESH=16
+        HISYORY=10
+        fgbg = cv2.BackgroundSubtractorMOG2(varThreshold=THRESH,history=HISYORY,bShadowDetection=False)
+        LEARN_RATE = 0.03
         first = True
         sample = None
         kernel = np.ones((5, 5), np.uint8)
@@ -131,7 +135,7 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
                 continue
             if endSegment and endSegment < elapsed_time:
                 break
-            thresh = fgbg.apply(frame)
+            thresh = fgbg.apply(frame, learningRate=LEARN_RATE)
             if first:
                 first = False
                 continue
@@ -140,7 +144,7 @@ def buildMasksFromCombinedVideo(filename, startSegment=None, endSegment=None, st
             #      thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 11, 1)
             #      ret, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
             result = thresh.copy()
-            result[:, :] = 1
+            result[:, :] = 0
             result[abs(thresh) > 0.000001] = 255
             opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
             closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
@@ -308,6 +312,15 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None):
             diff[k] = ('add', v)
     return diff
 
+def _getOrder(packet, orderAttr):
+    try:
+        return float(packet[orderAttr])
+    except ValueError as e:
+        try:
+           return float(packet['pkt_dts_time'])
+        except:
+            print packet
+            raise e
 
 # video_tools.compareStream([{'i':0,'h':1},{'i':1,'h':1},{'i':2,'h':1},{'i':3,'h':1},{'i':5,'h':2},{'i':6,'k':3}],[{'i':0,'h':1},{'i':3,'h':1},{'i':4,'h':9},{'i':4,'h':2}], orderAttr='i')
 # [('delete', 1.0, 2.0, 2), ('add', 4.0, 4.0, 2), ('delete', 5.0, 6.0, 2)]
@@ -328,16 +341,12 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
         if orderAttr not in apacket:
             apos += 1
             continue
-        aptime = float(apacket[orderAttr])
+        aptime  =  _getOrder(apacket, orderAttr)
         bpacket = b[bpos]
         if orderAttr not in bpacket:
             bpos += 1
             continue
-        try:
-            bptime = float(bpacket[orderAttr])
-        except ValueError as e:
-            print bpacket
-            raise e
+        bptime = _getOrder(bpacket, orderAttr)
         if aptime == bptime:
             metaDiff = compareMeta(apacket, bpacket, skipMeta=skipMeta)
             if len(metaDiff) > 0:
@@ -353,7 +362,7 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
                 c += 1
                 if apos < len(a):
                     apacket = a[apos]
-                    aptime = float(apacket[orderAttr])
+                    aptime = _getOrder(apacket, orderAttr)
             diff.append(('delete', start, end, c))
         elif aptime > bptime:
             start = bptime
@@ -364,19 +373,19 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
                 bpos += 1
                 if bpos < len(b):
                     bpacket = b[bpos]
-                    bptime = float(bpacket[orderAttr])
+                    bptime = _getOrder(bpacket, orderAttr)
             diff.append(('add', start, end, c))
     if apos < len(a):
-        start = float(a[apos][orderAttr])
+        start = _getOrder(a[apos], orderAttr)
         c = len(a) - apos
         apacket = a[len(a) - 1]
-        aptime = float(apacket[orderAttr])
+        aptime = _getOrder(apacket, orderAttr)
         diff.append(('delete', start, aptime, c))
     elif bpos < len(b):
-        start = float(b[bpos][orderAttr])
+        start = _getOrder(b[bpos], orderAttr)
         c = len(b) - bpos
         bpacket = b[len(b) - 1]
-        bptime = float(bpacket[orderAttr])
+        bptime = _getOrder(bpacket, orderAttr)
         diff.append(('add', start, bptime, c))
     return diff
 
@@ -611,9 +620,11 @@ def addChange(vidAnalysisComponents, ranges=list()):
         vidAnalysisComponents.writer.release()
 
 def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
+    prefernences = MaskGenLoader()
+    diffPref = prefernences.get_key('vid_diff')
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
- #   if opFunc == addChange:
- #       return formMaskDiff2(fileOne, fileTwo, name_prefix, opName)
+    if opFunc == addChange and (diffPref is None or diffPref == '2'):
+        return formMaskDiff2(fileOne, fileTwo, name_prefix, opName)
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2.VideoCapture(fileOne)
     analysis_components.vid_two = cv2.VideoCapture(fileTwo)

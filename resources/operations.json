@@ -122,9 +122,10 @@
         "checkSize"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ ],
       "description": "Distort and/or crop video layers in order to remove camera shake",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -282,7 +283,8 @@
       },
       "rules": [
         "checkSize",
-        "checkForDonor"
+        "checkForDonor",
+        "check_eight_bit"
       ],
       "optionalparameters": {},
       "description": "Alter Image to be compliant with another images quantization and EXIF",
@@ -736,7 +738,18 @@
     {
       "category": "Fill",
       "name": "FillContentAwareFill",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "purpose": {
+          "type": "list",
+          "values": [
+            "remove",
+            "enlarge",
+            "heal",
+            "other"
+          ],
+          "description": "Purpose: remove an object, enlarge (extend), or healing using sampled pixels."
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -753,7 +766,7 @@
       "compareparameters" : {
          "tolerance" : 5.0
       },
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1099,6 +1112,24 @@
       "optionalparameters": {},
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift midtone luminance values on a histogram to higher or lower values.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Intensity",
+      "name": "IntensityNormalization",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {},
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Normalize using histograms.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -1483,7 +1514,8 @@
       "name": "OutputJpg",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize"
+        "checkSize",
+        "check_eight_bit"
       ],
       "optionalparameters": {
         "XMP File Name": {
@@ -1569,6 +1601,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -1582,6 +1615,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -1595,6 +1629,7 @@
       "optionalparameters": {},
       "description": "Export the image in the AVI format.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -1622,6 +1657,7 @@
             "face",
             "natural object",
             "man-made object",
+            "large man-made object",
             "landscape",
             "other"
           ],
@@ -1918,6 +1954,7 @@
       "optionalparameters": {},
       "description": "Lock a layer to a specific frame rate.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -1956,6 +1993,7 @@
       "optionalparameters": {},
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -1979,6 +2017,7 @@
       "optionalparameters": {},
       "description": "Distorts the image by shifting pixels across time.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -2023,6 +2062,7 @@
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -2366,6 +2406,7 @@
       "optionalparameters": {},
       "description": "Down sample a video to a lower frame resolution.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]

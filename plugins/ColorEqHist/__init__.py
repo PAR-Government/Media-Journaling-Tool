@@ -14,7 +14,7 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['ColorColorBalance','Color','Equalize Colors using Histogram over the Chrominance Channel','OpenCV','2.4.13']
+  return ['IntensityNormalization','Intensity','Equalize Colors using Histogram over the Chrominance Channel','OpenCV','2.4.13']
 
 def args():
   return None

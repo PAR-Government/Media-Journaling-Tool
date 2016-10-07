@@ -7,8 +7,26 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 
-igversion='0.2.1'
-igcompatibleversions=['0.1','0.2', '0.2.1']
+igversion='0.3.1007'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007']
+
+
+def extract_archive(fname, dir):
+    try:
+        archive = tarfile.open(fname, "r:gz", errorlevel=2)
+    except Exception as e:
+        try:
+            archive = tarfile.open(fname, "r", errorlevel=2)
+        except Exception as e:
+            print e
+            return False
+
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    archive.extractall(dir)
+    archive.close()
+
+    return True
 
 def getPathValues(d, path):
     """
@@ -59,6 +77,8 @@ def queue_nodes(g, nodes, node, func):
     return nodes
 
 
+
+
 def remove_edges(g, nodes, node, func):
     for s in g.successors(node):
         func(node, s, g.edge[node][s])
@@ -73,14 +93,39 @@ def loadJSONGraph(pathname):
             return json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
 
 
+def find_project_json(prefix, directory):
+    """
+    Finds all project .json file in the given directory whose subdirectory starts with prefix
+    :param prefix subdirectory name begins with prefix
+    :return: JSON file path name for a project
+    """
+    ext = '.json'
+    subs = [os.path.join(directory,x) for x in os.listdir(directory) if x.startswith(prefix) and
+            os.path.isdir(os.path.join(directory, x))]
+
+    for sub in subs:
+        for f in os.listdir(sub):
+            if f.endswith(ext):
+                return os.path.join(sub,f)
+                break
+    return None
+
 def createGraph(pathname, projecttype=None):
     """
-      Factory for an Project Graph, existing or new
+      Factory for an Project Graph, existing or new.
+      Supports a tgz of a project or the .json of a project
     """
     G = None
     if (os.path.exists(pathname) and pathname.endswith('.json')):
         G = loadJSONGraph(pathname)
         projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
+    if (os.path.exists(pathname) and pathname.endswith('.tgz')):
+        dir = os.path.split(os.path.abspath(pathname))[0]
+        extract_archive(pathname,dir)
+        pathname = find_project_json(os.path.split(pathname[0:pathname.rfind('.')])[0],dir)
+        G = loadJSONGraph(pathname)
+        projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
+
     return ImageGraph(pathname, graph=G, projecttype=projecttype)
 
 
@@ -122,6 +167,21 @@ class ImageGraph:
                          isMask=mask,
                          preserveSnapshot= (imgDir == os.path.abspath(self.dir) and \
                                             ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
+
+    def replace_attribute_value(self, attributename, oldvalue, newvalue):
+        found = False
+        if attributename in self.G.graph and self.G.graph[attributename] == oldvalue:
+            self.G.graph[attributename] = newvalue
+            found = True
+        for n in self.G.nodes():
+            if attributename in self.G.node[n] and self.G.node[n][attributename] == oldvalue:
+                self.G.node[n][attributename] = newvalue
+                found = True
+        for e in self.G.edges():
+            if attributename in self.G.edge[e[0]][e[1]] and self.G.edge[e[0]][e[1]][attributename] == oldvalue:
+                self.G.edge[e[0]][e[1]][attributename] = newvalue
+                found = True
+        return found
 
     def get_nodes(self):
         return self.G.nodes()
@@ -211,6 +271,7 @@ class ImageGraph:
             if 'compositemaskname' in self.G.node[nodeName]:
                 self.G.node[nodeName]['compositemaskname'] = ''
                 self.G.node[nodeName]['compositebase'] = ''
+                self.G.node[nodeName]['composite change size category'] = ''
                 os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
     def removeDonorFromNode(self, nodeName):
@@ -223,19 +284,20 @@ class ImageGraph:
                 self.G.node[nodeName]['donormaskname'] = ''
                 os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
-    def addCompositeToNode(self, compositeTuple):
+    def addCompositeToNode(self,  leafNode, baseNode, image, category):
         """
         Add mask to leaf node and save mask to disk
         Input is a tuple (leaf node name, base node name, Image mask)
         """
-        if self.G.has_node(compositeTuple[0]):
-            fname = compositeTuple[0] + '_composite_mask.png'
-            self.G.node[compositeTuple[0]]['compositemaskname'] = fname
-            self.G.node[compositeTuple[0]]['compositebase'] = compositeTuple[1]
+        if self.G.has_node(leafNode):
+            fname = leafNode + '_composite_mask.png'
+            self.G.node[leafNode]['compositemaskname'] = fname
+            self.G.node[leafNode]['compositebase'] = baseNode
+            self.G.node[leafNode]['composite change size category'] = category
             try:
-                compositeTuple[2].save(os.path.abspath(os.path.join(self.dir, fname)))
+                image.save(os.path.abspath(os.path.join(self.dir, fname)))
             except IOError:
-                compositeMask = convertToMask(compositeTuple[2])
+                compositeMask = convertToMask(image)
                 compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def addDonorToNode(self, recipientNode, mask):
@@ -310,8 +372,10 @@ class ImageGraph:
             edge[k] = v
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
-        newmaskpathname = os.path.join(self.dir, maskname)
-        mask.save(newmaskpathname)
+        newmaskpathname = None
+        if maskname is not None:
+            newmaskpathname = os.path.join(self.dir, maskname)
+            mask.save(newmaskpathname)
         for path, ownership in self.edgeFilePaths.iteritems():
             vals = getPathValues(kwargs, path)
             if ownership and len(vals) > 0:
@@ -547,6 +611,8 @@ class ImageGraph:
             print 'bad archive'
             return False
         return True
+
+
 
     def _create_archive(self, location):
         self.save()

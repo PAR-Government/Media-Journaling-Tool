@@ -14,7 +14,7 @@ import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
-
+from functools import partial
 
 def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     """
@@ -88,6 +88,11 @@ def tupletostring(tuple):
     return strv
 
 
+def viewInfo(description_information):
+    tkMessageBox.showinfo(description_information[0],
+                          description_information[1] if description_information[1] is not None else 'Undefined')
+
+
 class PropertyDialog(tkSimpleDialog.Dialog):
 
    parent = None
@@ -95,31 +100,35 @@ class PropertyDialog(tkSimpleDialog.Dialog):
 
    def __init__(self, parent, properties):
      self.parent = parent
-     self.properties = properties
+     self.properties = [prop for prop in properties if not prop.node]
      self.values = [None for prop in properties]
      tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
 
    def body(self, master):
+        vs = VerticalScrolledFrame(master)
+        vs.grid(row=0)
+        master = vs.interior
         self.radVars = []
         self.yesbuttons = []
         self.nobuttons = []
         radioCount = 0
         row = 0
         for prop in self.properties:
-           Label(master, text=prop[0]).grid(row=row,sticky=E)
-           if prop[2] == 'list':
-             self.values[row] = ttk.Combobox(master, values=prop[3], takefocus=(row == 0))
+           p = partial(viewInfo, (prop.description,prop.information))
+           Button(master, text=prop.description,takefocus=False,command= p).grid(row=row,sticky=E)
+           if prop.type == 'list':
+             self.values[row] = ttk.Combobox(master, values=prop.values, takefocus=(row == 0))
              self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E+W)
-             v = self.parent.scModel.getProjectData(prop[1])
+             v = self.parent.scModel.getProjectData(prop.name)
              if v:
                  self.values[row].set(v)
-           elif prop[2] == 'text':
+           elif prop.type == 'text':
              self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
-             v = self.parent.scModel.getProjectData(prop[1])
+             v = self.parent.scModel.getProjectData(prop.name)
              if v:
                  self.values[row].insert(1.0,v)
              self.values[row].grid(row=row, column=1, columnspan=8, sticky=E+W)
-           elif prop[2] == 'yesno':
+           elif prop.type == 'yesno':
                self.radVars.append(StringVar())
                self.values[row] = self.radVars[radioCount]
                self.yesbuttons.append(Radiobutton(master, text='Yes', takefocus=(row==0), variable=self.radVars[radioCount], value='yes'))
@@ -128,17 +137,18 @@ class PropertyDialog(tkSimpleDialog.Dialog):
                self.nobuttons.append(Radiobutton(master, text='No', takefocus=(row==0), variable=self.radVars[radioCount], value='no'))
                self.nobuttons[radioCount].grid(row=row, column=1, sticky=E)
                self.nobuttons[radioCount].select()
-               v = self.parent.scModel.getProjectData(prop[1])
+               v = self.parent.scModel.getProjectData(prop.name)
                if v:
                    self.radVars[radioCount].set(v)
                radioCount += 1
            else:
              self.values[row] = Entry(master,takefocus=(row==0),width=80)
-             v = self.parent.scModel.getProjectData(prop[1])
+             v = self.parent.scModel.getProjectData(prop.name)
              if v:
                  self.values[row].insert(0,v)
              self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
            row+=1
+
 
    def cancel(self):
       if self.cancelled:
@@ -149,9 +159,9 @@ class PropertyDialog(tkSimpleDialog.Dialog):
       self.cancelled = False
       i = 0
       for prop in self.properties:
-          v= self.values[i].get() if prop[2] != 'text' else self.values[i].get(1.0,END).strip()
+          v= self.values[i].get() if prop.type != 'text' else self.values[i].get(1.0,END).strip()
           if v and len(v) > 0:
-            self.parent.scModel.setProjectData(prop[1],v)
+            self.parent.scModel.setProjectData(prop.name,v)
           i+=1
 
 
@@ -1175,3 +1185,54 @@ class RotateDialog(tkSimpleDialog.Dialog):
     def apply(self):
         self.cancelled = False
         self.rotate = 'yes'
+
+
+class VerticalScrolledFrame(Frame):
+    """A pure Tkinter scrollable frame that actually works!
+
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+
+    """
+
+    def __init__(self, parent, *args, **kw):
+        Frame.__init__(self, parent, *args, **kw)
+
+        # create a canvas object and a vertical scrollbar for scrolling it
+        vscrollbar = Scrollbar(self, orient=VERTICAL)
+        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+        canvas = Canvas(self, bd=0, highlightthickness=0,
+                        yscrollcommand=vscrollbar.set)
+        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        vscrollbar.config(command=canvas.yview)
+
+        # reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = Frame(canvas)
+        interior_id = canvas.create_window(0, 0, window=interior,
+                                           anchor=NW)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            canvas.config(scrollregion="0 0 %s %s" % size)
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                canvas.config(width=interior.winfo_reqwidth())
+
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+
+        canvas.bind('<Configure>', _configure_canvas)
+
+        return

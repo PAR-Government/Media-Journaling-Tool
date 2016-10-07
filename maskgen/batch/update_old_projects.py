@@ -1,92 +1,87 @@
 import argparse
 import os
-import json
-import cv2
 import maskgen.scenario_model
 import bulk_export
+import tempfile
+from maskgen.image_graph import extract_archive
+from maskgen.graph_rules import processProjectProperties
+import hashlib
+import shutil
 
-replacements = {'FillCloneRubberStamp':'PasteClone'}
-localOps = ['FilterBlurMotion', 'AdditionalEffectFilterBlur', 'FilterBlurNoise', 'AdditionalEffectFilterSharpening',
-            'ColorColorBalance']
-
-def label_project_nodes(project):
+def label_project_nodes(scModel):
     """
     Labels all nodes on a project
-    :param project: path to a project json file
-    :return: None. Updates JSON.
+    :param scModel: scenario model
     """
-    sm = maskgen.scenario_model.ImageProjectModel(project)
-    p = sm.getNodeNames()
+    p = scModel.getNodeNames()
     for node in p:
-        sm.labelNodes(node)
-    sm.save()
+        scModel.labelNodes(node)
 
+def rebuild_masks(scModel):
+    """
+    Rebuild all edge masks
+    :param scModel: scenario model
+    :return:
+    """
+    for edge in scModel.getGraph().get_edges():
+        scModel.select(edge)
+        scModel.reproduceMask()
 
-def replace_op_names(data):
+def rename_donors(scModel,updatedir):
     """
-    Replaces select operation names
-    :param data: json file
-    :return: None. Updates json.
+    Rename donor images with MD5
+    :param scModel: scenario model
+    :return:
     """
-    global replacements
-    numLinks = len(data['links'])
-    for link in xrange(numLinks):
-        currentLink = data['links'][link]
-        if currentLink['op'] in replacements.keys():
-            currentLink['op'] = replacements[currentLink['op']]
+    for node in scModel.getNodeNames():
+        nodeData = scModel.getGraph().get_node(node)
+        if nodeData['nodetype'] == 'donor':
+            file_path_name = os.path.join(scModel.get_dir(), nodeData['file'])
+            with open(file_path_name, 'rb') as fp:
+                md5 = hashlib.md5(fp.read()).hexdigest()
+            suffix = nodeData['file'][nodeData['file'].rfind('.'):]
+            new_file_name = md5 + suffix
+            fullname =  os.path.join(scModel.get_dir(), new_file_name)
+            if not os.path.exists(fullname):
+                os.rename(file_path_name, fullname)
+                nodeData['file'] = new_file_name
+                shutil.copy(os.path.join(scModel.get_dir(),new_file_name), updatedir)
 
-
-def inspect_masks(d, data):
-    """
-    find masks that could represent local operations, and add 'local' arg if less than 50% of pixels changed
-    :param d: project directory
-    :param data: json data
-    :return: None. Updates json.
-    """
-    global localOps
-    numLinks = len(data['links'])
-    for link in xrange(numLinks):
-        currentLink = data['links'][link]
-        if currentLink['op'] in localOps:
-            imageFile = os.path.join(os.path.dirname(d), currentLink['maskname'])
-            im = cv2.imread(imageFile, 0)
-            if 'arguments' not in currentLink.keys():
-                currentLink['arguments'] = {}
-            if cv2.countNonZero(im) > im.size/2:
-                currentLink['arguments']['local'] = 'yes'
-            else:
-                currentLink['arguments']['local'] = 'no'
-
-def generate_composites(project):
-    """
-    Generate composite mask for a given project
-    :param project: path to a project json file
-    :return: None.
-    """
-    sm = maskgen.scenario_model.ImageProjectModel(project)
-    sm.constructComposites()
-    sm.save()
+def perform_update(project,args):
+    scModel = maskgen.scenario_model.ImageProjectModel(project)
+    label_project_nodes(scModel)
+    if args.renamedonors:
+        rename_donors(scModel,args.updatedir)
+    if args.composites:
+        scModel.constructComposites()
+        scModel.constructDonors()
+        processProjectProperties(scModel)
+    if args.redomasks:
+        rebuild_masks(scModel)
+    scModel.save()
+    scModel.export(args.updatedir)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dir', required=True, help='Directory of projects')
+    parser.add_argument('-u', '--updatedir', required=True, help='Directory of updated projects')
+    parser.add_argument('-c', '--composites', required=False, help='Reconstruct composite images',action='store_true')
+    parser.add_argument('-rd', '--renamedonors', required=False, help='Rename donor images',action='store_true')
+    parser.add_argument('-rc', '--redomasks', required=False, help='Rebuild link masks',action='store_true')
     args = parser.parse_args()
 
-    dirs = bulk_export.pick_projects(args.dir)
-    total = len(dirs)
+    zippedProjects = bulk_export.pick_zipped_projects(args.dir)
+    total = len(zippedProjects)
     count = 1
-    for d in dirs:
-        label_project_nodes(d)
-        generate_composites(d)
-        with open(d, 'r+') as f:
-            data = json.load(f)
-            replace_op_names(data)
-            inspect_masks(d, data)
-            f.seek(0)
-            f.truncate()
-            json.dump(data, f, indent=2)
-        print 'Project updated [' + str(count) + '/' + str(total) + '] '+ os.path.basename(d)
-        count+=1
+    for zippedProject in zippedProjects:
+        dir = tempfile.mkdtemp()
+        if extract_archive(zippedProject, dir):
+            for project in bulk_export.pick_projects(dir):
+                perform_update(project, args)
+                print 'Project updated [' + str(count) + '/' + str(total) + '] ' + zippedProject
+                count += 1
+        else:
+            print 'Project skipped ' + zippedProject
 
 if __name__ == '__main__':
     main()

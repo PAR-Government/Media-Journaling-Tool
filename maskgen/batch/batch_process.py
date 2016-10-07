@@ -5,7 +5,7 @@ import argparse
 import sys
 import itertools
 from maskgen.software_loader import *
-import maskgen.scenario_model
+from maskgen import scenario_model
 import maskgen.tool_set
 import bulk_export
 import maskgen.group_operations
@@ -41,10 +41,10 @@ def check_additional_args(additionalArgs, op):
     """
     # parse additional arguments (rotation, etc.)
     # http://stackoverflow.com/questions/6900955/python-convert-list-to-dictionary
-    if additionalArgs != {}:
+    if len(additionalArgs) > 0:
         parsedArgs = dict(itertools.izip_longest(*[iter(additionalArgs)] * 2, fillvalue=""))
         for key in parsedArgs:
-            parsedArgs[key] = maskgen.tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op)
+            parsedArgs[key] = maskgen.tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op, skipFileValidation=False)
     else:
         parsedArgs = additionalArgs
     for key in op.mandatoryparameters.keys():
@@ -88,14 +88,15 @@ def create_image_list(fileList):
     :param fileList: list of files
     :return: list of image files in fileList
     """
-    ext = ('.jpg', '.tif', '.png')
-    return [i for i in os.listdir(fileList) if i.endswith(ext)]
+    ext = [x[1:] for x in maskgen.tool_set.suffixes ]
+    return [i for i in os.listdir(fileList) if len ([e for e in ext if i.endswith(e)])>0]
 
 def generate_composites(projectsDir):
-    projects = bulk_export.pick_dirs(projectsDir)
+    projects = bulk_export.pick_projects(projectsDir)
     for prj in projects:
         sm = scenario_model.ImageProjectModel(prj)
         sm.constructComposites()
+        sm.constructDonors()
         sm.save()
 
 
@@ -124,11 +125,9 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
     # Decide what to do with input (create new or add)
     if endDir:
         endingImages = create_image_list(endDir)
-        new = True
         print 'Creating new projects...'
     else:
         endingImages = None
-        new = False
         print 'Adding to existing projects...'
 
     if inputMaskPath:
@@ -151,6 +150,7 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
         project = find_json_path(sImgName, projectDir)
 
         # open the project
+        new = not os.path.exists(project)
         sm = maskgen.scenario_model.ImageProjectModel(project)
         if new:
             sm.addImage(os.path.join(sourceDir, sImg))
@@ -162,7 +162,9 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
             eImg = os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
         else:
             eImg = os.path.join(sourceDir, sImg)
-            lastNodeName = sm.G.get_edges()[-1][-1]
+            print sm.G.get_nodes()
+            lastNodes = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0]
+            lastNodeName = lastNodes[-1]
 
         lastNode = sm.G.get_node(lastNodeName)
 
@@ -219,7 +221,6 @@ def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username)
             lastNode = sm.G.get_edges()[-1][-1]
         sm.selectImage(lastNode)
         im, filename = sm.currentImage()
-        maskgen.plugins.loadPlugins()
         sm.imageFromPlugin(plugin, im, filename)
         sm.save()
         print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + i
@@ -265,12 +266,20 @@ def main():
 
     ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
+    loadProjectProperties("project_properties.json")
 
     # perform the specified operation
     if args.plugin:
+        maskgen.plugins.loadPlugins()
+        opTuple = maskgen.plugins.getOperation(args.plugin)
+        additionalArgs = {}
+        if opTuple is not None:
+            op = getOperation(opTuple[0])
+            additionalArgs = check_additional_args(args.additional, op)
+
         print 'Performing plugin operation ' + args.plugin + '...'
         process_plugin(args.sourceDir, args.projects, args.plugin, args.projectDescription,
-                       args.technicalSummary, args.username)
+                       args.technicalSummary, args.username,additionalArgs)
     elif args.sourceDir:
         check_ops(ops, soft, args)
         additionalArgs = check_additional_args(args.additional, getOperation(args.op))

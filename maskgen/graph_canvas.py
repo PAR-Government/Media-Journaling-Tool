@@ -49,9 +49,14 @@ class MaskGraphCanvas(tk.Canvas):
         self._unmark()
         self.delete(tk.ALL)
         self.toItemIds = {}
+        self.crossHairConnect = False
         self.itemToNodeIds = {}
         self.itemToEdgeIds = {}
         self.itemToCanvas = {}
+        self.lassoitems = None
+        self.lassobox = None
+        self.drag_item = None
+        self.drag_data = None
 
     def plot(self, home_node):
         self.clear()
