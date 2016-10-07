@@ -132,18 +132,64 @@ def validateCoordinates(v):
     except ValueError:
         return False
 
+def isPastTime(milliAndFrameNow, milliAndFrameMark):
+    """
+    :param milliAndFrameNow:  tuple (milliseconds, frames since time)
+    :param milliAndFrameMark: tuple (milliseconds, frames since time)
+    :return: True if milliAndFrameNow > milliAndFrameMark
+    """
+    if milliAndFrameMark is None or milliAndFrameMark[0] is None:
+        return False
+    if milliAndFrameNow[0] > milliAndFrameMark[0]:
+        return True
+    if milliAndFrameNow[0] == milliAndFrameMark[0]:
+        return milliAndFrameMark[1] is not None and milliAndFrameNow[1] > milliAndFrameMark[1]
+    return False
+
+def isBeforeTime(milliAndFrameNow, milliAndFrameMark):
+    """
+    :param milliAndFrameNow:  tuple (milliseconds, frames since time)
+    :param milliAndFrameMark: tuple (milliseconds, frames since time)
+    :return: True if milliAndFrameNow > milliAndFrameMark
+    """
+    if milliAndFrameMark is None or milliAndFrameMark[0] is None:
+        return False
+    if milliAndFrameNow[0] < milliAndFrameMark[0]:
+        return True
+    if milliAndFrameNow[0] == milliAndFrameMark[0]:
+        return milliAndFrameMark[1] is not None and milliAndFrameNow[1] < milliAndFrameMark[1]
+    return False
+
+
 def getMilliSeconds(v):
     dt = None
+    framecount = 0
+    if v.count(':') > 2:
+        try:
+            framecount = int(v[v.rfind(':') + 1:])
+            v = v[0:v.rfind(':')]
+        except:
+            return None,0
     try:
         dt =  datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
             dt =  datetime.strptime(v, '%H:%M:%S')
         except ValueError:
-            return None
-    return dt.hour*360000 + dt.minute*60000 + dt.second*1000 + dt.microsecond/1000
+            return None,0
+    return (dt.hour*360000 + dt.minute*60000 + dt.second*1000 + dt.microsecond/1000,framecount)
 
 def validateTimeString(v):
+    if v.count(':') > 3:
+       return False
+
+    framecount = 0
+    if v.count(':') > 2:
+        try:
+             framecount = int(v[v.rfind(':')+1:])
+             v = v[0:v.rfind(':')]
+        except:
+             return False
     try:
         datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -218,12 +264,20 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         bestSoFar = None
         bestVariance = -1
         maxTry = 20
+        secondInMillis = 0
+        framesSinceSecond = 0
         try:
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
-                if videoFrameTime and videoFrameTime < float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)):
+                currentSecond = int(float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC))/1000.0)*1000
+                if currentSecond > secondInMillis:
+                    secondInMillis = currentSecond
+                    framesSinceSecond = 1
+                else:
+                    framesSinceSecond+=1
+                if isPastTime((currentSecond,framesSinceSecond),videoFrameTime):
                     bestSoFar = frame
                     break
                 varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
@@ -376,7 +430,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert, arguments={}):
+def createMask(img1, img2, invert=False, arguments={}):
     mask, analysis = __composeMask(img1, img2, invert, arguments=arguments)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
@@ -402,12 +456,13 @@ def __sift(img1, img2, mask1=None, mask2=None):
     FLANN_INDEX_KDTREE = 0
     FLANN_INDEX_LSH = 6
     TREES=16
+    CHECKS=50
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
     # index_params= dict(algorithm         = FLANN_INDEX_LSH,
     #                   table_number      = 6,
     #                   key_size          = 12,
     #                   multi_probe_level = 1)
-    search_params = dict(checks=50)
+    search_params = dict(checks=CHECKS)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
@@ -418,10 +473,10 @@ def __sift(img1, img2, mask1=None, mask2=None):
     (kp2, d2) = extractor.compute(img2, kp2a)
 
     if kp2 is None or len(kp2) == 0:
-        return None
+        return None,None
 
     if kp1 is None or len(kp1) == 0:
-        return None
+        return None,None
 
     d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
     d1 = np.sqrt(d1)
@@ -476,7 +531,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     return 255 - newMask
 
 def __composeMask(img1, img2, invert, arguments=dict()):
-    img1, img2 = __alignChannels(img1, img2)
+    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
@@ -488,7 +543,7 @@ def __composeMask(img1, img2, invert, arguments=dict()):
         return __composeExpandImageMask(img1, img2)
     try:
         if img1.shape == img2.shape:
-            return __diffMask(img1, img2, invert)
+            return __diffMask(img1, img2, invert,args=arguments)
     except ValueError as e:
         print 'Mask generation failure ' + str(e)
     mask = np.ones(img1.shape) * 255
@@ -533,7 +588,7 @@ def __rotateImage(rotation, img, expectedDims, cval=0):
 
 def __compareRotatedImage(rotation, img1, img2, invert, arguments):
     res = __rotateImage(rotation, img1, img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert)
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,args=arguments)
     res = __rotateImage(-rotation, mask, img1.shape, cval=255)
     return res, analysis
 
@@ -548,8 +603,8 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
 
-def __alignChannels(rawimg1, rawimg2):
-    return rawimg1.to_float().to_array(), rawimg2.to_float().to_array()
+def __alignChannels(rawimg1, rawimg2,equalize_colors=False):
+    return rawimg1.to_float(equalize_colors=equalize_colors).to_array(), rawimg2.to_float(equalize_colors=equalize_colors).to_array()
 
 def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
@@ -579,7 +634,7 @@ def __composeCropImageMask(img1, img2, seamAnalysis=False):
         diffIm[tuple[0]:tuple[2], tuple[1]:tuple[3]] = img2
         pinned = np.where(np.array(dims) == np.array(tuple))[0]
         analysis = img_analytics(img1, diffIm)
-        analysis['location'] = str((tuple[0], tuple[1]))
+        analysis['location'] = str((int(tuple[0]), int(tuple[1])))
         dst = np.abs(img1 - diffIm)
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
@@ -627,7 +682,7 @@ def __sizeDiff(z1, z2):
        z1 and z2 are expected to be PIL images
     """
     # size is inverted due to Image's opposite of numpy arrays
-    return str((z2.size[1] - z1.size[1], z2.size[0] - z1.size[0]))
+    return str((int(z2.size[1] - z1.size[1]),int( z2.size[0] - z1.size[0])))
 
 
 def invertMask(mask):
@@ -717,10 +772,11 @@ def img_analytics(z1, z2):
         return {'ssim': compare_ssim(z1, z2, multichannel=False), 'psnr': __colorPSNR(z1, z2)}
 
 
-def __diffMask(img1, img2, invert):
+def __diffMask(img1, img2, invert,args=None):
     dst = np.abs(img1 - img2)
     gray_image = np.zeros(img1.shape).astype('uint8')
-    gray_image[dst > 0.0001] = 255
+    difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
+    gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2)
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
 

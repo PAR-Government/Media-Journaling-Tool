@@ -188,7 +188,7 @@ class Modification:
     # Record the link in the composite.  Uses 'no' and 'yes' to mirror JSON read-ability
     recordMaskInComposite = 'no'
     # arguments used by the operation
-    arguments = {}
+    arguments = dict()
     # represents the composite selection mask, if different from the link mask
     selectMaskName = None
     # instance of Software
@@ -243,7 +243,7 @@ class Modification:
         return self.inputMaskName == self.selectMaskName
 
     def setArguments(self, args):
-        self.arguments = {}
+        self.arguments = dict()
         for k, v in args.iteritems():
             self.arguments[k] = v
             if k == 'inputmaskname':
@@ -345,10 +345,12 @@ class ImageImageLinkTool(LinkTool):
                             mask = mask.resize(startIm.size,Image.ANTIALIAS)
                         break
             if mask is None:
-                mask = tool_set.convertToMask(scModel.G.get_image(start)[0])
+                mask = tool_set.convertToMask(startIm)
                 if expect_donor_mask:
                     errors = ["Donor image has insufficient features for SIFT and does not have a predecessor node."]
                 analysis = {}
+            else:
+                mask = startIm.apply_alpha_to_mask(mask)
         else:
             mask, analysis = tool_set.createMask(startIm, destIm, invert=invert, arguments=arguments)
             exifDiff = exif.compareexif(startFileName, destFileName)
@@ -475,7 +477,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = ImageWrapper(np.zeros(250,250,3).astype('uint8')), {}
+        mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
         maskname = start + '_' + destination + '_mask' + '.png'
         maskSet =[]
         errors = list()
@@ -787,10 +789,21 @@ class ImageProjectModel:
         return linkTools[self.getLinkType(start, end)]
 
     def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True):
+        try:
+            for k,v in getOperation(opName).compareparameters.iteritems():
+                arguments[k] = v
+        except:
+            pass
         return self.getLinkTool(self.start, destination).compareImages(self.start, destination, self, opName,
                                                                        arguments=arguments,
                                                                        skipDonorAnalysis=skipDonorAnalysis,
                                                                        invert=invert)
+
+    def reproduceMask(self):
+        edge = self.G.get_edge(self.start, self.end)
+        maskname, mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
+                                                               arguments=edge['arguments'] if 'arguments' in edge else dict())
+        self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**analysis)
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
                           skipDonorAnalysis=False):
@@ -1404,5 +1417,8 @@ class VideoMaskSetInfo:
             self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
 
     def _convert(self, item):
-        return {'Start': item['starttime'], 'End': item['endtime'], 'Frames': item['frames'],
+        return {'Start': self.tofloat(item['starttime']), 'End': self.tofloat(item['endtime']), 'Frames': item['frames'],
                 'File': item['videosegment'] if 'videosegment' in item else ''}
+
+    def tofloat(self,o):
+        o if o is None else float(o)

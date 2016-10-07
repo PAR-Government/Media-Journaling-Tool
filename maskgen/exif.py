@@ -24,27 +24,30 @@ def getOrientationFromExif(source):
         return None
 
 
-def rotateAccordingToExif(img_array, orientation):
+def rotateAccordingToExif(img_array, orientation, counter=False):
     rotation = orientation
 
     if rotation is None:
         return img_array
     if rotation == 'Mirror horizontal':
-        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.fliplr(img_array)
     elif rotation == 'Rotate 180':
-        rotatedArr = np.rot90(arr, 2)
+        rotatedArr = np.rot90(img_array, 2)
     elif rotation == 'Mirror vertical':
-        rotatedArr = np.flipud(arr)
+        rotatedArr = np.flipud(img_array)
     elif rotation == 'Mirror horizontal and rotate 270 CW':
-        rotatedArr = np.fliplr(arr)
+        rotatedArr = np.fliplr(img_array)
         rotatedArr = np.rot90(rotatedArr, 3)
     elif rotation == 'Rotate 90 CW':
-        rotatedArr = np.rot90(arr)
+        amount = 3 if counter else 1
+        rotatedArr = np.rot90(img_array, amount)
     elif rotation == 'Mirror horizontal and rotate 90 CW':
-        rotatedArr = np.fliplr(arr)
-        rotatedArr = np.rot90(rotatedArr)
+        rotatedArr = np.fliplr(img_array)
+        amount = 3 if counter else 1
+        rotatedArr = np.rot90(rotatedArr,amount)
     elif rotation == 'Rotate 270 CW':
-        rotatedArr = np.rot90(arr, 3)
+        amount = 1 if counter else 3
+        rotatedArr = np.rot90(img_array, amount)
     else:
         rotatedArr = img_array
 

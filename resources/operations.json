@@ -363,7 +363,12 @@
     {
       "category": "ArtifactsCGI",
       "name": "ArtifactsCGIObjectCGI",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "imagefile": {
+          "type": "imagefile",
+          "description": "An image file containing the image used.  The unused portion of the image should be transparent with an alpha-channel"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -745,6 +750,9 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
+      "compareparameters" : {
+         "tolerance" : 5.0
+      },
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -951,12 +959,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
@@ -1348,12 +1356,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1377,12 +1385,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1406,12 +1414,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1435,12 +1443,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1640,11 +1648,11 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
@@ -1670,11 +1678,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro)"
+          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
@@ -1708,11 +1716,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro)"
+          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1765,11 +1773,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Create a limited selection,removing background,from a donor video.  The result should be a black back ground.",
@@ -1788,11 +1796,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Remove a region from a series of frames.",
@@ -1811,11 +1819,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro)"
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Remove a series of frames from a video clip.",
@@ -1850,7 +1858,7 @@
       "mandatoryparameters": {
         "Frame Time": {
           "type": "time",
-          "description": "Presentation time of the select frame (HH:MI:SS.micro)"
+          "description": "Presentation time of the select frame (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
