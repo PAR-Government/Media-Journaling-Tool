@@ -1,6 +1,0 @@
-CopyrightNotice=� 2016 [YOUR ORGANIZATION] - Under contract of MediFor
-By-line=YOURINITIALSHERE
-Credit=YOURORGANIZATION HERE (Accepted: P, PAR; R, RIT; M, U of M; D, Drexel; C, CU Denver)
-UsageTerms=CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/legalcodes
-Copyright=
-Artist=
