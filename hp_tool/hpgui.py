@@ -88,7 +88,7 @@ class HPGUI(Frame):
     def preview_filename(self):
         testNameStr = 'Please update preferences with username and organization'
         prefs = parse_prefs(self.prefsfilename.get())
-        if prefs:
+        if prefs and prefs.has_key('seq'):
             testNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
                         prefs['organization'] + prefs['username'] + '-' + prefs['seq']
             if self.additionalinfo.get():
@@ -114,9 +114,13 @@ class HPGUI(Frame):
         aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
         aSheet.open_spreadsheet()
         self.keywordsbutton.config(state=NORMAL)
+        keySheet = self.open_keywords_sheet()
+        keySheet.close()
 
     def open_keywords_sheet(self):
-        keywords = KeywordsSheet(dir = self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
+        keywords = KeywordsSheet(dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
+        keywords.open_spreadsheet()
+        return keywords
 
     def open_old_rit_csv(self):
         csv = tkFileDialog.askopenfilename(initialdir=self.outputdir.get())

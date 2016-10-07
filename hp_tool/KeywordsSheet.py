@@ -22,7 +22,7 @@ class KeywordsSheet(HPSpreadsheet):
         self.keyCSV = keyCSV
         self.saveState = True
         self.protocol("WM_DELETE_WINDOW", self.check_save)
-        self.open_spreadsheet()
+
 
 
     def create_widgets(self):
@@ -70,6 +70,8 @@ class KeywordsSheet(HPSpreadsheet):
 
         if self.keyCSV == None:
             self.keyCSV = self.createKeywordsCSV()
+        else:
+            self.build_keywords_csv()
 
         self.title(self.keyCSV)
         self.pt.importCSV(self.keyCSV)
@@ -85,6 +87,19 @@ class KeywordsSheet(HPSpreadsheet):
                     writer.writerow([os.path.basename(self.newImageNames[im])] + ['']*3)
 
         return keywordsName
+
+    def build_keywords_csv(self):
+        writtenImages = []
+        with open(self.keyCSV) as csvFile:
+            reader = csv.reader(csvFile)
+            for row in reader:
+                writtenImages.append(row[0])
+            writtenImages.pop(0)
+        with open(self.keyCSV, 'ab') as csvFile:
+            writer = csv.writer(csvFile)
+            for im in range(0, len(self.newImageNames)):
+                if os.path.basename(self.newImageNames[im]) not in writtenImages:
+                    writer.writerow([os.path.basename(self.newImageNames[im])])
 
     def validate(self):
         try:
@@ -133,3 +148,5 @@ class KeywordsSheet(HPSpreadsheet):
         self.saveState = True
         tkMessageBox.showinfo('Status', 'Saved!')
 
+    def close(self):
+        self.destroy()

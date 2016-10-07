@@ -428,17 +428,18 @@ def tally_images(data, csvFile):
             i += 2
 
 def frac2dec(fracStr):
-    try:
-        return float(fracStr)
-    except ValueError:
-        if '\\' in fracStr:
-            (num, denom) = fracStr.split('\\')
-        elif '/' in fracStr:
-            (num, denom) = fracStr.split('/')
-        else:
-            print 'Could not convert fraction to decimal: ' + fracStr
-            return fracStr
-        return str(float(num)/float(denom))
+    return fracStr
+    # try:
+    #     return float(fracStr)
+    # except ValueError:
+    #     if '\\' in fracStr:
+    #         (num, denom) = fracStr.split('\\')
+    #     elif '/' in fracStr:
+    #         (num, denom) = fracStr.split('/')
+    #     else:
+    #         print 'Could not convert fraction to decimal: ' + fracStr
+    #         return fracStr
+    #     return str(float(num)/float(denom))
 
 def check_create_subdirectories(path):
     subs = ['image', 'video', 'csv']
@@ -638,7 +639,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         if len(imageIndices) > 1:
             diff = imageIndices[1] - imageIndices[0] - 1
         else:
-            diff = 0
+            diff = len(newExifData) +1
         j = 0
         for i in xrange(len(imageList)):
             data.append(master[:])

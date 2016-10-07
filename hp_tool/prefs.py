@@ -9,6 +9,7 @@ class Preferences(Toplevel):
     def __init__(self, master=None):
         Toplevel.__init__(self, master=master)
         self.master=master
+        self.title('Preferences')
         self.set_text_vars()
         self.prefsFrame = Frame(self, width=300, height=300)
         self.prefsFrame.pack(side=TOP)
@@ -32,6 +33,7 @@ class Preferences(Toplevel):
 
         self.create_widgets()
         self.set_defaults()
+        self.orgVar.trace('r', self.update_org)
 
     def set_text_vars(self):
         self.prevVar = StringVar()
@@ -64,6 +66,8 @@ class Preferences(Toplevel):
 
             if self.prefs.has_key('seq'):
                 self.seqVar.set(self.prefs['seq'])
+            else:
+                self.prefs['seq'] = '00000'
 
         if self.metadata:
             self.copyrightVar.set(self.metadata['copyrightnotice'])
@@ -84,7 +88,6 @@ class Preferences(Toplevel):
 
         self.orgBox = ttk.Combobox(self.prefsFrame, values=self.boxItems, textvariable=self.orgVar, state='readonly')
         self.orgBox.grid(row=0, column=3, columnspan=4)
-        self.orgVar.trace('r', self.update_org)
 
         self.descrLabel1 = Label(self.prefsFrame,
                                  textvar=self.prevVar)
@@ -137,6 +140,7 @@ class Preferences(Toplevel):
             self.prefs['username'] = self.usrVar.get()
 
         update = self.orgVar.get()
+        self.prefs['seq'] = self.seqVar.get()
 
         with open(self.prefsFile, 'w') as f:
             for key in self.prefs:
