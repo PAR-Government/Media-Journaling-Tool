@@ -63,26 +63,30 @@ def parse_prefs(data):
                 except ValueError:
                     continue
     except IOError:
-        print('Input file: ' + data + ' not found. ' + 'Please try again.')
-        sys.exit()
+        print('Input file: ' + data + ' not found. ')
+        return
 
     try:
         (newData['organization'] and newData['username'])
     except KeyError:
         print 'Must specify ''username'' and ''organization'' in preferences file'
-        sys.exit(0)
+        return
 
     # convert to single-char organization code
     if len(newData['organization']) > 1:
         try:
             newData['organization'] = orgs[newData['organization']]
         except KeyError:
-            print 'Error: organization: ' + newData['organization'] + ' not recognized'
-            sys.exit(0)
+            if newData['organization'][-2] in orgs.values():
+                newData['fullorgname'] = newData['organization']
+                newData['organization'] = newData['organization'][-2]
+            else:
+                print 'Error: organization: ' + newData['organization'] + ' not recognized'
+                return
     elif len(newData['organization']) == 1:
         if newData['organization'] not in orgs.values():
             print 'Error: organization code: ' + newData['organization'] + ' not recognized'
-            sys.exit(0)
+            return
 
     # reset sequence if date is new
     try:
@@ -186,8 +190,6 @@ def grab_dir(inpath, outdir=None, r=False):
                 ritCSV = os.path.join(outdir, f)
                 rit = pd.read_csv(ritCSV, dtype=str)
                 repeated = rit['OriginalImageName'].tolist()
-                test1 = repeated[0]
-                test2 = repeated[2]
         removeList = []
         for name in imageList:
             for repeatedName in repeated:
@@ -426,12 +428,17 @@ def tally_images(data, csvFile):
             i += 2
 
 def frac2dec(fracStr):
-    return fracStr
-    # try:
-    #     return float(fracStr)
-    # except ValueError:
-    #     num, denom = fracStr.split('/')
-    #     return float(num)/float(denom)
+    try:
+        return float(fracStr)
+    except ValueError:
+        if '\\' in fracStr:
+            (num, denom) = fracStr.split('\\')
+        elif '/' in fracStr:
+            (num, denom) = fracStr.split('/')
+        else:
+            print 'Could not convert fraction to decimal: ' + fracStr
+            return fracStr
+        return str(float(num)/float(denom))
 
 def check_create_subdirectories(path):
     subs = ['image', 'video', 'csv']
@@ -628,7 +635,10 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                     val = ''
                 newExifData.append(val)
         data = []
-        diff = imageIndices[1] - imageIndices[0] - 1
+        if len(imageIndices) > 1:
+            diff = imageIndices[1] - imageIndices[0] - 1
+        else:
+            diff = 0
         j = 0
         for i in xrange(len(imageList)):
             data.append(master[:])

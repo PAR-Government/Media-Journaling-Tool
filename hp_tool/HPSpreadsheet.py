@@ -1,12 +1,14 @@
 from Tkinter import *
 import tkFileDialog
 import os
+import sys
 import pandas as pd
 import tkMessageBox
 import pandastable
 import csv
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
+import hp_data
 
 
 class HPSpreadsheet(Toplevel):
@@ -23,24 +25,28 @@ class HPSpreadsheet(Toplevel):
         self.set_bindings()
 
     def create_widgets(self):
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
         self.topFrame = Frame(self)
-        self.topFrame.grid(row=0, column=1)
-        self.bottomFrame = Frame(self)
-        self.bottomFrame.grid(row=1, column=1)
+        self.topFrame.pack(side=TOP, fill=X)
+        self.rightFrame = Frame(self, width=480)
+        self.rightFrame.pack(side=RIGHT, fill=Y)
         self.leftFrame = Frame(self)
-        self.leftFrame.grid(row=0, column=0, rowspan=2)
-        self.pt = CustomTable(self.leftFrame)
+        self.leftFrame.pack(side=LEFT, fill=BOTH, expand=1)
+        self.pt = CustomTable(self.leftFrame, scrollregion=None, width=1024, height=720)
+        self.leftFrame.pack(fill=BOTH, expand=1)
         self.pt.show()
         self.currentImageNameVar = StringVar()
         self.currentImageNameVar.set('Current Image: ')
-        l = Label(self.topFrame, textvariable=self.currentImageNameVar)
-        l.grid()
+        l = Label(self.topFrame, height=1, textvariable=self.currentImageNameVar)
+        l.pack(fill=BOTH, expand=1)
 
         image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+        image.thumbnail((480,480))
         self.photo = ImageTk.PhotoImage(image)
-        self.l2 = Label(self.bottomFrame, width=250, height=250, image=self.photo)
+        self.l2 = Button(self.rightFrame, image=self.photo, command=self.open_image)
         self.l2.image = self.photo  # keep a reference!
-        self.l2.grid()
+        self.l2.pack(side=RIGHT)
 
         self.menubar = Menu(self)
         self.fileMenu = Menu(self.menubar, tearoff=0)
@@ -69,22 +75,28 @@ class HPSpreadsheet(Toplevel):
     def keypress(self, event):
         self.saveState = False
 
+    def open_image(self):
+        image = os.path.join(self.imageDir, self.imName)
+        if sys.platform.startswith('linux'):
+            os.system('xdg-open "' + image + '"')
+        elif sys.platform.startswith('win'):
+            os.startfile(image)
+        else:
+            os.system('open "' + image + '"')
+
     def update_current_image(self, event):
         row = self.pt.getSelectedRow()
-        val = str(self.pt.model.getValueAt(row, 0))
-        self.currentImageNameVar.set('Current Image: ' + val)
-
+        self.imName = str(self.pt.model.getValueAt(row, 0))
+        self.currentImageNameVar.set('Current Image: ' + self.imName)
+        maxSize = 480
         try:
-            size = 250, 250
-            im = Image.open(os.path.join(self.imageDir, val))
-            im.thumbnail(size, Image.ANTIALIAS)
-            newimg=ImageTk.PhotoImage(im)
-            self.l2.configure(image=newimg)
-            self.l2.image = newimg
-
-        except:
+            im = Image.open(os.path.join(self.imageDir, self.imName))
+        except IOError:
             im = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
-            newimg = ImageTk.PhotoImage(im)
+        finally:
+            if im.size[0] > maxSize or im.size[1] > maxSize:
+                im.thumbnail((maxSize,maxSize), Image.ANTIALIAS)
+            newimg=ImageTk.PhotoImage(im)
             self.l2.configure(image=newimg)
             self.l2.image = newimg
 
@@ -116,11 +128,13 @@ class HPSpreadsheet(Toplevel):
 
     def color_code_cells(self):
         notnans = self.pt.model.df.notnull()
-        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol, self.kincol]
+        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol]
+        videoonlycols = [self.kincol]
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
+                currentExt = os.path.splitext(self.pt.model.getValueAt(row,0))[1].lower()
                 x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
-                if col in redcols:
+                if col in redcols or (col in videoonlycols and currentExt in hp_data.exts['VIDEO']):
                     rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                     fill='#ff5b5b',
                                                     outline='#084B8A',
@@ -246,8 +260,8 @@ class HPSpreadsheet(Toplevel):
 
 
 class CustomTable(pandastable.Table):
-    def __init__(self, master):
-        pandastable.Table.__init__(self, parent=master)
+    def __init__(self, master, **kwargs):
+        pandastable.Table.__init__(self, parent=master, **kwargs)
 
     def doBindings(self):
         """Bind keys and mouse clicks, this can be overriden"""
