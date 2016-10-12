@@ -76,7 +76,10 @@ def runexif(args):
             while True:
                 line = p.stdout.readline()
                 if line is None or len(line) == 0:
-                    break
+                    line = p.stderr.readline()
+                    if line is None or len(line) == 0:
+                        break
+                print line
         finally:
             p.stdout.close()
             p.stderr.close()

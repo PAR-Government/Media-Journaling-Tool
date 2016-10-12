@@ -282,7 +282,8 @@
       },
       "rules": [
         "checkSize",
-        "checkForDonor"
+        "checkForDonor",
+        "check_eight_bit"
       ],
       "optionalparameters": {},
       "description": "Alter Image to be compliant with another images quantization and EXIF",
@@ -1483,7 +1484,8 @@
       "name": "OutputJpg",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize"
+        "checkSize",
+        "check_eight_bit"
       ],
       "optionalparameters": {
         "XMP File Name": {

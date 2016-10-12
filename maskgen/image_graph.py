@@ -59,6 +59,8 @@ def queue_nodes(g, nodes, node, func):
     return nodes
 
 
+
+
 def remove_edges(g, nodes, node, func):
     for s in g.successors(node):
         func(node, s, g.edge[node][s])
@@ -122,6 +124,21 @@ class ImageGraph:
                          isMask=mask,
                          preserveSnapshot= (imgDir == os.path.abspath(self.dir) and \
                                             ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
+
+    def replace_attribute_value(self, attributename, oldvalue, newvalue):
+        found = False
+        if attributename in self.G.graph and self.G.graph[attributename] == oldvalue:
+            self.G.graph[attributename] = newvalue
+            found = True
+        for n in self.G.nodes():
+            if attributename in self.G.node[n] and self.G.node[n][attributename] == oldvalue:
+                self.G.node[n][attributename] = newvalue
+                found = True
+        for e in self.G.edges():
+            if attributename in self.G.edge[e[0]][e[1]] and self.G.edge[e[0]][e[1]][attributename] == oldvalue:
+                self.G.edge[e[0]][e[1]][attributename] = newvalue
+                found = True
+        return found
 
     def get_nodes(self):
         return self.G.nodes()
@@ -310,8 +327,10 @@ class ImageGraph:
             edge[k] = v
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
-        newmaskpathname = os.path.join(self.dir, maskname)
-        mask.save(newmaskpathname)
+        newmaskpathname = None
+        if maskname is not None:
+            newmaskpathname = os.path.join(self.dir, maskname)
+            mask.save(newmaskpathname)
         for path, ownership in self.edgeFilePaths.iteritems():
             vals = getPathValues(kwargs, path)
             if ownership and len(vals) > 0:

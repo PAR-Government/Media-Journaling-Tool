@@ -74,7 +74,6 @@ def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
 
-
 def check_mandatory(edge, op, graph, frm, to):
     if op == 'Donor':
         return None
@@ -168,6 +167,12 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+
+def check_eight_bit(graph, frm, to):
+    img, to_file = graph.get_image(to)
+    if to_file.lower().endswith('jpg') and (img.size[0] % 8 > 0  or img.size[1] % 8 > 0):
+        return '(Warning) JPEG image size is not aligned to 8x8 pixels'
+    return None
 
 def checkForDonorWithRegion(graph, frm, to):
     pred = graph.predecessors(to)
