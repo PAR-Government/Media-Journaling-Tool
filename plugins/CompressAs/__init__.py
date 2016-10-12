@@ -104,25 +104,25 @@ def cs_save_as(source, target, donor, qTables,rotate):
       im = check_rotate(im,donor) 
     im.save(target, subsampling=1, qtables=finalTable)
     width, height = im.size
+    maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
+    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
     if thumbTable:
         im.thumbnail((128, 128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
         os.close(fd)
         try:
             im.save(tempFile, subsampling=1, qtables=thumbTable)
-            maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
+            maskgen.exif.runexif(['-overwrite_original', '-P',  '-ThumbnailImage<=' + tempFile + '', target])
         except OverflowError:
             thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
             try:
                 im.save(tempFile, subsampling=1, qtables=thumbTable)
-                maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-"ThumbnailImage<=' + tempFile + '"', target])
+                maskgen.exif.runexif(['-overwrite_original', '-P', '-ThumbnailImage<=' + tempFile + '', target])
             except Exception as e:
                 print 'thumbnail generation failed'
                 print e
         finally:
             os.remove(tempFile)
-    maskgen.exif.runexif(['-overwrite_original','-q','-all=', target])
-    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile',  donor, '-all:all', '-unsafe', target])
     maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=',
                                         '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
