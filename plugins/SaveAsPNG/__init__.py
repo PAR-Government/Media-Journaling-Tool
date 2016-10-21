@@ -11,7 +11,7 @@ def transform(img,source,target, **kwargs):
             im = Image.fromarray(exif.rotateAccordingToExif(np.asarray(im),orientation, counter=True))
     im.save(target,format='PNG')
     
-    return False,None
+    return None,None
     
 def operation():
     return ['OutputPng','Output', 

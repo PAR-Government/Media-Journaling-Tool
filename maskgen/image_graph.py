@@ -28,6 +28,24 @@ def extract_archive(fname, dir):
 
     return True
 
+def extract_and_list_archive(fname, dir):
+    try:
+        archive = tarfile.open(fname, "r:gz", errorlevel=2)
+    except Exception as e:
+        try:
+            archive = tarfile.open(fname, "r", errorlevel=2)
+        except Exception as e:
+            print e
+            return None
+
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    archive.extractall(dir)
+    l  = [x.name for x in archive.getmembers()]
+    archive.close()
+
+    return l
+
 def getPathValues(d, path):
     """
     Given a nest structure,
@@ -121,8 +139,12 @@ def createGraph(pathname, projecttype=None):
         projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
     if (os.path.exists(pathname) and pathname.endswith('.tgz')):
         dir = os.path.split(os.path.abspath(pathname))[0]
-        extract_archive(pathname,dir)
-        pathname = find_project_json(os.path.split(pathname[0:pathname.rfind('.')])[0],dir)
+        elements = extract_and_list_archive(pathname,dir)
+        if elements is not None and len(elements) > 0:
+            pick = [el for el in elements if el.endswith('.json')]
+            pathname = os.path.join(dir,pick[0])
+        else:
+            pathname = find_project_json(os.path.split(pathname[0:pathname.rfind('.')])[1],dir)
         G = loadJSONGraph(pathname)
         projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
 

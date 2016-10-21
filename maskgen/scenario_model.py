@@ -1248,23 +1248,24 @@ class ImageProjectModel:
         shutil.copy2(filename, target)
         msg = None
         try:
-            copyExif,warning_message = plugins.callPlugin(filter, im, filename, target, **self._resolvePluginValues(kwargs))
+            extra_args,warning_message = plugins.callPlugin(filter, im, filename, target, **self._resolvePluginValues(kwargs))
         except Exception as e:
             msg = str(e)
-            copyExif = False
+            extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
-        if copyExif:
-            msg = exif.copyexif(filename, target)
         description = Modification(op[0], filter + ':' + op[2])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         software = Software(op[3], op[4], internal=True)
         description.setArguments(
             {k: v for k, v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'skipRules'})
+        if extra_args is not None and type(extra_args) == type({}):
+             for k,v in extra_args.iteritems():
+                 if k not in kwargs:
+                     description.arguments[k] = v
         description.setSoftware(software)
         description.setAutomated('yes')
-
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))

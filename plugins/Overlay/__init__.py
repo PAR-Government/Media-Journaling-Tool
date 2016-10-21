@@ -10,7 +10,7 @@ def transform(img,source,target,**kwargs):
       donor = donor.resize(rgba.size, Image.ANTIALIAS)
     rgba.paste(donor,(0,0),donor)
     rgba.save(target)
-    return True,None
+    return None,None
 
 # the actual link name to be used. 
 # the category to be shown

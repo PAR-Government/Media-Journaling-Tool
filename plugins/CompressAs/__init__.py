@@ -138,7 +138,7 @@ def transform(img,source,target, **kwargs):
     tables_sorted = sort_tables(tables_zigzag)
     cs_save_as(source, target, donor[1], tables_sorted,rotate)
     
-    return False,None
+    return None,None
     
 def operation():
     return ['AntiForensicExifQuantizationTable','AntiForensicExif', 
