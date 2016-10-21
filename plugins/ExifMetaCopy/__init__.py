@@ -15,7 +15,7 @@ def transform(img,source,target, **kwargs):
     call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
     call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
     emc_update_size(img.size,target)
-    return False,None
+    return None,None
 
 def suffix():
     return '.jpg'

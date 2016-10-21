@@ -40,7 +40,7 @@ def transform(source_img,source,target, **kwargs):
     rotate = 'rotate' in kwargs and kwargs['rotate'] == 'yes'
     tiff_save_as(source_img , source, target, donor[0],donor[1], rotate)
     
-    return False,None
+    return None,None
     
 def operation():
     return ['AntiForensicExifQuantizationTable','AntiForensicExif',
