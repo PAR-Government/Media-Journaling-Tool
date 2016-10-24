@@ -39,7 +39,7 @@ def rebuild_masks(scModel):
         scModel.reproduceMask()
     print 'Updated masks in project: ' + str(scModel.getName())
 
-def rename_donors(scModel,updatedir):
+def rename_donorsandbase(scModel,updatedir):
     """
     Rename donor images with MD5
     :param scModel: scenario model
@@ -47,7 +47,7 @@ def rename_donors(scModel,updatedir):
     """
     for node in scModel.getNodeNames():
         nodeData = scModel.getGraph().get_node(node)
-        if nodeData['nodetype'] == 'donor':
+        if nodeData['nodetype'] in ['donor','base']:
             file_path_name = os.path.join(scModel.get_dir(), nodeData['file'])
             with open(file_path_name, 'rb') as fp:
                 md5 = hashlib.md5(fp.read()).hexdigest()
@@ -58,6 +58,7 @@ def rename_donors(scModel,updatedir):
                 os.rename(file_path_name, fullname)
                 nodeData['file'] = new_file_name
                 shutil.copy(os.path.join(scModel.get_dir(),new_file_name), updatedir)
+                print 'rename ' + file_path_name + ' to ' + fullname
     #print 'Completed rename_donors'
 
 
@@ -344,7 +345,7 @@ def perform_update(project,args):
     if args.replacejpeg or args.all:
         update_create_jpeg(scModel)
     if args.renamedonors or args.all:
-        rename_donors(scModel,args.updatedir)
+        rename_donorsandbase(scModel,args.updatedir)
     if args.composites or args.all:
         scModel.constructComposites()
         scModel.constructDonors()

@@ -973,7 +973,7 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
 def convertToVideo(file_name, preferences = None):
-    suffix = preferences.get_key('vid_suffix') if preferences is not None else None
+    suffix = '.' + preferences.get_key('vid_suffix') if preferences is not None else None
     suffix = '.m4v' if suffix is None else suffix
     fn = file_name[:file_name.rfind('.')] + suffix
     if os.path.exists(fn):
@@ -1114,9 +1114,9 @@ class GrayFrameWriter:
             t_codec= preferences.get_key('vid_codec')
             self.codec = t_codec if t_suffix is not None else 'AVC1'
             if cv2.__version__.startswith('3'):
-                self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
+                self.fourcc = cv2.VideoWriter_fourcc(*str(self.codec))
             else:
-                self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+                self.fourcc = cv2.cv.CV_FOURCC(*str(self.codec))
         elif cv2.__version__.startswith('2.4.11'):
             self.fourcc = -1 #cv2.cv.CV_FOURCC(*'XVID')
         elif cv2.__version__.startswith('3'):
