@@ -7,8 +7,8 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 
-igversion='0.3.1007'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007']
+igversion='0.3.1024'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024']
 
 
 def extract_archive(fname, dir):
