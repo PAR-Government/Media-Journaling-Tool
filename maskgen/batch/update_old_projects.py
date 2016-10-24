@@ -138,12 +138,12 @@ def add_pastesplice_params(scModel):
     if name in data:
         for edge in scModel.getGraph().get_edges():
             currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
-            if currentLink['op'] == 'PasteDuplicate':
+            if currentLink['op'] == 'PasteSplice':
                 if not currentLink.haskey('arguments'):
                     currentLink['arguments'] = {}
                 try:
                     id = data[name]
-                    idx1 = id.index(edge[0])
+                    #idx1 = id.index(edge[0])
                     idx2 = id.index(edge[1])
                     arg = id[idx2+1]
                     currentLink['arguments']['subject'] = arg
