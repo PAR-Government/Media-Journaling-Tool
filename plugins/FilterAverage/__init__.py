@@ -8,7 +8,7 @@ def transform(img,source,target,**kwargs):
     rgb = img.convert('RGBA')
     cv_image = numpy.array(rgb)
     Image.fromarray(cv2.filter2D(cv_image,-1,kernel),'RGBA').save(target)
-    return True,None
+    None,None
 
 # the actual link name to be used. 
 # the category to be shown

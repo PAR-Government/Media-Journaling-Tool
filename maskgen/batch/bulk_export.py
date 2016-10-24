@@ -20,6 +20,22 @@ def pick_projects(directory):
                 break
     return projects
 
+def pick_zipped_projects(directory):
+    """
+    Finds all subdirectories in directory containing a .json file
+    :param directory: string containing directory of subdirectories to search
+    :return: list projects found under the given directory
+    """
+    ext = '.tgz'
+    subs = [x[0] for x in os.walk(directory)]
+    projects = []
+
+    for sub in subs:
+        for f in os.listdir(sub):
+            if f.endswith(ext):
+                projects.append(os.path.join(sub,f))
+    return projects
+
 
 def upload_projects(values, dir):
     """

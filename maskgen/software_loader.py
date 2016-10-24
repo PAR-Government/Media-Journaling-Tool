@@ -15,6 +15,33 @@ class OperationEncoder(JSONEncoder):
 softwareset = {}
 operations = {}
 operationsByCategory = {}
+projectProperties = {}
+
+
+class ProjectProperty:
+    description = None
+    name = None
+    type = None
+    operation = None
+    parameter = None
+    rule = None
+    values = None
+    value = None
+    information = None
+    node = False
+
+    def __init__(self, name='', type='', operation=None, parameter=None, description=None,
+                 information = None, value = None, values=None, rule=None, node=False):
+        self.name = name
+        self.type = type
+        self.operation = operation
+        self.parameter = parameter
+        self.description = description
+        self.rule = rule
+        self.values = values
+        self.value = value
+        self.information = information
+        self.node = node
 
 
 class Operation:
@@ -28,10 +55,11 @@ class Operation:
     analysisOperations = []
     transitions = []
     compareparameters = {}
+    generateMask  = True
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=list(),
                  mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict()):
+                 compareparameters=dict(),generateMask = True):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -42,15 +70,24 @@ class Operation:
         self.analysisOperations = analysisOperations
         self.transitions = transitions
         self.compareparameters = compareparameters
+        self.generateMask  = generateMask
 
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           sort_keys=True, indent=4)
 
 
-def getOperation(name):
+def getOperation(name, fake = False):
+    """
+
+    :param name: name of the operation
+    :param fake: Set to True to allow fake operations
+    :return: Operation
+    """
     global operations
-    return operations[name] if name in operations else None
+    if name == 'Donor':
+        return Operation(name='Donor', category='Donor')
+    return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)
 
 
 def getOperations():
@@ -84,7 +121,25 @@ def saveJSON(filename):
         json.dump({'operations': oplist}, f, indent=2, cls=OperationEncoder)
 
 
-def loadJSON(fileName):
+def loadProjectPropertyJSON(fileName):
+    res = list()
+    if not (os.path.exists(fileName)):
+        fileName = os.path.join('resources', fileName)
+    with open(fileName, 'r') as f:
+        props = json.load(f)
+        for prop in props['properties']:
+            res.append( ProjectProperty(name=prop['name'], type=prop['type'], description=prop['description'],
+                                                parameter=prop['parameter'] if 'parameter' in prop else None,
+                                                rule=prop['rule'] if 'rule' in prop else None,
+                                                values=prop['values'] if 'values' in prop else None,
+                                                value=prop['value'] if 'value' in prop else None,
+                                                node=prop['node'] if 'node' in prop else False,
+                                                information=prop['information'] if 'information' in prop else None,
+                                                operation=prop['operation'] if 'operation' in prop else None))
+    return res
+
+
+def loadOperationJSON(fileName):
     res = {}
     if not (os.path.exists(fileName)):
         fileName = os.path.join('resources', fileName)
@@ -95,17 +150,30 @@ def loadJSON(fileName):
                                         rules=op['rules'], optionalparameters=op['optionalparameters'],
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
+                                        generateMask=op['generateMask'] if 'generateMask' in op else True,
                                         analysisOperations=op[
                                             'analysisOperations'] if 'analysisOperations' in op else [],
                                         transitions=op['transitions'] if 'transitions' in op else [],
-                                        compareparameters=op['compareparameters'] if 'compareparameters' in op else dict())
+                                        compareparameters=op[
+                                            'compareparameters'] if 'compareparameters' in op else dict())
     return res
+
+
+def loadProjectProperties(fileName):
+    global projectProperties
+    projectProperties = loadProjectPropertyJSON(fileName)
+    return projectProperties
+
+
+def getProjectProperties():
+    global projectProperties
+    return projectProperties
 
 
 def loadOperations(fileName):
     global operations
     global operationsByCategory
-    operations = loadJSON(fileName)
+    operations = loadOperationJSON(fileName)
     operationsByCategory = {}
     for op, data in operations.iteritems():
         category = data.category
@@ -119,17 +187,15 @@ def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
 
 
-
-
 def loadSoftware(fileName):
     global softwareset
     if not (os.path.exists(fileName)):
         fileName = os.path.join('resources', fileName)
-    softwareset = {'image':{},'video':{}}
+    softwareset = {'image': {}, 'video': {}}
     with open(fileName) as f:
         line_no = 0
         for l in f.readlines():
-            line_no+=1
+            line_no += 1
             l = l.strip()
             if len(l) == 0:
                 continue
@@ -139,12 +205,12 @@ def loadSoftware(fileName):
             software_type = columns[0].strip()
             software_name = columns[1].strip()
             versions = [x.strip() for x in columns[2:] if len(x) > 0]
-            if software_type not in ['both','image','video']:
+            if software_type not in ['both', 'image', 'video']:
                 print 'Invalid software type on line ' + str(line_no) + ': ' + l
             elif len(software_name) > 0:
                 types = ['image', 'video'] if software_type == 'both' else [software_type]
                 for stype in types:
-                  softwareset[stype][software_name] = versions
+                    softwareset[stype][software_name] = versions
     return softwareset
 
 
@@ -154,7 +220,7 @@ def getOS():
 
 def validateSoftware(softwareName, softwareVersion):
     global softwareset
-    for software_type,typed_software_set in softwareset.iteritems():
+    for software_type, typed_software_set in softwareset.iteritems():
         if softwareName in typed_software_set and softwareVersion in typed_software_set[softwareName]:
             return True
     return False

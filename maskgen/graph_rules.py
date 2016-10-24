@@ -1,10 +1,11 @@
-from software_loader import getOperations, SoftwareLoader, getOperation
-from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType
+from software_loader import getOperations, SoftwareLoader, getOperation,getProjectProperties
+from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,maskChangeAnalysis
 import new
 from types import MethodType
 
 rules = {}
 global_loader = SoftwareLoader()
+project_property_rules = {}
 
 
 class Proxy(object):
@@ -107,7 +108,7 @@ def check_version(edge, op, graph, frm, to):
 def check_arguments(edge, op, graph, frm, to):
     if op == 'Donor':
         return None
-    opObj = getOperation(op)
+    opObj = getOperation(op,fake=True)
     args = [(k, v) for k, v in opObj.mandatoryparameters.iteritems()]
     args.extend([(k, v) for k, v in opObj.optionalparameters.iteritems()])
     results = []
@@ -313,3 +314,114 @@ def getValue(obj, path, convertFunction=None):
                 return result
         return getValue(current, path, convertFunction)
     return None
+
+def _setupPropertyRules():
+    global project_property_rules
+    if len(project_property_rules) == 0:
+        for prop in getProjectProperties():
+            if prop.rule is not None:
+                project_property_rules[prop.name] = globals().get(prop.rule)
+
+def blurLocalRule( edges):
+    found = False
+    for edge in edges:
+        if edge['op'] == 'AdditionalEffectFilterBlur':
+            found = 'global' not in edge or edge['global'] == 'no'
+        if found:
+            break
+    return 'yes' if found else 'no'
+
+def histogramGlobalRule( edges):
+    found = False
+    for edge in edges:
+        if edge['op'] == 'IntensityNormalization':
+            found = 'global' not in edge or edge['global'] == 'yes'
+        if found:
+            break
+    return 'yes' if found else 'no'
+
+def contrastGlobalRule(edges):
+    found = False
+    for edge in edges:
+        if edge['op'] == 'IntensityContrast':
+            found = 'global' not in edge or edge['global'] == 'yes'
+        if found:
+            break
+    return 'yes' if found else 'no'
+
+def colorGlobalRule(edges):
+    return 'yes' if len([edge for edge in edges
+                         if getOperation(edge['op'], fake=True).category == 'Color']) > 0 else 'no'
+
+def compositeSizeRule( edges):
+    value = 0
+    composite_rank = ['small', 'medium', 'large']
+    for edge in edges:
+        if 'change size category' in edge and 'recordMaskInComposite' in edge and \
+           edge['recordMaskInComposite'] == 'yes':
+           value = max(composite_rank.index(edge['change size category']),value)
+    return composite_rank[value]
+
+def otherEnhancementRule( edges):
+    found = False
+    for edge in edges:
+        op = getOperation( edge['op'] ,fake=True )
+        if op.category in ['AdditionalEffect','Fill','Transform','Intensity']:
+            if op.name not in ['AdditionalEffectFilterBlur','AdditionalEffectFilterSharpening','TransformResize',
+                'TransformCrop','TransformRotate','TransformSeamCarving',
+                               'TransformWarp','IntensityNormalization','IntensityContrast']:
+                found = True
+                break
+    return 'yes' if found else 'no'
+
+def _filterEdgesByOperatioName(edges,opName):
+    return [ edge for edge in edges if edge['op'] == opName]
+
+def _cleanEdges(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple[1])
+        if "pathanalysis" in node:
+            node.pop("pathanalysis")
+    return [edgeTuple[2] for edgeTuple in edges]
+
+def setFinalNodeProperties(scModel, finalNode):
+    _setupPropertyRules()
+    edges =_cleanEdges(scModel,scModel.getEdges(finalNode))
+    analysis = dict()
+    for prop in getProjectProperties():
+        if not prop.node:
+            continue
+        if prop.operation is not None:
+            filtered_edges = _filterEdgesByOperatioName(edges, prop.operation)
+            if len(filtered_edges) == 0:
+                analysis[prop.name] = 'no'
+            elif prop.parameter is None or len([edge for edge in filtered_edges if prop.parameter in edge['arguments'] and edge['arguments'][prop.parameter] == prop.value]) > 0:
+                analysis[prop.name] = 'yes'
+            else:
+                analysis[prop.name] = 'no'
+        if prop.rule is not None:
+            analysis[prop.name] = project_property_rules[prop.name](edges)
+    scModel.getGraph().update_node(finalNode, pathanalysis=analysis)
+
+def processProjectProperties(scModel, rule=None):
+    """
+    Update the model's project properties inspecting the rules associated with project properties
+    :param scModel: ScenarioModel
+    :return:
+    """
+    _setupPropertyRules()
+    for prop in getProjectProperties():
+        edges = None
+        if (rule is not None and prop.rule is None or prop.rule != rule) or prop.node:
+            continue
+        if prop.operation is not None:
+            edges = scModel.findEdgesByOperationName(prop.operation)
+            if edges is None or len(edges) == 0:
+                scModel.setProjectData(prop.name,'no')
+            elif prop.parameter is None or len([edge for edge in edges if edge['arguments'][prop.parameter] == prop.value]) > 0:
+                scModel.setProjectData(prop.name, 'yes')
+            else:
+                 scModel.setProjectData(prop.name, 'no')
+        if prop.rule is not None:
+            scModel.setProjectData(prop.name,project_property_rules[prop.name](scModel, edges))
+

@@ -46,7 +46,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                 result.append(pair)
         return result
 
-    def performOp(self, master_ui):
+    def performOp(self, master_ui=None):
         """
           Return error message valid link pairs in a tuple
         """
@@ -62,10 +62,18 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                 donor_im, donor_filename = self.scModel.getImageAndName(pair[1])
                 orientation = exif.getOrientationFromExif(donor_filename)
                 rotate = 'no'
-                if orientation is not None:
+                if orientation is not None and master_ui:
                     rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
                     dialog = RotateDialog(master_ui, donor_im, rotated_im, orientation)
                     rotate = dialog.rotate
+                elif orientation is not None and not master_ui:
+                    rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
+                    width1, height1 = im.size()
+                    width2, height2 = rotated_im.size()
+                    r1 = abs(width1/height1) < 1
+                    r2 = abs(width2/height2) < 1
+                    if r1 != r2:
+                        rotate = 'yes'
                 if donor_filename.lower().endswith('jpg'):
                     msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
                                                           sendNotifications=False, rotate=rotate,

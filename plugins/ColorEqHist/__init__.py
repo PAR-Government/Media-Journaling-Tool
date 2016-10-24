@@ -9,12 +9,12 @@ def transform(img,source,target,**kwargs):
   img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
   # convert the YUV image back to RGB format
   Image.fromarray(cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)).save(target)
-  return False,None
+  return None,None
 
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['ColorColorBalance','Color','Equalize Colors using Histogram over the Chrominance Channel','OpenCV','2.4.13']
+  return ['IntensityNormalization','Intensity','Equalize Colors using Histogram over the Chrominance Channel','OpenCV','2.4.13']
 
 def args():
   return None

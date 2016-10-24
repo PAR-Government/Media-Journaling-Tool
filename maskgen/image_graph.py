@@ -7,8 +7,44 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 
-igversion='0.3.1007'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007']
+igversion='0.3.1024'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024']
+
+
+def extract_archive(fname, dir):
+    try:
+        archive = tarfile.open(fname, "r:gz", errorlevel=2)
+    except Exception as e:
+        try:
+            archive = tarfile.open(fname, "r", errorlevel=2)
+        except Exception as e:
+            print e
+            return False
+
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    archive.extractall(dir)
+    archive.close()
+
+    return True
+
+def extract_and_list_archive(fname, dir):
+    try:
+        archive = tarfile.open(fname, "r:gz", errorlevel=2)
+    except Exception as e:
+        try:
+            archive = tarfile.open(fname, "r", errorlevel=2)
+        except Exception as e:
+            print e
+            return None
+
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    archive.extractall(dir)
+    l  = [x.name for x in archive.getmembers()]
+    archive.close()
+
+    return l
 
 def getPathValues(d, path):
     """
@@ -75,14 +111,43 @@ def loadJSONGraph(pathname):
             return json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
 
 
+def find_project_json(prefix, directory):
+    """
+    Finds all project .json file in the given directory whose subdirectory starts with prefix
+    :param prefix subdirectory name begins with prefix
+    :return: JSON file path name for a project
+    """
+    ext = '.json'
+    subs = [os.path.join(directory,x) for x in os.listdir(directory) if x.startswith(prefix) and
+            os.path.isdir(os.path.join(directory, x))]
+
+    for sub in subs:
+        for f in os.listdir(sub):
+            if f.endswith(ext):
+                return os.path.join(sub,f)
+                break
+    return None
+
 def createGraph(pathname, projecttype=None):
     """
-      Factory for an Project Graph, existing or new
+      Factory for an Project Graph, existing or new.
+      Supports a tgz of a project or the .json of a project
     """
     G = None
     if (os.path.exists(pathname) and pathname.endswith('.json')):
         G = loadJSONGraph(pathname)
         projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
+    if (os.path.exists(pathname) and pathname.endswith('.tgz')):
+        dir = os.path.split(os.path.abspath(pathname))[0]
+        elements = extract_and_list_archive(pathname,dir)
+        if elements is not None and len(elements) > 0:
+            pick = [el for el in elements if el.endswith('.json')]
+            pathname = os.path.join(dir,pick[0])
+        else:
+            pathname = find_project_json(os.path.split(pathname[0:pathname.rfind('.')])[1],dir)
+        G = loadJSONGraph(pathname)
+        projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
+
     return ImageGraph(pathname, graph=G, projecttype=projecttype)
 
 
@@ -228,6 +293,7 @@ class ImageGraph:
             if 'compositemaskname' in self.G.node[nodeName]:
                 self.G.node[nodeName]['compositemaskname'] = ''
                 self.G.node[nodeName]['compositebase'] = ''
+                self.G.node[nodeName]['composite change size category'] = ''
                 os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
     def removeDonorFromNode(self, nodeName):
@@ -240,19 +306,20 @@ class ImageGraph:
                 self.G.node[nodeName]['donormaskname'] = ''
                 os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
-    def addCompositeToNode(self, compositeTuple):
+    def addCompositeToNode(self,  leafNode, baseNode, image, category):
         """
         Add mask to leaf node and save mask to disk
         Input is a tuple (leaf node name, base node name, Image mask)
         """
-        if self.G.has_node(compositeTuple[0]):
-            fname = compositeTuple[0] + '_composite_mask.png'
-            self.G.node[compositeTuple[0]]['compositemaskname'] = fname
-            self.G.node[compositeTuple[0]]['compositebase'] = compositeTuple[1]
+        if self.G.has_node(leafNode):
+            fname = leafNode + '_composite_mask.png'
+            self.G.node[leafNode]['compositemaskname'] = fname
+            self.G.node[leafNode]['compositebase'] = baseNode
+            self.G.node[leafNode]['composite change size category'] = category
             try:
-                compositeTuple[2].save(os.path.abspath(os.path.join(self.dir, fname)))
+                image.save(os.path.abspath(os.path.join(self.dir, fname)))
             except IOError:
-                compositeMask = convertToMask(compositeTuple[2])
+                compositeMask = convertToMask(image)
                 compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def addDonorToNode(self, recipientNode, mask):
@@ -566,6 +633,8 @@ class ImageGraph:
             print 'bad archive'
             return False
         return True
+
+
 
     def _create_archive(self, location):
         self.save()

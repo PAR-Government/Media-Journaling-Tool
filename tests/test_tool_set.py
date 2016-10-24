@@ -4,6 +4,7 @@ import numpy as np
 from maskgen import image_wrap
 
 
+
 class TestToolSet(unittest.TestCase):
     def test_filetype(self):
         self.assertEquals(tool_set.fileType('images/hat.jpg'), 'image')
@@ -54,12 +55,12 @@ class TestToolSet(unittest.TestCase):
 
     def test_gray_writing(self):
         import os
-        writer = tool_set.GrayBlockWriter('test_ts_gw', 12)
+        writer = tool_set.GrayBlockWriter('test_ts_gw', 29.97002997)
         mask_set = list()
         for i in range(255):
-            mask = np.random.randint(255, size=(512, 512)).astype('uint8')
+            mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
             mask_set.append(mask)
-            writer.write(mask, 43.293)
+            writer.write(mask, 33.3666666667)
         writer.close()
         fn = writer.get_file_name()
         reader = tool_set.GrayBlockReader(fn)
@@ -73,11 +74,13 @@ class TestToolSet(unittest.TestCase):
             pos += 1
         reader.close()
         self.assertEqual(255, pos)
-        self.assertEquals('test_ts_gw_mask_43.293.mp4',tool_set.convertToMP4(fn))
-        self.assertTrue(os.path.exists('test_ts_gw_mask_43.293.mp4'))
+        self.assertEquals('test_ts_gw_mask_33.3666666667.m4v',tool_set.convertToVideo(fn))
+        self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.m4v'))
 
-        self.assertTrue(tool_set.openImage('test_ts_gw_mask_43.293.mp4',tool_set.getMilliSeconds('00:00:01:2')) is not None)
-        os.remove('test_ts_gw_mask_43.293.mp4')
+        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.m4v',tool_set.getMilliSeconds('00:00:01:2')).size
+        print size
+        self.assertTrue(size == (1920,1090))
+        os.remove('test_ts_gw_mask_33.3666666667.m4v')
 
 
 if __name__ == '__main__':

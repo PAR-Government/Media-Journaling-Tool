@@ -4,12 +4,13 @@ from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
-from software_loader import loadOperations, loadSoftware, getOperation
+from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
+from graph_rules import processProjectProperties
 
 """
   Main UI Driver for MaskGen
@@ -43,30 +44,10 @@ def fromFileTypeString(types, profileTypes):
     return result
 
 
-
-
-def projectProperties():
-    return [('User Name', 'username', 'string'), ('Organization', 'organization', 'string'),
-            ('Description', 'projectdescription', 'text'), ('Technical Summary', 'technicalsummary', 'text'),
-            ('Manipulation Category', 'manipulationcategory', 'list', ('Provenance', '2-Unit', '4-Unit', '6-Unit')),
-            ('Manipulation Pixel Size', 'manipulationpixelsize', 'list', ('Small', 'Medium', 'Large')),
-            ('Remove', 'remove', 'yesno'),
-            ('Splice', 'splice', 'yesno'), ('Clone', 'clone', 'yesno'), ('Resize', 'resize', 'yesno'),
-            ('Seam Carving', 'seamcarving', 'yesno'), ('Warping', 'warping', 'yesno'),
-            ('Blur Local', 'blurlocal', 'yesno'),
-            ('Healing Local', 'healinglocal', 'yesno'),
-            ('Histogram Normalization Global', 'histogramnormalizationglobal', 'yesno'),
-            ('Other Enhancements', 'otherenhancements', 'yesno'), ('Man-Made', 'manmade', 'yesno'),
-            ('Face', 'face', 'yesno'), ('People', 'people', 'yesno'), ('Large Man-Made', 'largemanmade', 'yesno'),
-            ('Landscape', 'landscape', 'yesno'), ('Other Subjects', 'othersubjects', 'yesno'),
-            ('PRNU', 'prnu', 'yesno'), ('Image Compression', 'imagecompression', 'yesno'),
-            ('Laundering: Social Media', 'launderingsocialmedia', 'yesno'),
-            ('Laundering: Median Filtering', 'launderingmedianfiltering', 'yesno')]
-
-
 class UIProfile:
     operations = 'operations.json'
     software = 'software.csv'
+    projectProperties = 'project_properties.json'
     name = 'Image/Video'
 
     def getFactory(self):
@@ -146,7 +127,7 @@ class MakeGenUI(Frame):
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
-                                           filetypes=[("json files", "*.json")])
+                                           filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])
         if (val != None and len(val) > 0):
             self.scModel.load(val)
             if self.scModel.getProjectData('typespref') is None:
@@ -191,6 +172,10 @@ class MakeGenUI(Frame):
             errorlistDialog.wait(self)
             if not errorlistDialog.isok:
                 return
+        processProjectProperties(self.scModel)
+        self.scModel.constructComposites()
+        self.scModel.constructDonors()
+        self.getproperties()
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
@@ -209,6 +194,10 @@ class MakeGenUI(Frame):
             errorlistDialog.wait(self)
             if not errorlistDialog.isok:
                 return
+        processProjectProperties(self.scModel)
+        self.scModel.constructComposites()
+        self.scModel.constructDonors()
+        self.getproperties()
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
@@ -468,6 +457,7 @@ class MakeGenUI(Frame):
                 self.prefLoader.save('s3info', val)
                 loadOperations(self.uiProfile.operations)
                 loadSoftware(self.uiProfile.software)
+                loadProjectProperties(self.uiProfile.projectProperties)
                 graph_rules.setup()
             except ClientError as e:
                 tkMessageBox.showwarning("S3 Download failure", str(e))
@@ -480,7 +470,7 @@ class MakeGenUI(Frame):
             self.errorlistDialog.setItems(errorList)
 
     def getproperties(self):
-        d = PropertyDialog(self, projectProperties())
+        d = PropertyDialog(self, getProjectProperties())
 
     def groupmanager(self):
         d = GroupManagerDialog(self)
@@ -645,6 +635,7 @@ class MakeGenUI(Frame):
         self.bind_all('<Control-a>', lambda event: self.after(100, self.add))
         self.bind_all('<Control-n>', self.gnew)
         self.bind_all('<Control-p>', lambda event: self.after(100, self.nextauto))
+        self.bind_all('<Control-e>', lambda event: self.after(100, self.export))
         self.bind_all('<Control-l>', lambda event: self.after(100, self.nextadd))
         self.bind_all('<Control-f>', lambda event: self.after(100, self.nextfilter))
         self.bind_all('<Control-z>', self.gundo)
@@ -800,6 +791,7 @@ def main(argv=None):
         loadS3(args.s3)
     loadOperations(uiProfile.operations)
     loadSoftware(uiProfile.software)
+    loadProjectProperties(uiProfile.projectProperties)
     root = Tk()
 
     gui = MakeGenUI(imgdir[0], master=root, pluginops=plugins.loadPlugins(),

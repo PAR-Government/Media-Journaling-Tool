@@ -9,8 +9,7 @@ def loadS3(values):
   DIR=values[0][values[0].find('/')+1:]
   s3.download_file( BUCKET,DIR + "/operations.json", "operations.json")
   s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
-  s3.download_file( BUCKET,DIR + "/video_operations.json", "video_operations.json")
-  s3.download_file( BUCKET,DIR + "/video_software.csv", "video_software.csv")
+  s3.download_file( BUCKET,DIR + "/project_properties.json", "project_properties.json")
 
 def loadHTTP(values):
     import requests

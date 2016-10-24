@@ -9,17 +9,17 @@ from scipy import misc
 import getpass
 import re
 import imghdr
-import h5py
 import os
 from image_wrap import *
+from maskgen_loader import  MaskGenLoader
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
-                  ("bmp files", "*.bmp"), ("avi files", "*.avi")]
+                  ("bmp files", "*.bmp")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
-                  ('f4v', '*.flv')]
+                  ('f4v', '*.flv'),("avi files", "*.avi")]
 
-suffixes = ["*.nef", ".jpg", ".png", ".tiff", "*.bmp", ".avi", ".mp4", ".mov", "*.wmv", "*.ppm", "*.pbm", "*.gif"]
+suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz"), ("mpeg files", "*.mp4")]
 
 
@@ -48,8 +48,8 @@ def fileTypeChanged(file_one, file_two):
 
 def fileType(fileName):
     pos = fileName.rfind('.')
-    suffix = fileName[pos + 1:] if pos > 0 else ''
-    return 'image' if (suffix in imagefiletypes or imghdr.what(fileName) is not None) else 'video'
+    suffix = '*' + fileName[pos:] if pos > 0 else ''
+    return 'image' if (suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None) else 'video'
 
 
 def openFile(fileName):
@@ -59,7 +59,7 @@ def openFile(fileName):
     import os
     import sys
     if fileName.endswith('.hdf5'):
-        fileName = convertToMP4(fileName)
+        fileName = convertToVideo(fileName, preferences=MaskGenLoader())
     if sys.platform.startswith('linux'):
         os.system('xdg-open "' + fileName + '"')
     elif sys.platform.startswith('win'):
@@ -200,7 +200,7 @@ def validateTimeString(v):
     return True
 
 
-def validateAndConvertTypedValue(argName, argValue, operationDef):
+def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValidation=True):
     """
       Validate a typed operation argument
       return the type converted argument if necessary
@@ -212,7 +212,10 @@ def validateAndConvertTypedValue(argName, argValue, operationDef):
     argDef = operationDef.mandatoryparameters[
         argName] if not argDef and argName in operationDef.mandatoryparameters else argDef
     if argDef:
-        if argDef['type'].startswith('float'):
+        if  argDef['type'] == 'imagefile':
+            if not os.path.exists(argValue) and not skipFileValidation:
+                raise ValueError(argName + ' is an invalid file')
+        elif argDef['type'].startswith('float'):
             typeDef = argDef['type']
             vals = [float(x) for x in typeDef[typeDef.rfind('[') + 1:-1].split(':')]
             if float(argValue) < vals[0] or float(argValue) > vals[1]:
@@ -300,7 +303,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         try:
             img = openImageFile(snapshotFileName)
             return img
-        except IOError as e:
+        except Exception as e:
             print e
             return openImage('./icons/RedX.png')
 
@@ -364,17 +367,34 @@ def redistribute_intensity(edge_map):
     :param edge_map contains a map between an edge identifier (s,e) and an intensity value from 1 to 255
     :return map of intensity value from edge map to a replacement intensity value
     """
-    intensities = sorted(edge_map.values())
+    levels = [x[0] for x in edge_map.values()]
+    colors = [str(x[1]) for x in edge_map.values() if x[1] is not None]
+    unique_colors = sorted(np.unique(colors))
+    intensities = sorted(np.unique(levels))
     intensity_map = {}
+    if len(unique_colors) == len(intensities):
+        for x in edge_map.values():
+            intensity_map[x[0]] = x[1]
+        return intensity_map
     increment = int(255 / (len(intensities) + 1))
     pos = 1
+    colors = []
     for i in intensities:
-        intensity_map[i] = pos * increment
+        colors.append( pos * increment )
         pos += 1
+
+    colorMap = cv2.applyColorMap(np.asarray(colors).astype('uint8'), cv2.COLORMAP_HSV)
+    pos = 0
+    for i in intensities:
+        intensity_map[i] = colorMap[pos][0]
+        pos += 1
+
+    for k, v in edge_map.iteritems():
+        edge_map[k] = (v[0],intensity_map[v[0]])
     return intensity_map
 
 
-def toColor(img, edge_map={}, intensity_map={}):
+def toColor(img, intensity_map={}):
     """
     Produce an image that changes gray scale to color.
     First, set the intensity values of each pixel using the intensity value from the intensity map
@@ -385,26 +405,29 @@ def toColor(img, edge_map={}, intensity_map={}):
     :param intensity_map intensity value mapped to its replacement
     :return the new color image
     """
-    for old, new in intensity_map.iteritems():
-        img[img == old] = new
     result = cv2.applyColorMap(img.astype('uint8'), cv2.COLORMAP_HSV)
-    result[img == 255] = [255, 255, 255]
-    for k, v in edge_map.iteritems():
-        coords = np.where(img == intensity_map[v]) if v in intensity_map  else None
-        if coords is not None and len(coords[0]) > 0:
-            edge_map[k] = result[coords[0][0], coords[1][0], :]
+    for old, new in intensity_map.iteritems():
+        result[img == old] = new
+    result[img == 0] = [255, 255, 255]
     return result
 
-def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
-    globalchange = img1.size != img2.size
-    totalPossible = reduce(lambda a,x: a*x,img1.size)
-    totalChange = totalPossible
-    ratio = 1.0
-    if mask is not None:
-      mask = np.asarray(mask)
-      totalChange = sum(sum(mask.astype('float32')))/255.0
-      ratio = float(totalChange)/float(totalPossible)
-      if not globalchange:
+def toComposite(img):
+    """
+    Convert to a mask with white indicating change
+    :param img gray scale image
+    :return image
+    """
+    result = np.zeros(img.shape).astype('uint8')
+    result[img > 0] = 255
+    return result
+
+def maskChangeAnalysis(mask, globalAnalysis=False):
+    mask = np.asarray(mask)
+    totalPossible = reduce(lambda a, x: a * x, mask.shape)
+    totalChange = sum(sum(mask.astype('float32')))/255.0
+    ratio = float(totalChange)/float(totalPossible)
+    globalchange = False
+    if globalAnalysis:
         globalchange = ratio > 0.75
         kernel = np.ones((5,5),np.uint8)
         erosion = cv2.erode(mask,kernel,iterations = 2)
@@ -415,9 +438,17 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
            area = cv2.contourArea(cv2.convexHull(p))
            totalArea = cv2.contourArea(np.asarray([[0,0],[0,mask.shape[0]],[mask.shape[1],mask.shape[0]], [mask.shape[1],0],[0,0]]))
            globalchange = globalchange or area/totalArea > 0.50
+    return globalchange,'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large'),ratio
+
+def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
+    globalchange = img1.size != img2.size
+    changeCategory = 'large'
+    ratio = 1.0
+    if mask is not None:
+        globalchange,totalChange,ratio = maskChangeAnalysis(mask,not globalchange)
     analysis['global'] = 'yes' if globalchange else 'no'
     analysis['change size ratio'] = ratio
-    analysis['change size category'] = 'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large')
+    analysis['change size category'] = changeCategory
     return globalchange
 
 def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
@@ -515,14 +546,62 @@ def __sift(img1, img2, mask1=None, mask2=None):
     # Sort them in the order of their distance.
     return None,None
 
+def __applyTransformToComposite(compositeMask, mask, transform_matrix):
+    """
+    Loop through each level add apply the transform.
+    Need to convert levels to 0 and unmapped levels to 255
+    :param compositeMask:
+    :param mask:
+    :param transform_matrix:
+    :return:
+    """
+    newMask = np.zeros(compositeMask.shape)
+    for level in list(np.unique(compositeMask)):
+        if level == 0:
+            continue
+        levelMask = np.ones(compositeMask.shape)*255
+        levelMask[compositeMask == level] = 0
+        newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
+        newMask[newLevelMask<150] = level
+    return newMask
+
+def __applyRotateToComposite(rotation, compositeMask, expectedDims):
+    """
+       Loop through each level add apply the rotation.
+       Need to convert levels to 0 and unmapped levels to 255
+       :param compositeMask:
+       :param mask:
+       :param transform_matrix:
+       :return:
+       """
+    newMask = np.zeros(compositeMask.shape)
+    for level in list(np.unique(compositeMask)):
+        if level == 0:
+            continue
+        levelMask = np.ones(compositeMask.shape)*255
+        levelMask[compositeMask == level] = 0
+        newLevelMask = __rotateImage(rotation,levelMask,expectedDims, cval=255)
+        newMask[newLevelMask<150] = level
+    return newMask
 
 def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
+    """
+    Ceate a new mask applying the transform to only those parts of the
+    compositeMask that overlay with the provided mask.
+    :param compositeMask:
+    :param mask:  255 for unmanipulated pixels
+    :param transform_matrix:
+    :param invert:
+    :return:
+    """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
     compositeMaskFlipped = 255 - compositeMask
+    # zeros out areas outside the mask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
     flags=cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR#+cv2.CV_WARP_FILL_OUTLIERS
     newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags)
+    # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     compositeMaskAltered = compositeMaskFlipped * maskAltered
@@ -703,10 +782,10 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
               transformMatrix=None, flip=None):
     res = compositeMask
     if transformMatrix is not None:
-        res = __applyTransform(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
+        res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
-        res = __rotateImage(rotation,  res,
-                            (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=255)
+        res = __applyRotateToComposite(rotation,  res,
+                            (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
     elif flip is not None:
         res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0):
@@ -889,16 +968,20 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
     :param suffix:
     :return: A mask file name using the provided components
     """
+    if maskprefix.endswith('_mask_' + str(starttime)):
+        return maskprefix + '.' + suffix
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
-def convertToMP4(file_name):
-    fn = file_name[:file_name.rfind('.')] + '.mp4'
+def convertToVideo(file_name, preferences = None):
+    suffix = '.' + preferences.get_key('vid_suffix') if preferences is not None else None
+    suffix = '.m4v' if suffix is None else suffix
+    fn = file_name[:file_name.rfind('.')] + suffix
     if os.path.exists(fn):
         if os.stat(file_name).st_mtime < os.stat(fn).st_mtime:
             return fn
         else:
             os.remove(fn)
-    reader = GrayBlockReader(file_name,convert=True)
+    reader = GrayBlockReader(file_name,convert=True, preferences = preferences)
     while True:
         mask = reader.read()
         if mask is None:
@@ -911,15 +994,17 @@ class GrayBlockReader:
     convert = False
     writer = None
 
-    def __init__(self,  filename, convert=False):
+    def __init__(self,  filename, convert=False, preferences=None):
+        import h5py
         self.filename = filename
         self.h_file = h5py.File(filename, 'r')
         self.dset = self.h_file.get('masks').get('masks')
         self.fps = self.h_file.attrs['fps']
         self.start_time = self.h_file.attrs['start_time']
         self.convert = convert
-        self.writer = GrayFrameWriter(self.h_file.attrs['prefix'],
-                                      self.fps) if self.convert else DummyWriter()
+        self.writer = GrayFrameWriter(filename[0:filename.rfind('.')],
+                                      self.fps,
+                                      preferences=preferences) if self.convert else DummyWriter()
 
     def current_frame_time(self):
         return self.start_time + (self.pos*self.fps)
@@ -931,9 +1016,10 @@ class GrayBlockReader:
             self.dset = None
             return None
         mask = self.dset[self.pos,:,:]
+        mask = mask.astype('uint8')
         self.writer.write(mask,self.current_frame_time())
         self.pos += 1
-        return mask.astype('uint8')
+        return mask
 
     def release(self):
         None
@@ -967,6 +1053,7 @@ class GrayBlockWriter:
         self.mask_prefix = mask_prefix
 
     def write(self, mask, mask_time):
+        import h5py
         if self.h_file is None:
             self.filename = composeVideoMaskName(self.mask_prefix,mask_time,self.suffix)
             if os.path.exists(self.filename):
@@ -1011,27 +1098,45 @@ class GrayFrameWriter:
     Write Gray scale (Mask) video images
     """
     capOut = None
-    codec = 'fmp4'
-    suffix = 'mp4'
-    fourcc = cv2.cv.CV_FOURCC(*codec)
+    codec = 'AVC1'
+    suffix = 'm4v'
+    fourcc = None
     filename = None
     fps = 0
     mask_prefix = None
 
-    def __init__(self, mask_prefix, fps):
+    def __init__(self, mask_prefix, fps, preferences=None):
         self.fps = fps
         self.mask_prefix = mask_prefix
+        if preferences is not None:
+            t_suffix = preferences.get_key('vid_suffix')
+            self.suffix = t_suffix if t_suffix is not None else 'm4v'
+            t_codec= preferences.get_key('vid_codec')
+            self.codec = t_codec if t_suffix is not None else 'AVC1'
+            if cv2.__version__.startswith('3'):
+                self.fourcc = cv2.VideoWriter_fourcc(*str(self.codec))
+            else:
+                self.fourcc = cv2.cv.CV_FOURCC(*str(self.codec))
+        elif cv2.__version__.startswith('2.4.11'):
+            self.fourcc = -1 #cv2.cv.CV_FOURCC(*'XVID')
+        elif cv2.__version__.startswith('3'):
+            self.fourcc = -1 #cv2.VideoWriter_fourcc(*'XVID')
+        else:
+            self.fourcc = cv2.cv.CV_FOURCC(*'AVC1')
+
 
     def write(self,mask,mask_time):
         if self.capOut is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
-            self.capOut = cv2.VideoWriter(self.filename,
+            print self.fourcc
+            self.capOut = cv2.VideoWriter(unicode(os.path.abspath(self.filename)),
                                           self.fourcc,
                                           self.fps,
                                           (mask.shape[1],mask.shape[0]),
                                           False)
-        #rgb = grayToRGB(mask)
-        self.capOut.write(mask.astype('uint8'))
+        if cv2.__version__.startswith('2.4.11') or cv2.__version__.startswith('3'):
+            mask = grayToRGB(mask)
+        self.capOut.write(mask)
 
     def close(self):
         if self.capOut is not None:
@@ -1048,14 +1153,28 @@ class GrayFrameReader:
     capOut = None
     codec = 'mp4v'
     suffix = 'mp4'
-    fourcc = cv2.cv.CV_FOURCC(*codec)
     filename = None
     fps = 0
     mask_prefix = None
 
-    def __init__(self, mask_prefix, fps):
+    def __init__(self, mask_prefix, fps, preferences=None):
         self.fps = fps
         self.mask_prefix = mask_prefix
+        if preferences is not None:
+            t_suffix = preferences.get_key('vid_suffix')
+            self.suffix = t_suffix if t_suffix is not None else 'm4v'
+            t_codec= preferences.get_key('vid_codec')
+            self.codec = t_codec if t_suffix is not None else 'AVC1'
+            if cv2.__version__.startswith('3'):
+                self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
+            else:
+                self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+        elif cv2.__version__.startswith('2.4.11'):
+            self.fourcc = -1
+        elif cv2.__version__.startswith('3'):
+            self.fourcc = -1
+        else:
+            self.fourcc = cv2.cv.CV_FOURCC(*'AVC1')
 
     def write(self,mask,mask_time):
         if self.capOut is None:
@@ -1065,7 +1184,9 @@ class GrayFrameReader:
                                           self.fps,
                                           (mask.shape[1],mask.shape[0]),
                                           False)
-        self.capOut.write(grayToRGB(mask))
+        if cv2.__version__.startswith('2.4.11') or cv2.__version__.startswith('3'):
+            mask = grayToRGB(mask)
+        self.capOut.write(mask)
 
     def close(self):
         if self.capOut is not None:

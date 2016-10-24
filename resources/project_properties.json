@@ -1,0 +1,205 @@
+{
+  "properties": [
+    {
+      "description": "User Name",
+      "name": "username",
+      "type": "string"
+    },
+    {
+      "description": "Organization",
+      "name": "organization",
+      "type": "string"
+    },
+    {
+      "description":"Description",
+      "name": "projectdescription",
+      "type": "text"
+    },
+    {
+      "description": "Technical Summary",
+      "name": "technicalsummary",
+      "type": "text"
+    },
+    {
+      "description": "Manipulation Category",
+      "name": "manipulationcategory",
+      "type": "list",
+      "values": [
+        "Provenance",
+        "2-Unit",
+        "4-Unit",
+        "6-Unit"
+      ],
+       "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
+    },
+    {
+      "description": "Semantic Restaging",
+      "name": "semanticrestaging",
+      "type": "yesno",
+      "information": "Staging a photo that does not truly reflect reality. For example, staging a fake bombing that never occurred"
+    },
+    {
+      "description": "Semantic Repurposing",
+      "name": "semanticrepurposing",
+      "type": "yesno",
+      "information": "Using an existing piece of media for another purpose (e.g rebroadcasting media in a different context)"
+    },
+    {
+      "description": "Semantic Event Fabrication",
+      "name": "semanticrefabrication",
+      "type": "yesno",
+      "information": "A large scale activity that requires an entire volume of manipulated or generated imagery to provide to simulate a full event. This could include imagery that appears to be from many individuals, cameras, and social media accounts"
+
+    },
+    {
+      "description": "Remove",
+      "name": "remove",
+      "type": "yesno",
+      "operation" :"PasteSampled",
+      "parameter" : "purpose",
+      "value": "remove",
+      "node" : true
+    },
+    {
+      "description": "Clone",
+      "name": "clone",
+      "type": "yesno",
+      "operation" :"PasteSampled",
+      "parameter" : "purpose",
+      "value": "clone",
+      "node" : true
+    },
+    {
+      "description": "Blur Local",
+      "name": "blurlocal",
+      "type": "yesno",
+      "rule" : "blurLocalRule",
+      "node" : true
+    },
+     {
+      "description": "Contrast Enhancement",
+      "name": "contrastenhancement",
+      "type": "yesno",
+       "_comment": " operation = IntensityContrast and effect is global",
+      "rule" : "contrastGlobalRule",
+       "node" : true
+    },
+    {
+      "description": "ColorEnhancement",
+      "name": "color",
+      "type": "yesno",
+      "_comment": " any color category operation",
+      "rule": "colorGlobalRule",
+      "node" : true
+    },
+    {
+      "description": "Healing Local",
+      "name": "healinglocal",
+      "type": "yesno",
+      "operation" :"PasteSampled",
+      "parameter" : "purpose",
+      "value": "heal",
+      "node" : true
+    },
+    {
+      "description": "Histogram Normalization Global",
+      "name": "histogramnormalizationglobal",
+      "type": "yesno",
+       "_comment": " IntensityNormalization and effect is global",
+      "rule": "histogramGlobalRule",
+      "node" : true
+    },
+    {
+      "description": "Other Enhancements",
+      "name": "otherenhancements",
+      "type": "yesno",
+      "_comment": " any other intensity, color, additional effect, fill etc. not categorized else where",
+      "rule": "otherEnhancementRule",
+      "node" : true
+    },
+    {
+      "description": "Man-Made",
+      "name": "manmade",
+      "type": "yesno",
+      "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"man-made object",
+      "node" : true
+    },
+    {
+      "description": "Face",
+      "name": "face",
+      "type": "yesno",
+      "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"face",
+      "node" : true
+    },
+    {
+      "description": "People",
+      "name": "people",
+      "type": "yesno",
+       "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"people",
+      "node" : true
+    },
+    {
+      "description": "Large Man-Made",
+      "name":"largemanmade",
+      "type": "yesno",
+      "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"large man-made object",
+      "node" : true
+    },
+    {
+      "description": "Landscape",
+      "name": "landscape",
+      "type": "yesno",
+      "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"landscape",
+      "node" : true
+    },
+     {
+      "description": "Natural object",
+      "name": "natural",
+      "type": "yesno",
+      "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"natural object",
+       "node" : true
+    },
+    {
+      "description": "Other Subjects",
+      "name": "othersubjects",
+      "type":"yesno",
+      "operation" :"PasteSplice",
+      "parameter":"subject",
+      "value":"other",
+      "node" : true
+    },
+     {
+      "description": "Image Reformatting",
+      "name": "imagereformat",
+      "type": "yesno"
+    },
+    {
+      "description": "Image Compression",
+      "name": "imagecompression",
+      "type": "yesno",
+      "operation" : "AntiForensicExifQuantizationTable",
+      "node" : true
+    },
+     {
+      "description": "Composite Image Pixel Size",
+      "name": "compositepixelsize",
+      "type": "list",
+      "values": ["small","medium","large"],
+       "_comment": " determine the largest size contribution to the composite",
+      "rule" : "compositeSizeRule",
+       "node" : true
+    }
+  ]
+}
