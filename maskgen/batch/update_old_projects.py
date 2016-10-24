@@ -12,6 +12,7 @@ from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
 from maskgen.group_operations import CopyCompressionAndExifGroupOperation
 from maskgen.software_loader import Software
+from maskgen.plugins import loadPlugins
 import hashlib
 import shutil
 import csv
@@ -25,6 +26,7 @@ def label_project_nodes(scModel):
     p = scModel.getNodeNames()
     for node in p:
         scModel.labelNodes(node)
+    #print 'Completed label_project_nodes'
 
 def rebuild_masks(scModel):
     """
@@ -56,6 +58,7 @@ def rename_donors(scModel,updatedir):
                 os.rename(file_path_name, fullname)
                 nodeData['file'] = new_file_name
                 shutil.copy(os.path.join(scModel.get_dir(),new_file_name), updatedir)
+    #print 'Completed rename_donors'
 
 
 def update_photoshop_version(scModel):
@@ -68,6 +71,7 @@ def update_photoshop_version(scModel):
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['softwareName'] == 'Adobe Photoshop' and currentLink['softwareVersion'] == 'CC16.16':
             currentLink['version'] = 'CC15.5.0'
+    #print 'Completed update_photoshop_version'
 
 def check_pasteduplicate(scModel):
     """
@@ -92,9 +96,10 @@ def check_pasteduplicate(scModel):
             scModel.selectImage(edge[0])
             scModel.connect(destination=dest, mod=newMod)
             scModel.selectImage(dest)
-            scModel.connect(endNode)
+            scModel.connect(endNode['seriesname'])
 
             print 'Replaced pasteduplicate with pastesplice in: ' + str(scModel.getName())
+    #print 'Completed check_pasteduplicate'
 
 def select_region(imfile, prev):
     im = openImage(imfile)
@@ -150,6 +155,7 @@ def add_pastesplice_params(scModel):
 
                 except (KeyError, ValueError):
                     currentLink['arguments']['subject'] = 'other'
+    #print 'Completed add_pastesplice_params'
 # def inspect_mask_scope(scModel):
 #     """
 #     find masks that could represent local operations, and add 'local' arg if less than 50% of pixels changed
@@ -193,6 +199,7 @@ def replace_with_pastesampled(scModel):
                 currentLink['arguments']['purpose'] = 'heal'
             else:
                 currentLink['arguments']['purpose'] = 'remove'
+    #print 'Completed replace_with_pastesampled'
 
 
 def update_rotation(scModel):
@@ -221,6 +228,7 @@ def update_rotation(scModel):
                     currentLink['rotate'] = 'yes'
                 else:
                     currentLink['rotate'] = 'no'
+    #print 'Completed update_rotation'
 
 def update_create_jpeg(scModel):
     """
@@ -279,7 +287,7 @@ def loop_through_terminals(scModel, projectDir, terminals):
                     edge2 = scModel.getGraph().get_edge(p2, p)
                     if edge2['op'] == 'AntiForensicExifQuantizationTable':
                         nodesToRemove.extend([p, t])
-                        hashes.append(hashlib.md5(open(os.path.join(projectDir, t), 'rb').read()).hexdigest())
+                        hashes.append(hashlib.md5(open(os.path.join(projectDir, t+'.jpg'), 'rb').read()).hexdigest())
 
     return nodesToRemove, hashes
 
@@ -290,12 +298,16 @@ def update_username(scModel):
     :return:
     """
     usernames = {'smitha':'TheDoorKnob', 'shrivere':'FlowersOfWonderland', 'kozakj':'Walrus','ahill':'WhiteRabbit',
-                 'cwhitecotton':'Jabberwocky', 'jzjalic':'Caterpillar', 'kboschetto':'Dinah'}
+                 'andrewhill':'WhiteRabbit','cwhitecotton':'Jabberwocky', 'colewhitecotton':'Jabberwocky',
+                 'catalingrigoras':'Hedgehogs', 'cgrigoras':'Hedgehogs', 'jzjalic':'Caterpillar', 'jameszjalic':'Caterpillar',
+                 'kboschetto':'Dinah', 'karleeboschetto':'Dinah', 'jeffsmith':'DoorMouse', 'jsmith':'DoorMouse',
+                 'mpippin':'MadHatter', 'meganpippin':'MadHatter', 'mlawson':'Seven', 'melissalawson':'Seven'}
 
     usr = get_username()
     if usr.lower() in usernames.keys():
         setPwdX(CustomPwdX(usernames[usr.lower()]))
         scModel.getGraph().replace_attribute_value('username', usr, usernames[usr.lower()])
+    #print 'Completed update_username'
 
 def add_fillcontentawarefill_args(scModel):
     """
@@ -310,6 +322,7 @@ def add_fillcontentawarefill_args(scModel):
                 currentLink['arguments'] = {}
             currentLink['arguments']['purpose'] = 'remove'
             currentLink['recordMaskInComposite'] = 'true'
+    #print 'Completed add_fillcontentawarefill_args'
 
 def perform_update(project,args):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
@@ -363,6 +376,7 @@ def main():
     total = len(zippedProjects)
     count = 1
     for zippedProject in zippedProjects:
+        loadPlugins()
         dir = tempfile.mkdtemp()
         if extract_archive(zippedProject, dir):
             for project in bulk_export.pick_projects(dir):
