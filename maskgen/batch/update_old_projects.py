@@ -411,7 +411,7 @@ def main():
             if extract_archive(zippedProject, dir):
                 for project in bulk_export.pick_projects(dir):
                     try:
-                        print 'Project updateding' + zippedProject
+                        print 'Project updating: ' + zippedProject
                         perform_update(project, args, error_writer)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + zippedProject
                     except Exception as e:

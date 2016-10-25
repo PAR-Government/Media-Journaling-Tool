@@ -311,7 +311,11 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
-    TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
+    try:
+        TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
+    except:
+        TM = None
+        computed_mask = None
     if TM is not None:
         newMask = cv2.warpPerspective(mask, TM, (img1.size[0],img1.size[1]), flags=cv2.WARP_INVERSE_MAP,borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
