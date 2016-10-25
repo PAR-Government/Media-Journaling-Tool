@@ -332,7 +332,7 @@ class ImageImageLinkTool(LinkTool):
             mask = None
             expect_donor_mask = False
             if not skipDonorAnalysis:
-                errors = ["Could not compute SIFT Matrix"]
+                errors= list()
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, destination)
                     op = getOperation(edge['op'])
@@ -344,6 +344,8 @@ class ImageImageLinkTool(LinkTool):
                         if mask is not None:
                             errors = list()
                             mask = ImageWrapper(mask)
+                        else:
+                            errors = ["Could not compute SIFT Matrix"]
                         break
             if mask is None:
                 analysis = {}
@@ -698,9 +700,14 @@ class ImageProjectModel:
           Walks up down the tree from base nodes, assemblying composite masks"
         """
         result = list()
+        finished = list()
         for nodeAndMask in nodeAndMasks:
             if nodeAndMask[1] == stopAtNode:
                 return [nodeAndMask]
+            successors = self.G.successors(nodeAndMask[1])
+            if len(successors) == 0:
+                finished.append(nodeAndMask)
+                continue
             for suc in self.G.successors(nodeAndMask[1]):
                 edge = self.G.get_edge(nodeAndMask[1], suc)
                 if edge['op'] == 'Donor':
@@ -710,7 +717,8 @@ class ImageProjectModel:
                 result.append((nodeAndMask[0], suc, compositeMask))
         if len(result) == 0:
             return nodeAndMasks
-        return self._constructComposites(result,stopAtNode=stopAtNode,level=level,edgeMap=edgeMap)
+        finished.extend(self._constructComposites(result,stopAtNode=stopAtNode,level=level,edgeMap=edgeMap))
+        return finished
 
     def _constructDonor(self, edge_id, mask):
         """
@@ -755,8 +763,7 @@ class ImageProjectModel:
         edgeMap = dict()
         level = IntObject()
         endPointTuples = self.getTerminalAndBaseNodeTuples()
-        for endPointTuple in endPointTuples:
-            for baseNode in endPointTuple[1]:
+        for baseNode in set([endPointTuple[1][0] for endPointTuple in endPointTuples]):
                 composites.extend(self._constructComposites([(baseNode, baseNode, None)], edgeMap=edgeMap,level=level))
         intensityMap = tool_set.redistribute_intensity(edgeMap)
         changes = []
@@ -829,7 +836,8 @@ class ImageProjectModel:
     def reproduceMask(self):
         edge = self.G.get_edge(self.start, self.end)
         maskname, mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
-                                                               arguments=edge['arguments'] if 'arguments' in edge else dict())
+                                                               arguments=edge['arguments'] if 'arguments' in edge else dict(),
+                                                               skipDonorAnalysis=False)
         self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**analysis)
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,

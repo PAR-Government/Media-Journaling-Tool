@@ -11,7 +11,7 @@ import tempfile
 from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
 from maskgen.group_operations import CopyCompressionAndExifGroupOperation
-from maskgen.software_loader import Software
+from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
 from maskgen.plugins import loadPlugins
 import hashlib
 import shutil
@@ -45,9 +45,15 @@ def rename_donorsandbase(scModel,updatedir):
     :param scModel: scenario model
     :return:
     """
+    base_count = 0
     for node in scModel.getNodeNames():
         nodeData = scModel.getGraph().get_node(node)
+        if len(scModel.getGraph().predecessors(node)) == 0 and \
+            len(scModel.getGraph().successors(node)) == 0:
+            scModel.getGraph().remove(node)
+            continue
         if nodeData['nodetype'] in ['donor','base']:
+            base_count += 1 if nodeData['nodetype'] == 'base' else 0
             file_path_name = os.path.join(scModel.get_dir(), nodeData['file'])
             with open(file_path_name, 'rb') as fp:
                 md5 = hashlib.md5(fp.read()).hexdigest()
@@ -59,6 +65,8 @@ def rename_donorsandbase(scModel,updatedir):
                 nodeData['file'] = new_file_name
                 shutil.copy(os.path.join(scModel.get_dir(),new_file_name), updatedir)
                 print 'rename ' + file_path_name + ' to ' + fullname
+        if base_count > 1:
+            raise ValueError('Only one base image allowed per project')
     #print 'Completed rename_donors'
 
 
@@ -93,7 +101,7 @@ def check_pasteduplicate(scModel):
             imFile = select_region(os.path.join(projectDir, currentLink['inputmaskname']), os.path.join(projectDir, startNode['file']))
             dest = scModel.getGraph().add_node(imFile, seriesname=scModel.getSeriesName(), xpos=startNode['xpos'] + 50, ypos=startNode['ypos'] + 50,
                                           nodetype='base')
-            newMod = maskgen.scenario_model.Modification('SelectRegion', None, software=Software('OpenCV', '2.4'))
+            newMod = maskgen.scenario_model.Modification('SelectRegion', None, software=Software('OpenCV', '2.4.11'))
             scModel.selectImage(edge[0])
             scModel.connect(destination=dest, mod=newMod)
             scModel.selectImage(dest)
@@ -132,6 +140,7 @@ def add_pastesplice_params(scModel):
     :return: None. Updates scModel
     """
     data = {}
+    defaults = {'donor cropped':'no', 'donor rotated':'no', 'purpose':'add', 'donor resized':'no'}
     with open('semantics.csv') as csvFile:
         rdr = csv.reader(csvFile)
         for row in rdr:
@@ -141,21 +150,28 @@ def add_pastesplice_params(scModel):
                 data[row[0]] = row[1:4]
 
     name = scModel.getName()
-    if name in data:
-        for edge in scModel.getGraph().get_edges():
-            currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
-            if currentLink['op'] == 'PasteSplice':
-                if not currentLink.haskey('arguments'):
-                    currentLink['arguments'] = {}
-                try:
-                    id = data[name]
-                    #idx1 = id.index(edge[0])
-                    idx2 = id.index(edge[1])
-                    arg = id[idx2+1]
-                    currentLink['arguments']['subject'] = arg
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        if currentLink['op'] == 'PasteSplice':
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
 
-                except (KeyError, ValueError):
-                    currentLink['arguments']['subject'] = 'other'
+
+            # check for default args
+            for arg in defaults.keys():
+                if arg not in currentLink['arguments']:
+                    currentLink['arguments'][arg] = defaults[arg]
+
+            # check semantics.csv data for subject of pastesplice
+            try:
+                id = data[name]
+                #idx1 = id.index(edge[0])
+                idx2 = id.index(edge[1])
+                arg = id[idx2+1]
+                currentLink['arguments']['subject'] = arg
+
+            except (KeyError, ValueError):
+                currentLink['arguments']['subject'] = 'other'
     #print 'Completed add_pastesplice_params'
 # def inspect_mask_scope(scModel):
 #     """
@@ -186,7 +202,7 @@ def replace_with_pastesampled(scModel):
     :param project: Project JSON file
     :return: None. Updates JSON.
     """
-    replace_list = ['PasteClone', 'FillRubberStamp', 'FillHealingBrush', 'FillRubberStampClone']
+    replace_list = ['PasteClone', 'FillRubberStamp', 'FillHealingBrush', 'FillCloneRubberStamp', 'FillRubberStampClone']
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         oldOp = currentLink['op']
@@ -210,25 +226,25 @@ def update_rotation(scModel):
     :param project: Project JSON file
     :return: None. Updates JSON.
     """
-    rotateOps = ['OutputPNG', 'OutputTIFF']
+    rotateOps = ['OutputPng', 'OutputTif']
     projectDir = scModel.getGraph().dir
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] in rotateOps:
             change = edge['shape change'] if 'shape change' in edge else None
             if change and change != '(0,0)':
-                currentLink['rotate'] = 'yes'
+                currentLink['Image Rotated'] = 'yes'
             elif change and change == '(0,0)':
-                currentLink['rotate'] = 'no'
+                currentLink['Image Rotated'] = 'no'
             else:
                 startFile = scModel.getGraph().get_node(edge[0])['file']
                 endFile = scModel.getGraph().get_node(edge[1])['file']
                 im1 = Image.open(os.path.join(projectDir, startFile))
                 im2 = Image.open(os.path.join(projectDir, endFile))
                 if im1.size != im2.size:
-                    currentLink['rotate'] = 'yes'
+                    currentLink['Image Rotated'] = 'yes'
                 else:
-                    currentLink['rotate'] = 'no'
+                    currentLink['Image Rotated'] = 'no'
     #print 'Completed update_rotation'
 
 def update_create_jpeg(scModel):
@@ -325,7 +341,7 @@ def add_fillcontentawarefill_args(scModel):
             currentLink['recordMaskInComposite'] = 'true'
     #print 'Completed add_fillcontentawarefill_args'
 
-def perform_update(project,args):
+def perform_update(project,args, error_writer):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
 
     #inspect_mask_scope(scModel)
@@ -341,6 +357,7 @@ def perform_update(project,args):
         replace_with_pastesampled(scModel)
     if args.replacepasteduplicate or args.all:
         check_pasteduplicate(scModel)
+    if args.pastespliceargs or args.all:
         add_pastesplice_params(scModel)
     if args.replacejpeg or args.all:
         update_create_jpeg(scModel)
@@ -355,10 +372,14 @@ def perform_update(project,args):
 
     scModel.save()
     scModel.export(args.updatedir)
+    error_list = scModel.validate()
+    for err in error_list:
+        error_writer.writerow((scModel.getName(), str(err)))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dir', required=True, help='Directory of projects')
+    parser.add_argument('-s', '--skipdir', required=True, help='Directory of skipped projects')
     parser.add_argument('-u', '--updatedir', required=True, help='Directory of updated projects')
     parser.add_argument('-c', '--composites', help='Reconstruct composite images',action='store_true')
     parser.add_argument('-rd', '--renamedonors', help='Rename donor images',action='store_true')
@@ -369,27 +390,39 @@ def main():
     parser.add_argument('-rs', '--replacewithpastesampled', help='Replace PasteClone, FillRubberStamp, FillHealingBrush, and FillRubberStampClone with PasteSampled', action='store_true')
     parser.add_argument('-uu', '--updateusername', help='Update username based on current', action='store_true')
     parser.add_argument('-cf', '--contentawarefillargs', help='Add \'purpose\' arguments for content aware fill', action='store_true')
+    parser.add_argument('-ps', '--pastespliceargs', help='Add default arguments to pastesplice operation {donor cropped:no, donor rotated:no, purpose:add, donor resized:no}. '
+                                                         'Subject will be added based on semantics.csv, or be set to \'other\' if the operation is not found in file')
 
     parser.add_argument('-a', '--all', help='Perform all updates', action='store_true')
     args = parser.parse_args()
 
-    zippedProjects = bulk_export.pick_zipped_projects(args.dir)
-    total = len(zippedProjects)
-    count = 1
-    for zippedProject in zippedProjects:
-        loadPlugins()
-        dir = tempfile.mkdtemp()
-        if extract_archive(zippedProject, dir):
-            for project in bulk_export.pick_projects(dir):
-                try:
-                    perform_update(project, args)
-                    print 'Project updated [' + str(count) + '/' + str(total) + '] ' + zippedProject
-                except:
-                    print 'Project skipped: ' + zippedProject
-        else:
-            print 'Project skipped ' + zippedProject
-        count += 1
-        shutil.rmtree(dir)
+    ops = loadOperations("operations.json")
+    soft = loadSoftware("software.csv")
+    loadProjectProperties("project_properties.json")
+
+    with open('ErrorReport.csv', 'w') as csvfile:
+        error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        zippedProjects = bulk_export.pick_zipped_projects(args.dir)
+        total = len(zippedProjects)
+        count = 1
+        for zippedProject in zippedProjects:
+            loadPlugins()
+            dir = tempfile.mkdtemp()
+            if extract_archive(zippedProject, dir):
+                for project in bulk_export.pick_projects(dir):
+                    try:
+                        print 'Project updateding' + zippedProject
+                        perform_update(project, args, error_writer)
+                        print 'Project updated [' + str(count) + '/' + str(total) + '] ' + zippedProject
+                    except Exception as e:
+                        print e
+                        print 'Project skipped: ' + zippedProject
+                        shutil.move(zippedProject,args.skipdir)
+            else:
+                print 'Project skipped ' + zippedProject
+                shutil.move(zippedProject, args.skipdir)
+            count += 1
+            shutil.rmtree(dir)
 
 if __name__ == '__main__':
     main()
