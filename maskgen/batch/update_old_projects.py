@@ -153,6 +153,7 @@ def add_pastesplice_params(scModel):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'PasteSplice':
+            currentLink['recordMaskInComposite'] = 'true'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
 
@@ -208,6 +209,7 @@ def replace_with_pastesampled(scModel):
         oldOp = currentLink['op']
         if oldOp in replace_list:
             currentLink['op'] = 'PasteSampled'
+            currentLink['recordMaskInComposite'] = 'true'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             if oldOp == 'PasteClone' or oldOp == 'FillRubberStampClone':
