@@ -278,7 +278,8 @@ class ImageGraph:
                 self.G.add_edge(start, end, **d)
             elif action == 'addNode':
                 if (d['ownership'] == 'yes'):
-                    os.remove(os.path.join(self.dir, d['file']))
+                    if os.path.exists(os.path.join(self.dir, d['file'])):
+                        os.remove(os.path.join(self.dir, d['file']))
                 self.G.remove_node(d['name'])
             elif action == 'addEdge':
                 self.remove_edge(d['start'], d['end'])
@@ -294,7 +295,8 @@ class ImageGraph:
                 self.G.node[nodeName]['compositemaskname'] = ''
                 self.G.node[nodeName]['compositebase'] = ''
                 self.G.node[nodeName]['composite change size category'] = ''
-                os.remove(os.path.abspath(os.path.join(self.dir, fname)))
+                if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
+                    os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
     def removeDonorFromNode(self, nodeName):
         """
@@ -304,7 +306,8 @@ class ImageGraph:
             fname = nodeName + '_donor_mask.png'
             if 'donormaskname' in self.G.node[nodeName]:
                 self.G.node[nodeName]['donormaskname'] = ''
-                os.remove(os.path.abspath(os.path.join(self.dir, fname)))
+                if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
+                     os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
     def addCompositeToNode(self,  leafNode, baseNode, image, category):
         """
@@ -566,7 +569,8 @@ class ImageGraph:
         with open(filename, 'w') as f:
             jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
         for f in self.filesToRemove:
-            os.remove(f)
+            if os.path.exists(f):
+                os.remove(f)
         self.filesToRemove.clear()
 
     def nextId(self):
@@ -733,6 +737,6 @@ class ImageGraph:
             archive.close()
             if old is not None:
                 shutil.copy2(old, filename)
-            else:
+            elif os.path.exists(filename):
                 os.remove(filename)
             return errors

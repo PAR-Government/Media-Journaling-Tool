@@ -454,7 +454,7 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
 def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
-    mask2 = mask.resize(img2.size) if mask is not None and img1.size != img2.size else mask
+    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
     matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)

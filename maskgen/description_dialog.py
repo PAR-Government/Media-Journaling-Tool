@@ -849,6 +849,7 @@ class MetaDiffTable(Frame):
         for c in self.items.getColumnNames(self.section):
             model.addColumn(c)
         model.importDict(self.items.toColumns(self.section))
+        model.reclist = sorted(model.reclist)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
