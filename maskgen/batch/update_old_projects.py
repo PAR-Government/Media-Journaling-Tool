@@ -153,6 +153,7 @@ def add_pastesplice_params(scModel):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'PasteSplice':
+            currentLink['recordMaskInComposite'] = 'true'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
 
@@ -162,6 +163,8 @@ def add_pastesplice_params(scModel):
                 if arg not in currentLink['arguments']:
                     currentLink['arguments'][arg] = defaults[arg]
 
+            if 'subject' in currentLink['arguments']:
+                continue
             # check semantics.csv data for subject of pastesplice
             try:
                 id = data[name]
@@ -208,6 +211,7 @@ def replace_with_pastesampled(scModel):
         oldOp = currentLink['op']
         if oldOp in replace_list:
             currentLink['op'] = 'PasteSampled'
+            currentLink['recordMaskInComposite'] = 'true'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             if oldOp == 'PasteClone' or oldOp == 'FillRubberStampClone':
@@ -231,20 +235,24 @@ def update_rotation(scModel):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] in rotateOps:
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
+            if 'Image Rotated' in currentLink['arguments']:
+                continue
             change = edge['shape change'] if 'shape change' in edge else None
             if change and change != '(0,0)':
-                currentLink['Image Rotated'] = 'yes'
+                currentLink['arguments']['Image Rotated'] = 'yes'
             elif change and change == '(0,0)':
-                currentLink['Image Rotated'] = 'no'
+                currentLink['arguments']['Image Rotated'] = 'no'
             else:
                 startFile = scModel.getGraph().get_node(edge[0])['file']
                 endFile = scModel.getGraph().get_node(edge[1])['file']
                 im1 = Image.open(os.path.join(projectDir, startFile))
                 im2 = Image.open(os.path.join(projectDir, endFile))
                 if im1.size != im2.size:
-                    currentLink['Image Rotated'] = 'yes'
+                    currentLink['arguments']['Image Rotated'] = 'yes'
                 else:
-                    currentLink['Image Rotated'] = 'no'
+                    currentLink['arguments']['Image Rotated'] = 'no'
     #print 'Completed update_rotation'
 
 def update_create_jpeg(scModel):
@@ -335,11 +343,25 @@ def add_fillcontentawarefill_args(scModel):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'FillContentAwareFill':
+            currentLink['recordMaskInComposite'] = 'true'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
+            if 'purpose' in currentLink['arguments']:
+                continue
             currentLink['arguments']['purpose'] = 'remove'
-            currentLink['recordMaskInComposite'] = 'true'
     #print 'Completed add_fillcontentawarefill_args'
+
+def fix_noncroplinks(scModel):
+    """
+    Remove 'location' from all links but crop
+    :param scModel:
+    :return:
+    """
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        if currentLink['op'] != 'TransformCrop':
+            if 'location' in currentLink:
+                currentLink['location'] = '0,0'
 
 def perform_update(project,args, error_writer):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
@@ -369,6 +391,8 @@ def perform_update(project,args, error_writer):
         processProjectProperties(scModel)
     if args.redomasks or args.all:
         rebuild_masks(scModel)
+    if args.all:
+        fix_noncroplinks(scModel)
 
     scModel.save()
     scModel.export(args.updatedir)
