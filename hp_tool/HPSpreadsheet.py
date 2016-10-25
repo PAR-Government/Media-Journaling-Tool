@@ -67,6 +67,7 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Button-1>', self.update_current_image)
         self.bind('<Left>', self.update_current_image)
         self.bind('<Right>', self.update_current_image)
+        self.bind('<Return>', self.update_current_image)
         self.bind('<Up>', self.update_current_image)
         self.bind('<Down>', self.update_current_image)
         self.bind('<Control-d>', self.fill_down)
@@ -91,14 +92,13 @@ class HPSpreadsheet(Toplevel):
         maxSize = 480
         try:
             im = Image.open(os.path.join(self.imageDir, self.imName))
-        except IOError:
+        except (IOError, AttributeError):
             im = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
-        finally:
-            if im.size[0] > maxSize or im.size[1] > maxSize:
-                im.thumbnail((maxSize,maxSize), Image.ANTIALIAS)
-            newimg=ImageTk.PhotoImage(im)
-            self.l2.configure(image=newimg)
-            self.l2.image = newimg
+        if im.size[0] > maxSize or im.size[1] > maxSize:
+            im.thumbnail((maxSize,maxSize), Image.ANTIALIAS)
+        newimg=ImageTk.PhotoImage(im)
+        self.l2.configure(image=newimg)
+        self.l2.image = newimg
 
     def load_images(self):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
@@ -304,6 +304,7 @@ class CustomTable(pandastable.Table):
         #######################################
         self.bind('<Control-Key-t>', self.enter_true)
         self.bind('<Control-Key-f>', self.enter_false)
+        #self.bind('<Return>', self.handle_double_click)
         ########################################
 
         self.focus_set()
@@ -342,8 +343,8 @@ class CustomTable(pandastable.Table):
         """Handle arrow keys press"""
         # print event.keysym
 
-        row = self.get_row_clicked(event)
-        col = self.get_col_clicked(event)
+        # row = self.get_row_clicked(event)
+        # col = self.get_col_clicked(event)
         x, y = self.getCanvasPos(self.currentrow, 0)
         if x == None:
             return
@@ -355,7 +356,7 @@ class CustomTable(pandastable.Table):
                 # self.yview('moveto', y)
                 # self.rowheader.yview('moveto', y)
                 self.currentrow = self.currentrow - 1
-        elif event.keysym == 'Down':
+        elif event.keysym == 'Down' or event.keysym == 'Return':
             if self.currentrow >= self.rows - 1:
                 return
             else:
@@ -393,4 +394,29 @@ class CustomTable(pandastable.Table):
         # if self.currentcol >= self.cols-1:
         #     self.currentcol = self.currentcol+1
         self.drawSelectedRect(self.currentrow, self.currentcol)
+        return
+
+    def importCSV(self, filename=None, dialog=False):
+        """Import from csv file"""
+
+        if self.importpath == None:
+            self.importpath = os.getcwd()
+        if filename == None:
+            filename = tkFileDialog.askopenfilename(parent=self.master,
+                                                          defaultextension='.csv',
+                                                          initialdir=self.importpath,
+                                                          filetypes=[("csv","*.csv"),
+                                                                     ("tsv","*.tsv"),
+                                                                     ("txt","*.txt"),
+                                                            ("All files","*.*")])
+        if not filename:
+            return
+        if dialog == True:
+            df = None
+        else:
+            df = pd.read_csv(filename, dtype=str, quoting=1)
+        model = pandastable.TableModel(dataframe=df)
+        self.updateModel(model)
+        self.redraw()
+        self.importpath = os.path.dirname(filename)
         return
