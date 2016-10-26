@@ -676,7 +676,9 @@ class ImageProjectModel:
             endPointTuples = self.getTerminalAndBaseNodeTuples()
             if nodeName in [x[0] for x in endPointTuples]:
                 self.constructComposites()
-            mask, filename = self.G.get_composite_mask(nodeName)
+                mask, filename = self.G.get_composite_mask(nodeName)
+            else:
+                return self.constructComposite()
         return mask
 
     def getDonor(self,force=False):

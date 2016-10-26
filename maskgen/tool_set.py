@@ -977,8 +977,7 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
 def convertToVideo(file_name, preferences = None):
-    suffix = '.' + preferences.get_key('vid_suffix') if preferences is not None else None
-    suffix = '.m4v' if suffix is None else suffix
+    suffix = '.' + preferredSuffix(preferences=preferences)
     fn = file_name[:file_name.rfind('.')] + suffix
     if os.path.exists(fn):
         if os.stat(file_name).st_mtime < os.stat(fn).st_mtime:
@@ -1097,6 +1096,15 @@ class GrayBlockWriter:
         self.h_file = None
 
 
+def preferredSuffix(preferences=None):
+    default_suffix = 'm4v'
+    if cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
+        default_suffix='avi'
+    if preferences is not None:
+        t_suffix = preferences.get_key('vid_suffix')
+        default_suffix = t_suffix if t_suffix is not None else default_suffix
+    return default_suffix
+
 class GrayFrameWriter:
     """
     Write Gray scale (Mask) video images
@@ -1112,21 +1120,19 @@ class GrayFrameWriter:
     def __init__(self, mask_prefix, fps, preferences=None):
         self.fps = fps
         self.mask_prefix = mask_prefix
+        self.suffix = preferredSuffix(preferences=preferences)
         if preferences is not None:
-            t_suffix = preferences.get_key('vid_suffix')
-            self.suffix = t_suffix if t_suffix is not None else 'm4v'
             t_codec= preferences.get_key('vid_codec')
-            self.codec = t_codec if t_suffix is not None else 'AVC1'
+            self.codec = t_codec if t_codec is not None else 'AVC1'
             if cv2.__version__.startswith('3'):
-                self.fourcc = cv2.VideoWriter_fourcc(*str(self.codec))
+                self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
             else:
-                self.fourcc = cv2.cv.CV_FOURCC(*str(self.codec))
-        elif cv2.__version__.startswith('2.4.11'):
-            self.fourcc = -1 #cv2.cv.CV_FOURCC(*'XVID')
-        elif cv2.__version__.startswith('3'):
-            self.fourcc = -1 #cv2.VideoWriter_fourcc(*'XVID')
+                self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+        elif cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
+            self.codec = 'XVID'
+            self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
         else:
-            self.fourcc = cv2.cv.CV_FOURCC(*'AVC1')
+            self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
 
 
     def write(self,mask,mask_time):
@@ -1138,57 +1144,7 @@ class GrayFrameWriter:
                                           self.fps,
                                           (mask.shape[1],mask.shape[0]),
                                           False)
-        if cv2.__version__.startswith('2.4.11') or cv2.__version__.startswith('3'):
-            mask = grayToRGB(mask)
-        self.capOut.write(mask)
-
-    def close(self):
-        if self.capOut is not None:
-          self.capOut.release()
-        self.capOut = None
-
-    def release(self):
-        self.close()
-
-class GrayFrameReader:
-    """
-    Write Gray scale (Mask) video images
-    """
-    capOut = None
-    codec = 'mp4v'
-    suffix = 'mp4'
-    filename = None
-    fps = 0
-    mask_prefix = None
-
-    def __init__(self, mask_prefix, fps, preferences=None):
-        self.fps = fps
-        self.mask_prefix = mask_prefix
-        if preferences is not None:
-            t_suffix = preferences.get_key('vid_suffix')
-            self.suffix = t_suffix if t_suffix is not None else 'm4v'
-            t_codec= preferences.get_key('vid_codec')
-            self.codec = t_codec if t_suffix is not None else 'AVC1'
-            if cv2.__version__.startswith('3'):
-                self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
-            else:
-                self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
-        elif cv2.__version__.startswith('2.4.11'):
-            self.fourcc = -1
-        elif cv2.__version__.startswith('3'):
-            self.fourcc = -1
-        else:
-            self.fourcc = cv2.cv.CV_FOURCC(*'AVC1')
-
-    def write(self,mask,mask_time):
-        if self.capOut is None:
-            self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
-            self.capOut = cv2.VideoWriter(self.filename,
-                                          self.fourcc,
-                                          self.fps,
-                                          (mask.shape[1],mask.shape[0]),
-                                          False)
-        if cv2.__version__.startswith('2.4.11') or cv2.__version__.startswith('3'):
+        if cv2.__version__.startswith('2.4.11'):
             mask = grayToRGB(mask)
         self.capOut.write(mask)
 
