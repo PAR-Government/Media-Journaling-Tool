@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getOperation,getProjectProperties
-from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,maskChangeAnalysis
+from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,getMilliSeconds
 import new
 from types import MethodType
 
@@ -204,7 +204,8 @@ def checkLengthSmaller(graph, frm, to):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
-            (durationChangeTuple[0] == 'change' and durationChangeTuple[1] < durationChangeTuple[2]):
+            (durationChangeTuple[0] == 'change' and \
+                         getMilliSeconds(durationChangeTuple[1])[0] < getMilliSeconds(durationChangeTuple[2])[0]):
         return "Length of video is not shorter"
 
 
@@ -212,7 +213,8 @@ def checkLengthBigger(graph, frm, to):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
-            (durationChangeTuple[0] == 'change' and durationChangeTuple[1] > durationChangeTuple[2]):
+            (durationChangeTuple[0] == 'change' and \
+                         getMilliSeconds(durationChangeTuple[1])[0] > getMilliSeconds(durationChangeTuple[2])[0]):
         return "Length of video is not longer"
 
 def seamCarvingCheck(graph, frm, to):

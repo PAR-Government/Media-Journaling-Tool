@@ -366,7 +366,7 @@ class ImageImageLinkTool(LinkTool):
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
         else:
-            mask, analysis = tool_set.createMask(startIm, destIm, invert=invert, arguments=arguments)
+            mask, analysis = tool_set.createMask(startIm, destIm, invert=invert, arguments=arguments, crop=(op == 'TransformCrop'))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff

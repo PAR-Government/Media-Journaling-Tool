@@ -547,6 +547,8 @@ def cutDetect(vidAnalysisComponents, ranges=list()):
         end_time = None
         count = 1
         cut['mask'] = vidAnalysisComponents.mask
+        if type(cut['mask']) == int:
+            cut['mask'] = np.zeros((vidAnalysisComponents.frame_one.shape[0],vidAnalysisComponents.frame_one.shape[1]))
         while (vidAnalysisComponents.vid_one.isOpened()):
             ret_one, frame_one = vidAnalysisComponents.vid_one.read()
             if not ret_one:
@@ -576,6 +578,8 @@ def addDetect(vidAnalysisComponents, ranges=list()):
         end_time = None
         count = 1
         addition['mask'] = vidAnalysisComponents.mask
+        if type(addition['mask']) == int:
+            addition['mask'] = np.zeros((vidAnalysisComponents.frame_two.shape[0],vidAnalysisComponents.frame_two.shape[1]))
         while (vidAnalysisComponents.vid_two.isOpened()):
             ret_two, frame_two = vidAnalysisComponents.vid_two.read()
             if not ret_two:

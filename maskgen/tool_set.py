@@ -464,8 +464,8 @@ def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert=False, arguments={}):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments)
+def createMask(img1, img2, invert=False, arguments={}, crop=False):
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
 
@@ -612,14 +612,14 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     newMask[compositeMaskAltered > 0] = 255
     return 255 - newMask
 
-def __composeMask(img1, img2, invert, arguments=dict()):
+def __composeMask(img1, img2, invert, arguments=dict(),crop=False):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
     if abs(rotation) > 0.0001 and img1.shape != img2.shape:
         return __compareRotatedImage(rotation, img1, img2, invert, arguments)
-    if (sum(img1.shape) > sum(img2.shape)):
+    if (sum(img1.shape) > sum(img2.shape)) and crop:
         return __composeCropImageMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
         return __composeExpandImageMask(img1, img2)
@@ -796,7 +796,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     if location != (0, 0):
-        upperBound = (res.shape[0] -location[0], res.shape[1] -location[1])
+        upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if expectedSize != res.shape:
         res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
