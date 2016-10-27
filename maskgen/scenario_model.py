@@ -1486,4 +1486,4 @@ class VideoMaskSetInfo:
                 'File': item['videosegment'] if 'videosegment' in item else ''}
 
     def tofloat(self,o):
-        o if o is None else float(o)
+        return o if o is None else float(o)

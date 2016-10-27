@@ -15,7 +15,6 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
 
 
-
     def test_fileMask(self):
         pre = tool_set.openImageFile('tests/prefill.png')
         post = tool_set.openImageFile('tests/postfill.png')
@@ -47,11 +46,16 @@ class TestToolSet(unittest.TestCase):
         self.assertFalse(tool_set.validateTimeString('03:10:10:A'))
         self.assertEqual(0, f)
         self.assertEqual(None, t)
-        self.assertTrue(tool_set.isPastTime((1000,2),(1000,1)))
-        self.assertTrue(tool_set.isPastTime((1001, 1), (1000, 2)))
-        self.assertFalse(tool_set.isPastTime((1001, 1), (None, 2)))
-        self.assertFalse(tool_set.isPastTime((1001, 1), (1001, 2)))
-        self.assertFalse(tool_set.isPastTime((1000, 4), (1001, 2)))
+        time_manager = tool_set.VidTimeManager(startTimeandFrame=(1000,2),stopTimeandFrame=(1003,4))
+        self.assertTrue(time_manager.isBeforeTime(999))
+        self.assertTrue(time_manager.isBeforeTime(1000))
+        self.assertFalse(time_manager.isBeforeTime(1001))
+        self.assertFalse(time_manager.isPastTime(1002))
+        self.assertFalse(time_manager.isPastTime(1003))
+        self.assertFalse(time_manager.isPastTime(1004))
+        self.assertFalse(time_manager.isPastTime(1005))
+        self.assertTrue(time_manager.isPastTime(1005))
+
 
     def test_gray_writing(self):
         import os
