@@ -80,7 +80,7 @@ class TestToolSet(unittest.TestCase):
         size = tool_set.openImage('test_ts_gw_mask_33.3666666667.m4v',tool_set.getMilliSeconds('00:00:01:2')).size
         print size
         self.assertTrue(size == (1920,1090))
-       # os.remove('test_ts_gw_mask_33.3666666667.m4v')
+        os.remove('test_ts_gw_mask_33.3666666667.m4v')
 
 
 if __name__ == '__main__':

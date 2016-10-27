@@ -1742,6 +1742,19 @@
         "donor cropped": {
           "type": "yesno",
           "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
+        },
+         "subject": {
+          "type": "list",
+          "values": [
+            "people",
+            "face",
+            "natural object",
+            "man-made object",
+            "large man-made object",
+            "landscape",
+            "other"
+          ],
+          "description": "Subject catgeory pasted to image"
         }
       },
       "rules": [
@@ -1784,7 +1797,21 @@
     {
       "category": "Select",
       "name": "SelectRegion",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "subject": {
+          "type": "list",
+          "values": [
+            "people",
+            "face",
+            "natural object",
+            "man-made object",
+            "large man-made object",
+            "landscape",
+            "other"
+          ],
+          "description": "Subject catgeory selected to image"
+        }
+      },
       "rules": [
         "checkSize",
         "checkFileTypeChange"

@@ -396,6 +396,9 @@ def perform_update(project,args, error_writer):
 
     scModel.save()
     scModel.export(args.updatedir)
+    if args.extractjson:
+        dest = os.path.join(args.updatedir, os.path.split(project)[1])
+        shutil.copy(project,dest)
     error_list = scModel.validate()
     for err in error_list:
         error_writer.writerow((scModel.getName(), str(err)))
@@ -407,6 +410,7 @@ def main():
     parser.add_argument('-u', '--updatedir', required=True, help='Directory of updated projects')
     parser.add_argument('-c', '--composites', help='Reconstruct composite images',action='store_true')
     parser.add_argument('-rd', '--renamedonors', help='Rename donor images',action='store_true')
+    parser.add_argument('-ej', '--extractjson', help='Extract JSON files', action='store_true')
     parser.add_argument('-rc', '--redomasks', help='Rebuild link masks',action='store_true')
     parser.add_argument('-rp', '--replacepasteduplicate', help='Replace PasteDuplicate with PasteSplice, using input masks.', action='store_true')
     parser.add_argument('-rj', '--replacejpeg', help='Update create jpeg group operation', action='store_true')

@@ -1125,9 +1125,9 @@ class GrayFrameWriter:
             t_codec= preferences.get_key('vid_codec')
             self.codec = t_codec if t_codec is not None else 'AVC1'
             if cv2.__version__.startswith('3'):
-                self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
+                self.fourcc = cv2.VideoWriter_fourcc(*str(self.codec))
             else:
-                self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+                self.fourcc = cv2.cv.CV_FOURCC(*str(self.codec))
         elif cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
             self.codec = 'XVID'
             self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
