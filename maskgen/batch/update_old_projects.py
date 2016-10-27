@@ -436,19 +436,20 @@ def main():
         for zippedProject in zippedProjects:
             loadPlugins()
             dir = tempfile.mkdtemp()
-            if extract_archive(zippedProject, dir):
-                for project in bulk_export.pick_projects(dir):
-                    try:
+            try:
+                if extract_archive(zippedProject, dir):
+                    for project in bulk_export.pick_projects(dir):
                         print 'Project updating: ' + zippedProject
                         perform_update(project, args, error_writer)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + zippedProject
-                    except Exception as e:
+                else:
+                    print 'Project skipped ' + zippedProject
+                    shutil.move(zippedProject, args.skipdir)
+            except Exception as e:
                         print e
                         print 'Project skipped: ' + zippedProject
                         shutil.move(zippedProject,args.skipdir)
-            else:
-                print 'Project skipped ' + zippedProject
-                shutil.move(zippedProject, args.skipdir)
+
             count += 1
             shutil.rmtree(dir)
 
