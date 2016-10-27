@@ -1742,6 +1742,19 @@
         "donor cropped": {
           "type": "yesno",
           "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
+        },
+         "subject": {
+          "type": "list",
+          "values": [
+            "people",
+            "face",
+            "natural object",
+            "man-made object",
+            "large man-made object",
+            "landscape",
+            "other"
+          ],
+          "description": "Subject catgeory pasted to image"
         }
       },
       "rules": [
@@ -1784,7 +1797,21 @@
     {
       "category": "Select",
       "name": "SelectRegion",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "subject": {
+          "type": "list",
+          "values": [
+            "people",
+            "face",
+            "natural object",
+            "man-made object",
+            "large man-made object",
+            "landscape",
+            "other"
+          ],
+          "description": "Subject catgeory selected to image"
+        }
+      },
       "rules": [
         "checkSize",
         "checkFileTypeChange"
@@ -1864,6 +1891,31 @@
       },
       "description": "Remove a series of frames from a video clip.",
       "includeInMask": false,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Select",
+      "name": "SelectCropFrames",
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthSmaller"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Remove all frames before and after the selected video clip.",
+      "includeInMask": false,
+      "generateMask": false,
       "transitions": [
         "video.video"
       ]
@@ -2123,6 +2175,7 @@
       ],
       "description": "Removing edge content from an image.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "image.image",
         "video.video"
@@ -2181,6 +2234,7 @@
       ],
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "image.image",
         "video.video"
@@ -2228,6 +2282,7 @@
       ],
       "description": "Reduce or increasing the number of pixels in an image.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "image.image",
         "video.video"
@@ -2258,6 +2313,7 @@
       ],
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "image.image"
       ]
@@ -2405,6 +2461,20 @@
       "rules": [],
       "optionalparameters": {},
       "description": "Down sample a video to a lower frame resolution.",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Transform",
+      "name": "TransformReverse",
+      "mandatoryparameters": {
+      },
+      "rules": [],
+      "optionalparameters": {},
+      "description": "Reverse the direction of video play.",
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [

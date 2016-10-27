@@ -676,7 +676,9 @@ class ImageProjectModel:
             endPointTuples = self.getTerminalAndBaseNodeTuples()
             if nodeName in [x[0] for x in endPointTuples]:
                 self.constructComposites()
-            mask, filename = self.G.get_composite_mask(nodeName)
+                mask, filename = self.G.get_composite_mask(nodeName)
+            else:
+                return self.constructComposite()
         return mask
 
     def getDonor(self,force=False):
@@ -1484,4 +1486,4 @@ class VideoMaskSetInfo:
                 'File': item['videosegment'] if 'videosegment' in item else ''}
 
     def tofloat(self,o):
-        o if o is None else float(o)
+        return o if o is None else float(o)

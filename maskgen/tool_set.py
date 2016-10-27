@@ -132,34 +132,33 @@ def validateCoordinates(v):
     except ValueError:
         return False
 
-def isPastTime(milliAndFrameNow, milliAndFrameMark):
-    """
-    :param milliAndFrameNow:  tuple (milliseconds, frames since time)
-    :param milliAndFrameMark: tuple (milliseconds, frames since time)
-    :return: True if milliAndFrameNow > milliAndFrameMark
-    """
-    if milliAndFrameMark is None or milliAndFrameMark[0] is None:
-        return False
-    if milliAndFrameNow[0] > milliAndFrameMark[0]:
-        return True
-    if milliAndFrameNow[0] == milliAndFrameMark[0]:
-        return milliAndFrameMark[1] is not None and milliAndFrameNow[1] > milliAndFrameMark[1]
-    return False
+class VidTimeManager:
 
-def isBeforeTime(milliAndFrameNow, milliAndFrameMark):
-    """
-    :param milliAndFrameNow:  tuple (milliseconds, frames since time)
-    :param milliAndFrameMark: tuple (milliseconds, frames since time)
-    :return: True if milliAndFrameNow > milliAndFrameMark
-    """
-    if milliAndFrameMark is None or milliAndFrameMark[0] is None:
-        return False
-    if milliAndFrameNow[0] < milliAndFrameMark[0]:
-        return True
-    if milliAndFrameNow[0] == milliAndFrameMark[0]:
-        return milliAndFrameMark[1] is not None and milliAndFrameNow[1] < milliAndFrameMark[1]
-    return False
+    stopTimeandFrame = None
+    startTimeandFrame = None
+    frameCountSinceStart = 0
+    frameCountSinceStop = 0
 
+    def __init__(self,startTimeandFrame = None, stopTimeandFrame = None):
+        self.startTimeandFrame = startTimeandFrame
+        self.stopTimeandFrame = stopTimeandFrame
+
+    def isPastTime(self,milliNow):
+        if self.stopTimeandFrame:
+            if milliNow >= self.stopTimeandFrame[0]:
+                self.frameCountSinceStop += 1
+                if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
+                    return True
+        return False
+
+    def isBeforeTime(self,milliNow):
+        if self.startTimeandFrame:
+            if milliNow >= self.startTimeandFrame[0]:
+               self.frameCountSinceStart += 1
+               if self.frameCountSinceStart >= self.startTimeandFrame[1]:
+                   return False
+            return True
+        return False
 
 def getMilliSeconds(v):
     dt = None
@@ -267,20 +266,14 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         bestSoFar = None
         bestVariance = -1
         maxTry = 20
-        secondInMillis = 0
-        framesSinceSecond = 0
+        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
         try:
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
-                currentSecond = int(float(cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC))/1000.0)*1000
-                if currentSecond > secondInMillis:
-                    secondInMillis = currentSecond
-                    framesSinceSecond = 1
-                else:
-                    framesSinceSecond+=1
-                if isPastTime((currentSecond,framesSinceSecond),videoFrameTime):
+                elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+                if time_manager.isPastTime(elapsed_time):
                     bestSoFar = frame
                     break
                 varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
@@ -311,6 +304,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
+    mask = mask.astype('uint8')
     try:
         TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
     except:
@@ -436,7 +430,7 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
         kernel = np.ones((5,5),np.uint8)
         erosion = cv2.erode(mask,kernel,iterations = 2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2.findContours(closing,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(closing.astype('uint8'),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         p = np.asarray([item[0] for sublist in contours for item in sublist])
         if len(p) > 0:
            area = cv2.contourArea(cv2.convexHull(p))
@@ -977,8 +971,7 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
 def convertToVideo(file_name, preferences = None):
-    suffix = '.' + preferences.get_key('vid_suffix') if preferences is not None else None
-    suffix = '.m4v' if suffix is None else suffix
+    suffix = '.' + preferredSuffix(preferences=preferences)
     fn = file_name[:file_name.rfind('.')] + suffix
     if os.path.exists(fn):
         if os.stat(file_name).st_mtime < os.stat(fn).st_mtime:
@@ -1097,6 +1090,15 @@ class GrayBlockWriter:
         self.h_file = None
 
 
+def preferredSuffix(preferences=None):
+    default_suffix = 'm4v'
+    if cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
+        default_suffix='avi'
+    if preferences is not None:
+        t_suffix = preferences.get_key('vid_suffix')
+        default_suffix = t_suffix if t_suffix is not None else default_suffix
+    return default_suffix
+
 class GrayFrameWriter:
     """
     Write Gray scale (Mask) video images
@@ -1112,21 +1114,19 @@ class GrayFrameWriter:
     def __init__(self, mask_prefix, fps, preferences=None):
         self.fps = fps
         self.mask_prefix = mask_prefix
+        self.suffix = preferredSuffix(preferences=preferences)
         if preferences is not None:
-            t_suffix = preferences.get_key('vid_suffix')
-            self.suffix = t_suffix if t_suffix is not None else 'm4v'
             t_codec= preferences.get_key('vid_codec')
-            self.codec = t_codec if t_suffix is not None else 'AVC1'
+            self.codec = t_codec if t_codec is not None else 'AVC1'
             if cv2.__version__.startswith('3'):
                 self.fourcc = cv2.VideoWriter_fourcc(*str(self.codec))
             else:
                 self.fourcc = cv2.cv.CV_FOURCC(*str(self.codec))
-        elif cv2.__version__.startswith('2.4.11'):
-            self.fourcc = -1 #cv2.cv.CV_FOURCC(*'XVID')
-        elif cv2.__version__.startswith('3'):
-            self.fourcc = -1 #cv2.VideoWriter_fourcc(*'XVID')
+        elif cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
+            self.codec = 'XVID'
+            self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
         else:
-            self.fourcc = cv2.cv.CV_FOURCC(*'AVC1')
+            self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
 
 
     def write(self,mask,mask_time):
@@ -1138,57 +1138,7 @@ class GrayFrameWriter:
                                           self.fps,
                                           (mask.shape[1],mask.shape[0]),
                                           False)
-        if cv2.__version__.startswith('2.4.11') or cv2.__version__.startswith('3'):
-            mask = grayToRGB(mask)
-        self.capOut.write(mask)
-
-    def close(self):
-        if self.capOut is not None:
-          self.capOut.release()
-        self.capOut = None
-
-    def release(self):
-        self.close()
-
-class GrayFrameReader:
-    """
-    Write Gray scale (Mask) video images
-    """
-    capOut = None
-    codec = 'mp4v'
-    suffix = 'mp4'
-    filename = None
-    fps = 0
-    mask_prefix = None
-
-    def __init__(self, mask_prefix, fps, preferences=None):
-        self.fps = fps
-        self.mask_prefix = mask_prefix
-        if preferences is not None:
-            t_suffix = preferences.get_key('vid_suffix')
-            self.suffix = t_suffix if t_suffix is not None else 'm4v'
-            t_codec= preferences.get_key('vid_codec')
-            self.codec = t_codec if t_suffix is not None else 'AVC1'
-            if cv2.__version__.startswith('3'):
-                self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
-            else:
-                self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
-        elif cv2.__version__.startswith('2.4.11'):
-            self.fourcc = -1
-        elif cv2.__version__.startswith('3'):
-            self.fourcc = -1
-        else:
-            self.fourcc = cv2.cv.CV_FOURCC(*'AVC1')
-
-    def write(self,mask,mask_time):
-        if self.capOut is None:
-            self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
-            self.capOut = cv2.VideoWriter(self.filename,
-                                          self.fourcc,
-                                          self.fps,
-                                          (mask.shape[1],mask.shape[0]),
-                                          False)
-        if cv2.__version__.startswith('2.4.11') or cv2.__version__.startswith('3'):
+        if cv2.__version__.startswith('2.4.11'):
             mask = grayToRGB(mask)
         self.capOut.write(mask)
 

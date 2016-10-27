@@ -528,6 +528,7 @@ class VidAnalysisComponents:
     mask = None
     writer = None
     fps = None
+    time_manager = None
 
     def __init__(self):
         pass
@@ -559,6 +560,8 @@ def cutDetect(vidAnalysisComponents, ranges=list()):
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_two.isOpened():
                 break
             count+=1
+            if vidAnalysisComponents.time_manager.isPastTime(end_time):
+                break
         cut['endtime'] = end_time
         cut['frames'] = count
         ranges.append(cut)
@@ -586,10 +589,13 @@ def addDetect(vidAnalysisComponents, ranges=list()):
                 vidAnalysisComponents.vid_two.release()
                 break
             end_time = vidAnalysisComponents.vid_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+
             diff = 0 if vidAnalysisComponents.frame_one is None else np.abs(vidAnalysisComponents.frame_one - frame_two)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_one.isOpened():
                 break
             count+=1
+            if vidAnalysisComponents.time_manager.isPastTime(end_time):
+                break
         addition['endtime'] = end_time
         addition['frames'] = count
         ranges.append(addition)
@@ -626,6 +632,7 @@ def addChange(vidAnalysisComponents, ranges=list()):
 def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSegment=None, applyConstraintsToOutput=False):
     prefernences = MaskGenLoader()
     diffPref = prefernences.get_key('vid_diff')
+    time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
     if opFunc == addChange and (diffPref is None or diffPref == '2'):
         return formMaskDiff2(fileOne, fileTwo, name_prefix, opName)
@@ -637,33 +644,24 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
     analysis_components.fps_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_FPS)
     analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
                                                   analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
+    analysis_components.time_manager = time_manager
     ranges = list()
     #dir = os.path.split(fileOne)[0]
     kernel = np.ones((5, 5), np.uint8)
     try:
-        secondInMillis = 0
-        framesSinceSecond = 0
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
             ret_one, analysis_components.frame_one = analysis_components.vid_one.read()
             if not ret_one:
                 analysis_components.vid_one.release()
                 break
             elapsed_time = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-            currentSecond = int(float(elapsed_time)/1000.0) *1000
-            if currentSecond > secondInMillis:
-                secondInMillis = currentSecond
-                framesSinceSecond = 1
-            else:
-                framesSinceSecond +=1
             ret_two, analysis_components.frame_two = analysis_components.vid_two.read()
             if not ret_two:
                 analysis_components.vid_two.release()
                 break
-            if tool_set.isBeforeTime((currentSecond,framesSinceSecond),startSegment):
+            if time_manager.isBeforeTime(elapsed_time):
                 continue
-            if tool_set.isPastTime((currentSecond,framesSinceSecond),endSegment):
-                break
-            if endSegment and endSegment < elapsed_time:
+            if time_manager.isPastTime(elapsed_time):
                 break
             # if applyConstraintsToOutput:
             #     elapsed_time = analysis_components.frame_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
