@@ -776,6 +776,7 @@ class ImageProjectModel:
             changes.append((globalchange, changeCategory, ratio))
             self.G.addCompositeToNode(composite[1], composite[0], ImageWrapper(
                 color_composite),changeCategory)
+            graph_rules.setFinalNodeProperties(self, composite[1])
 
         for k, v in edgeMap.iteritems():
             if type(v) == int:
@@ -783,7 +784,7 @@ class ImageProjectModel:
             self.G.get_edge(k[0], k[1])['compositecolor'] = str(list(v[1])).replace('[', '').replace(']','').replace(
                     ',', '')
 
-        graph_rules.setFinalNodeProperties(self, composite[1])
+
 
         return composites
 
