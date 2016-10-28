@@ -1,7 +1,8 @@
-from software_loader import getOperations, SoftwareLoader, getOperation,getProjectProperties
+from software_loader import getOperations, SoftwareLoader, getProjectProperties
 from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,getMilliSeconds
 import new
 from types import MethodType
+from group_filter import getOperationWithGroups
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -67,7 +68,7 @@ def initial_check(op, graph, frm, to):
 def check_operation(edge, op, graph, frm, to):
     if op == 'Donor':
         return None
-    opObj = getOperation(op)
+    opObj = getOperationWithGroups(op)
     if opObj is None:
         return ['Operation ' + op + ' is invalid']
 
@@ -78,7 +79,7 @@ def check_errors(edge, op, graph, frm, to):
 def check_mandatory(edge, op, graph, frm, to):
     if op == 'Donor':
         return None
-    opObj = getOperation(op)
+    opObj = getOperationWithGroups(op)
     if opObj is None:
         return [op + ' is not a valid operation'] if op != 'Donor' else []
     args = edge['arguments'] if 'arguments' in edge  else []
@@ -108,7 +109,7 @@ def check_version(edge, op, graph, frm, to):
 def check_arguments(edge, op, graph, frm, to):
     if op == 'Donor':
         return None
-    opObj = getOperation(op,fake=True)
+    opObj = getOperationWithGroups(op,fake=True)
     args = [(k, v) for k, v in opObj.mandatoryparameters.iteritems()]
     args.extend([(k, v) for k, v in opObj.optionalparameters.iteritems()])
     results = []
@@ -352,8 +353,13 @@ def contrastGlobalRule(edges):
     return 'yes' if found else 'no'
 
 def colorGlobalRule(edges):
-    return 'yes' if len([edge for edge in edges
-                         if getOperation(edge['op'], fake=True).category == 'Color']) > 0 else 'no'
+    found = False
+    for edge in edges:
+        op = getOperationWithGroups(edge['op'], fake=True)
+        if op.category == 'Color' or (op.groupedCategories is not None and 'Color' in op.groupedCategories):
+            found = True
+            break
+    return 'yes' if found else 'no'
 
 def compositeSizeRule( edges):
     value = 0
@@ -364,16 +370,24 @@ def compositeSizeRule( edges):
            value = max(composite_rank.index(edge['change size category']),value)
     return composite_rank[value]
 
+def _checkOpOther(op):
+    if op.category in ['AdditionalEffect', 'Fill', 'Transform', 'Intensity']:
+        if op.name not in ['AdditionalEffectFilterBlur', 'AdditionalEffectFilterSharpening', 'TransformResize',
+                           'TransformCrop', 'TransformRotate', 'TransformSeamCarving',
+                           'TransformWarp', 'IntensityNormalization', 'IntensityContrast']:
+            return True
+    return False
+
 def otherEnhancementRule( edges):
     found = False
     for edge in edges:
-        op = getOperation( edge['op'] ,fake=True )
-        if op.category in ['AdditionalEffect','Fill','Transform','Intensity']:
-            if op.name not in ['AdditionalEffectFilterBlur','AdditionalEffectFilterSharpening','TransformResize',
-                'TransformCrop','TransformRotate','TransformSeamCarving',
-                               'TransformWarp','IntensityNormalization','IntensityContrast']:
-                found = True
-                break
+        op = getOperationWithGroups( edge['op'] ,fake=True )
+        found = _checkOpOther(op)
+        if not found and  op.groupedOperations is not None:
+            for imbedded_op in op.groupedOperations:
+                found |= _checkOpOther(getOperationWithGroups(imbedded_op,fake=True))
+        if found:
+            break
     return 'yes' if found else 'no'
 
 def _filterEdgesByOperatioName(edges,opName):
@@ -397,7 +411,7 @@ def setFinalNodeProperties(scModel, finalNode):
             filtered_edges = _filterEdgesByOperatioName(edges, prop.operation)
             if len(filtered_edges) == 0:
                 analysis[prop.name] = 'no'
-            elif prop.parameter is None or len([edge for edge in filtered_edges if prop.parameter in edge['arguments'] and edge['arguments'][prop.parameter] == prop.value]) > 0:
+            elif prop.parameter is None or len([edge for edge in filtered_edges if 'arguments' in edge and prop.parameter in edge['arguments'] and edge['arguments'][prop.parameter] == prop.value]) > 0:
                 analysis[prop.name] = 'yes'
             else:
                 analysis[prop.name] = 'no'

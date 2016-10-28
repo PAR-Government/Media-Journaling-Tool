@@ -1588,6 +1588,7 @@
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]

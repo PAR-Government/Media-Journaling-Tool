@@ -115,6 +115,11 @@ def select_region(imfile, prev):
     if im.mode == 'RGBA' or im.mode == 'LA':
         return imfile
     else:
+        if not os.path.exists(prev):
+            pos = prev.rfind('.')
+            mod_filename = prev[0:pos] + prev[pos:].lower()
+            if os.path.exists(mod_filename):
+                prev = mod_filename
         prevIm = Image.open(prev)
         if im.mode == 'L' and set(im.getdata()).issubset({0, 1, 255}) and not isRGBA(prevIm):
             rgba = prevIm.convert('RGBA')
@@ -133,21 +138,14 @@ def select_region(imfile, prev):
 def isRGBA(im):
     return im.mode == 'RGBA'
 
-def add_pastesplice_params(scModel):
+def add_pastesplice_params(scModel,semantics):
     """
     Adds mandatory parameters to pastesplice operations in projects based on semantics.csv file
     :param scModel: opened JT project
     :return: None. Updates scModel
     """
-    data = {}
+    data = semantics
     defaults = {'donor cropped':'no', 'donor rotated':'no', 'purpose':'add', 'donor resized':'no'}
-    with open('semantics.csv') as csvFile:
-        rdr = csv.reader(csvFile)
-        for row in rdr:
-            try:
-                data[row[0]].extend(row[1:4])
-            except KeyError:
-                data[row[0]] = row[1:4]
 
     name = scModel.getName()
     for edge in scModel.getGraph().get_edges():
@@ -363,7 +361,7 @@ def fix_noncroplinks(scModel):
             if 'location' in currentLink:
                 currentLink['location'] = '0,0'
 
-def perform_update(project,args, error_writer):
+def perform_update(project,args, error_writer, semantics):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
 
     #inspect_mask_scope(scModel)
@@ -380,7 +378,7 @@ def perform_update(project,args, error_writer):
     if args.replacepasteduplicate or args.all:
         check_pasteduplicate(scModel)
     if args.pastespliceargs or args.all:
-        add_pastesplice_params(scModel)
+        add_pastesplice_params(scModel,semantics)
     if args.replacejpeg or args.all:
         update_create_jpeg(scModel)
     if args.renamedonors or args.all:
@@ -424,11 +422,21 @@ def main():
     parser.add_argument('-a', '--all', help='Perform all updates', action='store_true')
     args = parser.parse_args()
 
+    data = {}
+    if os.path.exists('semantics.csv'):
+        with open('semantics.csv') as csvFile:
+            rdr = csv.reader(csvFile)
+            for row in rdr:
+                try:
+                    data[row[0]].extend(row[1:4])
+                except KeyError:
+                    data[row[0]] = row[1:4]
+
     ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
     loadProjectProperties("project_properties.json")
 
-    with open('ErrorReport.csv', 'w') as csvfile:
+    with open(os.path.join(args.updatedir,'ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
         error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         zippedProjects = bulk_export.pick_zipped_projects(args.dir)
         total = len(zippedProjects)
@@ -440,8 +448,9 @@ def main():
                 if extract_archive(zippedProject, dir):
                     for project in bulk_export.pick_projects(dir):
                         print 'Project updating: ' + zippedProject
-                        perform_update(project, args, error_writer)
+                        perform_update(project, args, error_writer, data)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + zippedProject
+                        os.remove(os.path.join(args.dir,zippedProject))
                 else:
                     print 'Project skipped ' + zippedProject
                     shutil.move(zippedProject, args.skipdir)

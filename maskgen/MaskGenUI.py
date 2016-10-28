@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
+from group_filter import GroupOperationsLoader, GroupFilterLoader
 from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties
 from tool_set import *
 from group_manager import GroupManagerDialog
@@ -473,7 +474,10 @@ class MakeGenUI(Frame):
         d = PropertyDialog(self, getProjectProperties())
 
     def groupmanager(self):
-        d = GroupManagerDialog(self)
+        d = GroupManagerDialog(self,GroupFilterLoader())
+
+    def operationsgroupmanager(self):
+        d = GroupManagerDialog(self, GroupOperationsLoader())
 
     def quit(self):
         self.save()
@@ -602,7 +606,8 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Export", menu=exportmenu)
         filemenu.add_command(label="Validate", command=self.validate)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
-        filemenu.add_command(label="Group Manager", command=self.groupmanager)
+        filemenu.add_command(label="Filter Group Manager", command=self.groupmanager)
+        filemenu.add_command(label="Operations Group Manager", command=self.operationsgroupmanager)
         filemenu.add_separator()
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_cascade(label="Properties", command=self.getproperties)

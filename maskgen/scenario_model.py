@@ -5,12 +5,13 @@ import os
 import numpy as np
 import tool_set
 import video_tools
-from software_loader import Software, Operation, getOperation
+from software_loader import Software, Operation
 import tempfile
 import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
+from group_filter import getOperationWithGroups
 
 
 def toIntTuple(tupleString):
@@ -278,7 +279,7 @@ class Modification:
         self.operationName = name
         if name is None:
             return
-        op = getOperation(self.operationName)
+        op = getOperationWithGroups(self.operationName)
         self.category = op.category if op is not None else None
         self.recordMaskInComposite = 'yes' if op is not None and op.includeInMask else 'no'
         self.generateMask = op.generateMask if op is not None else True
@@ -293,7 +294,7 @@ class LinkTool:
 
     def _addAnalysis(self, startIm, destIm, op, analysis, mask, arguments={}):
         import importlib
-        opData = getOperation(op)
+        opData = getOperationWithGroups(op)
         if opData is None:
             return
         for analysisOp in opData.analysisOperations:
@@ -335,7 +336,7 @@ class ImageImageLinkTool(LinkTool):
                 errors= list()
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, destination)
-                    op = getOperation(edge['op'])
+                    op = getOperationWithGroups(edge['op'])
                     expect_donor_mask = op is not None and 'checkSIFT' in op.rules
                     if expect_donor_mask:
                         mask, analysis = tool_set.interpolateMask(
@@ -440,7 +441,7 @@ class VideoVideoLinkTool(LinkTool):
         errors = ["Could not compute SIFT Matrix"]
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
-            op = getOperation(edge['op'])
+            op = getOperationWithGroups(edge['op'])
             if op is not None :#and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
                     os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
@@ -456,7 +457,7 @@ class VideoVideoLinkTool(LinkTool):
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
         maskname = start + '_' + destination + '_mask' + '.png'
-        if op != 'Donor' and not getOperation(op).generateMask:
+        if op != 'Donor' and not getOperationWithGroups(op).generateMask:
             maskSet = list()
             errors = list()
         elif op == 'Donor':
@@ -591,6 +592,7 @@ class ImageProjectModel:
                            softwareVersion=('' if mod.software is None else mod.software.version),
                            inputmaskname=mod.inputMaskName,
                            selectmaskname=mod.selectMaskName)
+        self._save_group(mod.operationName)
 
     def compare(self, destination, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -776,6 +778,7 @@ class ImageProjectModel:
             changes.append((globalchange, changeCategory, ratio))
             self.G.addCompositeToNode(composite[1], composite[0], ImageWrapper(
                 color_composite),changeCategory)
+            graph_rules.setFinalNodeProperties(self, composite[1])
 
         for k, v in edgeMap.iteritems():
             if type(v) == int:
@@ -783,7 +786,7 @@ class ImageProjectModel:
             self.G.get_edge(k[0], k[1])['compositecolor'] = str(list(v[1])).replace('[', '').replace(']','').replace(
                     ',', '')
 
-        graph_rules.setFinalNodeProperties(self, composite[1])
+
 
         return composites
 
@@ -826,7 +829,7 @@ class ImageProjectModel:
 
     def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True):
         try:
-            for k,v in getOperation(opName).compareparameters.iteritems():
+            for k,v in getOperationWithGroups(opName).compareparameters.iteritems():
                 arguments[k] = v
         except:
             pass
@@ -880,6 +883,16 @@ class ImageProjectModel:
                              automated=mod.automated,
                              errors=mod.errors,
                              **additionalParameters)
+        self._save_group(mod.operationName)
+
+    def _save_group(self, operation_name):
+        op = getOperationWithGroups(operation_name, fake=True)
+        if op.groupedOperations is not None and len(op.groupedOperations) > 0:
+            groups = self.G.getDataItem('groups')
+            if groups is None:
+                groups = dict()
+            groups[operation_name] = op.groupedOperations
+            self.G.setDataItem('groups',groups)
 
     def getSeriesName(self):
         """ A Series is the prefix of the first image node """
@@ -1425,7 +1438,8 @@ class ImageProjectModel:
         compositeMask = tool_set.alterMask(compositeMask, edgeMask, rotation=rotation,
                                            sizeChange=sizeChange, interpolation=interpolation,
                                            location=location, flip=flip,
-                                           transformMatrix=tm)
+                                           transformMatrix=tm,
+                                           crop=edge['op']=='TransformCrop')
         return compositeMask
 
     def _alterDonor(self,donorMask,edge):
@@ -1447,7 +1461,8 @@ class ImageProjectModel:
         return  tool_set.alterReverseMask(donorMask, None, rotation=rotation,
                                            sizeChange=sizeChange,
                                            location=location, flip=flip,
-                                           transformMatrix=None)
+                                           transformMatrix=None,
+                                          crop = edge['op']=='TransformCrop')
 
     def _getModificationForEdge(self, edge):
         return Modification(edge['op'], \

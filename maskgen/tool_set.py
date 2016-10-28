@@ -49,6 +49,8 @@ def fileTypeChanged(file_one, file_two):
 def fileType(fileName):
     pos = fileName.rfind('.')
     suffix = '*' + fileName[pos:] if pos > 0 else ''
+    if not os.path.exists(fileName):
+        return None
     return 'image' if (suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None) else 'video'
 
 
@@ -777,7 +779,7 @@ def __checkInterpolation(val):
 
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None):
+              transformMatrix=None, flip=None, crop=False):
     res = compositeMask
     if transformMatrix is not None:
         res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
@@ -789,7 +791,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
-    if location != (0, 0):
+    if location != (0, 0) or crop:
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if expectedSize != res.shape:
@@ -797,7 +799,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     return res
 
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
-              transformMatrix=None, flip=None):
+              transformMatrix=None, flip=None, crop=False):
     res = donorMask
     if transformMatrix is not None:
         res = __applyTransform(donorMask, edgeMask, deserializeMatrix(transformMatrix),invert=True)
@@ -809,7 +811,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
-    if location != (0, 0):
+    if location != (0, 0) or crop:
         newRes = np.ones(expectedSize)*255
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
         newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0]-location[0]),0:(upperBound[1]-location[1])]
@@ -1112,22 +1114,18 @@ class GrayFrameWriter:
     mask_prefix = None
 
     def __init__(self, mask_prefix, fps, preferences=None):
+        import sys
         self.fps = fps
         self.mask_prefix = mask_prefix
         self.suffix = preferredSuffix(preferences=preferences)
+        t_codec = None
         if preferences is not None:
             t_codec= preferences.get_key('vid_codec')
-            self.codec = t_codec if t_codec is not None else 'AVC1'
-            if cv2.__version__.startswith('3'):
-                self.fourcc = cv2.VideoWriter_fourcc(*str(self.codec))
-            else:
-                self.fourcc = cv2.cv.CV_FOURCC(*str(self.codec))
-        elif cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
+        if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
-            self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
-        else:
-            self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
-
+        elif t_codec is not None:
+            self.codec = str(t_codec)
+        self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
 
     def write(self,mask,mask_time):
         if self.capOut is None:

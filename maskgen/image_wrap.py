@@ -19,8 +19,14 @@ except ImportError:
 
 
 def openImageFile(filename):
+   import os
+   if not os.path.exists(filename):
+       pos = filename.rfind('.')
+       mod_filename = filename[0:pos] + filename[pos:].lower()
+       if os.path.exists(mod_filename):
+           filename = mod_filename
    try:
-      with open(filename,'rb') as f:
+     with open(filename,'rb') as f:
           im = Image.open(filename)
           im.load()
           return ImageWrapper(np.asarray(im),info=im.info)
