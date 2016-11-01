@@ -273,6 +273,34 @@
       ]
     },
     {
+      "category": "AntiForensicCompression",
+      "name": "AntiForensicJPGCompression",
+      "mandatoryparameters": {
+        "QT File Name": {
+          "type": "qtfile",
+          "description": "Quantization table file."
+        }
+      },
+      "rules": [
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+        "Thumbnail QT File Name": {
+          "type": "qtfile",
+          "description": "Thumbnail quantization table file"
+        },
+        "Resize (if applicable)": {
+          "type": "yesno",
+          "description": "Attempt to parse image dimensions from QT filename and resize accordingly."
+        }
+      },
+      "description": "Use quantization tables from a particular camera to compress an image.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
       "category": "AntiForensicExif",
       "name": "AntiForensicExifQuantizationTable",
       "mandatoryparameters": {
