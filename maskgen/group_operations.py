@@ -32,7 +32,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
         BaseOperation.__init__(self, scModel)
 
     def suffix(self):
-        return ''
+        return ('.jpg', '.jpeg','.tif', '.tiff')
 
     def filterPairs(self, pairs):
         if len(pairs) == 0:
@@ -74,7 +74,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                     r2 = abs(width2/height2) < 1
                     if r1 != r2:
                         rotate = 'yes'
-                if donor_filename.lower().endswith('jpg'):
+                if donor_filename.lower().endswith('jpg') or donor_filename.lower().endswith('jpeg'):
                     msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
                                                           sendNotifications=False, rotate=rotate,
                                                           skipRules=True)
