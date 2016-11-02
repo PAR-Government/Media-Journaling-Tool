@@ -6,6 +6,7 @@ import shutil
 from software_loader import getOS
 import tarfile
 from tool_set import *
+from time import gmtime, strftime
 
 igversion='0.3.1024'
 igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024']
@@ -665,6 +666,7 @@ class ImageGraph:
         return missing
 
     def create_archive(self, location):
+        self.G.graph['exporttime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         fname, errors, names_added = self._create_archive(location)
         tries = 0
         if len(errors) == 0:
@@ -674,7 +676,7 @@ class ImageGraph:
         return fname, (["Failed to create archive"] if (tries == 3 and len(errors) == 0) else errors)
 
     def _check_archive_integrity(self, fname, names_added):
-        print 'archive integrity check for ' + fname
+        #print 'archive integrity check for ' + fname
         try:
             archive = tarfile.open(fname, "r:gz", errorlevel=2)
             #         archive = ZipFile(fname,"r")

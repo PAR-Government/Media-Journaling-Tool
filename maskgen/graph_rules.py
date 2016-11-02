@@ -76,6 +76,18 @@ def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
 
+def check_graph_rules(graph):
+    count = 0
+    for node in graph.get_nodes():
+        nodeData = graph.get_node(node)
+        if nodeData['nodetype'] == 'base':
+            count += 1
+    if count > 1:
+        return ["Projects should only have one bae image"]
+    elif count == 0:
+        return ["Projects need to have one base image"]
+    return []
+
 def check_mandatory(edge, op, graph, frm, to):
     if op == 'Donor':
         return None

@@ -1120,7 +1120,10 @@ class ImageProjectModel:
                 total_errors.append((str(predecessors[0]), str(node), str(node) +
                                       ' donor links must coincide with another link to the same destintion node'))
 
-        nodeSet = set(self.G.get_nodes())
+        nodes = self.G.get_nodes()
+        select_node = nodes[0] if (len(nodes) > 0) else "NA"
+        nodeSet = set(nodes)
+
         for found in self.G.findRelationsToNode(nodeSet.pop()):
             if found in nodeSet:
                 nodeSet.remove(found)
@@ -1132,7 +1135,10 @@ class ImageProjectModel:
 
         cycleNode = self.G.getCycleNode()
         if cycleNode is not None:
-            total_errors.append((str(node), str(node), "Graph has a cycle"))
+            total_errors.append((str(cycleNode), str(cycleNode), "Graph has a cycle"))
+
+        for error in graph_rules.check_graph_rules(self.G):
+            total_errors.append((str(select_node), str(select_node), error))
 
         for frm, to in self.G.get_edges():
             edge = self.G.get_edge(frm, to)
@@ -1380,9 +1386,9 @@ class ImageProjectModel:
         path, errors = self.G.create_archive(location)
         return errors
 
-    def exporttos3(self, location):
+    def exporttos3(self, location, tempdir=None):
         import boto3
-        path, errors = self.G.create_archive(tempfile.gettempdir())
+        path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
         if len(errors) == 0:
             s3 = boto3.client('s3', 'us-east-1')
             BUCKET = location.split('/')[0].strip()
