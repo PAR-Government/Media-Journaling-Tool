@@ -480,7 +480,7 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
         self.box = AutocompleteEntryInText(master, values=self.scModel.getNodeNames(), takefocus=True)
         self.box.grid(row=0, column=1)
         self.c = Canvas(master, width=250, height=250)
-        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((250, 250,3))))
+        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((250, 250,3))).toPIL())
         self.imc = self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=1, column=0, columnspan=2)
         self.box.bind("<Return>", self.newimage)
