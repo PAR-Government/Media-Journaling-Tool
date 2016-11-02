@@ -1093,9 +1093,10 @@ class GrayBlockWriter:
 
 
 def preferredSuffix(preferences=None):
+    import sys
     default_suffix = 'm4v'
-    if cv2.__version__.startswith('3') or cv2.__version__.startswith('2.4.11'):
-        default_suffix='avi'
+    if sys.platform.startswith('win'):
+        default_suffix = 'avi'
     if preferences is not None:
         t_suffix = preferences.get_key('vid_suffix')
         default_suffix = t_suffix if t_suffix is not None else default_suffix
