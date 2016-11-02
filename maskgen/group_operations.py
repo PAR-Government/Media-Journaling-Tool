@@ -32,7 +32,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
         BaseOperation.__init__(self, scModel)
 
     def suffix(self):
-        return ('.jpg', '.jpeg','.tif', '.tiff')
+        return ''
 
     def filterPairs(self, pairs):
         if len(pairs) == 0:
@@ -84,6 +84,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                                                                   skipRules=True)
                 else:
                     pairs = []
+                    msg = 'Group operation not permitted for base image nodes that are not JPEG or TIFF'
                 if len(pairs) == 0:
                     break
                 newPairs.extend(pairs)
