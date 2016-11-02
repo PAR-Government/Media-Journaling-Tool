@@ -74,7 +74,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                     r2 = abs(width2/height2) < 1
                     if r1 != r2:
                         rotate = 'yes'
-                if donor_filename.lower().endswith('jpg'):
+                if donor_filename.lower().endswith('jpg') or donor_filename.lower().endswith('jpeg'):
                     msg, pairs = self.scModel.imageFromPlugin('CompressAs', im, filename, donor=pair[1],
                                                           sendNotifications=False, rotate=rotate,
                                                           skipRules=True)
@@ -84,6 +84,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                                                                   skipRules=True)
                 else:
                     pairs = []
+                    msg = 'Group operation not permitted for base image nodes that are not JPEG or TIFF'
                 if len(pairs) == 0:
                     break
                 newPairs.extend(pairs)

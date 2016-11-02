@@ -222,7 +222,7 @@ class MakeGenUI(Frame):
             if not pairs:
                 return
         if len(pairs) == 0:
-            tkMessageBox.showwarning("Warning", "Leaf image nodes with base JPEG images do not exist in this project")
+            tkMessageBox.showwarning("Warning", "Leaf image nodes with base JPEG or TIFF images do not exist in this project")
         for pair in pairs:
             self.canvas.add(pair[0], pair[1])
         self.drawState()
