@@ -59,6 +59,7 @@ class TestToolSet(unittest.TestCase):
 
     def test_gray_writing(self):
         import os
+        import sys
         writer = tool_set.GrayBlockWriter('test_ts_gw', 29.97002997)
         mask_set = list()
         for i in range(255):
@@ -78,13 +79,17 @@ class TestToolSet(unittest.TestCase):
             pos += 1
         reader.close()
         self.assertEqual(255, pos)
-        self.assertEquals('test_ts_gw_mask_33.3666666667.m4v',tool_set.convertToVideo(fn))
-        self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.m4v'))
+        suffix = 'm4v'
+        if sys.platform.startswith('win'):
+            suffix = 'avi'
+        self.assertEquals('test_ts_gw_mask_33.3666666667.' + suffix,tool_set.convertToVideo(fn))
+        self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.' + suffix))
 
-        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.m4v',tool_set.getMilliSeconds('00:00:01:2')).size
+        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix,tool_set.getMilliSeconds('00:00:01:2')).size
         print size
         self.assertTrue(size == (1920,1090))
-        os.remove('test_ts_gw_mask_33.3666666667.m4v')
+        os.remove('test_ts_gw_mask_33.3666666667.'+suffix)
+        os.remove('test_ts_gw_mask_33.3666666667.hdf5')
 
 
 if __name__ == '__main__':

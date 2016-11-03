@@ -1,19 +1,18 @@
 from Tkinter import *
-from group_filter import GroupFilter, GroupFilterLoader
-import plugins
+from group_filter import GroupFilter,getOperationWithGroups
 import tkSimpleDialog
 from PIL import ImageTk
-from tool_set import imageResize, openImage
+from PIL import Image
 
 
 class GroupManagerDialog(tkSimpleDialog.Dialog):
     gfl = None
     lastselection = None
 
-    def __init__(self, parent):
+    def __init__(self, parent, grpFilterManager):
         self.parent = parent
-        self.gfl = GroupFilterLoader()
-        tkSimpleDialog.Dialog.__init__(self, parent, "Group Manager")
+        self.gfl = grpFilterManager
+        tkSimpleDialog.Dialog.__init__(self, parent, grpFilterManager.getName() + " Group Manager")
 
     def body(self, master):
         Label(master, text="Group").grid(row=0, column=0)
@@ -27,8 +26,8 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
             self.groupBox.insert(END, name)
         self.groupBox.grid(row=1, column=0, columnspan=2, sticky=N + S + E + W)
         self.groupBox.bind("<<ListboxSelect>>", self.groupselect)
-        self.addImage = ImageTk.PhotoImage(imageResize(openImage("icons/add.png"), (16, 16)))
-        self.subImage = ImageTk.PhotoImage(imageResize(openImage("icons/subtract.png"), (16, 16)))
+        self.addImage = ImageTk.PhotoImage(Image.open("icons/add.png").resize((16, 16)))
+        self.subImage = ImageTk.PhotoImage(Image.open("icons/subtract.png").resize( (16, 16)))
         self.addb = Button(master, image=self.addImage, text="Add", command=self.addgroup)
         self.addb.grid(row=2, column=0)
         self.subb = Button(master, image=self.subImage, text="Sub", command=self.subgroup)
@@ -46,14 +45,12 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         self.assignedBox.grid(row=1, column=5, sticky=N + S + E + W)
         self.yASScroll['command'] = self.assignedBox.yview
 
-        self.addFilterImage = ImageTk.PhotoImage(imageResize(openImage("icons/rightarrow.png"), (16, 16)))
-        self.subFilterImage = ImageTk.PhotoImage(imageResize(openImage("icons/leftarrow.png"), (16, 16)))
+        self.addFilterImage = ImageTk.PhotoImage(Image.open("icons/rightarrow.png").resize( (16, 16)))
+        self.subFilterImage = ImageTk.PhotoImage(Image.open("icons/leftarrow.png").resize( (16, 16)))
         self.addFilterButton = Button(master, image=self.addFilterImage, text="Add", command=self.addfilter)
         self.addFilterButton.grid(row=2, column=3)
         self.subFilterButton = Button(master, image=self.subFilterImage, text="Sub", command=self.subfilter)
         self.subFilterButton.grid(row=2, column=5)
-
-        plugins.loadPlugins()
 
     def addfilter(self):
         if len(self.availableBox.curselection()) == 0:
@@ -62,6 +59,16 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         value = self.availableBox.get(index)
         self.assignedBox.insert(END, value)
         self.availableBox.delete(index)
+        self._refilAvailable()
+
+    def _refilAvailable(self):
+        whatsleft = self.availableBox.get(0, END)
+        whatsused = self.assignedBox.get(0, END)
+        checked_whatsleft = self.gfl.getAvailableFilters(operations_used=whatsused)
+        if len(checked_whatsleft) != len(whatsleft):
+            self.availableBox.delete(0, END)
+            for filter in checked_whatsleft:
+                self.availableBox.insert(END, filter)
 
     def subfilter(self):
         if len(self.assignedBox.curselection()) == 0:
@@ -70,14 +77,14 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         value = self.assignedBox.get(index)
         self.availableBox.insert(END, value)
         self.assignedBox.delete(index)
+        self._refilAvailable()
 
     def populateFilterBoxes(self, groupFilter):
-        available = set(plugins.getOperationNames(noArgs=True))
         self.assignedBox.delete(0, END)
         self.availableBox.delete(0, END)
         for filter in groupFilter.filters:
-            available.remove(filter)
             self.assignedBox.insert(END, filter)
+        available = set(self.gfl.getAvailableFilters(operations_used=groupFilter.filters))
         for filter in available:
             self.availableBox.insert(END, filter)
 

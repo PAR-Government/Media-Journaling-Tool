@@ -56,10 +56,12 @@ class Operation:
     transitions = []
     compareparameters = {}
     generateMask  = True
+    groupedOperations = None
+    groupedCategories = None
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=list(),
                  mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict(),generateMask = True):
+                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -71,6 +73,8 @@ class Operation:
         self.transitions = transitions
         self.compareparameters = compareparameters
         self.generateMask  = generateMask
+        self.groupedOperations = groupedOperations
+        self.groupedCategories = groupedCategories
 
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,

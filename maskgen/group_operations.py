@@ -68,8 +68,8 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                     rotate = dialog.rotate
                 elif orientation is not None and not master_ui:
                     rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
-                    width1, height1 = im.size()
-                    width2, height2 = rotated_im.size()
+                    width1, height1 = im.size
+                    width2, height2 = rotated_im.size
                     r1 = abs(width1/height1) < 1
                     r2 = abs(width2/height2) < 1
                     if r1 != r2:

@@ -1616,6 +1616,7 @@
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]
@@ -1817,6 +1818,42 @@
       ],
       "optionalparameters": {},
       "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "PostProcessing",
+      "name": "Recapture",
+      "mandatoryparameters": {
+        "Output Device": {
+          "type": "list",
+          "values": [
+            "Gloss Paper",
+            "Flat Paper",
+            "LCD",
+            "LED",
+            "CRT",
+            "Screen Shot",
+            "Other Device"
+          ],
+          "description": "Type of image display"
+        },
+         "Resolution": {
+          "type": "text",
+          "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
+        }
+      },
+      "rules": [
+      ],
+      "optionalparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        }
+      },
+      "description": "Recapture an image through a digital photo of a picture or screen shot.",
       "includeInMask": false,
       "transitions": [
         "image.image"

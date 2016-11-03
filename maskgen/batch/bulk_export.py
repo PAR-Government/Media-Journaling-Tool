@@ -14,10 +14,15 @@ def pick_projects(directory):
     projects = []
 
     for sub in subs:
+        files = []
         for f in os.listdir(sub):
             if f.endswith(ext):
-                projects.append(os.path.join(sub,f))
-                break
+                files.append(f)
+        if len(files) > 0:
+            sizes = [os.stat(os.path.join(sub, pick)).st_size for pick in files]
+            max_size = max(sizes)
+            index = sizes.index(max_size)
+            projects.append(os.path.join(sub, files[index]))
     return projects
 
 def pick_zipped_projects(directory):

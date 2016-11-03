@@ -9,12 +9,13 @@ from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getFileTypes
 from scenario_model import Modification
-from software_loader import Software, SoftwareLoader, getOS, getOperations, getOperationsByCategory, getOperation
+from software_loader import Software, SoftwareLoader
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
+from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
 
 def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     """
@@ -75,13 +76,9 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
 
 
 def getCategory(mod):
-    ops = getOperations()
     if mod.category is not None and len(mod.category) > 0:
         return mod.category
-    if mod.operationName in ops:
-        return ops[mod.operationName].category
-    return None
-
+    return getCategoryForOperation(mod.operationName)
 
 def tupletostring(tuple):
     strv = ''
@@ -103,11 +100,11 @@ class PropertyDialog(tkSimpleDialog.Dialog):
    parent = None
    cancelled = True
 
-   def __init__(self, parent, properties):
+   def __init__(self, parent, properties, title="Project Properties"):
      self.parent = parent
      self.properties = [prop for prop in properties if not prop.node]
      self.values = [None for prop in properties]
-     tkSimpleDialog.Dialog.__init__(self, parent, "Project Properties")
+     tkSimpleDialog.Dialog.__init__(self, parent, title)
 
    def body(self, master):
         vs = VerticalScrolledFrame(master)
@@ -124,12 +121,12 @@ class PropertyDialog(tkSimpleDialog.Dialog):
            if prop.type == 'list':
              self.values[row] = ttk.Combobox(master, values=prop.values, takefocus=(row == 0))
              self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E+W)
-             v = self.parent.scModel.getProjectData(prop.name)
+             v = self.getValue(prop.name)
              if v:
                  self.values[row].set(v)
            elif prop.type == 'text':
              self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
-             v = self.parent.scModel.getProjectData(prop.name)
+             v = self.getValue(prop.name)
              if v:
                  self.values[row].insert(1.0,v)
              self.values[row].grid(row=row, column=1, columnspan=8, sticky=E+W)
@@ -142,13 +139,13 @@ class PropertyDialog(tkSimpleDialog.Dialog):
                self.nobuttons.append(Radiobutton(master, text='No', takefocus=(row==0), variable=self.radVars[radioCount], value='no'))
                self.nobuttons[radioCount].grid(row=row, column=1, sticky=E)
                self.nobuttons[radioCount].select()
-               v = self.parent.scModel.getProjectData(prop.name)
+               v = self.getValue(prop.name)
                if v:
                    self.radVars[radioCount].set(v)
                radioCount += 1
            else:
              self.values[row] = Entry(master,takefocus=(row==0),width=80)
-             v = self.parent.scModel.getProjectData(prop.name)
+             v = self.getValue(prop.name)
              if v:
                  self.values[row].insert(0,v)
              self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
@@ -160,6 +157,9 @@ class PropertyDialog(tkSimpleDialog.Dialog):
          self.description = None
       tkSimpleDialog.Dialog.cancel(self)
 
+   def getValue(self,name):
+       return self.parent.scModel.getProjectData(name)
+
    def apply(self):
       self.cancelled = False
       i = 0
@@ -168,7 +168,6 @@ class PropertyDialog(tkSimpleDialog.Dialog):
           if v and len(v) > 0:
             self.parent.scModel.setProjectData(prop.name,v)
           i+=1
-
 
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     description = None
@@ -217,7 +216,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             str(self.description.arguments[arg]) if arg in self.description.arguments else ''))
 
     def newcommand(self, event):
-        op = getOperation(self.e2.get())
+        op = getOperationWithGroups(self.e2.get())
         self.argBox.delete(0, END)
         self.arginfo = []
         self.mandatoryinfo = []
@@ -240,8 +239,11 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
+    def organizeOperationsByCategory(self):
+        return getOperationsByCategoryWithGroups(self.sourcefiletype, self.targetfiletype)
+
     def newcategory(self, event):
-        opByCat = getOperationsByCategory(self.sourcefiletype, self.targetfiletype)
+        opByCat = self.organizeOperationsByCategory()
         if self.e1.get() in opByCat:
             oplist = opByCat[self.e1.get()]
             self.e2.set_completion_list(oplist)
@@ -272,7 +274,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.argBox.grid(row=row, column=0, columnspan=2, sticky=E + W)
         row += 1
 
-        cats = getOperationsByCategory(self.sourcefiletype, self.targetfiletype)
+        cats = self.organizeOperationsByCategory()
         catlist = list(cats.keys())
         catlist.sort()
         oplist = cats[catlist[0]] if len(cats) > 0 else []
@@ -341,7 +343,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         index = int(self.argBox.curselection()[0])
         value = self.argBox.get(index)
         if self.e2.get() is not None:
-            op = getOperation(self.e2.get())
+            op = getOperationWithGroups(self.e2.get())
             if op is not None:
                 argumentTuple = self.arginfo[index]
                 res = promptForParameter(self, self.dir, argumentTuple, getFileTypes(), \
@@ -357,7 +359,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
                 self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def help(self):
-        op = getOperation(self.e2.get())
+        op = getOperationWithGroups(self.e2.get())
         if op is not None:
             tkMessageBox.showinfo(op.name, op.description if op.description is not None and len(
                 op.description) > 0 else 'No description')
@@ -630,7 +632,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         if self.optocall is not None:
             op = self.pluginOps[self.optocall]
             arginfo = op['arguments']
-            operation = getOperation(op['operation'][0])
+            operation = getOperationWithGroups(op['operation'][0])
             if arginfo is not None:
                 arg = arginfo[index]
                 argumentTuple = (arg[0], operation.mandatoryparameters[arg[0]]) if operation is not None and arg[
