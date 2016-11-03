@@ -39,7 +39,7 @@ def rebuild_masks(scModel):
         scModel.reproduceMask()
     print 'Updated masks in project: ' + str(scModel.getName())
 
-def rename_donorsandbase(scModel,updatedir):
+def rename_donorsandbase(scModel,updatedir, names):
     """
     Rename donor images with MD5
     :param scModel: scenario model
@@ -56,12 +56,11 @@ def rename_donorsandbase(scModel,updatedir):
             suffix = nodeData['file'][nodeData['file'].rfind('.'):]
             base_count += 1 if nodeData['nodetype'] == 'base' else 0
             file_path_name = os.path.join(scModel.get_dir(), nodeData['file'])
-            if node.endswith('_o'):
-                md5 = node
-            else:
-                with open(file_path_name, 'rb') as fp:
-                    md5 = hashlib.md5(fp.read()).hexdigest()
-            new_file_name = md5 + suffix
+            with open(file_path_name, 'rb') as fp:
+                md5 = hashlib.md5(fp.read()).hexdigest()
+            new_file_name = node + suffix
+            if md5 in names:
+                new_file_name =  names[md5] + suffix
             fullname = os.path.join(scModel.get_dir(), new_file_name)
             if not os.path.exists(fullname):
                 os.rename(file_path_name, fullname)
@@ -365,7 +364,7 @@ def fix_noncroplinks(scModel):
             if 'location' in currentLink:
                 currentLink['location'] = '0,0'
 
-def perform_update(project,args, error_writer, semantics, tempdir):
+def perform_update(project,args, error_writer, semantics, tempdir, names):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
 
@@ -387,7 +386,7 @@ def perform_update(project,args, error_writer, semantics, tempdir):
     if args.replacejpeg or args.all:
         update_create_jpeg(scModel)
     if args.renamedonors or args.all:
-        rename_donorsandbase(scModel, os.path.split(project)[0])
+        rename_donorsandbase(scModel, os.path.split(project)[0], names)
     if args.composites or args.all:
         scModel.constructComposites()
         scModel.constructDonors()
@@ -420,6 +419,7 @@ def main():
     parser.add_argument('-df', '--downloadfolder', required=True, help='Download folder')
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
     parser.add_argument('-c',  '--composites', help='Reconstruct composite images',action='store_true')
+    parser.add_argument('-n',  '--names',required=False, help='New image names')
     parser.add_argument('-rd', '--renamedonors', help='Rename donor images',action='store_true')
     parser.add_argument('-rc', '--redomasks', help='Rebuild link masks',action='store_true')
     parser.add_argument('-rp', '--replacepasteduplicate', help='Replace PasteDuplicate with PasteSplice, using input masks.', action='store_true')
@@ -434,6 +434,13 @@ def main():
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
     parser.add_argument('-a', '--all', help='Perform all updates', action='store_true')
     args = parser.parse_args()
+
+    names = {}
+    if args.names is not None and os.path.exists(args.names):
+        with open(args.names, 'r') as namefp:
+            rdr = csv.reader(namefp)
+            for row in rdr:
+                names[row[2]] = row[0]
 
     skips = []
     if os.path.exists(args.completefile):
@@ -479,7 +486,7 @@ def main():
                     os.remove(os.path.join(dir,file_to_process))
                     for project in bulk_export.pick_projects(dir):
                         print 'Project updating: ' + file_to_process
-                        perform_update(project, args, error_writer, semanticsdata, dir)
+                        perform_update(project, args, error_writer, semanticsdata, dir, names)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + file_to_process
                         os.remove(os.path.join(args.dir, file_to_process))
                         done_file.writeline(file_to_process + '\n')
