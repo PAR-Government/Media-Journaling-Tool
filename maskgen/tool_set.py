@@ -14,7 +14,7 @@ from image_wrap import *
 from maskgen_loader import  MaskGenLoader
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
-                  ("bmp files", "*.bmp")]
+                  ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'),("avi files", "*.avi")]
