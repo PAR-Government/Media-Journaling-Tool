@@ -15,6 +15,7 @@ from maskgen.software_loader import Software,loadOperations,loadProjectPropertie
 from maskgen.plugins import loadPlugins
 import hashlib
 import shutil
+import sys
 import csv
 
 
@@ -367,6 +368,8 @@ def fix_noncroplinks(scModel):
 def perform_update(project,args, error_writer, semantics, tempdir, names):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
+    if scModel.getProjectData('projecttype') == 'video':
+        return
 
     #inspect_mask_scope(scModel)
     update_rotation(scModel)
@@ -488,11 +491,13 @@ def main():
                         print 'Project updating: ' + file_to_process
                         perform_update(project, args, error_writer, semanticsdata, dir, names)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + file_to_process
-                        os.remove(os.path.join(args.dir, file_to_process))
-                        done_file.writeline(file_to_process + '\n')
+                        done_file.write(file_to_process + '\n')
+                        done_file.flush()
+                        csvfile.flush()
                 except Exception as e:
                     print e
                     print 'Project skipped: ' + file_to_process
+                sys.stdout.flush()
                 count += 1
                 shutil.rmtree(dir)
 

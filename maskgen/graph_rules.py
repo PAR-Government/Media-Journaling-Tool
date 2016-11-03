@@ -253,7 +253,6 @@ def sizeChanged(graph, frm, to):
         return 'operation should change the size of the image'
     return None
 
-
 def checkSizeAndExif(graph, frm, to):
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] != 0 or change[1] != 0):

@@ -193,6 +193,8 @@ def getOperationWithGroups(name, fake=False):
 def getOperationsByCategoryWithGroups(sourcetype, targettype):
     global groupOpLoader
     res = dict(getOperationsByCategory(sourcetype, targettype))
-    for k, v in groupOpLoader.getOperationsByCategory(sourcetype, targettype).iteritems():
-        res[k] = v
+    items = groupOpLoader.getOperationsByCategory(sourcetype, targettype)
+    if items is not None:
+        for k, v in items.iteritems():
+            res[k] = v
     return res
