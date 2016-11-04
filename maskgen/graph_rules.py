@@ -259,8 +259,7 @@ def checkSizeAndExif(graph, frm, to):
         edge = graph.get_edge(frm, to)
         orientation = getValue(edge, 'exifdiff.Orientation')
         if orientation is not None:
-            if type(orientation) is list or type(orientation) is tuple:
-                orientation = orientation[-1]
+            orientation = str(orientation)
             if '270' in orientation or '90' in orientation:
                 frm_shape = graph.get_image(frm)[0].size
                 to_shape = graph.get_image(to)[0].size

@@ -668,7 +668,7 @@ class ImageGraph:
     def create_archive(self, location):
         self.G.graph['exporttime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         fname, errors, names_added = self._create_archive(location)
-        names_added = [os.path.strip(i)[1] for i in names_added]
+        names_added = [os.path.split(i)[1] for i in names_added]
         tries = 0
         if len(errors) == 0:
            while  not self._check_archive_integrity(fname,names_added) and tries < 3:
@@ -681,7 +681,7 @@ class ImageGraph:
         try:
             archive = tarfile.open(fname, "r:gz", errorlevel=2)
             #         archive = ZipFile(fname,"r")
-            names_removed = [os.path.strip(i)[1] for i in archive.getnames()]
+            names_removed = [os.path.split(i)[1] for i in archive.getnames()]
             for i in names_removed:
                 if unicode(i) in names_added:
                     names_added.remove(unicode(i))
