@@ -1542,8 +1542,7 @@
       "name": "OutputJpg",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize",
-        "check_eight_bit"
+        "checkSize"
       ],
       "optionalparameters": {
         "XMP File Name": {
@@ -2227,7 +2226,8 @@
       "name": "TransformCrop",
       "mandatoryparameters": {},
       "rules": [
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_eight_bit"
       ],
       "optionalparameters": {
         "location": {

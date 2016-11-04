@@ -175,8 +175,8 @@ class MakeGenUI(Frame):
                 return
         processProjectProperties(self.scModel)
         self.scModel.constructComposites()
-        self.scModel.constructDonors()
         self.getproperties()
+        self.scModel.removeComposites()
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
@@ -197,8 +197,8 @@ class MakeGenUI(Frame):
                 return
         processProjectProperties(self.scModel)
         self.scModel.constructComposites()
-        self.scModel.constructDonors()
         self.getproperties()
+        self.scModel.removeComposites()
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
