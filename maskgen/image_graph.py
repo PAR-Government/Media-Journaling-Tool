@@ -19,6 +19,8 @@ def extract_archive(fname, dir):
         try:
             archive = tarfile.open(fname, "r", errorlevel=2)
         except Exception as e:
+            if archive is not None:
+                archive.close()
             print e
             return False
 
@@ -306,6 +308,13 @@ class ImageGraph:
                 self.remove_edge(d['start'], d['end'])
         self.U = []
 
+    def removeComposites(self):
+        """
+          Remove a composite image associated with all nodes
+        """
+        for node in self.G.nodes():
+            self.removeCompositeFromNode(node)
+
     def removeCompositeFromNode(self, nodeName):
         """
           Remove a composite image associated with a node
@@ -313,9 +322,11 @@ class ImageGraph:
         if self.G.has_node(nodeName):
             fname = nodeName + '_composite_mask.png'
             if 'compositemaskname' in self.G.node[nodeName]:
-                self.G.node[nodeName]['compositemaskname'] = ''
-                self.G.node[nodeName]['compositebase'] = ''
-                self.G.node[nodeName]['composite change size category'] = ''
+                self.G.node[nodeName].pop('compositemaskname')
+                if 'compositebase' in self.G.node[nodeName]:
+                    self.G.node[nodeName].pop('compositebase')
+                if 'composite change size category' in self.G.node[nodeName]:
+                    self.G.node[nodeName].pop('composite change size category')
                 if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
                     os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 

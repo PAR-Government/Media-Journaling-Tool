@@ -183,8 +183,11 @@ def checkFileTypeChange(graph, frm, to):
 
 
 def check_eight_bit(graph, frm, to):
-    img, to_file = graph.get_image(to)
-    if to_file.lower().endswith('jpg') and (img.size[0] % 8 > 0  or img.size[1] % 8 > 0):
+    from_img, from_file = graph.get_image(frm)
+    to_img, to_file = graph.get_image(to)
+    if from_img.size != to_img.size and \
+       to_file.lower().endswith('jpg') and  \
+       (to_img.size[0] % 8 > 0  or to_img.size[1] % 8 > 0):
         return '(Warning) JPEG image size is not aligned to 8x8 pixels'
     return None
 

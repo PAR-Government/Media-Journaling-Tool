@@ -665,6 +665,12 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
+    def removeComposites(self):
+        """
+        Remove all compsoite images from project
+        """
+        self.G.removeComposites()
+
     def getComposite(self):
         """
          Get the composite image for the selected node.
