@@ -338,49 +338,61 @@ def _setupPropertyRules():
             if prop.rule is not None:
                 project_property_rules[prop.name] = globals().get(prop.rule)
 
-def blurLocalRule( edges):
+def blurLocalRule( scModel,edgeTuples):
     found = False
-    for edge in edges:
-        if edge['op'] == 'AdditionalEffectFilterBlur':
-            found = 'global' not in edge or edge['global'] == 'no'
+    for edgeTuple in edgeTuples:
+        if edgeTuple[2]['op'] == 'AdditionalEffectFilterBlur':
+            found = 'global' not in edgeTuple[2] or edgeTuple[2]['global'] == 'no'
         if found:
             break
     return 'yes' if found else 'no'
 
-def histogramGlobalRule( edges):
+def histogramGlobalRule(scModel, edgeTuples):
     found = False
-    for edge in edges:
-        if edge['op'] == 'IntensityNormalization':
-            found = 'global' not in edge or edge['global'] == 'yes'
+    for edgeTuple in edgeTuples:
+        if edgeTuple[2]['op'] == 'IntensityNormalization':
+            found = 'global' not in edgeTuple[2] or edgeTuple[2]['global'] == 'yes'
         if found:
             break
     return 'yes' if found else 'no'
 
-def contrastGlobalRule(edges):
+def contrastGlobalRule(scModel,edgeTuples):
     found = False
-    for edge in edges:
-        if edge['op'] == 'IntensityContrast':
-            found = 'global' not in edge or edge['global'] == 'yes'
+    for edgeTuple in edgeTuples:
+        if edgeTuple[2]['op'] == 'IntensityContrast':
+            found = 'global' not in edgeTuple[2] or edgeTuple[2]['global'] == 'yes'
         if found:
             break
     return 'yes' if found else 'no'
 
-def colorGlobalRule(edges):
+def colorGlobalRule(scModel,edgeTuples):
     found = False
-    for edge in edges:
-        op = getOperationWithGroups(edge['op'], fake=True)
+    for edgeTuple in edgeTuples:
+        op = getOperationWithGroups(edgeTuple[2]['op'], fake=True)
         if op.category == 'Color' or (op.groupedCategories is not None and 'Color' in op.groupedCategories):
             found = True
             break
     return 'yes' if found else 'no'
 
-def compositeSizeRule( edges):
+def cloneRule(scModel,edgeTuples):
+    nodes = [edgeTuple[1] for edgeTuple in edgeTuples]
+    for edgeTuple in edgeTuples:
+        edgeNode = scModel.getGraph().get_node(edgeTuple[1])
+        donorBaseNode = edgeNode['donorbase'] if 'donorbase' in edgeNode else None
+        if (donorBaseNode in nodes and \
+        (edgeTuple[2]['op'] == 'PasteSplice') or \
+        (edgeTuple[2]['op'] == 'PasteSampled' and \
+                     edgeTuple[2]['arguments']['purpose'] == 'clone')):
+            return 'yes'
+    return 'no'
+
+def compositeSizeRule(scModel, edgeTuples):
     value = 0
     composite_rank = ['small', 'medium', 'large']
-    for edge in edges:
-        if 'change size category' in edge and 'recordMaskInComposite' in edge and \
-           edge['recordMaskInComposite'] == 'yes':
-           value = max(composite_rank.index(edge['change size category']),value)
+    for edgeTuple in edgeTuples:
+        if 'change size category' in edgeTuple[2] and 'recordMaskInComposite' in edgeTuple[2] and \
+            edgeTuple[2]['recordMaskInComposite'] == 'yes':
+           value = max(composite_rank.index(edgeTuple[2]['change size category']),value)
     return composite_rank[value]
 
 def _checkOpOther(op):
@@ -391,10 +403,10 @@ def _checkOpOther(op):
             return True
     return False
 
-def otherEnhancementRule( edges):
+def otherEnhancementRule(scModel, edgeTuples):
     found = False
-    for edge in edges:
-        op = getOperationWithGroups( edge['op'] ,fake=True )
+    for edgeTuple in edgeTuples:
+        op = getOperationWithGroups( edgeTuple[2]['op'] ,fake=True )
         found = _checkOpOther(op)
         if not found and  op.groupedOperations is not None:
             for imbedded_op in op.groupedOperations:
@@ -404,14 +416,14 @@ def otherEnhancementRule( edges):
     return 'yes' if found else 'no'
 
 def _filterEdgesByOperatioName(edges,opName):
-    return [ edge for edge in edges if edge['op'] == opName]
+    return [ edgeTuple for edgeTuple in edges if edgeTuple[2]['op'] == opName]
 
 def _cleanEdges(scModel, edges):
     for edgeTuple in edges:
         node = scModel.getGraph().get_node(edgeTuple[1])
         if "pathanalysis" in node:
             node.pop("pathanalysis")
-    return [edgeTuple[2] for edgeTuple in edges]
+    return [edgeTuple for edgeTuple in edges]
 
 def setFinalNodeProperties(scModel, finalNode):
     _setupPropertyRules()
@@ -424,12 +436,12 @@ def setFinalNodeProperties(scModel, finalNode):
             filtered_edges = _filterEdgesByOperatioName(edges, prop.operation)
             if len(filtered_edges) == 0:
                 analysis[prop.name] = 'no'
-            elif prop.parameter is None or len([edge for edge in filtered_edges if 'arguments' in edge and prop.parameter in edge['arguments'] and edge['arguments'][prop.parameter] == prop.value]) > 0:
+            elif prop.parameter is None or len([edgeTuple for edgeTuple in filtered_edges if 'arguments' in edgeTuple[2] and prop.parameter in edgeTuple[2]['arguments'] and edgeTuple[2]['arguments'][prop.parameter] == prop.value]) > 0:
                 analysis[prop.name] = 'yes'
             else:
                 analysis[prop.name] = 'no'
         if prop.rule is not None:
-            analysis[prop.name] = project_property_rules[prop.name](edges)
+            analysis[prop.name] = project_property_rules[prop.name](scModel,edges)
     scModel.getGraph().update_node(finalNode, pathanalysis=analysis)
 
 def processProjectProperties(scModel, rule=None):

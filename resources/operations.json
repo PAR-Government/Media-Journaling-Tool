@@ -121,7 +121,36 @@
         "checkLengthSame",
         "checkSize"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "result" : {
+           "type": "list",
+            "values": [
+            "smooth motion",
+            "no motion"
+           ],
+          "description": "TBD."
+        },
+        "method" : {
+          "type": "list",
+          "values": [
+            "position",
+            "position,scale and rotation",
+            "perspective",
+            "subspace warp"
+          ],
+          "description": "TBD."
+        },
+        "boarders" : {
+          "type": "list",
+          "values": [
+            "stablize only",
+            "stablize crop",
+            "crop auto-scale",
+            "synthesize edges"
+          ],
+          "description": "TBD."
+        }
+      },
       "analysisOperations": [ ],
       "description": "Distort and/or crop video layers in order to remove camera shake",
       "includeInMask": false,
@@ -1732,11 +1761,64 @@
     },
     {
       "category": "Paste",
+      "name": "CopyPaste",
+      "mandatoryparameters": {
+        "Select Start Time": {
+          "type": "time",
+          "description": "Start time of the copied video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Number of Frames": {
+         "type": "int[0:1000000]",
+          "description": "Numbers of frames copy/pasted"
+        },
+         "Dest Paste Time": {
+          "Paste Start Time": "time",
+          "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthBigger"
+      ],
+      "optionalparameters": {},
+      "description": "Copy & Paste a series of frames within the same video",
+      "includeInMask": true,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Paste",
+      "name": "CutPaste",
+      "mandatoryparameters": {
+        "Select Start Time": {
+          "type": "time",
+          "description": "Start time of the cut video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Number of Frames": {
+         "type": "int[0:1000000]",
+          "description": "Numbers of frames cut/pasted"
+        },
+         "Dest Paste Time": {
+          "Paste Start Time": "time",
+          "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthBigger"
+      ],
+      "optionalparameters": {},
+      "description": "Cut & Paste a series of frames within the same video",
+      "includeInMask": true,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Paste",
       "name": "PasteOverlay",
       "mandatoryparameters": {},
       "rules": [
         "checkForDonor",
-        "checkSIFT",
         "checkLengthSame"
       ],
       "optionalparameters": {
@@ -1746,6 +1828,10 @@
         },
         "End Time": {
           "type": "time",
+          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "motion mapping": {
+          "type": "yesno",
           "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
@@ -1759,18 +1845,10 @@
       "category": "Paste",
       "name": "PasteImageSpliceToFrames",
       "mandatoryparameters": {
-        "donor rotated": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is rotated during the paste operation"
-        },
-        "donor resized": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is resized during the paste operation"
-        },
-        "donor cropped": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
-        },
+         "motion mapping": {
+           "type": "yesno",
+           "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+         },
          "subject": {
           "type": "list",
           "values": [
@@ -1787,7 +1865,6 @@
       },
       "rules": [
         "checkSize",
-        "checkSIFT",
         "checkForDonorWithRegion"
       ],
       "optionalparameters": {

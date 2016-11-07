@@ -13,7 +13,7 @@ import os
 from image_wrap import *
 from maskgen_loader import  MaskGenLoader
 
-imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
+imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
@@ -296,7 +296,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         return img
     else:
         try:
-            img = openImageFile(snapshotFileName)
+            img = openImageFile(snapshotFileName, isMask=isMask)
             return img
         except Exception as e:
             print e

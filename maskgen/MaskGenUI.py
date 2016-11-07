@@ -173,10 +173,10 @@ class MakeGenUI(Frame):
             errorlistDialog.wait(self)
             if not errorlistDialog.isok:
                 return
+        self.scModel.constructCompositesAndDonors()
         processProjectProperties(self.scModel)
-        self.scModel.constructComposites()
         self.getproperties()
-        self.scModel.removeComposites()
+        self.scModel.removeCompositesAndDonors()
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
@@ -195,10 +195,10 @@ class MakeGenUI(Frame):
             errorlistDialog.wait(self)
             if not errorlistDialog.isok:
                 return
+        self.scModel.constructCompositesAndDonors()
         processProjectProperties(self.scModel)
-        self.scModel.constructComposites()
         self.getproperties()
-        self.scModel.removeComposites()
+        self.scModel.removeCompositesAndDonors()
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
@@ -502,6 +502,7 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
+        #self.scModel.getProbeSet()
         im = self.scModel.constructComposite()
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im)

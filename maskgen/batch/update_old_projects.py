@@ -391,8 +391,7 @@ def perform_update(project,args, error_writer, semantics, tempdir, names):
     if args.renamedonors or args.all:
         rename_donorsandbase(scModel, os.path.split(project)[0], names)
     if args.composites or args.all:
-        scModel.constructComposites()
-        scModel.constructDonors()
+        scModel.constructCompositesAndDonors()
         processProjectProperties(scModel)
     if args.redomasks or args.all:
         rebuild_masks(scModel)

@@ -64,9 +64,7 @@
       "description": "Clone",
       "name": "clone",
       "type": "yesno",
-      "operation" :"PasteSampled",
-      "parameter" : "purpose",
-      "value": "clone",
+      "rule" : "cloneRule",
       "node" : true
     },
     {
@@ -81,7 +79,7 @@
       "name": "contrastenhancement",
       "type": "yesno",
        "_comment": " operation = IntensityContrast and effect is global",
-      "rule" : "contrastGlobalRule",
+       "rule" : "contrastGlobalRule",
        "node" : true
     },
     {

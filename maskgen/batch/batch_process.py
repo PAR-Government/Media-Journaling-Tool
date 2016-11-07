@@ -95,8 +95,7 @@ def generate_composites(projectsDir):
     projects = bulk_export.pick_projects(projectsDir)
     for prj in projects:
         sm = scenario_model.ImageProjectModel(prj)
-        sm.constructComposites()
-        sm.constructDonors()
+        sm.constructCompositesAndDonors()
         sm.save()
 
 
