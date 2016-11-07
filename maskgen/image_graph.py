@@ -8,9 +8,12 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
-igversion='0.3.1024'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024']
+igversion='0.3.1115'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115']
 
+
+def current_version():
+    return igversion
 
 def extract_archive(fname, dir):
     try:
@@ -96,8 +99,6 @@ def queue_nodes(g, nodes, node, func):
         queue_nodes(g, nodes, s, func)
         nodes.append(s)
     return nodes
-
-
 
 
 def remove_edges(g, nodes, node, func):
@@ -222,9 +223,6 @@ class ImageGraph:
     def get_project_type(self):
         return self.G.graph['projecttype'] if 'projecttype' in self.G.graph else None
 
-    def edges_iter(self, node):
-        return self.G.edges_iter(node)
-
     def get_pathname(self, name):
         return os.path.join(self.dir, self.G.node[name]['file'])
 
@@ -308,12 +306,13 @@ class ImageGraph:
                 self.remove_edge(d['start'], d['end'])
         self.U = []
 
-    def removeComposites(self):
+    def removeCompositesAndDonors(self):
         """
-          Remove a composite image associated with all nodes
+          Remove a composite image or a donor image associated with any node
         """
         for node in self.G.nodes():
             self.removeCompositeFromNode(node)
+            self.removeDonorFromNode(node)
 
     def removeCompositeFromNode(self, nodeName):
         """
@@ -337,7 +336,7 @@ class ImageGraph:
         if self.G.has_node(nodeName):
             fname = nodeName + '_donor_mask.png'
             if 'donormaskname' in self.G.node[nodeName]:
-                self.G.node[nodeName]['donormaskname'] = ''
+                self.G.node[nodeName].pop('donormaskname')
                 if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
                      os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
@@ -357,7 +356,7 @@ class ImageGraph:
                 compositeMask = convertToMask(image)
                 compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
-    def addDonorToNode(self, recipientNode, mask):
+    def addDonorToNode(self, recipientNode, baseNode, mask):
         """
         Add mask to leaf node and save mask to disk
         Input is a tuple (donor node name, base node name, Image mask)
@@ -365,6 +364,7 @@ class ImageGraph:
         if self.G.has_node(recipientNode):
             fname = recipientNode + '_donor_mask.png'
             self.G.node[recipientNode]['donormaskname'] = fname
+            self.G.node[recipientNode]['donorbase'] = baseNode
             try:
                 mask.save(os.path.abspath(os.path.join(self.dir, fname)))
             except IOError:
@@ -453,7 +453,7 @@ class ImageGraph:
     def get_composite_mask(self, name):
         if name in self.G.nodes() and 'compositemaskname' in self.G.node[name]:
             filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['compositemaskname']))
-            im = self.openImage(filename, mask=True)
+            im = self.openImage(filename, mask=False)
             return im, filename
         return None, None
 
@@ -573,7 +573,7 @@ class ImageGraph:
             return None
 
     def getVersion(self):
-        return igversion
+        return self.G.graph['igversion']  if 'igversion' in self.G.graph else igversion
 
     def _setup(self, pathname, projecttype):
         global igversion
@@ -581,7 +581,8 @@ class ImageGraph:
         if 'igversion' in self.G.graph:
             if self.G.graph['igversion'] not in igcompatibleversions:
                 raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
-        self.G.graph['igversion'] = igversion
+        else:
+            self.G.graph['igversion'] = igversion
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']
         elif self.G.has_node('idcount'):

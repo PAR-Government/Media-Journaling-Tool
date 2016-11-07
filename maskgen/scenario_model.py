@@ -1,11 +1,11 @@
-from image_graph import createGraph
+from image_graph import createGraph, current_version
 import shutil
 import exif
 import os
 import numpy as np
 import tool_set
 import video_tools
-from software_loader import Software, Operation
+from software_loader import Software
 import tempfile
 import plugins
 import graph_rules
@@ -88,6 +88,43 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
                                sortalg=lambda f: os.stat(os.path.join(dir, f)).st_mtime)
     return model, not existingProject
 
+
+class Probe:
+    edgeId = None
+    targetBaseNodeId = None
+    finalNodeId = None
+    targetMaskImage = None
+    targetMaskFileName = None
+    targetChangeSizeInPixels = 0
+    donorBaseNodeId = None
+    donorMaskImage = None
+    donorMaskFileName = None
+
+    """
+    @type edgeId: tuple
+    @type targetBaseNodeId: str
+    @type targetMaskFileName: str
+    @type targetMaskImage: ImageWrapper
+    @type targetChangeSizeInPixels: int
+    @type finalNodeId: str
+    @type donorBaseNodeId: str
+    @type donorMaskImage : ImageWrapper
+    @type donorMaskFileName: str
+
+    The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
+    The targetBaseNodeId is the id of the base node that supplies the base image for the target.
+    """
+
+    def __init__(self,edgeId,finalNodeId,targetBaseNodeId,targetMaskImage,targetMaskFileName,targetChangeSizeInPixels,donorBaseNodeId,donorMaskImage,donorMaskFileName):
+        self.edgeId = edgeId
+        self.finalNodeId = finalNodeId
+        self.targetBaseNodeId = targetBaseNodeId
+        self.targetMaskImage = targetMaskImage
+        self.targetMaskFileName = targetMaskFileName
+        self.donorBaseNodeId = donorBaseNodeId
+        self.donorMaskImage = donorMaskImage
+        self.donorMaskFileName = donorMaskFileName
+        self.targetChangeSizeInPixels = targetChangeSizeInPixels
 
 class MetaDiff:
     diffData = None
@@ -617,7 +654,14 @@ class ImageProjectModel:
         """
         donorEdges = [edge for edge in self.G.get_edges() if
                          self.G.get_edge(edge[0],edge[1])['op'] == 'Donor']
-        return [(edge, self._findBaseNodes(edge[0])) for edge in donorEdges]
+        baseSet = self._findBaseNodes(edge[0])
+        return [(edge, baseSet[0] if len(baseSet) > 0 else None) for edge in donorEdges]
+
+    def removeCompositesAndDonors(self):
+        """
+        Remove a composite image or a donor image associated with any node
+        """
+        self.G.removeCompositesAndDonors()
 
     def getTerminalAndBaseNodeTuples(self):
         """
@@ -665,11 +709,53 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def removeComposites(self):
+
+    def getProbeSet(self,skipComputation=False):
         """
-        Remove all compsoite images from project
+        Calls constructComposites() and constructDonors()
+        :return: list if Probe
+        @rtype: List[Probe]
         """
-        self.G.removeComposites()
+        if not skipComputation:
+            self.removeCompositesAndDonors()
+            self.constructCompositesAndDonors()
+        probes = list()
+        for node_id in self.G.get_nodes():
+            node = self.G.get_node(node_id)
+            if 'compositemaskname' in node and len(node['compositemaskname']) > 0:
+                composite_mask,composite_mask_filename = self.G.get_composite_mask(node_id)
+                edgeTuples = self._constructProbeSet(node_id)
+                for edgeTuple in edgeTuples:
+                    # donor mask
+                    donor_mask_image = None
+                    donor_mask_file_name = None
+                    donorbase = None
+                    edge_end_node = self.G.get_node(edgeTuple[0][1])
+                    if 'donormaskname' in edge_end_node:
+                        donor_mask_image, donor_mask_file_name = self.G.get_donor_mask(edgeTuple[0][1])
+                        donorbase = edge_end_node['donorbase']
+                    elif edgeTuple[2] is not None:
+                        donor_mask_file_name = os.path.abspath(os.path.join(self.get_dir(), edgeTuple[2]['maskname']))
+                        donor_mask_image = self.G.openImage(donor_mask_file_name, mask=False)
+                        donorbase = node['compositebase']
+                    target_mask,target_mask_filename = self._toProbeComposite(composite_mask,
+                                                                              edgeTuple[1],
+                                                                              node_id,
+                                                                              edgeTuple[0],
+                                                                              regenerate = not skipComputation)
+                    # no color in the composite mask...covered up
+                    if target_mask is None:
+                        continue
+                    probes.append(Probe(edgeTuple[0],
+                                  node_id,
+                                  node['compositebase'],
+                                  target_mask,
+                                  target_mask_filename,
+                                  tool_set.sizeOfChange(np.asarray(target_mask).astype('uint8')),
+                                  donorbase,
+                                  donor_mask_image,
+                                  donor_mask_file_name))
+        return probes
 
     def getComposite(self):
         """
@@ -683,7 +769,7 @@ class ImageProjectModel:
             # verify the node is a leaf node
             endPointTuples = self.getTerminalAndBaseNodeTuples()
             if nodeName in [x[0] for x in endPointTuples]:
-                self.constructComposites()
+                self.constructCompositesAndDonors()
                 mask, filename = self.G.get_composite_mask(nodeName)
             else:
                 return self.constructComposite()
@@ -742,6 +828,53 @@ class ImageProjectModel:
             return self._constructDonor((pred, edge_id[0]),donorMask)
         return mask
 
+    def _toProbeComposite(self, composite_mask, edge, node, edge_id,regenerate=False):
+        """
+        :param self:
+        :param composite_mask:
+        :param edge:
+        :param node:
+        :param edge_id:
+        :param regenerate:
+        :return:
+        @rtype: (ImageWrapper, str)
+        """
+        filename = os.path.join(self.get_dir(), 'composite_' + node + '_' + edge_id[0] + '_' + edge_id[1] + '.png')
+        if os.path.exists(filename) and not regenerate:
+            return tool_set.openImageFile(filename),filename
+        mask_array = np.asarray(composite_mask)
+        color = tuple([int(x) for x in edge['compositecolor'].split()])
+        result = np.ones(mask_array.shape).astype('uint8')*255
+        matches = np.all(mask_array == color, axis=2)
+        result[matches] = color
+        if not np.any(matches):
+            return None, None
+        im = ImageWrapper(result)
+        im.save(filename)
+        return im, filename
+
+
+    def _constructProbeSet(self, node):
+        """
+          Walks up down the tree from base nodes, assemblying composite masks"
+        """
+        donor_edge = None
+        select_edge = None
+        select_edge_parent = None
+        result = list()
+        for pred in self.G.predecessors(node):
+            edge = self.G.get_edge(pred, node)
+            if edge['op'] == 'Donor':
+                donor_edge = edge
+                continue
+            if 'compositecolor' in edge:
+                select_edge = edge
+                select_edge_parent = pred
+            result.extend(self._constructProbeSet(pred))
+        if select_edge is not None:
+            result.append(((select_edge_parent, node),select_edge,donor_edge))
+        return result
+
     def constructComposite(self):
         """
          Construct the composite mask for the selected node.
@@ -762,13 +895,14 @@ class ImageProjectModel:
                     return ImageWrapper(tool_set.toColor(composite[2], intensity_map=intensityMap))
         return None
 
-    def constructComposites(self):
+    def constructCompositesAndDonors(self):
         """
           Remove all prior constructed composites.
           Find all valid base node, leaf node tuples.
           Construct the composite make along the paths from base to lead node.
           Save the composite in the associated leaf nodes.
         """
+        self.constructDonors()
         composites = list()
         edgeMap = dict()
         level = IntObject()
@@ -803,12 +937,32 @@ class ImageProjectModel:
           Find all valid base node, leaf node tuples.
         """
         donors = list()
+        donor_nodes = set()
         endPointTuples = self.getDonorAndBaseNodeTuples()
         for endPointTuple in endPointTuples:
             donor_mask = self._constructDonor(endPointTuple[0],np.asarray(self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]))
             if donor_mask is not None:
-                self.G.addDonorToNode(endPointTuple[0][1], ImageWrapper(donor_mask.astype('uint8')))
+                self.G.addDonorToNode(endPointTuple[0][1],endPointTuple[1], ImageWrapper(donor_mask.astype('uint8')))
                 donors.append((endPointTuple[1], donor_mask))
+                donor_nodes.add(endPointTuple[0][1])
+        for edge_id in self.G.get_edges():
+            edge = self.G.get_edge(edge_id[0],edge_id[1])
+            if 'inputmaskname' in edge and \
+                            edge['inputmaskname'] is not None and \
+                            edge['recordMaskInComposite'] == 'yes' and \
+                            edge_id[1] not in donor_nodes:
+                donor_mask_file_name = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
+                if os.path.exists(donor_mask_file_name):
+                    if len(edge['inputmaskname']) == 0:
+                        donor_mask = self.G.get_image(edge_id[0])[0].to_mask().to_array()
+                    else:
+                        donor_mask = self.G.openImage(donor_mask_file_name, mask=False).to_mask().to_array()
+                    donor_mask = self._constructDonor(edge_id,donor_mask)
+                    baseNodes = self._findBaseNodes(edge_id[0])
+                    baseNode = baseNodes[0] if len(baseNodes) > 0 else None
+                    self.G.addDonorToNode(edge_id[1], baseNode, ImageWrapper(donor_mask.astype('uint8')))
+                    donors.append((edge_id, donor_mask))
+                    donor_nodes.add(edge_id[1])
         return donors
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
@@ -960,9 +1114,18 @@ class ImageProjectModel:
     def _openProject(self, projectFileName, projecttype):
         return createGraph(projectFileName, projecttype=projecttype)
 
+    def _autocorrect(self):
+        if self.G.getVersion() != current_version():
+            for frm, to in self.G.get_edges():
+                edge = self.G.get_edge(frm, to)
+                if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
+                    edge['recordMaskInComposite'] = 'yes'
+
+
     def _setup(self, projectFileName, graph=None,baseImageFileName=None):
         projecttype = None if baseImageFileName is None else tool_set.fileType(baseImageFileName)
         self.G = self._openProject(projectFileName,projecttype) if graph is None else graph
+        self._autocorrect()
         self.start = None
         self.end = None
         n = self.G.get_nodes()
