@@ -87,11 +87,15 @@ def runexif(args):
         print "Exiftool not installed"
         raise e
 
-def getexif(source):
+def getexif(source, args=None, separator=': '):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
+    command = [exifcommand]
+    if args is not None:
+        command.extend(args)
+    command.append(source)
     meta = {}
     try:
-        p = Popen([exifcommand, source], stdout=PIPE, stderr=PIPE)
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
         try:
             while True:
                 line = p.stdout.readline()
@@ -104,9 +108,10 @@ def getexif(source):
                         continue
                 if line is None or len(line) == 0:
                     break
-                pos = line.find(': ')
+                pos = line.find(separator)
                 if pos > 0:
-                    meta[line[0:pos].strip()] = line[pos + 2:].strip()
+                    offset = 1 if separator == '=' else 2
+                    meta[line[0:pos].strip()] = line[pos + offset:].strip()
         finally:
             p.stdout.close()
             p.stderr.close()
