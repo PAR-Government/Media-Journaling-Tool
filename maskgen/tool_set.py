@@ -18,8 +18,11 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'),("avi files", "*.avi")]
-
-suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif"]
+audiofiletypes =  [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"),("mpeg audio files", "*.mp3"),
+                    ("raw audio files", "*.raw"),
+                    ("Standard PC audio files", "*.wav"),("Windows Media  audio files", "*.wma")]
+suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
+               ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz"), ("mpeg files", "*.mp4")]
 
 
@@ -28,7 +31,7 @@ def getMaskFileTypes():
 
 
 def getFileTypes():
-    return imagefiletypes + videofiletypes
+    return imagefiletypes + videofiletypes + audiofiletypes
 
 
 def fileTypeChanged(file_one, file_two):
@@ -51,7 +54,12 @@ def fileType(fileName):
     suffix = '*' + fileName[pos:] if pos > 0 else ''
     if not os.path.exists(fileName):
         return None
-    return 'image' if (suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None) else 'video'
+    file_type = 'video'
+    if  suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None:
+        file_type = 'image'
+    elif suffix in [x[1] for x in audiofiletypes]:
+        file_type = 'audio'
+    return file_type
 
 
 def openFile(fileName):
