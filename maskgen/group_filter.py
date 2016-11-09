@@ -156,6 +156,8 @@ class GroupOperationsLoader(GroupFilterLoader):
         cat = dict()
         cat['Groups'] = list()
         newset = maskgenloader.get_key(self.getLoaderKey())
+        if newset is None:
+            return cat
         for group, content in newset.iteritems():
             if len(content) > 0:
                 first_op = getOperation(content[0])
