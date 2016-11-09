@@ -91,30 +91,33 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
 
 class Probe:
     edgeId = None
-    spliceBaseNodeId = None
+    targetBaseNodeId = None
     finalNodeId = None
-    spliceMaskImage = None
-    spliceMaskFileName = None
+    targetMaskImage = None
+    targetMaskFileName = None
     donorBaseNodeId = None
     donorMaskImage = None
     donorMaskFileName = None
     """
     @type edgeId: tuple
-    @type spliceBaseNodeId: str
-    @type spliceMaskFileName: str
-    @type spliceMaskImage: ImageWrapper
+    @type targetBaseNodeId: str
+    @type targetMaskFileName: str
+    @type targetMaskImage: ImageWrapper
     @type finalNodeId: str
     @type donorBaseNodeId: str
     @type donorMaskImage : ImageWrapper
     @type donorMaskFileName: str
+
+    The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
+    The targetBaseNodeId is the id of the base node that supplies the base image for the target.
     """
 
-    def __init__(self,edgeId,finalNodeId,spliceBaseNodeId,spliceMaskImage,spliceMaskFileName,donorBaseNode,donorMaskImage,donorMaskFileName):
+    def __init__(self,edgeId,finalNodeId,targetBaseNodeId,targetMaskImage,targetMaskFileName,donorBaseNode,donorMaskImage,donorMaskFileName):
         self.edgeId = edgeId
         self.finalNodeId = finalNodeId
-        self.spliceBaseNodeId = spliceBaseNodeId
-        self.spliceMaskImage = spliceMaskImage
-        self.spliceMaskFileName = spliceMaskFileName
+        self.targetBaseNodeId = targetBaseNodeId
+        self.targetMaskImage = targetMaskImage
+        self.targetMaskFileName = targetMaskFileName
         self.donorBaseNode = donorBaseNode
         self.donorMaskImage = donorMaskImage
         self.donorMaskFileName = donorMaskFileName
@@ -730,19 +733,19 @@ class ImageProjectModel:
                     elif edgeTuple[2] is not None:
                         donor_mask_file_name = os.path.abspath(os.path.join(self.get_dir(), edgeTuple[2]['maskname']))
                         donor_mask_image = self.G.openImage(donor_mask_file_name, mask=False)
-                    splice_mask,splice_mask_filename = self._toProbeComposite(composite_mask,
+                    target_mask,target_mask_filename = self._toProbeComposite(composite_mask,
                                                                               edgeTuple[1],
                                                                               node_id,
                                                                               edgeTuple[0],
                                                                               regenerate = not skipComputation)
                     # no color in the composite mask...covered up
-                    if splice_mask is None:
+                    if target_mask is None:
                         continue
                     probes.append(Probe(edgeTuple[0],
                                   node_id,
                                   node['compositebase'],
-                                  splice_mask,
-                                  splice_mask_filename,
+                                  target_mask,
+                                  target_mask_filename,
                                   donorbase,
                                   donor_mask_image,
                                   donor_mask_file_name))
