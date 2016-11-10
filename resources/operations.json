@@ -4,9 +4,9 @@
       "category": "Audio",
       "name": "AudioCopyAdd",
       "mandatoryparameters": {
-        "voice overlay" : {
+        "voice" : {
             "type": "yesno",
-             "description": "Is the sample a voice overlay."
+             "description": "Is the sample a voice."
         },
         "add type" : {
             "type": "list",
@@ -121,9 +121,9 @@
       "category": "Audio",
       "name": "AddAudioSample",
       "mandatoryparameters": {
-        "voice overlay" : {
+        "voice" : {
             "type": "yesno",
-             "description": "Is the sample a voice overlay."
+             "description": "Is the sample a voice."
         },
         "add type" : {
             "type": "list",
@@ -172,7 +172,7 @@
         },
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass"]
+          "values" : ["high pass", "low pass"],
           "source": "video",
           "description": "Type of filter"
         }
@@ -250,12 +250,12 @@
       "name": "AudioCompress",
       "mandatoryparameters": {
          "Attack": {
-          "type": "float",
+          "type": "float[0:100]",
           "source": "video",
           "description": "Length of time to react to reducing gain "
         },
          "Release": {
-          "type": "float",
+          "type": "float[0:100]",
           "source": "video",
           "description": "Length of time to return to normal gain reduction"
         },
@@ -265,7 +265,7 @@
           "description": "Decibel Range"
         },
         "Ratio": {
-          "type": "float",
+          "type": "float[0:100]",
           "source": "video",
           "description": "How much to curb the output, in decibels (2:1) for example 2.0"
         },
@@ -420,7 +420,36 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectWarpStabilize",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "result" : {
+           "type": "list",
+            "values": [
+            "smooth motion",
+            "no motion"
+           ],
+          "description": "Smooth Motion = smoothed at a variable rate, preserving camera motion. No Motion = All motion has been removed in order to make a shot appear as though it was attached to a surface."
+        },
+        "method" : {
+          "type": "list",
+          "values": [
+            "position",
+            "position,scale and rotation",
+            "perspective",
+            "subspace warp"
+          ],
+          "description": "Position = Stabilization is based on position data only and is the most basic way footage can be stabilized. Position, Scale and Rotation = Stabilization is based on manipulations to the frame that change the size, orientation, and location. Perspective  = Uses a type of stabilization in which the entire frame is effectively corner-pinned. If there are not enough areas to track, Warp Stabilizer chooses the previous type (Position, Scale, Rotation). Subspace Warp = Attempts to warp various parts of the frame differently to stabilize the entire frame. If there are not enough areas to track, Warp Stabilizer choose the previous type (Perspective)."
+        },
+        "boarders" : {
+          "type": "list",
+          "values": [
+            "stablize only",
+            "stablize crop",
+            "crop auto-scale",
+            "synthesize edges"
+          ],
+          "description": "Stabilize Only - Displays the entire frame, including the moving edges. Stabilize, Crop = Crops the moving edges without scaling. Stabilize, Crop, Auto-scale = Crops the moving edges and scales up the image to refill the frame. Stabilize, Synthesize Edges =  Fills in the blank space created by the moving edges with content from frames earlier and later in time."
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize"
@@ -581,24 +610,15 @@
       "name": "AntiForensicJPGCompression",
       "mandatoryparameters": {
         "QT File Name": {
-          "type": "qtfile",
+          "type": "fileset:plugins/JpgFromCamera/QuantizationTables",
           "description": "Quantization table file."
         }
       },
       "rules": [
         "check_eight_bit"
       ],
-      "optionalparameters": {
-        "Thumbnail QT File Name": {
-          "type": "qtfile",
-          "description": "Thumbnail quantization table file"
-        },
-        "Resize (if applicable)": {
-          "type": "yesno",
-          "description": "Attempt to parse image dimensions from QT filename and resize accordingly."
-        }
-      },
-      "description": "Use quantization tables from a particular camera to compress an image.",
+      "optionalparameters": {},
+      "description": "Use quantization tables and exif data from a particular camera to save an image as JPG.",
       "includeInMask": false,
       "transitions": [
         "image.image"
@@ -2037,10 +2057,14 @@
     {
       "category": "Paste",
       "name": "PasteOverlay",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "motion mapping": {
+           "type": "yesno",
+           "description": "Is motion mapping used?"
+         }
+      },
       "rules": [
         "checkForDonor",
-        "checkSIFT",
         "checkLengthSame"
       ],
       "optionalparameters": {
@@ -2063,30 +2087,22 @@
       "category": "Paste",
       "name": "PasteImageSpliceToFrames",
       "mandatoryparameters": {
-        "donor rotated": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is rotated during the paste operation"
-        },
-        "donor resized": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is resized during the paste operation"
-        },
-        "donor cropped": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
-        },
          "subject": {
-          "type": "list",
-          "values": [
-            "people",
-            "face",
-            "natural object",
-            "man-made object",
-            "large man-made object",
-            "landscape",
-            "other"
-          ],
-          "description": "Subject catgeory pasted to image"
+           "type": "list",
+           "values": [
+             "people",
+             "face",
+             "natural object",
+             "man-made object",
+             "large man-made object",
+             "landscape",
+             "other"
+           ],
+           "description": "Subject catgeory pasted to image"
+         },
+        "motion mapping": {
+          "type": "yesno",
+          "description": "Is motion mapping used?"
         }
       },
       "rules": [
@@ -2104,8 +2120,62 @@
           "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [],
       "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
+      "includeInMask": true,
+      "transitions": [
+        "video.video"
+      ]
+    },
+      {
+      "category": "Paste",
+      "name": "CopyPaste",
+      "mandatoryparameters": {
+        "Select Start Time": {
+          "type": "time",
+          "description": "Start time of the copied video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Number of Frames": {
+         "type": "int[0:1000000]",
+          "description": "Numbers of frames copy/pasted"
+        },
+         "Dest Paste Time": {
+          "Paste Start Time": "time",
+          "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthBigger"
+      ],
+      "optionalparameters": {},
+      "description": "Copy & Paste a series of frames within the same video",
+      "includeInMask": true,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Paste",
+      "name": "CutPaste",
+      "mandatoryparameters": {
+        "Select Start Time": {
+          "type": "time",
+          "description": "Start time of the cut video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Number of Frames": {
+         "type": "int[0:1000000]",
+          "description": "Numbers of frames cut/pasted"
+        },
+         "Dest Paste Time": {
+          "Paste Start Time": "time",
+          "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthBigger"
+      ],
+      "optionalparameters": {},
+      "description": "Cut & Paste a series of frames within the same video",
       "includeInMask": true,
       "transitions": [
         "video.video"

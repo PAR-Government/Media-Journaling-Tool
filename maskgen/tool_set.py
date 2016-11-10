@@ -12,6 +12,7 @@ import imghdr
 import os
 from image_wrap import *
 from maskgen_loader import  MaskGenLoader
+from subprocess import Popen, PIPE
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
@@ -23,7 +24,7 @@ audiofiletypes =  [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"),
                     ("Standard PC audio files", "*.wav"),("Windows Media  audio files", "*.wma")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
                ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw"]
-maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz"), ("mpeg files", "*.mp4")]
+maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
 def getMaskFileTypes():
@@ -251,6 +252,30 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
     return argValue
 
 
+def _processFileMeta(stream):
+    streams = []
+    while True:
+        line = stream.readline()
+        if line is None or len(line) == 0:
+            break
+        if 'Stream' in line:
+            if 'Audio' in line:
+                streams.append('audio')
+            if 'Video' in line:
+                streams.append('video')
+    return streams
+
+def getFileMeta(file):
+    ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
+    p = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE)
+    try:
+        meta = _processFileMeta(p.stderr)
+        meta.extend( _processFileMeta(p.stdout))
+    finally:
+        p.stdout.close()
+        p.stderr.close()
+    return meta
+
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
@@ -268,10 +293,15 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                                                       'm4v']:
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
+    if fileType(filename) == 'audio':
+        return openImage('./icons/audio.png')
+
     if videoFrameTime is not None or \
         (snapshotFileName != filename and \
          (not os.path.exists(snapshotFileName) or \
             os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
+        if not ('video' in getFileMeta(filename)):
+            return openImage('./icons/audio.png')
         cap = cv2.VideoCapture(filename)
         bestSoFar = None
         bestVariance = -1

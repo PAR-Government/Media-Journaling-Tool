@@ -442,7 +442,7 @@ class VideoVideoLinkTool(LinkTool):
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
             op = getOperationWithGroups(edge['op'])
-            if op is not None :#and 'checkSIFT' in op.rules:
+            if op is not None and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
                     os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
                     scModel.G.dir,
