@@ -1,0 +1,57 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "ericrobertson",
+    "name": "sample",
+    "organization": "PAR"
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "tests/images",
+      "picklist": "imageset",
+      "id": "0"
+    },
+    {
+      "op_type": "ImageSelection",
+      "image_directory": "tests/images",
+      "picklist": "imageset",
+      "id": "1"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SelectRegion",
+      "id": "2",
+      "arguments": {}
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PasteSplice",
+      "id": "3",
+      "arguments": {
+        "inputimagename" : {
+          "type" : "imagefile",
+          "source" :"2"
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "donor" : false,
+      "source": 0,
+      "target": 3
+    },
+    {
+      "donor" : false,
+      "source": 1,
+      "target": 2
+    },
+    {
+      "donor" : true,
+      "source": 2,
+      "target": 3
+    }
+  ],
+  "multigraph": false
+}

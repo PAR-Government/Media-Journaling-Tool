@@ -1,14 +1,15 @@
 import json
 import networkx as nx
+import argparse
+import sys
 from networkx.readwrite import json_graph
 import os
-from maskgen.software_loader import *
+from maskgen import software_loader
 from maskgen import scenario_model
-import maskgen.tool_set
-import maskgen.group_operations
-import maskgen.plugins
 import random
+from maskgen import tool_set
 import shutil
+from maskgen  import plugins
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
@@ -16,9 +17,8 @@ def loadJSONGraph(pathname):
             G =  json_graph.node_link_graph(json.load(f, encoding='utf-8'), multigraph=False, directed=True)
         except  ValueError:
             G = json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
-        BatchProject(pathname, graph=G)
-
-def getBaseNodes(local_state):
+        return BatchProject(G)
+    return None
 
 def pickArg(param, local_state):
     if param['type'] == 'list':
@@ -62,6 +62,9 @@ def executeParamSpec(specification, global_state, local_state):
     if specification['type'] == 'donor':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)
+    if specification['type'] == 'imagefile':
+        source = getNodeState(specification['source'], local_state)['node']
+        return local_state['model'].getGraph().get_image(source)[1]
     return None
 
 def pickArgs(local_state, global_state, argument_specs, operation):
@@ -87,8 +90,9 @@ def pickArgs(local_state, global_state, argument_specs, operation):
             v = pickArg(param,local_state)
             if v is not None:
                 args[param] = v
+    return args
 
-def getNodeState(local_state,node_name):
+def getNodeState(node_name,local_state):
     """
 
     :param local_state:
@@ -105,140 +109,146 @@ def getNodeState(local_state,node_name):
         local_state[node_name] = my_state
     return my_state
 
+
+def pickImage(node, global_state={}):
+    if node['picklist'] not in global_state:
+        if not os.path.exists(node['image_directory']):
+            raise ValueError("ImageSelection missing valid image_directory")
+        listing = os.listdir(node['image_directory'])
+        global_state[node['picklist']] = listing
+        if os.path.exists(node['picklist'] + '.txt'):
+           with open(node['picklist'] + '.txt', 'r') as fp:
+              for line in fp.readlines():
+                  line = line.strip()
+                  if line in listing:
+                      listing.remove(line)
+    else:
+        listing = global_state[node['picklist']]
+    pick = random.choice(listing)
+    listing.remove(pick)
+    with open(node['picklist'] + '.txt', 'a') as fp:
+        fp.write(pick + '\n')
+    return os.path.join(node['image_directory'], pick)
+
 class BatchOperation:
 
-    def execute(self,graph, node, local_state={},global_state={}):
+    def execute(self,graph, node_name, node, connect_to_node_name,local_state={},global_state={}):
         """
         :param graph:
+        :param node_name:
         :param node:
+        :param connect_to_node_name:
         :param local_state:
         :param global_state:
         :return:
         @type graph: nx.DiGraph
+        @type node_name : str
         @type node: Dict
+        @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: maskgen.scenario_model.ImageProjectModel
+        @rtype: scenario_model.ImageProjectModel
         """
         pass
 
 class ImageSelectionOperation(BatchOperation):
 
-    def execute(self, graph, node, local_state={},global_state={}):
+    def execute(self, graph, node_name, node, connect_to_node_name, local_state={},global_state={}):
         """
         Add a image to the graph
         :param graph:
+        :param node_name:
         :param node:
+        :param connect_to_node_name:
         :param local_state:
         :param global_state:
         :return:
         @type graph: nx.DiGraph
+        @type node_name : str
         @type node: Dict
+        @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: maskgen.scenario_model.ImageProjectModel
+        @rtype: scenario_model.ImageProjectModel
         """
-        pick = self._pickImage(node,local_state =local_state)
-        getNodeState(node,local_state)['node'] = local_state['model'].addImage(pick)
+        pick = pickImage(node,global_state =global_state)
+        getNodeState(node_name,local_state)['node'] = local_state['model'].addImage(pick)
         return local_state['model']
 
-    def _pickImage(self,node, local_state={}):
-        my_state = getNodeState(local_state, node)
-        if 'listing' not in my_state:
-            if not os.path.exists(node['image_directory']):
-                raise ValueError("ImageSelection missing valid image_directory")
-            listing = os.listdir(node['image_directory'])
-            my_state['listing'] = listing
-            with open('picked.txt', 'r') as fp:
-                for line in fp.readlines():
-                    line = line.strip()
-                    if line in listing:
-                        listing.remove(line)
-        pick = random.choice(listing)
-        listing.pop(pick)
-        with open('picked.txt','a') as fp:
-            fp.write(pick + '\n')
-        return os.path.join(node['image_directory'],pick)
 
 class BaseSelectionOperation(BatchOperation):
 
-    def execute(self, graph, node, local_state={},global_state={}):
+    def execute(self, graph,node_name, node, connect_to_node_name, local_state={},global_state={}):
         """
         Add a image to the graph
         :param graph:
+        :param node_name:
         :param node:
+        :param connect_to_node_name:
         :param local_state:
         :param global_state:
         :return:
         @type graph: nx.DiGraph
+        @type node_name : str
         @type node: Dict
+        @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: maskgen.scenario_model.ImageProjectModel
+        @rtype: scenario_model.ImageProjectModel
         """
-        pick = self._pickImage(node,local_state =local_state)
+        pick = pickImage( node,global_state =global_state)
         pick_file = os.path.split(pick)[1]
         name = pick_file[0:pick_file.rfind('.')]
         dir = os.path.join(global_state['projects'],name)
         os.mkdir(dir)
         shutil.copy2(pick, os.path.join(dir,pick_file))
-        local_state['model'] = maskgen.scenario_model.createProject(dir)
+        local_state['model'] = scenario_model.createProject(dir,suffixes=tool_set.suffixes)[0]
+        getNodeState(node_name, local_state)['node'] = local_state['model'].getNodeNames()[0]
         return local_state['model']
 
 class PluginOperation(BatchOperation):
 
-    def execute(self, graph, node, local_state={},global_state={}):
+    def execute(self, graph, node_name, node,connect_to_node_name, local_state={},global_state={}):
         """
         Add a node through an operation.
         :param graph:
+        :param node_name:
         :param node:
+        :param connect_to_node_name:
         :param local_state:
         :param global_state:
         :return:
         @type graph: nx.DiGraph
+        @type node_name : str
         @type node: Dict
+        @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: maskgen.scenario_model.ImageProjectModel
+        @rtype: scenario_model.ImageProjectModel
         """
-        my_state = getNodeState(local_state, node)
-        for predecessor in graph.predecessors(node):
-            predecessor_state= local_state[predecessor]
-            pred_node = graph.node[predecessor]
-            local_state['model'].selectImage(predecessor_state['node'])
-            im, filename = local_state['model'].currentImage()
-            plugin = pred_node['plugin']
-            local_state['model'].imageFromPlugin(plugin, im, filename,**pred_node['arguments'])
+        my_state = getNodeState(node_name,local_state)
+
+        predecessor_state=getNodeState(connect_to_node_name, local_state)
+        local_state['model'].selectImage(predecessor_state['node'])
+        im, filename = local_state['model'].currentImage()
+        plugin_name = node['plugin']
+        plugin_op = plugins.getOperation(plugin_name)
+        if plugin_op is None:
+            raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
+        op = software_loader.getOperation(plugin_op[0],fake=True)
+        args = pickArgs(local_state, global_state, node['arguments'], op)
+        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
+        my_state['node'] = pairs[0][1]
+        for predecessor in graph.predecessors(node_name):
+            if predecessor == connect_to_node_name:
+                continue
+            predecessor_state = getNodeState(predecessor, local_state)
+            local_state['model'].selectImage(my_state['node'])
+            local_state['model'].connect(predecessor_state['node'],sendNotifications=False)
         return local_state['model']
 
-
-class MergeOperation(BatchOperation):
-
-    def execute(self, graph, node, local_state={}, global_state={}):
-        """
-        Add a node through an operation.
-        :param graph:
-        :param node:
-        :param local_state:
-        :param global_state:
-        :return:
-        @type graph: nx.DiGraph
-        @type node: Dict
-        @type global_state: Dict
-        @type global_state: Dict
-        @rtype: maskgen.scenario_model.ImageProjectModel
-        """
-        my_state = getNodeState(local_state, node)
-        for predecessor in graph.predecessors(node):
-            predecessor_state = local_state[predecessor]
-            pred_node = graph.node[predecessor]
-            local_state['model'].selectImage(predecessor_state['node'])
-            im, filename = local_state['model'].currentImage()
-            plugin = pred_node['plugin']
-            local_state['model'].imageFromPlugin(plugin, im, filename, **pred_node['arguments'])
-        return local_state['model']
-
-batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation()}
+batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
+                    'PluginOperation' : PluginOperation()}
 
 def getOperationGivenDescriptor(descriptor):
     """
@@ -251,24 +261,29 @@ def getOperationGivenDescriptor(descriptor):
 
 class BatchProject:
     G = nx.DiGraph(name="Empty")
-    dir = '.'
 
-    def save(self):
-        filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
-        with open(filename, 'w') as f:
-            json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
+    def __init__(self,G):
+        self.G = G
 
     def executeOnce(self, global_state=dict()):
         local_state = {}
         base_node = self._findBase()
-        image_model = self._execute_node(base_node,local_state, global_state)
+        self._execute_node(base_node, None, local_state, global_state)
         queue = [top for top in self._findTops() if top != base_node]
-        local_state = local_state['model'] = image_model
+        completed = [base_node]
         while len(queue) > 0:
             op_node_name = queue.pop(0)
-            self._execute_node(op_node_name, local_state, global_state)
-            queue.append(self.G.successors(op_node_name))
-        image_model.export(global_state['archives'])
+            predecessors = list(self.G.predecessors(op_node_name))
+            # skip if a predecessor is missing
+            if len([pred for pred in predecessors if pred not in completed]) > 0:
+                continue
+            connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name) if
+                not self.G.edge[predecessor][op_node_name]['donor']]
+            connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
+            self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
+            completed.append(op_node_name)
+            queue.extend(self.G.successors(op_node_name))
+        local_state['model'].export(global_state['archives'])
 
 
     def validate(self):
@@ -311,14 +326,39 @@ class BatchProject:
                 return top
         return None
 
-    def _execute_node(self, node_name,local_state, global_state):
+    def _execute_node(self, node_name,connect_to_node_name,local_state, global_state):
         """
         :param local_state:
         :param global_state:
         :return:
         @rtype: maskgen.scenario_model.ImageProjectModel
         """
-        return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G, node_name, local_state = local_state, global_state=global_state)
+        return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G, node_name,self.G.node[node_name],connect_to_node_name, local_state = local_state, global_state=global_state)
 
 
+def getBatch(jsonFile):
+    """
+    :param jsonFile:
+    :return:
+    @return BatchProject
+    """
+    software_loader.loadOperations("operations.json")
+    software_loader.loadSoftware("software.csv")
+    software_loader.loadProjectProperties("project_properties.json")
+    return  loadJSONGraph(jsonFile)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--json',             required=True,         help='JSON File')
+    parser.add_argument('--results', required=True, help='dir')
+    args = parser.parse_args()
+    if not os.path.exists(args.results) or not os.path.isdir(args.results):
+        print 'invalid directory for results: ' + args.results
+        return
+    batchProject =getBatch(args,json)
+    globalState =  {'projects' : args.results}
+    batchProject.executeOnce(globalState)
+
+if __name__ == '__main__':
+    main()
 

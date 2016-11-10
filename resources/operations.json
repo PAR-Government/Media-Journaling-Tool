@@ -339,7 +339,8 @@
         }
       },
       "rules": [
-        "checkSize",
+        "checkSizeAndExif",
+        "rotationCheck",
         "checkForDonor",
         "check_eight_bit"
       ],

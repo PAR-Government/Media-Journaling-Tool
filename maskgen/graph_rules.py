@@ -163,10 +163,10 @@ def rotationCheck(graph, frm, to):
     args = edge['arguments'] if 'arguments' in edge  else {}
     frm_img = graph.get_image(frm)[0]
     to_img = graph.get_image(to)[0]
-    if 'Image Rotated' not in args:
+    if 'Image Rotated' not in args or 'rotate' not in args:
         args['Image Rotated'] = ('yes' if frm_img.size[0] != frm_img.size[1] else 'no')
         return
-    rotated = args['Image Rotated'] == 'yes'
+    rotated = (args['Image Rotated'] if 'Image Rotated' in args else args['rotate']) == 'yes'
     if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
         return 'Image was not rotated as stated by the parameter Image Rotated'
     elif not rotated and frm_img.size != to_img.size:
