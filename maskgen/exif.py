@@ -110,8 +110,7 @@ def getexif(source, args=None, separator=': '):
                     break
                 pos = line.find(separator)
                 if pos > 0:
-                    offset = 1 if separator == '=' else 2
-                    meta[line[0:pos].strip()] = line[pos + offset:].strip()
+                    meta[line.split(separator)[0].strip()] = separator.join(line.split(separator)[1:]).strip()
         finally:
             p.stdout.close()
             p.stderr.close()
