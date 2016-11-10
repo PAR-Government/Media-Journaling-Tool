@@ -700,7 +700,7 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(imageResize(self.im, (250, 250)))
+        self.photo = ImageTk.PhotoImage(imageResize(self.im, (250, 250)).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.c.create_image(128, 128, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
