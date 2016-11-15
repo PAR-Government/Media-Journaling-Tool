@@ -4,8 +4,10 @@ Bulk Image Journal Processing
 import argparse
 import sys
 import itertools
+import rawpy
 from maskgen.software_loader import *
 from maskgen import scenario_model
+from maskgen import graph_rules
 import maskgen.tool_set
 import bulk_export
 import maskgen.group_operations
@@ -89,7 +91,7 @@ def create_image_list(fileList):
     :return: list of image files in fileList
     """
     ext = [x[1:] for x in maskgen.tool_set.suffixes ]
-    return [i for i in os.listdir(fileList) if len ([e for e in ext if i.endswith(e)])>0]
+    return [i for i in os.listdir(fileList) if len ([e for e in ext if i.lower().endswith(e)])>0]
 
 def generate_composites(projectsDir):
     projects = bulk_export.pick_projects(projectsDir)
@@ -99,8 +101,8 @@ def generate_composites(projectsDir):
         sm.save()
 
 
-def process(sourceDir, endDir, projectDir, op, software, version, opDescr, inputMaskPath, additional,
-            prjDescr, techSummary, username):
+def process(sourceDir, endDir, projectDir, op, software, version, opDescr, inputMaskPath, arguments,
+            props):
     """
     Perform the bulk journaling. If no endDir is specified, it is assumed that the user wishes
     to add on to existing projects in projectDir.
@@ -112,10 +114,8 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
     :param version: Version of manipulation software
     :param descr: Description of manipulation. Optional
     :param inputMaskPath: Directory of input masks. Optional.
-    :param additional: Dictionary of additional args ({rotation:90,...})
-    :param prjDescr: project description (str)
-    :param techSummary: project's technical summary (str)
-    :param username: project username
+    :param arguments: Dictionary of additional args ({rotation:90,...})
+    :param props: Dictionary containing project properties
     :return: None
     """
 
@@ -123,9 +123,11 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
 
     # Decide what to do with input (create new or add)
     if endDir:
+        new = True
         endingImages = create_image_list(endDir)
         print 'Creating new projects...'
     else:
+        new = False
         endingImages = None
         print 'Adding to existing projects...'
 
@@ -154,14 +156,12 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
         if new:
             sm.addImage(os.path.join(sourceDir, sImg))
             lastNodeName = sImgName
-            sm.setProjectData('projectdescription', prjDescr)
-            sm.setProjectData('technicalsummary', techSummary)
-            if username:
-                sm.setProjectData('username', username)
+            for prop, val in props.iteritems():
+                sm.setProjectData(prop, val)
             eImg = os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
         else:
             eImg = os.path.join(sourceDir, sImg)
-            print sm.G.get_nodes()
+            #print sm.G.get_nodes()
             lastNodes = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0]
             lastNodeName = lastNodes[-1]
 
@@ -169,9 +169,9 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
 
         # prepare details for new link
         softwareDetails = Software(software, version)
-        if additional:
+        if arguments:
             opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,
-                                                    arguments=additional, automated='yes')
+                                                    arguments=arguments, automated='yes')
         else:
             opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
 
@@ -184,11 +184,11 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
                         sendNotifications=False, position=position)
         sm.save()
 
-        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
+        print 'Operation ' + op + ' complete on project (' + str(processNo) + '/' + str(total) + '): ' + project
         processNo += 1
 
 
-def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username):
+def process_plugin(sourceDir, projects, plugin, props, arguments):
     """
     Perform a plugin operation on all projects in directory
     :param projects: directory of projects
@@ -209,10 +209,8 @@ def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username)
             sImgName = ''.join(i.split('.')[:-1])
             project = find_json_path(sImgName, projects)
             sm = maskgen.scenario_model.ImageProjectModel(project)
-            sm.setProjectData('projectdescription', prjDescr)
-            sm.setProjectData('technicalsummary', techSummary)
-            if username:
-                sm.setProjectData('username', username)
+            for prop, val in props.iteritems():
+                sm.setProjectData(prop, val)
             sm.addImage(os.path.join(sourceDir, i))
             lastNode = sImgName
         else:
@@ -220,9 +218,9 @@ def process_plugin(sourceDir, projects, plugin, prjDescr, techSummary, username)
             lastNode = sm.G.get_edges()[-1][-1]
         sm.selectImage(lastNode)
         im, filename = sm.currentImage()
-        sm.imageFromPlugin(plugin, im, filename)
+        sm.imageFromPlugin(plugin, im, filename, **arguments)
         sm.save()
-        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + i
+        print 'Plugin operation complete on project (' + str(processNo) + '/' + str(total) + '): ' + i
         processNo += 1
 
 def process_jpg(projects):
@@ -240,8 +238,75 @@ def process_jpg(projects):
         op = maskgen.group_operations.CopyCompressionAndExifGroupOperation(sm)
         op.performOp()
         sm.save()
-        print 'Completed project (' + str(processNo) + '/' + str(total) + '): ' + project
+        print 'Completed JPG operation on project (' + str(processNo) + '/' + str(total) + '): ' + project
         processNo += 1
+
+
+def validate_export(projects):
+    """
+    Save error report, project properties, composites, and donors
+    :param projects: directory of projects
+    :return: None
+    """
+    projectList = bulk_export.pick_projects(projects)
+    total = len(projectList)
+    processNo = 1
+    for project in projectList:
+        sm = maskgen.scenario_model.loadProject(project)
+        errorList = sm.validate()
+        graph_rules.processProjectProperties(sm)
+        sm.constructComposites()
+        sm.constructDonors()
+        sm.save()
+        if errorList:
+            projectName = os.path.splitext(os.path.basename(project))[0]
+            with open(os.path.join(projects, 'errors-' + projectName + '.csv'), 'w') as csvFile:
+                writer = csv.writer(csvFile)
+                for error in errorList:
+                    writer.writerow(error)
+        print 'Completed validation on (' + str(processNo) + '/' + str(total) + '): ' + project
+        processNo += 1
+
+def parse_properties(sourceDir, endDir, plugin, **kwargs):
+    """
+    Parse properties into dictionary
+    :param kwargs: individual properties and values (e.g. technicalsummary='This is an example')
+    :return: dictionary of properties
+    """
+    properties = {}
+    if (sourceDir and endDir) or (sourceDir and plugin):
+        # projects will be new, so need to check properties
+        for prop, val in kwargs.iteritems():
+            if val is not None:
+                if prop == 'manipulationcategory':
+                    if val == '2' or val.lower() == '2-unit':
+                        val = '2-Unit'
+                    elif val == '4' or val.lower() == '4-unit':
+                        val = '4-Unit'
+                    elif val == '6' or val.lower() == '6-unit':
+                        val = '6-Unit'
+                    elif val.lower == 'provenance':
+                        val = 'Provenance'
+                    else:
+                        sys.exit('Invalid manipulation category: ' + val + ' (Must be \'2-unit\' (\'2\'), \'4-unit\' (\'4\'), \'6-unit\' (\'6\'), or \'provenance\'')
+
+                # only yesno-type properties will be Boolean T/F
+                elif val is False:
+                    val = 'no'
+                elif val is True:
+                    val = 'yes'
+
+            properties[prop] = val
+
+        # verify that all project-level properties are set
+        for p in getProjectProperties():
+            if p.node is False:
+                if p.name not in properties:
+                    sys.exit('Error: manipulationCategory, username, organization, projectDescription, and technicalSummary arguments are '
+                             'required for new projects. Image reformatting, semantic restaging, semantic repurposing, and semantic event fabrication default to \'no\'. '
+                             'Include respective argument in command line sequence to change to \'yes\'')
+    return properties
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -254,18 +319,31 @@ def main():
     parser.add_argument('--softwareVersion',      default=None,          help='Software Version')
     parser.add_argument('--description',          default=None,          help='Description, in quotes')
     parser.add_argument('--inputmaskpath',        default=None,          help='Directory of input masks')
-    parser.add_argument('--additional', nargs='+',default={},            help='additional operation arguments, e.g. rotation')
+    parser.add_argument('--arguments', nargs='+', default={},            help='Additional operation/plugin arguments e.g. rotation 60 ')
     parser.add_argument('--continueWithWarning',  action='store_true',   help='Tag to ignore version warning')
     parser.add_argument('--jpg',                  action='store_true',   help='Create JPEG and copy metadata from base')
     parser.add_argument('--projectDescription',   default=None,          help='Description to set to all projects')
     parser.add_argument('--technicalSummary',     default=None,          help='Technical Summary to set to all projects')
     parser.add_argument('--username',             default=None,          help='Username for projects')
+    parser.add_argument('--organization',         default=None,          help='User\'s Organization')
+    parser.add_argument('--manipulationCategory', default=None, type=str,help='Manipulation category. Can be 2, 4, 6, or provenance')
+    parser.add_argument('--semanticRestaging',    action='store_true',   help='Include this argument if this project will include semantic restaging')
+    parser.add_argument('--semanticRepurposing',  action='store_true',   help='Include this argument if this project will include semantic repurposing')
+    parser.add_argument('--semanticEventFabrication',action='store_true',help='Include this argument if this project will include semantic event fabrication')
+    parser.add_argument('--imageReformatting',    action='store_true',   help='Include this argument if this project will include image reformatting.')
     parser.add_argument('--s3',                   default=None,          help='S3 Bucket/Path to upload projects to')
+
     args = parser.parse_args()
 
     ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
     loadProjectProperties("project_properties.json")
+
+    props = parse_properties(args.sourceDir, args.endDir, args.plugin, projectdescription=args.projectDescription,
+                             technicalsummary=args.technicalSummary, username=args.username, organization=args.organization,
+                             manipulationcategory=args.manipulationCategory, semanticrestaging=args.semanticRestaging,
+                             semanticrepurposing=args.semanticRepurposing, semanticrefabrication=args.semanticEventFabrication,
+                             imagereformat=args.imageReformatting)
 
     # perform the specified operation
     if args.plugin:
@@ -274,17 +352,17 @@ def main():
         additionalArgs = {}
         if opTuple is not None:
             op = getOperation(opTuple[0])
-            additionalArgs = check_additional_args(args.additional, op)
+            additionalArgs = check_additional_args(args.arguments, op)
 
         print 'Performing plugin operation ' + args.plugin + '...'
-        process_plugin(args.sourceDir, args.projects, args.plugin, args.projectDescription,
-                       args.technicalSummary, args.username,additionalArgs)
+        process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
     elif args.sourceDir:
         check_ops(ops, soft, args)
-        additionalArgs = check_additional_args(args.additional, getOperation(args.op))
+        additionalArgs = check_additional_args(args.arguments, getOperation(args.op))
+        print 'Adding operation '+ args.op + '...'
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
                 args.softwareVersion, args.description, args.inputmaskpath, additionalArgs,
-                args.projectDescription, args.technicalSummary, args.username)
+                props)
     if args.jpg:
         print 'Performing JPEG save & copying metadata from base...'
         process_jpg(args.projects)
@@ -295,6 +373,9 @@ def main():
     # bulk export to s3
     if args.s3:
         bulk_export.upload_projects(args.s3, args.projects)
+
+    # validate, export construct composites/donor images/project summary
+    validate_export(args.projects)
 
 if __name__ == '__main__':
     main()
