@@ -580,7 +580,7 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
        :param transform_matrix:
        :return:
        """
-    newMask = np.zeros(compositeMask.shape)
+    newMask = np.zeros(expectedDims)
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue

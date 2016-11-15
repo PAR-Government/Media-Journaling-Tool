@@ -8,7 +8,7 @@ from maskgen import tool_set,image_wrap
 def transform(img,source,target,**kwargs):
   img_array = numpy.asarray(img)
 
-  mask = image_wrap.ImageWrapper(tool_set.openImageFile(kwargs['inputmaskname'])).to_mask().invert() \
+  mask = tool_set.openImageFile(kwargs['inputmaskname']).to_mask().invert() \
      if 'inputmaskname' in kwargs else image_wrap.ImageWrapper(numpy.ones(img_array.shape)*255)
 
   kernalsize = tool_set.toIntTuple(kwargs['kernelsize']) if 'kernelsize' in kwargs else (5,5)
