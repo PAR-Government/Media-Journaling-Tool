@@ -609,7 +609,7 @@
       "category": "AntiForensicCompression",
       "name": "AntiForensicJPGCompression",
       "mandatoryparameters": {
-        "QT File Name": {
+        "qtfile": {
           "type": "fileset:plugins/JpgFromCamera/QuantizationTables",
           "description": "Quantization table file."
         }
