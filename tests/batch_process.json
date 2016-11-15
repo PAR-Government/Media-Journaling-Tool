@@ -34,6 +34,19 @@
           "source" :"2"
         }
       }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "GaussianBlue",
+      "id": "4",
+      "arguments": {
+        "inputmaskname" : {
+          "type" : "mask",
+          "source" :"1",
+          "target": "3"
+
+        }
+      }
     }
   ],
   "links": [
@@ -51,6 +64,11 @@
       "donor" : true,
       "source": 2,
       "target": 3
+    },
+     {
+      "donor" : false,
+      "source": 3,
+      "target": 4
     }
   ],
   "multigraph": false

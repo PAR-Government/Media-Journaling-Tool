@@ -14,12 +14,6 @@ from PIL import Image
 from group_filter import getOperationWithGroups
 
 
-def toIntTuple(tupleString):
-    import re
-    if tupleString is not None and tupleString.find(',') > 0:
-        return tuple([int(re.sub('[()]', '', x)) for x in tupleString.split(',')])
-    return (0, 0)
-
 def formatStat(val):
    if type(val) == float:
       return "{:5.3f}".format(val)
@@ -1572,8 +1566,8 @@ class ImageProjectModel:
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
-        sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
-        location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
+        sizeChange = tool_set.toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+        location = tool_set.toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
         rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
         args = edge['arguments'] if 'arguments' in edge else {}
         rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
@@ -1595,8 +1589,8 @@ class ImageProjectModel:
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
-        sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
-        location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
+        sizeChange = tool_set.toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+        location = tool_set.toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
         rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
         args = edge['arguments'] if 'arguments' in edge else {}
         rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)

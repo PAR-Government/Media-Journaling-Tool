@@ -421,6 +421,12 @@ def toComposite(img):
     result[img > 0] = 255
     return result
 
+def toIntTuple(tupleString):
+    import re
+    if tupleString is not None and tupleString.find(',') > 0:
+        return tuple([int(re.sub('[()]', '', x)) for x in tupleString.split(',')])
+    return (0, 0)
+
 def maskChangeAnalysis(mask, globalAnalysis=False):
     mask = np.asarray(mask)
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
