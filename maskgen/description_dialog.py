@@ -33,8 +33,10 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
                                            filetypes=[('XMP', '*.xmp')])
         if (val != None and len(val) > 0):
             res = val
-    elif argumentTuple[1]['type'] == ('qtfile'):
-        val = tkFileDialog.askopenfilename(initialdir=os.path.join('plugins', 'JpgFromCamera', 'QuantizationTables'), title="Select " + argumentTuple[0],
+    elif argumentTuple[1]['type'].startswith('fileset:'):
+        initialdir_parts = tuple(argumentTuple[1]['type'][8:].split('/'))
+        initialdir = os.path.join(*tuple(initialdir_parts))
+        val = tkFileDialog.askopenfilename(initialdir=initialdir, title="Select " + argumentTuple[0],
                                            filetypes=[('Text', '*.txt')])
         if (val != None and len(val) > 0):
             res = val
@@ -1083,7 +1085,8 @@ class SelectDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        Label(master, text=self.description).grid(row=0, sticky=W)
+        desc_lines = '\n'.join(self.description.split('.'))
+        Label(master, text=desc_lines, wraplength=400).grid(row=0, sticky=W)
         self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
         self.e1.grid(row=1, column=0)
 

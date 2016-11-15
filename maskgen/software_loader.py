@@ -195,7 +195,7 @@ def loadSoftware(fileName):
     global softwareset
     if not (os.path.exists(fileName)):
         fileName = os.path.join('resources', fileName)
-    softwareset = {'image': {}, 'video': {}}
+    softwareset = {'image': {}, 'video': {},'audio': {}}
     with open(fileName) as f:
         line_no = 0
         for l in f.readlines():
@@ -209,10 +209,11 @@ def loadSoftware(fileName):
             software_type = columns[0].strip()
             software_name = columns[1].strip()
             versions = [x.strip() for x in columns[2:] if len(x) > 0]
-            if software_type not in ['both', 'image', 'video']:
+            if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 print 'Invalid software type on line ' + str(line_no) + ': ' + l
             elif len(software_name) > 0:
                 types = ['image', 'video'] if software_type == 'both' else [software_type]
+                types = ['image', 'video', 'audio'] if software_type == 'all' else types
                 for stype in types:
                     softwareset[stype][software_name] = versions
     return softwareset
@@ -287,7 +288,7 @@ class SoftwareLoader:
 
     def get_versions(self, name, software_type=None, version=None):
         global softwareset
-        types_to_check = ['image', 'video'] if software_type is None else [software_type]
+        types_to_check = ['image', 'video', 'audio'] if software_type is None else [software_type]
         for type_to_check in types_to_check:
             versions = softwareset[type_to_check][name] if name in softwareset[type_to_check] else None
             if versions is None:
