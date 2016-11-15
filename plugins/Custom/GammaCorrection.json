@@ -1,0 +1,11 @@
+{
+    "info": {
+        "name": "Gamma Correction",
+        "description": "",
+        "softwarename": "ImageMagick",
+        "softwareversion": "7.0"
+    },
+    "command":{
+
+    }
+}

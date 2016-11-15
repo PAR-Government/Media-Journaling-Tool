@@ -9,12 +9,19 @@ loaded = None
 def getPlugins():
     plugins = {}
     possibleplugins = os.listdir(PluginFolder)
+    customplugins = os.listdir(os.path.join(PluginFolder, 'Custom'))
     for i in possibleplugins:
+        if i == 'Custom':
+            continue
         location = os.path.join(PluginFolder, i)
         if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
             continue
         info = imp.find_module(MainModule, [location])
         plugins[i]={"info": info}
+
+    for j in customplugins:
+        location = os.path.join(PluginFolder, 'Custom', j)
+
     return plugins
 
 def loadPlugin(plugin):
