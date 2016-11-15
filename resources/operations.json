@@ -1,5 +1,309 @@
 {
   "operations": [
+     {
+      "category": "Audio",
+      "name": "AudioCopyAdd",
+      "mandatoryparameters": {
+        "voice" : {
+            "type": "yesno",
+             "description": "Is the sample a voice."
+        },
+        "add type" : {
+            "type": "list",
+            "values" : ["replace", "overlay"],
+             "description": "Replacing or overlaying."
+        },
+        "Copy Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Insertion Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Copy Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Copy End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Insertion Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Replace insertion time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [],
+      "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Audio",
+      "name": "AudioSample",
+      "mandatoryparameters": {
+        "Copy Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Copy End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Copy Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        }
+      },
+      "rules": [],
+      "optionalparameters": {},
+      "analysisOperations": [],
+      "description": "Extract audio stream(s) from a video",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "video.audio"
+      ]
+    },
+    {
+      "category": "Audio",
+      "name": "DeleteAudioSample",
+      "mandatoryparameters": {
+       "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [],
+      "description": "Remove a portion or all of an audio stream from a video",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Audio",
+      "name": "AddAudioSample",
+      "mandatoryparameters": {
+        "voice" : {
+            "type": "yesno",
+             "description": "Is the sample a voice."
+        },
+        "add type" : {
+            "type": "list",
+            "values" : ["replace", "overlay"],
+             "description": "Replacing or overlaying."
+        },
+        "Insertion Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Insertion End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        }
+      },
+      "rules": [
+        "checkForDonor",
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [],
+      "description": "Adding a donor audio stream to a video",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Audio",
+      "name": "AudioFilter",
+      "mandatoryparameters": {
+         "Frequency": {
+          "type": "int[0:10000000]",
+          "source": "video",
+          "description": "Frequency"
+        },
+        "Filter Type": {
+          "type": "list",
+          "values" : ["high pass", "low pass"],
+          "source": "video",
+          "description": "Type of filter"
+        }
+      },
+      "rules": [
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "analysisOperations": [],
+      "description": "Apply filter to audio stream",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "video.video",
+        "audio.audio"
+      ]
+    },
+      {
+      "category": "Audio",
+      "name": "AudioAmplify",
+      "mandatoryparameters": {
+        "PreGain": {
+          "type": "int[0:100000]",
+          "source": "video",
+          "description": "How much to raise volume"
+        }
+      },
+      "rules": [
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "analysisOperations": [],
+      "description": "Amplify Audio Signal",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "audio.audio",
+        "video.video"
+      ]
+    },
+     {
+      "category": "Audio",
+      "name": "AudioCompress",
+      "mandatoryparameters": {
+         "Attack": {
+          "type": "float[0:100]",
+          "source": "video",
+          "description": "Length of time to react to reducing gain "
+        },
+         "Release": {
+          "type": "float[0:100]",
+          "source": "video",
+          "description": "Length of time to return to normal gain reduction"
+        },
+        "Threshold": {
+          "type": "int[-240:240]",
+          "source": "video",
+          "description": "Decibel Range"
+        },
+        "Ratio": {
+          "type": "float[0:100]",
+          "source": "video",
+          "description": "How much to curb the output, in decibels (2:1) for example 2.0"
+        },
+        "Gain": {
+          "type": "int[0:100000]",
+          "source": "video",
+          "description": "How much to raise volume"
+        }
+      },
+      "rules": [
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+         "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "analysisOperations": [],
+      "description": "Compress Audio Signal",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
+        "audio.audio",
+        "video.video"
+      ]
+    },
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectAddLightSource",
@@ -116,7 +420,36 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectWarpStabilize",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "result" : {
+           "type": "list",
+            "values": [
+            "smooth motion",
+            "no motion"
+           ],
+          "description": "Smooth Motion = smoothed at a variable rate, preserving camera motion. No Motion = All motion has been removed in order to make a shot appear as though it was attached to a surface."
+        },
+        "method" : {
+          "type": "list",
+          "values": [
+            "position",
+            "position,scale and rotation",
+            "perspective",
+            "subspace warp"
+          ],
+          "description": "Position = Stabilization is based on position data only and is the most basic way footage can be stabilized. Position, Scale and Rotation = Stabilization is based on manipulations to the frame that change the size, orientation, and location. Perspective  = Uses a type of stabilization in which the entire frame is effectively corner-pinned. If there are not enough areas to track, Warp Stabilizer chooses the previous type (Position, Scale, Rotation). Subspace Warp = Attempts to warp various parts of the frame differently to stabilize the entire frame. If there are not enough areas to track, Warp Stabilizer choose the previous type (Perspective)."
+        },
+        "boarders" : {
+          "type": "list",
+          "values": [
+            "stablize only",
+            "stablize crop",
+            "crop auto-scale",
+            "synthesize edges"
+          ],
+          "description": "Stabilize Only - Displays the entire frame, including the moving edges. Stabilize, Crop = Crops the moving edges without scaling. Stabilize, Crop, Auto-scale = Crops the moving edges and scales up the image to refill the frame. Stabilize, Synthesize Edges =  Fills in the blank space created by the moving edges with content from frames earlier and later in time."
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize"
@@ -1724,10 +2057,14 @@
     {
       "category": "Paste",
       "name": "PasteOverlay",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "motion mapping": {
+           "type": "yesno",
+           "description": "Is motion mapping used?"
+         }
+      },
       "rules": [
         "checkForDonor",
-        "checkSIFT",
         "checkLengthSame"
       ],
       "optionalparameters": {
@@ -1750,30 +2087,22 @@
       "category": "Paste",
       "name": "PasteImageSpliceToFrames",
       "mandatoryparameters": {
-        "donor rotated": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is rotated during the paste operation"
-        },
-        "donor resized": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is resized during the paste operation"
-        },
-        "donor cropped": {
-          "type": "yesno",
-          "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
-        },
          "subject": {
-          "type": "list",
-          "values": [
-            "people",
-            "face",
-            "natural object",
-            "man-made object",
-            "large man-made object",
-            "landscape",
-            "other"
-          ],
-          "description": "Subject catgeory pasted to image"
+           "type": "list",
+           "values": [
+             "people",
+             "face",
+             "natural object",
+             "man-made object",
+             "large man-made object",
+             "landscape",
+             "other"
+           ],
+           "description": "Subject catgeory pasted to image"
+         },
+        "motion mapping": {
+          "type": "yesno",
+          "description": "Is motion mapping used?"
         }
       },
       "rules": [
@@ -1791,8 +2120,62 @@
           "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [],
       "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
+      "includeInMask": true,
+      "transitions": [
+        "video.video"
+      ]
+    },
+      {
+      "category": "Paste",
+      "name": "CopyPaste",
+      "mandatoryparameters": {
+        "Select Start Time": {
+          "type": "time",
+          "description": "Start time of the copied video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Number of Frames": {
+         "type": "int[0:1000000]",
+          "description": "Numbers of frames copy/pasted"
+        },
+         "Dest Paste Time": {
+          "Paste Start Time": "time",
+          "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthBigger"
+      ],
+      "optionalparameters": {},
+      "description": "Copy & Paste a series of frames within the same video",
+      "includeInMask": true,
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Paste",
+      "name": "CutPaste",
+      "mandatoryparameters": {
+        "Select Start Time": {
+          "type": "time",
+          "description": "Start time of the cut video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Number of Frames": {
+         "type": "int[0:1000000]",
+          "description": "Numbers of frames cut/pasted"
+        },
+         "Dest Paste Time": {
+          "Paste Start Time": "time",
+          "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkLengthBigger"
+      ],
+      "optionalparameters": {},
+      "description": "Cut & Paste a series of frames within the same video",
       "includeInMask": true,
       "transitions": [
         "video.video"
