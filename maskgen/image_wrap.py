@@ -18,7 +18,7 @@ except ImportError:
             return []
 
 
-def openImageFile(filename):
+def openImageFile(filename,isMask=False):
    import os
    if not os.path.exists(filename):
        pos = filename.rfind('.')
@@ -29,7 +29,7 @@ def openImageFile(filename):
      with open(filename,'rb') as f:
           im = Image.open(filename)
           im.load()
-          return ImageWrapper(np.asarray(im),info=im.info)
+          return ImageWrapper(np.asarray(im),info=im.info,to_mask =isMask)
    except:
       info = {}
       try:
@@ -41,7 +41,12 @@ def openImageFile(filename):
                          info['compress'] = v
       except:
           pass
-      return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info)
+      try:
+          return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info,to_mask =isMask)
+      except:
+          import rawpy
+          with rawpy.imread(filename) as raw:
+              return ImageWrapper(raw.postprocess(),to_mask =isMask)
 
 
 def invertMask(mask):
