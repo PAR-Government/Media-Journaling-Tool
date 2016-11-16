@@ -30,6 +30,26 @@ def getPlugins():
 def loadPlugin(plugin):
     return imp.load_module(plugin['name'], *plugin["info"])
 
+def loadCustom(plugin, path):
+    """
+    loads a custom plugin
+    """
+    global loaded
+    print("Loading plugin " + plugin)
+    with open(path) as jfile:
+        data = json.load(jfile)
+    loaded[plugin] = {}
+    loaded[plugin]['function'] = 'custom'
+    loaded[plugin]['operation'] = [data['operation']['name'],
+                              data['operation']['category'],
+                              data['operation']['description'],
+                              data['operation']['softwarename'],
+                              data['operation']['softwareversion']]
+    loaded[plugin]['arguments'] = data['args'] if 'args' in data else None
+    loaded[plugin]['command'] = data['command']
+    loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
+
+
 def loadPlugins():
    global loaded
    if loaded is not None:
@@ -38,22 +58,11 @@ def loadPlugins():
    loaded = {}
    ps = getPlugins() 
    for i in ps.keys():
-      print("Loading plugin " + i)
       if 'custom' in ps[i]:
           path = ps[i]['custom']
-          with open(ps[i]['custom']) as jfile:
-              data = json.load(jfile)
-          loaded[i] = {}
-          loaded[i]['function'] = 'custom'
-          loaded[i]['operation'] = [data['operation']['name'],
-                                    data['operation']['category'],
-                                    data['operation']['description'],
-                                    data['operation']['softwarename'],
-                                    data['operation']['softwareversion']]
-          loaded[i]['arguments'] = data['args'] if 'args' in data else None
-          loaded[i]['command'] = data['command']
-          loaded[i]['suffix'] = data['suffix'] if 'suffix' in data else None
+          loadCustom(i, path)
       else:
+          print("Loading plugin " + i)
           plugin = imp.load_module(MainModule, *ps[i]["info"])
           loaded[i] = {}
           loaded[i]['function'] = plugin.transform
