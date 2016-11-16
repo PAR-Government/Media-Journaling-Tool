@@ -37,7 +37,7 @@ class GroupFilterLoader:
    
    def load(self):
      global maskgenloader
-     plugins.loadPlugins()
+     #plugins.loadPlugins()
      self.groups = {}
      newset = maskgenloader.get_key(self.getLoaderKey())
      if newset is not None:

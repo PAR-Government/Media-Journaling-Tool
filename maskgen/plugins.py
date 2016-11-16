@@ -1,7 +1,9 @@
 import imp
 import os
+import json
+import subprocess
 
-PluginFolder = "./plugins"
+PluginFolder = os.path.join('.', "plugins")
 MainModule = "__init__"
 
 loaded = None
@@ -17,10 +19,11 @@ def getPlugins():
         if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
             continue
         info = imp.find_module(MainModule, [location])
-        plugins[i]={"info": info}
+        plugins[i] = {"info": info}
 
     for j in customplugins:
         location = os.path.join(PluginFolder, 'Custom', j)
+        plugins[os.path.splitext(j)[0]] = {"custom": location}
 
     return plugins
 
@@ -36,12 +39,23 @@ def loadPlugins():
    ps = getPlugins() 
    for i in ps.keys():
       print("Loading plugin " + i)
-      plugin = imp.load_module(MainModule, *ps[i]["info"])
-      loaded[i] = {}
-      loaded[i]['function']=plugin.transform
-      loaded[i]['operation']=plugin.operation()
-      loaded[i]['arguments']=plugin.args()
-      loaded[i]['suffix']=plugin.suffix() if hasattr(plugin,'suffix') else None
+      if 'custom' in ps[i]:
+          path = ps[i]['custom']
+          with open(ps[i]['custom']) as jfile:
+              data = json.load(jfile)
+          loaded[i] = {}
+          loaded[i]['function'] = 'custom'
+          loaded[i]['operation'] = data['operation']
+          loaded[i]['arguments'] = data['args'] if 'args' in data else None
+          loaded[i]['command'] = data['command']
+          loaded[i]['suffix'] = data['suffix'] if 'suffix' in data else None
+      else:
+          plugin = imp.load_module(MainModule, *ps[i]["info"])
+          loaded[i] = {}
+          loaded[i]['function'] = plugin.transform
+          loaded[i]['operation'] = plugin.operation()
+          loaded[i]['arguments'] = plugin.args()
+          loaded[i]['suffix'] = plugin.suffix() if hasattr(plugin,'suffix') else None
    return loaded
 
 def getOperations():
@@ -76,4 +90,17 @@ def getOperation(name):
 
 def callPlugin(name,im,source,target,**kwargs):
     global loaded
-    return loaded[name]['function'](im,source,target,**kwargs)
+    if loaded[name]['function'] == 'custom':
+        return runCustomPlugin(name, im, source, target, **kwargs)
+    else:
+        return loaded[name]['function'](im,source,target,**kwargs)
+
+def runCustomPlugin(name, im, source, target, **kwargs):
+    global loaded
+    command = loaded[name]['command']
+    index = command.index('inputimage')
+    outdex = command.index('outputimage')
+    command[index] = source
+    command[outdex] = target
+    subprocess.call(command)
+    return None, None
