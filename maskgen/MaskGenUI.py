@@ -12,6 +12,7 @@ from maskgen_loader import MaskGenLoader
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
+from plugin_builder import PluginBuilder
 
 """
   Main UI Driver for MaskGen
@@ -473,6 +474,9 @@ class MakeGenUI(Frame):
     def getproperties(self):
         d = PropertyDialog(self, getProjectProperties())
 
+    def pluginbuilder(self):
+        d = PluginBuilder(self)
+
     def groupmanager(self):
         d = GroupManagerDialog(self,GroupFilterLoader())
 
@@ -606,6 +610,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Export", menu=exportmenu)
         filemenu.add_command(label="Validate", command=self.validate)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
+        filemenu.add_command(label="Build Plugin", command=self.pluginbuilder)
         filemenu.add_command(label="Filter Group Manager", command=self.groupmanager)
         filemenu.add_command(label="Operations Group Manager", command=self.operationsgroupmanager)
         filemenu.add_separator()

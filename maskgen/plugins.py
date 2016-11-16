@@ -45,7 +45,11 @@ def loadPlugins():
               data = json.load(jfile)
           loaded[i] = {}
           loaded[i]['function'] = 'custom'
-          loaded[i]['operation'] = data['operation']
+          loaded[i]['operation'] = [data['operation']['name'],
+                                    data['operation']['category'],
+                                    data['operation']['description'],
+                                    data['operation']['softwarename'],
+                                    data['operation']['softwareversion']]
           loaded[i]['arguments'] = data['args'] if 'args' in data else None
           loaded[i]['command'] = data['command']
           loaded[i]['suffix'] = data['suffix'] if 'suffix' in data else None
