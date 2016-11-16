@@ -1047,6 +1047,7 @@ class ImageProjectModel:
             edge = self.G.get_edge(edge_id[0],edge_id[1])
             if 'inputmaskname' in edge and \
                             edge['inputmaskname'] is not None and \
+                            len(edge['inputmaskname']) > 0 and \
                             edge['recordMaskInComposite'] == 'yes' and \
                             edge_id[1] not in donor_nodes:
                 donor_mask_file_name = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
