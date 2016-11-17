@@ -225,6 +225,47 @@ def replace_with_pastesampled(scModel):
     #print 'Completed replace_with_pastesampled'
 
 
+def replace_oldops(scModel):
+    """
+    Replace selected operations
+    :param scModel: Opened project model
+    :return: None. Updates JSON.
+    """
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        oldOp = currentLink['op']
+        if oldOp == 'ColorBlendDissolve':
+            currentLink['op'] = 'Blend'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
+            currentLink['arguments']['mode'] = 'Dissolve'
+        elif oldOp == 'ColorBlendMultiply':
+            currentLink['op'] = 'Blend'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
+            currentLink['arguments']['mode'] = 'Multiply'
+        elif oldOp == 'ColorColorBalance':
+            currentLink['op'] = 'ColorBalance'
+        elif oldOp == 'ColorMatchColor':
+            currentLink['op'] = 'ColorMatch'
+        elif oldOp == 'ColorReplaceColor':
+            currentLink['op'] = 'ColorReplace'
+        elif oldOp == 'IntensityHardlight':
+            currentLink['op'] = 'BlendHardlight'
+        elif oldOp == 'IntensitySoftlight':
+            currentLink['op'] = 'BlendSoftlight'
+        elif oldOp == 'FillImageInterpolation':
+            currentLink['op'] = 'ImageInterpolation'
+        elif oldOp == 'ColorBlendColorBurn':
+            currentLink['op'] = 'IntensityBurn'
+        elif oldOp == 'FillInPainting':
+            currentLink['op'] = 'MarkupDigitalPenDraw'
+        elif oldOp == 'FillLocalRetouching':
+            currentLink['op'] = 'PasteSampled'
+            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['arguments']['purpose'] = 'heal'
+
+
 def update_rotation(scModel):
     """
     Add rotation parameter to OutputPNG and OutputTIFF operations
@@ -398,6 +439,7 @@ def perform_update(project,args, error_writer, semantics, tempdir, names):
         rebuild_masks(scModel)
     if args.all:
         fix_noncroplinks(scModel)
+        replace_oldops(scModel)
 
     scModel.save()
     error_list = scModel.exporttos3(args.uploadfolder, tempdir)

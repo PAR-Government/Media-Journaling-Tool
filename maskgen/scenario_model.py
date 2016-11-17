@@ -292,7 +292,7 @@ class LinkTool:
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
         return None, None, {}, []
 
-    def _addAnalysis(self, startIm, destIm, op, analysis, mask, arguments={}):
+    def _addAnalysis(self, startIm, destIm, op, analysis, mask, linktype=None, arguments={}):
         import importlib
         opData = getOperationWithGroups(op)
         if opData is None:
@@ -302,7 +302,7 @@ class LinkTool:
             try:
                 mod = importlib.import_module(mod_name)
                 func = getattr(mod, func_name)
-                func(analysis, startIm, destIm, mask=tool_set.invertMask(mask), arguments=arguments)
+                func(analysis, startIm, destIm, mask=tool_set.invertMask(mask), linktype=linktype,arguments=arguments)
             except Exception as e:
                 print 'Failed to run analysis ' + analysisOp + ': ' + str(e)
 
@@ -371,7 +371,7 @@ class ImageImageLinkTool(LinkTool):
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
-            self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
+            self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='image.image',arguments=arguments)
         return maskname, mask, analysis, errors
 
 class VideoImageLinkTool(ImageImageLinkTool):
@@ -405,7 +405,7 @@ class VideoImageLinkTool(ImageImageLinkTool):
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
-            self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
+            self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='video.image', arguments=arguments)
         return maskname, mask, analysis, errors
 
 class VideoVideoLinkTool(LinkTool):
@@ -482,7 +482,7 @@ class VideoVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video', arguments=arguments)
         return maskname, mask, analysis, errors
 
 class AudioVideoLinkTool(LinkTool):
@@ -512,7 +512,7 @@ class AudioVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, None, arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, None,linktype='audio.audio', arguments=arguments)
         return None, None, analysis, list()
 
 class AudioAudioLinkTool(LinkTool):
@@ -542,7 +542,7 @@ class AudioAudioLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, None, arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='audio.audio', arguments=arguments)
         return None, None, analysis, list()
 
 class VideoAudioLinkTool(LinkTool):
@@ -572,7 +572,7 @@ class VideoAudioLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, None, arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',arguments=arguments)
         return None, None, analysis, list()
 
 class ImageVideoLinkTool(VideoVideoLinkTool):
@@ -600,7 +600,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
         analysis = analysis if analysis is not None else {}
-        self._addAnalysis(startIm, destIm, op, analysis, mask, arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='image.video', arguments=arguments)
         return maskname, mask, analysis, errors
 
 
