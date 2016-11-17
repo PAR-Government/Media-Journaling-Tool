@@ -69,8 +69,8 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         self.commandEntry = Entry(master, width=40)
         self.commandEntry.grid(row=8, column=0, columnspan=8, sticky='EW')
 
-        commandLabel2 = Label(master, text='Use \"inputimage\" and \"outputimage\" in place of input and output images, respectively.\n'
-                                          'If omitted, \"inputimage\" and \"outputimage\" will be appended to end of command.')
+        commandLabel2 = Label(master, text='Use \"{inputimage}\" and \"{outputimage}\" in place of input and output images, respectively.\n'
+                                          'If omitted, \"{inputimage}\" and \"{outputimage}\" will be appended to end of command.')
         commandLabel2.grid(row=9, column=0, columnspan=8)
 
     def apply(self):
@@ -82,10 +82,10 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         softwareVersion = self.softwareVersionEntry.get()
         #suffix = self.suffixEntry.get()
         command = self.commandEntry.get().split(' ')
-        if 'inputimage' not in command:
-            command.append('inputimage')
-        if 'outputimage' not in command:
-            command.append('outputimage')
+        if '{inputimage}' not in command:
+            command.append('{inputimage}')
+        if '{outputimage}' not in command:
+            command.append('{outputimage}')
 
         data = {"name": self.pluginName,
                 "operation": {

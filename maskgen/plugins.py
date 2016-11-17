@@ -110,10 +110,15 @@ def callPlugin(name,im,source,target,**kwargs):
 
 def runCustomPlugin(name, im, source, target, **kwargs):
     global loaded
-    command = loaded[name]['command']
-    index = command.index('inputimage')
-    outdex = command.index('outputimage')
-    command[index] = source
-    command[outdex] = target
-    subprocess.call(command)
+    executionCommand = loaded[name]['command'][:]
+    for i in range(len(executionCommand)):
+        if executionCommand[i] == '{inputimage}':
+            executionCommand[i] = source
+        elif executionCommand[i] == '{outputimage}':
+            executionCommand[i] = target
+
+        # Saved for once typed args are done...
+        # else:
+        #     executionCommand[i] = executionCommand[i].format(**kwargs)
+    subprocess.call(executionCommand)
     return None, None
