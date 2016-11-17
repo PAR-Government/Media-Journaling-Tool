@@ -10,7 +10,7 @@
     "command": ["magick",
                 "convert",
                 "-auto-gamma",
-                "inputimage",
-                "outputimage"
+                "{inputimage}",
+                "{outputimage}"
                 ]
 }
