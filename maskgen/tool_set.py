@@ -14,16 +14,16 @@ from image_wrap import *
 from maskgen_loader import  MaskGenLoader
 from subprocess import Popen, PIPE
 
-imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", ".nef"),
+imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
-                  ('f4v', '*.flv'),("avi files", "*.avi")]
+                  ('f4v', '*.flv'),("avi files", "*.avi"), ('asf','*.asf')]
 audiofiletypes =  [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"),("mpeg audio files", "*.mp3"),
                     ("raw audio files", "*.raw"),
                     ("Standard PC audio files", "*.wav"),("Windows Media  audio files", "*.wma")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
-               ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw"]
+               ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
@@ -334,7 +334,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         return img
     else:
         try:
-            img = openImageFile(snapshotFileName)
+            img = openImageFile(snapshotFileName, isMask=isMask)
             return img
         except Exception as e:
             print e
@@ -458,6 +458,13 @@ def toComposite(img):
     result = np.zeros(img.shape).astype('uint8')
     result[img > 0] = 255
     return result
+
+def sizeOfChange(mask):
+    if len(mask.shape) == 2:
+        return mask.size - sum(sum(mask == 255))
+    else:
+        mask_size = mask.shape[0] * mask.shape[1]
+        return mask_size - sum(sum(np.all(mask == [255, 255, 255], axis=2)))
 
 def maskChangeAnalysis(mask, globalAnalysis=False):
     mask = np.asarray(mask)
@@ -612,7 +619,7 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
        :param transform_matrix:
        :return:
        """
-    newMask = np.zeros(compositeMask.shape)
+    newMask = np.zeros(expectedDims)
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue

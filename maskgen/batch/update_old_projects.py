@@ -61,7 +61,7 @@ def rename_donorsandbase(scModel,updatedir, names):
                 md5 = hashlib.md5(fp.read()).hexdigest()
             new_file_name = node + suffix
             if md5 in names:
-                new_file_name =  names[md5] + suffix
+                new_file_name = names[md5] + suffix
             fullname = os.path.join(scModel.get_dir(), new_file_name)
             if not os.path.exists(fullname):
                 os.rename(file_path_name, fullname)
@@ -155,7 +155,7 @@ def add_pastesplice_params(scModel,semantics):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'PasteSplice':
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
 
@@ -213,7 +213,7 @@ def replace_with_pastesampled(scModel):
         oldOp = currentLink['op']
         if oldOp in replace_list:
             currentLink['op'] = 'PasteSampled'
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             if oldOp == 'PasteClone' or oldOp == 'FillRubberStampClone':
@@ -345,7 +345,7 @@ def add_fillcontentawarefill_args(scModel):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'FillContentAwareFill':
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             if 'purpose' in currentLink['arguments']:
@@ -391,8 +391,7 @@ def perform_update(project,args, error_writer, semantics, tempdir, names):
     if args.renamedonors or args.all:
         rename_donorsandbase(scModel, os.path.split(project)[0], names)
     if args.composites or args.all:
-        scModel.constructComposites()
-        scModel.constructDonors()
+        scModel.constructCompositesAndDonors()
         processProjectProperties(scModel)
     if args.redomasks or args.all:
         rebuild_masks(scModel)
