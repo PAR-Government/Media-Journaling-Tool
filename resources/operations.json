@@ -1330,11 +1330,6 @@
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
-        },
-        "inputmaskname": {
-          "type": "imagefile",
-          "source": "image",
-          "description": "An image file with a transparency highlighting the sampled areas of the image."
         }
       },
       "rules": [
