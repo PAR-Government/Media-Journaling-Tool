@@ -826,7 +826,7 @@ def __checkInterpolation(val):
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = compositeMask
-    if transformMatrix is not None:
+    if transformMatrix is not None and flip is None:
         res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
         res = __applyRotateToComposite(rotation,  res,
