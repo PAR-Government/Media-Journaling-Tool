@@ -604,10 +604,10 @@ def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.ones(compositeMask.shape)*255
-        levelMask[compositeMask == level] = 0
+        levelMask = np.zeros(compositeMask.shape)
+        levelMask[compositeMask == level] = 255
         newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
-        newMask[newLevelMask<150] = level
+        newMask[newLevelMask>150] = level
     return newMask
 
 def __applyRotateToComposite(rotation, compositeMask, expectedDims):
@@ -641,7 +641,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
-    compositeMaskFlipped = 255 - compositeMask
+    compositeMaskFlipped = 255 - compositeMask if invert else compositeMask
     # zeros out areas outside the mask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
     flags=cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR#+cv2.CV_WARP_FILL_OUTLIERS
@@ -649,9 +649,9 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    compositeMaskAltered = compositeMaskFlipped * maskAltered
-    newMask[compositeMaskAltered > 0] = 255
-    return 255 - newMask
+    newMask = 255 - newMask if invert else newMask
+    newMask = newMask*maskInverted + compositeMask*maskAltered
+    return newMask
 
 def __composeMask(img1, img2, invert, arguments=dict(),crop=False):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
