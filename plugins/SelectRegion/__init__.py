@@ -1,32 +1,42 @@
-from PIL import Image
 import numpy
 import cv2
 import random
 from maskgen.image_wrap import ImageWrapper
+from skimage.restoration import denoise_tv_bregman
+from skimage.segmentation import felzenszwalb
+
+"""
+Select region from the image.
+Add an alpha channel to the image.
+Set the alpha channel pixels to 0 for the unselected portion of the image.
+"""
 
 def transform(img,source,target,**kwargs):
-    gray = numpy.asarray( img.convert('L')).astype('uint8')
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    edged = cv2.Canny(gray, 30, 200)
-    (cnts, _) = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    areas = [(cnt, cv2.contourArea(cnt)) for cnt in cnts]
+    denoise_img = denoise_tv_bregman(numpy.asarray(img), weight=0.4)
+    denoise_img = (denoise_img * 255).astype('uint8')
+    gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.equalizeHist(gray)
+
+    segments_fz = felzenszwalb(denoise_img, scale=100, sigma=0.5, min_size=50)
+
+    cnts = []
+    for label in numpy.unique(segments_fz):
+        mask = numpy.zeros(gray.shape, dtype="uint8")
+        mask[segments_fz == label] = 255
+        cnts.extend(cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                                     cv2.CHAIN_APPROX_SIMPLE)[-2])
+
+
+    areas = [(cnt, cv2.contourArea(cnt)) for cnt in cnts
+              if  cv2.moments(cnt)['m00'] > 2.0 ]
     cnts = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
-    cnts = [cnt[0] for cnt in cnts if cnt[1] > 2.0]
-    count = 0
-    max_value = 0
-    max_mask = None
-    while count < 10:
-        cnt = random.choice(cnts)
-        mask = numpy.zeros(gray.shape, numpy.uint8)
-        cv2.drawContours(mask, [cnt], 0, 255, -1)
-        v = numpy.histogram(mask, bins=2)[0][1]
-        if v > max_value:
-            max_mask = mask
-            max_value  = v
-        count += 1
+    cnts = cnts[0: min(15,len(cnts))]
+    cnt = random.choice(cnts)
+    max_mask = numpy.zeros(denoise_img.shape, numpy.uint8)
+    cv2.fillPoly(max_mask, pts=[cnt[0]], color=(255, 255, 255))
     rgba = numpy.asarray(img.convert('RGBA'))
     rgba = numpy.copy(rgba)
-    rgba[:,:,3] = max_mask
+    rgba[numpy.all(max_mask!=[255,255,255],axis=2),3] = 0
     ImageWrapper(rgba).save(target)
     return None,None
 
@@ -40,3 +50,4 @@ def args():
 
 def suffix():
     return None
+

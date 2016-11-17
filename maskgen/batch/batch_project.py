@@ -10,6 +10,7 @@ import random
 from maskgen import tool_set
 import shutil
 from maskgen  import plugins
+from maskgen import group_operations
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
@@ -45,49 +46,57 @@ def pickArg(param, local_state):
     return None
 
 
-def executeParamSpec(specification, global_state, local_state):
+def executeParamSpec(specification, global_state, local_state, predecessors):
     """
     :param specification:
     :param global_state:
     :param local_state:
+    :param predecessors:
     :return:
     @rtype : tuple(image_wrap.ImageWrapper,str)
+    @type predecessors: List[str]
     """
     if specification['type'] == 'mask':
        source = getNodeState(specification['source'], local_state)['node']
        target = getNodeState(specification['target'], local_state)['node']
-       return local_state['model'].getGraph().get_edge_image(source, target, 'maskname')
+       return os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source, target, 'maskname')[1])
     if specification['type'] == 'value':
         return specification['value']
+    if specification['type'] == 'list':
+        return random.choice(specification['values'])
     if specification['type'] == 'donor':
-        source = getNodeState(specification['source'], local_state)['node']
-        return local_state['model'].getGraph().get_image(source)
+        if 'source' in specification:
+            return getNodeState(specification['source'], local_state)['node']
+        return random.choice(predecessors)
     if specification['type'] == 'imagefile':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
     return None
 
-def pickArgs(local_state, global_state, argument_specs, operation):
+def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
     """
     :param local_state:
     :param global_state:
     :param argument_specs:
     :param operation:
+    :param predecessors:
     :return:
     @type operation : Operation
+    @type predecessors: List[str]
     """
     args = {}
-    for spec_param, spec in argument_specs.iteritems():
-        args[spec_param] = executeParamSpec(spec,global_state,local_state)
+    if argument_specs is not None:
+        for spec_param, spec in argument_specs.iteritems():
+            args[spec_param] = executeParamSpec(spec,global_state,local_state, predecessors)
     for param in operation.mandatoryparameters:
-        if param not in argument_specs:
-            v = pickArg(param,local_state)
+        if argument_specs is None or param not in argument_specs:
+            v = pickArg(operation.mandatoryparameters[param],local_state)
             if v is None:
                 raise 'Missing Value for parameter ' + param + ' in ' + operation.name
             args[param] = v
-    for param in operation.mandatoryparameters:
-        if param not in argument_specs:
-            v = pickArg(param,local_state)
+    for param in operation.optionalparameters:
+        if argument_specs is None or param not in argument_specs:
+            v = pickArg(operation.optionalparameters[param],local_state)
             if v is not None:
                 args[param] = v
     return args
@@ -124,6 +133,8 @@ def pickImage(node, global_state={}):
                       listing.remove(line)
     else:
         listing = global_state[node['picklist']]
+    if len(listing) == 0:
+        raise ValueError("Picklist of Image Files Empty")
     pick = random.choice(listing)
     listing.remove(pick)
     with open(node['picklist'] + '.txt', 'a') as fp:
@@ -203,6 +214,8 @@ class BaseSelectionOperation(BatchOperation):
         os.mkdir(dir)
         shutil.copy2(pick, os.path.join(dir,pick_file))
         local_state['model'] = scenario_model.createProject(dir,suffixes=tool_set.suffixes)[0]
+        for prop, val in local_state['project'].iteritems():
+            local_state['model'].setProjectData(prop, val)
         getNodeState(node_name, local_state)['node'] = local_state['model'].getNodeNames()[0]
         return local_state['model']
 
@@ -228,6 +241,7 @@ class PluginOperation(BatchOperation):
         """
         my_state = getNodeState(node_name,local_state)
 
+        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) if predecessor != connect_to_node_name]
         predecessor_state=getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
@@ -236,15 +250,13 @@ class PluginOperation(BatchOperation):
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op[0],fake=True)
-        args = pickArgs(local_state, global_state, node['arguments'], op)
+        args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
         my_state['node'] = pairs[0][1]
-        for predecessor in graph.predecessors(node_name):
-            if predecessor == connect_to_node_name:
-                continue
-            predecessor_state = getNodeState(predecessor, local_state)
+        for predecessor in predecessors:
+            local_state['model'].selectImage(predecessor)
+            local_state['model'].connect(my_state['node'],sendNotifications=False)
             local_state['model'].selectImage(my_state['node'])
-            local_state['model'].connect(predecessor_state['node'],sendNotifications=False)
         return local_state['model']
 
 batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
@@ -263,27 +275,55 @@ class BatchProject:
     G = nx.DiGraph(name="Empty")
 
     def __init__(self,G):
+        """
+        :param G:
+        @type G: nx.DiGraph
+        """
         self.G = G
+        tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
+
+    def _buildLocalState(self):
+        local_state = {}
+        local_state['project'] = {}
+        for k in self.G.graph:
+            if k not in ['recompress','name']:
+                local_state['project'][k] =  self.G.graph[k]
+        return local_state
 
     def executeOnce(self, global_state=dict()):
-        local_state = {}
+        recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
+        local_state = self._buildLocalState()
         base_node = self._findBase()
-        self._execute_node(base_node, None, local_state, global_state)
-        queue = [top for top in self._findTops() if top != base_node]
-        completed = [base_node]
-        while len(queue) > 0:
-            op_node_name = queue.pop(0)
-            predecessors = list(self.G.predecessors(op_node_name))
-            # skip if a predecessor is missing
-            if len([pred for pred in predecessors if pred not in completed]) > 0:
-                continue
-            connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name) if
-                not self.G.edge[predecessor][op_node_name]['donor']]
-            connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
-            self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
-            completed.append(op_node_name)
-            queue.extend(self.G.successors(op_node_name))
-        local_state['model'].export(global_state['archives'])
+        try:
+            self._execute_node(base_node, None, local_state, global_state)
+            queue = [top for top in self._findTops() if top != base_node]
+            queue.extend(self.G.successors(base_node))
+            completed = [base_node]
+            while len(queue) > 0:
+                op_node_name = queue.pop(0)
+                predecessors = list(self.G.predecessors(op_node_name))
+                # skip if a predecessor is missing
+                if len([pred for pred in predecessors if pred not in completed]) > 0:
+                    continue
+                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)]
+                #if not self.G.edge[predecessor][op_node_name]['donor']]
+                connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
+                self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
+                completed.append(op_node_name)
+                queue.extend(self.G.successors(op_node_name))
+            if recompress:
+                op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
+                op.performOp()
+            local_state['model'].save()
+            if 'archives' in global_state:
+                local_state['model'].export(global_state['archives'])
+        except Exception as e:
+            print e
+            if 'model' in local_state:
+                shutil.rmtree(local_state['model'].get_dir())
+            return None
+        return local_state['model'].get_dir()
+
 
 
     def validate(self):
@@ -333,7 +373,11 @@ class BatchProject:
         :return:
         @rtype: maskgen.scenario_model.ImageProjectModel
         """
-        return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G, node_name,self.G.node[node_name],connect_to_node_name, local_state = local_state, global_state=global_state)
+        try:
+            return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G, node_name,self.G.node[node_name],connect_to_node_name, local_state = local_state, global_state=global_state)
+        except Exception as e:
+            print e
+            raise e
 
 
 def getBatch(jsonFile):
@@ -350,14 +394,21 @@ def getBatch(jsonFile):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--json',             required=True,         help='JSON File')
+    parser.add_argument('--count', required=False, help='dir')
     parser.add_argument('--results', required=True, help='dir')
     args = parser.parse_args()
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
         return
-    batchProject =getBatch(args,json)
+    batchProject =getBatch(args.json)
     globalState =  {'projects' : args.results}
-    batchProject.executeOnce(globalState)
+    count = int(args.count) if args.count is not None else 1
+    for i in range(count):
+        project_directory =  batchProject.executeOnce(globalState)
+        if project_directory is not None:
+            print  'completed' + project_directory
+        else:
+            break
 
 if __name__ == '__main__':
     main()

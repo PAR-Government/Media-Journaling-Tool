@@ -43,8 +43,9 @@ def openImageFile(filename,isMask=False):
           pass
       try:
           return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info,to_mask =isMask)
-      except:
+      except Exception as es:
           import rawpy
+          print es
           with rawpy.imread(filename) as raw:
               return ImageWrapper(raw.postprocess(),to_mask =isMask)
 
@@ -108,6 +109,13 @@ class ImageWrapper:
             for i in range(img.shape[2]):
                 img[:, :, i] = img[:, :, i] * mask_array
             return ImageWrapper(img)
+        return ImageWrapper(self.image_array)
+
+    def apply_mask_rgba(self,mask):
+        image = self.convert('RGBA')
+        img = np.copy(image.image_array)
+        mask_array = np.copy(np.asarray(mask))
+        img[:, :, 3] = img[:, :, 3] * mask_array
         return ImageWrapper(self.image_array)
 
     def to_rgb(self, type=None):

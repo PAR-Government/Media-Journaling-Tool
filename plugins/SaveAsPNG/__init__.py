@@ -2,6 +2,9 @@ from PIL import Image
 from maskgen import exif
 import numpy as np
 
+"""
+Save te image as PNG. If the image has a orientation and 'Image Rotated', rotate the image according to the EXIF.
+"""
 def transform(img,source,target, **kwargs):
 
     im = Image.open(source)

@@ -3,7 +3,14 @@
   "graph": {
     "username": "ericrobertson",
     "name": "sample",
-    "organization": "PAR"
+    "organization": "PAR",
+    "projectDescription" : "test",
+    "technicalSummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": true
   },
   "nodes": [
     {
@@ -20,30 +27,52 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "SelectRegion",
+      "plugin": "SaveAsPNG",
+      "picklist": "imageset",
       "id": "2",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SaveAsPNG",
+      "id": "3",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SelectRegion",
+      "id": "4",
       "arguments": {}
     },
     {
       "op_type": "PluginOperation",
       "plugin": "PasteSplice",
-      "id": "3",
+      "id": "5",
       "arguments": {
-        "inputimagename" : {
-          "type" : "imagefile",
-          "source" :"2"
-        }
+         "donor" : {
+           "type": "donor"
+         }
       }
     },
-     {
+    {
       "op_type": "PluginOperation",
-      "plugin": "GaussianBlue",
-      "id": "4",
+      "plugin": "GaussianBlur",
+      "id": "6",
       "arguments": {
         "inputmaskname" : {
           "type" : "mask",
-          "source" :"1",
-          "target": "3"
+          "source" :"2",
+          "target": "5"
 
         }
       }
@@ -51,24 +80,28 @@
   ],
   "links": [
     {
-      "donor" : false,
       "source": 0,
-      "target": 3
-    },
-    {
-      "donor" : false,
-      "source": 1,
       "target": 2
     },
     {
-      "donor" : true,
-      "source": 2,
+      "source": 1,
       "target": 3
     },
-     {
-      "donor" : false,
+    {
       "source": 3,
       "target": 4
+    },
+    {
+      "source": 2,
+      "target": 5
+    },
+    {
+      "source": 4,
+      "target": 5
+    },
+     {
+      "source": 5,
+      "target": 6
     }
   ],
   "multigraph": false

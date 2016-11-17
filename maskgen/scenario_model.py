@@ -694,7 +694,9 @@ class ImageProjectModel:
                 self.end = None
 
     def addImage(self, pathname):
-        nname = self.G.add_node(pathname, nodetype='base')
+        maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
+        maxy = max([self.G.get_node(node)['ypos'] for node in self.G.get_nodes() if 'ypos' in self.G.get_node(node)] + [50])
+        nname = self.G.add_node(pathname, nodetype='base', xpos=maxx+75, ypos=maxy)
         self.start = nname
         self.end = None
         return nname
@@ -1524,7 +1526,7 @@ class ImageProjectModel:
         description.setAutomated('yes')
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
-                                         position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
+                                         position=self._getCurrentPosition((75 if 'donor' in kwargs else 0,75)))
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
