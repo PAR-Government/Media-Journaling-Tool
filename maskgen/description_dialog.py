@@ -1025,17 +1025,29 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
 class CompositeViewDialog(tkSimpleDialog.Dialog):
     im = None
+    composite = None
+    """
+    @type im: ImageWrapper
+    @type composite: ImageWrapper
+    """
 
-    def __init__(self, parent, name, im):
-        self.im = im
+    def __init__(self, parent, name, composite, im):
+        self.composite = composite
+        self.im= im
         self.parent = parent
         self.name = name
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c = Canvas(master, width=250, height=250)
-        self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
+        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
+        if self.im is not None:
+            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
+            imResized = imResized.overlay(compositeResized)
+        else:
+            imResized = compositeResized
+        self.photo = ImageTk.PhotoImage(imResized.toPIL())
+        self.c = Canvas(master, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
+        self.image_on_canvas = self.c.create_image(0,0, image=self.photo,anchor=NW, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
 
     def buttonbox(self):

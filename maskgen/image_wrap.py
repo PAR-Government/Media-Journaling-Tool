@@ -239,3 +239,15 @@ class ImageWrapper:
         xx[:, :, 3] = np.ones((xx.shape[0], xx.shape[1])) * float(np.iinfo(self.image_array.dtype).max)
         return ImageWrapper(xx)
 
+    def overlay(self, image):
+        """
+        :param image:
+        :return:new image with give n image overlayed
+        @rtype : ImageWrapper
+        """
+        self_array = np.copy(self.to_array())
+        image_array =np.copy( np.asarray(image))
+        image_array[image_array==255] = 0
+        return ImageWrapper(cv2.addWeighted(image_array, 1, self_array[:,:,0:3],  0.5,
+                        0, self_array))
+

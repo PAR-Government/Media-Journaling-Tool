@@ -120,9 +120,24 @@ def get_username():
     return pwdAPI.getpwuid()
 
 def imageResize(img, dim):
+    """
+    :param img:
+    :param dim:
+    :return:
+    @rtype: ImageWrapper
+    """
+
     return img.resize(dim,Image.ANTIALIAS).convert('RGBA')
 
 def imageResizeRelative(img, dim, otherIm):
+    """
+    Preserves the dimension ratios
+    :param img:
+    :param dim:
+    :param otherIm:
+    :return: Resized relative to width given the maximum constraints
+     @rtype: ImageWrapper
+    """
     wmax = max(img.size[0], otherIm[0])
     hmax = max(img.size[1], otherIm[1])
     wpercent = float(dim[0]) / float(wmax)
@@ -591,6 +606,22 @@ def __sift(img1, img2, mask1=None, mask2=None):
     # Sort them in the order of their distance.
     return None,None
 
+def __applyFlipComposite(compositeMask, mask, flip):
+    """
+    Flip the selected area
+    :param compositeMask:
+    :param mask:
+    :param transform_matrix:
+    :return:
+    """
+    maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
+    maskInverted[maskInverted > 0] = 1
+    flipCompositeMask = compositeMask * maskInverted
+    flipCompositeMask = cv2.flip(flipCompositeMask, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
+    maskAltered = np.copy(mask)
+    maskAltered[maskAltered > 0] = 1
+    return flipCompositeMask*maskInverted + compositeMask*maskAltered
+
 def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     """
     Loop through each level add apply the transform.
@@ -645,7 +676,10 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     # zeros out areas outside the mask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
     flags=cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR#+cv2.CV_WARP_FILL_OUTLIERS
-    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags)
+    compositeMaskAltered[compositeMaskAltered == 255] = 200
+    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags, borderMode=cv2.BORDER_CONSTANT, borderValue = 0)
+    newMask[newMask>149] = 255
+    newMask[newMask<150]  = 0
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
@@ -826,13 +860,16 @@ def __checkInterpolation(val):
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = compositeMask
-    if transformMatrix is not None and flip is None:
-        res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
+    if transformMatrix is not None:
+        if flip is not None:
+           res = __applyFlipComposite(compositeMask, edgeMask,flip)
+        else:
+           res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
         res = __applyRotateToComposite(rotation,  res,
                             (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
     elif flip is not None:
-        res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
+        res = res = __applyFlipComposite(compositeMask, edgeMask,flip)
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])

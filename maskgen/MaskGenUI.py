@@ -503,14 +503,14 @@ class MakeGenUI(Frame):
 
     def viewcomposite(self):
         #self.scModel.getProbeSet()
-        im = self.scModel.constructComposite()
-        if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im)
+        composite = self.scModel.constructComposite()
+        if composite is not None:
+            CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewdonor(self):
         im = self.scModel.getDonor()
         if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im)
+            CompositeViewDialog(self, self.scModel.start, im, None)
 
     def connectto(self):
         self.drawState()
