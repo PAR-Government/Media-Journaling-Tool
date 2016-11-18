@@ -380,10 +380,7 @@ class ImageImageLinkTool(LinkTool):
                             scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
                             arguments=arguments, invert=invert)
                         if mask is not None:
-                            errors = list()
                             mask = ImageWrapper(mask)
-                        else:
-                            errors = ["Could not compute SIFT Matrix"]
                         break
             if mask is None:
                 analysis = {}

@@ -91,6 +91,9 @@ class ImageWrapper:
             self.image_array = cv2.cvtColor(self.to_rgb(type='uint8').image_array,cv2.COLOR_RGBA2GRAY)
             self.mode = 'L'
 
+    def has_alpha(self):
+        return len(self.image_array.shape) == 3 and self.image_array.shape[2] > 3
+
     def to_image(self):
         return Image.fromarray(self.image_array,mode = self.mode)
 

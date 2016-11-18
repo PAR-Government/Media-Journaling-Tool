@@ -131,8 +131,7 @@ def imageResize(img, dim):
 
 def imageResizeRelative(img, dim, otherIm):
     """
-    Preserves the dimension ratios
-    :param img:
+    Preserves the dimension ratios_
     :param dim:
     :param otherIm:
     :return: Resized relative to width given the maximum constraints
@@ -357,11 +356,24 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 
 
 def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
+    """
+
+    :param mask:
+    :param img1:
+    :param img2:
+    :param invert:
+    :param arguments:
+    :return:
+    @type mask: ImageWrapper
+    @type img2: ImageWrapper
+    @type img1: ImageWrapper
+    """
     maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
     mask = mask.astype('uint8')
     try:
-        TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
+        mask1 = convertToMask(img1).invert().to_array() if img1.has_alpha() else None
+        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted)
     except:
         TM = None
         computed_mask = None
@@ -587,8 +599,10 @@ def __sift(img1, img2, mask1=None, mask2=None):
         #positions = __indexOf(src_pts,new_src_pts)
         #new_dst_pts = dst_pts[positions]
         new_dst_pts = dst_pts
-
-        M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, 3.0)
+        RANSAC_THRESHOLD=3.0
+        M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
+        if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
+            return None, None
         #M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         #matchesMask = mask.ravel().tolist()
 
@@ -600,7 +614,7 @@ def __sift(img1, img2, mask1=None, mask2=None):
         #new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
         #cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
         ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        return M,None#mask.astype('uint8')
+        return M1,None#mask.astype('uint8')
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
@@ -869,7 +883,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         res = __applyRotateToComposite(rotation,  res,
                             (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
     elif flip is not None:
-        res = res = __applyFlipComposite(compositeMask, edgeMask,flip)
+        res = __applyFlipComposite(compositeMask, edgeMask,flip)
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
