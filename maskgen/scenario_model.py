@@ -870,21 +870,24 @@ class ImageProjectModel:
                 return self.constructComposite()
         return mask
 
-    def getDonor(self,force=False):
+    def getDonorAndBaseImages(self,force=False):
         """
          Get the composite image for the selected node.
          If the composite does not exist AND the node is a leaf node, then create the composite
          Return None if the node is not a leaf node
         """
         nodeName = self.start if self.end is None else self.end
-        mask, filename = (None,None) if force else self.G.get_donor_mask(nodeName)
-        if mask is None:
-            # verify the node is a leaf node
-            endPointTuples = self.getDonorAndBaseNodeTuples()
-            if nodeName in [x[0][1] for x in endPointTuples]:
+        mask = None
+        baseImage = None
+        # verify the node is a leaf node
+        endPointTuples = self.getDonorAndBaseNodeTuples()
+        for x in endPointTuples:
+            if nodeName == x[0][1]:
                 self.constructDonors()
-            mask, filename = self.G.get_donor_mask(nodeName)
-        return mask
+                baseImage,_ = self.G.get_image(x[1])
+                mask, filename = self.G.get_donor_mask(nodeName)
+                break
+        return mask,baseImage
 
     def _constructComposites(self, nodeAndMasks, stopAtNode=None,edgeMap=dict(),level=IntObject()):
         """

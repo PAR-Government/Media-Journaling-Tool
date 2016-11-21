@@ -73,7 +73,6 @@ class MakeGenUI(Frame):
     img1oc = None
     img2oc = None
     img3oc = None
-    scModel = None
     l1 = None
     l2 = None
     l3 = None
@@ -87,6 +86,10 @@ class MakeGenUI(Frame):
     exportErrorlistDialog = None
     uiProfile = UIProfile()
     menuindices = {}
+    scModel = None
+    """
+    @type scModel: ImageProjectModel
+    """
 
     gfl = GroupFilterLoader()
 
@@ -508,9 +511,9 @@ class MakeGenUI(Frame):
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewdonor(self):
-        im = self.scModel.getDonor()
+        im,baseIm = self.scModel.getDonorAndBaseImages()
         if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im, None)
+            CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
     def connectto(self):
         self.drawState()
