@@ -100,7 +100,9 @@ def check_mandatory(edge, op, graph, frm, to):
     missing = [param for param in opObj.mandatoryparameters.keys() if
                (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname'
                and ('source' not in opObj.mandatoryparameters[param] or opObj.mandatoryparameters[param]['source'] == frm_file_type)]
-    if 'inputmaskname' in opObj.mandatoryparameters.keys() and (
+    inputmasks = [param for param in opObj.optionalparameters.keys() if param == 'inputmaskname' and
+                  'purpose' in edge and edge['purpose'] == 'clone']
+    if ('inputmaskname' in opObj.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
             'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0):
         missing.append('inputmaskname')
     return [('Mandatory parameter ' + m + ' is missing') for m in missing]
@@ -385,6 +387,16 @@ def cloneRule(scModel,edgeTuples):
                      edgeTuple[2]['arguments']['purpose'] == 'clone')):
             return 'yes'
     return 'no'
+
+def unitCountRule(scModel,edgeTuples):
+    setofops = set()
+    count = 0
+    for edgeTuple in edgeTuples:
+        #edgeNode = scModel.getGraph().get_node(edgeTuple[1])
+        op = getOperationWithGroups( edgeTuple[2]['op'] ,fake=True )
+        count += 1 if op.category not in ['Filter','Output','Select','Donor'] and edgeTuple[2]['op'] not in setofops else 0
+        setofops.add(edgeTuple[2]['op'])
+    return str(count) + '-Unit'
 
 def compositeSizeRule(scModel, edgeTuples):
     value = 0

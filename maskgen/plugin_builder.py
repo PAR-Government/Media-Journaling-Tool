@@ -1,5 +1,4 @@
 import tkSimpleDialog
-from tkinter import *
 import os
 import json
 import software_loader
