@@ -5,6 +5,7 @@ import os
 import numpy as np
 import tool_set
 import video_tools
+from maskgen import software_loader
 from software_loader import Software
 import tempfile
 import plugins
@@ -1253,9 +1254,11 @@ class ImageProjectModel:
             return tool_set.fileType(self.G.get_image_path(nodeid))
 
     def saveas(self, pathname):
+        self.clear_validation_properties()
         self.G.saveas(pathname)
 
     def save(self):
+        self.clear_validation_properties()
         self.G.save()
 
     def getDescriptionForPredecessor(self, node):
@@ -1651,11 +1654,13 @@ class ImageProjectModel:
             if edge['op'] == opName]
 
     def export(self, location):
+        self.clear_validation_properties()
         path, errors = self.G.create_archive(location)
         return errors
 
     def exporttos3(self, location, tempdir=None):
         import boto3
+        self.clear_validation_properties()
         path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
         if len(errors) == 0:
             s3 = boto3.client('s3', 'us-east-1')
@@ -1756,6 +1761,15 @@ class ImageProjectModel:
                             errors=edge['errors'] if 'errors' in edge else list(),
                             maskSet=(VideoMaskSetInfo(edge['videomasks']) if (
                                 'videomasks' in edge and len(edge['videomasks']) > 0) else None))
+
+    def clear_validation_properties(self):
+        validationProps = {'validation':'no', 'validatedby':'', 'validationdate':''}
+        currentProps = {}
+        for p in validationProps:
+            currentProps[p] = self.getProjectData(p)
+        if all(vp in currentProps for vp in validationProps) and currentProps['validatedby'] != tool_set.get_username():
+            for key, val in validationProps.iteritems():
+                self.setProjectData(key, val)
 
 
 class VideoMaskSetInfo:
