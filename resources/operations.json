@@ -2570,7 +2570,7 @@
         }
       },
       "description": "Remove a limited selection within an image.",
-      "includeInMask": true,
+      "includeInMask": false,
       "transitions": [
         "image.image"
       ]
