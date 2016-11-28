@@ -548,9 +548,20 @@ def __indexOf(source, dest):
     return positions
 
 def __sift(img1, img2, mask1=None, mask2=None):
+
+    """
+    Compute homography to transfrom img1 to img2
+    Apply the mask to each in order to only compare relevent regions of images
+    :param img1:
+    :param img2:
+    :param mask1:
+    :param mask2:
+    @type img1: ImageWrapper
+    @type img2: ImageWrapper
+    :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
+    """
     img1 = img1.to_rgb().apply_mask(mask1).to_array()
     img2 = img2.to_rgb().apply_mask(mask2).to_array()
-
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
 
@@ -619,6 +630,7 @@ def __sift(img1, img2, mask1=None, mask2=None):
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
     return None,None
+
 
 def __applyFlipComposite(compositeMask, mask, flip):
     """

@@ -5,6 +5,7 @@ import os
 import numpy as np
 import tool_set
 import video_tools
+from maskgen import software_loader
 from software_loader import Software
 import tempfile
 import plugins
@@ -870,21 +871,24 @@ class ImageProjectModel:
                 return self.constructComposite()
         return mask
 
-    def getDonor(self,force=False):
+    def getDonorAndBaseImages(self,force=False):
         """
          Get the composite image for the selected node.
          If the composite does not exist AND the node is a leaf node, then create the composite
          Return None if the node is not a leaf node
         """
         nodeName = self.start if self.end is None else self.end
-        mask, filename = (None,None) if force else self.G.get_donor_mask(nodeName)
-        if mask is None:
-            # verify the node is a leaf node
-            endPointTuples = self.getDonorAndBaseNodeTuples()
-            if nodeName in [x[0][1] for x in endPointTuples]:
+        mask = None
+        baseImage = None
+        # verify the node is a leaf node
+        endPointTuples = self.getDonorAndBaseNodeTuples()
+        for x in endPointTuples:
+            if nodeName == x[0][1]:
                 self.constructDonors()
-            mask, filename = self.G.get_donor_mask(nodeName)
-        return mask
+                baseImage,_ = self.G.get_image(x[1])
+                mask, filename = self.G.get_donor_mask(nodeName)
+                break
+        return mask,baseImage
 
     def _constructComposites(self, nodeAndMasks, stopAtNode=None,edgeMap=dict(),level=IntObject()):
         """
@@ -1250,9 +1254,11 @@ class ImageProjectModel:
             return tool_set.fileType(self.G.get_image_path(nodeid))
 
     def saveas(self, pathname):
+        self.clear_validation_properties()
         self.G.saveas(pathname)
 
     def save(self):
+        self.clear_validation_properties()
         self.G.save()
 
     def getDescriptionForPredecessor(self, node):
@@ -1648,11 +1654,13 @@ class ImageProjectModel:
             if edge['op'] == opName]
 
     def export(self, location):
+        self.clear_validation_properties()
         path, errors = self.G.create_archive(location)
         return errors
 
     def exporttos3(self, location, tempdir=None):
         import boto3
+        self.clear_validation_properties()
         path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
         if len(errors) == 0:
             s3 = boto3.client('s3', 'us-east-1')
@@ -1753,6 +1761,15 @@ class ImageProjectModel:
                             errors=edge['errors'] if 'errors' in edge else list(),
                             maskSet=(VideoMaskSetInfo(edge['videomasks']) if (
                                 'videomasks' in edge and len(edge['videomasks']) > 0) else None))
+
+    def clear_validation_properties(self):
+        validationProps = {'validation':'no', 'validatedby':'', 'validationdate':''}
+        currentProps = {}
+        for p in validationProps:
+            currentProps[p] = self.getProjectData(p)
+        if all(vp in currentProps for vp in validationProps) and currentProps['validatedby'] != tool_set.get_username():
+            for key, val in validationProps.iteritems():
+                self.setProjectData(key, val)
 
 
 class VideoMaskSetInfo:
