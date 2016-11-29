@@ -485,7 +485,7 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
            globalchange = globalchange or area/totalArea > 0.50
     return globalchange,'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large'),ratio
 
-def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
+def globalTransformAnalysis(analysis,img1,img2,mask=None,linktype=None,arguments={}):
     globalchange = img1.size != img2.size
     changeCategory = 'large'
     ratio = 1.0
@@ -496,8 +496,10 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     analysis['change size category'] = changeCategory
     return globalchange
 
-def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
+def siftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
+        return
+    if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
     matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
