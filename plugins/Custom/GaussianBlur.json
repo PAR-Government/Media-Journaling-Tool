@@ -1,0 +1,20 @@
+{
+    "name": "GaussianBlur",
+    "operation": {
+      "name": "AdditionalEffectFilterBlur",
+      "category": "AdditionalEffect",
+      "description": "Automatically apply a motion blur with the given radius and sigma value. (https://www.imagemagick.org/script/command-line-options.php#blur)",
+      "softwarename": "ImageMagick",
+      "softwareversion": "7.0"
+    },
+    "args": [
+      ["RADIUSxSIGMA", null, "Blur specifications, must be entered with with an x in between (e.g. 25x2)."]
+    ],
+    "command": ["magick",
+                "convert",
+                "-blur",
+                "{RADIUSxSIGMA}",
+                "{inputimage}",
+                "{outputimage}"
+                ]
+}

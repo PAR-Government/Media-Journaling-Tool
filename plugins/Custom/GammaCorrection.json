@@ -5,8 +5,9 @@
       "category": "Intensity",
       "description": "Apply gamma adjustment so the mean image color will have a value of 50% (https://www.imagemagick.org/script/command-line-options.php#auto-gamma)",
       "softwarename": "ImageMagick",
-      "softwareversion": "7.0.3"
+      "softwareversion": "7.0"
     },
+    "args": [],
     "command": ["magick",
                 "convert",
                 "-auto-gamma",
