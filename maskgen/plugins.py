@@ -45,6 +45,13 @@ def loadCustom(plugin, path):
                               data['operation']['description'],
                               data['operation']['softwarename'],
                               data['operation']['softwareversion']]
+    try:
+        # plugin design expects arguments as tuple, which JSON does not support
+        loaded[plugin]['arguments'] = []
+        for arg in data['args']:
+            loaded[plugin]['arguments'].append(tuple(arg))
+    except KeyError:
+        loaded[plugin]['arguments'] = None
     loaded[plugin]['arguments'] = data['args'] if 'args' in data else None
     loaded[plugin]['command'] = data['command']
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
@@ -117,8 +124,8 @@ def runCustomPlugin(name, im, source, target, **kwargs):
         elif executionCommand[i] == '{outputimage}':
             executionCommand[i] = target
 
-        # Saved for once typed args are done...
-        # else:
-        #     executionCommand[i] = executionCommand[i].format(**kwargs)
+        # Replace bracketed text with arg
+        else:
+            executionCommand[i] = executionCommand[i].format(**kwargs)
     subprocess.call(executionCommand)
     return None, None
