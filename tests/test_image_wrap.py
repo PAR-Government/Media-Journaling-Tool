@@ -17,9 +17,9 @@ class TestImageWrap(unittest.TestCase):
         im_array = np.asarray(im)
         self.assertTrue(wrapper.image_array.shape == im_array.shape)
 
-        wrapper = image_wrap.openImageFile('tests/test.png')
+        wrapper = image_wrap.openImageFile('tests/images/test.png')
         self.assertTrue(wrapper.to_image() is not None)
-        im = Image.open('tests/test.png')
+        im = Image.open('tests/images/test.png')
         im_array = np.asarray(im)
         self.assertTrue(wrapper.image_array.shape == im_array.shape)
         self.assertEquals(wrapper.size, im.size)
@@ -37,13 +37,22 @@ class TestImageWrap(unittest.TestCase):
         self.assertTrue((wrapper.image_array ==np.asarray(wrapper)).all())
         self.assertTrue((wrapper.image_array == np.array(wrapper)).all())
 
-        wrapper = image_wrap.openImageFile('tests/test.tif')
-        wrapper.save('tests/test1.tif',**wrapper.info)
+        wrapper = image_wrap.openImageFile('tests/images/test.tif')
+        wrapper.save('tests/images/test1.tif',**wrapper.info)
+        wrapper.to_float()
+        wrapper.to_rgb()
 
-
+    def test_two_channel(self):
+        wrapper = image_wrap.openImageFile('tests/images/two_channel.jpg')
+        wrapper.to_mask()
+        wrapper.apply_transparency()
+        wrapper.convert('L')
+        wrapper.convert('RGBA')
+        wrapper.to_float()
+        wrapper.to_rgb()
 
     def check_save(self, wrapper,foarmat):
-        fname = 'tests/foo.' + ('tif' if foarmat != 'PNG' else 'png')
+        fname = 'tests/images/foo.' + ('tif' if foarmat != 'PNG' else 'png')
         wrapper.save(fname, format=foarmat)
         compareWrapper  = image_wrap.openImageFile(fname)
         self.assertTrue((compareWrapper.image_array == wrapper.image_array).all())
