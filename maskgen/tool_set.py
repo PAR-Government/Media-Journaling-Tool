@@ -914,6 +914,8 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = donorMask
+    if location != (0, 0):
+        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
     if transformMatrix is not None:
         res = __applyTransform(donorMask, edgeMask, deserializeMatrix(transformMatrix),invert=True)
@@ -922,8 +924,6 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
                             (donorMask.shape[0] + sizeChange[0], donorMask.shape[1] + sizeChange[1]), cval=255)
     elif flip is not None:
         res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
-    if location != (0, 0):
-        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     if location != (0, 0) or crop:
         newRes = np.ones(expectedSize)*255
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])

@@ -1784,7 +1784,7 @@ class ImageProjectModel:
         return  alterReverseMask(donorMask, None, rotation=rotation,
                                            sizeChange=sizeChange,
                                            location=location, flip=flip,
-                                           transformMatrix=None,
+                                           transformMatrix=tm,
                                           crop = edge['op']=='TransformCrop')
 
     def _getModificationForEdge(self, start,end, edge):
