@@ -422,6 +422,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
                                                                                                sticky=W)
         Label(master, text='Automated: ' + self.description.automated, anchor=W, justify=LEFT).grid(row=3, column=0,
                                                                                                     sticky=W)
+        Label(master, text='User: ' + self.description.username, anchor=W, justify=LEFT).grid(row=3, column=2,
+                                                                                                    sticky=E)
         row = 4
         if len(self.description.arguments) > 0:
             Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=4, sticky=W)
