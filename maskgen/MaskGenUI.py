@@ -585,6 +585,7 @@ class MakeGenUI(Frame):
             self.scModel.update_edge(d.modification)
 
     def startQA(self):
+        self.scModel.constructCompositesAndDonors()
         terminalNodes = [node for node in self.scModel.G.get_nodes() if
                          len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
         donorNodes = []
