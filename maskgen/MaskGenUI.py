@@ -12,6 +12,7 @@ from maskgen_loader import MaskGenLoader
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
+from mask_frames import HistoryDialog
 
 """
   Main UI Driver for MaskGen
@@ -555,6 +556,9 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
         self.setSelectState('disabled')
 
+    def history(self):
+        h = HistoryDialog(self,self.scModel)
+
     def edit(self):
         im, filename = self.scModel.currentImage()
         if (im is None):
@@ -649,8 +653,10 @@ class MakeGenUI(Frame):
         menubar.add_cascade(label="Process", menu=self.processmenu)
 
         validationmenu = Menu(menubar, tearoff=0)
+        validationmenu.add_command(label='History',command=self.history)
         validationmenu.add_command(label="Validate", command=self.validate)
         validationmenu.add_command(label="QA...", command=self.startQA)
+
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
         self.master.config(menu=menubar)
