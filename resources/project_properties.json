@@ -155,7 +155,7 @@
       "description": "People",
       "name": "people",
       "type": "yesno",
-       "operation" :"PasteSplice",
+      "operation" :"PasteSplice",
       "parameter":"subject",
       "value":"people",
       "node" : true
@@ -209,13 +209,21 @@
       "node" : true
     },
      {
-      "description": "Composite Image Pixel Size",
-      "name": "compositepixelsize",
-      "type": "list",
-      "values": ["small","medium","large"],
+       "description": "Composite Image Pixel Size",
+       "name": "compositepixelsize",
+       "type": "list",
+       "values": ["small","medium","large"],
        "_comment": " determine the largest size contribution to the composite",
-      "rule" : "compositeSizeRule",
+
        "node" : true
+    },
+    {
+       "description": "Manipulation Category",
+       "name": "manipulationcategory",
+       "node" : true,
+       "type": "text",
+       "rule" : "unitCountRule",
+       "information": "The number of units per node"
     }
   ]
 }

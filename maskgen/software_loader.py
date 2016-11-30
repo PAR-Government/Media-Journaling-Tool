@@ -217,6 +217,7 @@ def loadSoftware(fileName):
             elif len(software_name) > 0:
                 types = ['image', 'video'] if software_type == 'both' else [software_type]
                 types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                types = ['video', 'audio'] if software_type == 'audio' else types
                 for stype in types:
                     softwareset[stype][software_name] = versions
     return softwareset
