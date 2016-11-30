@@ -735,6 +735,23 @@ class ImageGraph:
                         (str(nname), str(nname), str(nname) + ' missing ' + pathvalue))
         return errors
 
+    def _output_summary(self,archive):
+        """
+        Add a summary PNG to the archicve
+        :param archive: TarFile
+        :return: None
+        @type archive : TarFile
+        """
+        from graph_output import ImageGraphPainter
+        summary_file = os.path.join(self.dir, '_overview_.png')
+        try:
+            ImageGraphPainter(self).output(summary_file)
+            archive.add(summary_file,
+                    arcname=os.path.join(self.G.name, '_overview_.png'))
+        except Exception as e:
+            print 'Unable to create image graph'
+            print e
+
     def _create_archive(self, location):
         self.save()
         fname = os.path.join(location, self.G.name + '.tgz')
@@ -748,6 +765,7 @@ class ImageGraph:
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
             errors.extend(self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive,names_added=names_added))
+        self._output_summary(archive)
         archive.close()
         return fname, errors, names_added
 
