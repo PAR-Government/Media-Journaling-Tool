@@ -93,6 +93,9 @@ class ImageWrapper:
             self.image_array = cv2.cvtColor(self.to_rgb(type='uint8').image_array,cv2.COLOR_RGBA2GRAY)
             self.mode = 'L'
 
+    def has_alpha(self):
+        return len(self.image_array.shape) == 3 and self.mode.find('A') > 0
+
     def to_image(self):
         return Image.fromarray(self.image_array,mode = self.mode)
 
@@ -126,7 +129,7 @@ class ImageWrapper:
             img_array2 = img_array2.astype(self.image_array.dtype)
             return ImageWrapper(totype(img_array2,type=type),mode='RGB')
         elif len(s) == 2:
-             return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB))
+             return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB),mode='RGB')
         return ImageWrapper(totype(np.copy(img.image_array),type))
 
     def save(self, filename, **kwargs):
@@ -162,7 +165,7 @@ class ImageWrapper:
             return ImageWrapper(np.asarray(Image.fromarray(self.image_array,mode='F').convert(convert_type_str)))
         img_array = (np.iinfo('uint8').max * self.image_array).astype('uint8') if str(self.image_array.dtype).startswith('f') else self.image_array
         if img_array.dtype == 'uint8':
-            return ImageWrapper(np.asarray(Image.fromarray(img_array,mode=self.mode).convert(convert_type_str)))
+            return ImageWrapper(np.asarray(Image.fromarray(img_array,mode=self.mode).convert(convert_type_str)),mode=convert_type_str)
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2RGBA),mode='RGBA' )
         if self.mode == 'RGBA' and convert_type_str == 'RGB':
@@ -269,4 +272,23 @@ class ImageWrapper:
             xx[:, :, d] = xx[:, :, d] * perc
         xx[:, :, self.image_array.shape[2]-1] = np.ones((xx.shape[0], xx.shape[1])) * float(np.iinfo(self.image_array.dtype).max)
         return ImageWrapper(xx)
+
+    def overlay(self, image):
+        """
+        :param image:
+        :return:new image with give n image overlayed
+        @rtype : ImageWrapper
+        """
+        image_to_use = self.image_array if len(self.image_array.shape) != 2 else self.convert('RGB').image_array
+        self_array = np.copy(image_to_use)
+        if len(self.image_array.shape) != len(image.image_array.shape):
+            image_array =  np.ones(image_to_use.shape)*255
+            image_array[image.image_array<1,:] = [0, 198, 0]
+            image_array[image.image_array > 0, :] = [0, 0, 0]
+            image_array = image_array.astype('uint8')
+        else:
+            image_array =np.copy( np.asarray(image))
+            image_array[np.all(image_array == [255,255,255],axis=2)] = [0,0,0]
+        return ImageWrapper(cv2.addWeighted(image_array, 0.65, self_array[:,:,0:3],  1,
+                        0, self_array))
 

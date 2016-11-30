@@ -1,13 +1,13 @@
 from Tkinter import *
 import ttk
-from datetime import datetime
+import time
 import tkMessageBox
 from group_filter import GroupFilter, GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getFileTypes
+    validateCoordinates, getMaskFileTypes, getFileTypes, get_username
 from scenario_model import Modification
 from software_loader import Software, SoftwareLoader
 import os
@@ -16,6 +16,7 @@ from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
+from software_loader import loadProjectProperties
 
 def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     """
@@ -151,6 +152,14 @@ class PropertyDialog(tkSimpleDialog.Dialog):
              if v:
                  self.values[row].insert(0,v)
              self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
+
+           if prop.readonly:
+               if prop.type == 'yesno':
+                   self.yesbuttons[radioCount-1].config(state=DISABLED)
+                   self.nobuttons[radioCount-1].config(state=DISABLED)
+               else:
+                   self.values[row].config(state=DISABLED)
+
            row+=1
 
 
@@ -413,6 +422,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
                                                                                                sticky=W)
         Label(master, text='Automated: ' + self.description.automated, anchor=W, justify=LEFT).grid(row=3, column=0,
                                                                                                     sticky=W)
+        Label(master, text='User: ' + self.description.username, anchor=W, justify=LEFT).grid(row=3, column=2,
+                                                                                                    sticky=E)
         row = 4
         if len(self.description.arguments) > 0:
             Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=4, sticky=W)
@@ -911,7 +922,7 @@ class ListDialog(Toplevel):
         self.itemBox.grid(row=0, column=0, sticky=E + W + N + S)
         self.xscrollbar.config(command=self.itemBox.xview)
         self.xscrollbar.grid(row=1, column=0, stick=E + W)
-        self.yscrollbar.config(command=self.itemBox.xview)
+        self.yscrollbar.config(command=self.itemBox.yview)
         self.yscrollbar.grid(row=0, column=1, stick=N + S)
         for item in self.items:
             self.itemBox.insert(END, item[2])
@@ -1025,17 +1036,29 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
 class CompositeViewDialog(tkSimpleDialog.Dialog):
     im = None
+    composite = None
+    """
+    @type im: ImageWrapper
+    @type composite: ImageWrapper
+    """
 
-    def __init__(self, parent, name, im):
-        self.im = im
+    def __init__(self, parent, name, composite, im):
+        self.composite = composite
+        self.im= im
         self.parent = parent
         self.name = name
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c = Canvas(master, width=250, height=250)
-        self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
+        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
+        if self.im is not None:
+            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
+            imResized = imResized.overlay(compositeResized)
+        else:
+            imResized = compositeResized
+        self.photo = ImageTk.PhotoImage(imResized.toPIL())
+        self.c = Canvas(master, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
+        self.image_on_canvas = self.c.create_image(0,0, image=self.photo,anchor=NW, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
 
     def buttonbox(self):
@@ -1057,6 +1080,120 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
                 val = val + '.png'
             self.im.save(val)
             self.ok()
+
+class QAViewDialog(Toplevel):
+    def __init__(self, parent, terminalNodes, donorNodes):
+        self.terminals = terminalNodes
+        self.donors = donorNodes
+        self.parent = parent
+        Toplevel.__init__(self, parent)
+        self.createWidgets()
+        self.resizable(width=False, height=False)
+
+    def createWidgets(self):
+        row=0
+        col=0
+        self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
+        self.optionsLabel.grid(row=row)
+        row+=1
+        self.optionsBox = ttk.Combobox(self, values=self.terminals + self.donors)
+        self.optionsBox.set(self.terminals[0])
+        self.optionsBox.grid(row=row, sticky='EW')
+        self.optionsBox.bind("<<ComboboxSelected>>", self.composite_or_donor)
+        row+=1
+        self.cImgFrame = Frame(self)
+        self.cImgFrame.grid(row=row, rowspan=8)
+
+        self.master.scModel.selectImage(self.terminals[0])
+        self.descriptionLabel = Label(self)
+        self.composite_or_donor(initialize=True)
+
+        row=1
+        col=1
+
+        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
+        self.validateButton.grid(row=row, column=col, padx=10, columnspan=6, sticky='EW')
+        row+=1
+
+        self.infolabel = Label(self, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
+        row+=1
+
+        qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
+                   'PasteSplice and PasteSampled operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
+                   'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
+                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
+        checkboxes = []
+        self.checkboxvars = []
+        for q in qa_list:
+            var = BooleanVar()
+            ck = Checkbutton(self, variable=var, command=self.check_ok)
+            ck.grid(row=row, column=col)
+            checkboxes.append(ck)
+            self.checkboxvars.append(var)
+            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='W')
+            row+=1
+
+        Label(self, text='QA Signoff: ').grid(row=row, column=col, sticky='W')
+        row+=1
+
+        self.reporterStr = StringVar()
+        self.reporterStr.set(get_username())
+        self.reporterEntry = Entry(self, textvar=self.reporterStr)
+        self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
+
+        self.acceptButton = Button(self, text='Accept', command=self.qa_done, width=15, state=DISABLED)
+        self.acceptButton.grid(row=row, column=col+1, columnspan=3)
+
+        row += 1
+        self.descriptionLabel.grid(row=row, column=col-1)
+
+    def composite_or_donor(self, initialize=False, event=None):
+        self.name = self.parent.scModel.start
+        self.master.scModel.selectImage(self.optionsBox.get())
+        if self.optionsBox.get() in self.terminals:
+            self.im = self.parent.scModel.startImage()
+            self.composite = self.master.scModel.getComposite()
+            self.descriptionLabel.config(text='Composite generated for node ' + self.optionsBox.get())
+        elif self.optionsBox.get() in self.donors:
+            self.composite, self.im = self.parent.scModel.getDonorAndBaseImages()
+            self.descriptionLabel.config(text='Donor mask generated for node ' + self.optionsBox.get())
+        else:
+            return
+
+        self.load_composite(initialize)
+
+    def load_composite(self, initialize=False):
+        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
+        if self.im is not None:
+            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
+            imResized = imResized.overlay(compositeResized)
+        else:
+            imResized = compositeResized
+        self.photo = ImageTk.PhotoImage(imResized.toPIL())
+        if initialize is True:
+            self.c = Canvas(self.cImgFrame, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
+            self.c.pack()
+        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
+
+
+    def qa_done(self):
+        self.parent.scModel.setProjectData('validation', 'yes')
+        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get())
+        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
+        self.parent.scModel.save()
+
+        self.destroy()
+
+    def check_ok(self, event=None):
+        turn_on_ok = True
+        for b in self.checkboxvars:
+            if b.get() is False or turn_on_ok is False:
+                turn_on_ok = False
+
+        if turn_on_ok is True:
+            self.acceptButton.config(state=NORMAL)
+        else:
+            self.acceptButton.config(state=DISABLED)
 
 
 class ButtonFrame(Frame):

@@ -12,6 +12,7 @@ from maskgen_loader import MaskGenLoader
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
+from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 
 """
@@ -74,7 +75,6 @@ class MakeGenUI(Frame):
     img1oc = None
     img2oc = None
     img3oc = None
-    scModel = None
     l1 = None
     l2 = None
     l3 = None
@@ -88,6 +88,10 @@ class MakeGenUI(Frame):
     exportErrorlistDialog = None
     uiProfile = UIProfile()
     menuindices = {}
+    scModel = None
+    """
+    @type scModel: ImageProjectModel
+    """
 
     gfl = GroupFilterLoader()
 
@@ -166,6 +170,7 @@ class MakeGenUI(Frame):
                 self.scModel.saveas(val.name)
                 self._setTitle()
             val.close()
+
 
     def export(self):
         errorList = self.scModel.validate()
@@ -507,14 +512,14 @@ class MakeGenUI(Frame):
 
     def viewcomposite(self):
         #self.scModel.getProbeSet()
-        im = self.scModel.constructComposite()
-        if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im)
+        composite = self.scModel.constructComposite()
+        if composite is not None:
+            CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewdonor(self):
-        im = self.scModel.getDonor()
+        im,baseIm = self.scModel.getDonorAndBaseImages()
         if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im)
+            CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
     def connectto(self):
         self.drawState()
@@ -555,6 +560,9 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
         self.setSelectState('disabled')
 
+    def history(self):
+        h = HistoryDialog(self,self.scModel)
+
     def edit(self):
         im, filename = self.scModel.currentImage()
         if (im is None):
@@ -584,6 +592,26 @@ class MakeGenUI(Frame):
         if not d.cancelled:
             self.scModel.update_edge(d.modification)
 
+    def startQA(self):
+        self.scModel.constructCompositesAndDonors()
+        terminalNodes = [node for node in self.scModel.G.get_nodes() if
+                         len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
+        donorNodes = []
+        for node in self.scModel.G.get_nodes():
+            preds = self.scModel.G.predecessors(node)
+            if len(preds) == 2:
+                for pred in preds:
+                    edge = self.scModel.G.get_edge(pred, node)
+                    if edge['op'] == 'PasteSplice':
+                        donorNodes.append(node)
+
+        if self.scModel.getProjectData('validation') == 'yes':
+            tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
+                               ' by ' + self.scModel.getProjectData('validatedby') + '.')
+        elif terminalNodes or donorNodes:
+            d = QAViewDialog(self, terminalNodes, donorNodes)
+
+
     def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(), self.scModel.getName()))
 
@@ -609,7 +637,6 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="Save As", command=self.saveas)
         filemenu.add_separator()
         filemenu.add_cascade(label="Export", menu=exportmenu)
-        filemenu.add_command(label="Validate", command=self.validate)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
         filemenu.add_command(label="Build Plugin...", command=self.pluginbuilder)
         filemenu.add_command(label="Filter Group Manager", command=self.groupmanager)
@@ -639,6 +666,14 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z", state='disabled')
         self.menuindices['undo'] = self.processmenu.index(END)
         menubar.add_cascade(label="Process", menu=self.processmenu)
+
+        validationmenu = Menu(menubar, tearoff=0)
+        validationmenu.add_command(label='History',command=self.history)
+        validationmenu.add_command(label="Validate", command=self.validate)
+        validationmenu.add_command(label="QA...", command=self.startQA)
+
+        menubar.add_cascade(label="Validation", menu=validationmenu)
+
         self.master.config(menu=menubar)
         self.bind_all('<Control-q>', self.gquit)
         self.bind_all('<Control-o>', self.gopen)

@@ -257,9 +257,13 @@ class ImageGraph:
             includePathInUndo = True
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
-        self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname,
+        self.G.add_node(nname,
+                        seriesname=(origname if seriesname is None else seriesname),
+                        file=fname,
                         ownership=('yes' if includePathInUndo else 'no'),
-                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
+                        username=get_username(),
+                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+                        **kwargs)
         self.U = []
         self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
         # adding back a file that was targeted for removal
@@ -443,8 +447,12 @@ class ImageGraph:
         # do not remove old version of mask if not saved previously
         if newmaskpathname in self.filesToRemove:
             self.filesToRemove.remove(newmaskpathname)
-        self.G.add_edge(start, end, maskname=maskname, op=op, \
-                        description=description, username=get_username(), opsys=getOS(), \
+        self.G.add_edge(start,
+                        end,
+                        maskname=maskname,
+                        op=op,
+                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+                        description=description, username=get_username(), opsys=getOS(),
                         **kwargs)
         self.U = []
         self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))

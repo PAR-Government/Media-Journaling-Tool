@@ -33,6 +33,24 @@
        "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
     },
     {
+      "description": "Validation",
+      "name": "validation",
+      "type": "yesno",
+      "readonly": "true"
+    },
+    {
+      "description": "Validated By",
+      "name": "validatedby",
+      "type": "string",
+      "readonly": "true"
+    },
+    {
+      "description": "Validation Date",
+      "name": "validationdate",
+      "type": "string",
+      "readonly": "true"
+    },
+    {
       "description": "Semantic Restaging",
       "name": "semanticrestaging",
       "type": "yesno",
