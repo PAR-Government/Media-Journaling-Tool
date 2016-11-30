@@ -94,7 +94,7 @@ class ImageWrapper:
             self.mode = 'L'
 
     def has_alpha(self):
-        return len(self.image_array.shape) == 3 and self.image_array.shape[2] > 3
+        return len(self.image_array.shape) == 3 and self.mode.find('A') > 0
 
     def to_image(self):
         return Image.fromarray(self.image_array,mode = self.mode)
@@ -129,7 +129,7 @@ class ImageWrapper:
             img_array2 = img_array2.astype(self.image_array.dtype)
             return ImageWrapper(totype(img_array2,type=type),mode='RGB')
         elif len(s) == 2:
-             return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB))
+             return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB),mode='RGB')
         return ImageWrapper(totype(np.copy(img.image_array),type))
 
     def save(self, filename, **kwargs):
@@ -165,7 +165,7 @@ class ImageWrapper:
             return ImageWrapper(np.asarray(Image.fromarray(self.image_array,mode='F').convert(convert_type_str)))
         img_array = (np.iinfo('uint8').max * self.image_array).astype('uint8') if str(self.image_array.dtype).startswith('f') else self.image_array
         if img_array.dtype == 'uint8':
-            return ImageWrapper(np.asarray(Image.fromarray(img_array,mode=self.mode).convert(convert_type_str)))
+            return ImageWrapper(np.asarray(Image.fromarray(img_array,mode=self.mode).convert(convert_type_str)),mode=convert_type_str)
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2RGBA),mode='RGBA' )
         if self.mode == 'RGBA' and convert_type_str == 'RGB':

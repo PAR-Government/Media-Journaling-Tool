@@ -912,9 +912,11 @@ class ImageProjectModel:
         endPointTuples = self.getDonorAndBaseNodeTuples()
         for x in endPointTuples:
             if nodeName == x[0][1]:
-                self.constructDonors()
                 baseImage,_ = self.G.get_image(x[1])
                 mask, filename = self.G.get_donor_mask(nodeName)
+                if mask is None:
+                    self.constructDonors()
+                    mask, filename = self.G.get_donor_mask(nodeName)
                 break
         return mask,baseImage
 
@@ -951,7 +953,7 @@ class ImageProjectModel:
             edge = self.G.get_edge(pred, edge_id[0])
             if edge['op'] == 'Donor':
                 continue
-            donorMask = self._alterDonor(mask,edge)
+            donorMask = self._alterDonor(mask,pred, edge_id[0], edge)
             return self._constructDonor((pred, edge_id[0]),donorMask)
         return mask
 
@@ -1760,14 +1762,19 @@ class ImageProjectModel:
         return compositeMask
 
     def _getOrientation(self,edge):
-        return edge['exifdiff']['Orientation'][1] if 'arguments' in edge and \
-                                                     'rotate' in edge['arguments']  and \
-                                                     edge['arguments']['rotate'] == 'yes' and \
+        return edge['exifdiff']['Orientation'][1] if ('arguments' in edge and \
+                                                      (('rotate' in edge['arguments'] and \
+                                                     edge['arguments']['rotate'] == 'yes') or \
+                                                     ('Image Rotated' in edge['arguments'] and \
+                                                      edge['arguments']['Image Rotated'] == 'yes'))) and \
                                                      'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
 
-    def _alterDonor(self,donorMask,edge):
+    def _alterDonor(self,donorMask,source, target,edge):
         if donorMask is None:
             return None
+        edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
+        selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
+        edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
@@ -1780,8 +1787,12 @@ class ImageProjectModel:
             args['interpolation']) > 0 else 'nearest'
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
         flip = args['flip direction'] if 'flip direction' in args else None
-        tm = tm if 'global' not in edge or edge['global'] == 'no' else None
-        return  alterReverseMask(donorMask, None, rotation=rotation,
+        tm = tm if ('global' not in edge or edge['global'] == 'no') and sizeChange == (0,0) else None
+        orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
+        orientrotate = -orientrotate if orientrotate is not None else None
+        flip = flip if flip is not None else orientflip
+        rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
+        return  alterReverseMask(donorMask, edgeMask, rotation=rotation,
                                            sizeChange=sizeChange,
                                            location=location, flip=flip,
                                            transformMatrix=tm,
