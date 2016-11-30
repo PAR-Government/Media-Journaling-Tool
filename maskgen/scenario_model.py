@@ -1749,12 +1749,21 @@ class ImageProjectModel:
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
         flip = args['flip direction'] if 'flip direction' in args else None
         tm = tm if 'global' not in edge or edge['global'] == 'no' else None
+        orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
+        flip = flip if flip is not None else orientflip
+        rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
         compositeMask = alterMask(compositeMask, edgeMask, rotation=rotation,
                                            sizeChange=sizeChange, interpolation=interpolation,
                                            location=location, flip=flip,
                                            transformMatrix=tm,
                                            crop=edge['op']=='TransformCrop')
         return compositeMask
+
+    def _getOrientation(self,edge):
+        return edge['exifdiff']['Orientation'][1] if 'arguments' in edge and \
+                                                     'rotate' in edge['arguments']  and \
+                                                     edge['arguments']['rotate'] == 'yes' and \
+                                                     'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
 
     def _alterDonor(self,donorMask,edge):
         if donorMask is None:
