@@ -1080,8 +1080,9 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
             self.ok()
 
 class QAViewDialog(Toplevel):
-    def __init__(self, parent, terminalNodes):
+    def __init__(self, parent, terminalNodes, donorNodes):
         self.terminals = terminalNodes
+        self.donors = donorNodes
         self.parent = parent
         Toplevel.__init__(self, parent)
         self.createWidgets()
@@ -1102,11 +1103,26 @@ class QAViewDialog(Toplevel):
         self.cImgFrame.grid(row=row, rowspan=8)
 
         self.master.scModel.selectImage(self.terminals[0])
-        self.composite = self.master.scModel.constructComposite()
         self.load_composite(initialize=True)
 
-        row=1
+        row=0
         col=1
+        self.donorsLabel = Label(self, text='Select donor node to view donor mask: ')
+        self.donorsLabel.grid(row=row, column=col)
+        row+=1
+        self.donorsBox = ttk.Combobox(self, values=self.donors)
+        self.donorsBox.set(self.donors[0])
+        self.donorsBox.grid(row=row, column=col, sticky='EW')
+        self.donorsBox.bind("<<ComboboxSelected>>", self.load_donor)
+        row+=1
+        self.dImgFrame = Frame(self)
+        self.dImgFrame.grid(row=row, column=col, rowspan=8)
+
+        self.master.scModel.selectImage(self.donors[0])
+        self.load_donor(initialize=True)
+
+        row=1
+        col=2
 
         self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
         self.validateButton.grid(row=row, column=col, padx=10, columnspan=6, sticky='EW')
@@ -1143,12 +1159,12 @@ class QAViewDialog(Toplevel):
 
     def load_composite(self, initialize=False, event=None):
         self.master.scModel.selectImage(self.terminalsBox.get())
-        self.name = self.parent.scModel.start
-        self.im = self.parent.scModel.startImage()
+        self.nameC = self.parent.scModel.start
+        self.imC = self.parent.scModel.startImage()
         self.composite = self.master.scModel.constructComposite()
         compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
-        if self.im is not None:
-            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
+        if self.imC is not None:
+            imResized = imageResizeRelative(self.imC, (500, 500),self.imC.size)
             imResized = imResized.overlay(compositeResized)
         else:
             imResized = compositeResized
@@ -1156,7 +1172,23 @@ class QAViewDialog(Toplevel):
         if initialize is True:
             self.c = Canvas(self.cImgFrame, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
             self.c.pack()
-        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgd')
+        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
+
+    def load_donor(self, initialize=False, event=None):
+        self.master.scModel.selectImage(self.donorsBox.get())
+        self.donor, self.imD = self.parent.scModel.getDonorAndBaseImages()
+        self.name = self.parent.scModel.start
+        donorResized = imageResizeRelative(self.donor, (500, 500), self.donor.size)
+        if self.imD is not None:
+            imResized = imageResizeRelative(self.imD, (500, 500), self.imD.size)
+            imResized = imResized.overlay(donorResized)
+        else:
+            imResized = donorResized
+        self.photoD = ImageTk.PhotoImage(imResized.toPIL())
+        if initialize is True:
+            self.d = Canvas(self.dImgFrame, width=donorResized.size[0] + 10, height=donorResized.size[1] + 10)
+            self.d.pack()
+        self.image_on_canvas_donor = self.d.create_image(0, 0, image=self.photoD, anchor=NW, tag='imgd')
 
     def qa_done(self):
         self.parent.scModel.setProjectData('validation', 'yes')

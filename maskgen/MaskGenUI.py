@@ -587,11 +587,21 @@ class MakeGenUI(Frame):
     def startQA(self):
         terminalNodes = [node for node in self.scModel.G.get_nodes() if
                          len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
+        donorNodes = self.scModel.constructDonors()
+        donorNodes = []
+        for node in self.scModel.G.get_nodes():
+            preds = self.scModel.G.predecessors(node)
+            if len(preds) == 2:
+                for pred in preds:
+                    edge = self.scModel.G.get_edge(pred, node)
+                    if edge['op'] == 'PasteSplice':
+                        donorNodes.append(node)
+
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
-        elif terminalNodes:
-            d = QAViewDialog(self,  terminalNodes)
+        elif terminalNodes or donorNodes:
+            d = QAViewDialog(self, terminalNodes, donorNodes)
 
 
     def _setTitle(self):
