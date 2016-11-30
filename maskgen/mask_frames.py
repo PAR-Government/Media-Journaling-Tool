@@ -78,13 +78,14 @@ class HistoryFrame(Frame):
         self.tree.column('User', width=120)
         self.tree.column('Time', width=140,stretch=False)
         self.tree.column('Description', width=400,minwidth=400)
+
         self.tree.heading("Operation", text="Operation")
         self.tree.heading("Start", text="Start")
         self.tree.heading("End", text="End")
         self.tree.heading("User", text="User")
         self.tree.heading("Time", text="Time")
         self.tree.heading("Description", text="Description")
-         
+
         self.ysb = ttk.Scrollbar(self,orient=VERTICAL, command= self.tree.yview)
         self.xsb = ttk.Scrollbar(self,orient=HORIZONTAL, command= self.tree.xview)
         self.tree['yscroll'] = self.ysb.set
