@@ -1082,8 +1082,9 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
             self.ok()
 
 class QAViewDialog(Toplevel):
-    def __init__(self, parent, terminalNodes):
+    def __init__(self, parent, terminalNodes, donorNodes):
         self.terminals = terminalNodes
+        self.donors = donorNodes
         self.parent = parent
         Toplevel.__init__(self, parent)
         self.createWidgets()
@@ -1092,20 +1093,20 @@ class QAViewDialog(Toplevel):
     def createWidgets(self):
         row=0
         col=0
-        self.terminalsLabel = Label(self, text='Select terminal node to view composite: ')
-        self.terminalsLabel.grid(row=row)
+        self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
+        self.optionsLabel.grid(row=row)
         row+=1
-        self.terminalsBox = ttk.Combobox(self, values=self.terminals)
-        self.terminalsBox.set(self.terminals[0])
-        self.terminalsBox.grid(row=row, sticky='EW')
-        self.terminalsBox.bind("<<ComboboxSelected>>", self.load_composite)
+        self.optionsBox = ttk.Combobox(self, values=self.terminals + self.donors)
+        self.optionsBox.set(self.terminals[0])
+        self.optionsBox.grid(row=row, sticky='EW')
+        self.optionsBox.bind("<<ComboboxSelected>>", self.composite_or_donor)
         row+=1
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
 
         self.master.scModel.selectImage(self.terminals[0])
-        self.composite = self.master.scModel.constructComposite()
-        self.load_composite(initialize=True)
+        self.descriptionLabel = Label(self)
+        self.composite_or_donor(initialize=True)
 
         row=1
         col=1
@@ -1120,7 +1121,7 @@ class QAViewDialog(Toplevel):
         qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
                    'PasteSplice and PasteSampled operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
                    'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-                   'Verify that all relevant local changes are accurately represented in the composite image(s), which can be easily viewed to the left.']
+                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
         checkboxes = []
         self.checkboxvars = []
         for q in qa_list:
@@ -1143,11 +1144,25 @@ class QAViewDialog(Toplevel):
         self.acceptButton = Button(self, text='Accept', command=self.qa_done, width=15, state=DISABLED)
         self.acceptButton.grid(row=row, column=col+1, columnspan=3)
 
-    def load_composite(self, initialize=False, event=None):
-        self.master.scModel.selectImage(self.terminalsBox.get())
+        row += 1
+        self.descriptionLabel.grid(row=row, column=col-1)
+
+    def composite_or_donor(self, initialize=False, event=None):
         self.name = self.parent.scModel.start
-        self.im = self.parent.scModel.startImage()
-        self.composite = self.master.scModel.constructComposite()
+        self.master.scModel.selectImage(self.optionsBox.get())
+        if self.optionsBox.get() in self.terminals:
+            self.im = self.parent.scModel.startImage()
+            self.composite = self.master.scModel.getComposite()
+            self.descriptionLabel.config(text='Composite generated for node ' + self.optionsBox.get())
+        elif self.optionsBox.get() in self.donors:
+            self.composite, self.im = self.parent.scModel.getDonorAndBaseImages()
+            self.descriptionLabel.config(text='Donor mask generated for node ' + self.optionsBox.get())
+        else:
+            return
+
+        self.load_composite(initialize)
+
+    def load_composite(self, initialize=False):
         compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
         if self.im is not None:
             imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
@@ -1158,7 +1173,8 @@ class QAViewDialog(Toplevel):
         if initialize is True:
             self.c = Canvas(self.cImgFrame, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
             self.c.pack()
-        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgd')
+        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
+
 
     def qa_done(self):
         self.parent.scModel.setProjectData('validation', 'yes')
