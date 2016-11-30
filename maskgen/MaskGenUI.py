@@ -587,7 +587,6 @@ class MakeGenUI(Frame):
     def startQA(self):
         terminalNodes = [node for node in self.scModel.G.get_nodes() if
                          len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
-        donorNodes = self.scModel.constructDonors()
         donorNodes = []
         for node in self.scModel.G.get_nodes():
             preds = self.scModel.G.predecessors(node)

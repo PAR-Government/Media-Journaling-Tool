@@ -1091,38 +1091,23 @@ class QAViewDialog(Toplevel):
     def createWidgets(self):
         row=0
         col=0
-        self.terminalsLabel = Label(self, text='Select terminal node to view composite: ')
-        self.terminalsLabel.grid(row=row)
+        self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
+        self.optionsLabel.grid(row=row)
         row+=1
-        self.terminalsBox = ttk.Combobox(self, values=self.terminals)
-        self.terminalsBox.set(self.terminals[0])
-        self.terminalsBox.grid(row=row, sticky='EW')
-        self.terminalsBox.bind("<<ComboboxSelected>>", self.load_composite)
+        self.optionsBox = ttk.Combobox(self, values=self.terminals + self.donors)
+        self.optionsBox.set(self.terminals[0])
+        self.optionsBox.grid(row=row, sticky='EW')
+        self.optionsBox.bind("<<ComboboxSelected>>", self.composite_or_donor)
         row+=1
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
 
         self.master.scModel.selectImage(self.terminals[0])
-        self.load_composite(initialize=True)
-
-        row=0
-        col=1
-        self.donorsLabel = Label(self, text='Select donor node to view donor mask: ')
-        self.donorsLabel.grid(row=row, column=col)
-        row+=1
-        self.donorsBox = ttk.Combobox(self, values=self.donors)
-        self.donorsBox.set(self.donors[0])
-        self.donorsBox.grid(row=row, column=col, sticky='EW')
-        self.donorsBox.bind("<<ComboboxSelected>>", self.load_donor)
-        row+=1
-        self.dImgFrame = Frame(self)
-        self.dImgFrame.grid(row=row, column=col, rowspan=8)
-
-        self.master.scModel.selectImage(self.donors[0])
-        self.load_donor(initialize=True)
+        self.descriptionLabel = Label(self)
+        self.composite_or_donor(initialize=True)
 
         row=1
-        col=2
+        col=1
 
         self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
         self.validateButton.grid(row=row, column=col, padx=10, columnspan=6, sticky='EW')
@@ -1134,7 +1119,7 @@ class QAViewDialog(Toplevel):
         qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
                    'PasteSplice and PasteSampled operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
                    'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-                   'Verify that all relevant local changes are accurately represented in the composite image(s), which can be easily viewed to the left.']
+                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
         checkboxes = []
         self.checkboxvars = []
         for q in qa_list:
@@ -1157,14 +1142,28 @@ class QAViewDialog(Toplevel):
         self.acceptButton = Button(self, text='Accept', command=self.qa_done, width=15, state=DISABLED)
         self.acceptButton.grid(row=row, column=col+1, columnspan=3)
 
-    def load_composite(self, initialize=False, event=None):
-        self.master.scModel.selectImage(self.terminalsBox.get())
-        self.nameC = self.parent.scModel.start
-        self.imC = self.parent.scModel.startImage()
-        self.composite = self.master.scModel.constructComposite()
+        row += 1
+        self.descriptionLabel.grid(row=row, column=col-1)
+
+    def composite_or_donor(self, initialize=False, event=None):
+        self.name = self.parent.scModel.start
+        self.master.scModel.selectImage(self.optionsBox.get())
+        if self.optionsBox.get() in self.terminals:
+            self.im = self.parent.scModel.startImage()
+            self.composite = self.master.scModel.getComposite()
+            self.descriptionLabel.config(text='Composite generated for node ' + self.optionsBox.get())
+        elif self.optionsBox.get() in self.donors:
+            self.composite, self.im = self.parent.scModel.getDonorAndBaseImages()
+            self.descriptionLabel.config(text='Donor mask generated for node ' + self.optionsBox.get())
+        else:
+            return
+
+        self.load_composite(initialize)
+
+    def load_composite(self, initialize=False):
         compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
-        if self.imC is not None:
-            imResized = imageResizeRelative(self.imC, (500, 500),self.imC.size)
+        if self.im is not None:
+            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
             imResized = imResized.overlay(compositeResized)
         else:
             imResized = compositeResized
@@ -1174,21 +1173,6 @@ class QAViewDialog(Toplevel):
             self.c.pack()
         self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
 
-    def load_donor(self, initialize=False, event=None):
-        self.master.scModel.selectImage(self.donorsBox.get())
-        self.donor, self.imD = self.parent.scModel.getDonorAndBaseImages()
-        self.name = self.parent.scModel.start
-        donorResized = imageResizeRelative(self.donor, (500, 500), self.donor.size)
-        if self.imD is not None:
-            imResized = imageResizeRelative(self.imD, (500, 500), self.imD.size)
-            imResized = imResized.overlay(donorResized)
-        else:
-            imResized = donorResized
-        self.photoD = ImageTk.PhotoImage(imResized.toPIL())
-        if initialize is True:
-            self.d = Canvas(self.dImgFrame, width=donorResized.size[0] + 10, height=donorResized.size[1] + 10)
-            self.d.pack()
-        self.image_on_canvas_donor = self.d.create_image(0, 0, image=self.photoD, anchor=NW, tag='imgd')
 
     def qa_done(self):
         self.parent.scModel.setProjectData('validation', 'yes')
