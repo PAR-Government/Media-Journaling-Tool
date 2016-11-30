@@ -882,23 +882,28 @@ def __checkInterpolation(val):
     validVals = ['nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic']
     return val if val in validVals else 'nearest'
 
-
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = compositeMask
+    if location != (0, 0):
+        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
+    expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+    #rotation may change the shape
+    # transforms typical are created for local operations (not entire image)
     if transformMatrix is not None:
         if flip is not None:
            res = __applyFlipComposite(compositeMask, edgeMask,flip)
         else:
            res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
-        res = __applyRotateToComposite(rotation,  res,
+        if sizeChange[0] != 0:
+            res = __rotateImage(rotation, compositeMask, (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=0)
+        else:
+            res = __applyRotateToComposite(rotation,  res,
                             (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
-    elif flip is not None:
+    # if transform matrix provided and alternate path is taken above
+    if transformMatrix is None and flip is not None:
         res = __applyFlipComposite(compositeMask, edgeMask,flip)
-    if location != (0, 0):
-        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
-    expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     if location != (0, 0) or crop:
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
@@ -909,6 +914,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = donorMask
+    expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
     if transformMatrix is not None:
         res = __applyTransform(donorMask, edgeMask, deserializeMatrix(transformMatrix),invert=True)
     elif abs(rotation) > 0.001:
@@ -918,7 +924,6 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
-    expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
     if location != (0, 0) or crop:
         newRes = np.ones(expectedSize)*255
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])

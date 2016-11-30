@@ -24,6 +24,24 @@ def getOrientationFromExif(source):
         return None
 
 
+def rotateAmount( orientation):
+    rotation = orientation
+    if rotation == 'Mirror horizontal':
+        return 'horizontal',0
+    elif rotation == 'Rotate 180':
+        return None, 180.0
+    elif rotation == 'Mirror vertical':
+        return 'vertical',0
+    elif rotation == 'Mirror horizontal and rotate 270 CW':
+        return 'horizontal', 270.0
+    elif rotation == 'Rotate 90 CW':
+        return None,90.0
+    elif rotation == 'Mirror horizontal and rotate 90 CW':
+        return 'horizontal', 90.0
+    elif rotation == 'Rotate 270 CW':
+        return None, 270.0
+    return None,0
+
 def rotateAccordingToExif(img_array, orientation, counter=False):
     rotation = orientation
 
