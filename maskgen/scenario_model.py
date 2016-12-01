@@ -14,6 +14,7 @@ from image_wrap import ImageWrapper
 from PIL import Image
 from group_filter import getOperationWithGroups
 from time import gmtime, strftime
+from graph_auto_updates import updateJournal
 
 def toIntTuple(tupleString):
     import re
@@ -1245,12 +1246,7 @@ class ImageProjectModel:
         return createGraph(projectFileName, projecttype=projecttype)
 
     def _autocorrect(self):
-        if self.G.getVersion() != current_version():
-            for frm, to in self.G.get_edges():
-                edge = self.G.get_edge(frm, to)
-                if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
-                    edge['recordMaskInComposite'] = 'yes'
-
+        updateJournal(self)
 
     def _setup(self, projectFileName, graph=None,baseImageFileName=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
@@ -1750,11 +1746,12 @@ class ImageProjectModel:
             args['interpolation']) > 0 else 'nearest'
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
         flip = args['flip direction'] if 'flip direction' in args else None
-        tm = tm if 'global' not in edge or edge['global'] == 'no' else None
-        tm = tm if sizeChange == (0,0) else None
         orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
         flip = flip if flip is not None else orientflip
         rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
+        tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
+        tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
+        tm = tm if sizeChange == (0,0)  else None
         compositeMask = alterMask(compositeMask, edgeMask, rotation=rotation,
                                            sizeChange=sizeChange, interpolation=interpolation,
                                            location=location, flip=flip,
@@ -1788,11 +1785,13 @@ class ImageProjectModel:
             args['interpolation']) > 0 else 'nearest'
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
         flip = args['flip direction'] if 'flip direction' in args else None
-        tm = tm if ('global' not in edge or edge['global'] == 'no') and sizeChange == (0,0) else None
         orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
         orientrotate = -orientrotate if orientrotate is not None else None
         flip = flip if flip is not None else orientflip
         rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
+        tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
+        tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
+        tm = tm if sizeChange == (0,0) else None
         return  alterReverseMask(donorMask, edgeMask, rotation=rotation,
                                            sizeChange=sizeChange,
                                            location=location, flip=flip,

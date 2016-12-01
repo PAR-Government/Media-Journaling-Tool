@@ -523,6 +523,25 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,linktype=None,arguments
     analysis['change size category'] = changeCategory
     return globalchange
 
+def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+    """
+    Perform SIFT regardless of the global change status
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :return:
+    """
+    globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if linktype != 'image.image':
+        return
+    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
+    if matrix is not None:
+        analysis['transform matrix'] = serializeMatrix(matrix)
+
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return

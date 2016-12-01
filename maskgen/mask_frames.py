@@ -124,7 +124,7 @@ class HistoryFrame(Frame):
         @type mod: Modification
         """
         item = (mod.operationName, mod.start,mod.end, mod.ctime, mod.username, mod.additionalInfo)
-        self.tree.insert('', 'end',iid=mod.inputMaskName, values=item)
+        self.tree.insert('', 'end',iid=mod.changeMaskName, values=item)
         # and adjust column widths if necessary
         for idx, val in enumerate(item):
             iwidth = tkFont.Font().measure(val)

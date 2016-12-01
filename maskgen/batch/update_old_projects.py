@@ -262,6 +262,8 @@ def replace_oldops(scModel):
             currentLink['op'] = 'MarkupDigitalPenDraw'
         elif oldOp == 'FillLocalRetouching':
             currentLink['op'] = 'PasteSampled'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
             currentLink['recordMaskInComposite'] = 'true'
             currentLink['arguments']['purpose'] = 'heal'
 
