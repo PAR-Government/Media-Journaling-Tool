@@ -2798,7 +2798,7 @@
       ],
       "optionalparameters": {},
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
       "includeInMask": false,
@@ -2817,7 +2817,7 @@
       ],
       "optionalparameters": {},
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false,
@@ -2866,7 +2866,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the shape and dimensions of a given selection or image.",
       "includeInMask": false,
@@ -2925,7 +2925,7 @@
       ],
       "optionalparameters": {},
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false,
@@ -2977,7 +2977,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
@@ -3018,6 +3018,9 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
+      "analysisOperations": [
+        "maskgen.tool_set.forcedSiftAnalysis"
+      ],
       "description": "Change the size of an image or layer while preserving dimensions.",
       "includeInMask": false
     },
@@ -3036,7 +3039,7 @@
       ],
       "optionalparameters": {},
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
@@ -3060,7 +3063,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
       "includeInMask": false,
@@ -3084,7 +3087,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
       "includeInMask": false,
@@ -3108,7 +3111,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
