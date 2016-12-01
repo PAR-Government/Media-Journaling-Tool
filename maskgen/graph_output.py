@@ -22,22 +22,26 @@ class ImageGraphPainter:
         :param file:
         :return:
         @type file : file
+        @rtype : str
         """
         file.close()
         filename = file.name
         if not filename.endswith('.png'):
             filename = filename + '.png'
         self._draw().write_png(filename)
+        return filename
 
     def output(self, filename):
         """
         :param filename:
         :return:
         @type filename : str
+         @rtype : str
         """
         if not filename.endswith('.png'):
             filename = filename + '.png'
         self._draw().write_png(filename)
+        return filename
 
     def _draw(self):
         import pydot

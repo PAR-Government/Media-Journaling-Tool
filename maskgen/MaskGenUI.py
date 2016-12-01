@@ -164,7 +164,7 @@ class MakeGenUI(Frame):
         val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Output Project Image Name",
                                          filetypes=[("png", "*.png")])
         if (val is not None and len(val.name) > 0):
-           ImageGraphPainter(self.scModel.getGraph()).outputToFile(val)
+            openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val))
 
     def saveas(self):
         val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Save As",
