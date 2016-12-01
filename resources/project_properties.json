@@ -3,7 +3,9 @@
     {
       "description": "User Name",
       "name": "username",
-      "type": "string"
+      "type": "string",
+      "readonly": "true",
+      "information":  "This property may be changed under File->Settings->Username"
     },
     {
       "description": "Organization",
