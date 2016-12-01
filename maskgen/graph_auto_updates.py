@@ -1,4 +1,5 @@
 from image_graph import current_version
+import tool_set
 
 def updateJournal(scModel):
     """
@@ -7,9 +8,26 @@ def updateJournal(scModel):
      :return: None. Updates JSON.
      @type scModel: ImageProjectModel
     """
-    if scModel.G.getVersion() != current_version():
+    if scModel.G.getVersion() <= "0.3.1115":
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
+        _fixTransforms(scModel)
+
+def _fixTransforms(scModel):
+    """
+       Replace true value with  'yes'
+       :param scModel: Opened project model
+       :return: None. Updates JSON.
+       @type scModel: ImageProjectModel
+       """
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] in ['TransformContentAwareScale','TransformAffine','TransformDistort','TransformMove','TransformResize',
+            'TransformScale','TransformShear','TransformSeamCarving','TransformSkew','TransformWarp']:
+            scModel.select((frm,to))
+
+            tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),
+                                        linktype=scModel.getLinkType(frm,to))
 
 def _fixRecordMasInComposite(scModel):
     """
@@ -62,4 +80,6 @@ def _replace_oldops(scModel):
         elif oldOp == 'FillLocalRetouching':
             currentLink['op'] = 'PasteSampled'
             currentLink['recordMaskInComposite'] = 'true'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
             currentLink['arguments']['purpose'] = 'heal'
