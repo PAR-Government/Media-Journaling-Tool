@@ -1751,6 +1751,7 @@ class ImageProjectModel:
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
         flip = args['flip direction'] if 'flip direction' in args else None
         tm = tm if 'global' not in edge or edge['global'] == 'no' else None
+        tm = tm if sizeChange == (0,0) else None
         orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
         flip = flip if flip is not None else orientflip
         rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
