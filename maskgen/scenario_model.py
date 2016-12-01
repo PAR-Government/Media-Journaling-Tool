@@ -1,4 +1,4 @@
-from image_graph import createGraph, current_version
+from image_graph import createGraph, current_version, getPathValues
 import shutil
 import exif
 import os
@@ -1198,6 +1198,30 @@ class ImageProjectModel:
             if (endNode.has_key('seriesname')):
                 prefix = startNode['seriesname']
         return prefix
+
+    def toCSV(self, filename, additionalpaths=list()):
+        """
+        Create a CSV containing all the edges of the graph
+        :param filename:
+        :return: NOne
+        @type filename: str
+        """
+        import csv
+        csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        with open(filename,"ab") as fp:
+            fp_writer = csv.writer(fp)
+            for edge_id in self.G.get_edges():
+                edge = self.G.get_edge(edge_id[0],edge_id[1])
+                if 'compositecolor' not in edge:
+                    continue
+                row = [self.G.get_name(),edge_id[0],edge_id[1],edge['op'], edge['compositecolor']]
+                for path in additionalpaths:
+                    values = getPathValues(edge, path)
+                    if len(values) > 0:
+                        row.append(values[0])
+                    else:
+                        row.append('')
+                fp_writer.writerow(row)
 
     def getName(self):
         return self.G.get_name()

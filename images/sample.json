@@ -31,16 +31,6 @@
   }, 
   "nodes": [
     {
-      "xpos": 325, 
-      "nodetype": "base", 
-      "ctime": "2016-07-28 13:06:28", 
-      "ypos": 14, 
-      "seriesname": "sample", 
-      "ownership": "no", 
-      "file": "sample.jpg", 
-      "id": "sample"
-    }, 
-    {
       "xpos": 354, 
       "nodetype": "final", 
       "ownership": "yes", 
@@ -72,13 +62,14 @@
       "ctime": "2016-06-29 15:11:34"
     }, 
     {
-      "xpos": 239, 
-      "nodetype": "interim", 
-      "file": "orig_input.png", 
-      "ypos": 149, 
-      "seriesname": "orig_input", 
+      "xpos": 325, 
+      "nodetype": "base", 
+      "ctime": "2016-07-28 13:06:28", 
+      "ypos": 14, 
+      "seriesname": "sample", 
       "ownership": "no", 
-      "id": "orig_input"
+      "file": "sample.jpg", 
+      "id": "sample"
     }, 
     {
       "xpos": 538, 
@@ -121,6 +112,15 @@
       "id": "hat_splice_crop"
     }, 
     {
+      "xpos": 239, 
+      "nodetype": "interim", 
+      "file": "orig_input.png", 
+      "ypos": 149, 
+      "seriesname": "orig_input", 
+      "ownership": "no", 
+      "id": "orig_input"
+    }, 
+    {
       "xpos": 443, 
       "nodetype": "donor", 
       "file": "hat.jpg", 
@@ -132,18 +132,156 @@
   ], 
   "links": [
     {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "errors": [], 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.6220126321186452, 
+      "source": 1, 
+      "username": "TheDoorKnob", 
+      "description": "", 
+      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
+      "change size ratio": 0.9320210653543987, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "automated": "no", 
+      "inputmaskname": null, 
+      "shape change": "(0, 0)", 
+      "change size category": "large", 
+      "psnr": 25.23448219085477, 
+      "target": 5, 
+      "exifdiff": {
+        "Background Color": [
+          "delete", 
+          "255 255 255"
+        ], 
+        "Modify Date": [
+          "delete", 
+          "2016:06:10 04:58:51"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_2.png", 
+          "input_mod_2_3.png"
+        ], 
+        "File Size": [
+          "change", 
+          "364 kB", 
+          "250 kB"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ]
+      }, 
+      "softwareVersion": "CC2015.5.12", 
+      "op": "ColorColorBalance"
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "no", 
+      "errors": [], 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.8824301202318747, 
+      "source": 2, 
+      "location": "(0, 0)", 
+      "username": "TheDoorKnob", 
+      "description": "", 
+      "maskname": "input_mod_1_input_mod_2_mask.png", 
+      "change size ratio": 0.13138276817522102, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "automated": "no", 
+      "inputmaskname": null, 
+      "target": 1, 
+      "change size category": "large", 
+      "psnr": 19.43806324641574, 
+      "shape change": "(0, -19)", 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "424x572", 
+          "405x572"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2016:06:07 18:29:06", 
+          "2016:06:10 04:58:51"
+        ], 
+        "Background Color": [
+          "add", 
+          "255 255 255"
+        ], 
+        "Image Width": [
+          "change", 
+          "424", 
+          "405"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_1.png", 
+          "input_mod_2.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "0.243", 
+          "0.232"
+        ], 
+        "File Size": [
+          "change", 
+          "376 kB", 
+          "364 kB"
+        ], 
+        "Gamma": [
+          "delete", 
+          "2.2"
+        ]
+      }, 
+      "softwareVersion": "CC2015.5.12", 
+      "op": "TransformCrop", 
+      "transform matrix": {
+        "c": 3, 
+        "r": 3, 
+        "r0": [
+          0.06783959972327469, 
+          -0.21558606533590524, 
+          185.15074279915257
+        ], 
+        "r1": [
+          -0.6125210620947953, 
+          0.08012743235628318, 
+          328.90079648346165
+        ], 
+        "r2": [
+          -0.00109942980417734, 
+          -0.0006049090824194641, 
+          1.0
+        ]
+      }
+    }, 
+    {
       "username": "ericrobertson", 
       "maskname": "sample_orig_input_mask.png", 
-      "psnr": 101.8345154087617, 
+      "errors": [], 
       "description": "", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "editable": "yes", 
       "softwareVersion": "12.1", 
       "softwareName": "Adobe Photoshop", 
       "selectmaskname": null, 
-      "source": 0, 
+      "source": 3, 
       "ssim": 0.9999999855200266, 
-      "errors": [], 
+      "psnr": 101.8345154087617, 
       "recordMaskInComposite": "no", 
       "automated": "no", 
       "inputmaskname": null, 
@@ -241,7 +379,7 @@
           "1"
         ]
       }, 
-      "target": 4, 
+      "target": 8, 
       "op": "AdditionalEffectSoftEdgeBrushing", 
       "shape change": "(0, 0)"
     }, 
@@ -254,192 +392,13 @@
       "editable": "no", 
       "recordMaskInComposite": "no", 
       "selectmaskname": null, 
-      "source": 0, 
+      "source": 3, 
       "softwareVersion": "", 
       "softwareName": "", 
       "automated": "no", 
       "inputmaskname": null, 
-      "target": 1, 
+      "target": 0, 
       "op": "Donor"
-    }, 
-    {
-      "global": "yes", 
-      "recordMaskInComposite": "no", 
-      "errors": [], 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.62201263211864521, 
-      "source": 2, 
-      "username": "TheDoorKnob", 
-      "description": "", 
-      "change size category": "large", 
-      "change size ratio": 0.9320210653543987, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "automated": "no", 
-      "inputmaskname": null, 
-      "shape change": "(0, 0)", 
-      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
-      "psnr": 25.23448219085477, 
-      "target": 6, 
-      "exifdiff": {
-        "Background Color": [
-          "delete", 
-          "255 255 255"
-        ], 
-        "Modify Date": [
-          "delete", 
-          "2016:06:10 04:58:51"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_2.png", 
-          "input_mod_2_3.png"
-        ], 
-        "File Size": [
-          "change", 
-          "364 kB", 
-          "250 kB"
-        ], 
-        "Pixels Per Unit Y": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixels Per Unit X": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixel Units": [
-          "delete", 
-          "meters"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "op": "ColorColorBalance"
-    }, 
-    {
-      "global": "no", 
-      "recordMaskInComposite": "no", 
-      "errors": [], 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.88243012023187473, 
-      "source": 3, 
-      "location": "(0, 0)", 
-      "username": "TheDoorKnob", 
-      "description": "", 
-      "change size category": "large", 
-      "change size ratio": 0.13138276817522102, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "automated": "no", 
-      "inputmaskname": null, 
-      "target": 2, 
-      "maskname": "input_mod_1_input_mod_2_mask.png", 
-      "psnr": 19.43806324641574, 
-      "shape change": "(0, -19)", 
-      "exifdiff": {
-        "Image Size": [
-          "change", 
-          "424x572", 
-          "405x572"
-        ], 
-        "Modify Date": [
-          "change", 
-          "2016:06:07 18:29:06", 
-          "2016:06:10 04:58:51"
-        ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
-        ], 
-        "Image Width": [
-          "change", 
-          "424", 
-          "405"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_1.png", 
-          "input_mod_2.png"
-        ], 
-        "Megapixels": [
-          "change", 
-          "0.243", 
-          "0.232"
-        ], 
-        "File Size": [
-          "change", 
-          "376 kB", 
-          "364 kB"
-        ], 
-        "Gamma": [
-          "delete", 
-          "2.2"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "op": "TransformCrop", 
-      "transform matrix": {
-        "c": 3, 
-        "r": 3, 
-        "r0": [
-          0.067839599723274691, 
-          -0.21558606533590524, 
-          185.15074279915257
-        ], 
-        "r1": [
-          -0.61252106209479529, 
-          0.080127432356283182, 
-          328.90079648346165
-        ], 
-        "r2": [
-          -0.00109942980417734, 
-          -0.00060490908241946409, 
-          1.0
-        ]
-      }
-    }, 
-    {
-      "username": "ericrobertson", 
-      "maskname": "orig_input_input_mod_1_mask.png", 
-      "psnr": 22.399446583155633, 
-      "description": "\n", 
-      "selectmaskownership": "no", 
-      "source": 4, 
-      "ssim": 0.9598897451746461, 
-      "editable": "yes", 
-      "softwareName": "OpenCV", 
-      "exifdiff": {
-        "File Size": [
-          "change", 
-          "342 kB", 
-          "376 kB"
-        ], 
-        "Modify Date": [
-          "change", 
-          "2016:06:07 18:28:48", 
-          "2016:06:07 18:29:06"
-        ], 
-        "File Name": [
-          "change", 
-          "orig_input.png", 
-          "input_mod_1.png"
-        ], 
-        "Color Type": [
-          "change", 
-          "RGB", 
-          "RGB with Alpha"
-        ]
-      }, 
-      "inputmaskownership": "no", 
-      "softwareVersion": "2.4.13", 
-      "recordMaskInComposite": "yes", 
-      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
-      "inputmaskname": "", 
-      "op": "PasteSplice", 
-      "target": 3, 
-      "shape change": "(0, 0)"
     }, 
     {
       "global": "yes", 
@@ -447,19 +406,19 @@
       "errors": [], 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "ssim": 1.0, 
-      "source": 5, 
+      "source": 4, 
       "location": "(24, 38)", 
       "username": "Saffire", 
       "description": "", 
-      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
+      "change size category": "small", 
       "change size ratio": 0.0, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
       "selectmaskname": null, 
       "automated": "no", 
       "inputmaskname": null, 
-      "target": 8, 
-      "change size category": "small", 
+      "target": 7, 
+      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
       "psnr": 0.0, 
       "shape change": "(-46, -52)", 
       "exifdiff": {
@@ -515,16 +474,16 @@
     {
       "username": "TheDoorKnob", 
       "maskname": "input_mod_2_3_input_mod_2_25_mask.png", 
-      "psnr": 47.16511443998102, 
+      "errors": [], 
       "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
       "opsys": "Windows 7 6.1.7601", 
       "editable": "no", 
       "softwareVersion": "1.1.7", 
       "softwareName": "PIL", 
       "selectmaskname": null, 
-      "source": 6, 
-      "ssim": 0.93331406288950147, 
-      "errors": [], 
+      "source": 5, 
+      "ssim": 0.9333140628895015, 
+      "psnr": 47.16511443998102, 
       "recordMaskInComposite": "no", 
       "automated": "yes", 
       "inputmaskname": null, 
@@ -533,6 +492,10 @@
           "change", 
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
+        ], 
+        "Resolution Unit": [
+          "add", 
+          "inches"
         ], 
         "Compression": [
           "delete", 
@@ -543,9 +506,9 @@
           "png", 
           "jpg"
         ], 
-        "Color Space": [
+        "Encoding Process": [
           "add", 
-          "Uncalibrated"
+          "Baseline DCT, Huffman coding"
         ], 
         "Bits Per Sample": [
           "add", 
@@ -612,10 +575,6 @@
           "delete", 
           "Adaptive"
         ], 
-        "Software": [
-          "add", 
-          "Google"
-        ], 
         "Color Type": [
           "delete", 
           "RGB with Alpha"
@@ -632,9 +591,9 @@
           "delete", 
           "8"
         ], 
-        "Resolution Unit": [
+        "Software": [
           "add", 
-          "inches"
+          "Google"
         ], 
         "X Resolution": [
           "add", 
@@ -649,16 +608,16 @@
           "input_mod_2_3.png", 
           "input_mod_2_25.jpg"
         ], 
-        "Encoding Process": [
+        "Color Space": [
           "add", 
-          "Baseline DCT, Huffman coding"
+          "Uncalibrated"
         ], 
         "Y Resolution": [
           "add", 
           "72"
         ]
       }, 
-      "target": 1, 
+      "target": 0, 
       "op": "AntiForensicExifQuantizationTable", 
       "arguments": {
         "rotate": "no"
@@ -671,21 +630,21 @@
       "errors": [], 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "ssim": 0.525715087856544, 
-      "source": 7, 
+      "source": 6, 
       "arguments": {
         "rotation": -90
       }, 
       "username": "Saffire", 
       "description": "", 
-      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
+      "change size category": "large", 
       "change size ratio": 0.4385283950617284, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
       "selectmaskname": null, 
       "automated": "no", 
       "inputmaskname": null, 
-      "target": 5, 
-      "change size category": "large", 
+      "target": 4, 
+      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
       "psnr": 8.309706653719859, 
       "shape change": "(0, 0)", 
       "exifdiff": {
@@ -746,11 +705,13 @@
       "editable": "no", 
       "recordMaskInComposite": "no", 
       "selectmaskname": null, 
-      "source": 8, 
+      "source": 7, 
       "softwareVersion": "", 
       "softwareName": "", 
       "automated": "no", 
       "inputmaskname": null, 
+      "op": "Donor", 
+      "target": 2, 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -769,9 +730,53 @@
           -0.0007625612394162303, 
           1.0
         ]
+      }
+    }, 
+    {
+      "username": "ericrobertson", 
+      "maskname": "orig_input_input_mod_1_mask.png", 
+      "psnr": 22.399446583155633, 
+      "description": "", 
+      "selectmaskownership": "no", 
+      "source": 8, 
+      "ssim": 0.9598897451746461, 
+      "editable": "yes", 
+      "softwareName": "OpenCV", 
+      "exifdiff": {
+        "File Size": [
+          "change", 
+          "342 kB", 
+          "376 kB"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2016:06:07 18:28:48", 
+          "2016:06:07 18:29:06"
+        ], 
+        "File Name": [
+          "change", 
+          "orig_input.png", 
+          "input_mod_1.png"
+        ], 
+        "Color Type": [
+          "change", 
+          "RGB", 
+          "RGB with Alpha"
+        ]
       }, 
-      "target": 3, 
-      "op": "Donor"
+      "inputmaskownership": "no", 
+      "softwareVersion": "2.4.13", 
+      "recordMaskInComposite": "yes", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "arguments": {
+        "donor cropped": "no", 
+        "donor rotated": "yes", 
+        "donor resized": "yes", 
+        "subject": "man-made object"
+      }, 
+      "op": "PasteSplice", 
+      "target": 2, 
+      "shape change": "(0, 0)"
     }, 
     {
       "username": "ericrobertson", 
@@ -792,9 +797,10 @@
           "jpg", 
           "png"
         ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
+        "MIME Type": [
+          "change", 
+          "image/jpeg", 
+          "image/png"
         ], 
         "Bits Per Sample": [
           "delete", 
@@ -825,10 +831,9 @@
           "add", 
           "meters"
         ], 
-        "MIME Type": [
-          "change", 
-          "image/jpeg", 
-          "image/png"
+        "Background Color": [
+          "add", 
+          "255 255 255"
         ], 
         "Color Components": [
           "delete", 
@@ -885,10 +890,10 @@
       "softwareVersion": "2.4", 
       "ssim": 0.3481807393556555, 
       "softwareName": "GIMP", 
-      "shape change": "(0, 0)", 
+      "target": 6, 
+      "arguments": {}, 
       "op": "SelectRegion", 
-      "target": 7, 
-      "arguments": {}
+      "shape change": "(0, 0)"
     }
   ], 
   "multigraph": false
