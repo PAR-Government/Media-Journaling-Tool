@@ -8,9 +8,8 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
-igversion='0.3.1115'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115']
-
+igversion='0.3.1201'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201']
 
 def current_version():
     return igversion

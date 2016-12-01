@@ -14,6 +14,7 @@ from image_wrap import ImageWrapper
 from PIL import Image
 from group_filter import getOperationWithGroups
 from time import gmtime, strftime
+from graph_auto_updates import updateJournal
 
 def toIntTuple(tupleString):
     import re
@@ -1245,12 +1246,7 @@ class ImageProjectModel:
         return createGraph(projectFileName, projecttype=projecttype)
 
     def _autocorrect(self):
-        if self.G.getVersion() != current_version():
-            for frm, to in self.G.get_edges():
-                edge = self.G.get_edge(frm, to)
-                if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
-                    edge['recordMaskInComposite'] = 'yes'
-
+        updateJournal(self)
 
     def _setup(self, projectFileName, graph=None,baseImageFileName=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
