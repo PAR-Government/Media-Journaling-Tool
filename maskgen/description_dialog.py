@@ -1163,7 +1163,8 @@ class QAViewDialog(Toplevel):
         self.commentsBox = Text(self, height=5, width=100, yscrollcommand=textscroll.set)
         self.commentsBox.grid(row=row, column=col-1, padx=5, pady=5, columnspan=6, sticky=NSEW)
         textscroll.config(command=self.commentsBox.yview)
-        self.commentsBox.insert(END, self.parent.scModel.getProjectData('qacomment'))
+        currentComment = self.parent.scModel.getProjectData('qacomment')
+        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
 
         self.check_ok()
 
