@@ -10,6 +10,8 @@ class TestScenarioModel(unittest.TestCase):
       maskname,mask, analysis,errors = lt.compareImages('sample','orig_input',model,'OutputPNG')
       self.assertTrue(len(errors) == 0)
       self.assertTrue('exifdiff' in analysis)
+      model.constructCompositesAndDonors()
+      model.toCSV('test.csv',['arguments.purpose','arguments.subject'])
 
 
 if __name__ == '__main__':
