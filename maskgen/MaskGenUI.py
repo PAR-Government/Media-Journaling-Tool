@@ -14,6 +14,7 @@ from web_tools import *
 from graph_rules import processProjectProperties
 from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
+from graph_output import ImageGraphPainter
 
 """
   Main UI Driver for MaskGen
@@ -159,6 +160,12 @@ class MakeGenUI(Frame):
     def save(self):
         self.scModel.save()
 
+    def savegraphimage(self):
+        val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Output Project Image Name",
+                                         filetypes=[("png", "*.png")])
+        if (val is not None and len(val.name) > 0):
+            openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val))
+
     def saveas(self):
         val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Save As",
                                          filetypes=[("json files", "*.json")])
@@ -172,7 +179,7 @@ class MakeGenUI(Frame):
             val.close()
 
 
-    def export(self):
+    def _preexport(self):
         errorList = self.scModel.validate()
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
@@ -183,6 +190,9 @@ class MakeGenUI(Frame):
         processProjectProperties(self.scModel)
         self.getproperties()
         self.scModel.removeCompositesAndDonors()
+
+    def export(self):
+        self._preexport()
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
@@ -195,16 +205,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
-        errorList = self.scModel.validate()
-        if errorList is not None and len(errorList) > 0:
-            errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
-            errorlistDialog.wait(self)
-            if not errorlistDialog.isok:
-                return
-        self.scModel.constructCompositesAndDonors()
-        processProjectProperties(self.scModel)
-        self.getproperties()
-        self.scModel.removeCompositesAndDonors()
+        self._preexport()
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
@@ -492,6 +493,9 @@ class MakeGenUI(Frame):
         self.save()
         Frame.quit(self)
 
+    def quitnosave(self):
+        Frame.quit(self)
+
     def gquit(self, event):
         self.quit()
 
@@ -637,6 +641,7 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="New", command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
+        filemenu.add_command(label="Save Graph Image",command=self.savegraphimage)
         filemenu.add_separator()
         filemenu.add_cascade(label="Export", menu=exportmenu)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
@@ -648,6 +653,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Properties", command=self.getproperties)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
+        filemenu.add_command(label="Quit without Save", command=self.quitnosave)
 
         menubar.add_cascade(label="File", menu=filemenu)
 

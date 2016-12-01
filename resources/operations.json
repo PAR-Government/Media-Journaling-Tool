@@ -2018,7 +2018,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
+      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
       "includeInMask": true,
       "transitions": [
         "image.image",
