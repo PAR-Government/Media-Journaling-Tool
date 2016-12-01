@@ -1087,6 +1087,7 @@ class QAViewDialog(Toplevel):
         self.donors = donorNodes
         self.parent = parent
         Toplevel.__init__(self, parent)
+        #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
         self.createWidgets()
         self.resizable(width=False, height=False)
 
@@ -1103,7 +1104,6 @@ class QAViewDialog(Toplevel):
         row+=1
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
-
         self.master.scModel.selectImage(self.terminals[0])
         self.descriptionLabel = Label(self)
         self.composite_or_donor(initialize=True)
@@ -1127,25 +1127,45 @@ class QAViewDialog(Toplevel):
         for q in qa_list:
             var = BooleanVar()
             ck = Checkbutton(self, variable=var, command=self.check_ok)
+            ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
             ck.grid(row=row, column=col)
             checkboxes.append(ck)
             self.checkboxvars.append(var)
-            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='W')
+            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='W', columnspan=4)
             row+=1
 
         Label(self, text='QA Signoff: ').grid(row=row, column=col, sticky='W')
-        row+=1
+        col+=1
 
         self.reporterStr = StringVar()
         self.reporterStr.set(get_username())
         self.reporterEntry = Entry(self, textvar=self.reporterStr)
         self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
 
-        self.acceptButton = Button(self, text='Accept', command=self.qa_done, width=15, state=DISABLED)
-        self.acceptButton.grid(row=row, column=col+1, columnspan=3)
+        row+=1
+        col-=1
+
+        self.acceptButton = Button(self, text='Accept', command=lambda:self.qa_done('yes'), width=15, state=DISABLED)
+        self.acceptButton.grid(row=row, column=col, columnspan=2, sticky='W')
+
+        self.rejectButton = Button(self, text='Reject', command=lambda:self.qa_done('no'), width=15)
+        self.rejectButton.grid(row=row, column=col+2, columnspan=2, sticky='W')
 
         row += 1
         self.descriptionLabel.grid(row=row, column=col-1)
+
+        row +=1
+        self.commentsLabel = Label(self, text='Comments: ')
+        self.commentsLabel.grid(row=row, column=col-1, columnspan=5)
+        row+=1
+        textscroll = Scrollbar(self)
+        textscroll.grid(row=row, column=col+5, sticky=NS)
+        self.commentsBox = Text(self, height=5, width=100, yscrollcommand=textscroll.set)
+        self.commentsBox.grid(row=row, column=col-1, padx=5, pady=5, columnspan=6, sticky=NSEW)
+        textscroll.config(command=self.commentsBox.yview)
+        self.commentsBox.insert(END, self.parent.scModel.getProjectData('qacomment'))
+
+        self.check_ok()
 
     def composite_or_donor(self, initialize=False, event=None):
         self.name = self.parent.scModel.start
@@ -1176,10 +1196,11 @@ class QAViewDialog(Toplevel):
         self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
 
 
-    def qa_done(self):
-        self.parent.scModel.setProjectData('validation', 'yes')
+    def qa_done(self, qaState):
+        self.parent.scModel.setProjectData('validation', qaState)
         self.parent.scModel.setProjectData('validatedby', self.reporterStr.get())
         self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
+        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END))
         self.parent.scModel.save()
 
         self.destroy()
@@ -1194,6 +1215,40 @@ class QAViewDialog(Toplevel):
             self.acceptButton.config(state=NORMAL)
         else:
             self.acceptButton.config(state=DISABLED)
+
+
+class CommentViewer(tkSimpleDialog.Dialog):
+    def __init__(self, master):
+        self.master=master
+        tkSimpleDialog.Dialog.__init__(self, master)
+
+    def body(self, master):
+        try:
+            comment = self.master.scModel.getProjectData('qacomment')
+            if comment == '':
+                raise
+        except:
+            comment = 'There are no comments!'
+
+        self.commentLabel = Label(self, text=comment, wraplength=400, justify=LEFT)
+        self.commentLabel.pack(side=TOP)
+
+    def buttonbox(self):
+        box = Frame(self)
+
+        w = Button(box, text="Clear Comment", width=15, command=self.clearComment, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="OK", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+
+    def clearComment(self):
+        self.master.scModel.setProjectData('qacomment', '')
+        self.commentLabel.config(text='There are no comments!')
 
 
 class ButtonFrame(Frame):

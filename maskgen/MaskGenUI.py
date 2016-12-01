@@ -608,9 +608,11 @@ class MakeGenUI(Frame):
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
-        elif terminalNodes or donorNodes:
+        if terminalNodes or donorNodes:
             d = QAViewDialog(self, terminalNodes, donorNodes)
 
+    def comments(self):
+        d = CommentViewer(self)
 
     def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(), self.scModel.getName()))
@@ -671,6 +673,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label='History',command=self.history)
         validationmenu.add_command(label="Validate", command=self.validate)
         validationmenu.add_command(label="QA...", command=self.startQA)
+        validationmenu.add_command(label="View Comments", command=self.comments)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
