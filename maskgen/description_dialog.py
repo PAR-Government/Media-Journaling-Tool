@@ -98,6 +98,42 @@ def viewInfo(description_information):
                           description_information[1] if description_information[1] is not None else 'Undefined')
 
 
+class MyDropDown(OptionMenu):
+
+    var = None
+    command = None
+
+    def __init__(self, master, oplist, initialValue=None,command=None):
+        if initialValue is None:
+            initialValue = oplist[0] if len(oplist) > 0 else ''
+        self.var = StringVar()
+        self.var.set(initialValue)
+        self.command = command
+        OptionMenu.__init__(self, master, self.var,'')
+        for val in oplist:
+            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.doit(l))
+
+    def set_completion_list(self, values, initialValue=None):
+        if initialValue is None:
+            initialValue = values[0] if len(values) > 0 else ''
+        if initialValue not in values:
+            initialValue = ''
+        self.children['menu'].delete(0, END)
+        for val in values:
+            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.doit(l))
+        self.var.set(initialValue)
+
+    def get(self):
+        return self.var.get()
+
+    def doit(self,v):
+        self.var.set(v)
+        if self.command is not None:
+            self.command(self.var.get())
+
+    def bind(self, name, command):
+        self.command = command
+
 class PropertyDialog(tkSimpleDialog.Dialog):
 
    parent = None
@@ -289,10 +325,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         catlist = list(cats.keys())
         catlist.sort()
         oplist = cats[catlist[0]] if len(cats) > 0 else []
-        self.e1 = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40)
-        self.e2 = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40)
-        self.e4 = AutocompleteEntryInText(master, values=sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), takefocus=False,
-                                          width=40)
+        self.e1 = MyDropDown(master, catlist, command=self.newcategory)
+        self.e2 = MyDropDown(master, oplist, command=self.newcommand)
+        self.e4 = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
         self.e1.bind("<<ComboboxSelected>>", self.newcategory)
@@ -300,12 +335,12 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e2.bind("<<ComboboxSelected>>", self.newcommand)
         self.e4.bind("<Return>", self.newsoftware)
         self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
-        self.e3 = Text(master, height=2, width=28, font=('Times', '14'), relief=RAISED, borderwidth=2)
+        self.e3 = Text(master, height=2, width=40, font=('Times', '14'), relief=RAISED, borderwidth=2)
 
-        self.e1.grid(row=1, column=1)
-        self.e2.grid(row=2, column=1)
-        self.e3.grid(row=3, column=1, sticky=E)
-        self.e4.grid(row=4, column=1)
+        self.e1.grid(row=1, column=1, sticky=EW)
+        self.e2.grid(row=2, column=1, sticky=EW)
+        self.e3.grid(row=3, column=1, sticky=EW)
+        self.e4.grid(row=4, column=1, sticky=EW)
         self.e5.grid(row=5, column=1)
 
         if self.description is not None:
@@ -1119,7 +1154,7 @@ class QAViewDialog(Toplevel):
         row+=1
 
         qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
-                   'PasteSplice and PasteSampled operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
+                   'PasteSplice operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
                    'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
                    'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
         checkboxes = []
@@ -1280,8 +1315,11 @@ class SelectDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         desc_lines = '\n'.join(self.description.split('.'))
         Label(master, text=desc_lines, wraplength=400).grid(row=0, sticky=W)
-        self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
-        self.e1.grid(row=1, column=0)
+        self.var1 = StringVar()
+        self.var1.set(self.values[0])
+        self.e1 = OptionMenu(master, self.var1, *self.values)
+        #self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
+        self.e1.grid(row=1, column=0,sticky=EW)
 
     def cancel(self):
         if self.cancelled:
@@ -1290,7 +1328,7 @@ class SelectDialog(tkSimpleDialog.Dialog):
 
     def apply(self):
         self.cancelled = False
-        self.choice = self.e1.get()
+        self.choice = self.var1.get()
 
 
 class EntryDialog(tkSimpleDialog.Dialog):
