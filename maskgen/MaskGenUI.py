@@ -178,6 +178,14 @@ class MakeGenUI(Frame):
                 self._setTitle()
             val.close()
 
+    def recomputemask(self):
+        d = SelectDialog(self, "Mask Reconstruct", "Transform Parameter",
+                         ['None','3','4','5'])
+        choice = '0' if d.choice is None or d.choice == 'None' else d.choice
+        self.scModel.reproduceMask(skipDonorAnalysis=(choice=='0'),analysis_params={'RANSAC':int(choice)})
+        nim = self.scModel.nextImage()
+        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
+        self.img3c.config(image=self.img3)
 
     def _preexport(self):
         errorList = self.scModel.validate()
@@ -521,7 +529,7 @@ class MakeGenUI(Frame):
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewdonor(self):
-        im,baseIm = self.scModel.getDonorAndBaseImages()
+        im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
@@ -618,6 +626,9 @@ class MakeGenUI(Frame):
     def comments(self):
         d = CommentViewer(self)
 
+    def reformatgraph(self):
+        self.canvas.reformat()
+
     def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(), self.scModel.getName()))
 
@@ -683,6 +694,11 @@ class MakeGenUI(Frame):
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
+        viewmenu = Menu(menubar, tearoff=0)
+        viewmenu.add_command(label='Reformat', command=self.reformatgraph)
+
+        menubar.add_cascade(label="View", menu=viewmenu)
+
         self.master.config(menu=menubar)
         self.bind_all('<Control-q>', self.gquit)
         self.bind_all('<Control-o>', self.gopen)
@@ -713,17 +729,23 @@ class MakeGenUI(Frame):
 
         self.img1c = Button(img1f, width=250, command=self.openStartImage, image=self.img1)
         self.img1c.grid(row=1, column=0)
+        self.img1c.grid_propagate(False)
         self.img2c = Button(img1f, width=250, command=self.openNextImage, image=self.img2)
         self.img2c.grid(row=1, column=1)
+        self.img2c.grid_propagate(False)
         self.img3c = Button(img1f, width=250, command=self.openMaskImage, image=self.img3)
         self.img3c.grid(row=1, column=2)
+        self.img3c.grid_propagate(False)
 
         self.l1 = Label(img1f, text="")
         self.l1.grid(row=0, column=0)
+        self.l1.grid_propagate(False)
         self.l2 = Label(img2f, text="")
         self.l2.grid(row=0, column=1)
+        self.l2.grid_propagate(False)
         self.l3 = Label(img3f, text="")
         self.l3.grid(row=0, column=2)
+        self.l3.grid_propagate(False)
 
         self.nodemenu = Menu(self.master, tearoff=0)
         self.nodemenu.add_command(label="Select", command=self.select)
@@ -746,6 +768,7 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
+        self.filteredgemenu.add_command(label="Recompute", command=self.recomputemask)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
@@ -753,6 +776,7 @@ class MakeGenUI(Frame):
         self.maskvar = StringVar()
         Message(iframe, textvariable=self.maskvar, width=750).grid(row=0, sticky=W + E)
         iframe.grid(row=2, column=0, rowspan=1, columnspan=3, sticky=N + S + E + W)
+        #iframe.grid_propagate(False)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
         mframe.grid_rowconfigure(0, weight=1)

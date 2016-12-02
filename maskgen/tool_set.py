@@ -373,7 +373,7 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     mask = mask.astype('uint8')
     try:
         mask1 = convertToMask(img1).invert().to_array() if img1.has_alpha() else None
-        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted)
+        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted,arguments=arguments)
     except:
         TM = None
         computed_mask = None
@@ -538,7 +538,7 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
@@ -548,7 +548,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
@@ -568,7 +568,7 @@ def __indexOf(source, dest):
                 break
     return positions
 
-def __sift(img1, img2, mask1=None, mask2=None):
+def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
 
     """
     Compute homography to transfrom img1 to img2
@@ -631,7 +631,12 @@ def __sift(img1, img2, mask1=None, mask2=None):
         #positions = __indexOf(src_pts,new_src_pts)
         #new_dst_pts = dst_pts[positions]
         new_dst_pts = dst_pts
-        RANSAC_THRESHOLD=3.0
+        RANSAC_THRESHOLD = 4.0
+        if arguments is not None and 'RANSAC' in arguments:
+            try:
+                 RANSAC_THRESHOLD = float(arguments['RANSAC'])
+            except:
+                print 'invalid RANSAC ' + arguments['RANSAC']
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
         if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
             return None, None

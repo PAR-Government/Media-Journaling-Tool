@@ -38,6 +38,11 @@ def loadProject(projectFileName):
     return ImageProjectModel(projectFileName, graph=graph)
 
 
+def consolidate(dict1, dict2):
+    d = dict(dict1)
+    d.update(dict2)
+    return d
+
 def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
                   organization=None):
     """
@@ -351,10 +356,12 @@ class LinkTool:
     def __init__(self):
         return
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
         return None, None, {}, []
 
-    def _addAnalysis(self, startIm, destIm, op, analysis, mask, linktype=None, arguments={}):
+    def _addAnalysis(self, startIm, destIm, op, analysis, mask, linktype=None,
+                     arguments={}):
         import importlib
         opData = getOperationWithGroups(op)
         if opData is None:
@@ -385,7 +392,8 @@ class ImageImageLinkTool(LinkTool):
         mask, analysis = createMask(im1, im2, invert=False, arguments=arguments)
         return im1, im2, mask, analysis
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
@@ -403,7 +411,7 @@ class ImageImageLinkTool(LinkTool):
                     if expect_donor_mask:
                         mask, analysis = interpolateMask(
                             scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
-                            arguments=arguments, invert=invert)
+                            arguments=consolidate(arguments,analysis_params), invert=invert)
                         if mask is not None:
                             mask = ImageWrapper(mask)
                         break
@@ -430,7 +438,8 @@ class ImageImageLinkTool(LinkTool):
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
-            self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='image.image',arguments=arguments)
+            self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='image.image',
+                              arguments=consolidate(arguments,analysis_params))
         return maskname, mask, analysis, errors
 
 class VideoImageLinkTool(ImageImageLinkTool):
@@ -449,7 +458,8 @@ class VideoImageLinkTool(ImageImageLinkTool):
         mask, analysis = createMask(im1, im2, invert=False, arguments=arguments)
         return im1, im2, mask, analysis
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
         args = dict(arguments)
         args['skipSnapshot'] = True
         startIm, startFileName = scModel.getImageAndName(start,arguments=args)
@@ -464,7 +474,8 @@ class VideoImageLinkTool(ImageImageLinkTool):
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
-            self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='video.image', arguments=arguments)
+            self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='video.image',
+                              arguments=consolidate(arguments,analysis_params))
         return maskname, mask, analysis, errors
 
 class VideoVideoLinkTool(LinkTool):
@@ -481,7 +492,7 @@ class VideoVideoLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(end)
         maskname, mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp', skipDonorAnalysis=True,
-                                                              arguments=arguments)
+                                                              arguments=arguments,analysis_params={})
         if 'metadatadiff' in analysis:
            analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
         if 'videomasks' in analysis:
@@ -490,7 +501,8 @@ class VideoVideoLinkTool(LinkTool):
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return startIm, destIm, mask, analysis
 
-    def _constructDonorMask(self, startFileName, destFileName, start, destination, scModel, invert=False, arguments=None):
+    def _constructDonorMask(self, startFileName, destFileName, start, destination, scModel,
+                            invert=False, arguments={}):
         """
           Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
           of the Donor image and its parent, it exists.
@@ -507,10 +519,12 @@ class VideoVideoLinkTool(LinkTool):
                     scModel.G.dir,
                     edge['videomasks'],
                     startFileName,
-                    destFileName)
+                    destFileName,
+                    arguments=arguments)
         return None,errors
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
 
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
@@ -521,7 +535,8 @@ class VideoVideoLinkTool(LinkTool):
             errors = list()
         elif op == 'Donor':
             maskSet, errors = self._constructDonorMask(startFileName, destFileName,
-                                  start, destination, scModel, invert=invert, arguments=arguments)
+                                  start, destination, scModel, invert=invert,
+                                                       arguments=consolidate(arguments,analysis_params))
         else:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
@@ -541,7 +556,8 @@ class VideoVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video', arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video',
+                          arguments=consolidate(arguments,analysis_params))
         return maskname, mask, analysis, errors
 
 class AudioVideoLinkTool(LinkTool):
@@ -562,7 +578,8 @@ class AudioVideoLinkTool(LinkTool):
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return None, None, None, analysis
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         analysis =  dict()
@@ -571,7 +588,8 @@ class AudioVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, None,linktype='audio.audio', arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, None,linktype='audio.audio',
+                          arguments=consolidate(arguments,analysis_params))
         return None, None, analysis, list()
 
 class AudioAudioLinkTool(LinkTool):
@@ -592,7 +610,8 @@ class AudioAudioLinkTool(LinkTool):
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return None, None, None, analysis
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         analysis =  dict()
@@ -601,7 +620,8 @@ class AudioAudioLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='audio.audio', arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='audio.audio',
+                          arguments=consolidate(arguments,analysis_params))
         return None, None, analysis, list()
 
 class VideoAudioLinkTool(LinkTool):
@@ -622,7 +642,9 @@ class VideoAudioLinkTool(LinkTool):
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return None, None, None, analysis
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,
+                      analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         analysis =  dict()
@@ -631,7 +653,8 @@ class VideoAudioLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
+                          arguments=consolidate(arguments,analysis_params))
         return None, None, analysis, list()
 
 class ImageVideoLinkTool(VideoVideoLinkTool):
@@ -641,7 +664,8 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
     def __init__(self):
         VideoVideoLinkTool.__init__(self)
 
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={}, skipDonorAnalysis=False):
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
@@ -649,8 +673,14 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         maskSet =[]
         errors = list()
         if op == 'Donor':
-            maskSet, errors = self._constructDonorMask(startFileName, destFileName,
-                                                       start, destination, scModel, invert=invert, arguments=arguments)
+            maskSet, errors = self._constructDonorMask(startFileName,
+                                                       destFileName,
+                                                       start,
+                                                       destination,
+                                                       scModel,
+                                                       invert=invert,
+                                                       arguments=consolidate(arguments,
+                                                       analysis_params))
         # for now, just save the first mask
         if len(maskSet) > 0:
             mask = ImageWrapper(maskSet[0]['mask'])
@@ -659,7 +689,8 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
         analysis = analysis if analysis is not None else {}
-        self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='image.video', arguments=arguments)
+        self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='image.video',
+                          arguments=consolidate(arguments,analysis_params))
         return maskname, mask, analysis, errors
 
 
@@ -915,7 +946,7 @@ class ImageProjectModel:
             if nodeName == x[0][1]:
                 baseImage,_ = self.G.get_image(x[1])
                 mask, filename = self.G.get_donor_mask(nodeName)
-                if mask is None:
+                if mask is None or force:
                     self.constructDonors()
                     mask, filename = self.G.get_donor_mask(nodeName)
                 break
@@ -1118,7 +1149,7 @@ class ImageProjectModel:
     def getLinkTool(self, start, end):
         return linkTools[self.getLinkType(start, end)]
 
-    def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True):
+    def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True, analysis_params=dict()):
         try:
             for k,v in getOperationWithGroups(opName).compareparameters.iteritems():
                 arguments[k] = v
@@ -1127,21 +1158,25 @@ class ImageProjectModel:
         return self.getLinkTool(self.start, destination).compareImages(self.start, destination, self, opName,
                                                                        arguments=arguments,
                                                                        skipDonorAnalysis=skipDonorAnalysis,
-                                                                       invert=invert)
+                                                                       invert=invert,
+                                                                       analysis_params=analysis_params)
 
-    def reproduceMask(self):
+    def reproduceMask(self,skipDonorAnalysis=False,analysis_params=dict()):
         edge = self.G.get_edge(self.start, self.end)
         maskname, mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
                                                                arguments=edge['arguments'] if 'arguments' in edge else dict(),
-                                                               skipDonorAnalysis=False)
+                                                               skipDonorAnalysis=skipDonorAnalysis,
+                                                               analysis_params=analysis_params)
         self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**analysis)
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
-                          skipDonorAnalysis=False):
+                          skipDonorAnalysis=False,
+                          analysis_params={}):
         try:
             maskname, mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
                                                                    invert=invert, arguments=mod.arguments,
-                                                                   skipDonorAnalysis=skipDonorAnalysis)
+                                                                   skipDonorAnalysis=skipDonorAnalysis,
+                                                                   analysis_params=analysis_params)
             self.end = destination
             if errors:
                 mod.errors = errors
@@ -1629,7 +1664,7 @@ class ImageProjectModel:
                 _end = self.end
                 _start = self.start
                 self.selectImage(kwargs['donor'])
-                self.connect(_end, skipDonorAnalysis=True)
+                self.connect(_end)
                 pairs.append((kwargs['donor'], _end))
                 self.select((_start, _end))
         os.remove(target)

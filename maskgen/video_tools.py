@@ -705,7 +705,8 @@ def interpolateMask(mask_file_name_prefix,
                     directory,
                     video_masks,
                     start_file_name,
-                    dest_file_name):
+                    dest_file_name,
+                    arguments={}):
     """
     :param mask_file_name_prefix:
     :param directory:

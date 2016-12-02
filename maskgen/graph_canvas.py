@@ -372,8 +372,6 @@ class MaskGraphCanvas(tk.Canvas):
             # Canvas not initilized yet; use height and width hints
             scale = int(min(self['width'], self['height']))
 
-        # layout = self.create_layout(scale=scale, min_distance=50)
-
         for n in self.scModel.getGraph().get_nodes():
             self._draw_node(n)
 
@@ -391,6 +389,27 @@ class MaskGraphCanvas(tk.Canvas):
         xa = a - m * cos(beta)
         ya = b + m * sin(beta)
         return (xa, ya)
+
+    def reformat(self,scale=1.2,min_distance=50):
+        from networkx.drawing.nx_agraph import graphviz_layout
+        baseTuples = self.scModel.getTerminalToBasePairs(suffix=None)
+        positions = graphviz_layout(self.scModel.getGraph().G, prog='dot',
+                                    root=baseTuples[0][1] if len(baseTuples) > 0 else None)
+        xs = [x for (x, y) in positions.values()]
+        ys = [y for (x, y) in positions.values()]
+        minxs = min(xs)
+        minys = min(ys)
+        maxxs = max(xs)
+        maxys = max(ys)
+        width = max(xs) - minxs
+        height = max(ys) - minys
+        predictedheight = (height / (height + width)) * len(self.scModel.getGraph().get_nodes()) * 50
+        predictedwidth = (width / (height + width)) * len(self.scModel.getGraph().get_nodes()) * 50
+        for n in self.scModel.getGraph().get_nodes():
+            node = self.scModel.getGraph().get_node(n)
+            node['xpos']=(maxxs-positions[n][0])*scale
+            node['ypos']=(maxys-positions[n][1])*scale
+        self.update()
 
     def _draw_node(self, node_id):
         if node_id in self.toItemIds:
@@ -654,11 +673,7 @@ def find_max_width(levels):
         max_count = max(max_count, count)
     return max_count,count_at_level
 
-def layout(graph):
-    levels = {}
-    for name in graph.get_nodes():
-        find_level(graph, name, levels)
-    maximum_width = find_max_width(levels)
+
 
     # Main path no Donors
     # Final nodes should be deepest
