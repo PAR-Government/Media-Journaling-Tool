@@ -165,13 +165,14 @@ def rotationCheck(graph, frm, to):
     args = edge['arguments'] if 'arguments' in edge  else {}
     frm_img = graph.get_image(frm)[0]
     to_img = graph.get_image(to)[0]
-    if 'Image Rotated' not in args:
-        args['Image Rotated'] = ('yes' if frm_img.size[0] != frm_img.size[1] else 'no')
-        return
     rotated = args['Image Rotated'] == 'yes'
-    if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
-        return 'Image was not rotated as stated by the parameter Image Rotated'
-    elif not rotated and frm_img.size != to_img.size:
+    orientation = getValue(edge, 'exifdiff.Orientation')
+    if orientation is not None:
+        orientation = str(orientation)
+        if '270' in orientation or '90' in orientation:
+            if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
+                return 'Image was not rotated as stated by the parameter Image Rotated'
+    if not rotated and frm_img.size != to_img.size:
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 
