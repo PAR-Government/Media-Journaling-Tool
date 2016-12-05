@@ -407,8 +407,8 @@ class MaskGraphCanvas(tk.Canvas):
         predictedwidth = (width / (height + width)) * len(self.scModel.getGraph().get_nodes()) * 50
         for n in self.scModel.getGraph().get_nodes():
             node = self.scModel.getGraph().get_node(n)
-            node['xpos']=(maxxs-positions[n][0])*scale
-            node['ypos']=(maxys-positions[n][1])*scale
+            node['xpos']=(maxxs-positions[n][0])*scale + 25
+            node['ypos']=(maxys-positions[n][1])*scale + 25
         self.update()
 
     def _draw_node(self, node_id):
