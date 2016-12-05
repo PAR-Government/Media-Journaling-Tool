@@ -755,7 +755,7 @@
         }
       },
       "rules": [
-        "checkSize",
+        "checkSizeAndExif",
         "checkForDonor",
         "check_eight_bit"
       ],

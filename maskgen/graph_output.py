@@ -1,6 +1,6 @@
 from image_graph import ImageGraph
 from tool_set import imageResizeRelative
-
+import os
 
 class ImageGraphPainter:
 
@@ -51,10 +51,10 @@ class ImageGraphPainter:
             node = self.graph.get_node(node_id)
             im,filename= self.graph.get_image(node_id)
             im = imageResizeRelative(im, self.max_size, self.max_size)
-            prefix = filename[0:filename.rfind('.')]
-            im.save(prefix + '_thb.png')
+            prefix = os.path.split(filename)[0]
+            im.save(os.path.join(prefix , node_id + '_thb.png'))
             html = '<<TABLE border="0" cellborder="0"><TR><TD ><IMG SRC="' + \
-            prefix + '_thb.png" scale="true"/></TD></TR><TR><td><font point-size="10">' + node['file'] + '</font></td></TR></TABLE>>'
+                   os.path.join(prefix, node_id + '_thb.png') + '" scale="true"/></TD></TR><TR><td><font point-size="10">' + node['file'] + '</font></td></TR></TABLE>>'
             pydot_nodes[node_id] = pydot.Node(node['file'],label=html,shape='plain')#,labelloc='t', image=prefix + '_thb.png',imagescale=True)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.graph.get_edges():
