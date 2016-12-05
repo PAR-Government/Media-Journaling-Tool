@@ -51,7 +51,7 @@ def check_additional_args(additionalArgs, op):
         parsedArgs = additionalArgs
     for key in op.mandatoryparameters.keys():
         if key not in parsedArgs.keys():
-            sys.exit('Missing required additional argument: ' + key)
+            print 'Missing required additional argument: ' + key
     return parsedArgs
 
 def find_corresponding_image(image, imageList):
@@ -75,6 +75,11 @@ def find_json_path(image, dir):
     :param dir: project directory (subdirectory will be created here if necessary)
     :return: full JSON path
     """
+    for f in os.listdir(dir):
+        if f in image:
+            # ex. f = myproject, image = myproject_01.png
+            return os.path.join(dir, f, f + '.json')
+
     prjDir = os.path.join(dir, image)
     jsonPath = os.path.join(prjDir, image + '.json')
 
@@ -215,7 +220,8 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
             lastNode = sImgName
         else:
             sm = maskgen.scenario_model.ImageProjectModel(i)
-            lastNode = sm.G.get_edges()[-1][-1]
+            lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
+
         sm.selectImage(lastNode)
         im, filename = sm.currentImage()
         sm.imageFromPlugin(plugin, im, filename, **arguments)
@@ -299,7 +305,7 @@ def parse_properties(sourceDir, endDir, plugin, **kwargs):
 
         # verify that all project-level properties are set
         for p in getProjectProperties():
-            if p.node is False:
+            if p.node is False and p.readonly is False:
                 if p.name not in properties:
                     sys.exit('Error: manipulationCategory, username, organization, projectDescription, and technicalSummary arguments are '
                              'required for new projects. Image reformatting, semantic restaging, semantic repurposing, and semantic event fabrication default to \'no\'. '
