@@ -1,0 +1,108 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "ericrobertson",
+    "name": "sample",
+    "organization": "PAR",
+    "projectDescription" : "test",
+    "technicalSummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": true
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "tests/images",
+      "picklist": "imageset",
+      "id": "0"
+    },
+    {
+      "op_type": "ImageSelection",
+      "image_directory": "tests/images",
+      "picklist": "imageset",
+      "id": "1"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SaveAsPNG",
+      "picklist": "imageset",
+      "id": "2",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SaveAsPNG",
+      "id": "3",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SelectRegion",
+      "id": "4",
+      "arguments": {}
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PasteSplice",
+      "id": "5",
+      "arguments": {
+         "donor" : {
+           "type": "donor"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "GaussianBlur",
+      "id": "6",
+      "arguments": {
+        "inputmaskname" : {
+          "type" : "mask",
+          "source" :"2",
+          "target": "5"
+
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 3
+    },
+    {
+      "source": 3,
+      "target": 4
+    },
+    {
+      "source": 2,
+      "target": 5
+    },
+    {
+      "source": 4,
+      "target": 5
+    },
+     {
+      "source": 5,
+      "target": 6
+    }
+  ],
+  "multigraph": false
+}

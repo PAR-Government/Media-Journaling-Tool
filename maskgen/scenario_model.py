@@ -16,11 +16,6 @@ from group_filter import getOperationWithGroups
 from time import gmtime, strftime
 from graph_auto_updates import updateJournal
 
-def toIntTuple(tupleString):
-    import re
-    if tupleString is not None and tupleString.find(',') > 0:
-        return tuple([int(re.sub('[()]', '', x)) for x in tupleString.split(',')])
-    return (0, 0)
 
 def formatStat(val):
    if type(val) == float:
@@ -37,13 +32,12 @@ def loadProject(projectFileName):
     graph = createGraph(projectFileName)
     return ImageProjectModel(projectFileName, graph=graph)
 
-
 def consolidate(dict1, dict2):
     d = dict(dict1)
     d.update(dict2)
     return d
 
-def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
+def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
                   organization=None):
     """
         This utility function creates a ProjectModel given a directory.
@@ -53,21 +47,21 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
         If the 'base' parameter is provided, the project is named based on that image name.
         If the 'base' parameter is not provided, the project name is set based on finding the
         first image in the list of found images, sorted in lexicographic order, starting with JPG, then PNG and then TIFF.
-    :param dir: directory name
+    :param path: directory name or JSON file
     :param notify: function pointer receiving the image (node) id and the event type
     :param base:  image name
     :param suffixes:
     :param projectModelFactory:
     :param organization:
     :return:  a tuple=> a project if found or created, returns True if created. Returns None if a project cannot be found or created.
-     @type dir: str
+     @type path: str
      @type notify: (str, str) -> None
      @rtype (ImageProjectModel, bool)
     """
 
-    if (dir.endswith(".json")):
-        return projectModelFactory(os.path.abspath(dir), notify=notify), False
-    selectionSet = [filename for filename in os.listdir(dir) if filename.endswith(".json")]
+    if (path.endswith(".json")):
+        return projectModelFactory(os.path.abspath(path), notify=notify), False
+    selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
         print 'Cannot add base image/video to an existing project'
         return None
@@ -76,7 +70,7 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
         suffixPos = 0
         while len(selectionSet) == 0 and suffixPos < len(suffixes):
             suffix = suffixes[suffixPos]
-            selectionSet = [filename for filename in os.listdir(dir) if filename.lower().endswith(suffix)]
+            selectionSet = [filename for filename in os.listdir(path) if filename.lower().endswith(suffix)]
             selectionSet.sort()
             suffixPos += 1
         projectFile = selectionSet[0] if len(selectionSet) > 0 else None
@@ -88,7 +82,7 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
         projectFile = os.path.split(base)[1]
     else:
         projectFile = selectionSet[0]
-    projectFile = os.path.abspath(os.path.join(dir, projectFile))
+    projectFile = os.path.abspath(os.path.join(path, projectFile))
     if not os.path.exists(projectFile):
         print 'Base project file ' + projectFile + ' not found'
         return None
@@ -101,8 +95,8 @@ def createProject(dir, notify=None, base=None, suffixes=[], projectModelFactory=
     if organization is not None:
         model.setProjectData('organization', organization)
     if image is not None:
-        model.addImagesFromDir(dir, baseImageFileName=os.path.split(image)[1], suffixes=suffixes, \
-                               sortalg=lambda f: os.stat(os.path.join(dir, f)).st_mtime)
+        model.addImagesFromDir(path, baseImageFileName=os.path.split(image)[1], suffixes=suffixes, \
+                               sortalg=lambda f: os.stat(os.path.join(path, f)).st_mtime)
     return model, not existingProject
 
 
@@ -131,6 +125,7 @@ class Probe:
     The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
     The targetBaseNodeId is the id of the base node that supplies the base image for the target.
     """
+
 
     def __init__(self,edgeId,finalNodeId,targetBaseNodeId,targetMaskImage,targetMaskFileName,targetChangeSizeInPixels,donorBaseNodeId,donorMaskImage,donorMaskFileName):
         self.edgeId = edgeId
@@ -762,7 +757,9 @@ class ImageProjectModel:
                 self.end = None
 
     def addImage(self, pathname):
-        nname = self.G.add_node(pathname, nodetype='base')
+        maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
+        maxy = max([self.G.get_node(node)['ypos'] for node in self.G.get_nodes() if 'ypos' in self.G.get_node(node)] + [50])
+        nname = self.G.add_node(pathname, nodetype='base', xpos=maxx+75, ypos=maxy)
         self.start = nname
         self.end = None
         return nname
@@ -1656,7 +1653,7 @@ class ImageProjectModel:
         description.setAutomated('yes')
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
-                                         position=self._getCurrentPosition((75, 60 if 'donor' in kwargs else 0)))
+                                         position=self._getCurrentPosition((75 if 'donor' in kwargs else 0,75)))
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',

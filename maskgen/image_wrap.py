@@ -115,6 +115,13 @@ class ImageWrapper:
             return ImageWrapper(img)
         return ImageWrapper(self.image_array)
 
+    def apply_mask_rgba(self,mask):
+        image = self.convert('RGBA')
+        img = np.copy(image.image_array)
+        mask_array = np.copy(np.asarray(mask))
+        img[:, :, 3] = img[:, :, 3] * mask_array
+        return ImageWrapper(self.image_array)
+
     def to_rgb(self, type=None):
         type = self.image_array.dtype if type is None else type
         s = self.image_array.shape
