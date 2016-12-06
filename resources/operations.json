@@ -2327,6 +2327,7 @@
         "RANSAC": {
           "type": "list",
            "values": [
+             "None",
              "3",
              "4",
              "5"
@@ -2848,16 +2849,6 @@
         "inputmaskname": {
           "type": "imagefile",
           "description": "An image file containing a mask describing the areas affected."
-        },
-        "RANSAC": {
-          "type": "list",
-          "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -2945,6 +2936,7 @@
           "type": "list",
           "source": "image",
            "values": [
+             "None",
              "3",
              "4",
              "5"
@@ -3112,6 +3104,7 @@
           "type": "list",
           "source": "image",
            "values": [
+             "None",
              "3",
              "4",
              "5"
@@ -3146,6 +3139,7 @@
           "type": "list",
           "source": "image",
            "values": [
+             "None",
              "3",
              "4",
              "5"

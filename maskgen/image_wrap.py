@@ -283,8 +283,8 @@ class ImageWrapper:
         self_array = np.copy(image_to_use)
         if len(self.image_array.shape) != len(image.image_array.shape):
             image_array =  np.ones(image_to_use.shape)*255
-            image_array[image.image_array<1,:] = [0, 198, 0]
-            image_array[image.image_array > 0, :] = [0, 0, 0]
+            image_array[image.image_array<150,:] = [0, 198, 0]
+            image_array[image.image_array >= 150, :] = [0, 0, 0]
             image_array = image_array.astype('uint8')
         else:
             image_array =np.copy( np.asarray(image))

@@ -644,8 +644,9 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
         new_dst_pts = dst_pts
         RANSAC_THRESHOLD = 4.0
         if arguments is not None and 'RANSAC' in arguments:
+            choice = '0' if arguments['RANSAC'] == 'None' else arguments['RANSAC']
             try:
-                 RANSAC_THRESHOLD = float(arguments['RANSAC'])
+                 RANSAC_THRESHOLD = float(choice)
             except:
                 print 'invalid RANSAC ' + arguments['RANSAC']
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)

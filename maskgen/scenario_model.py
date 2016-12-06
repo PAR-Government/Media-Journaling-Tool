@@ -1170,7 +1170,7 @@ class ImageProjectModel:
                                                                arguments=edge['arguments'] if 'arguments' in edge else dict(),
                                                                skipDonorAnalysis=skipDonorAnalysis,
                                                                analysis_params=analysis_params)
-        self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**analysis)
+        self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**consolidate(analysis,analysis_params))
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
                           skipDonorAnalysis=False,
