@@ -165,7 +165,7 @@ def rotationCheck(graph, frm, to):
     args = edge['arguments'] if 'arguments' in edge  else {}
     frm_img = graph.get_image(frm)[0]
     to_img = graph.get_image(to)[0]
-    rotated = args['Image Rotated'] == 'yes'
+    rotated = 'Image Rotated' in args and args['Image Rotated'] == 'yes'
     orientation = getValue(edge, 'exifdiff.Orientation')
     if orientation is not None:
         orientation = str(orientation)
