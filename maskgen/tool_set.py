@@ -552,6 +552,17 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
+def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+    if 'location change' not in arguments or arguments['location change'] == 'no':
+        return
+    globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if linktype != 'image.image':
+        return
+    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
+    if matrix is not None:
+        analysis['transform matrix'] = serializeMatrix(matrix)
+
 
 def createMask(img1, img2, invert=False, arguments={}, crop=False):
     mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop)

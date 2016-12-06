@@ -2462,6 +2462,13 @@
             "other"
           ],
           "description": "Subject catgeory selected to image"
+        },
+         "location change": {
+          "type": "list",
+          "values": [
+            "yes","no"
+          ],
+          "description": "Did the selected region relocate in the image?"
         }
       },
       "rules": [
@@ -2474,6 +2481,9 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
+      "analysisOperations": [
+        "maskgen.tool_set.optionalSiftAnalysis"
+      ],
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false,
       "transitions": [
@@ -2636,6 +2646,14 @@
         "checkLengthSame"
       ],
       "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
       },
       "description": "Duplicate video frames and replay them at a delay to create a trail.",
       "includeInMask": false,
@@ -2655,7 +2673,16 @@
       "rules": [
         "checkLengthSame"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "description": "Lock a layer to a specific frame rate.",
       "includeInMask": false,
       "generateMask" : false,
@@ -2694,7 +2721,16 @@
       "rules": [
         "checkLengthSame"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
       "includeInMask": false,
       "generateMask" : false,
@@ -2718,7 +2754,16 @@
       "rules": [
         "checkLengthSame"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "description": "Distorts the image by shifting pixels across time.",
       "includeInMask": false,
       "generateMask" : false,
@@ -2762,6 +2807,14 @@
         "Adjust Time By": {
           "type": "float[0:100]",
           "description": "Choose Speed to specify a time adjustment as a percentage"
+        },
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",

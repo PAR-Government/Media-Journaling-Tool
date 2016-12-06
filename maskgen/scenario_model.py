@@ -1114,17 +1114,20 @@ class ImageProjectModel:
                             edge['recordMaskInComposite'] == 'yes' and \
                             edge_id[1] not in donor_nodes:
                 donor_mask_file_name = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
-                if os.path.exists(donor_mask_file_name):
-                    if len(edge['inputmaskname']) == 0:
-                        donor_mask = self.G.get_image(edge_id[0])[0].to_mask().to_array()
-                    else:
-                        donor_mask = self.G.openImage(donor_mask_file_name, mask=False).to_mask().to_array()
-                    donor_mask = self._constructDonor(edge_id,donor_mask)
-                    baseNodes = self._findBaseNodes(edge_id[0])
-                    baseNode = baseNodes[0] if len(baseNodes) > 0 else None
-                    self.G.addDonorToNode(edge_id[1], baseNode, ImageWrapper(donor_mask.astype('uint8')))
-                    donors.append((edge_id, donor_mask))
-                    donor_nodes.add(edge_id[1])
+                try:
+                    if os.path.exists(donor_mask_file_name):
+                        if len(edge['inputmaskname']) == 0:
+                            donor_mask = self.G.get_image(edge_id[0])[0].to_mask().to_array()
+                        else:
+                            donor_mask = self.G.openImage(donor_mask_file_name, mask=False).to_mask().to_array()
+                        donor_mask = self._constructDonor(edge_id,donor_mask)
+                        baseNodes = self._findBaseNodes(edge_id[0])
+                        baseNode = baseNodes[0] if len(baseNodes) > 0 else None
+                        self.G.addDonorToNode(edge_id[1], baseNode, ImageWrapper(donor_mask.astype('uint8')))
+                        donors.append((edge_id, donor_mask))
+                        donor_nodes.add(edge_id[1])
+                except Exception as ex:
+                    print 'could not generate donor mask for input mask'  + donor_mask_file_name
         return donors
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
