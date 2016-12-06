@@ -34,7 +34,7 @@ def check_ops(ops, soft, args):
 
     return
 
-def check_additional_args(additionalArgs, op):
+def check_additional_args(additionalArgs, op, continueWithWarning=False):
     """
     Parse additional arguments (rotation, etc.) and validate
     :param additionalArgs: user input list of additional parameters e.g. [rotation, 60...]
@@ -49,9 +49,24 @@ def check_additional_args(additionalArgs, op):
             parsedArgs[key] = maskgen.tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op, skipFileValidation=False)
     else:
         parsedArgs = additionalArgs
-    for key in op.mandatoryparameters.keys():
-        if key not in parsedArgs.keys():
-            print 'Missing required additional argument: ' + key
+
+    missing = [param for param in op.mandatoryparameters.keys() if
+               (param not in parsedArgs or len(str(parsedArgs[param])) == 0) and
+               param != 'inputmaskname' and
+               ('source' not in op.mandatoryparameters[param] or op.mandatoryparameters[param]['source'] == 'image')]
+
+    inputmasks = [param for param in op.optionalparameters.keys() if param == 'inputmaskname' and
+                  'purpose' in parsedArgs and parsedArgs['purpose'] == 'clone']
+
+    if ('inputmaskname' in op.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
+            'inputmaskname' not in parsedArgs or parsedArgs['inputmaskname'] is None or len(parsedArgs['inputmaskname']) == 0):
+        missing.append('inputmaskname')
+
+    if missing:
+        for m in missing:
+            print 'Mandatory parameter ' + m + ' is missing'
+        if continueWithWarning is False:
+            sys.exit(0)
     return parsedArgs
 
 def find_corresponding_image(image, imageList):
@@ -357,13 +372,13 @@ def main():
         additionalArgs = {}
         if opTuple is not None:
             op = getOperation(opTuple[0])
-            additionalArgs = check_additional_args(args.arguments, op)
+            additionalArgs = check_additional_args(args.arguments, op, args.continueWithWarning)
 
         print 'Performing plugin operation ' + args.plugin + '...'
         process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
     elif args.sourceDir:
         check_ops(ops, soft, args)
-        additionalArgs = check_additional_args(args.arguments, getOperation(args.op))
+        additionalArgs = check_additional_args(args.arguments, getOperation(args.op), args.continueWithWarning)
         print 'Adding operation '+ args.op + '...'
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
                 args.softwareVersion, args.description, args.inputmaskpath, additionalArgs,
