@@ -307,7 +307,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectAddLightSource",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -330,7 +341,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectFading",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -353,7 +375,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectReduceInterlaceFlicker",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize"
@@ -374,7 +407,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectFilterAddNoise",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -397,7 +441,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectFilterBlur",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -454,36 +509,7 @@
         "checkLengthSame",
         "checkSize"
       ],
-      "optionalparameters": {
-        "result" : {
-           "type": "list",
-            "values": [
-            "smooth motion",
-            "no motion"
-           ],
-          "description": "TBD."
-        },
-        "method" : {
-          "type": "list",
-          "values": [
-            "position",
-            "position,scale and rotation",
-            "perspective",
-            "subspace warp"
-          ],
-          "description": "TBD."
-        },
-        "boarders" : {
-          "type": "list",
-          "values": [
-            "stablize only",
-            "stablize crop",
-            "crop auto-scale",
-            "synthesize edges"
-          ],
-          "description": "TBD."
-        }
-      },
+      "optionalparameters": {},
       "analysisOperations": [ ],
       "description": "Distort and/or crop video layers in order to remove camera shake",
       "includeInMask": false,
@@ -495,7 +521,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectFilterMedianSmoothing",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -518,7 +555,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectFilterSharpening",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -541,7 +589,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectFilterSmoothing",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -564,7 +623,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectGradientEffect",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -587,7 +657,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectSoftEdgeBrushing",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -610,7 +691,18 @@
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectAddTransitions",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [],
       "optionalparameters": {},
       "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
@@ -620,7 +712,7 @@
       ]
     },
     {
-      "category": "AntiForensicFilter",
+      "category": "AntiForensic",
       "name": "AntiForensicCopyExif",
       "mandatoryparameters": {},
       "rules": [
@@ -635,7 +727,7 @@
       ]
     },
     {
-      "category": "AntiForensicCompression",
+      "category": "AntiForensic",
       "name": "AntiForensicJPGCompression",
       "mandatoryparameters": {
         "qtfile": {
@@ -654,7 +746,7 @@
       ]
     },
     {
-      "category": "AntiForensicExif",
+      "category": "AntiForensic",
       "name": "AntiForensicExifQuantizationTable",
       "mandatoryparameters": {
         "rotate": {
@@ -664,7 +756,6 @@
       },
       "rules": [
         "checkSizeAndExif",
-        "rotationCheck",
         "checkForDonor",
         "check_eight_bit"
       ],
@@ -773,9 +864,24 @@
       ]
     },
     {
-      "category": "Color",
-      "name": "ColorBlendColorBurn",
-      "mandatoryparameters": {},
+      "category": "Layer",
+      "name": "LayerOpacity",
+      "mandatoryparameters": {
+        "Amount": {
+          "type": "int[0:100]",
+          "description": "Transparency level"
+        },
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -788,7 +894,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Alter the blending mode within an image either globally or selectively.",
+      "description": "Change the transparency of a given color overlay.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -796,9 +902,24 @@
       ]
     },
     {
-      "category": "Color",
-      "name": "ColorBlendColorInterpolation",
-      "mandatoryparameters": {},
+      "category": "Layer",
+      "name": "LayerFill",
+      "mandatoryparameters": {
+        "Amount": {
+          "type": "int[0:100]",
+          "description": "Fill level--amount of blended into the layer"
+        },
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -811,7 +932,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Fill of transparent areas of a current layer with a smooth mix of the colors from the opaque areas.",
+      "description": "Change the fill using a solid color or gradient.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -819,9 +940,28 @@
       ]
     },
     {
-      "category": "Color",
-      "name": "ColorBlendDissolve",
-      "mandatoryparameters": {},
+      "category": "Layer",
+      "name": "Blend",
+      "mandatoryparameters": {
+         "mode": {
+           "type":"list",
+           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
+             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
+             "Pin Light","Hard Mix","Linear Light",
+             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+           "description":"Blend Mode"
+         },
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -843,30 +983,7 @@
     },
     {
       "category": "Color",
-      "name": "ColorBlendMultiply",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Using the color information in each channel, calculate a color by multiplying the base color by a blend color. The result color is always a darker color. Multiplying any color with black produces black. Multiplying any color with white leaves the color unchanged. When painting with a color other than black or white, successive strokes with a painting tool produce progressively darker colors.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Color",
-      "name": "ColorColorBalance",
+      "name": "ColorBalance",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
@@ -881,6 +998,29 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Color",
+      "name": "ColorInterpolation",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+        "inputmaskname": {
+          "type": "imagefile",
+          "description": "An image file containing a mask describing the areas affected."
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Fill of transparent areas of a current layer with a smooth mix of the colors from the opaque areas.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -935,18 +1075,19 @@
     },
     {
       "category": "Color",
-      "name": "ColorMatchColor",
-      "mandatoryparameters": {},
+      "name": "ColorMatch",
+      "mandatoryparameters": {
+         "inputmaskname": {
+          "type": "imagefile",
+          "description": "An image file containing a mask describing the areas affected."
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange"
       ],
       "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use a tool to paint an area with the same color values as a selected donor area.",
@@ -956,32 +1097,10 @@
         "video.video"
       ]
     },
+
     {
       "category": "Color",
-      "name": "ColorOpacity",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Change the transparency of a given color overlay.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Color",
-      "name": "ColorReplaceColor",
+      "name": "ColorReplace",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
@@ -1097,7 +1216,18 @@
     {
       "category": "Fill",
       "name": "FillBackground",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1130,6 +1260,16 @@
             "other"
           ],
           "description": "Purpose: remove an object, enlarge (extend), or healing using sampled pixels."
+        },
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "rules": [
@@ -1157,7 +1297,18 @@
     {
       "category": "Fill",
       "name": "FillForeground",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1180,7 +1331,18 @@
     {
       "category": "Fill",
       "name": "FillGradient",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1194,52 +1356,6 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillImageInterpolation",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Replace large selections with an averaging of surrounding pixel groups.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillInpainting",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Replace areas of an image with semantically similar pixel values to create a seamless image.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -1262,8 +1378,9 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Create adjustments within a localized selection.",
+      "description": "Create adjustments within a localized selection. Replaced with PasteSampled",
       "includeInMask": false,
+      "hidden" : true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1502,6 +1619,42 @@
     },
     {
       "category": "Intensity",
+      "name": "IntensityBurn",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {},
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Local adjustment, making the area darker.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Intensity",
+      "name": "IntensityDodge",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {},
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Local adjustment, making the area brighter.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Intensity",
       "name": "IntensityNormalization",
       "mandatoryparameters": {},
       "rules": [
@@ -1619,8 +1772,8 @@
       ]
     },
     {
-      "category": "Intensity",
-      "name": "IntensityHardlight",
+      "category": "Layer",
+      "name": "BlendHardlight",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -1734,8 +1887,8 @@
       ]
     },
     {
-      "category": "Intensity",
-      "name": "IntensitySoftlight",
+      "category": "Layer",
+      "name": "BlendSoftlight",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -1865,7 +2018,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteClone operation.",
+      "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
       "includeInMask": true,
       "transitions": [
         "image.image",
@@ -1886,6 +2039,20 @@
         }
       },
       "description": "Export the image in the bmp format.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputDng",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize"
+      ],
+      "optionalparameters": {},
+      "description": "Export the image in the DNG format.",
       "includeInMask": false,
       "transitions": [
         "image.image"
@@ -2032,6 +2199,14 @@
           "type": "yesno",
           "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
         },
+        "purpose": {
+          "type": "list",
+          "values": [
+            "remove",
+            "add"
+          ],
+          "description": "Purpose: remove an object, add an object."
+        },
         "subject": {
           "type": "list",
           "values": [
@@ -2086,60 +2261,6 @@
     },
     {
       "category": "Paste",
-      "name": "CopyPaste",
-      "mandatoryparameters": {
-        "Select Start Time": {
-          "type": "time",
-          "description": "Start time of the copied video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
-        },
-        "Number of Frames": {
-         "type": "int[0:1000000]",
-          "description": "Numbers of frames copy/pasted"
-        },
-         "Dest Paste Time": {
-          "Paste Start Time": "time",
-          "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
-        }
-      },
-      "rules": [
-        "checkLengthBigger"
-      ],
-      "optionalparameters": {},
-      "description": "Copy & Paste a series of frames within the same video",
-      "includeInMask": true,
-      "transitions": [
-        "video.video"
-      ]
-    },
-    {
-      "category": "Paste",
-      "name": "CutPaste",
-      "mandatoryparameters": {
-        "Select Start Time": {
-          "type": "time",
-          "description": "Start time of the cut video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
-        },
-        "Number of Frames": {
-         "type": "int[0:1000000]",
-          "description": "Numbers of frames cut/pasted"
-        },
-         "Dest Paste Time": {
-          "Paste Start Time": "time",
-          "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
-        }
-      },
-      "rules": [
-        "checkLengthBigger"
-      ],
-      "optionalparameters": {},
-      "description": "Cut & Paste a series of frames within the same video",
-      "includeInMask": true,
-      "transitions": [
-        "video.video"
-      ]
-    },
-    {
-      "category": "Paste",
       "name": "PasteOverlay",
       "mandatoryparameters": {
         "motion mapping": {
@@ -2158,10 +2279,6 @@
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
-        },
-        "motion mapping": {
-          "type": "yesno",
           "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
@@ -2195,6 +2312,7 @@
       },
       "rules": [
         "checkSize",
+        "checkSIFT",
         "checkForDonorWithRegion"
       ],
       "optionalparameters": {
@@ -2205,6 +2323,15 @@
         "End Time": {
           "type": "time",
           "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "RANSAC": {
+          "type": "list",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [],
@@ -2335,6 +2462,13 @@
             "other"
           ],
           "description": "Subject catgeory selected to image"
+        },
+         "location change": {
+          "type": "list",
+          "values": [
+            "yes","no"
+          ],
+          "description": "Did the selected region relocate in the image?"
         }
       },
       "rules": [
@@ -2347,6 +2481,9 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
+      "analysisOperations": [
+        "maskgen.tool_set.optionalSiftAnalysis"
+      ],
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false,
       "transitions": [
@@ -2460,7 +2597,7 @@
         }
       },
       "description": "Remove a limited selection within an image.",
-      "includeInMask": true,
+      "includeInMask": false,
       "transitions": [
         "image.image"
       ]
@@ -2509,6 +2646,14 @@
         "checkLengthSame"
       ],
       "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
       },
       "description": "Duplicate video frames and replay them at a delay to create a trail.",
       "includeInMask": false,
@@ -2528,7 +2673,16 @@
       "rules": [
         "checkLengthSame"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "description": "Lock a layer to a specific frame rate.",
       "includeInMask": false,
       "generateMask" : false,
@@ -2567,7 +2721,16 @@
       "rules": [
         "checkLengthSame"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
       "includeInMask": false,
       "generateMask" : false,
@@ -2591,7 +2754,16 @@
       "rules": [
         "checkLengthSame"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
       "description": "Distorts the image by shifting pixels across time.",
       "includeInMask": false,
       "generateMask" : false,
@@ -2635,12 +2807,64 @@
         "Adjust Time By": {
           "type": "float[0:100]",
           "description": "Choose Speed to specify a time adjustment as a percentage"
+        },
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [
+        "video.video"
+      ]
+    },
+     {
+      "category": "Transform",
+      "name": "ImageInterpolation",
+      "mandatoryparameters": {
+          "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+        "inputmaskname": {
+          "type": "imagefile",
+          "description": "An image file containing a mask describing the areas affected."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Replace large selections with an averaging of surrounding pixel groups.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
         "video.video"
       ]
     },
@@ -2652,9 +2876,20 @@
         "checkSize",
         "checkFileTypeChange"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
       "includeInMask": false,
@@ -2671,9 +2906,20 @@
         "checkSize",
         "checkFileTypeChange"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false,
@@ -2694,6 +2940,16 @@
         "location": {
           "type": "coordinates",
           "description": "Tuple in form of (x,y) describing the upper left crop corner."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
@@ -2719,10 +2975,20 @@
         "inputmaskname": {
           "type": "imagefile",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the shape and dimensions of a given selection or image.",
       "includeInMask": false,
@@ -2779,9 +3045,20 @@
         "checkSize",
         "checkFileTypeChange"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false,
@@ -2792,38 +3069,36 @@
     },
     {
       "category": "Transform",
-      "name": "TransformResample",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkFileTypeChange"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
+      "name": "TransformResize",
+      "mandatoryparameters": {
+         "scale": {
+          "type": "string",
+           "source": "video",
+          "description": "Down sample instructions such as 640:480."
         }
       },
-      "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
-      ],
-      "description": "Reduce or increasing the number of pixels in an image.",
-      "includeInMask": false,
-      "generateMask" : false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Transform",
-      "name": "TransformResize",
-      "mandatoryparameters": {},
       "rules": [
         "checkFileTypeChange"
       ],
       "optionalparameters": {
+        "pixel aspect": {
+           "type": "list",
+           "source": "video",
+           "values": [
+             "Square Pixels (1.0)",
+             "D1/DV NTSC (0.9091)",
+             "D1/DV NTSC Widescreen 16:9 (1.2121)",
+             "D1/DV PAL (1.0940)",
+             "D1/DV PAL Widescreen 16:9 (1.4587)",
+             "Anamorphic 2:1 (2.0)",
+             "HD Anamorphic 1080 (1.333)",
+             "DVCPRO HD (1.5)",
+             "Custom"],
+           "description": "."
+        },
         "interpolation": {
           "type": "list",
+          "source": "image",
           "values": [
             "nearest",
             "lanczos",
@@ -2832,10 +3107,20 @@
             "cubic"
           ],
           "description": "Interpolation is used to resize entire composite images."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
@@ -2850,13 +3135,24 @@
       "mandatoryparameters": {
         "rotation": {
           "type": "int[-360:360]",
-          "description": "The rotation should be provided in degrees counter-clockwise (0 to 360)"
+          "description": "The rotation should be provided in degrees counter-clockwise (-360 to 360)"
         }
       },
       "rules": [
         "checkFileTypeChange"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "analysisOperations": [
         "maskgen.tool_set.siftAnalysis"
       ],
@@ -2875,7 +3171,21 @@
         "checkSize",
         "checkFileTypeChange"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.forcedSiftAnalysis"
+      ],
       "description": "Change the size of an image or layer while preserving dimensions.",
       "includeInMask": false
     },
@@ -2892,9 +3202,20 @@
         "seamCarvingCheck",
         "checkFileTypeChange"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
@@ -2915,10 +3236,20 @@
         "inputmaskname": {
           "type": "imagefile",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
       "includeInMask": false,
@@ -2939,10 +3270,20 @@
         "inputmaskname": {
           "type": "imagefile",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
       "includeInMask": false,
@@ -2963,10 +3304,20 @@
         "inputmaskname": {
           "type": "imagefile",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
@@ -2985,7 +3336,18 @@
         }
       },
       "rules": [],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "description": "Down sample a video to a lower frame resolution.",
       "includeInMask": false,
       "generateMask" : false,
@@ -2999,7 +3361,18 @@
       "mandatoryparameters": {
       },
       "rules": [],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "RANSAC": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "3",
+             "4",
+             "5"
+           ],
+           "description": "Tune transform creation for composite mask generation"
+        }
+      },
       "description": "Reverse the direction of video play.",
       "includeInMask": false,
       "generateMask" : false,

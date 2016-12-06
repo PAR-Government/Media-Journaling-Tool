@@ -1,13 +1,13 @@
 from Tkinter import *
 import ttk
-from datetime import datetime
+import time
 import tkMessageBox
 from group_filter import GroupFilter, GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getFileTypes
+    validateCoordinates, getMaskFileTypes, getFileTypes, get_username
 from scenario_model import Modification
 from software_loader import Software, SoftwareLoader
 import os
@@ -16,6 +16,7 @@ from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
+from software_loader import loadProjectProperties
 
 def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     """
@@ -97,6 +98,42 @@ def viewInfo(description_information):
                           description_information[1] if description_information[1] is not None else 'Undefined')
 
 
+class MyDropDown(OptionMenu):
+
+    var = None
+    command = None
+
+    def __init__(self, master, oplist, initialValue=None,command=None):
+        if initialValue is None:
+            initialValue = oplist[0] if len(oplist) > 0 else ''
+        self.var = StringVar()
+        self.var.set(initialValue)
+        self.command = command
+        OptionMenu.__init__(self, master, self.var,'')
+        for val in oplist:
+            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.doit(l))
+
+    def set_completion_list(self, values, initialValue=None):
+        if initialValue is None:
+            initialValue = values[0] if len(values) > 0 else ''
+        if initialValue not in values:
+            initialValue = ''
+        self.children['menu'].delete(0, END)
+        for val in values:
+            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.doit(l))
+        self.var.set(initialValue)
+
+    def get(self):
+        return self.var.get()
+
+    def doit(self,v):
+        self.var.set(v)
+        if self.command is not None:
+            self.command(self.var.get())
+
+    def bind(self, name, command):
+        self.command = command
+
 class PropertyDialog(tkSimpleDialog.Dialog):
 
    parent = None
@@ -151,6 +188,14 @@ class PropertyDialog(tkSimpleDialog.Dialog):
              if v:
                  self.values[row].insert(0,v)
              self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
+
+           if prop.readonly:
+               if prop.type == 'yesno':
+                   self.yesbuttons[radioCount-1].config(state=DISABLED)
+                   self.nobuttons[radioCount-1].config(state=DISABLED)
+               else:
+                   self.values[row].config(state=DISABLED)
+
            row+=1
 
 
@@ -280,10 +325,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         catlist = list(cats.keys())
         catlist.sort()
         oplist = cats[catlist[0]] if len(cats) > 0 else []
-        self.e1 = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40)
-        self.e2 = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40)
-        self.e4 = AutocompleteEntryInText(master, values=sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), takefocus=False,
-                                          width=40)
+        self.e1 = MyDropDown(master, catlist, command=self.newcategory)
+        self.e2 = MyDropDown(master, oplist, command=self.newcommand)
+        self.e4 = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
         self.e1.bind("<<ComboboxSelected>>", self.newcategory)
@@ -291,12 +335,12 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e2.bind("<<ComboboxSelected>>", self.newcommand)
         self.e4.bind("<Return>", self.newsoftware)
         self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
-        self.e3 = Text(master, height=2, width=28, font=('Times', '14'), relief=RAISED, borderwidth=2)
+        self.e3 = Text(master, height=2, width=40, font=('Times', '14'), relief=RAISED, borderwidth=2)
 
-        self.e1.grid(row=1, column=1)
-        self.e2.grid(row=2, column=1)
-        self.e3.grid(row=3, column=1, sticky=E)
-        self.e4.grid(row=4, column=1)
+        self.e1.grid(row=1, column=1, sticky=EW)
+        self.e2.grid(row=2, column=1, sticky=EW)
+        self.e3.grid(row=3, column=1, sticky=EW)
+        self.e4.grid(row=4, column=1, sticky=EW)
         self.e5.grid(row=5, column=1)
 
         if self.description is not None:
@@ -413,6 +457,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
                                                                                                sticky=W)
         Label(master, text='Automated: ' + self.description.automated, anchor=W, justify=LEFT).grid(row=3, column=0,
                                                                                                     sticky=W)
+        Label(master, text='User: ' + self.description.username, anchor=W, justify=LEFT).grid(row=3, column=2,
+                                                                                                    sticky=E)
         row = 4
         if len(self.description.arguments) > 0:
             Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=4, sticky=W)
@@ -911,7 +957,7 @@ class ListDialog(Toplevel):
         self.itemBox.grid(row=0, column=0, sticky=E + W + N + S)
         self.xscrollbar.config(command=self.itemBox.xview)
         self.xscrollbar.grid(row=1, column=0, stick=E + W)
-        self.yscrollbar.config(command=self.itemBox.xview)
+        self.yscrollbar.config(command=self.itemBox.yview)
         self.yscrollbar.grid(row=0, column=1, stick=N + S)
         for item in self.items:
             self.itemBox.insert(END, item[2])
@@ -1025,17 +1071,29 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
 class CompositeViewDialog(tkSimpleDialog.Dialog):
     im = None
+    composite = None
+    """
+    @type im: ImageWrapper
+    @type composite: ImageWrapper
+    """
 
-    def __init__(self, parent, name, im):
-        self.im = im
+    def __init__(self, parent, name, composite, im):
+        self.composite = composite
+        self.im= im
         self.parent = parent
         self.name = name
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c = Canvas(master, width=250, height=250)
-        self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
+        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
+        if self.im is not None:
+            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
+            imResized = imResized.overlay(compositeResized)
+        else:
+            imResized = compositeResized
+        self.photo = ImageTk.PhotoImage(imResized.toPIL())
+        self.c = Canvas(master, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
+        self.image_on_canvas = self.c.create_image(0,0, image=self.photo,anchor=NW, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
 
     def buttonbox(self):
@@ -1057,6 +1115,176 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
                 val = val + '.png'
             self.im.save(val)
             self.ok()
+
+class QAViewDialog(Toplevel):
+    def __init__(self, parent, terminalNodes, donorNodes):
+        self.terminals = terminalNodes
+        self.donors = donorNodes
+        self.parent = parent
+        Toplevel.__init__(self, parent)
+        #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
+        self.createWidgets()
+        self.resizable(width=False, height=False)
+
+    def createWidgets(self):
+        row=0
+        col=0
+        self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
+        self.optionsLabel.grid(row=row)
+        row+=1
+        self.optionsBox = ttk.Combobox(self, values=self.terminals + self.donors)
+        self.optionsBox.set(self.terminals[0])
+        self.optionsBox.grid(row=row, sticky='EW')
+        self.optionsBox.bind("<<ComboboxSelected>>", self.composite_or_donor)
+        row+=1
+        self.cImgFrame = Frame(self)
+        self.cImgFrame.grid(row=row, rowspan=8)
+        self.master.scModel.selectImage(self.terminals[0])
+        self.descriptionLabel = Label(self)
+        self.composite_or_donor(initialize=True)
+
+        row=1
+        col=1
+
+        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
+        self.validateButton.grid(row=row, column=col, padx=10, columnspan=6, sticky='EW')
+        row+=1
+
+        self.infolabel = Label(self, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
+        row+=1
+
+        qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
+                   'PasteSplice operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
+                   'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
+                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
+        checkboxes = []
+        self.checkboxvars = []
+        for q in qa_list:
+            var = BooleanVar()
+            ck = Checkbutton(self, variable=var, command=self.check_ok)
+            ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
+            ck.grid(row=row, column=col)
+            checkboxes.append(ck)
+            self.checkboxvars.append(var)
+            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='W', columnspan=4)
+            row+=1
+
+        Label(self, text='QA Signoff: ').grid(row=row, column=col, sticky='W')
+        col+=1
+
+        self.reporterStr = StringVar()
+        self.reporterStr.set(get_username())
+        self.reporterEntry = Entry(self, textvar=self.reporterStr)
+        self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
+
+        row+=1
+        col-=1
+
+        self.acceptButton = Button(self, text='Accept', command=lambda:self.qa_done('yes'), width=15, state=DISABLED)
+        self.acceptButton.grid(row=row, column=col, columnspan=2, sticky='W')
+
+        self.rejectButton = Button(self, text='Reject', command=lambda:self.qa_done('no'), width=15)
+        self.rejectButton.grid(row=row, column=col+2, columnspan=2, sticky='W')
+
+        row += 1
+        self.descriptionLabel.grid(row=row, column=col-1)
+
+        row +=1
+        self.commentsLabel = Label(self, text='Comments: ')
+        self.commentsLabel.grid(row=row, column=col-1, columnspan=5)
+        row+=1
+        textscroll = Scrollbar(self)
+        textscroll.grid(row=row, column=col+5, sticky=NS)
+        self.commentsBox = Text(self, height=5, width=100, yscrollcommand=textscroll.set)
+        self.commentsBox.grid(row=row, column=col-1, padx=5, pady=5, columnspan=6, sticky=NSEW)
+        textscroll.config(command=self.commentsBox.yview)
+        currentComment = self.parent.scModel.getProjectData('qacomment')
+        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
+
+        self.check_ok()
+
+    def composite_or_donor(self, initialize=False, event=None):
+        self.name = self.parent.scModel.start
+        self.master.scModel.selectImage(self.optionsBox.get())
+        if self.optionsBox.get() in self.terminals:
+            self.im = self.parent.scModel.startImage()
+            self.composite = self.master.scModel.getComposite()
+            self.descriptionLabel.config(text='Composite generated for node ' + self.optionsBox.get())
+        elif self.optionsBox.get() in self.donors:
+            self.composite, self.im = self.parent.scModel.getDonorAndBaseImages()
+            self.descriptionLabel.config(text='Donor mask generated for node ' + self.optionsBox.get())
+        else:
+            return
+
+        self.load_composite(initialize)
+
+    def load_composite(self, initialize=False):
+        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
+        if self.im is not None:
+            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
+            imResized = imResized.overlay(compositeResized)
+        else:
+            imResized = compositeResized
+        self.photo = ImageTk.PhotoImage(imResized.toPIL())
+        if initialize is True:
+            self.c = Canvas(self.cImgFrame, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
+            self.c.pack()
+        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
+
+
+    def qa_done(self, qaState):
+        self.parent.scModel.setProjectData('validation', qaState)
+        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get())
+        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
+        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END))
+        self.parent.scModel.save()
+
+        self.destroy()
+
+    def check_ok(self, event=None):
+        turn_on_ok = True
+        for b in self.checkboxvars:
+            if b.get() is False or turn_on_ok is False:
+                turn_on_ok = False
+
+        if turn_on_ok is True:
+            self.acceptButton.config(state=NORMAL)
+        else:
+            self.acceptButton.config(state=DISABLED)
+
+
+class CommentViewer(tkSimpleDialog.Dialog):
+    def __init__(self, master):
+        self.master=master
+        tkSimpleDialog.Dialog.__init__(self, master)
+
+    def body(self, master):
+        try:
+            comment = self.master.scModel.getProjectData('qacomment')
+            if comment == '':
+                raise
+        except:
+            comment = 'There are no comments!'
+
+        self.commentLabel = Label(self, text=comment, wraplength=400, justify=LEFT)
+        self.commentLabel.pack(side=TOP)
+
+    def buttonbox(self):
+        box = Frame(self)
+
+        w = Button(box, text="Clear Comment", width=15, command=self.clearComment, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="OK", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+
+    def clearComment(self):
+        self.master.scModel.setProjectData('qacomment', '')
+        self.commentLabel.config(text='There are no comments!')
 
 
 class ButtonFrame(Frame):
@@ -1087,8 +1315,11 @@ class SelectDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         desc_lines = '\n'.join(self.description.split('.'))
         Label(master, text=desc_lines, wraplength=400).grid(row=0, sticky=W)
-        self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
-        self.e1.grid(row=1, column=0)
+        self.var1 = StringVar()
+        self.var1.set(self.values[0])
+        self.e1 = OptionMenu(master, self.var1, *self.values)
+        #self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
+        self.e1.grid(row=1, column=0,sticky=EW)
 
     def cancel(self):
         if self.cancelled:
@@ -1097,7 +1328,7 @@ class SelectDialog(tkSimpleDialog.Dialog):
 
     def apply(self):
         self.cancelled = False
-        self.choice = self.e1.get()
+        self.choice = self.var1.get()
 
 
 class EntryDialog(tkSimpleDialog.Dialog):

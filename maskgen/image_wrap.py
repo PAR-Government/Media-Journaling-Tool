@@ -29,7 +29,7 @@ def openImageFile(filename,isMask=False):
      with open(filename,'rb') as f:
           im = Image.open(filename)
           im.load()
-          return ImageWrapper(np.asarray(im),info=im.info,to_mask =isMask)
+          return ImageWrapper(np.asarray(im),mode=im.mode,info=im.info,to_mask =isMask)
    except:
       info = {}
       try:
@@ -43,9 +43,8 @@ def openImageFile(filename,isMask=False):
           pass
       try:
           return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info,to_mask =isMask)
-      except Exception as es:
+      except:
           import rawpy
-          print es
           with rawpy.imread(filename) as raw:
               return ImageWrapper(raw.postprocess(),to_mask =isMask)
 
@@ -76,21 +75,26 @@ def get_mode(image_array):
         return 'F' if str(image_array.dtype).startswith('f') and not hasBigValues else 'L'
     elif s[2] == 4:
         return 'RGBA'
+    elif s[2] == 2:
+        return 'LA'
     else:
         return 'RGB'
 
 class ImageWrapper:
-    def __init__(self,image_array, to_mask=False,info=None):
+    def __init__(self,image_array, mode=None, to_mask=False,info=None):
         if str(type(image_array)) == 'ImageWrapper':
             self.image_array = image_array.image_array
         else:
             self.image_array = image_array
         self.info = info
-        self.mode = get_mode(image_array)
+        self.mode = mode if mode is not None else get_mode(image_array)
         self.size = (image_array.shape[1],image_array.shape[0])
         if to_mask and self.mode != 'L':
             self.image_array = cv2.cvtColor(self.to_rgb(type='uint8').image_array,cv2.COLOR_RGBA2GRAY)
             self.mode = 'L'
+
+    def has_alpha(self):
+        return len(self.image_array.shape) == 3 and self.mode.find('A') > 0
 
     def to_image(self):
         return Image.fromarray(self.image_array,mode = self.mode)
@@ -121,18 +125,19 @@ class ImageWrapper:
     def to_rgb(self, type=None):
         type = self.image_array.dtype if type is None else type
         s = self.image_array.shape
-        if (len(s)) > 2 and s[2] > 3:
-            alpha = self.image_array[:,:,3]
+        img = self.convert('RGB')
+        if self.mode.find('A') > 0:
+            alpha = self.image_array[:,:,self.image_array.shape[2]-1]
             zeros = np.zeros((self.size[1],self.size[0]))
             zeros[alpha > 0] = 1
             img_array2 = np.zeros((self.image_array.shape[0],self.image_array.shape[1],3))
             for i in range(3):
-                img_array2[:, :, i] = self.image_array[:, :, i] * zeros
+                img_array2[:, :, i] = img.image_array[:, :, i] * zeros
             img_array2 = img_array2.astype(self.image_array.dtype)
-            return ImageWrapper(totype(img_array2,type))
+            return ImageWrapper(totype(img_array2,type=type),mode='RGB')
         elif len(s) == 2:
-             return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB))
-        return ImageWrapper(totype(np.copy(self.image_array),type))
+             return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB),mode='RGB')
+        return ImageWrapper(totype(np.copy(img.image_array),type))
 
     def save(self, filename, **kwargs):
         format = kwargs['format'] if 'format' in kwargs else 'PNG'
@@ -167,15 +172,23 @@ class ImageWrapper:
             return ImageWrapper(np.asarray(Image.fromarray(self.image_array,mode='F').convert(convert_type_str)))
         img_array = (np.iinfo('uint8').max * self.image_array).astype('uint8') if str(self.image_array.dtype).startswith('f') else self.image_array
         if img_array.dtype == 'uint8':
-            return ImageWrapper(np.asarray(Image.fromarray(img_array).convert(convert_type_str)))
+            return ImageWrapper(np.asarray(Image.fromarray(img_array,mode=self.mode).convert(convert_type_str)),mode=convert_type_str)
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
-            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2RGBA) )
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2RGBA),mode='RGBA' )
         if self.mode == 'RGBA' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB) )
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB),mode='RGB' )
         if self.mode == 'L' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGB) )
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGB),mode='RGB' )
         if self.mode == 'L' and convert_type_str == 'RGBA':
-            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGBA) )
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGBA), mode='RGBA' )
+        if self.mode == 'LA' and convert_type_str == 'RGBA':
+            img = cv2.cvtColor(img_array[:,:,0],cv2.COLOR_GRAY2BGRA)
+            img[:,:,3] = img_array[:,:,1]
+            return ImageWrapper(img,mode='RGBA')
+        if self.mode == 'LA' and convert_type_str == 'L':
+            img = np.copy(img_array[:,:,0])
+            img = img * img_array[:,:,1]
+            return ImageWrapper(img,mode='L')
         if self.mode == 'RGB' and convert_type_str == 'L':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY) )
         if self.mode == 'RGBA' and convert_type_str == 'L':
@@ -187,42 +200,62 @@ class ImageWrapper:
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGBA2GRAY)/max_value )
         if self.mode == 'L' and convert_type_str == 'F':
             return ImageWrapper(img_array/max_value)
+        if self.mode == 'LA' and convert_type_str == 'F':
+            img = np.copy(img_array[:, :, 0])
+            img = img * img_array[:, :, 1]
+            img = img.astype('float')
+            return ImageWrapper(img/max_value,mode='F')
         return self
 
-    def apply_alpha_to_mask(self, image):
+    def apply_alpha_to_mask(self, mask):
+        """
+        :param mask:
+        :return:  The mask altered by the alpha channel of the given image
+        @rtype : ImageWrapper
+        """
         s = self.image_array.shape
-        if len(s) == 3 and self.image_array.shape[2] == 4:
-            img_array = np.asarray(image)
-            img_array = np.copy(img_array) if len(img_array.shape) == 2 else image.to_mask().to_array()
-            img_array[self.image_array[:, :, 3] == 0] = 255
+        if self.mode.find('A') > 0 and len(s) > 3:
+            img_array = np.asarray(mask)
+            img_array = np.copy(img_array) if len(img_array.shape) == 2 else mask.to_mask().to_array()
+            img_array[self.image_array[:, :, s[2]-1] == 0] = 255
             return ImageWrapper(img_array)
-        return image
+        return mask
 
     def to_mask(self):
         """
           Produce a mask where all black areas are white
+        @rtype : ImageWrapper
         """
         s = self.image_array.shape
 
         gray_image_temp = self.convert('L')
         gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
         gray_image[gray_image_temp.image_array < np.iinfo(gray_image_temp.image_array.dtype).max] = 0
-        if len(s) == 3 and self.image_array.shape[2] == 4:
-            gray_image[self.image_array[:, :, 3] == 0] = 255
+        if len(s) == 3 and self.mode.find('A') > 0 :
+            gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 255
         return ImageWrapper(gray_image)
 
     def to_float(self,equalize_colors=False):
+        """
+        Apply the alpha channel in the process of the conversion
+        :param equalize_colors:
+        :return: float image (mode = 'F')
+        @rtype : ImageWrapper
+        """
         s = self.image_array.shape
+        if self.mode == 'F':
+            return self
         if len(s) == 2:
             return ImageWrapper(tofloat(self.image_array))
-        if str(self.image_array.dtype) == 'uint8':
-            img = np.asarray(Image.fromarray(self.image_array).convert('F'))
-        r, g, b = self.image_array[:, :, 0], self.image_array[:, :, 1], self.image_array[:, :, 2]
+        if self.mode == 'LA':
+            return ImageWrapper(self.image_array[:,:,0] * tofloat(self.image_array[:, :, 1]).astype('float32'))
+        rgbaimg  = self.convert('RGBA') if self.mode != 'RGBA' else self
+        r, g, b = rgbaimg.image_array[:, :, 0], rgbaimg.image_array[:, :, 1], rgbaimg.image_array[:, :, 2]
         if equalize_colors:
             r = cv2.equalizeHist(r)
             g = cv2.equalizeHist(g)
             b = cv2.equalizeHist(b)
-        a = tofloat(self.image_array[:, :, 3]) if s[2] == 4 else np.ones((self.size[1],self.size[0]))
+        a = tofloat(rgbaimg.image_array[:, :, 3]) if s[2] == 4 else np.ones((self.size[1],self.size[0]))
         gray = ((0.2989 * r + 0.5870 * g + 0.1140 * b) * a)
         return ImageWrapper(gray.astype('float32'))
 
@@ -239,11 +272,30 @@ class ImageWrapper:
     def apply_transparency(self):
         if self.mode.find('A') < 0:
             return self
-        perc = tofloat(self.image_array[:, :, 3])
+        perc = tofloat(self.image_array[:, :, self.image_array.shape[2]-1])
         xx = np.copy(self.image_array)
         xx.flags['WRITEABLE'] = True
-        for d in range(3):
+        for d in range(self.image_array.shape[2]-1):
             xx[:, :, d] = xx[:, :, d] * perc
-        xx[:, :, 3] = np.ones((xx.shape[0], xx.shape[1])) * float(np.iinfo(self.image_array.dtype).max)
+        xx[:, :, self.image_array.shape[2]-1] = np.ones((xx.shape[0], xx.shape[1])) * float(np.iinfo(self.image_array.dtype).max)
         return ImageWrapper(xx)
+
+    def overlay(self, image):
+        """
+        :param image:
+        :return:new image with give n image overlayed
+        @rtype : ImageWrapper
+        """
+        image_to_use = self.image_array if len(self.image_array.shape) != 2 else self.convert('RGB').image_array
+        self_array = np.copy(image_to_use)
+        if len(self.image_array.shape) != len(image.image_array.shape):
+            image_array =  np.ones(image_to_use.shape)*255
+            image_array[image.image_array<1,:] = [0, 198, 0]
+            image_array[image.image_array > 0, :] = [0, 0, 0]
+            image_array = image_array.astype('uint8')
+        else:
+            image_array =np.copy( np.asarray(image))
+            image_array[np.all(image_array == [255,255,255],axis=2)] = [0,0,0]
+        return ImageWrapper(cv2.addWeighted(image_array, 0.65, self_array[:,:,0:3],  1,
+                        0, self_array))
 

@@ -100,7 +100,9 @@ def check_mandatory(edge, op, graph, frm, to):
     missing = [param for param in opObj.mandatoryparameters.keys() if
                (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname'
                and ('source' not in opObj.mandatoryparameters[param] or opObj.mandatoryparameters[param]['source'] == frm_file_type)]
-    if 'inputmaskname' in opObj.mandatoryparameters.keys() and (
+    inputmasks = [param for param in opObj.optionalparameters.keys() if param == 'inputmaskname' and
+                  'purpose' in edge and edge['purpose'] == 'clone']
+    if ('inputmaskname' in opObj.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
             'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0):
         missing.append('inputmaskname')
     return [('Mandatory parameter ' + m + ' is missing') for m in missing]
@@ -163,13 +165,14 @@ def rotationCheck(graph, frm, to):
     args = edge['arguments'] if 'arguments' in edge  else {}
     frm_img = graph.get_image(frm)[0]
     to_img = graph.get_image(to)[0]
-    if 'Image Rotated' not in args or 'rotate' not in args:
-        args['Image Rotated'] = ('yes' if frm_img.size[0] != frm_img.size[1] else 'no')
-        return
-    rotated = (args['Image Rotated'] if 'Image Rotated' in args else args['rotate']) == 'yes'
-    if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
-        return 'Image was not rotated as stated by the parameter Image Rotated'
-    elif not rotated and frm_img.size != to_img.size:
+    rotated = args['Image Rotated'] == 'yes'
+    orientation = getValue(edge, 'exifdiff.Orientation')
+    if orientation is not None:
+        orientation = str(orientation)
+        if '270' in orientation or '90' in orientation:
+            if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
+                return 'Image was not rotated as stated by the parameter Image Rotated'
+    if not rotated and frm_img.size != to_img.size:
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 
@@ -375,7 +378,7 @@ def colorGlobalRule(scModel,edgeTuples):
     return 'yes' if found else 'no'
 
 def cloneRule(scModel,edgeTuples):
-    nodes = [edgeTuple[1] for edgeTuple in edgeTuples]
+    nodes = [edgeTuple[0] for edgeTuple in edgeTuples]
     for edgeTuple in edgeTuples:
         edgeNode = scModel.getGraph().get_node(edgeTuple[1])
         donorBaseNode = edgeNode['donorbase'] if 'donorbase' in edgeNode else None
@@ -385,6 +388,16 @@ def cloneRule(scModel,edgeTuples):
                      edgeTuple[2]['arguments']['purpose'] == 'clone')):
             return 'yes'
     return 'no'
+
+def unitCountRule(scModel,edgeTuples):
+    setofops = set()
+    count = 0
+    for edgeTuple in edgeTuples:
+        #edgeNode = scModel.getGraph().get_node(edgeTuple[1])
+        op = getOperationWithGroups( edgeTuple[2]['op'] ,fake=True )
+        count += 1 if op.category not in ['Filter','Output','Select','Donor'] and edgeTuple[2]['op'] not in setofops else 0
+        setofops.add(edgeTuple[2]['op'])
+    return str(count) + '-Unit'
 
 def compositeSizeRule(scModel, edgeTuples):
     value = 0

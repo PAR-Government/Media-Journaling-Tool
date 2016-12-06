@@ -29,9 +29,10 @@ class ProjectProperty:
     value = None
     information = None
     node = False
+    readonly = False
 
     def __init__(self, name='', type='', operation=None, parameter=None, description=None,
-                 information = None, value = None, values=None, rule=None, node=False):
+                 information=None, value=None, values=None, rule=None, node=False, readonly=False):
         self.name = name
         self.type = type
         self.operation = operation
@@ -42,6 +43,7 @@ class ProjectProperty:
         self.value = value
         self.information = information
         self.node = node
+        self.readonly = readonly
 
 
 class Operation:
@@ -139,7 +141,8 @@ def loadProjectPropertyJSON(fileName):
                                                 value=prop['value'] if 'value' in prop else None,
                                                 node=prop['node'] if 'node' in prop else False,
                                                 information=prop['information'] if 'information' in prop else None,
-                                                operation=prop['operation'] if 'operation' in prop else None))
+                                                operation=prop['operation'] if 'operation' in prop else None,
+                                                readonly=prop['readonly'] if 'readonly' in prop else None))
     return res
 
 
@@ -214,6 +217,7 @@ def loadSoftware(fileName):
             elif len(software_name) > 0:
                 types = ['image', 'video'] if software_type == 'both' else [software_type]
                 types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                types = ['video', 'audio'] if software_type == 'audio' else types
                 for stype in types:
                     softwareset[stype][software_name] = versions
     return softwareset

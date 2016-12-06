@@ -18,12 +18,12 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
-                  ('f4v', '*.flv'),("avi files", "*.avi")]
+                  ('f4v', '*.flv'),("avi files", "*.avi"), ('asf','*.asf')]
 audiofiletypes =  [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"),("mpeg audio files", "*.mp3"),
                     ("raw audio files", "*.raw"),
                     ("Standard PC audio files", "*.wav"),("Windows Media  audio files", "*.wma")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
-               ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw"]
+               ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
@@ -120,9 +120,23 @@ def get_username():
     return pwdAPI.getpwuid()
 
 def imageResize(img, dim):
+    """
+    :param img:
+    :param dim:
+    :return:
+    @rtype: ImageWrapper
+    """
+
     return img.resize(dim,Image.ANTIALIAS).convert('RGBA')
 
 def imageResizeRelative(img, dim, otherIm):
+    """
+    Preserves the dimension ratios_
+    :param dim:
+    :param otherIm:
+    :return: Resized relative to width given the maximum constraints
+     @rtype: ImageWrapper
+    """
     wmax = max(img.size[0], otherIm[0])
     hmax = max(img.size[1], otherIm[1])
     wpercent = float(dim[0]) / float(wmax)
@@ -342,11 +356,24 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 
 
 def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
+    """
+
+    :param mask:
+    :param img1:
+    :param img2:
+    :param invert:
+    :param arguments:
+    :return:
+    @type mask: ImageWrapper
+    @type img2: ImageWrapper
+    @type img1: ImageWrapper
+    """
     maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
     mask = mask.astype('uint8')
     try:
-        TM, computed_mask = __sift(img1, img2, mask2=maskInverted)
+        mask1 = convertToMask(img1).invert().to_array() if img1.has_alpha() else None
+        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted,arguments=arguments)
     except:
         TM = None
         computed_mask = None
@@ -465,6 +492,13 @@ def toIntTuple(tupleString):
         return tuple([int(re.sub('[()]', '', x)) for x in tupleString.split(',')])
     return (0, 0)
 
+def sizeOfChange(mask):
+    if len(mask.shape) == 2:
+        return mask.size - sum(sum(mask == 255))
+    else:
+        mask_size = mask.shape[0] * mask.shape[1]
+        return mask_size - sum(sum(np.all(mask == [255, 255, 255], axis=2)))
+
 def maskChangeAnalysis(mask, globalAnalysis=False):
     mask = np.asarray(mask)
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
@@ -484,7 +518,7 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
            globalchange = globalchange or area/totalArea > 0.50
     return globalchange,'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large'),ratio
 
-def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
+def globalTransformAnalysis(analysis,img1,img2,mask=None,linktype=None,arguments={}):
     globalchange = img1.size != img2.size
     changeCategory = 'large'
     ratio = 1.0
@@ -495,11 +529,43 @@ def globalTransformAnalysis(analysis,img1,img2,mask=None,arguments={}):
     analysis['change size category'] = changeCategory
     return globalchange
 
-def siftAnalysis(analysis, img1, img2, mask=None, arguments=dict()):
-    if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
+def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+    """
+    Perform SIFT regardless of the global change status
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :return:
+    """
+    globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2)
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
+    if matrix is not None:
+        analysis['transform matrix'] = serializeMatrix(matrix)
+
+def siftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+    if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
+        return
+    if linktype != 'image.image':
+        return
+    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
+    if matrix is not None:
+        analysis['transform matrix'] = serializeMatrix(matrix)
+
+def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+    if 'location change' not in arguments or arguments['location change'] == 'no':
+        return
+    globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if linktype != 'image.image':
+        return
+    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
@@ -519,10 +585,21 @@ def __indexOf(source, dest):
                 break
     return positions
 
-def __sift(img1, img2, mask1=None, mask2=None):
+def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
+
+    """
+    Compute homography to transfrom img1 to img2
+    Apply the mask to each in order to only compare relevent regions of images
+    :param img1:
+    :param img2:
+    :param mask1:
+    :param mask2:
+    @type img1: ImageWrapper
+    @type img2: ImageWrapper
+    :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
+    """
     img1 = img1.to_rgb().apply_mask(mask1).to_array()
     img2 = img2.to_rgb().apply_mask(mask2).to_array()
-
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
 
@@ -571,8 +648,15 @@ def __sift(img1, img2, mask1=None, mask2=None):
         #positions = __indexOf(src_pts,new_src_pts)
         #new_dst_pts = dst_pts[positions]
         new_dst_pts = dst_pts
-
-        M, mask = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, 3.0)
+        RANSAC_THRESHOLD = 4.0
+        if arguments is not None and 'RANSAC' in arguments:
+            try:
+                 RANSAC_THRESHOLD = float(arguments['RANSAC'])
+            except:
+                print 'invalid RANSAC ' + arguments['RANSAC']
+        M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
+        if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
+            return None, None
         #M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         #matchesMask = mask.ravel().tolist()
 
@@ -584,11 +668,28 @@ def __sift(img1, img2, mask1=None, mask2=None):
         #new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
         #cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
         ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        return M,None#mask.astype('uint8')
+        return M1,None#mask.astype('uint8')
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
     return None,None
+
+
+def __applyFlipComposite(compositeMask, mask, flip):
+    """
+    Flip the selected area
+    :param compositeMask:
+    :param mask:
+    :param transform_matrix:
+    :return:
+    """
+    maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
+    maskInverted[maskInverted > 0] = 1
+    flipCompositeMask = compositeMask * maskInverted
+    flipCompositeMask = cv2.flip(flipCompositeMask, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
+    maskAltered = np.copy(mask)
+    maskAltered[maskAltered > 0] = 1
+    return flipCompositeMask*maskInverted + compositeMask*maskAltered
 
 def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     """
@@ -603,10 +704,10 @@ def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.ones(compositeMask.shape)*255
-        levelMask[compositeMask == level] = 0
+        levelMask = np.zeros(compositeMask.shape)
+        levelMask[compositeMask == level] = 255
         newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
-        newMask[newLevelMask<150] = level
+        newMask[newLevelMask>150] = level
     return newMask
 
 def __applyRotateToComposite(rotation, compositeMask, expectedDims):
@@ -640,17 +741,20 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
-    compositeMaskFlipped = 255 - compositeMask
+    compositeMaskFlipped = 255 - compositeMask if invert else compositeMask
     # zeros out areas outside the mask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
     flags=cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR#+cv2.CV_WARP_FILL_OUTLIERS
-    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags)
+    compositeMaskAltered[compositeMaskAltered == 255] = 200
+    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags, borderMode=cv2.BORDER_CONSTANT, borderValue = 0)
+    newMask[newMask>149] = 255
+    newMask[newMask<150]  = 0
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    compositeMaskAltered = compositeMaskFlipped * maskAltered
-    newMask[compositeMaskAltered > 0] = 255
-    return 255 - newMask
+    newMask = 255 - newMask if invert else newMask
+    newMask = newMask*maskInverted + compositeMask*maskAltered
+    return newMask
 
 def __composeMask(img1, img2, invert, arguments=dict(),crop=False):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
@@ -821,20 +925,28 @@ def __checkInterpolation(val):
     validVals = ['nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic']
     return val if val in validVals else 'nearest'
 
-
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = compositeMask
-    if transformMatrix is not None:
-        res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
-    elif abs(rotation) > 0.001:
-        res = __applyRotateToComposite(rotation,  res,
-                            (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
-    elif flip is not None:
-        res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+    #rotation may change the shape
+    # transforms typical are created for local operations (not entire image)
+    if transformMatrix is not None:
+        if flip is not None:
+           res = __applyFlipComposite(compositeMask, edgeMask,flip)
+        else:
+           res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
+    elif abs(rotation) > 0.001:
+        if sizeChange[0] != 0:
+            res = __rotateImage(rotation, compositeMask, (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=0)
+        else:
+            res = __applyRotateToComposite(rotation,  res,
+                            (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
+    # if transform matrix provided and alternate path is taken above
+    if transformMatrix is None and flip is not None:
+        res = __applyFlipComposite(compositeMask, edgeMask,flip)
     if location != (0, 0) or crop:
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
@@ -845,6 +957,9 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
               transformMatrix=None, flip=None, crop=False):
     res = donorMask
+    if location != (0, 0):
+        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
+    expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
     if transformMatrix is not None:
         res = __applyTransform(donorMask, edgeMask, deserializeMatrix(transformMatrix),invert=True)
     elif abs(rotation) > 0.001:
@@ -852,9 +967,6 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
                             (donorMask.shape[0] + sizeChange[0], donorMask.shape[1] + sizeChange[1]), cval=255)
     elif flip is not None:
         res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
-    if location != (0, 0):
-        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
-    expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
     if location != (0, 0) or crop:
         newRes = np.ones(expectedSize)*255
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])

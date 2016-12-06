@@ -12,6 +12,9 @@ from maskgen_loader import MaskGenLoader
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
+from mask_frames import HistoryDialog
+from plugin_builder import PluginBuilder
+from graph_output import ImageGraphPainter
 
 """
   Main UI Driver for MaskGen
@@ -73,7 +76,6 @@ class MakeGenUI(Frame):
     img1oc = None
     img2oc = None
     img3oc = None
-    scModel = None
     l1 = None
     l2 = None
     l3 = None
@@ -87,6 +89,10 @@ class MakeGenUI(Frame):
     exportErrorlistDialog = None
     uiProfile = UIProfile()
     menuindices = {}
+    scModel = None
+    """
+    @type scModel: ImageProjectModel
+    """
 
     gfl = GroupFilterLoader()
 
@@ -154,6 +160,12 @@ class MakeGenUI(Frame):
     def save(self):
         self.scModel.save()
 
+    def savegraphimage(self):
+        val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Output Project Image Name",
+                                         filetypes=[("png", "*.png")])
+        if (val is not None and len(val.name) > 0):
+            openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val))
+
     def saveas(self):
         val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Save As",
                                          filetypes=[("json files", "*.json")])
@@ -166,7 +178,16 @@ class MakeGenUI(Frame):
                 self._setTitle()
             val.close()
 
-    def export(self):
+    def recomputemask(self):
+        d = SelectDialog(self, "Mask Reconstruct", "Transform Parameter",
+                         ['None','3','4','5'])
+        choice = '0' if d.choice is None or d.choice == 'None' else d.choice
+        self.scModel.reproduceMask(skipDonorAnalysis=(choice=='0'),analysis_params={'RANSAC':int(choice)})
+        nim = self.scModel.nextImage()
+        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
+        self.img3c.config(image=self.img3)
+
+    def _preexport(self):
         errorList = self.scModel.validate()
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
@@ -177,6 +198,9 @@ class MakeGenUI(Frame):
         processProjectProperties(self.scModel)
         self.getproperties()
         self.scModel.removeCompositesAndDonors()
+
+    def export(self):
+        self._preexport()
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
@@ -189,16 +213,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
-        errorList = self.scModel.validate()
-        if errorList is not None and len(errorList) > 0:
-            errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
-            errorlistDialog.wait(self)
-            if not errorlistDialog.isok:
-                return
-        self.scModel.constructCompositesAndDonors()
-        processProjectProperties(self.scModel)
-        self.getproperties()
-        self.scModel.removeCompositesAndDonors()
+        self._preexport()
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
@@ -473,6 +488,9 @@ class MakeGenUI(Frame):
     def getproperties(self):
         d = PropertyDialog(self, getProjectProperties())
 
+    def pluginbuilder(self):
+        d = PluginBuilder(self)
+
     def groupmanager(self):
         d = GroupManagerDialog(self,GroupFilterLoader())
 
@@ -481,6 +499,9 @@ class MakeGenUI(Frame):
 
     def quit(self):
         self.save()
+        Frame.quit(self)
+
+    def quitnosave(self):
         Frame.quit(self)
 
     def gquit(self, event):
@@ -503,14 +524,14 @@ class MakeGenUI(Frame):
 
     def viewcomposite(self):
         #self.scModel.getProbeSet()
-        im = self.scModel.constructComposite()
-        if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im)
+        composite = self.scModel.constructComposite()
+        if composite is not None:
+            CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewdonor(self):
-        im = self.scModel.getDonor()
+        im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
         if im is not None:
-            CompositeViewDialog(self, self.scModel.start, im)
+            CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
     def connectto(self):
         self.drawState()
@@ -551,6 +572,9 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
         self.setSelectState('disabled')
 
+    def history(self):
+        h = HistoryDialog(self,self.scModel)
+
     def edit(self):
         im, filename = self.scModel.currentImage()
         if (im is None):
@@ -580,6 +604,31 @@ class MakeGenUI(Frame):
         if not d.cancelled:
             self.scModel.update_edge(d.modification)
 
+    def startQA(self):
+        self.scModel.constructCompositesAndDonors()
+        terminalNodes = [node for node in self.scModel.G.get_nodes() if
+                         len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
+        donorNodes = []
+        for node in self.scModel.G.get_nodes():
+            preds = self.scModel.G.predecessors(node)
+            if len(preds) == 2:
+                for pred in preds:
+                    edge = self.scModel.G.get_edge(pred, node)
+                    if edge['op'] == 'PasteSplice':
+                        donorNodes.append(node)
+
+        if self.scModel.getProjectData('validation') == 'yes':
+            tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
+                               ' by ' + self.scModel.getProjectData('validatedby') + '.')
+        if terminalNodes or donorNodes:
+            d = QAViewDialog(self, terminalNodes, donorNodes)
+
+    def comments(self):
+        d = CommentViewer(self)
+
+    def reformatgraph(self):
+        self.canvas.reformat()
+
     def _setTitle(self):
         self.master.title(os.path.join(self.scModel.get_dir(), self.scModel.getName()))
 
@@ -603,10 +652,11 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="New", command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
+        filemenu.add_command(label="Save Graph Image",command=self.savegraphimage)
         filemenu.add_separator()
         filemenu.add_cascade(label="Export", menu=exportmenu)
-        filemenu.add_command(label="Validate", command=self.validate)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
+        filemenu.add_command(label="Build Plugin...", command=self.pluginbuilder)
         filemenu.add_command(label="Filter Group Manager", command=self.groupmanager)
         filemenu.add_command(label="Operations Group Manager", command=self.operationsgroupmanager)
         filemenu.add_separator()
@@ -614,6 +664,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Properties", command=self.getproperties)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
+        filemenu.add_command(label="Quit without Save", command=self.quitnosave)
 
         menubar.add_cascade(label="File", menu=filemenu)
 
@@ -634,6 +685,20 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z", state='disabled')
         self.menuindices['undo'] = self.processmenu.index(END)
         menubar.add_cascade(label="Process", menu=self.processmenu)
+
+        validationmenu = Menu(menubar, tearoff=0)
+        validationmenu.add_command(label='History',command=self.history)
+        validationmenu.add_command(label="Validate", command=self.validate)
+        validationmenu.add_command(label="QA...", command=self.startQA)
+        validationmenu.add_command(label="View Comments", command=self.comments)
+
+        menubar.add_cascade(label="Validation", menu=validationmenu)
+
+        viewmenu = Menu(menubar, tearoff=0)
+        viewmenu.add_command(label='Reformat', command=self.reformatgraph)
+
+        menubar.add_cascade(label="View", menu=viewmenu)
+
         self.master.config(menu=menubar)
         self.bind_all('<Control-q>', self.gquit)
         self.bind_all('<Control-o>', self.gopen)
@@ -664,17 +729,23 @@ class MakeGenUI(Frame):
 
         self.img1c = Button(img1f, width=250, command=self.openStartImage, image=self.img1)
         self.img1c.grid(row=1, column=0)
+        self.img1c.grid_propagate(False)
         self.img2c = Button(img1f, width=250, command=self.openNextImage, image=self.img2)
         self.img2c.grid(row=1, column=1)
+        self.img2c.grid_propagate(False)
         self.img3c = Button(img1f, width=250, command=self.openMaskImage, image=self.img3)
         self.img3c.grid(row=1, column=2)
+        self.img3c.grid_propagate(False)
 
         self.l1 = Label(img1f, text="")
         self.l1.grid(row=0, column=0)
+        self.l1.grid_propagate(False)
         self.l2 = Label(img2f, text="")
         self.l2.grid(row=0, column=1)
+        self.l2.grid_propagate(False)
         self.l3 = Label(img3f, text="")
         self.l3.grid(row=0, column=2)
+        self.l3.grid_propagate(False)
 
         self.nodemenu = Menu(self.master, tearoff=0)
         self.nodemenu.add_command(label="Select", command=self.select)
@@ -697,6 +768,7 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
+        self.filteredgemenu.add_command(label="Recompute", command=self.recomputemask)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
@@ -704,6 +776,7 @@ class MakeGenUI(Frame):
         self.maskvar = StringVar()
         Message(iframe, textvariable=self.maskvar, width=750).grid(row=0, sticky=W + E)
         iframe.grid(row=2, column=0, rowspan=1, columnspan=3, sticky=N + S + E + W)
+        #iframe.grid_propagate(False)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
         mframe.grid_rowconfigure(0, weight=1)

@@ -16,15 +16,15 @@ class TestToolSet(unittest.TestCase):
 
 
     def test_fileMask(self):
-        pre = tool_set.openImageFile('tests/prefill.png')
-        post = tool_set.openImageFile('tests/postfill.png')
+        pre = tool_set.openImageFile('tests/images/prefill.png')
+        post = tool_set.openImageFile('tests/images/postfill.png')
         mask,analysis = tool_set.createMask(pre,post,invert=False,arguments={'tolerance' : 25})
         withtolerance = sum(sum(mask.image_array))
-        mask.save('tests/maskfill.png')
+        mask.save('tests/images/maskfill.png')
         mask, analysis = tool_set.createMask(pre, post, invert=False)
         withouttolerance = sum(sum(mask.image_array))
         mask, analysis = tool_set.createMask(pre, post, invert=False, arguments={'tolerance': 25,'equalize_colors':True})
-        mask.save('tests/maskfillt.png')
+        mask.save('tests/images/maskfillt.png')
         withtoleranceandqu = sum(sum(mask.image_array))
         self.assertTrue(withouttolerance < withtolerance)
         self.assertTrue(withtolerance < withtoleranceandqu)

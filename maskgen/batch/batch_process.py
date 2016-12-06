@@ -254,9 +254,8 @@ def validate_export(projects):
     for project in projectList:
         sm = maskgen.scenario_model.loadProject(project)
         errorList = sm.validate()
+        sm.constructCompositesAndDonors()
         graph_rules.processProjectProperties(sm)
-        sm.constructComposites()
-        sm.constructDonors()
         sm.save()
         if errorList:
             projectName = os.path.splitext(os.path.basename(project))[0]

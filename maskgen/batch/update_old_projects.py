@@ -57,21 +57,25 @@ def rename_donorsandbase(scModel,updatedir, names):
             suffix = nodeData['file'][nodeData['file'].rfind('.'):]
             base_count += 1 if nodeData['nodetype'] == 'base' else 0
             file_path_name = os.path.join(scModel.get_dir(), nodeData['file'])
-            with open(file_path_name, 'rb') as fp:
-                md5 = hashlib.md5(fp.read()).hexdigest()
-            new_file_name = node + suffix
-            if md5 in names:
-                new_file_name =  names[md5] + suffix
-            fullname = os.path.join(scModel.get_dir(), new_file_name)
-            if not os.path.exists(fullname):
-                os.rename(file_path_name, fullname)
-                nodeData['file'] = new_file_name
-                print 'Rename ' + os.path.split(file_path_name)[1] + ' to ' + new_file_name
+            if nodeData['file'] in names:
+                new_file_name = names[nodeData['file']]
+                # some of the names having a missing suffix
+                suffix_pos = new_file_name.rfind('.')
+                if suffix_pos < 0:
+                    new_file_name = new_file_name + suffix.lower()
+                else:
+                    # suffixes should be lower case
+                    suffix = new_file_name[suffix_pos:]
+                    new_file_name = new_file_name[0:suffix_pos] + suffix.lower()
+                fullname = os.path.join(scModel.get_dir(), new_file_name)
+                if not os.path.exists(fullname):
+                    os.rename(file_path_name, fullname)
+                    nodeData['file'] = new_file_name
+                    print 'Rename ' + os.path.split(file_path_name)[1] + ' to ' + new_file_name
     if base_count > 1:
             raise ValueError('Only one base image allowed per project')
     if base_count == 0:
                 raise ValueError('Project missing base image')
-    #print 'Completed rename_donors'
 
 
 def update_photoshop_version(scModel):
@@ -155,7 +159,7 @@ def add_pastesplice_params(scModel,semantics):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'PasteSplice':
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
 
@@ -213,7 +217,7 @@ def replace_with_pastesampled(scModel):
         oldOp = currentLink['op']
         if oldOp in replace_list:
             currentLink['op'] = 'PasteSampled'
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             if oldOp == 'PasteClone' or oldOp == 'FillRubberStampClone':
@@ -223,6 +227,49 @@ def replace_with_pastesampled(scModel):
             else:
                 currentLink['arguments']['purpose'] = 'remove'
     #print 'Completed replace_with_pastesampled'
+
+
+def replace_oldops(scModel):
+    """
+    Replace selected operations
+    :param scModel: Opened project model
+    :return: None. Updates JSON.
+    """
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        oldOp = currentLink['op']
+        if oldOp == 'ColorBlendDissolve':
+            currentLink['op'] = 'Blend'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
+            currentLink['arguments']['mode'] = 'Dissolve'
+        elif oldOp == 'ColorBlendMultiply':
+            currentLink['op'] = 'Blend'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
+            currentLink['arguments']['mode'] = 'Multiply'
+        elif oldOp == 'ColorColorBalance':
+            currentLink['op'] = 'ColorBalance'
+        elif oldOp == 'ColorMatchColor':
+            currentLink['op'] = 'ColorMatch'
+        elif oldOp == 'ColorReplaceColor':
+            currentLink['op'] = 'ColorReplace'
+        elif oldOp == 'IntensityHardlight':
+            currentLink['op'] = 'BlendHardlight'
+        elif oldOp == 'IntensitySoftlight':
+            currentLink['op'] = 'BlendSoftlight'
+        elif oldOp == 'FillImageInterpolation':
+            currentLink['op'] = 'ImageInterpolation'
+        elif oldOp == 'ColorBlendColorBurn':
+            currentLink['op'] = 'IntensityBurn'
+        elif oldOp == 'FillInPainting':
+            currentLink['op'] = 'MarkupDigitalPenDraw'
+        elif oldOp == 'FillLocalRetouching':
+            currentLink['op'] = 'PasteSampled'
+            if 'arguments' not in currentLink:
+                currentLink['arguments'] = {}
+            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['arguments']['purpose'] = 'heal'
 
 
 def update_rotation(scModel):
@@ -345,7 +392,7 @@ def add_fillcontentawarefill_args(scModel):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         if currentLink['op'] == 'FillContentAwareFill':
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             if 'purpose' in currentLink['arguments']:
@@ -365,9 +412,11 @@ def fix_noncroplinks(scModel):
             if 'location' in currentLink:
                 currentLink['location'] = '0,0'
 
-def perform_update(project,args, error_writer, semantics, tempdir, names):
+def perform_update(project,args, error_writer, semantics, tempdir, names, skips):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
+    if (scModel.getName() + '.tgz') in skips:
+        return
     if scModel.getProjectData('projecttype') == 'video':
         return
 
@@ -397,6 +446,7 @@ def perform_update(project,args, error_writer, semantics, tempdir, names):
         rebuild_masks(scModel)
     if args.all:
         fix_noncroplinks(scModel)
+        replace_oldops(scModel)
 
     scModel.save()
     error_list = scModel.exporttos3(args.uploadfolder, tempdir)
@@ -423,6 +473,7 @@ def main():
     parser.add_argument('-c',  '--composites', help='Reconstruct composite images',action='store_true')
     parser.add_argument('-n',  '--names',required=False, help='New image names')
     parser.add_argument('-rd', '--renamedonors', help='Rename donor images',action='store_true')
+    parser.add_argument('-tf', '--tempfolder', required=False, help='Temp Holder')
     parser.add_argument('-rc', '--redomasks', help='Rebuild link masks',action='store_true')
     parser.add_argument('-rp', '--replacepasteduplicate', help='Replace PasteDuplicate with PasteSplice, using input masks.', action='store_true')
     parser.add_argument('-rj', '--replacejpeg', help='Update create jpeg group operation', action='store_true')
@@ -480,7 +531,7 @@ def main():
                 if file_to_process in skips:
                     count += 1
                     continue
-                dir = tempfile.mkdtemp()
+                dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
                 try:
                     fetchfromS3(dir,args.downloadfolder,file_to_process)
                     extract_archive(os.path.join(dir,file_to_process), dir)
@@ -488,7 +539,7 @@ def main():
                     os.remove(os.path.join(dir,file_to_process))
                     for project in bulk_export.pick_projects(dir):
                         print 'Project updating: ' + file_to_process
-                        perform_update(project, args, error_writer, semanticsdata, dir, names)
+                        perform_update(project, args, error_writer, semanticsdata, dir, names, skips)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + file_to_process
                         done_file.write(file_to_process + '\n')
                         done_file.flush()

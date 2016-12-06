@@ -3,7 +3,9 @@
     {
       "description": "User Name",
       "name": "username",
-      "type": "string"
+      "type": "string",
+      "readonly": "true",
+      "information":  "This property may be changed under File->Settings->Username"
     },
     {
       "description": "Organization",
@@ -31,6 +33,24 @@
         "6-Unit"
       ],
        "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
+    },
+    {
+      "description": "Validation",
+      "name": "validation",
+      "type": "yesno",
+      "readonly": "true"
+    },
+    {
+      "description": "Validated By",
+      "name": "validatedby",
+      "type": "string",
+      "readonly": "true"
+    },
+    {
+      "description": "Validation Date",
+      "name": "validationdate",
+      "type": "string",
+      "readonly": "true"
     },
     {
       "description": "Semantic Restaging",
@@ -137,7 +157,7 @@
       "description": "People",
       "name": "people",
       "type": "yesno",
-       "operation" :"PasteSplice",
+      "operation" :"PasteSplice",
       "parameter":"subject",
       "value":"people",
       "node" : true
@@ -191,13 +211,21 @@
       "node" : true
     },
      {
-      "description": "Composite Image Pixel Size",
-      "name": "compositepixelsize",
-      "type": "list",
-      "values": ["small","medium","large"],
+       "description": "Composite Image Pixel Size",
+       "name": "compositepixelsize",
+       "type": "list",
+       "values": ["small","medium","large"],
        "_comment": " determine the largest size contribution to the composite",
-      "rule" : "compositeSizeRule",
+
        "node" : true
+    },
+    {
+       "description": "Manipulation Category",
+       "name": "manipulationcategory",
+       "node" : true,
+       "type": "text",
+       "rule" : "unitCountRule",
+       "information": "The number of units per node"
     }
   ]
 }

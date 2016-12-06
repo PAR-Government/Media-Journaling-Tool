@@ -8,9 +8,11 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
-igversion='0.3.1024'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024']
+igversion='0.3.1201'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201']
 
+def current_version():
+    return igversion
 
 def extract_archive(fname, dir):
     try:
@@ -254,9 +256,13 @@ class ImageGraph:
             includePathInUndo = True
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
-        self.G.add_node(nname, seriesname=(origname if seriesname is None else seriesname), file=fname,
+        self.G.add_node(nname,
+                        seriesname=(origname if seriesname is None else seriesname),
+                        file=fname,
                         ownership=('yes' if includePathInUndo else 'no'),
-                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'), **kwargs)
+                        username=get_username(),
+                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+                        **kwargs)
         self.U = []
         self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
         # adding back a file that was targeted for removal
@@ -440,8 +446,12 @@ class ImageGraph:
         # do not remove old version of mask if not saved previously
         if newmaskpathname in self.filesToRemove:
             self.filesToRemove.remove(newmaskpathname)
-        self.G.add_edge(start, end, maskname=maskname, op=op, \
-                        description=description, username=get_username(), opsys=getOS(), \
+        self.G.add_edge(start,
+                        end,
+                        maskname=maskname,
+                        op=op,
+                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+                        description=description, username=get_username(), opsys=getOS(),
                         **kwargs)
         self.U = []
         self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
@@ -570,7 +580,7 @@ class ImageGraph:
             return None
 
     def getVersion(self):
-        return igversion
+        return self.G.graph['igversion']  if 'igversion' in self.G.graph else igversion
 
     def _setup(self, pathname, projecttype):
         global igversion
@@ -578,7 +588,8 @@ class ImageGraph:
         if 'igversion' in self.G.graph:
             if self.G.graph['igversion'] not in igcompatibleversions:
                 raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
-        self.G.graph['igversion'] = igversion
+        else:
+            self.G.graph['igversion'] = igversion
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']
         elif self.G.has_node('idcount'):
@@ -723,6 +734,23 @@ class ImageGraph:
                         (str(nname), str(nname), str(nname) + ' missing ' + pathvalue))
         return errors
 
+    def _output_summary(self,archive):
+        """
+        Add a summary PNG to the archicve
+        :param archive: TarFile
+        :return: None
+        @type archive : TarFile
+        """
+        from graph_output import ImageGraphPainter
+        summary_file = os.path.join(self.dir, '_overview_.png')
+        try:
+            ImageGraphPainter(self).output(summary_file)
+            archive.add(summary_file,
+                    arcname=os.path.join(self.G.name, '_overview_.png'))
+        except Exception as e:
+            print 'Unable to create image graph'
+            print e
+
     def _create_archive(self, location):
         self.save()
         fname = os.path.join(location, self.G.name + '.tgz')
@@ -736,6 +764,7 @@ class ImageGraph:
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
             errors.extend(self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive,names_added=names_added))
+        self._output_summary(archive)
         archive.close()
         return fname, errors, names_added
 
