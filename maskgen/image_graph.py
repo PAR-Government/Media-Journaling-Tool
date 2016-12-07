@@ -684,9 +684,9 @@ class ImageGraph:
                             edgename[1]) + ' is missing ' + path + ' file in project'))
         return missing
 
-    def create_archive(self, location):
+    def create_archive(self, location,include=[]):
         self.G.graph['exporttime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        fname, errors, names_added = self._create_archive(location)
+        fname, errors, names_added = self._create_archive(location,include=include)
         names_added = [os.path.split(i)[1] for i in names_added]
         tries = 0
         if len(errors) == 0:
@@ -751,7 +751,7 @@ class ImageGraph:
             print 'Unable to create image graph'
             print e
 
-    def _create_archive(self, location):
+    def _create_archive(self, location,include=[]):
         self.save()
         fname = os.path.join(location, self.G.name + '.tgz')
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
@@ -764,6 +764,9 @@ class ImageGraph:
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
             errors.extend(self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive,names_added=names_added))
+        for item in include:
+            archive.add(os.path.join(self.dir,item),
+                        arcname=item)
         self._output_summary(archive)
         archive.close()
         return fname, errors, names_added

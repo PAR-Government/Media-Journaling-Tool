@@ -1745,9 +1745,9 @@ class ImageProjectModel:
         return [edge for edge in self.get_edges()
             if edge['op'] == opName]
 
-    def export(self, location):
+    def export(self, location,include=[]):
         self.clear_validation_properties()
-        path, errors = self.G.create_archive(location)
+        path, errors = self.G.create_archive(location,include=include)
         return errors
 
     def exporttos3(self, location, tempdir=None):
@@ -1759,7 +1759,8 @@ class ImageProjectModel:
             BUCKET = location.split('/')[0].strip()
             DIR = location[location.find('/') + 1:].strip()
             print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1]
-            s3.upload_file(path, BUCKET, DIR + '/' + os.path.split(path)[1])
+            DIR = DIR if DIR.endswith('/') else DIR + '/'
+            s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1])
             os.remove(path)
         return errors
 
