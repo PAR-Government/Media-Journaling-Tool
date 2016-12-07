@@ -3,6 +3,7 @@ from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,get
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
+import numpy
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -172,7 +173,9 @@ def rotationCheck(graph, frm, to):
         if '270' in orientation or '90' in orientation:
             if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
                 return 'Image was not rotated as stated by the parameter Image Rotated'
-    if not rotated and frm_img.size != to_img.size:
+    diff_frm = frm_img.size[0] - frm_img.size[1]
+    diff_to = to_img.size[0] - to_img.size[1]
+    if not rotated and numpy.sign(diff_frm) != numpy.sign(diff_to):
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 

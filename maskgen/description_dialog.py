@@ -1320,6 +1320,7 @@ class SelectDialog(tkSimpleDialog.Dialog):
         self.e1 = OptionMenu(master, self.var1, *self.values)
         #self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
         self.e1.grid(row=1, column=0,sticky=EW)
+        self.lift()
 
     def cancel(self):
         if self.cancelled:
@@ -1348,6 +1349,7 @@ class EntryDialog(tkSimpleDialog.Dialog):
         if self.initialvalue:
             self.e1.insert(0, self.initialvalue)
         self.e1.grid(row=1, column=0)
+        self.lift()
 
     def cancel(self):
         if self.cancelled:

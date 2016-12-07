@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 import maskgen.scenario_model
 from maskgen.tool_set import *
-import bulk_export
+from maskgen.batch import bulk_export
 import tempfile
 from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
@@ -17,12 +17,15 @@ import hashlib
 import shutil
 import sys
 import csv
+#from memory_profiler import profile
 
-
-
-def perform_update(project,skipReport, skips):
+#@profile
+def perform_update(project,args, skipReport, skips):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
+    scModel.getProbeSet()
+    scModel.toCSV(os.path.join(scModel.get_dir(),'colors.csv'))
+    scModel.export(args.tempfolder,include=['colors.csv'])
     if scModel.getName() in skips:
         skipReport.write(scModel.getName() + '.tgz')
 
@@ -40,7 +43,6 @@ def main():
     parser.add_argument('-df', '--downloadfolder', required=True, help='Download folder')
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
     parser.add_argument('-tf', '--tempfolder', required=True, help='Projects to Completed')
-    parser.add_argument('-a', '--all', help='Perform all updates', action='store_true')
     args = parser.parse_args()
 
     skips = []
@@ -63,7 +65,8 @@ def main():
     total = len(files_to_process)
 
     with open(args.completefile, 'a') as done_file:
-        with open(os.path.join('SkipReport_' + str(os.getpid()))) as skipReport:
+        with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
+            error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for file_to_process in files_to_process:
                 if file_to_process in skips:
                     count += 1
@@ -76,11 +79,11 @@ def main():
                     os.remove(os.path.join(dir,file_to_process))
                     for project in bulk_export.pick_projects(dir):
                         print 'Project updating: ' + file_to_process
-                        perform_update(project, args, skipReport, dir, skips)
+                        perform_update(project, args, error_writer, skips)
                         print 'Project updated [' + str(count) + '/' + str(total) + '] ' + file_to_process
                         done_file.write(file_to_process + '\n')
                         done_file.flush()
-                        skipReport.flush()
+                        csvfile.flush()
                 except Exception as e:
                     print e
                     print 'Project skipped: ' + file_to_process

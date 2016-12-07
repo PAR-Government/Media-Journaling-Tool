@@ -101,6 +101,11 @@
           "type" : "list",
           "values": ["left", "right", "all"],
           "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Type" : {
+          "type" : "list",
+          "values": ["splice", "interpolation", "other"],
+          "description" : "Type of deletion"
         }
       },
       "rules": [
@@ -172,7 +177,7 @@
         },
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass"],
+          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction"],
           "source": "video",
           "description": "Type of filter"
         }
@@ -301,6 +306,50 @@
       "generateMask" : false,
       "transitions": [
         "audio.audio",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Audio",
+      "name": "ReplaceAudioSample",
+      "mandatoryparameters": {
+        "voice" : {
+            "type": "yesno",
+             "description": "Is the sample a voice."
+        },
+        "filter type" : {
+            "type": "list",
+            "values" : ["EQ Match", "Other"],
+             "description": "Replacing or overlaying."
+        },
+        "Insertion Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Insertion End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+        },
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        }
+      },
+      "rules": [
+        "checkForDonor",
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [],
+      "description": "Replacing with a donor audio stream to a video",
+      "includeInMask": false,
+      "generateMask" : false,
+      "transitions": [
         "video.video"
       ]
     },
