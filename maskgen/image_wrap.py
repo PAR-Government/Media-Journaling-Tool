@@ -17,6 +17,13 @@ except ImportError:
         def __enter__(self):
             return []
 
+def openRaw(filename,isMask=False):
+    try:
+       import rawpy
+       with rawpy.imread(filename) as raw:
+           return ImageWrapper(raw.postprocess(), to_mask=isMask)
+    except:
+        return None
 
 def openImageFile(filename,isMask=False):
    import os
@@ -25,10 +32,16 @@ def openImageFile(filename,isMask=False):
        mod_filename = filename[0:pos] + filename[pos:].lower()
        if os.path.exists(mod_filename):
            filename = mod_filename
+   if not os.path.exists(filename):
+       raise ValueError("File not found: " + filename)
    try:
      with open(filename,'rb') as f:
           im = Image.open(filename)
           im.load()
+          if im.format == 'TIFF' and filename.lower().find('tif') < 0:
+            raw = openRaw(filename)
+            if raw is not None and raw.size != im.size:
+                return raw
           return ImageWrapper(np.asarray(im),mode=im.mode,info=im.info,to_mask =isMask)
    except:
       info = {}
@@ -44,10 +57,7 @@ def openImageFile(filename,isMask=False):
       try:
           return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info,to_mask =isMask)
       except:
-          import rawpy
-          with rawpy.imread(filename) as raw:
-              return ImageWrapper(raw.postprocess(),to_mask =isMask)
-
+          return openRaw(filename)
 
 def invertMask(mask):
     mask.invert()
@@ -296,6 +306,10 @@ class ImageWrapper:
         else:
             image_array =np.copy( np.asarray(image))
             image_array[np.all(image_array == [255,255,255],axis=2)] = [0,0,0]
+        if image_array.dtype != self_array.dtype:
+             image_array = image_array.astype(self_array.dtype)
+             # for now, assume u16
+             image_array*=256
         return ImageWrapper(cv2.addWeighted(image_array, 0.65, self_array[:,:,0:3],  1,
                         0, self_array))
 
