@@ -298,7 +298,7 @@ class ImageWrapper:
         """
         image_to_use = self.image_array if len(self.image_array.shape) != 2 else self.convert('RGB').image_array
         self_array = np.copy(image_to_use)
-        if len(self.image_array.shape) != len(image.image_array.shape):
+        if len(image_to_use.shape) != len(image.image_array.shape):
             image_array =  np.ones(image_to_use.shape)*255
             image_array[image.image_array<150,:] = [0, 198, 0]
             image_array[image.image_array >= 150, :] = [0, 0, 0]
@@ -310,6 +310,8 @@ class ImageWrapper:
              image_array = image_array.astype(self_array.dtype)
              # for now, assume u16
              image_array*=256
-        return ImageWrapper(cv2.addWeighted(image_array, 0.65, self_array[:,:,0:3],  1,
+        TUNE1 = 0.75
+        TUNE2 = 0.75
+        return ImageWrapper(cv2.addWeighted(image_array, TUNE1, self_array[:,:,0:3],  TUNE2,
                         0, self_array))
 
