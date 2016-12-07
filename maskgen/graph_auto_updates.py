@@ -23,7 +23,7 @@ def _fixTransforms(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] in ['TransformContentAwareScale','TransformAffine','TransformDistort','TransformMove','TransformResize',
-            'TransformScale','TransformShear','TransformSeamCarving','TransformSkew','TransformWarp'] and \
+            'TransformScale','TransformShear','TransformSkew','TransformWarp'] and \
                 'transform matrix' not in edge :
             scModel.select((frm,to))
             tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),

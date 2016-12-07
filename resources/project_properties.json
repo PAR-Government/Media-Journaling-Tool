@@ -30,7 +30,8 @@
         "Provenance",
         "2-Unit",
         "4-Unit",
-        "6-Unit"
+        "6-Unit",
+        "7+Unit"
       ],
        "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
     },
