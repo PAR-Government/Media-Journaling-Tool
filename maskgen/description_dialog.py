@@ -8,7 +8,7 @@ from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getFileTypes, get_username
-from scenario_model import Modification
+from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
 import numpy as np
@@ -16,7 +16,69 @@ from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
-from software_loader import loadProjectProperties
+from software_loader import ProjectProperty
+
+def checkValue(name, type, value):
+    if value and len(value) > 0:
+        if type.startswith('float'):
+            vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            try:
+                value = float(value)
+                if value < vals[0] or value > vals[1]:
+                    raise ValueError(value)
+            except:
+                return None, 'Invalid value for ' + name + '; not in range ' + str(vals[0]) + ' to ' + str(
+                    vals[1])
+        elif type.startswith('int'):
+            vals = [int(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            try:
+                value = int(value)
+                if value < vals[0] or value > vals[1]:
+                    raise ValueError(value)
+            except:
+                return None, 'Invalid value for ' + name + '; not in range ' + str(vals[0]) + ' to ' + str(
+                    vals[1])
+        elif type == 'time':
+            if not validateTimeString(value):
+                return None, 'Invalid time value for ' + name + '; not in format 00:00:00.000 or 00:00:00:00'
+        elif type == 'coordinates':
+            if not validateCoordinates(value):
+                return None, 'Invalid coordinate value for ' + name + '; not (0,0) format'
+    return value, None
+
+def fillVariable( obj, row ,event):
+    obj.values[row].set(obj.widgets[row].get(1.0,END))
+
+def fillButton(obj, dir, id, row, filetypes):
+    """
+    :param dir:
+    :param id:
+    :param var:
+    :param filetypes:
+    @type var: StringVar
+    @type filetypes: [(str,str)]
+    :return:
+    """
+    val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + id,
+                                       filetypes=filetypes)
+    var = obj.values[row]
+    var.set(val if (val is not None and len(val) > 0) else None)
+    obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else '')
+
+
+def fillDonorButton(obj, id, row):
+    """
+          :param dir:
+          :param id:
+          :param var:
+          @type var: StringVar
+          :return:
+          """
+    d = ImageNodeCaptureDialog(obj, obj.scModel)
+    res = d.selectedImage
+    var = obj.values[row]
+    var.set(res if (res is not None and len(res) > 0) else None)
+    obj.buttons[id].configure(text=res if (res is not None and len(res) > 0) else '')
 
 def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     """
@@ -134,87 +196,15 @@ class MyDropDown(OptionMenu):
     def bind(self, name, command):
         self.command = command
 
-class PropertyDialog(tkSimpleDialog.Dialog):
+class PropertyFunction:
 
-   parent = None
-   cancelled = True
+    def getValue(self, name):
+        return None
 
-   def __init__(self, parent, properties, title="Project Properties"):
-     self.parent = parent
-     self.properties = [prop for prop in properties if not prop.node]
-     self.values = [None for prop in properties]
-     tkSimpleDialog.Dialog.__init__(self, parent, title)
-
-   def body(self, master):
-        vs = VerticalScrolledFrame(master)
-        vs.grid(row=0)
-        master = vs.interior
-        self.radVars = []
-        self.yesbuttons = []
-        self.nobuttons = []
-        radioCount = 0
-        row = 0
-        for prop in self.properties:
-           p = partial(viewInfo, (prop.description,prop.information))
-           Button(master, text=prop.description,takefocus=False,command= p).grid(row=row,sticky=E)
-           if prop.type == 'list':
-             self.values[row] = ttk.Combobox(master, values=prop.values, takefocus=(row == 0))
-             self.values[row].grid(row=row, column=1, columnspan=2,  sticky=E+W)
-             v = self.getValue(prop.name)
-             if v:
-                 self.values[row].set(v)
-           elif prop.type == 'text':
-             self.values[row] = Text(master,takefocus=(row==0),width=80, height=3,relief=RAISED,borderwidth=2)
-             v = self.getValue(prop.name)
-             if v:
-                 self.values[row].insert(1.0,v)
-             self.values[row].grid(row=row, column=1, columnspan=8, sticky=E+W)
-           elif prop.type == 'yesno':
-               self.radVars.append(StringVar())
-               self.values[row] = self.radVars[radioCount]
-               self.yesbuttons.append(Radiobutton(master, text='Yes', takefocus=(row==0), variable=self.radVars[radioCount], value='yes'))
-               self.yesbuttons[radioCount].grid(row=row, column=1, sticky=W)
-               self.yesbuttons[radioCount].deselect()
-               self.nobuttons.append(Radiobutton(master, text='No', takefocus=(row==0), variable=self.radVars[radioCount], value='no'))
-               self.nobuttons[radioCount].grid(row=row, column=1, sticky=E)
-               self.nobuttons[radioCount].select()
-               v = self.getValue(prop.name)
-               if v:
-                   self.radVars[radioCount].set(v)
-               radioCount += 1
-           else:
-             self.values[row] = Entry(master,takefocus=(row==0),width=80)
-             v = self.getValue(prop.name)
-             if v:
-                 self.values[row].insert(0,v)
-             self.values[row].grid(row=row, column=1, columnspan=12, sticky=E+W)
-
-           if prop.readonly:
-               if prop.type == 'yesno':
-                   self.yesbuttons[radioCount-1].config(state=DISABLED)
-                   self.nobuttons[radioCount-1].config(state=DISABLED)
-               else:
-                   self.values[row].config(state=DISABLED)
-
-           row+=1
+    def setValue(self, name,value):
+        return None
 
 
-   def cancel(self):
-      if self.cancelled:
-         self.description = None
-      tkSimpleDialog.Dialog.cancel(self)
-
-   def getValue(self,name):
-       return self.parent.scModel.getProjectData(name)
-
-   def apply(self):
-      self.cancelled = False
-      i = 0
-      for prop in self.properties:
-          v= self.values[i].get() if prop.type != 'text' else self.values[i].get(1.0,END).strip()
-          if v and len(v) > 0:
-            self.parent.scModel.setProjectData(prop.name,v)
-          i+=1
 
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     description = None
@@ -230,13 +220,26 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     argvalues = {}
     arginfo = []
     mandatoryinfo = []
+    argBox = None
 
-    def __init__(self, parent, uiProfile, sourcefiletype, targetfiletype, dir, im, name, description=None):
-        self.dir = dir
+    def __init__(self, parent, uiProfile, scModel, targetfiletype, im, name, description=None):
+        """
+
+        :param parent:
+        :param uiProfile:
+        :param scModel:
+        :param targetfiletype:
+        :param im:
+        :param name:
+        :param description:
+        @type scModel: ImageProjectModel
+        """
+        self.dir = scModel.get_dir()
         self.uiProfile = uiProfile
         self.im = im
         self.parent = parent
-        self.sourcefiletype = sourcefiletype
+        self.scModel = scModel
+        self.sourcefiletype = scModel.getStartType()
         self.targetfiletype = targetfiletype
         self.argvalues = description.arguments if description is not None else {}
         self.description = description if description is not None else Modification('', '')
@@ -248,11 +251,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e5.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
-    def __checkParams(self):
-        ok = True
-        for arg in self.mandatoryinfo:
-            ok &= (arg in self.argvalues and len(str(self.argvalues[arg])) > 0)
-        return ok
+
 
     def __addToBox(self, arg, mandatory):
         sep = '*: ' if mandatory else ': '
@@ -262,9 +261,26 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             self.argBox.insert(END, arg + sep + (
             str(self.description.arguments[arg]) if arg in self.description.arguments else ''))
 
+    def buildArgBox(self):
+        if self.argBox is not None:
+            self.argBox.destroy()
+        properties = [ProjectProperty(name=argumentTuple[0],
+                                      description=argumentTuple[0],
+                                      information=argumentTuple[1]['description'],
+                                      type=argumentTuple[1]['type'],
+                                      values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
+                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[
+                                                                                    0] in self.argvalues else None) \
+                      for argumentTuple in self.arginfo]
+        self.argBox= PropertyFrame(self.argBoxMaster, properties,
+                                scModel=self.scModel,
+                                propertyFunction=EdgePropertyFunction(properties),
+                                changeParameterCB=self.changeParameter,
+                                dir=self.dir)
+        self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+
     def newcommand(self, event):
         op = getOperationWithGroups(self.e2.get())
-        self.argBox.delete(0, END)
         self.arginfo = []
         self.mandatoryinfo = []
         if op is not None:
@@ -273,7 +289,6 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
                     continue
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
-                self.__addToBox(k, True)
                 self.arginfo.append((k, v))
                 self.mandatoryinfo.append(k)
             for k, v in op.optionalparameters.iteritems():
@@ -281,8 +296,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
                     continue
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
-                self.__addToBox(k, False)
                 self.arginfo.append((k, v))
+        self.buildArgBox()
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -316,9 +331,9 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         row = 6
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
-        self.argBox = Listbox(master)
-        self.argBox.bind("<Double-Button-1>", self.changeParameter)
-        self.argBox.grid(row=row, column=0, columnspan=2, sticky=E + W)
+        self.argBoxRow = row
+        self.argBoxMaster = master
+        self.argBox = self.buildArgBox()
         row += 1
 
         cats = self.organizeOperationsByCategory()
@@ -383,26 +398,19 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.bind("<Escape>", self.cancel)
         box.pack()
 
-    def changeParameter(self, event):
-        if len(self.argBox.curselection()) == 0:
-            return
-        index = int(self.argBox.curselection()[0])
-        value = self.argBox.get(index)
-        if self.e2.get() is not None:
-            op = getOperationWithGroups(self.e2.get())
-            if op is not None:
-                argumentTuple = self.arginfo[index]
-                res = promptForParameter(self, self.dir, argumentTuple, getFileTypes(), \
-                                         self.argvalues[argumentTuple[0]] if argumentTuple[
-                                                                                 0] in self.argvalues else None)
-                if argumentTuple[0] == 'inputmaskname' and res:
-                    self.inputMaskName = res
-                if res is not None:
-                    self.argvalues[argumentTuple[0]] = res
-                    self.argBox.delete(index)
-                    sep = '*: ' if argumentTuple[0] in self.mandatoryinfo else ': '
-                    self.argBox.insert(index, argumentTuple[0] + sep + str(res))
-                self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
+    def __checkParams(self):
+        ok = True
+        for arg in self.mandatoryinfo:
+            ok &= (arg in self.argvalues and self.argvalues[arg] is not None and len(str(self.argvalues[arg])) > 0)
+        return ok
+
+    def changeParameter(self, name, type, value):
+        v, error = checkValue(name,type, value)
+        self.argvalues[name] = v
+        if name == 'inputmaskname' and value is not None:
+            self.inputMaskName = value
+        if self.okButton is not None:
+            self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def help(self):
         op = getOperationWithGroups(self.e2.get())
@@ -1480,3 +1488,179 @@ class VerticalScrolledFrame(Frame):
         canvas.bind('<Configure>', _configure_canvas)
 
         return
+
+def notifyCB(obj,name, type, row, cb,a1,a2,a3):
+    if cb is not None:
+        cb(name, type, obj.values[row].get())
+
+class PropertyFrame(VerticalScrolledFrame):
+
+   parent = None
+   cancelled = True
+   dir = '.'
+   buttons = {}
+   scModel = None
+   propertyFunction = PropertyFunction()
+   """
+   @type scModel: ImageProjectModel
+   """
+
+   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None, dir='.',changeParameterCB=None, **kwargs):
+     self.parent = parent
+     self.properties = [prop for prop in properties if not prop.node]
+     self.values =   [None for prop in properties]
+     self.widgets =[None for prop in properties]
+     self.changeParameterCB = changeParameterCB
+     self.dir = dir
+     self.propertyFunction = propertyFunction
+     self.scModel = scModel
+     VerticalScrolledFrame.__init__(self, parent, **kwargs)
+     self.body()
+
+   def body(self):
+       master = self.interior
+       row = 0
+       for prop in self.properties:
+           self.values[row] = StringVar()
+           partialCB = partial(notifyCB,self, prop.name, prop.type, row,self.changeParameterCB)
+           self.values[row].trace("w", partialCB)
+           p = partial(viewInfo, (prop.description, prop.information))
+           Button(master, text=prop.description, takefocus=False, command=p).grid(row=row, sticky=E)
+           v = self.propertyFunction.getValue(prop.name)
+           if v:
+               self.values[row].set(v)
+           if prop.type == 'list':
+               widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row])
+               widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
+           elif prop.type == 'text':
+               widget = Text(master, takefocus=(row == 0), width=80, height=3, relief=RAISED,
+                                       borderwidth=2)
+               partialf = partial(fillVariable, self, row)
+               widget.bind("<KeyRelease>", partialf)
+               widget.bind("<KeyPress>", partialf)
+               if v:
+                   widget.insert(1.0, v)
+               widget.grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'yesno':
+               widget = [None,None]
+               widget[0]  =Radiobutton(master, text='Yes', takefocus=(row == 0), variable=self.values[row],
+                               value='yes')
+               widget[0].grid(row=row, column=1, sticky=W)
+               #widget[0].deselect()
+               widget[1] =  Radiobutton(master, text='No', takefocus=(row == 0), variable=self.values[row], value='no')
+               widget[1].grid(row=row, column=2, sticky=E)
+               #widget[1].select()
+           elif prop.type == 'imagefile':
+               partialf = partial(fillButton, self, self.dir, prop.name, row, [('JPG', '*.jpg')])
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
+                                                command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'xmpfile':
+               partialf = partial(fillButton, self, self.dir, prop.name, row, [('XMP', '*.xmp')])
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
+                                                command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type.startswith('fileset:'):
+               initialdir_parts = tuple(prop.type[8:].split('/'))
+               initialdir = os.path.join(*tuple(initialdir_parts))
+               partialf = partial(fillButton, self, initialdir, prop.name, row, [('Text', '*.txt')])
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
+                                                command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type.startswith('donor'):
+               partialf = partial(fillDonorButton, self, prop.name, row)
+               self.buttons[prop.name] =  widget = Button(master, text=v if v is not None else '', takefocus=False,
+                                                command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type.startswith('float'):
+               widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
+               widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
+               v = prop.type
+           elif prop.type.startswith('int'):
+               widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
+               widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
+               v = prop.type
+           else:
+               widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
+               widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
+           self.widgets[row] = widget
+           if prop.readonly:
+               if prop.type == 'yesno':
+                   widget[0].config(state=DISABLED)
+                   widget[1].config(state=DISABLED)
+               else:
+                   widget.config(state=DISABLED)
+           row += 1
+
+   def findWidgetValue(self, widget, prop):
+       return widget.get().strip()
+
+   def apply(self):
+       i = 0
+       for prop in self.properties:
+           v = self.findWidgetValue(self.values[i], prop)
+           v, error = checkValue(prop.name, prop.type, v)
+           if v and len(v) > 0 and error is None:
+               self.propertyFunction.setValue(prop.name, v)
+           elif error is not None:
+               tkMessageBox.showwarning('Error', prop.name, error)
+           i += 1
+
+
+
+class ProjectPropertyFunction(PropertyFunction):
+
+    def __init__(self,scModel):
+        """
+        :param scModel:
+        @type scModel: ImageProjectModel
+        """
+        self.scModel = scModel
+
+    def getValue(self, name):
+        return self.scModel.getProjectData(name)
+
+    def setValue(self, name,value):
+        return self.scModel.setProjectData(name,value)
+
+class PropertyDialog(tkSimpleDialog.Dialog):
+
+   cancelled = False
+   def __init__(self, parent, properties, scModel=None,title="Project Properties", dir='.'):
+        self.properties =properties
+        self.scModel = scModel
+        self.dir=dir
+        tkSimpleDialog.Dialog.__init__(self, parent, title)
+
+   def body(self, master):
+        self.vs = PropertyFrame(master, self.properties,
+                           scModel=self.scModel,
+                           propertyFunction=ProjectPropertyFunction(self.scModel),
+                            dir=self.dir)
+        self.vs.grid(row=0)
+
+   def cancel(self, event=None):
+    self.cancelled = True
+    tkSimpleDialog.Dialog.cancel(self,event=event)
+
+   def apply(self):
+       if not self.cancelled:
+            self.vs.apply()
+       tkSimpleDialog.Dialog.apply(self)
+
+class EdgePropertyFunction(PropertyFunction):
+
+    lookup_values = {}
+    def __init__(self,properties):
+        """
+        :param scModel:
+        @type scModel: ImageProjectModel
+        """
+        for prop in properties:
+            self.lookup_values[prop.name] = prop.value
+
+    def getValue(self, name):
+        return self.lookup_values[name]
+
+    def setValue(self, name,value):
+        self.lookup_values[name] = value
