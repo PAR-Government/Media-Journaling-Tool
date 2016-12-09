@@ -875,6 +875,7 @@ def main(argv=None):
 
     gui = MakeGenUI(imgdir[0], master=root, pluginops=plugins.loadPlugins(),
                     base=args.base[0] if args.base is not None else None, uiProfile=uiProfile)
+    root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     gui.mainloop()
 
 
