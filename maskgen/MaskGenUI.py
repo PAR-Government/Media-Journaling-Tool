@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
-from group_filter import GroupOperationsLoader, GroupFilterLoader
+from group_filter import groupOpLoader, GroupFilterLoader
 from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties
 from tool_set import *
 from group_manager import GroupManagerDialog
@@ -495,7 +495,7 @@ class MakeGenUI(Frame):
         d = GroupManagerDialog(self,GroupFilterLoader())
 
     def operationsgroupmanager(self):
-        d = GroupManagerDialog(self, GroupOperationsLoader())
+        d = GroupManagerDialog(self, groupOpLoader)
 
     def quit(self):
         self.save()

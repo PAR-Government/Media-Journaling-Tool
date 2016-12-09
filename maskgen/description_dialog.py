@@ -862,6 +862,33 @@ class ActionableTableCanvas(TableCanvas):
         return popupmenu
 
 
+def toNumString(v):
+    num = 0
+    val = v
+    if len(v) > 0 and '0123456789'.find(v[0]) > 0:
+        pos = v.find(':')
+        if pos < 0:
+            pos = len(v)
+        try:
+            num = float(v[0:pos])
+            if pos < len(v):
+                val = v[pos+1:]
+            else:
+                val = ''
+        except:
+            num = 0
+    return num,val
+
+def compareNumString(numstringa,numstringb):
+    diff = numstringa[0] - numstringb[0]
+    print diff
+    if abs(diff) < 0.00000001:
+        return -1 if numstringa[1] < numstringb[1] else (0 if numstringa[1] == numstringb[1] else 1)
+    return int(np.sign(diff))
+
+def sortMask(a,b):
+    return compareNumString(toNumString(a),toNumString(b))
+
 class MaskSetTable(Frame):
     section = None
 
@@ -897,6 +924,7 @@ class MetaDiffTable(Frame):
             return
         self.section = section
         self.table.getModel().setupModel(self.items.toColumns(section))
+        self.table.getModel().reclist = sorted(self.table.getModel().reclist,cmp=sortMask)
         self.table.redrawTable()
 
     def _drawMe(self):
@@ -904,7 +932,7 @@ class MetaDiffTable(Frame):
         for c in self.items.getColumnNames(self.section):
             model.addColumn(c)
         model.importDict(self.items.toColumns(self.section))
-        model.reclist = sorted(model.reclist)
+        model.reclist = sorted(model.reclist,cmp=sortMask)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
