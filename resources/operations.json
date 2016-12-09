@@ -2434,7 +2434,7 @@
           "description": "Numbers of frames copy/pasted"
         },
          "Dest Paste Time": {
-          "Paste Start Time": "time",
+          "type": "time",
           "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
