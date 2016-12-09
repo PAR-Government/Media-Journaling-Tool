@@ -2430,8 +2430,8 @@
          "type": "int[0:1000000]",
           "description": "Numbers of frames cut/pasted"
         },
-         "Dest Paste Time": {
-          "Paste Start Time": "time",
+        "Dest Paste Time": {
+          "type": "time",
           "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },

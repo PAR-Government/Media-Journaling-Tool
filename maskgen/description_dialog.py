@@ -18,7 +18,18 @@ from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
 from software_loader import ProjectProperty
 
+
 def checkValue(name, type, value):
+    """
+    Check the value given the type
+    :param name:
+    :param type:
+    :param value:
+    :return: None,error message if invalid or value,None if valid
+    @type name: str
+    @type value: str
+    @rtype: (str,str)
+    """
     if value and len(value) > 0:
         if type.startswith('float'):
             vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
@@ -46,16 +57,32 @@ def checkValue(name, type, value):
                 return None, 'Invalid coordinate value for ' + name + '; not (0,0) format'
     return value, None
 
-def fillVariable( obj, row ,event):
-    obj.values[row].set(obj.widgets[row].get(1.0,END))
 
-def fillButton(obj, dir, id, row, filetypes):
+def fillTextVariable(obj, row, event):
     """
-    :param dir:
-    :param id:
-    :param var:
+    Call back for a StringVar or Text Widget object
+    get the object's text widget at row and pull the text
+    :param obj: PropertyFrame widgets
+    :param row:  row number of the widet
+    :param event: not used
+    :return:
+    @type obj: PropertyFrame
+    @type row: int
+    """
+    obj.values[row].set(obj.widgets[row].get(1.0, END))
+
+
+def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
+    """
+    Prompt for a file given the file types.
+    Set the button's text, identify by the id.
+    :param obj:
+    :param dir: Starting place for file inspection
+    :param id: button identitifer
+    :param row:
     :param filetypes:
-    @type var: StringVar
+    @type obj: PropertyFrame
+    @type row: int
     @type filetypes: [(str,str)]
     :return:
     """
@@ -66,14 +93,17 @@ def fillButton(obj, dir, id, row, filetypes):
     obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else '')
 
 
-def fillDonorButton(obj, id, row):
+def promptForDonorandFillButtonText(obj, id, row):
     """
-          :param dir:
-          :param id:
-          :param var:
-          @type var: StringVar
-          :return:
-          """
+    Prompt for a donor and place the name in the button text
+    Set the variable to the  selected image node name
+    :param obj:
+    :param id:
+    :param var:
+    @type obj: PropertyFrame
+    @type row: int
+    :return:
+    """
     d = ImageNodeCaptureDialog(obj, obj.scModel)
     res = d.selectedImage
     var = obj.values[row]
@@ -640,6 +670,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     optocall = None
     argvalues = {}
     cancelled = True
+    mandatoryinfo = []
 
     def __init__(self, parent, dir, im, pluginOps, name, scModel):
         self.pluginOps = pluginOps
@@ -674,64 +705,91 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             row += 1
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
+        self.argBoxRow = row
+        self.argBoxMaster = master
         self.argBox = Listbox(master)
         self.argBox.bind("<Double-Button-1>", self.changeParameter)
         self.argBox.grid(row=row, column=0, columnspan=2, sticky=E + W)
         if len(self.pluginOps.keys()) > 0:
             self.newop(None)
 
-    def changeParameter(self, event):
-        if len(self.argBox.curselection()) == 0:
-            return
-        index = int(self.argBox.curselection()[0])
-        value = self.argBox.get(index)
-        if self.optocall is not None:
-            op = self.pluginOps[self.optocall]
-            arginfo = op['arguments']
-            operation = getOperationWithGroups(op['operation'][0])
-            if arginfo is not None:
-                arg = arginfo[index]
-                argumentTuple = (arg[0], operation.mandatoryparameters[arg[0]]) if operation is not None and arg[
-                                                                                                                 0] in operation.mandatoryparameters else None
-                argumentTuple = (arg[0], operation.optionalparameters[arg[0]]) if operation is not None and arg[
-                                                                                                                0] in operation.optionalparameters else argumentTuple
-                argumentTuple = ('donor', {'type': 'donor', 'description': 'Donor'}) if arg[
-                                                                                            0] == 'donor' else argumentTuple
-                argumentTuple = ('inputmaskname', {'type': 'imagefile', 'description': 'Input Mask File'}) if arg[
-                                                                                                                  0] == 'inputmaskname' else argumentTuple
-                argumentTuple = (arg[0], {'type': 'string', 'description': arg[2] if len(
-                    arg) > 2 else 'Not Available'}) if argumentTuple is None else argumentTuple
-                res = promptForParameter(self, self.dir, argumentTuple, getFileTypes(), arg[1])
-                if res is not None:
-                    self.argvalues[arg[0]] = res
-                    self.argBox.delete(index)
-                    self.argBox.insert(index, arg[0] + ': ' + str(res))
+    def __checkParams(self):
+        ok = True
+        for arg in self.mandatoryinfo:
+            ok &= (arg in self.argvalues and self.argvalues[arg] is not None and len(str(self.argvalues[arg])) > 0)
+        return ok
+
+    def __buildTuple(self, argument, operation):
+        argumentTuple = (argument[0], operation.mandatoryparameters[argument[0]]) if operation is not None and argument[
+                                                                                                         0] in operation.mandatoryparameters else None
+        argumentTuple = (argument[0], operation.optionalparameters[argument[0]]) if operation is not None and argument[
+                                                                                                        0] in operation.optionalparameters else argumentTuple
+        argumentTuple = ('donor', {'type': 'donor', 'description': 'Donor'}) if argument[
+                                                                                    0] == 'donor' else argumentTuple
+        argumentTuple = ('inputmaskname', {'type': 'imagefile', 'description': 'Input Mask File'}) if argument[
+                                                                                                          0] == 'inputmaskname' else argumentTuple
+        argumentTuple = (argument[0], {'type': 'string', 'description': argument[2] if len(
+            argument) > 2 else 'Not Available'}) if argumentTuple is None else argumentTuple
+        return argumentTuple
+
+    def buildArgBox(self, operationName, arginfo):
+        if self.argBox is not None:
+            self.argBox.destroy()
+        if arginfo is None:
+            arginfo = []
+        operation = getOperationWithGroups(operationName)
+        argumentTuples = [self.__buildTuple(arg, operation) for arg in arginfo]
+        properties = [ProjectProperty(name=argumentTuple[0],
+                                      description=argumentTuple[0],
+                                      information=argumentTuple[1]['description'],
+                                      type=argumentTuple[1]['type'],
+                                      values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
+                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[
+                                                                                    0] in self.argvalues else None) \
+                      for argumentTuple in argumentTuples]
+        self.argBox= PropertyFrame(self.argBoxMaster, properties,
+                                scModel=self.scModel,
+                                propertyFunction=EdgePropertyFunction(properties),
+                                changeParameterCB=self.changeParameter,
+                                dir=self.dir)
+        self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+
+    def buttonbox(self):
+        box = Frame(self)
+        self.okButton = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE,
+                               state=ACTIVE if self.__checkParams() else DISABLED)
+        self.okButton.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+
+    def changeParameter(self, name, type, value):
+        v, error = checkValue(name,type, value)
+        self.argvalues[name] = v
+        if name == 'inputmaskname' and value is not None:
+            self.inputMaskName = value
+        if self.okButton is not None:
+            self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def newop(self, event):
         self.argvalues = {}
         if (self.pluginOps.has_key(self.e1.get())):
             self.optocall = self.e1.get()
-            self.argBox.delete(0, END)
             op = self.pluginOps[self.optocall]
             opinfo = op['operation']
-            arginfo = op['arguments']
             self.catvar.set(opinfo[1])
             self.opvar.set(opinfo[0])
             self.softwarevar.set(opinfo[3])
             self.versionvar.set(opinfo[4])
-            if arginfo is not None:
-                for arg in arginfo:
-                    if arg is not None:
-                        self.argBox.insert(END, arg[0] + ': ' + str(arg[1] if arg[1] is not None else ''))
-                        if arg[1] is not None:
-                           self.argvalues[arg[0]] = arg[1]
+            self.buildArgBox(opinfo[0], op['arguments'])
         else:
             self.catvar.set('')
             self.opvar.set('')
             self.softwarevar.set('')
             self.versionvar.set('')
             self.optocall = None
-            self.argBox.delete(0, END)
+            self.buildArgBox(None, [])
 
     def cancel(self):
         if self.cancelled:
@@ -1535,7 +1593,7 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type == 'text':
                widget = Text(master, takefocus=(row == 0), width=80, height=3, relief=RAISED,
                                        borderwidth=2)
-               partialf = partial(fillVariable, self, row)
+               partialf = partial(fillTextVariable, self, row)
                widget.bind("<KeyRelease>", partialf)
                widget.bind("<KeyPress>", partialf)
                if v:
@@ -1551,24 +1609,24 @@ class PropertyFrame(VerticalScrolledFrame):
                widget[1].grid(row=row, column=2, sticky=E)
                #widget[1].select()
            elif prop.type == 'imagefile':
-               partialf = partial(fillButton, self, self.dir, prop.name, row, [('JPG', '*.jpg')])
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, getFileTypes())
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type == 'xmpfile':
-               partialf = partial(fillButton, self, self.dir, prop.name, row, [('XMP', '*.xmp')])
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('XMP', '*.xmp')])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('fileset:'):
                initialdir_parts = tuple(prop.type[8:].split('/'))
                initialdir = os.path.join(*tuple(initialdir_parts))
-               partialf = partial(fillButton, self, initialdir, prop.name, row, [('Text', '*.txt')])
+               partialf = partial(promptForFileAndFillButtonText, self, initialdir, prop.name, row, [('Text', '*.txt')])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('donor'):
-               partialf = partial(fillDonorButton, self, prop.name, row)
+               partialf = partial(promptForDonorandFillButtonText, self, prop.name, row)
                self.buttons[prop.name] =  widget = Button(master, text=v if v is not None else '', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
@@ -1605,8 +1663,6 @@ class PropertyFrame(VerticalScrolledFrame):
            elif error is not None:
                tkMessageBox.showwarning('Error', prop.name, error)
            i += 1
-
-
 
 class ProjectPropertyFunction(PropertyFunction):
 

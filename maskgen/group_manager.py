@@ -67,6 +67,7 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         checked_whatsleft = self.gfl.getAvailableFilters(operations_used=whatsused)
         if len(checked_whatsleft) != len(whatsleft):
             self.availableBox.delete(0, END)
+            checked_whatsleft = sorted(checked_whatsleft)
             for filter in checked_whatsleft:
                 self.availableBox.insert(END, filter)
 
@@ -85,6 +86,7 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         for filter in groupFilter.filters:
             self.assignedBox.insert(END, filter)
         available = set(self.gfl.getAvailableFilters(operations_used=groupFilter.filters))
+        available = sorted(available)
         for filter in available:
             self.availableBox.insert(END, filter)
 

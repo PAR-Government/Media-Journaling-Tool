@@ -1667,6 +1667,8 @@ class ImageProjectModel:
                 self.connect(_end)
                 pairs.append((kwargs['donor'], _end))
                 self.select((_start, _end))
+                if 'donor'  in msg:
+                    msg = None
         os.remove(target)
         return self._pluginError(filter, msg), pairs
 

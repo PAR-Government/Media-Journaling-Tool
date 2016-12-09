@@ -66,7 +66,7 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "GaussianBlur",
+      "plugin": "GaussianLocalBlur",
       "id": "6",
       "arguments": {
         "inputmaskname" : {
