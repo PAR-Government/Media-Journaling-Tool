@@ -90,7 +90,7 @@ def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
                                        filetypes=filetypes)
     var = obj.values[row]
     var.set(val if (val is not None and len(val) > 0) else None)
-    obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else '')
+    obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else ' ' * 30)
 
 
 def promptForDonorandFillButtonText(obj, id, row):
@@ -1591,7 +1591,7 @@ class PropertyFrame(VerticalScrolledFrame):
                widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
            elif prop.type == 'text':
-               widget = Text(master, takefocus=(row == 0), width=80, height=3, relief=RAISED,
+               widget = Text(master, takefocus=(row == 0), width=60, height=3, relief=RAISED,
                                        borderwidth=2)
                partialf = partial(fillTextVariable, self, row)
                widget.bind("<KeyRelease>", partialf)

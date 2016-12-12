@@ -1,0 +1,9 @@
+foo.tiff
+maskfill.png
+maskfillt.png
+postfill.png
+prefill.png
+test.png
+test.tif
+test1.tif
+two_channel.jpg

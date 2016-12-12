@@ -11,6 +11,7 @@ from maskgen import tool_set
 import shutil
 from maskgen  import plugins
 from maskgen import group_operations
+import logging
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
@@ -84,13 +85,17 @@ def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
     @type operation : Operation
     @type predecessors: List[str]
     """
+    startType = local_state['model'].getStartType()
     args = {}
     if argument_specs is not None:
         for spec_param, spec in argument_specs.iteritems():
             args[spec_param] = executeParamSpec(spec,global_state,local_state, predecessors)
     for param in operation.mandatoryparameters:
         if argument_specs is None or param not in argument_specs:
-            v = pickArg(operation.mandatoryparameters[param],local_state)
+            paramDef = operation.mandatoryparameters[param]
+            if 'source' in paramDef and paramDef['source'] is not None and paramDef['source'] != startType:
+                continue
+            v = pickArg(paramDef,local_state)
             if v is None:
                 raise 'Missing Value for parameter ' + param + ' in ' + operation.name
             args[param] = v
@@ -220,6 +225,7 @@ class BaseSelectionOperation(BatchOperation):
         return local_state['model']
 
 class PluginOperation(BatchOperation):
+    logger = logging.getLogger('PluginOperation')
 
     def execute(self, graph, node_name, node,connect_to_node_name, local_state={},global_state={}):
         """
@@ -251,6 +257,7 @@ class PluginOperation(BatchOperation):
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op[0],fake=True)
         args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        self.logger.debug('Execute plugin ' + plugin_name + ' on ' + filename  + ' with ' + str(args))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
         my_state['node'] = pairs[0][1]
         for predecessor in predecessors:
@@ -272,6 +279,8 @@ def getOperationGivenDescriptor(descriptor):
     return batch_operations[descriptor['op_type']]
 
 class BatchProject:
+    logger = logging.getLogger('BatchProject')
+
     G = nx.DiGraph(name="Empty")
 
     def __init__(self,G):
@@ -293,6 +302,7 @@ class BatchProject:
     def executeOnce(self, global_state=dict()):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         local_state = self._buildLocalState()
+        self.logger.info('Build Project with global state: ' + str(global_state))
         base_node = self._findBase()
         try:
             self._execute_node(base_node, None, local_state, global_state)
@@ -312,6 +322,7 @@ class BatchProject:
                 completed.append(op_node_name)
                 queue.extend(self.G.successors(op_node_name))
             if recompress:
+                self.logger.debug("Run Save As")
                 op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
                 op.performOp()
             local_state['model'].save()
@@ -374,13 +385,14 @@ class BatchProject:
         @rtype: maskgen.scenario_model.ImageProjectModel
         """
         try:
+            self.logger.debug('_execute_node ' + node_name + ' connect to ' + str (connect_to_node_name))
             return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G, node_name,self.G.node[node_name],connect_to_node_name, local_state = local_state, global_state=global_state)
         except Exception as e:
             print e
             raise e
 
 
-def getBatch(jsonFile):
+def getBatch(jsonFile,loglevel=50):
     """
     :param jsonFile:
     :return:
@@ -389,6 +401,8 @@ def getBatch(jsonFile):
     software_loader.loadOperations("operations.json")
     software_loader.loadSoftware("software.csv")
     software_loader.loadProjectProperties("project_properties.json")
+    FORMAT = '%(asctime)-15s %(message)s'
+    logging.basicConfig(format=FORMAT,level=50 if loglevel is None else int(loglevel))
     return  loadJSONGraph(jsonFile)
 
 def main():
@@ -396,11 +410,12 @@ def main():
     parser.add_argument('--json',             required=True,         help='JSON File')
     parser.add_argument('--count', required=False, help='dir')
     parser.add_argument('--results', required=True, help='dir')
+    parser.add_argument('--loglevel', required=False, help='log level')
     args = parser.parse_args()
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
         return
-    batchProject =getBatch(args.json)
+    batchProject =getBatch(args.json, loglevel=args.loglevel)
     globalState =  {'projects' : args.results}
     count = int(args.count) if args.count is not None else 1
     for i in range(count):
