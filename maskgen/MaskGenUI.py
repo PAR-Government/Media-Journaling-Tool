@@ -312,8 +312,8 @@ class MakeGenUI(Frame):
         if (file is None or file == ''):
             return
         filetype = fileType(file)
-        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel.getStartType(), filetype,
-                                     self.scModel.get_dir(), im, os.path.split(file)[1])
+        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel, filetype,
+                                      im, os.path.split(file)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg, status = self.scModel.addNextImage(file, mod=d.description)
@@ -331,8 +331,8 @@ class MakeGenUI(Frame):
             return
         im, filename = self.scModel.getImageAndName(destination)
         filetype = fileType(filename)
-        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel.getStartType(), filetype,
-                                     self.scModel.get_dir(), im, os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel, filetype,
+                                      im, os.path.split(filename)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.connect(destination, mod=d.description)
@@ -346,8 +346,8 @@ class MakeGenUI(Frame):
             tkMessageBox.showwarning("Auto Connect", "Next image file cannot be automatically determined")
             return
         filetype = fileType(filename)
-        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel.getStartType(), filetype,
-                                     self.scModel.get_dir(), im, os.path.split(filename)[1])
+        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel, filetype,
+                                     im, os.path.split(filename)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             msg, status = self.scModel.addNextImage(filename, mod=d.description)
@@ -486,7 +486,7 @@ class MakeGenUI(Frame):
             self.errorlistDialog.setItems(errorList)
 
     def getproperties(self):
-        d = PropertyDialog(self, getProjectProperties())
+        d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
 
     def pluginbuilder(self):
         d = PluginBuilder(self)
@@ -579,8 +579,8 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel.getStartType(), self.scModel.getEndType(),
-                                     self.scModel.get_dir(), im, os.path.split(filename)[1],
+        d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel, self.scModel.getEndType(),
+                                     im, os.path.split(filename)[1],
                                      description=self.scModel.getDescription())
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):

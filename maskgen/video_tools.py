@@ -312,8 +312,13 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None):
             diff[k] = ('add', v)
     return diff
 
-def _getOrder(packet, orderAttr):
+def _getOrder(packet, orderAttr, lasttime, pkt_duration_time='pkt_duration_time'):
     try:
+        if packet[orderAttr][0] == 'N':
+            if packet['pkt_dts_time'][0] != 'N':
+                return float(packet['pkt_dts_time'])
+            elif len(packet[pkt_duration_time]) > 0 and  packet[pkt_duration_time][0] != 'N':
+                return (lasttime + float(packet[pkt_duration_time])) if lasttime is not None else 0.0
         return float(packet[orderAttr])
     except ValueError as e:
         try:
@@ -336,17 +341,19 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
     bpos = 0
     diff = []
     start = 0
+    aptime =None
+    bptime = None
     while apos < len(a) and bpos < len(b):
         apacket = a[apos]
         if orderAttr not in apacket:
             apos += 1
             continue
-        aptime  =  _getOrder(apacket, orderAttr)
+        aptime  =  _getOrder(apacket, orderAttr,aptime)
         bpacket = b[bpos]
         if orderAttr not in bpacket:
             bpos += 1
             continue
-        bptime = _getOrder(bpacket, orderAttr)
+        bptime = _getOrder(bpacket, orderAttr, bptime)
         if aptime == bptime:
             metaDiff = compareMeta(apacket, bpacket, skipMeta=skipMeta)
             if len(metaDiff) > 0:
@@ -362,7 +369,7 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
                 c += 1
                 if apos < len(a):
                     apacket = a[apos]
-                    aptime = _getOrder(apacket, orderAttr)
+                    aptime = _getOrder(apacket, orderAttr,aptime)
             diff.append(('delete', start, end, c))
         elif aptime > bptime:
             start = bptime
@@ -373,19 +380,19 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
                 bpos += 1
                 if bpos < len(b):
                     bpacket = b[bpos]
-                    bptime = _getOrder(bpacket, orderAttr)
+                    bptime = _getOrder(bpacket, orderAttr,bptime)
             diff.append(('add', start, end, c))
     if apos < len(a):
-        start = _getOrder(a[apos], orderAttr)
+        aptime = start = _getOrder(a[apos], orderAttr,aptime)
         c = len(a) - apos
         apacket = a[len(a) - 1]
-        aptime = _getOrder(apacket, orderAttr)
+        aptime = _getOrder(apacket, orderAttr,aptime)
         diff.append(('delete', start, aptime, c))
     elif bpos < len(b):
-        start = _getOrder(b[bpos], orderAttr)
+        bptime = start = _getOrder(b[bpos], orderAttr,bptime)
         c = len(b) - bpos
         bpacket = b[len(b) - 1]
-        bptime = _getOrder(bpacket, orderAttr)
+        bptime = _getOrder(bpacket, orderAttr, bptime)
         diff.append(('add', start, bptime, c))
     return diff
 
@@ -678,7 +685,6 @@ def formMaskDiff(fileOne, fileTwo, name_prefix, opName, startSegment=None, endSe
             analysis_components.mask = np.zeros((analysis_components.frame_one.shape[0],analysis_components.frame_one.shape[1])).astype('uint8')
             diff  = cv2.cvtColor(diff,cv2.COLOR_RGBA2GRAY)
             analysis_components.mask[diff > 0.0001] = 255
-            #cv2.MORPH_OPEN,
             opening = cv2.erode(analysis_components.mask, kernel,2)
             analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             opFunc(analysis_components,ranges)

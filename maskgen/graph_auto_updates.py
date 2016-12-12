@@ -1,5 +1,6 @@
 from image_graph import current_version
 import tool_set
+import os
 
 def updateJournal(scModel):
     """
@@ -12,6 +13,29 @@ def updateJournal(scModel):
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
         _fixTransforms(scModel)
+        _fixQT(scModel)
+        _fixUserName(scModel)
+
+def _fixUserName(scModel):
+    """
+    :param scModel:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    if scModel.getGraph().getDataItem('username') is not None:
+        scModel.getGraph().setDataItem('username',scModel.getGraph().getDataItem('username').lower())
+
+def _fixQT(scModel):
+    """
+      :param scModel:
+      :return:
+      @type scModel: ImageProjectModel
+      """
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'arguments' in edge and 'QT File Name' in edge['arguments']:
+            edge['arguments']['qtfile'] = os.path.split(edge['arguments']['QT File Name'])[1]
+            edge['arguments'].pop('QT File Name')
 
 def _fixTransforms(scModel):
     """

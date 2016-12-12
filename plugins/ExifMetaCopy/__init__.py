@@ -11,7 +11,7 @@ def emc_update_size(size,imageFile):
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
-    call(['-overwrite_original', '-q', '-all=', target])
+    call(['exiftool','-overwrite_original', '-q', '-all=', target])
     call(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
     call(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
     emc_update_size(img.size,target)

@@ -222,8 +222,8 @@ class MaskGraphCanvas(tk.Canvas):
                 if nodeId == self.scModel.start:
                     tkMessageBox.showwarning("Error", "Cannot connect to the same node")
                 elif len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0], nodeId)):
-                    d = DescriptionCaptureDialog(self.master, self.uiProfile, self.scModel.getStartType(),
-                                                 self.scModel.getNodeFileType(nodeId), self.scModel.get_dir(), im, file_without_path)
+                    d = DescriptionCaptureDialog(self.master, self.uiProfile,self.scModel,
+                                                 self.scModel.getNodeFileType(nodeId), im, file_without_path)
                     if (
                                 d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                         msg, ok = self.scModel.connect(nodeId, mod=d.description)

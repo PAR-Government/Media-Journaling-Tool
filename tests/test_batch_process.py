@@ -10,6 +10,7 @@ class TestBatchProcess(unittest.TestCase):
    def test_run(self):
       if os.path.exists('imageset.txt'):
           os.remove('imageset.txt')
+      shutil.copy('tests/imageset.txt','imageset.txt')
       if os.path.exists('test_projects'):
           shutil.rmtree('test_projects')
       os.mkdir('test_projects')

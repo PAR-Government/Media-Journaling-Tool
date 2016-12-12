@@ -1125,7 +1125,7 @@ class ImageProjectModel:
             edge_im = self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]
             if edge_im is None:
                 continue
-            donor_mask = self._constructDonor(endPointTuple[0],np.asarray())
+            donor_mask = self._constructDonor(endPointTuple[0],np.asarray(edge_im))
             if donor_mask is not None:
                 self.G.addDonorToNode(endPointTuple[0][1],endPointTuple[1], ImageWrapper(donor_mask.astype('uint8')))
                 donors.append((endPointTuple[1], donor_mask))
@@ -1701,6 +1701,8 @@ class ImageProjectModel:
                 self.connect(_end)
                 pairs.append((kwargs['donor'], _end))
                 self.select((_start, _end))
+                if 'donor'  in msg:
+                    msg = None
         os.remove(target)
         return self._pluginError(filter, msg), pairs
 
