@@ -418,6 +418,23 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
 
         return self.e1  # initial focus
 
+    def __getinfo(self,name):
+        for k,v in self.arginfo:
+            if k == name:
+                return v
+        return None
+
+    def __checkParams(self):
+        ok = True
+        for k,v in self.argvalues.iteritems():
+            info = self.__getinfo(k)
+            cv,error = checkValue(k,info['type'],v)
+            if v is not None and cv is None:
+                ok = False
+        for arg in self.mandatoryinfo:
+            ok &= (arg in self.argvalues and self.argvalues[arg] is not None and len(str(self.argvalues[arg])) > 0)
+        return ok
+
     def buttonbox(self):
         box = Frame(self)
         self.okButton = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE,
@@ -428,15 +445,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.bind("<Escape>", self.cancel)
         box.pack()
 
-    def __checkParams(self):
-        ok = True
-        for arg in self.mandatoryinfo:
-            ok &= (arg in self.argvalues and self.argvalues[arg] is not None and len(str(self.argvalues[arg])) > 0)
-        return ok
-
     def changeParameter(self, name, type, value):
-        v, error = checkValue(name,type, value)
-        self.argvalues[name] = v
+        self.argvalues[name] = value
         if name == 'inputmaskname' and value is not None:
             self.inputMaskName = value
         if self.okButton is not None:
