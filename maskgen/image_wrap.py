@@ -91,6 +91,9 @@ def get_mode(image_array):
         return 'RGB'
 
 class ImageWrapper:
+    """
+    @type image_array: numpy.array
+    """
     def __init__(self,image_array, mode=None, to_mask=False,info=None):
         if str(type(image_array)) == 'ImageWrapper':
             self.image_array = image_array.image_array

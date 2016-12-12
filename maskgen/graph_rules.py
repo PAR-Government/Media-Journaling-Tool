@@ -179,6 +179,23 @@ def rotationCheck(graph, frm, to):
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 
+def checkFrameTimes(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge  else {}
+    st = None
+    et = None
+    for k,v in args.iteritems():
+        if k.endswith('End Time'):
+            et = getMilliSeconds(v)
+        elif k.endswith('Start Time'):
+            st = getMilliSeconds(v)
+    if st is None and et is None:
+        return None
+    st = st if st is not None else (0,0)
+    et = et if et is not None else (0, 0)
+    if st[0] > et[0] or (st[0] == et[0] and st[1] >= et[1] and st[1] > 0):
+        return 'Start Time occurs after End Time'
+    return None
 
 def checkFileTypeChange(graph, frm, to):
     frm_file = graph.get_image(frm)[1]

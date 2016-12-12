@@ -472,6 +472,12 @@ class ImageGraph:
         return None, None
 
     def get_image(self, name, metadata=dict()):
+        """
+        :param name:
+        :param metadata:
+        :return:
+        @rtype (ImageWrapper,str)
+        """
         filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['file']))
         im = self.openImage(filename,metadata=metadata)
         return im, filename

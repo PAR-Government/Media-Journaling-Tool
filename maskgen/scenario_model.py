@@ -521,9 +521,27 @@ class VideoVideoLinkTool(LinkTool):
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False,analysis_params={}):
 
+        """
+
+        :param start:
+        :param destination:
+        :param scModel:
+        :param op:
+        :param invert:
+        :param arguments:
+        :param skipDonorAnalysis:
+        :param analysis_params:
+        :return:
+        @type start: str
+        @type destination: str
+        @type scModel: ImageProjectModel
+        @type op: str
+        @type invert: bool
+        @type arguments: dict
+        """
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
+        mask, analysis = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8')), {}
         maskname = start + '_' + destination + '_mask' + '.png'
         if op != 'Donor' and not getOperationWithGroups(op).generateMask:
             maskSet = list()
@@ -577,6 +595,8 @@ class AudioVideoLinkTool(LinkTool):
                       skipDonorAnalysis=False,analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+        maskname = start + '_' + destination + '_mask' + '.png'
         analysis =  dict()
         analysis['masks count'] = 0
         analysis['videomasks'] = list()
@@ -585,7 +605,7 @@ class AudioVideoLinkTool(LinkTool):
         analysis['metadatadiff'] = metaDataDiff
         self._addAnalysis(startIm, destIm, op, analysis, None,linktype='audio.audio',
                           arguments=consolidate(arguments,analysis_params))
-        return None, None, analysis, list()
+        return maskname, mask, analysis, list()
 
 class AudioAudioLinkTool(LinkTool):
     """
@@ -615,9 +635,11 @@ class AudioAudioLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
+        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8'))
+        maskname = start + '_' + destination + '_mask' + '.png'
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='audio.audio',
                           arguments=consolidate(arguments,analysis_params))
-        return None, None, analysis, list()
+        return maskname, mask, analysis, list()
 
 class VideoAudioLinkTool(LinkTool):
     """
@@ -642,6 +664,8 @@ class VideoAudioLinkTool(LinkTool):
                       analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+        maskname = start + '_' + destination + '_mask' + '.png'
         analysis =  dict()
         analysis['masks count'] = 0
         analysis['videomasks'] = list()
@@ -650,7 +674,7 @@ class VideoAudioLinkTool(LinkTool):
         analysis['metadatadiff'] = metaDataDiff
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
                           arguments=consolidate(arguments,analysis_params))
-        return None, None, analysis, list()
+        return maskname, mask, analysis, list()
 
 class ImageVideoLinkTool(VideoVideoLinkTool):
     """
@@ -663,7 +687,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
                       skipDonorAnalysis=False,analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = ImageWrapper(np.zeros((250,250,3)).astype('uint8')), {}
+        mask,analysis = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')),{}
         maskname = start + '_' + destination + '_mask' + '.png'
         maskSet =[]
         errors = list()
@@ -1098,7 +1122,10 @@ class ImageProjectModel:
         donor_nodes = set()
         endPointTuples = self.getDonorAndBaseNodeTuples()
         for endPointTuple in endPointTuples:
-            donor_mask = self._constructDonor(endPointTuple[0],np.asarray(self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]))
+            edge_im = self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]
+            if edge_im is None:
+                continue
+            donor_mask = self._constructDonor(endPointTuple[0],np.asarray())
             if donor_mask is not None:
                 self.G.addDonorToNode(endPointTuple[0][1],endPointTuple[1], ImageWrapper(donor_mask.astype('uint8')))
                 donors.append((endPointTuple[1], donor_mask))
@@ -1120,9 +1147,10 @@ class ImageProjectModel:
                         donor_mask = self._constructDonor(edge_id,donor_mask)
                         baseNodes = self._findBaseNodes(edge_id[0])
                         baseNode = baseNodes[0] if len(baseNodes) > 0 else None
-                        self.G.addDonorToNode(edge_id[1], baseNode, ImageWrapper(donor_mask.astype('uint8')))
-                        donors.append((edge_id, donor_mask))
-                        donor_nodes.add(edge_id[1])
+                        if donor_mask is not None:
+                            self.G.addDonorToNode(edge_id[1], baseNode, ImageWrapper(donor_mask.astype('uint8')))
+                            donors.append((edge_id, donor_mask))
+                            donor_nodes.add(edge_id[1])
                 except Exception as ex:
                     print 'could not generate donor mask for input mask'  + donor_mask_file_name
         return donors
@@ -1367,6 +1395,12 @@ class ImageProjectModel:
         return self.G.get_image(name)[0]
 
     def getImageAndName(self, name, arguments=dict()):
+        """
+        :param name:
+        :param arguments:
+        :return:
+        @rtype (ImageWrapper,str)
+        """
         if name is None or name == '':
             return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
         return self.G.get_image(name,metadata=arguments)

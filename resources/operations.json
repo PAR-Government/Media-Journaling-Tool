@@ -40,6 +40,7 @@
         }
       },
       "rules": [
+        "checkFrameTimes",
         "checkSize",
         "checkFileTypeChange"
       ],
@@ -73,7 +74,7 @@
           "description" : "all includes mono and stereo, depending on available streams"
         }
       },
-      "rules": [],
+      "rules": ["checkFrameTimes"],
       "optionalparameters": {},
       "analysisOperations": [],
       "description": "Extract audio stream(s) from a video",
@@ -110,7 +111,8 @@
       },
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
       },
@@ -154,7 +156,8 @@
       "rules": [
         "checkForDonor",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
       },
@@ -183,7 +186,7 @@
         }
       },
       "rules": [
-        "checkFileTypeChange"
+        "checkFileTypeChange","checkFrameTimes"
       ],
       "optionalparameters": {
         "Stream" : {
@@ -222,7 +225,7 @@
         }
       },
       "rules": [
-        "checkFileTypeChange"
+        "checkFileTypeChange","checkFrameTimes"
       ],
       "optionalparameters": {
         "Stream" : {
@@ -281,7 +284,8 @@
         }
       },
       "rules": [
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
          "Stream" : {
@@ -341,7 +345,8 @@
       "rules": [
         "checkForDonor",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
       },
@@ -371,7 +376,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -405,7 +411,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -438,7 +445,8 @@
       },
       "rules": [
         "checkLengthSame",
-        "checkSize"
+        "checkSize",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -471,7 +479,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -505,7 +514,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -585,7 +595,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -619,7 +630,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -653,7 +665,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -687,7 +700,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -721,7 +735,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -752,7 +767,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
-      "rules": [],
+      "rules": ["checkFrameTimes"],
       "optionalparameters": {},
       "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
       "includeInMask": false,
@@ -934,7 +949,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -972,7 +988,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1014,7 +1031,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1280,7 +1298,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1324,7 +1343,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1361,7 +1381,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1395,7 +1416,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1531,7 +1553,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1965,7 +1988,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1994,7 +2018,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2023,7 +2048,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2052,7 +2078,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2299,7 +2326,8 @@
       },
       "rules": [
         "checkForDonor",
-        "checkLengthBigger"
+        "checkLengthBigger",
+        "checkFrameTimes"
       ],
       "optionalparameters": {},
       "description": "Adding a series of frames from a video clip",
@@ -2319,7 +2347,8 @@
       },
       "rules": [
         "checkForDonor",
-        "checkLengthSame"
+        "checkLengthSame",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2362,7 +2391,8 @@
       "rules": [
         "checkSize",
         "checkSIFT",
-        "checkForDonorWithRegion"
+        "checkForDonorWithRegion",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2404,7 +2434,7 @@
           "description": "Numbers of frames copy/pasted"
         },
          "Dest Paste Time": {
-          "Paste Start Time": "time",
+          "type": "time",
           "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
         }
       },
@@ -2544,7 +2574,7 @@
       "category": "Select",
       "name": "SelectRegionFromFrames",
       "mandatoryparameters": {},
-      "rules": [],
+      "rules": ["checkFrameTimes"],
       "optionalparameters": {
         "Start Time": {
           "type": "time",
@@ -2566,7 +2596,8 @@
       "name": "SelectRemoveFromFrames",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize"
+        "checkSize",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2589,7 +2620,8 @@
       "name": "SelectCutFrames",
       "mandatoryparameters": {},
       "rules": [
-        "checkLengthSmaller"
+        "checkLengthSmaller",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2621,7 +2653,7 @@
         }
       },
       "rules": [
-        "checkLengthSmaller"
+        "checkLengthSmaller","checkFrameTimes"
       ],
       "optionalparameters": {
       },
@@ -2693,7 +2725,7 @@
         }
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame","checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2721,7 +2753,7 @@
         }
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame","checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2769,7 +2801,8 @@
         }
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2802,7 +2835,7 @@
         }
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame","checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2839,7 +2872,7 @@
           "description": "Determine how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
         }
       },
-      "rules": [],
+      "rules": ["checkFrameTimes"],
       "optionalparameters": {
         "Smoothing": {
           "type": "list",
@@ -2892,7 +2925,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkFrameTimes"
       ],
       "optionalparameters": {
         "inputmaskname": {
