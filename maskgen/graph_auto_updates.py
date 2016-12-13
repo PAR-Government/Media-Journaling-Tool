@@ -13,6 +13,7 @@ def updateJournal(scModel):
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
         _fixTransforms(scModel)
+    if scModel.G.getVersion() <= "0.3.1213":
         _fixQT(scModel)
         _fixUserName(scModel)
 
