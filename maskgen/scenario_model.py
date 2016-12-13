@@ -504,7 +504,7 @@ class VideoVideoLinkTool(LinkTool):
           Otherwise, the donor image mask is the donor image (minus alpha channels):
         """
         predecessors = scModel.G.predecessors(destination)
-        errors = ["Could not compute SIFT Matrix"]
+        errors = []
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
             op = getOperationWithGroups(edge['op'])
@@ -516,7 +516,7 @@ class VideoVideoLinkTool(LinkTool):
                     startFileName,
                     destFileName,
                     arguments=arguments)
-        return None,errors
+        return [],errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False,analysis_params={}):

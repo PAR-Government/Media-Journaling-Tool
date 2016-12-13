@@ -787,7 +787,8 @@
       "description": "Alter image metadata.",
       "includeInMask": false,
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {
