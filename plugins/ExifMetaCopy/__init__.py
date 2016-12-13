@@ -13,14 +13,11 @@ def emc_update_size(size,imageFile):
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
-    shutil.copy2(source, target)
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
-    if target.lower().endswith(('.jpg', '.jpeg', '.tif', '.tiff')):
-        maskgen.exif.runexif(['exiftool', '-P', '-q', '-m', '-TagsFromFile',  donor[1], '-all:all', '-unsafe', target])
+    maskgen.exif.runexif(['exiftool', '-P', '-q', '-m', '-TagsFromFile', donor[1], '-all:all', '-unsafe', target])
+    if target.lower().endswith(('.jpg', '.jpeg')):
         emc_update_size(img.size, target)
-    else:
-        maskgen.exif.runexif(['exiftool', '-P', '-q', '-m', '-TagsFromFile', donor[1], '-all:all', target])
-        maskgen.exif.runexif(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
+    maskgen.exif.runexif(['exiftool', '-P', '-q', '-m', '-XMPToolkit=', target])
 
     return None,None
 
