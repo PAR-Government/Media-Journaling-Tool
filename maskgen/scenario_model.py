@@ -887,11 +887,48 @@ class ImageProjectModel:
                                       skipDonorAnalysis=skipDonorAnalysis)
 
 
-    def getProbeSet(self,skipComputation=False):
+    def getProbeSetWithoutComposites(self,skipComputation=False):
+        """
+        Calls constructDonors()
+        :return: list if Probe
+        @rtype: [Probe]
+        """
+        if not skipComputation:
+            self.removeCompositesAndDonors()
+            self.constructDonors()
+        probes = list()
+        for edge_id in self.G.get_edges():
+            edge = self.G.get_edge(edge_id[0],edge_id[1])
+            if edge['recordMaskInComposite'] == 'yes':
+                selectMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname')[0]
+                baseNodeIds = self._findBaseNodes(edge_id[0])
+                baseNodeId = baseNodeIds[0] if len(baseNodeIds)>0 else None
+                for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), selectMask.to_array()):
+                    target_mask_filename = os.path.join(self.get_dir(),edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
+                    target_mask.save(target_mask_filename)
+                    edge_end_node = self.G.get_node(edge_id[1])
+                    donor_mask_image = None
+                    donor_mask_file_name = None
+                    donorbase = None
+                    if 'donormaskname' in edge_end_node:
+                        donor_mask_image, donor_mask_file_name = self.G.get_donor_mask(edge_id[1])
+                        donorbase = edge_end_node['donorbase']
+                    probes.append(Probe(edge_id,
+                                        finalNodeId,
+                                        baseNodeId,
+                                        target_mask,
+                                        target_mask_filename,
+                                        sizeOfChange(np.asarray(target_mask).astype('uint8')),
+                                        donorbase,
+                                        donor_mask_image,
+                                        donor_mask_file_name))
+        return probes
+
+    def getProbeSet(self,skipComputation=False,operationTypes=None):
         """
         Calls constructComposites() and constructDonors()
         :return: list if Probe
-        @rtype: List[Probe]
+        @rtype: [Probe]
         """
         if not skipComputation:
             self.removeCompositesAndDonors()
@@ -973,9 +1010,20 @@ class ImageProjectModel:
                 break
         return mask,baseImage
 
-    def _constructComposites(self, nodeAndMasks, stopAtNode=None,edgeMap=dict(),level=IntObject()):
+    def _constructComposites(self, nodeAndMasks, stopAtNode=None,edgeMap=dict(),level=IntObject(), operationTypes=None):
         """
-          Walks up down the tree from base nodes, assemblying composite masks"
+            Walks up down the tree from base nodes, assemblying composite masks
+        :param nodeAndMasks:
+        :param stopAtNode: the id of the node to stop inspection
+        :param edgeMap:
+        :param level:
+        :param operationTypes:  restrict operations to include
+        :return:
+        @type edgeMap: {(str,str):(int,[])}
+        @type nodeAndMasks: (str,str, np.array)
+        @type stopAtNode: str
+        @type level: IntObject
+        @type operationTypes: [str]
         """
         result = list()
         finished = list()
@@ -991,12 +1039,37 @@ class ImageProjectModel:
                 if edge['op'] == 'Donor':
                     continue
                 compositeMask = self._extendComposite(nodeAndMask[2], edge, nodeAndMask[1], suc, level=level,
-                                                          edgeMap=edgeMap)
+                                                          edgeMap=edgeMap,operationTypes=operationTypes)
                 result.append((nodeAndMask[0], suc, compositeMask))
         if len(result) == 0:
             return nodeAndMasks
-        finished.extend(self._constructComposites(result,stopAtNode=stopAtNode,level=level,edgeMap=edgeMap))
+        finished.extend(self._constructComposites(result,
+                                                  stopAtNode=stopAtNode,
+                                                  level=level,
+                                                  edgeMap=edgeMap,
+                                                  operationTypes=operationTypes))
         return finished
+
+    def _constructTransformedMask(self, edge_id, mask):
+        """
+        walks up down the tree from base nodes, assemblying composite masks
+        return: list of tuples (transformed mask, final image id)
+        @rtype:  list of (ImageWrapper,str))
+        """
+        results = []
+        successors = self.G.successors(edge_id[1])
+        for successor in successors:
+            source = edge_id[1]
+            target = successor
+            edge = self.G.get_edge(source,target)
+            if edge['op'] == 'Donor':
+                continue
+            edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
+            selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
+            edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+            mask = self.__alterComposite(edge,mask,edgeMask)
+            results.extend(self._constructTransformedMask((source, target),mask))
+        return results if len(successors) > 0 else [(ImageWrapper(mask), edge_id[1])]
 
     def _constructDonor(self, edge_id, mask):
         """
@@ -1057,6 +1130,13 @@ class ImageProjectModel:
             result.append(((select_edge_parent, node),select_edge,donor_edge))
         return result
 
+    def getTransformedMask(self):
+        """
+        :return: list a mask transfomed to all final image nodes
+        """
+        selectMask = self.G.get_edge_image(self.start, self.end, 'maskname')[0]
+        return self._constructTransformedMask((self.start, self.end), selectMask.to_array())
+
     def constructComposite(self):
         """
          Construct the composite mask for the selected node.
@@ -1107,9 +1187,6 @@ class ImageProjectModel:
                 continue
             self.G.get_edge(k[0], k[1])['compositecolor'] = str(list(v[1])).replace('[', '').replace(']','').replace(
                     ',', '')
-
-
-
         return composites
 
     def constructDonors(self):
@@ -1813,7 +1890,7 @@ class ImageProjectModel:
         return ((startNode['xpos'] if startNode.has_key('xpos') else 50) + augment[0],
                 (startNode['ypos'] if startNode.has_key('ypos') else 50) + augment[1])
 
-    def _extendComposite(self,compositeMask,edge,source,target,level=IntObject(),edgeMap={}):
+    def _extendComposite(self,compositeMask,edge,source,target,level=IntObject(),edgeMap={}, operationTypes=None):
         if compositeMask is None:
             imarray = self.G.get_image(source)[0].to_array()
             compositeMask = np.zeros((imarray.shape[0], imarray.shape[1])).astype(('uint8'))
@@ -1823,13 +1900,17 @@ class ImageProjectModel:
         edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
         selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
         edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
-        if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
+        if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' and \
+                (operationTypes is None or edge['op'] in operationTypes):
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             try:
                color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else None
             except:
                color = None
             edgeMap[(source, target)] = (level.value,color)
+        return self.__alterComposite(edge,compositeMask,edgeMask)
+
+    def __alterComposite(self,edge, compositeMask, edgeMask):
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated

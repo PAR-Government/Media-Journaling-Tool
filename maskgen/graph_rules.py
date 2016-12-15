@@ -39,6 +39,8 @@ def run_rules(op, graph, frm, to):
     graph = GraphProxy(graph)
     results = initial_check(op, graph, frm, to)
     for rule in (rules[op] if op in rules else []):
+        if rule is None:
+            continue
         res = rule(graph, frm, to)
         if res is not None:
             results.append(res)
@@ -126,6 +128,8 @@ def check_mandatory(edge, op, graph, frm, to):
     return [('Mandatory parameter ' + m + ' is missing') for m in missing]
 
 
+
+
 def check_version(edge, op, graph, frm, to):
     global global_loader
     if op == 'Donor':
@@ -178,6 +182,7 @@ def findOp(graph, node_id, op):
     return False
 
 
+
 def rotationCheck(graph, frm, to):
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
@@ -221,6 +226,13 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+def check_local(graph, frm, to):
+    edge = graph.get_edge(frm,to)
+    included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
+    is_global = 'global' in edge and edge['global'] == 'yes'
+    if not is_global and not included_in_composite:
+        return 'Operation link appears affect local area in the image and should be included in the composite mask'
+    return None
 
 def check_eight_bit(graph, frm, to):
     from_img, from_file = graph.get_image(frm)

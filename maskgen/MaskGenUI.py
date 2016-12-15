@@ -104,11 +104,11 @@ class MakeGenUI(Frame):
         return not len(set) > 0
 
     def setSelectState(self, state):
-        self.processmenu.entryconfig(1, state=state)
         self.processmenu.entryconfig(2, state=state)
         self.processmenu.entryconfig(3, state=state)
         self.processmenu.entryconfig(4, state=state)
         self.processmenu.entryconfig(5, state=state)
+        self.processmenu.entryconfig(6, state=state)
 
     def new(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
@@ -533,9 +533,15 @@ class MakeGenUI(Frame):
 
     def viewcomposite(self):
         #self.scModel.getProbeSet()
+        #self.scModel.getProbeSetWithoutComposites()
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
+
+    def viewtransformed(self):
+        transformed = self.scModel.getTransformedMask()
+        if len(transformed)> 0:
+            CompositeViewDialog(self, self.scModel.start, transformed[0][0], self.scModel.getImage(transformed[0][1]))
 
     def viewdonor(self):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
@@ -617,15 +623,7 @@ class MakeGenUI(Frame):
         self.scModel.constructCompositesAndDonors()
         terminalNodes = [node for node in self.scModel.G.get_nodes() if
                          len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
-        donorNodes = []
-        for node in self.scModel.G.get_nodes():
-            preds = self.scModel.G.predecessors(node)
-            if len(preds) == 2:
-                for pred in preds:
-                    edge = self.scModel.G.get_edge(pred, node)
-                    if edge['op'] == 'PasteSplice':
-                        donorNodes.append(node)
-
+        donorNodes = [node_id for node_id in self.scModel.getGraph().get_nodes() if self.scModel.getGraph().has_donor_mask(node_id)]
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
@@ -772,7 +770,8 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
         self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
-        self.edgemenu.add_command(label="Recompute", command=self.recomputeedgemask)
+        self.edgemenu.add_command(label="Transformed Mask", command=self.viewtransformed)
+        self.edgemenu.add_command(label="Recompute MAsk", command=self.recomputeedgemask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)

@@ -515,7 +515,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "check_local"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -566,7 +567,8 @@
       },
       "rules": [
         "checkLengthSame",
-        "checkSize"
+        "checkSize",
+        "check_local"
       ],
       "optionalparameters": {},
       "analysisOperations": [ ],
@@ -596,7 +598,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "check_local"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -631,7 +634,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "check_local"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -666,7 +670,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "check_local"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1345,7 +1350,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "check_local"
       ],
       "optionalparameters": {
         "inputmaskname": {
