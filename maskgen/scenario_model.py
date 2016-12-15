@@ -1661,13 +1661,17 @@ class ImageProjectModel:
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
         preferred = plugins.getPreferredSuffix(filter)
+        resolved = self._resolvePluginValues(kwargs)
         if preferred is not None:
-            suffix = preferred
+            if preferred == 'donor' and 'donor' in resolved:
+                suffix = os.path.splitext(resolved['donor'][1])[1].lower()
+            else:
+                suffix = preferred
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(os.path.split(filename)[1], suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
         try:
-            extra_args,warning_message = plugins.callPlugin(filter, im, filename, target, **self._resolvePluginValues(kwargs))
+            extra_args,warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
             msg = str(e)
             extra_args = None

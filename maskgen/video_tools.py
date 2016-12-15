@@ -296,6 +296,15 @@ def getMeta(file, with_frames=False):
         p.stderr.close()
     return meta, frames
 
+def runffmpeg(args):
+    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
+    command = [ffcommand]
+    command.extend(args)
+    try:
+        p = Popen(command, stdout=PIPE, stderr=PIPE).communicate()
+    except OSError as e:
+        print "FFmpeg not installed"
+        raise e
 
 # str(ffmpeg.compareMeta({'f':1,'e':2,'g':3},{'f':1,'y':3,'g':4}))=="{'y': ('a', 3), 'e': ('d', 2), 'g': ('c', 4)}"
 def compareMeta(oneMeta, twoMeta, skipMeta=None):
