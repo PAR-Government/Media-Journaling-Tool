@@ -1555,13 +1555,15 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkInputMask"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "imagefile",
           "source": "image",
-          "description": "An image file with a transparency highlighting the sampled areas of the image."
+          "description": "An image file with a transparency highlighting the sampled areas of the image.",
+          "rule" : {"purpose": "clone"}
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],

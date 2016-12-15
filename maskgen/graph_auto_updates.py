@@ -51,8 +51,12 @@ def _fixTransforms(scModel):
             'TransformScale','TransformShear','TransformSkew','TransformWarp'] and \
                 'transform matrix' not in edge :
             scModel.select((frm,to))
-            tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),
+            try:
+               tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),
                                         linktype=scModel.getLinkType(frm,to))
+            except Exception as e:
+                print e
+                print frm + ' to ' + to
 
 def _fixRecordMasInComposite(scModel):
     """

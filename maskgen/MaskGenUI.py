@@ -145,13 +145,16 @@ class MakeGenUI(Frame):
             if (self.scModel.start is not None):
                 self.setSelectState('normal')
 
-    def add(self):
+    def addcgi(self):
+        self.add(cgi=True)
+
+    def add(self,cgi=False):
         val = tkFileDialog.askopenfilenames(initialdir=self.scModel.get_dir(), title="Select image file(s)",
                                             filetypes=self.getPreferredFileTypes())
         if (val != None and len(val) > 0):
             self.updateFileTypes(val[0])
             try:
-                self.canvas.addNew([self.scModel.addImage(f) for f in val])
+                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in val])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
@@ -178,7 +181,13 @@ class MakeGenUI(Frame):
                 self._setTitle()
             val.close()
 
-    def recomputemask(self):
+    def recomputeedgemask(self):
+        self.scModel.reproduceMask()
+        nim = self.scModel.nextImage()
+        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
+        self.img3c.config(image=self.img3)
+
+    def recomputedonormask(self):
         d = SelectDialog(self, "Mask Reconstruct", "Transform Parameter",
                          ['None','3','4','5'])
         choice = '0' if d.choice is None or d.choice == 'None' else d.choice
@@ -670,6 +679,7 @@ class MakeGenUI(Frame):
 
         self.processmenu = Menu(menubar, tearoff=0)
         self.processmenu.add_command(label="Add " + self.uiProfile.name, command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add CGI", command=self.addcgi)
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P",
                                      state='disabled')
         self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile,
@@ -762,13 +772,14 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
         self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
+        self.edgemenu.add_command(label="Recompute", command=self.recomputeedgemask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
-        self.filteredgemenu.add_command(label="Recompute", command=self.recomputemask)
+        self.filteredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)

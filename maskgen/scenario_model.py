@@ -780,10 +780,10 @@ class ImageProjectModel:
                 self.start = nname
                 self.end = None
 
-    def addImage(self, pathname):
+    def addImage(self, pathname,cgi=False):
         maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
         maxy = max([self.G.get_node(node)['ypos'] for node in self.G.get_nodes() if 'ypos' in self.G.get_node(node)] + [50])
-        nname = self.G.add_node(pathname, nodetype='base', xpos=maxx+75, ypos=maxy)
+        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx+75, ypos=maxy)
         self.start = nname
         self.end = None
         return nname
@@ -1511,7 +1511,6 @@ class ImageProjectModel:
                                       ' donor links must coincide with another link to the same destintion node'))
 
         nodes = self.G.get_nodes()
-        select_node = nodes[0] if (len(nodes) > 0) else "NA"
         nodeSet = set(nodes)
 
         for found in self.G.findRelationsToNode(nodeSet.pop()):
@@ -1527,8 +1526,9 @@ class ImageProjectModel:
         if cycleNode is not None:
             total_errors.append((str(cycleNode), str(cycleNode), "Graph has a cycle"))
 
-        for error in graph_rules.check_graph_rules(self.G):
-            total_errors.append((str(select_node), str(select_node), error))
+        for node in self.G.get_nodes():
+            for error in graph_rules.check_graph_rules(self.G,node):
+                total_errors.append((str(node), str(node), error))
 
         for frm, to in self.G.get_edges():
             edge = self.G.get_edge(frm, to)
