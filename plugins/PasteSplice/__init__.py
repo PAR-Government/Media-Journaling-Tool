@@ -301,9 +301,5 @@ def operation():
           ]
   }
 
-
-# def args():
-#   return [('donor',None,'Mask to set alpha channel to 0')]
-
 def suffix():
     return None

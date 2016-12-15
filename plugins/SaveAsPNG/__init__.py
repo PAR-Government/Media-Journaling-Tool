@@ -33,9 +33,6 @@ def operation():
                 'image.image'
             ]
         }
-    
-# def args():
-#     return [('Image Rotated','no','Rotate image according to EXIF')]
 
 def suffix():
     return '.png'

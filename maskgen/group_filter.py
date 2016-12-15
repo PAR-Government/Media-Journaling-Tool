@@ -36,10 +36,6 @@ class GroupFilterLoader:
                result.append(op_name)
        return result
 
-   # def getAvailableFilters(self,operations_used=list()):
-   #     names = plugins.getOperationNames(noArgs=True)
-   #     return [op_name for op_name in names if op_name not in operations_used]
-
    def getLoaderKey(self):
      return "filtergroups"
 

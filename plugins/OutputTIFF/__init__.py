@@ -63,10 +63,6 @@ def operation():
                 'image.image'
             ]
             }
-    
-# def args():
-#     return [('donor', None, 'TIFF with donor EXIF'),
-#             ('rotate', 'yes', 'Answer yes if the image should be counter rotated according to EXIF Orientation')]
 
 def suffix():
     return '.TIF'

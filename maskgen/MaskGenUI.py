@@ -376,7 +376,6 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        #plugins.getOperations()
         d = FilterCaptureDialog(self, self.scModel.get_dir(), im, plugins.getOperations(fileType=self.scModel.getStartType()), os.path.split(filename)[1],
                                 self.scModel)
         if d.optocall is not None:

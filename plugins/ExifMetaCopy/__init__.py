@@ -49,6 +49,3 @@ def operation():
                 'video.video'
                 ]
             }
-  
-def args():
-    return [('donor', None, 'Image/video with donor metadata')]

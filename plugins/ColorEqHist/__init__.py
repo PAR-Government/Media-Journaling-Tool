@@ -25,8 +25,5 @@ def operation():
           ]
           }
 
-# def args():
-#   return None
-
 def suffix():
     return None

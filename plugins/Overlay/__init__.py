@@ -32,8 +32,5 @@ def operation():
           ]
           }
 
-# def args():
-#   return [('donor',None,'Image to overlay')]
-
 def suffix():
     return None

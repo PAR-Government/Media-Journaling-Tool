@@ -33,8 +33,5 @@ def operation():
           ]
           }
 
-def args():
-  return [('inputmaskname',None,'Mask to set alpha channel to 0')]
-
 def suffix():
     return None

@@ -53,8 +53,5 @@ def operation():
           ]
           }
 
-def args():
-   return [('inputmaskname',None,'Mask image where black pixels identify region to blur')]
-
 def suffix():
     return None
