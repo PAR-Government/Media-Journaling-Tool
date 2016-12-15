@@ -40,19 +40,20 @@ def loadCustom(plugin, path):
         data = json.load(jfile)
     loaded[plugin] = {}
     loaded[plugin]['function'] = 'custom'
-    loaded[plugin]['operation'] = [data['operation']['name'],
-                              data['operation']['category'],
-                              data['operation']['description'],
-                              data['operation']['softwarename'],
-                              data['operation']['softwareversion']]
-    try:
-        # plugin design expects arguments as tuple, which JSON does not support
-        loaded[plugin]['arguments'] = []
-        for arg in data['args']:
-            loaded[plugin]['arguments'].append(tuple(arg))
-    except KeyError:
-        loaded[plugin]['arguments'] = None
-    loaded[plugin]['arguments'] = data['args'] if 'args' in data else None
+    loaded[plugin]['operation'] = {'name':data['operation']['name'],
+                                  'category':data['operation']['category'],
+                                  'description':data['operation']['description'],
+                                  'software':data['operation']['softwarename'],
+                                  'version':data['operation']['softwareversion'],
+                                  'transitions':data['operation']['transitions'],
+                                  'arguments':{}}
+    if 'arguments' in data['operation']:
+        for arg in data['operation']['arguments']:
+            loaded[plugin]['operation']['arguments'][arg] = {
+                'type':data['operation']['arguments'][arg]['type'],
+                'defaultvalue':data['operation']['arguments'][arg]['defaultvalue'],
+                'description':data['operation']['arguments'][arg]['description']
+                }
     loaded[plugin]['command'] = data['command']
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
 
@@ -74,15 +75,17 @@ def loadPlugins():
           loaded[i] = {}
           loaded[i]['function'] = plugin.transform
           loaded[i]['operation'] = plugin.operation()
-          loaded[i]['arguments'] = plugin.args()
+          # loaded[i]['arguments'] = plugin.args()
           loaded[i]['suffix'] = plugin.suffix() if hasattr(plugin,'suffix') else None
    return loaded
 
-def getOperations():
+def getOperations(fileType=None):
     global loaded
     ops = {}
     for l in loaded.keys():
-        ops[l] = loaded[l]
+        transitions = [t.split('.')[0] for t in loaded[l]['operation']['transitions']]
+        if fileType in transitions:
+            ops[l] = loaded[l]
     return ops
 
 # return list of tuples, name and default value (which can be None)
@@ -97,11 +100,11 @@ def getPreferredSuffix(name):
 def getOperationNames(noArgs=False):
     global loaded
     if not noArgs:
-      return loaded.keys()
-    result = []
+      return loaded
+    result = {}
     for k,v in loaded.iteritems():
-      if v['arguments'] is None or len(v['arguments'])==0:
-        result.append(k)
+      if v['operation']['arguments'] is None or len(v['operation']['arguments'])==0:
+        result[k] = v
     return result
     
 def getOperation(name):

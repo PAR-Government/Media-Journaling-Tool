@@ -129,6 +129,8 @@ def cs_save_as(source, target, donor, qTables,rotate):
                                         '-ExifImageHeight=' + str(height),
                                         '-ImageHeight=' + str(height),
                                         target])
+    createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
+    maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
@@ -141,12 +143,31 @@ def transform(img,source,target, **kwargs):
     return None,None
     
 def operation():
-    return ['AntiForensicExifQuantizationTable','AntiForensicExif', 
-            'Save as a JPEG using original tables and EXIF', 'PIL', '1.1.7']
+    return {'name':'AntiForensicExifQuantizationTable',
+            'category':'AntiForensicExif',
+            'description':'Save as a JPEG using original tables and EXIF',
+            'software':'PIL',
+            'version':'1.1.7',
+            'arguments':{
+                'donor':{
+                    'type':'donor',
+                    'defaultvalue':None,
+                    'description':'JPEG with donor QT'
+                },
+                'rotate':{
+                    'type':'yesno',
+                    'defaultvalue':'yes',
+                    'description':'Answer yes if the image should be counter rotated according to EXIF Orientation field'
+                }
+            },
+            'transitions': [
+                'image.image'
+            ]
+            }
     
-def args():
-    return [('donor', None, 'JPEG with donor QT'),
-            ('rotate', 'yes', 'Answer yes if the image should be counter rotated according to EXIF Orientation')]
+# def args():
+#     return [('donor', None, 'JPEG with donor QT'),
+#             ('rotate', 'yes', 'Answer yes if the image should be counter rotated according to EXIF Orientation')]
 
 def suffix():
     return '.jpg'

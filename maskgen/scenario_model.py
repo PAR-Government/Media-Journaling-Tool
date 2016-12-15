@@ -1673,10 +1673,10 @@ class ImageProjectModel:
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
-        description = Modification(op[0], filter + ':' + op[2])
+        description = Modification(op['name'], filter + ':' + op['description'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
-        software = Software(op[3], op[4], internal=True)
+        software = Software(op['software'], op['version'], internal=True)
         description.setArguments(
             {k: v for k, v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'skipRules'})
         if extra_args is not None and type(extra_args) == type({}):

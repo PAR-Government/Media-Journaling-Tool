@@ -284,10 +284,26 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['PasteSplice','Paste','Apply a mask to create an alpha channel','OpenCV','2.4.13']
+  return {'name':'PasteSplice',
+          'category':'Paste',
+          'description':'Apply a mask to create an alpha channel',
+          'software':'OpenCV',
+          'version':'2.4.13',
+          'arguments':{
+              'donor':{
+                  'type':'donor',
+                  'defaultvalue':None,
+                  'description':'Mask to set alpha channel to 0'
+              }
+          },
+          'transitions': [
+              'image.image'
+          ]
+  }
 
-def args():
-  return [('donor',None,'Mask to set alpha channel to 0')]
+
+# def args():
+#   return [('donor',None,'Mask to set alpha channel to 0')]
 
 def suffix():
     return None

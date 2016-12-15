@@ -17,11 +17,25 @@ def transform(img,source,target, **kwargs):
     return None,None
     
 def operation():
-    return ['OutputPng','Output', 
-            'Save an image as .PNG', 'PIL', '1.1.7']
+    return {'name':'OutputPng',
+            'category':'Output',
+            'description':'Save an image as .PNG',
+            'software':'PIL',
+            'version':'1.1.7',
+            'arguments':{
+                'Image Rotated':{
+                    'type':'yesno',
+                    'defaultvalue':'no',
+                    'description':'Rotate image according to EXIF'
+                }
+            },
+            'transitions': [
+                'image.image'
+            ]
+        }
     
-def args():
-    return [('Image Rotated','no','Rotate image according to EXIF')]
+# def args():
+#     return [('Image Rotated','no','Rotate image according to EXIF')]
 
 def suffix():
     return '.png'
