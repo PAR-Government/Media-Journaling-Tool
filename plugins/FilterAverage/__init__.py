@@ -13,7 +13,7 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return {'name':'ColorColorBalance',
+  return {'name':'ColorBalance',
           'category':'Color',
           'description':'Average convolution over the RGB values of an image given a 5x5 convolution',
           'software':'OpenCV',
