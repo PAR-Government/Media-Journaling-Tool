@@ -40,20 +40,7 @@ def loadCustom(plugin, path):
         data = json.load(jfile)
     loaded[plugin] = {}
     loaded[plugin]['function'] = 'custom'
-    loaded[plugin]['operation'] = {'name':data['operation']['name'],
-                                  'category':data['operation']['category'],
-                                  'description':data['operation']['description'],
-                                  'software':data['operation']['softwarename'],
-                                  'version':data['operation']['softwareversion'],
-                                  'transitions':data['operation']['transitions'],
-                                  'arguments':{}}
-    if 'arguments' in data['operation']:
-        for arg in data['operation']['arguments']:
-            loaded[plugin]['operation']['arguments'][arg] = {
-                'type':data['operation']['arguments'][arg]['type'],
-                'defaultvalue':data['operation']['arguments'][arg]['defaultvalue'],
-                'description':data['operation']['arguments'][arg]['description']
-                }
+    loaded[plugin]['operation'] = data['operation']
     loaded[plugin]['command'] = data['command']
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
 

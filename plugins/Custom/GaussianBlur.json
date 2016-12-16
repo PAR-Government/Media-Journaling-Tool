@@ -4,8 +4,8 @@
       "name": "AdditionalEffectFilterBlur",
       "category": "AdditionalEffect",
       "description": "Automatically apply a motion blur with the given radius and sigma value. (https://www.imagemagick.org/script/command-line-options.php#blur)",
-      "softwarename": "ImageMagick",
-      "softwareversion": "7.0",
+      "software": "ImageMagick",
+      "version": "7.0",
       "arguments":{
         "RADIUSxSIGMA":{
           "type": "string",
