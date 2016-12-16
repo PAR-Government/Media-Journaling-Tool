@@ -10,12 +10,14 @@
     {
       "description": "Organization",
       "name": "organization",
-      "type": "string"
+      "type": "string",
+      "mandatory": true
     },
     {
       "description":"Description",
       "name": "projectdescription",
-      "type": "text"
+      "type": "text",
+      "mandatory": true
     },
     {
       "description": "Technical Summary",

@@ -6,15 +6,16 @@ import numpy as np
 from tool_set import *
 import video_tools
 from maskgen import software_loader
-from software_loader import Software
+from software_loader import Software, getProjectProperties, ProjectProperty
 import tempfile
 import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
 from group_filter import getOperationWithGroups
-from time import gmtime, strftime
 from graph_auto_updates import updateJournal
+import hashlib
+import shutil
 
 
 def formatStat(val):
@@ -890,8 +891,8 @@ class ImageProjectModel:
     def getProbeSetWithoutComposites(self,skipComputation=False):
         """
         Calls constructDonors()
-        :return: list if Probe
-        @rtype: [Probe]
+        :return: list of Probe
+        @rtype: list of Probe
         """
         if not skipComputation:
             self.removeCompositesAndDonors()
@@ -928,7 +929,7 @@ class ImageProjectModel:
         """
         Calls constructComposites() and constructDonors()
         :return: list if Probe
-        @rtype: [Probe]
+        @rtype: list of Probe
         """
         if not skipComputation:
             self.removeCompositesAndDonors()
@@ -1019,11 +1020,11 @@ class ImageProjectModel:
         :param level:
         :param operationTypes:  restrict operations to include
         :return:
-        @type edgeMap: {(str,str):(int,[])}
+        @type edgeMap: dict of (str,str):(int,[])
         @type nodeAndMasks: (str,str, np.array)
         @type stopAtNode: str
         @type level: IntObject
-        @type operationTypes: [str]
+        @type operationTypes: list of str
         """
         result = list()
         finished = list()
@@ -1588,7 +1589,14 @@ class ImageProjectModel:
                                       ' donor links must coincide with another link to the same destintion node'))
 
         nodes = self.G.get_nodes()
+        anynode = nodes[0]
         nodeSet = set(nodes)
+
+        for prop in getProjectProperties():
+            if prop.mandatory:
+                item = self.G.getDataItem(prop.name)
+                if item is None or len(item.strip()) < 3:
+                    total_errors.append((str(anynode), str(anynode), 'Project property ' + prop.description + ' is empty or invalid'))
 
         for found in self.G.findRelationsToNode(nodeSet.pop()):
             if found in nodeSet:
@@ -1621,6 +1629,37 @@ class ImageProjectModel:
             self.G.update_node(node, nodetype=label)
             if self.notify is not None:
                 self.notify(node, 'label')
+
+    def renameFileImages(self):
+        """
+
+        :return: list of node ids renamed
+        """
+        renamed = []
+        for node in self.getNodeNames():
+            self.labelNodes(node)
+            nodeData = self.G.get_node(node)
+            if nodeData['nodetype'] in ['final']:
+                suffix_pos = nodeData['file'].rfind('.')
+                suffix = nodeData['file'][suffix_pos:].lower()
+                try:
+                    with open(os.path.join(self.G.dir, nodeData['file'])) as rp:
+                        new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
+                except:
+                    print 'Missing file or invalid permission: ' + nodeData['file']
+                    continue
+                fullname = os.path.join(self.G.dir ,new_file_name)
+                file_path_name = os.path.join(self.G.dir ,nodeData['file'])
+                if not os.path.exists(fullname):
+                    try:
+                        os.rename(file_path_name, fullname)
+                        renamed.append(node)
+                        print 'Renamed ' + nodeData['file'] + ' to ' + new_file_name
+                        nodeData['file'] = new_file_name
+                    except:
+                        continue
+        self.save()
+        return renamed
 
     def labelNodes(self, destination):
         baseNodes = []
@@ -1844,7 +1883,7 @@ class ImageProjectModel:
     def getDescriptions(self):
         """
         :return: descriptions for all edges
-         @rtype [Modification]
+         @rtype list of Modification
         """
         return [self._getModificationForEdge(edge[0],edge[1],self.G.get_edge(edge[0],edge[1])) for edge in self.G.get_edges()]
 

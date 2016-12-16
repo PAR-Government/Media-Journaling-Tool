@@ -265,9 +265,13 @@ class MakeGenUI(Frame):
         name = get_username()
         newName = tkSimpleDialog.askstring("Set Username", "Username", initialvalue=name)
         if newName is not None:
+            newName = newName.lower()
             self.prefLoader.save('username', newName)
             setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
+            oldName = self.scModel.getProjectData('username')
             self.scModel.setProjectData('username', newName)
+            if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
+                self.scModel.getGraph().replace_attribute_value('username', oldName, newName)
 
     def setPreferredFileTypes(self):
         filetypes = self.getPreferredFileTypes()
@@ -275,6 +279,7 @@ class MakeGenUI(Frame):
         if newtypesStr is not None:
             self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr, getFileTypes()))
             self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr, getFileTypes()))
+
 
     def undo(self):
         self.scModel.undo()
@@ -439,6 +444,10 @@ class MakeGenUI(Frame):
                 im, filename = self.scModel.getImageAndName(self.scModel.end)
             self.drawState()
             self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
+
+    def renamefinal(self):
+        for node in self.scModel.renameFileImages():
+            self.canvas.redrawNode(node)
 
     def openStartImage(self):
         sim = self.scModel.getStartImageFile()
@@ -690,6 +699,7 @@ class MakeGenUI(Frame):
                                      state='disabled')
         self.processmenu.add_separator()
         self.uiProfile.addProcessCommand(self.processmenu, self)
+        self.processmenu.add_command(label="Rename Final Images", command=self.renamefinal)
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z", state='disabled')
         self.menuindices['undo'] = self.processmenu.index(END)
         menubar.add_cascade(label="Process", menu=self.processmenu)
