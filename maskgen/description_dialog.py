@@ -734,9 +734,6 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                                                                argument in operation.mandatoryparameters else None
         argumentTuple = (argument, operation.optionalparameters[argument]) if operation is not None and \
                                                                               argument in operation.optionalparameters else argumentTuple
-        argumentTuple = ('donor', {'type': 'donor', 'description': 'Donor'}) if argument == 'donor' else argumentTuple
-        argumentTuple = ('inputmaskname', {'type': 'imagefile', 'description': 'Input Mask File'}) if argument == 'inputmaskname' else argumentTuple
-
         argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'] if
                                     ('type' in arginfo and 'description' in arginfo) else 'Not Available'}) if argumentTuple is None else argumentTuple
         return argumentTuple
