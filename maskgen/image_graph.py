@@ -205,15 +205,15 @@ class ImageGraph:
 
     def replace_attribute_value(self, attributename, oldvalue, newvalue):
         found = False
-        if attributename in self.G.graph and self.G.graph[attributename] == oldvalue:
+        if attributename in self.G.graph and self.G.graph[attributename].lower() == oldvalue.lower():
             self.G.graph[attributename] = newvalue
             found = True
         for n in self.G.nodes():
-            if attributename in self.G.node[n] and self.G.node[n][attributename] == oldvalue:
+            if attributename in self.G.node[n] and self.G.node[n][attributename].lower() == oldvalue.lower():
                 self.G.node[n][attributename] = newvalue
                 found = True
         for e in self.G.edges():
-            if attributename in self.G.edge[e[0]][e[1]] and self.G.edge[e[0]][e[1]][attributename] == oldvalue:
+            if attributename in self.G.edge[e[0]][e[1]] and self.G.edge[e[0]][e[1]][attributename].lower() == oldvalue.lower():
                 self.G.edge[e[0]][e[1]][attributename] = newvalue
                 found = True
         return found

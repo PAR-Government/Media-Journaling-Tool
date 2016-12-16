@@ -99,6 +99,7 @@ class MaskGraphCanvas(tk.Canvas):
         if wid is not None:
             n = self.scModel.getGraph().get_node(nodeid)
             #         self.move(wid,0,0)
+            self.itemToCanvas[wid].node_name = n['file']
             self.itemToCanvas[wid].render()
             self.update_idletasks()
 

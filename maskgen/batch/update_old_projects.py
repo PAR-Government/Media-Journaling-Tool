@@ -17,6 +17,7 @@ import hashlib
 import shutil
 import sys
 import csv
+import time
 
 
 def label_project_nodes(scModel):
@@ -367,6 +368,12 @@ def loop_through_terminals(scModel, projectDir, terminals):
 
     return nodesToRemove, hashes
 
+def validate_by(scModel, person):
+    scModel.setProjectData('validation', 'yes')
+    scModel.setProjectData('validatedby', person)
+    scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
+    scModel.save()
+
 def update_username(scModel):
     """
     Update username from project
@@ -417,6 +424,11 @@ def fix_noncroplinks(scModel):
 def perform_update(project,args, error_writer, semantics, tempdir, names, skips):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
+    validator = scModel.getProjectData('validatedby')
+    if validator is  not None:
+        setPwdX(CustomPwdX(validator))
+    else:
+        setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
     if (scModel.getName() + '.tgz') in skips:
         return
     label_project_nodes(scModel)
