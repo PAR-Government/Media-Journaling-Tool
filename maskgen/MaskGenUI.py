@@ -385,7 +385,7 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        d = FilterCaptureDialog(self, self.scModel.get_dir(), im, plugins.getOperations(), os.path.split(filename)[1],
+        d = FilterCaptureDialog(self, self.scModel.get_dir(), im, plugins.getOperations(fileType=self.scModel.getStartType()), os.path.split(filename)[1],
                                 self.scModel)
         if d.optocall is not None:
             msg, pairs = self.scModel.imageFromPlugin(d.optocall, im, filename, **self.resolvePluginValues(d.argvalues))

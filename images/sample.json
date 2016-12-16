@@ -184,7 +184,7 @@
         ]
       }, 
       "softwareVersion": "CC2015.5.12", 
-      "op": "ColorColorBalance"
+      "op": "ColorBalance"
     }, 
     {
       "global": "no", 
@@ -493,10 +493,6 @@
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Resolution Unit": [
-          "add", 
-          "inches"
-        ], 
         "Compression": [
           "delete", 
           "Deflate/Inflate"
@@ -548,14 +544,18 @@
           "add", 
           "0100"
         ], 
+        "Exif Byte Order": [
+          "add", 
+          "Little-endian (Intel, II)"
+        ], 
         "File Modification Date/Time": [
           "change", 
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Exif Byte Order": [
+        "Resolution Unit": [
           "add", 
-          "Little-endian (Intel, II)"
+          "inches"
         ], 
         "MIME Type": [
           "change", 

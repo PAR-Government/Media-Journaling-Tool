@@ -14,10 +14,16 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['IntensityNormalization','Intensity','Equalize Colors using Histogram over the Chrominance Channel','OpenCV','2.4.13']
-
-def args():
-  return None
+  return {'name':'IntensityNormalization',
+          'category':'Intensity',
+          'description':'Equalize Colors using Histogram over the Chrominance Channel',
+          'software':'OpenCV',
+          'version':'2.4.13',
+          'arguments':None,
+          'transitions': [
+              'image.image'
+          ]
+          }
 
 def suffix():
     return None

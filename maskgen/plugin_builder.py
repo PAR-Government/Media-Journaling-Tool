@@ -91,8 +91,10 @@ class PluginBuilder(tkSimpleDialog.Dialog):
                     "name": opName,
                     "category": opCat,
                     "description": description,
-                    "softwarename": softwareName,
-                    "softwareversion": softwareVersion
+                    "software": softwareName,
+                    "version": softwareVersion,
+                    "arguments": {},
+                    "transitions": ['image.image']
                 },
                 #"suffix": suffix
                 "command": command

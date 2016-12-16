@@ -4,12 +4,17 @@
       "name": "AdditionalEffectFilterBlur",
       "category": "AdditionalEffect",
       "description": "Automatically apply a motion blur with the given radius and sigma value. (https://www.imagemagick.org/script/command-line-options.php#blur)",
-      "softwarename": "ImageMagick",
-      "softwareversion": "7.0"
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments":{
+        "RADIUSxSIGMA":{
+          "type": "string",
+          "defaultvalue": null,
+          "description": "Blur specifications, must be entered with an x in between (e.g. 25x2)."
+        }
+      },
+      "transitions": ["image.image"]
     },
-    "args": [
-      ["RADIUSxSIGMA", null, "Blur specifications, must be entered with with an x in between (e.g. 25x2)."]
-    ],
     "command": ["magick",
                 "convert",
                 "-blur",

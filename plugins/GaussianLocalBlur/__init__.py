@@ -36,10 +36,22 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used.
 # the category to be shown
 def operation():
-  return ['AdditionalEffectFilterBlur','AdditionalEffect','Gaussian Blur','OpenCV','2.4.13']
-
-def args():
-   return [('inputmaskname',None,'Mask image where black pixels identify region to blur')]
+  return {'name':'AdditionalEffectFilterBlur',
+          'category':'AdditionalEffect',
+          'description':'Gaussian Blur',
+          'software':'OpenCV',
+          'version':'2.4.13',
+          'arguments':{
+              'inputmaskname':{
+                  'type':'inputmaskname',
+                  'defaultvalue':None,
+                  'description':'Mask image where black pixels identify region to blur'
+              }
+          },
+          'transitions': [
+              'image.image'
+          ]
+          }
 
 def suffix():
     return None

@@ -43,12 +43,26 @@ def transform(source_img,source,target, **kwargs):
     return None,None
     
 def operation():
-    return ['AntiForensicExifQuantizationTable','AntiForensicExif',
-            'Save as a TIFF using original tables and EXIF', 'PIL', '1.1.7']
-    
-def args():
-    return [('donor', None, 'TIFF with donor EXIF'),
-            ('rotate', 'yes', 'Answer yes if the image should be counter rotated according to EXIF Orientation')]
+    return {'name':'AntiForensicExifQuantizationTable',
+            'category':'AntiForensicExif',
+            'description':'Save as a TIFF using original tables and EXIF',
+            'software':'PIL',
+            'version':'1.1.7',
+            'arguments':{
+                'donor':{
+                    'type':'donor',
+                    'defaultvalue':None,
+                    'description':'TIFF with donor EXIF'
+                },
+                'rotate':{'type':'yesno',
+                          'defaultvalue':None,
+                          'description':'Answer yes if the image should be counter rotated according to EXIF Orientation'
+                          }
+            },
+            'transitions': [
+                'image.image'
+            ]
+            }
 
 def suffix():
     return '.TIF'

@@ -1738,22 +1738,26 @@ class ImageProjectModel:
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
         preferred = plugins.getPreferredSuffix(filter)
+        resolved = self._resolvePluginValues(kwargs)
         if preferred is not None:
-            suffix = preferred
+            if preferred == 'donor' and 'donor' in resolved:
+                suffix = os.path.splitext(resolved['donor'][1])[1].lower()
+            else:
+                suffix = preferred
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(os.path.split(filename)[1], suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
         try:
-            extra_args,warning_message = plugins.callPlugin(filter, im, filename, target, **self._resolvePluginValues(kwargs))
+            extra_args,warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
             msg = str(e)
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
-        description = Modification(op[0], filter + ':' + op[2])
+        description = Modification(op['name'], filter + ':' + op['description'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
-        software = Software(op[3], op[4], internal=True)
+        software = Software(op['software'], op['version'], internal=True)
         description.setArguments(
             {k: v for k, v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'skipRules'})
         if extra_args is not None and type(extra_args) == type({}):
