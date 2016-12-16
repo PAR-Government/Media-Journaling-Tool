@@ -104,11 +104,11 @@ class MakeGenUI(Frame):
         return not len(set) > 0
 
     def setSelectState(self, state):
-        self.processmenu.entryconfig(1, state=state)
         self.processmenu.entryconfig(2, state=state)
         self.processmenu.entryconfig(3, state=state)
         self.processmenu.entryconfig(4, state=state)
         self.processmenu.entryconfig(5, state=state)
+        self.processmenu.entryconfig(6, state=state)
 
     def new(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
@@ -145,13 +145,16 @@ class MakeGenUI(Frame):
             if (self.scModel.start is not None):
                 self.setSelectState('normal')
 
-    def add(self):
+    def addcgi(self):
+        self.add(cgi=True)
+
+    def add(self,cgi=False):
         val = tkFileDialog.askopenfilenames(initialdir=self.scModel.get_dir(), title="Select image file(s)",
                                             filetypes=self.getPreferredFileTypes())
         if (val != None and len(val) > 0):
             self.updateFileTypes(val[0])
             try:
-                self.canvas.addNew([self.scModel.addImage(f) for f in val])
+                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in val])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
@@ -178,7 +181,13 @@ class MakeGenUI(Frame):
                 self._setTitle()
             val.close()
 
-    def recomputemask(self):
+    def recomputeedgemask(self):
+        self.scModel.reproduceMask()
+        nim = self.scModel.nextImage()
+        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
+        self.img3c.config(image=self.img3)
+
+    def recomputedonormask(self):
         d = SelectDialog(self, "Mask Reconstruct", "Transform Parameter",
                          ['None','3','4','5'])
         choice = '0' if d.choice is None or d.choice == 'None' else d.choice
@@ -524,9 +533,15 @@ class MakeGenUI(Frame):
 
     def viewcomposite(self):
         #self.scModel.getProbeSet()
+        #self.scModel.getProbeSetWithoutComposites()
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
+
+    def viewtransformed(self):
+        transformed = self.scModel.getTransformedMask()
+        if len(transformed)> 0:
+            CompositeViewDialog(self, self.scModel.start, transformed[0][0], self.scModel.getImage(transformed[0][1]))
 
     def viewdonor(self):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
@@ -608,15 +623,7 @@ class MakeGenUI(Frame):
         self.scModel.constructCompositesAndDonors()
         terminalNodes = [node for node in self.scModel.G.get_nodes() if
                          len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
-        donorNodes = []
-        for node in self.scModel.G.get_nodes():
-            preds = self.scModel.G.predecessors(node)
-            if len(preds) == 2:
-                for pred in preds:
-                    edge = self.scModel.G.get_edge(pred, node)
-                    if edge['op'] == 'PasteSplice':
-                        donorNodes.append(node)
-
+        donorNodes = [node_id for node_id in self.scModel.getGraph().get_nodes() if self.scModel.getGraph().has_donor_mask(node_id)]
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
@@ -670,6 +677,7 @@ class MakeGenUI(Frame):
 
         self.processmenu = Menu(menubar, tearoff=0)
         self.processmenu.add_command(label="Add " + self.uiProfile.name, command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add CGI", command=self.addcgi)
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P",
                                      state='disabled')
         self.processmenu.add_command(label="Next w/Auto Pick from File", command=self.nextautofromfile,
@@ -762,13 +770,15 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
         self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
+        self.edgemenu.add_command(label="Transformed Mask", command=self.viewtransformed)
+        self.edgemenu.add_command(label="Recompute MAsk", command=self.recomputeedgemask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
-        self.filteredgemenu.add_command(label="Recompute", command=self.recomputemask)
+        self.filteredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)

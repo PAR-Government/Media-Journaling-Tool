@@ -54,11 +54,13 @@ def rename_donorsandbase(scModel,updatedir, names):
             scModel.getGraph().remove(node)
             continue
         if nodeData['nodetype'] in ['donor','base']:
-            suffix = nodeData['file'][nodeData['file'].rfind('.'):]
+            suffix_pos = nodeData['file'].rfind('.')
+            suffix = nodeData['file'][suffix_pos:]
             base_count += 1 if nodeData['nodetype'] == 'base' else 0
             file_path_name = os.path.join(scModel.get_dir(), nodeData['file'])
-            if nodeData['file'] in names:
-                new_file_name = names[nodeData['file']]
+            new_file_name = nodeData['file'][0:suffix_pos] + suffix.lower()
+            if nodeData['file'].lower() in names:
+                new_file_name = names[nodeData['file'].lower()]
                 # some of the names having a missing suffix
                 suffix_pos = new_file_name.rfind('.')
                 if suffix_pos < 0:
@@ -67,11 +69,11 @@ def rename_donorsandbase(scModel,updatedir, names):
                     # suffixes should be lower case
                     suffix = new_file_name[suffix_pos:]
                     new_file_name = new_file_name[0:suffix_pos] + suffix.lower()
-                fullname = os.path.join(scModel.get_dir(), new_file_name)
-                if not os.path.exists(fullname):
-                    os.rename(file_path_name, fullname)
-                    nodeData['file'] = new_file_name
-                    print 'Rename ' + os.path.split(file_path_name)[1] + ' to ' + new_file_name
+            fullname = os.path.join(scModel.get_dir(), new_file_name)
+            nodeData['file'] = new_file_name
+            print 'Rename ' + os.path.split(file_path_name)[1] + ' to ' + new_file_name
+            if not os.path.exists(fullname):
+                os.rename(file_path_name, fullname)
     if base_count > 1:
             raise ValueError('Only one base image allowed per project')
     if base_count == 0:
@@ -417,12 +419,9 @@ def perform_update(project,args, error_writer, semantics, tempdir, names, skips)
     print 'User: ' + scModel.getGraph().getDataItem('username')
     if (scModel.getName() + '.tgz') in skips:
         return
-    if scModel.getProjectData('projecttype') == 'video':
-        return
-
-    #inspect_mask_scope(scModel)
-    update_rotation(scModel)
     label_project_nodes(scModel)
+    if args.all:
+        update_rotation(scModel)
     if args.updateusername or args.all:
         update_username(scModel)
     if args.contentawarefillargs or args.all:
@@ -493,7 +492,7 @@ def main():
         with open(args.names, 'r') as namefp:
             rdr = csv.reader(namefp)
             for row in rdr:
-                names[row[2]] = row[0]
+                names[row[0].lower()] = row[2]
 
     skips = []
     if os.path.exists(args.completefile):

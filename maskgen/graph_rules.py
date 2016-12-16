@@ -39,6 +39,8 @@ def run_rules(op, graph, frm, to):
     graph = GraphProxy(graph)
     results = initial_check(op, graph, frm, to)
     for rule in (rules[op] if op in rules else []):
+        if rule is None:
+            continue
         res = rule(graph, frm, to)
         if res is not None:
             results.append(res)
@@ -65,7 +67,6 @@ def initial_check(op, graph, frm, to):
         result.extend(errorsResult)
     return result
 
-
 def check_operation(edge, op, graph, frm, to):
     if op == 'Donor':
         return None
@@ -77,19 +78,36 @@ def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
 
-def check_graph_rules(graph):
-    count = 0
-    for node in graph.get_nodes():
-        nodeData = graph.get_node(node)
-        if nodeData['nodetype'] == 'base':
-            count += 1
-    if count > 1:
-        return ["Projects should only have one bae image"]
-    elif count == 0:
-        return ["Projects need to have one base image"]
-    return []
+def check_graph_rules(graph,node):
+    errors = []
+    nodeData = graph.get_node(node)
+    if nodeData['nodetype'] == 'base':
+        for othernode in graph.get_nodes():
+            othernodeData = graph.get_node(othernode)
+            if node != othernode and othernodeData['nodetype'] == 'base':
+                errors.append("Projects should only have one base image")
+    if nodeData['nodetype'] in ('base','final','donor'):
+            if 'file' not in nodeData:
+                errors.append(nodeData['id'] + ' missing file')
+            else:
+                file = nodeData['file']
+                suffix_pos = file.rfind ('.')
+                if suffix_pos > 0:
+                    if file[suffix_pos:].lower() != file[suffix_pos:]:
+                        errors.append(nodeData['file'] + ' suffix (' + file[suffix_pos:] +') is not lower case')
+    return errors
 
 def check_mandatory(edge, op, graph, frm, to):
+    """
+
+    :param edge:
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type graph: ImageGraph
+    """
     if op == 'Donor':
         return None
     opObj = getOperationWithGroups(op)
@@ -101,12 +119,15 @@ def check_mandatory(edge, op, graph, frm, to):
     missing = [param for param in opObj.mandatoryparameters.keys() if
                (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname'
                and ('source' not in opObj.mandatoryparameters[param] or opObj.mandatoryparameters[param]['source'] == frm_file_type)]
+    ruleApplies = graph.getVersion() > '0.3.1200'
     inputmasks = [param for param in opObj.optionalparameters.keys() if param == 'inputmaskname' and
-                  'purpose' in edge and edge['purpose'] == 'clone']
+                  'purpose' in edge and edge['purpose'] == 'clone' and ruleApplies]
     if ('inputmaskname' in opObj.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
             'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0):
         missing.append('inputmaskname')
     return [('Mandatory parameter ' + m + ' is missing') for m in missing]
+
+
 
 
 def check_version(edge, op, graph, frm, to):
@@ -161,6 +182,7 @@ def findOp(graph, node_id, op):
     return False
 
 
+
 def rotationCheck(graph, frm, to):
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
@@ -204,6 +226,13 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+def check_local(graph, frm, to):
+    edge = graph.get_edge(frm,to)
+    included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
+    is_global = 'global' in edge and edge['global'] == 'yes'
+    if not is_global and not included_in_composite:
+        return 'Operation link appears affect local area in the image and should be included in the composite mask'
+    return None
 
 def check_eight_bit(graph, frm, to):
     from_img, from_file = graph.get_image(frm)

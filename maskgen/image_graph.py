@@ -377,6 +377,17 @@ class ImageGraph:
                 donorMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def get_edge_image(self, start, end, path):
+        """
+        Get image name and file name for image given edge identified by start and end and the edge property path
+        :param start:
+        :param end:
+        :param path:
+        :return:
+        @type start: str
+        @type end: str
+        @type path: str
+        @rtype (ImageWrapper, str)
+        """
         edge = self.get_edge(start, end)
         values = getPathValues(edge, path)
         if len(values) > 0:
@@ -465,6 +476,9 @@ class ImageGraph:
             im = self.openImage(filename, mask=False)
             return im, filename
         return None, None
+
+    def has_donor_mask(self, name):
+        return name in self.G.nodes() and 'donormaskname' in self.G.node[name]
 
     def get_donor_mask(self, name):
         if name in self.G.nodes() and 'donormaskname' in self.G.node[name]:

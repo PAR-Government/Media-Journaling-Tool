@@ -429,8 +429,9 @@ def deserializeMatrix(data):
 def redistribute_intensity(edge_map):
     """
     Produce a intensity_map that redistributes the intensity values found in the edge_map evenly over 1 to 255
-    :param edge_map contains a map between an edge identifier (s,e) and an intensity value from 1 to 255
+    :param edge_map contains a map between an edge identifier (s,e) and an intensity value from 1 to 255 and possibly a color
     :return map of intensity value from edge map to a replacement intensity value
+    @type edge_map {(str,str): (int,[])}
     """
     levels = [x[0] for x in edge_map.values()]
     colors = [str(x[1]) for x in edge_map.values() if x[1] is not None]
@@ -675,6 +676,22 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     # Sort them in the order of their distance.
     return None,None
 
+def __applyResizeComposite(compositeMask, size):
+    """
+    Resize the composite mask
+    :param compositeMask:
+    :param transform_matrix:
+    :return:
+    """
+    newMask = np.zeros(size).astype('uint16')
+    for level in list(np.unique(compositeMask)):
+        if level == 0:
+            continue
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 1024
+        newLevelMask = cv2.resize(levelMask,(size[1],size[0]))
+        newMask[newLevelMask > 150] = level
+    return newMask
 
 def __applyFlipComposite(compositeMask, mask, flip):
     """
@@ -701,14 +718,14 @@ def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(compositeMask.shape)
+    newMask = np.zeros(compositeMask.shape).astype('uint16')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape)
+        levelMask = np.zeros(compositeMask.shape).astype('uint8')
         levelMask[compositeMask == level] = 255
         newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
-        newMask[newLevelMask>150] = level
+        newMask[newLevelMask>100] = level
     return newMask
 
 def __applyRotateToComposite(rotation, compositeMask, expectedDims):
@@ -720,7 +737,7 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
        :param transform_matrix:
        :return:
        """
-    newMask = np.zeros(expectedDims)
+    newMask = np.zeros(expectedDims).astype('uint16')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
@@ -748,8 +765,8 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     flags=cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR#+cv2.CV_WARP_FILL_OUTLIERS
     compositeMaskAltered[compositeMaskAltered == 255] = 200
     newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags, borderMode=cv2.BORDER_CONSTANT, borderValue = 0)
-    newMask[newMask>149] = 255
-    newMask[newMask<150]  = 0
+    newMask[newMask>99] = 255
+    newMask[newMask<100]  = 0
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
@@ -940,7 +957,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         else:
            res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
-        if sizeChange[0] != 0:
+        if sizeChange[0] != 0 or abs(rotation) % 90 < 0.001:
             res = __rotateImage(rotation, compositeMask, (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=0)
         else:
             res = __applyRotateToComposite(rotation,  res,
@@ -952,7 +969,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if expectedSize != res.shape:
-        res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
+        res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
     return res
 
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
