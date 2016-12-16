@@ -770,8 +770,8 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
         self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
-        self.edgemenu.add_command(label="Transformed Mask", command=self.viewtransformed)
-        self.edgemenu.add_command(label="Recompute MAsk", command=self.recomputeedgemask)
+        self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
+        self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
