@@ -91,8 +91,6 @@ def cs_save_as(source, target, donor, qTables,rotate):
     if len(qTables) > 2:
         thumbTable = qTables[0:2]
         finalTable = qTables[-2:]
-    elif len(qTables) < 2:
-        finalTable = [qTables, qTables]
     else:
         finalTable = qTables
 
