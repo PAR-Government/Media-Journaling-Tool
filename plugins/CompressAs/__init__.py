@@ -130,7 +130,8 @@ def cs_save_as(source, target, donor, qTables,rotate):
                                         '-ImageHeight=' + str(height),
                                         target])
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
-    maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
+    if '-FileCreateDate' in createtime:
+        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
