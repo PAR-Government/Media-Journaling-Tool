@@ -1,6 +1,10 @@
 from PIL import Image
 import cv2
 import numpy as np
+import os
+import subprocess
+
+
 try:
     from tifffile import TiffFile,imsave
 except ImportError:
@@ -25,17 +29,39 @@ def openRaw(filename,isMask=False):
     except:
         return None
 
+def convertToPDF(filename):
+    import platform
+    prefix = filename[0:filename.rfind('.')]
+    newname = prefix + '.png'
+    if "Darwin" in platform.platform():
+        if not os.path.exists(newname):
+            with open(os.devnull, 'w') as fp:
+                subprocess.call(['sips', '-s', 'format', 'png', filename, '--out', newname], stdout=fp)
+        return newname
+    return filename
+
 def openImageFile(filename,isMask=False):
-   import os
-   if not os.path.exists(filename):
-       pos = filename.rfind('.')
-       mod_filename = filename[0:pos] + filename[pos:].lower()
-       if os.path.exists(mod_filename):
+    """
+
+    :param filename:
+    :param isMask:
+    :return:
+    @type filename: str
+    @rtype: ImageWrapper
+    """
+    import os
+
+    if not os.path.exists(filename):
+        pos = filename.rfind('.')
+        mod_filename = filename[0:pos] + filename[pos:].lower()
+        if os.path.exists(mod_filename):
            filename = mod_filename
-   if not os.path.exists(filename):
-       raise ValueError("File not found: " + filename)
-   try:
-     with open(filename,'rb') as f:
+    if not os.path.exists(filename):
+        raise ValueError("File not found: " + filename)
+    try:
+       if filename.lower().endswith('pdf'):
+          filename = convertToPDF(filename)
+       with open(filename,'rb') as f:
           im = Image.open(filename)
           im.load()
           if im.format == 'TIFF' and filename.lower().find('tif') < 0:
@@ -43,20 +69,20 @@ def openImageFile(filename,isMask=False):
             if raw is not None and raw.size != im.size:
                 return raw
           return ImageWrapper(np.asarray(im),mode=im.mode,info=im.info,to_mask =isMask)
-   except:
-      info = {}
-      try:
+    except:
+       info = {}
+       try:
           with TiffFile(filename) as tiffdata:
               for page in tiffdata:
                   for tag in page.tags.values():
                      t,v = tag.name, tag.value
                      if t.startswith('compress'):
                          info['compress'] = v
-      except:
+       except:
           pass
-      try:
+       try:
           return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info,to_mask =isMask)
-      except:
+       except:
           return openRaw(filename)
 
 def invertMask(mask):
