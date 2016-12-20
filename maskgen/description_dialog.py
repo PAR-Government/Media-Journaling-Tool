@@ -2,6 +2,7 @@ from Tkinter import *
 import ttk
 import time
 import tkMessageBox
+from maskgen import image_wrap
 from group_filter import GroupFilter, GroupFilterLoader
 import Tkconstants, tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
@@ -1232,10 +1233,9 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
             self.ok()
 
 class QAViewDialog(Toplevel):
-    def __init__(self, parent, terminalNodes, donorNodes):
-        self.terminals = terminalNodes
-        self.donors = donorNodes
+    def __init__(self, parent):
         self.parent = parent
+        self.probes = self.parent.scModel.getProbeSetWithoutComposites()
         Toplevel.__init__(self, parent)
         #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
         self.createWidgets()
@@ -1247,16 +1247,17 @@ class QAViewDialog(Toplevel):
         self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
         self.optionsLabel.grid(row=row)
         row+=1
-        self.optionsBox = ttk.Combobox(self, values=self.terminals + self.donors)
-        self.optionsBox.set(self.terminals[0])
+        self.crit_links = ['->'.join(p.edgeId) for p in self.probes] if self.probes else []
+        self.optionsBox = ttk.Combobox(self, values=self.crit_links)
+        if self.crit_links:
+            self.optionsBox.set(self.crit_links[0])
         self.optionsBox.grid(row=row, sticky='EW')
-        self.optionsBox.bind("<<ComboboxSelected>>", self.composite_or_donor)
+        self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
         row+=1
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
-        self.master.scModel.selectImage(self.terminals[0])
         self.descriptionLabel = Label(self)
-        self.composite_or_donor(initialize=True)
+        self.load_overlay(initialize=True)
 
         row=1
         col=1
@@ -1318,31 +1319,19 @@ class QAViewDialog(Toplevel):
 
         self.check_ok()
 
-    def composite_or_donor(self, initialize=False, event=None):
-        self.name = self.parent.scModel.start
-        self.master.scModel.selectImage(self.optionsBox.get())
-        if self.optionsBox.get() in self.terminals:
-            self.im = self.parent.scModel.startImage()
-            self.composite = self.master.scModel.getComposite()
-            self.descriptionLabel.config(text='Composite generated for node ' + self.optionsBox.get())
-        elif self.optionsBox.get() in self.donors:
-            self.composite, self.im = self.parent.scModel.getDonorAndBaseImages()
-            self.descriptionLabel.config(text='Donor mask generated for node ' + self.optionsBox.get())
-        else:
-            return
+    def load_overlay(self, initialize=False):
+        edgeTuple = tuple(self.optionsBox.get().split('->'))
+        probe = [probe for probe in self.probes if probe.edgeId == edgeTuple][0]
+        n = self.parent.scModel.G.get_node(probe.finalNodeId)
+        finalFile = os.path.join(self.parent.scModel.G.dir, self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
+        final = image_wrap.openImageFile(finalFile)
+        finalResized = imageResizeRelative(final, (500, 500), final.size)
+        imResized = imageResizeRelative(probe.targetMaskImage, (500, 500), probe.targetMaskImage.size)
+        finalResized = finalResized.overlay(imResized)
 
-        self.load_composite(initialize)
-
-    def load_composite(self, initialize=False):
-        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
-        if self.im is not None:
-            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
-            imResized = imResized.overlay(compositeResized)
-        else:
-            imResized = compositeResized
-        self.photo = ImageTk.PhotoImage(imResized.toPIL())
+        self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize is True:
-            self.c = Canvas(self.cImgFrame, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
+            self.c = Canvas(self.cImgFrame, width=finalResized.size[0]+10, height=finalResized.size[1]+10)
             self.c.pack()
         self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
 
