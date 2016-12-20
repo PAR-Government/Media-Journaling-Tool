@@ -19,6 +19,27 @@ from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroup
 from software_loader import ProjectProperty
 
 
+def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
+    ok = True
+    op = getOperationWithGroups(operationName,fake=True)
+    for k, v in op.mandatoryparameters.iteritems():
+        if 'source' in v and v['source'] != sourcefiletype:
+            continue
+        if 'target' in v and v['target'] != targetfiletype:
+            continue
+        ok &= (k in argvalues and argvalues[k] is not None and len(str(argvalues[k])) > 0)
+    for k, v in op.optionalparameters.iteritems():
+        if 'source' in v and v['source'] != sourcefiletype:
+            continue
+            continue
+        if 'target' in v and v['target'] != targetfiletype:
+            continue
+        if 'rule' in v and len(v['rule']) > 0:
+            nomatches = [rk for rk, rv in v['rule'].iteritems() if rk in argvalues and argvalues[rk] != rv]
+            ok &= (len(nomatches) > 0 or
+                   (k in argvalues and argvalues[k] is not None and len(str(argvalues[k])) > 0))
+    return ok
+
 def checkValue(name, type, value):
     """
     Check the value given the type
@@ -249,7 +270,6 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     targetfiletype = 'image'
     argvalues = {}
     arginfo = []
-    mandatoryinfo = []
     argBox = None
 
     def __init__(self, parent, uiProfile, scModel, targetfiletype, im, name, description=None):
@@ -312,7 +332,6 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     def newcommand(self, event):
         op = getOperationWithGroups(self.e2.get())
         self.arginfo = []
-        self.mandatoryinfo = []
         if op is not None:
             for k, v in op.mandatoryparameters.iteritems():
                 if 'source' in v and v['source'] != self.sourcefiletype:
@@ -320,7 +339,6 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 self.arginfo.append((k, v))
-                self.mandatoryinfo.append(k)
             for k, v in op.optionalparameters.iteritems():
                 if 'source' in v and v['source'] != self.sourcefiletype:
                     continue
@@ -431,8 +449,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
             cv,error = checkValue(k,info['type'],v)
             if v is not None and cv is None:
                 ok = False
-        for arg in self.mandatoryinfo:
-            ok &= (arg in self.argvalues and self.argvalues[arg] is not None and len(str(self.argvalues[arg])) > 0)
+        ok &= checkMandatory(self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
         return ok
 
     def buttonbox(self):
@@ -688,6 +705,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         self.dir = dir
         self.parent = parent
         self.scModel = scModel
+        self.sourcefiletype = scModel.getStartType()
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
@@ -724,22 +742,15 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.newop(None)
 
     def __checkParams(self):
-        ok = True
-        for arg in self.mandatoryinfo:
-            ok &= (arg in self.argvalues and self.argvalues[arg] is not None and len(str(self.argvalues[arg])) > 0)
-        return ok
+        return checkMandatory(self.opvar.get(),self.sourcefiletype,self.sourcefiletype,self.argvalues)
 
-    def __buildTuple(self, argument, operation):
-        argumentTuple = (argument[0], operation.mandatoryparameters[argument[0]]) if operation is not None and argument[
-                                                                                                         0] in operation.mandatoryparameters else None
-        argumentTuple = (argument[0], operation.optionalparameters[argument[0]]) if operation is not None and argument[
-                                                                                                        0] in operation.optionalparameters else argumentTuple
-        argumentTuple = ('donor', {'type': 'donor', 'description': 'Donor'}) if argument[
-                                                                                    0] == 'donor' else argumentTuple
-        argumentTuple = ('inputmaskname', {'type': 'imagefile', 'description': 'Input Mask File'}) if argument[
-                                                                                                          0] == 'inputmaskname' else argumentTuple
-        argumentTuple = (argument[0], {'type': 'string', 'description': argument[2] if len(
-            argument) > 2 else 'Not Available'}) if argumentTuple is None else argumentTuple
+    def __buildTuple(self, argument, arginfo, operation):
+        argumentTuple = (argument, operation.mandatoryparameters[argument]) if operation is not None and \
+                                                                               argument in operation.mandatoryparameters else None
+        argumentTuple = (argument, operation.optionalparameters[argument]) if operation is not None and \
+                                                                              argument in operation.optionalparameters else argumentTuple
+        argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'] if
+                                    ('type' in arginfo and 'description' in arginfo) else 'Not Available'}) if argumentTuple is None else argumentTuple
         return argumentTuple
 
     def buildArgBox(self, operationName, arginfo):
@@ -748,7 +759,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         if arginfo is None:
             arginfo = []
         operation = getOperationWithGroups(operationName)
-        argumentTuples = [self.__buildTuple(arg, operation) for arg in arginfo]
+        argumentTuples = [self.__buildTuple(arg, arginfo[arg], operation) for arg in arginfo]
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
@@ -788,11 +799,11 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.optocall = self.e1.get()
             op = self.pluginOps[self.optocall]
             opinfo = op['operation']
-            self.catvar.set(opinfo[1])
-            self.opvar.set(opinfo[0])
-            self.softwarevar.set(opinfo[3])
-            self.versionvar.set(opinfo[4])
-            self.buildArgBox(opinfo[0], op['arguments'])
+            self.catvar.set(opinfo['category'])
+            self.opvar.set(opinfo['name'])
+            self.softwarevar.set(opinfo['software'])
+            self.versionvar.set(opinfo['version'])
+            self.buildArgBox(opinfo['name'], opinfo['arguments'])
         else:
             self.catvar.set('')
             self.opvar.set('')

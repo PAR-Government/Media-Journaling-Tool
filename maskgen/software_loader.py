@@ -30,9 +30,10 @@ class ProjectProperty:
     information = None
     node = False
     readonly = False
+    mandatory= False
 
     def __init__(self, name='', type='', operation=None, parameter=None, description=None,
-                 information=None, value=None, values=None, rule=None, node=False, readonly=False):
+                 information=None, value=None, values=None, rule=None, node=False, readonly=False,mandatory=True):
         self.name = name
         self.type = type
         self.operation = operation
@@ -44,6 +45,7 @@ class ProjectProperty:
         self.information = information
         self.node = node
         self.readonly = readonly
+        self.mandatory = mandatory
 
 
 class Operation:
@@ -142,7 +144,8 @@ def loadProjectPropertyJSON(fileName):
                                                 node=prop['node'] if 'node' in prop else False,
                                                 information=prop['information'] if 'information' in prop else None,
                                                 operation=prop['operation'] if 'operation' in prop else None,
-                                                readonly=prop['readonly'] if 'readonly' in prop else None))
+                                                readonly=prop['readonly'] if 'readonly' in prop else None,
+                                                mandatory=prop['mandatory'] if 'mandatory' in prop else False))
     return res
 
 
@@ -173,6 +176,11 @@ def loadProjectProperties(fileName):
 
 
 def getProjectProperties():
+    """
+
+    :return:
+    @rtype: list of ProjectProperty
+    """
     global projectProperties
     return projectProperties
 

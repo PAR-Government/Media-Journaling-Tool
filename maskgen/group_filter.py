@@ -17,8 +17,24 @@ class GroupFilterLoader:
    groups = {}
 
    def getAvailableFilters(self,operations_used=list()):
-       names = plugins.getOperationNames(noArgs=True)
-       return [op_name for op_name in names if op_name not in operations_used]
+       p = plugins.getOperationNames(noArgs=True)
+       names = p.keys()
+
+       # grab transition prefixes for last operation
+       transitionsPre = [t.split('.')[0] for t in p[operations_used[-1]]['operation']['transitions']] if operations_used else None
+
+       result = []
+       for op_name in names:
+           if op_name not in operations_used:
+               if transitionsPre is not None:
+                   # grab transition prefixes for current op
+                   op_transitions = [t.split('.')[0] for t in p[op_name]['operation']['transitions']]
+
+                   # don't append and continue with loop if transitions don't match
+                   if set(transitionsPre).isdisjoint(op_transitions):
+                       continue
+               result.append(op_name)
+       return result
 
    def getLoaderKey(self):
      return "filtergroups"

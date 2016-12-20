@@ -15,10 +15,22 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['PasteSplice','Paste','Overlay image','OpenCV','2.4.13']
-
-def args():
-  return [('donor',None,'Image to overlay')]
+  return {'name':'PasteSplice',
+          'category':'Paste',
+          'description':'Overlay image',
+          'software':'OpenCV',
+          'version':'2.4.13',
+          'arguments':{
+              'donor':{
+                  'type':'donor',
+                  'defaultvalue':None,
+                  'description':'Image to overlay'
+              }
+          },
+          'transitions': [
+              'image.image'
+          ]
+          }
 
 def suffix():
     return None

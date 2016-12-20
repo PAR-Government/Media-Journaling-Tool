@@ -9,13 +9,18 @@ def updateJournal(scModel):
      :return: None. Updates JSON.
      @type scModel: ImageProjectModel
     """
-    if scModel.G.getVersion() <= "0.3.1115":
+    upgrades = scModel.getGraph().getDataItem('jt_upgrades')
+    upgrades = upgrades if upgrades is not None else []
+    if scModel.G.getVersion() <= "0.3.1115" and "0.3.1115" not in upgrades:
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
         _fixTransforms(scModel)
-    if scModel.G.getVersion() <= "0.3.1213":
+    if scModel.G.getVersion() <= "0.3.1213" and "0.3.1213" not in upgrades:
         _fixQT(scModel)
         _fixUserName(scModel)
+    upgrades.append('0.3.1115')
+    upgrades.append('0.3.1213')
+    scModel.getGraph().setDataItem('jt_upgrades',upgrades)
 
 def _fixUserName(scModel):
     """
@@ -51,8 +56,12 @@ def _fixTransforms(scModel):
             'TransformScale','TransformShear','TransformSkew','TransformWarp'] and \
                 'transform matrix' not in edge :
             scModel.select((frm,to))
-            tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),
+            try:
+               tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),
                                         linktype=scModel.getLinkType(frm,to))
+            except Exception as e:
+                print e
+                print frm + ' to ' + to
 
 def _fixRecordMasInComposite(scModel):
     """

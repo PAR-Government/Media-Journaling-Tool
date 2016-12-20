@@ -16,10 +16,22 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return ['SelectRegion','Select','Apply a mask to create an alpha channel','OpenCV','2.4.13']
-
-def args():
-  return [('inputmaskname',None,'Mask to set alpha channel to 0')]
+  return {'name':'SelectRegion',
+          'category':'Select',
+          'description':'Apply a mask to create an alpha channel',
+          'software':'OpenCV',
+          'version':'2.4.13',
+          'arguments':{
+              'inputmaskname':{
+                  'type':'inputmaskname',
+                  'defaultvalue':None,
+                  'description':'Mask to set alpha channel to 0'
+              }
+          },
+          'transitions': [
+              'image.image'
+          ]
+          }
 
 def suffix():
     return None
