@@ -629,15 +629,10 @@ class MakeGenUI(Frame):
             self.scModel.update_edge(d.modification)
 
     def startQA(self):
-        self.scModel.constructCompositesAndDonors()
-        terminalNodes = [node for node in self.scModel.G.get_nodes() if
-                         len(self.scModel.G.successors(node)) == 0 and len(self.scModel.G.predecessors(node)) > 0]
-        donorNodes = [node_id for node_id in self.scModel.getGraph().get_nodes() if self.scModel.getGraph().has_donor_mask(node_id)]
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
-        if terminalNodes or donorNodes:
-            d = QAViewDialog(self, terminalNodes, donorNodes)
+        d = QAViewDialog(self)
 
     def comments(self):
         d = CommentViewer(self)
