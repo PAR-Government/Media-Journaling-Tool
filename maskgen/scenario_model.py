@@ -906,7 +906,7 @@ class ImageProjectModel:
                 baseNodeId = baseNodeIds[0] if len(baseNodeIds)>0 else None
                 for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), selectMask.to_array()):
                     target_mask_filename = os.path.join(self.get_dir(),edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
-                    target_mask.save(target_mask_filename)
+                    target_mask.save(target_mask_filename,format='PNG')
                     edge_end_node = self.G.get_node(edge_id[1])
                     donor_mask_image = None
                     donor_mask_file_name = None
@@ -1158,6 +1158,12 @@ class ImageProjectModel:
                     return ImageWrapper(toColor(composite[2], intensity_map=intensityMap))
         return None
 
+    def executeFinalNodeRules(self):
+        terminalNodes = [node for node in self.G.get_nodes() if
+                         len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
+        for node in terminalNodes:
+            graph_rules.setFinalNodeProperties(self, node)
+
     def constructCompositesAndDonors(self):
         """
           Remove all prior constructed composites.
@@ -1181,7 +1187,6 @@ class ImageProjectModel:
             changes.append((globalchange, changeCategory, ratio))
             self.G.addCompositeToNode(composite[1], composite[0], ImageWrapper(
                 color_composite),changeCategory)
-            graph_rules.setFinalNodeProperties(self, composite[1])
 
         for k, v in edgeMap.iteritems():
             if type(v) == int:
@@ -1559,8 +1564,14 @@ class ImageProjectModel:
     def getProjectData(self, item):
         return self.G.getDataItem(item)
 
-    def setProjectData(self, item, value):
-        self.G.setDataItem(item, value)
+    def setProjectData(self, item, value,excludeUpdate=False):
+        """
+        :param item:
+        :param value:
+        :param excludeUpdate: True if the update does not change the update time stamp on the journal
+        :return:
+        """
+        self.G.setDataItem(item, value,excludeUpdate=excludeUpdate)
 
     def get_edges(self):
         return [self.G.get_edge(edge[0],edge[1]) for edge in self.G.get_edges()]
@@ -1655,7 +1666,7 @@ class ImageProjectModel:
                         os.rename(file_path_name, fullname)
                         renamed.append(node)
                         print 'Renamed ' + nodeData['file'] + ' to ' + new_file_name
-                        nodeData['file'] = new_file_name
+                        self.G.update_node(node,file=new_file_name)
                     except:
                         continue
         self.save()

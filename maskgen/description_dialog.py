@@ -1337,10 +1337,10 @@ class QAViewDialog(Toplevel):
 
 
     def qa_done(self, qaState):
-        self.parent.scModel.setProjectData('validation', qaState)
-        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get())
-        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
-        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END))
+        self.parent.scModel.setProjectData('validation', qaState,excludeUpdate=True)
+        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get(),excludeUpdate=True)
+        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"),excludeUpdate=True)
+        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END),excludeUpdate=True)
         self.parent.scModel.save()
 
         self.destroy()

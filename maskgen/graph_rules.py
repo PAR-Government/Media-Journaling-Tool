@@ -426,13 +426,10 @@ def colorGlobalRule(scModel,edgeTuples):
             break
     return 'yes' if found else 'no'
 
+
 def cloneRule(scModel,edgeTuples):
-    nodes = [edgeTuple[0] for edgeTuple in edgeTuples]
     for edgeTuple in edgeTuples:
-        edgeNode = scModel.getGraph().get_node(edgeTuple[1])
-        donorBaseNode = edgeNode['donorbase'] if 'donorbase' in edgeNode else None
-        if (donorBaseNode in nodes and \
-        (edgeTuple[2]['op'] == 'PasteSplice') or \
+        if (edgeTuple[2]['op'] == 'PasteSplice' or \
         (edgeTuple[2]['op'] == 'PasteSampled' and \
                      edgeTuple[2]['arguments']['purpose'] == 'clone')):
             return 'yes'

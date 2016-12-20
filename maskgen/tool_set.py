@@ -683,11 +683,11 @@ def __applyResizeComposite(compositeMask, size):
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(size).astype('uint16')
+    newMask = np.zeros(size).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask = np.zeros(compositeMask.shape).astype('uint8')
         levelMask[compositeMask == level] = 1024
         newLevelMask = cv2.resize(levelMask,(size[1],size[0]))
         newMask[newLevelMask > 150] = level
@@ -718,11 +718,11 @@ def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(compositeMask.shape).astype('uint16')
+    newMask = np.zeros(compositeMask.shape).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint8')
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
         newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
         newMask[newLevelMask>100] = level
@@ -737,7 +737,7 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
        :param transform_matrix:
        :return:
        """
-    newMask = np.zeros(expectedDims).astype('uint16')
+    newMask = np.zeros(expectedDims).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
