@@ -203,7 +203,7 @@ class MakeGenUI(Frame):
             errorlistDialog.wait(self)
             if not errorlistDialog.isok:
                 return
-        self.scModel.constructCompositesAndDonors()
+        self.scModel.executeFinalNodeRules()
         processProjectProperties(self.scModel)
         self.getproperties()
         self.scModel.removeCompositesAndDonors()

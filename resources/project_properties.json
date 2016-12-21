@@ -219,7 +219,7 @@
        "type": "list",
        "values": ["small","medium","large"],
        "_comment": " determine the largest size contribution to the composite",
-
+       "rule" : "compositeSizeRule",
        "node" : true
     },
     {
