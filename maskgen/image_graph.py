@@ -246,14 +246,14 @@ class ImageGraph:
         return fname
 
     def add_node(self, pathname, seriesname=None, **kwargs):
-
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
         origname = get_pre_name(fname)
         suffix = get_suffix(fname)
         newfname = self.new_name(fname, suffix)
         nname = get_pre_name(newfname)
-        if os.path.abspath(self.dir) != origdir:
+        oldpathname = os.path.join(self.dir, fname)
+        if os.path.abspath(self.dir) != origdir and os.path.exists(oldpathname):
             fname = newfname
         newpathname = os.path.join(self.dir, fname)
         includePathInUndo = (newpathname in self.filesToRemove)

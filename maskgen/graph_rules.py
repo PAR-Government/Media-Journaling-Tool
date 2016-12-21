@@ -525,3 +525,15 @@ def processProjectProperties(scModel, rule=None):
         if prop.rule is not None:
             scModel.setProjectData(prop.name,project_property_rules[prop.name](scModel, edges))
 
+def getNodeSummary(scModel, node_id):
+    """
+    Return path analysis.  This only applicable after running processProjectProperties()
+    :param scModel:
+    :param node_id:
+    :return:  None if not found
+    @type scModel: ImageProjectModel
+    @type node_id: str
+    @rtype: dict
+    """
+    node = scModel.getGraph().get_node(node_id)
+    return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None

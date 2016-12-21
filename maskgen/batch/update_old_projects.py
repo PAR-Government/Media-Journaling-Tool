@@ -383,7 +383,7 @@ def update_username(scModel):
     usernames = {'smitha':'TheDoorKnob', 'shrivere':'FlowersOfWonderland', 'kozakj':'Walrus','ahill':'WhiteRabbit',
                  'andrewhill':'WhiteRabbit','andrew hill':'WhiteRabbit','cwhitecotton':'Jabberwocky', 'colewhitecotton':'Jabberwocky',
                  'catalingrigoras':'Hedgehogs', 'cgrigoras':'Hedgehogs', 'jzjalic':'Caterpillar', 'jameszjalic':'Caterpillar',
-                 'kboschetto':'Dinah', 'karleeboschetto':'Dinah', 'jeffsmith':'DoorMouse', 'jsmith':'DoorMouse',
+                 'james zjalic':'Caterpillar','kboschetto':'Dinah', 'karleeboschetto':'Dinah', 'jeffsmith':'DoorMouse', 'jsmith':'DoorMouse',
                  'mpippin':'MadHatter', 'meganpippin':'MadHatter', 'mlawson':'Seven', 'melissalawson':'Seven'}
 
     usr = scModel.getGraph().getDataItem('username')

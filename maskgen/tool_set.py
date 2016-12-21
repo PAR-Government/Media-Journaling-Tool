@@ -459,6 +459,19 @@ def redistribute_intensity(edge_map):
         edge_map[k] = (v[0],intensity_map[v[0]])
     return intensity_map
 
+def maskToColorArray(img,color=[0,0,0]):
+    """
+    Create a new image setting all white to the color and all black to white.
+    :param img:
+    :param color:
+    :return:
+    @type img: ImageWrapper
+    @rtype ImageWrapper
+    """
+    imarray = np.asarray(img)
+    rgb = np.ones((imarray.shape[0],imarray.shape[1],3)).astype('uint8')*255
+    rgb[imarray==0,:] = color
+    return rgb
 
 def toColor(img, intensity_map={}):
     """
@@ -1008,6 +1021,11 @@ def __toMask(im):
         gray_image[im[:, :, 3] == 0] = 255
     return gray_image
 
+def mergeColorMask(compositeMaskArray,newMaskArray):
+    matches = np.any(newMaskArray != [255,255,255], axis=2)
+    compositeMaskArray[matches] = newMaskArray[matches]
+    return compositeMaskArray
+
 def mergeMask(compositeMask, newMask,level=0):
     if compositeMask.shape != newMask.shape:
         compositeMask = cv2.resize(compositeMask, (newMask.shape[1], newMask.shape[0]))
@@ -1016,7 +1034,6 @@ def mergeMask(compositeMask, newMask,level=0):
         compositeMask = np.copy(compositeMask)
     compositeMask[newMask==0] = level
     return compositeMask
-
 
 def img_analytics(z1, z2):
     with warnings.catch_warnings():

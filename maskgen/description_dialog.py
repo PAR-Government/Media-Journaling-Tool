@@ -447,6 +447,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         ok = True
         for k,v in self.argvalues.iteritems():
             info = self.__getinfo(k)
+            if info is None:
+                continue
             cv,error = checkValue(k,info['type'],v)
             if v is not None and cv is None:
                 ok = False

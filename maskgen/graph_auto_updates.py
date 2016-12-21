@@ -15,11 +15,11 @@ def updateJournal(scModel):
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
         _fixTransforms(scModel)
+        upgrades.append('0.3.1115')
     if scModel.G.getVersion() <= "0.3.1213" and "0.3.1213" not in upgrades:
         _fixQT(scModel)
         _fixUserName(scModel)
-    upgrades.append('0.3.1115')
-    upgrades.append('0.3.1213')
+        upgrades.append('0.3.1213')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades)
 
 def _fixUserName(scModel):
