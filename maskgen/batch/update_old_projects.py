@@ -388,7 +388,6 @@ def update_username(scModel):
 
     usr = scModel.getGraph().getDataItem('username')
     if usr.lower() in usernames.keys():
-        setPwdX(CustomPwdX(usernames[usr.lower()]))
         scModel.getGraph().replace_attribute_value('username', usr, usernames[usr.lower()])
     #print 'Completed update_username'
 
