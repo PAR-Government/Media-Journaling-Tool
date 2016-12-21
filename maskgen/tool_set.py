@@ -326,6 +326,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                 ret, frame = cap.read()
                 if not ret:
                     break
+                frame = np.roll(frame, 1, axis=-1)
                 elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
                 if time_manager.isPastTime(elapsed_time):
                     bestSoFar = frame
