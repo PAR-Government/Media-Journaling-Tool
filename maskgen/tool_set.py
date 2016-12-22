@@ -326,6 +326,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                 ret, frame = cap.read()
                 if not ret:
                     break
+                frame = np.roll(frame, 1, axis=-1)
                 elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
                 if time_manager.isPastTime(elapsed_time):
                     bestSoFar = frame
@@ -459,6 +460,19 @@ def redistribute_intensity(edge_map):
         edge_map[k] = (v[0],intensity_map[v[0]])
     return intensity_map
 
+def maskToColorArray(img,color=[0,0,0]):
+    """
+    Create a new image setting all white to the color and all black to white.
+    :param img:
+    :param color:
+    :return:
+    @type img: ImageWrapper
+    @rtype ImageWrapper
+    """
+    imarray = np.asarray(img)
+    rgb = np.ones((imarray.shape[0],imarray.shape[1],3)).astype('uint8')*255
+    rgb[imarray==0,:] = color
+    return rgb
 
 def toColor(img, intensity_map={}):
     """
@@ -683,11 +697,11 @@ def __applyResizeComposite(compositeMask, size):
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(size).astype('uint16')
+    newMask = np.zeros(size).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask = np.zeros(compositeMask.shape).astype('uint8')
         levelMask[compositeMask == level] = 1024
         newLevelMask = cv2.resize(levelMask,(size[1],size[0]))
         newMask[newLevelMask > 150] = level
@@ -718,11 +732,11 @@ def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(compositeMask.shape).astype('uint16')
+    newMask = np.zeros(compositeMask.shape).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint8')
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
         newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
         newMask[newLevelMask>100] = level
@@ -737,7 +751,7 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
        :param transform_matrix:
        :return:
        """
-    newMask = np.zeros(expectedDims).astype('uint16')
+    newMask = np.zeros(expectedDims).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
@@ -1008,6 +1022,11 @@ def __toMask(im):
         gray_image[im[:, :, 3] == 0] = 255
     return gray_image
 
+def mergeColorMask(compositeMaskArray,newMaskArray):
+    matches = np.any(newMaskArray != [255,255,255], axis=2)
+    compositeMaskArray[matches] = newMaskArray[matches]
+    return compositeMaskArray
+
 def mergeMask(compositeMask, newMask,level=0):
     if compositeMask.shape != newMask.shape:
         compositeMask = cv2.resize(compositeMask, (newMask.shape[1], newMask.shape[0]))
@@ -1016,7 +1035,6 @@ def mergeMask(compositeMask, newMask,level=0):
         compositeMask = np.copy(compositeMask)
     compositeMask[newMask==0] = level
     return compositeMask
-
 
 def img_analytics(z1, z2):
     with warnings.catch_warnings():

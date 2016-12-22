@@ -447,6 +447,8 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         ok = True
         for k,v in self.argvalues.iteritems():
             info = self.__getinfo(k)
+            if info is None:
+                continue
             cv,error = checkValue(k,info['type'],v)
             if v is not None and cv is None:
                 ok = False
@@ -1247,7 +1249,7 @@ class QAViewDialog(Toplevel):
         self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
         self.optionsLabel.grid(row=row)
         row+=1
-        self.crit_links = ['->'.join(p.edgeId) for p in self.probes] if self.probes else []
+        self.crit_links = ['->'.join([p.edgeId[1],p.finalNodeId]) for p in self.probes] if self.probes else []
         self.optionsBox = ttk.Combobox(self, values=self.crit_links)
         if self.crit_links:
             self.optionsBox.set(self.crit_links[0])
@@ -1282,7 +1284,7 @@ class QAViewDialog(Toplevel):
             ck.grid(row=row, column=col)
             checkboxes.append(ck)
             self.checkboxvars.append(var)
-            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='W', columnspan=4)
+            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='EW')#, columnspan=4)
             row+=1
 
         Label(self, text='QA Signoff: ').grid(row=row, column=col, sticky='W')
@@ -1321,7 +1323,7 @@ class QAViewDialog(Toplevel):
 
     def load_overlay(self, initialize=False):
         edgeTuple = tuple(self.optionsBox.get().split('->'))
-        probe = [probe for probe in self.probes if probe.edgeId == edgeTuple][0]
+        probe = [probe for probe in self.probes if probe.edgeId[1] == edgeTuple[0] and probe.finalNodeId==edgeTuple[1]][0]
         n = self.parent.scModel.G.get_node(probe.finalNodeId)
         finalFile = os.path.join(self.parent.scModel.G.dir, self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
         final = image_wrap.openImageFile(finalFile)
@@ -1337,10 +1339,10 @@ class QAViewDialog(Toplevel):
 
 
     def qa_done(self, qaState):
-        self.parent.scModel.setProjectData('validation', qaState)
-        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get())
-        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
-        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END))
+        self.parent.scModel.setProjectData('validation', qaState,excludeUpdate=True)
+        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get(),excludeUpdate=True)
+        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"),excludeUpdate=True)
+        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END),excludeUpdate=True)
         self.parent.scModel.save()
 
         self.destroy()

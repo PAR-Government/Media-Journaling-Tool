@@ -426,13 +426,10 @@ def colorGlobalRule(scModel,edgeTuples):
             break
     return 'yes' if found else 'no'
 
+
 def cloneRule(scModel,edgeTuples):
-    nodes = [edgeTuple[0] for edgeTuple in edgeTuples]
     for edgeTuple in edgeTuples:
-        edgeNode = scModel.getGraph().get_node(edgeTuple[1])
-        donorBaseNode = edgeNode['donorbase'] if 'donorbase' in edgeNode else None
-        if (donorBaseNode in nodes and \
-        (edgeTuple[2]['op'] == 'PasteSplice') or \
+        if (edgeTuple[2]['op'] == 'PasteSplice' or \
         (edgeTuple[2]['op'] == 'PasteSampled' and \
                      edgeTuple[2]['arguments']['purpose'] == 'clone')):
             return 'yes'
@@ -528,3 +525,15 @@ def processProjectProperties(scModel, rule=None):
         if prop.rule is not None:
             scModel.setProjectData(prop.name,project_property_rules[prop.name](scModel, edges))
 
+def getNodeSummary(scModel, node_id):
+    """
+    Return path analysis.  This only applicable after running processProjectProperties()
+    :param scModel:
+    :param node_id:
+    :return:  None if not found
+    @type scModel: ImageProjectModel
+    @type node_id: str
+    @rtype: dict
+    """
+    node = scModel.getGraph().get_node(node_id)
+    return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None

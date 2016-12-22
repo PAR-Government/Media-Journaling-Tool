@@ -204,6 +204,7 @@ class ImageGraph:
                                             ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
 
     def replace_attribute_value(self, attributename, oldvalue, newvalue):
+        self._setUpdate(attributename, update_type='attribute')
         found = False
         if attributename in self.G.graph and self.G.graph[attributename].lower() == oldvalue.lower():
             self.G.graph[attributename] = newvalue
@@ -234,6 +235,7 @@ class ImageGraph:
         if suffix is None:
             suffix = get_suffix(fname)
         origname = nname = get_pre_name(fname)
+        self._setUpdate(nname, update_type='node')
         while (self.G.has_node(nname)):
             posUS = origname.rfind('_')
             if posUS > 0 and origname[posUS + 1:].isdigit():
@@ -250,7 +252,8 @@ class ImageGraph:
         suffix = get_suffix(fname)
         newfname = self.new_name(fname, suffix)
         nname = get_pre_name(newfname)
-        if os.path.abspath(self.dir) != origdir:
+        oldpathname = os.path.join(self.dir, fname)
+        if os.path.abspath(self.dir) != origdir and os.path.exists(oldpathname):
             fname = newfname
         newpathname = os.path.join(self.dir, fname)
         includePathInUndo = (newpathname in self.filesToRemove)
@@ -258,6 +261,7 @@ class ImageGraph:
             includePathInUndo = True
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
+        self._setUpdate(nname, update_type='node')
         self.G.add_node(nname,
                         seriesname=(origname if seriesname is None else seriesname),
                         file=fname,
@@ -397,6 +401,7 @@ class ImageGraph:
         return None, None
 
     def update_node(self, node, **kwargs):
+        self._setUpdate(node, update_type='node')
         if self.G.has_node(node):
             for k, v in kwargs.iteritems():
                 self.G.node[node][k] = v
@@ -406,6 +411,7 @@ class ImageGraph:
             return
         if not self.G.has_node(start) or not self.G.has_node(end):
             return
+        self._setUpdate((start, end), update_type='edge')
         unsetkeys = []
         for k, v in kwargs.iteritems():
             if v is not None:
@@ -436,6 +442,7 @@ class ImageGraph:
         return filename, 'yes' if includePathInUndo else 'no'
 
     def update_mask(self, start,end,mask=None,errors=None,**kwargs):
+        self._setUpdate((start, end), update_type='edge')
         edge = self.G[start][end]
         newmaskpathname = os.path.join(self.dir, edge['maskname'])
         mask.save(newmaskpathname)
@@ -445,6 +452,7 @@ class ImageGraph:
             edge[k] = v
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
+        self._setUpdate((start, end), update_type='edge')
         newmaskpathname = None
         if maskname is not None:
             newmaskpathname = os.path.join(self.dir, maskname)
@@ -540,6 +548,7 @@ class ImageGraph:
         self.U = []
         self.E = []
 
+        self._setUpdate(node,update_type='node')
         def fileRemover(start, end, edge):
             self._edgeFileRemover(self.E, edgeFunc, start, end, edge)
 
@@ -572,6 +581,7 @@ class ImageGraph:
         return nodeSet
 
     def remove_edge(self, start, end, edgeFunc=None):
+        self._setUpdate((start,end),update_type='edge')
         self.U = []
         edge = self.G.edge[start][end]
         self._edgeFileRemover(self.U, edgeFunc, start, end, edge)
@@ -592,7 +602,9 @@ class ImageGraph:
     def getDataItem(self, item):
         return self.G.graph[item] if item in self.G.graph else None
 
-    def setDataItem(self, item, value):
+    def setDataItem(self, item, value,excludeUpdate=False):
+        if not excludeUpdate:
+            self._setUpdate(item, update_type='graph')
         self.G.graph[item] = value
 
     def get_node(self, name):
@@ -831,6 +843,9 @@ class ImageGraph:
             return edgePaths[0] + (
             ("." + self._buildPath(value[edgePaths[0]], edgePaths[1:])) if len(edgePaths) > 1 else '')
         return ''
+
+    def _setUpdate(self,name, update_type=None):
+        self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
     def _buildStructure(self, path, value):
         pos = path.find('.')
