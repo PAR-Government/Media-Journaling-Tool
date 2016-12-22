@@ -115,8 +115,9 @@ def cs_save_as(source, target, donor, qTables,rotate):
         im.load()
     if rotate:
       im = check_rotate(im,donor)
+    sbsmp = get_subsampling(donor)
     try:
-        im.save(target, subsampling=get_subsampling(donor), qtables=finalTable)
+        im.save(target, subsampling=sbsmp, qtables=finalTable)
     except:
         im.save(target)
     width, height = im.size
@@ -129,12 +130,12 @@ def cs_save_as(source, target, donor, qTables,rotate):
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
         os.close(fd)
         try:
-            im.save(tempFile, subsampling=1, qtables=prevTable)
+            im.save(tempFile, subsampling=sbsmp, qtables=prevTable)
             maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-PreviewImage<=' + tempFile + '', target])
         except OverflowError:
             prevTable[:] = [[(x - 128) for x in row] for row in prevTable]
             try:
-                im.save(tempFile, subsampling=1, qtables=prevTable)
+                im.save(tempFile, subsampling=sbsmp, qtables=prevTable)
                 maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-PreviewImage<=' + tempFile + '', target])
             except Exception as e:
                 print 'Preview generation failed'
@@ -147,12 +148,12 @@ def cs_save_as(source, target, donor, qTables,rotate):
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
         os.close(fd)
         try:
-            im.save(tempFile, subsampling=1, qtables=thumbTable)
+            im.save(tempFile, subsampling=sbsmp, qtables=thumbTable)
             maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-ThumbnailImage<=' + tempFile + '', target])
         except OverflowError:
             thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
             try:
-                im.save(tempFile, subsampling=1, qtables=thumbTable)
+                im.save(tempFile, subsampling=sbsmp, qtables=thumbTable)
                 maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-ThumbnailImage<=' + tempFile + '', target])
             except Exception as e:
                 print 'thumbnail generation failed'
