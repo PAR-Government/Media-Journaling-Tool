@@ -144,7 +144,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         except IndexError:
             pass
 
-        self.commandEntry.insert(idx, '{' + entry.get().replace(' ', '') + '} ') if len(entry.get()) >0 else ''
+        self.commandEntry.insert(idx, '{' + entry.get().replace(' ', '') + '}') if len(entry.get()) >0 else ''
 
         idx = self.commandEntry.index(INSERT)
         currentCommand = self.commandEntry.get()
