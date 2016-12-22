@@ -637,6 +637,8 @@ class ImageGraph:
             self.G.graph['username'] = get_username()
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
+        if 'updatetime' not in self.G.graph:
+            self._setUpdate('project')
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))
