@@ -3220,7 +3220,7 @@
       "mandatoryparameters": {
         "rotation": {
           "type": "int[-360:360]",
-          "description": "The rotation should be provided in degrees counter-clockwise (-360 to 360)"
+          "description": "The rotation should be provided in degrees counter-clockwise (ex. -90 for clockwise, 90 for counterclockwise)"
         }
       },
       "rules": [
