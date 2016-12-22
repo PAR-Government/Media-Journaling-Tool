@@ -18,6 +18,7 @@ from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
 from software_loader import ProjectProperty
+import sys
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -54,7 +55,10 @@ def checkValue(name, type, value):
     """
     if value and len(value) > 0:
         if type.startswith('float'):
-            vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            try:
+                vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            except ValueError:
+                vals = [-sys.float_info.max, sys.float_info.max]
             try:
                 value = float(value)
                 if value < vals[0] or value > vals[1]:
@@ -63,7 +67,10 @@ def checkValue(name, type, value):
                 return None, 'Invalid value for ' + name + '; not in range ' + str(vals[0]) + ' to ' + str(
                     vals[1])
         elif type.startswith('int'):
-            vals = [int(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            try:
+                vals = [int(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            except ValueError:
+                vals = [-sys.maxint, sys.maxint]
             try:
                 value = int(value)
                 if value < vals[0] or value > vals[1]:
