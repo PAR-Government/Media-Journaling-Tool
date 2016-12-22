@@ -31,10 +31,10 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         catlist = list(cats.keys())
         catlist.sort()
         oplist = cats[catlist[0]] if len(cats) > 0 else []
-        self.opCatEntry = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40)
-        self.opNameEntry = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40)
+        self.opCatEntry = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40, state='readonly')
+        self.opNameEntry = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40, state='readonly')
         self.softwareNameEntry = AutocompleteEntryInText(master, values=sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), takefocus=False,
-                                          width=40)
+                                          width=40,state='readonly')
         self.softwareVersionEntry = AutocompleteEntryInText(master, values=self.softwareLoader.get_versions(self.softwareNameEntry.get(),software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=self.softwareNameEntry.get()), takefocus=False, width=40)
         self.opCatEntry.bind("<Return>", self.newcategory)
