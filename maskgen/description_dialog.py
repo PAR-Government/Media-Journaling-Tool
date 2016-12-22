@@ -752,7 +752,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                                                                argument in operation.mandatoryparameters else None
         argumentTuple = (argument, operation.optionalparameters[argument]) if operation is not None and \
                                                                               argument in operation.optionalparameters else argumentTuple
-        argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'] if
+        values = arginfo['values'] if 'values' in arginfo and arginfo['values'] else []
+        argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'], 'values':values if
                                     ('type' in arginfo and 'description' in arginfo) else 'Not Available'}) if argumentTuple is None else argumentTuple
         return argumentTuple
 
