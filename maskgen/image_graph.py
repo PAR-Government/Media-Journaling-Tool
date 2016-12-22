@@ -198,7 +198,7 @@ class ImageGraph:
     def openImage(self, fileName, mask=False, metadata={}):
         imgDir = os.path.split(os.path.abspath(fileName))[0]
         return openImage(fileName,
-                         videoFrameTime=None if 'Frame Time' not in metadata else getMilliSeconds(metadata['Frame Time']),
+                         videoFrameTime=None if 'Frame Time' not in metadata else getMilliSecondsAndFrameCount(metadata['Frame Time']),
                          isMask=mask,
                          preserveSnapshot= (imgDir == os.path.abspath(self.dir) and \
                                             ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
@@ -456,7 +456,7 @@ class ImageGraph:
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         self._setUpdate((start, end), update_type='edge')
         newmaskpathname = None
-        if maskname is not None:
+        if maskname is not None and mask is not None:
             newmaskpathname = os.path.join(self.dir, maskname)
             mask.save(newmaskpathname)
         for path, ownership in self.edgeFilePaths.iteritems():
@@ -601,8 +601,8 @@ class ImageGraph:
     def has_node(self, name):
         return self.G.has_node(name)
 
-    def getDataItem(self, item):
-        return self.G.graph[item] if item in self.G.graph else None
+    def getDataItem(self, item, default_value=None):
+        return self.G.graph[item] if item in self.G.graph else default_value
 
     def setDataItem(self, item, value,excludeUpdate=False):
         if not excludeUpdate:
@@ -637,6 +637,8 @@ class ImageGraph:
             self.G.graph['username'] = get_username()
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
+        if 'updatetime' not in self.G.graph:
+            self._setUpdate('project')
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))

@@ -26,17 +26,17 @@
         "Copy Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Insertion Time": {
           "type": "time",
           "source": "video",
-          "description": "Replace insertion time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Replace insertion time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -61,12 +61,12 @@
         "Copy Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy Stream" : {
           "type" : "list",
@@ -91,12 +91,12 @@
        "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
           "type" : "list",
@@ -140,12 +140,12 @@
         "Insertion Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Insertion End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
           "type" : "list",
@@ -197,12 +197,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [],
@@ -236,12 +236,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [],
@@ -296,12 +296,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [],
@@ -329,12 +329,12 @@
         "Insertion Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Insertion End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
           "type" : "list",
@@ -365,12 +365,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -400,12 +400,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -435,12 +435,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -468,12 +468,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -503,12 +503,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -586,12 +586,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -622,12 +622,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -658,12 +658,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -694,12 +694,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -729,12 +729,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -764,12 +764,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": ["checkFrameTimes"],
@@ -944,12 +944,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -983,12 +983,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1026,12 +1026,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1293,12 +1293,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1338,12 +1338,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1377,12 +1377,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1412,12 +1412,12 @@
          "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1549,12 +1549,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2004,12 +2004,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -2034,12 +2034,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -2064,12 +2064,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -2094,12 +2094,12 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -2326,11 +2326,11 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2362,11 +2362,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
@@ -2399,28 +2399,17 @@
       },
       "rules": [
         "checkSize",
-        "checkSIFT",
         "checkForDonorWithRegion",
         "checkFrameTimes"
       ],
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "Stop time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
-        },
-        "RANSAC": {
-          "type": "list",
-           "values": [
-             "None",
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [],
@@ -2436,7 +2425,7 @@
       "mandatoryparameters": {
         "Select Start Time": {
           "type": "time",
-          "description": "Start time of the copied video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
          "type": "int[0:1000000]",
@@ -2444,7 +2433,7 @@
         },
          "Dest Paste Time": {
           "type": "time",
-          "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2463,7 +2452,7 @@
       "mandatoryparameters": {
         "Select Start Time": {
           "type": "time",
-          "description": "Start time of the cut video clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the cut video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
          "type": "int[0:1000000]",
@@ -2471,7 +2460,7 @@
         },
         "Dest Paste Time": {
           "type": "time",
-          "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2587,11 +2576,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Create a limited selection,removing background,from a donor video.  The result should be a black back ground.",
@@ -2611,11 +2600,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Remove a region from a series of frames.",
@@ -2635,11 +2624,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Remove a series of frames from a video clip.",
@@ -2654,11 +2643,11 @@
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2699,7 +2688,7 @@
       "mandatoryparameters": {
         "Frame Time": {
           "type": "time",
-          "description": "Presentation time of the select frame (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Presentation time of the select frame (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2739,11 +2728,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Duplicate video frames and replay them at a delay to create a trail.",
@@ -2767,11 +2756,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Lock a layer to a specific frame rate.",
@@ -2816,11 +2805,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
@@ -2849,11 +2838,11 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Distorts the image by shifting pixels across time.",
@@ -2902,11 +2891,11 @@
         },
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
@@ -2923,12 +2912,12 @@
           "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
           "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or HH:MI:SS:frames)"
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -3220,7 +3209,7 @@
       "mandatoryparameters": {
         "rotation": {
           "type": "int[-360:360]",
-          "description": "The rotation should be provided in degrees counter-clockwise (-360 to 360)"
+          "description": "The rotation should be provided in degrees counter-clockwise (-180 to 180)"
         }
       },
       "rules": [

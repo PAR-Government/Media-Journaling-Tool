@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties
-from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,getMilliSeconds
+from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,getMilliSecondsAndFrameCount
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
@@ -79,9 +79,17 @@ def check_errors(edge, op, graph, frm, to):
         return [('Link has mask processing errors')]
 
 def check_graph_rules(graph,node):
+    """
+
+    :param graph: ImageGraph
+    :param node:
+    :return:
+    """
     errors = []
     nodeData = graph.get_node(node)
-    if nodeData['nodetype'] == 'base':
+    multiplebaseok = graph.getDataItem('manipulationcategory').lower() == 'provenance'
+
+    if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
             othernodeData = graph.get_node(othernode)
             if node != othernode and othernodeData['nodetype'] == 'base':
@@ -208,9 +216,9 @@ def checkFrameTimes(graph, frm, to):
     et = None
     for k,v in args.iteritems():
         if k.endswith('End Time'):
-            et = getMilliSeconds(v)
+            et = getMilliSecondsAndFrameCount(v)
         elif k.endswith('Start Time'):
-            st = getMilliSeconds(v)
+            st = getMilliSecondsAndFrameCount(v)
     if st is None and et is None:
         return None
     st = st if st is not None else (0,0)
@@ -273,7 +281,7 @@ def checkLengthSmaller(graph, frm, to):
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
-                         getMilliSeconds(durationChangeTuple[1])[0] < getMilliSeconds(durationChangeTuple[2])[0]):
+                         getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] < getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
         return "Length of video is not shorter"
 
 
@@ -282,7 +290,7 @@ def checkLengthBigger(graph, frm, to):
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
-                         getMilliSeconds(durationChangeTuple[1])[0] > getMilliSeconds(durationChangeTuple[2])[0]):
+                         getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] > getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
         return "Length of video is not longer"
 
 def seamCarvingCheck(graph, frm, to):

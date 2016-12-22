@@ -256,8 +256,6 @@ class PropertyFunction:
     def setValue(self, name,value):
         return None
 
-
-
 class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     description = None
     im = None
@@ -1411,10 +1409,11 @@ class ButtonFrame(Frame):
 class SelectDialog(tkSimpleDialog.Dialog):
     cancelled = True
 
-    def __init__(self, parent, name, description, values):
+    def __init__(self, parent, name, description, values, initial_value=None):
         self.description = description
         self.values = values
         self.parent = parent
+        self.initial_value = initial_value
         self.name = name
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
@@ -1422,9 +1421,8 @@ class SelectDialog(tkSimpleDialog.Dialog):
         desc_lines = '\n'.join(self.description.split('.'))
         Label(master, text=desc_lines, wraplength=400).grid(row=0, sticky=W)
         self.var1 = StringVar()
-        self.var1.set(self.values[0])
+        self.var1.set(self.values[0] if self.initial_value is None or self.initial_value not in self.values else self.initial_value)
         self.e1 = OptionMenu(master, self.var1, *self.values)
-        #self.e1 = AutocompleteEntryInText(master, values=self.values, takefocus=True)
         self.e1.grid(row=1, column=0,sticky=EW)
         self.lift()
 

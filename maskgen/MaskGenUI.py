@@ -280,6 +280,16 @@ class MakeGenUI(Frame):
             self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr, getFileTypes()))
             self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr, getFileTypes()))
 
+    def setSkipStatus(self):
+        skip_compare_status = 'yes' if self.prefLoader.get_key('skip_compare') else 'no'
+        d = SelectDialog(self,
+                         "Skip Link Comparison",
+                         "Link Comparison is temporarily skipped until validation",
+                         ['yes', 'no'],
+                         initial_value=skip_compare_status)
+        skip_compare_status = d.choice if d.choice is not None else skip_compare_status
+        self.prefLoader.save('skip_compare',skip_compare_status=='yes')
+
 
     def undo(self):
         self.scModel.undo()
@@ -656,6 +666,7 @@ class MakeGenUI(Frame):
         settingsmenu.add_command(label="Username", command=self.setusername)
         settingsmenu.add_command(label="Organization", command=self.setorganization)
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
+        settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)

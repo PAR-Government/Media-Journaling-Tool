@@ -5,8 +5,7 @@ import os
 import numpy as np
 from tool_set import *
 import video_tools
-from maskgen import software_loader
-from software_loader import Software, getProjectProperties, ProjectProperty
+from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader
 import tempfile
 import plugins
 import graph_rules
@@ -369,7 +368,7 @@ class LinkTool:
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False,analysis_params={}):
-        return None, None, {}, []
+        return None, {}, []
 
     def _addAnalysis(self, startIm, destIm, op, analysis, mask, linktype=None,
                      arguments={}):
@@ -408,7 +407,6 @@ class ImageImageLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
-        maskname = start + '_' + destination + '_mask' + '.png'
         if op == 'Donor':
             predecessors = scModel.G.predecessors(destination)
             mask = None
@@ -451,7 +449,7 @@ class ImageImageLinkTool(LinkTool):
             analysis['exifdiff'] = exifDiff
             self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='image.image',
                               arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, errors
+        return mask, analysis, errors
 
 class VideoImageLinkTool(ImageImageLinkTool):
     """
@@ -476,7 +474,6 @@ class VideoImageLinkTool(ImageImageLinkTool):
         startIm, startFileName = scModel.getImageAndName(start,arguments=args)
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
-        maskname = start + '_' + destination + '_mask' + '.png'
         if op == 'Donor':
             errors = ["An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
             analysis = {}
@@ -487,7 +484,7 @@ class VideoImageLinkTool(ImageImageLinkTool):
             analysis['exifdiff'] = exifDiff
             self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='video.image',
                               arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, errors
+        return mask, analysis, errors
 
 class VideoVideoLinkTool(LinkTool):
     """
@@ -502,7 +499,7 @@ class VideoVideoLinkTool(LinkTool):
         """
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(end)
-        maskname, mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp', skipDonorAnalysis=True,
+        mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp', skipDonorAnalysis=True,
                                                               arguments=arguments,analysis_params={})
         if 'metadatadiff' in analysis:
            analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
@@ -558,7 +555,6 @@ class VideoVideoLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8')), {}
-        maskname = start + '_' + destination + '_mask' + '.png'
         if op != 'Donor' and not getOperationWithGroups(op).generateMask:
             maskSet = list()
             errors = list()
@@ -570,11 +566,11 @@ class VideoVideoLinkTool(LinkTool):
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
-                                                       startSegment=getMilliSeconds(arguments[
+                                                       startSegment=getMilliSecondsAndFrameCount(arguments[
                                                                                                  'Start Time']) if 'Start Time' in arguments else None,
-                                                       endSegment=getMilliSeconds(arguments[
+                                                       endSegment=getMilliSecondsAndFrameCount(arguments[
                                                                                                'End Time']) if 'End Time' in arguments else None,
-                                                       applyConstraintsToOutput=op != 'SelectCutFrames')
+                                                       analysis=analysis)
         # for now, just save the first mask
         if len(maskSet) > 0:
             mask = ImageWrapper(maskSet[0]['mask'])
@@ -587,7 +583,7 @@ class VideoVideoLinkTool(LinkTool):
         analysis['metadatadiff'] = metaDataDiff
         self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video',
                           arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, errors
+        return mask, analysis, errors
 
 class AudioVideoLinkTool(LinkTool):
     """
@@ -612,7 +608,6 @@ class AudioVideoLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
-        maskname = start + '_' + destination + '_mask' + '.png'
         analysis =  dict()
         analysis['masks count'] = 0
         analysis['videomasks'] = list()
@@ -621,7 +616,7 @@ class AudioVideoLinkTool(LinkTool):
         analysis['metadatadiff'] = metaDataDiff
         self._addAnalysis(startIm, destIm, op, analysis, None,linktype='audio.audio',
                           arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, list()
+        return mask, analysis, list()
 
 class AudioAudioLinkTool(LinkTool):
     """
@@ -652,10 +647,9 @@ class AudioAudioLinkTool(LinkTool):
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         mask = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8'))
-        maskname = start + '_' + destination + '_mask' + '.png'
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='audio.audio',
                           arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, list()
+        return mask, analysis, list()
 
 class VideoAudioLinkTool(LinkTool):
     """
@@ -681,7 +675,6 @@ class VideoAudioLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
-        maskname = start + '_' + destination + '_mask' + '.png'
         analysis =  dict()
         analysis['masks count'] = 0
         analysis['videomasks'] = list()
@@ -690,7 +683,7 @@ class VideoAudioLinkTool(LinkTool):
         analysis['metadatadiff'] = metaDataDiff
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
                           arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, list()
+        return mask, analysis, list()
 
 class ImageVideoLinkTool(VideoVideoLinkTool):
     """
@@ -704,7 +697,6 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask,analysis = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')),{}
-        maskname = start + '_' + destination + '_mask' + '.png'
         maskSet =[]
         errors = list()
         if op == 'Donor':
@@ -726,7 +718,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         analysis = analysis if analysis is not None else {}
         self._addAnalysis(startIm, destIm, op, analysis, mask,linktype='image.video',
                           arguments=consolidate(arguments,analysis_params))
-        return maskname, mask, analysis, errors
+        return mask, analysis, errors
 
 
 
@@ -735,6 +727,7 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool() }
 
+prefLoader = MaskGenLoader()
 
 class ImageProjectModel:
     """
@@ -909,6 +902,7 @@ class ImageProjectModel:
         :return: list of Probe
         @rtype: list of Probe
         """
+        self._executeSkippedComparisons()
         if not skipComputation:
             self.removeCompositesAndDonors()
             self.constructDonors()
@@ -958,6 +952,7 @@ class ImageProjectModel:
         :otherCondition
 
         """
+        self._executeSkippedComparisons()
         self.__assignColors()
         probes = self.getProbeSetWithoutComposites(skipComputation=skipComputation)
         probes = sorted(probes,key=lambda probe: probe.level)
@@ -1127,6 +1122,7 @@ class ImageProjectModel:
          Does not save the composite in the node.
          Returns the composite mask if successful, otherwise None
         """
+        self._executeSkippedComparisons()
         colorMap = dict()
         selectedNode = self.end if self.end is not None else self.start
         baseNodes = self._findBaseNodes(selectedNode)
@@ -1154,6 +1150,7 @@ class ImageProjectModel:
           Construct the composite make along the paths from base to lead node.
           Save the composite in the associated leaf nodes.
         """
+        self._executeSkippedComparisons()
         self.constructDonors()
         composites = list()
         level = IntObject()
@@ -1178,6 +1175,7 @@ class ImageProjectModel:
           Construct donor images
           Find all valid base node, leaf node tuples.
         """
+        self._executeSkippedComparisons()
         donors = list()
         donor_nodes = set()
         endPointTuples = self.getDonorAndBaseNodeTuples()
@@ -1240,7 +1238,39 @@ class ImageProjectModel:
     def getLinkTool(self, start, end):
         return linkTools[self.getLinkType(start, end)]
 
-    def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True, analysis_params=dict()):
+    def _executeSkippedComparisons(self):
+        allErrors = []
+        completed = []
+        skipped_edges = self.G.getDataItem('skipped_edges', [])
+        for edge_data in skipped_edges:
+            mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(edge_data['start'],
+                                                                                 edge_data['end'],
+                                                                                 self,
+                                                                                 edge_data['opName'],
+                                                                                 arguments=edge_data['arguments'],
+                                                                                 skipDonorAnalysis=edge_data['skipDonorAnalysis'],
+                                                                                 invert=edge_data['invert'],
+                                                                                 analysis_params=edge_data['analysis_params'])
+            completed.append((edge_data['start'], edge_data['end']))
+            allErrors.extend(errors)
+            self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors, **consolidate(analysis, edge_data['analysis_params']))
+        self.G.setDataItem('skipped_edges',[edge_data for edge_data in skipped_edges if (edge_data['start'], edge_data['end']) not in completed])
+        msg = os.linesep.join(allErrors).strip()
+        return msg if len(msg) > 0 else None
+
+    def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True,
+                       analysis_params=dict(),
+                       force=False):
+        if prefLoader.get_key('skip_compare') and not force:
+            self.G.setDataItem('skipped_edges', self.G.getDataItem('skipped_edges',list()) + [{"start":start,
+                                                                                               "end":destination,
+                                                                                               "analysis_params":analysis_params,
+                                                                                               "arguments": arguments,
+                                                                                               "opName": opName,
+                                                                                               "skipDonorAnalysis":skipDonorAnalysis,
+                                                                                               "invert":invert
+                                                                                               }])
+            return None, {}, []
         try:
             for k,v in getOperationWithGroups(opName).compareparameters.iteritems():
                 arguments[k] = v
@@ -1254,17 +1284,19 @@ class ImageProjectModel:
 
     def reproduceMask(self,skipDonorAnalysis=False,analysis_params=dict()):
         edge = self.G.get_edge(self.start, self.end)
-        maskname, mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
+        mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
                                                                arguments=edge['arguments'] if 'arguments' in edge else dict(),
                                                                skipDonorAnalysis=skipDonorAnalysis,
-                                                               analysis_params=analysis_params)
+                                                               analysis_params=analysis_params,
+                                                               force=True)
         self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**consolidate(analysis,analysis_params))
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
                           skipDonorAnalysis=False,
                           analysis_params={}):
         try:
-            maskname, mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
+            maskname = self.start + '_' + destination + '_mask' + '.png'
+            mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
                                                                    invert=invert, arguments=mod.arguments,
                                                                    skipDonorAnalysis=skipDonorAnalysis,
                                                                    analysis_params=analysis_params)
@@ -1566,6 +1598,7 @@ class ImageProjectModel:
     def validate(self):
         """ Return the list of errors from all validation rules on the graph. """
 
+        self._executeSkippedComparisons()
         total_errors = list()
 
         if len(self.G.get_nodes()) == 0:
