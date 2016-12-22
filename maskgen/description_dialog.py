@@ -18,6 +18,7 @@ from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
 from software_loader import ProjectProperty
+import sys
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -54,7 +55,10 @@ def checkValue(name, type, value):
     """
     if value and len(value) > 0:
         if type.startswith('float'):
-            vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            try:
+                vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            except ValueError:
+                vals = [-sys.float_info.max, sys.float_info.max]
             try:
                 value = float(value)
                 if value < vals[0] or value > vals[1]:
@@ -63,7 +67,10 @@ def checkValue(name, type, value):
                 return None, 'Invalid value for ' + name + '; not in range ' + str(vals[0]) + ' to ' + str(
                     vals[1])
         elif type.startswith('int'):
-            vals = [int(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            try:
+                vals = [int(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+            except ValueError:
+                vals = [-sys.maxint, sys.maxint]
             try:
                 value = int(value)
                 if value < vals[0] or value > vals[1]:
@@ -752,7 +759,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                                                                argument in operation.mandatoryparameters else None
         argumentTuple = (argument, operation.optionalparameters[argument]) if operation is not None and \
                                                                               argument in operation.optionalparameters else argumentTuple
-        argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'] if
+        values = arginfo['values'] if 'values' in arginfo and arginfo['values'] else []
+        argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'], 'values':values if
                                     ('type' in arginfo and 'description' in arginfo) else 'Not Available'}) if argumentTuple is None else argumentTuple
         return argumentTuple
 

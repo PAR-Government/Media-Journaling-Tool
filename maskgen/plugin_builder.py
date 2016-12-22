@@ -5,6 +5,7 @@ import software_loader
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
 from autocomplete_it import *
 import plugins
+import collections
 
 class PluginBuilder(tkSimpleDialog.Dialog):
     def __init__(self, master):
@@ -12,6 +13,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         self.sourcefiletype = 'image'
         self.targetfiletype = 'image'
         self.master = master
+        self.arguments = []
         tkSimpleDialog.Dialog.__init__(self, master)
 
     def body(self, master):
@@ -29,10 +31,10 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         catlist = list(cats.keys())
         catlist.sort()
         oplist = cats[catlist[0]] if len(cats) > 0 else []
-        self.opCatEntry = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40)
-        self.opNameEntry = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40)
+        self.opCatEntry = AutocompleteEntryInText(master, values=catlist, takefocus=False, width=40, state='readonly')
+        self.opNameEntry = AutocompleteEntryInText(master, values=oplist, takefocus=False, width=40, state='readonly')
         self.softwareNameEntry = AutocompleteEntryInText(master, values=sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), takefocus=False,
-                                          width=40)
+                                          width=40,state='readonly')
         self.softwareVersionEntry = AutocompleteEntryInText(master, values=self.softwareLoader.get_versions(self.softwareNameEntry.get(),software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=self.softwareNameEntry.get()), takefocus=False, width=40)
         self.opCatEntry.bind("<Return>", self.newcategory)
@@ -72,6 +74,97 @@ class PluginBuilder(tkSimpleDialog.Dialog):
                                           'If omitted, \"{inputimage}\" and \"{outputimage}\" will be appended to end of command.')
         commandLabel2.grid(row=9, column=0, columnspan=8)
 
+        Label(master, text='Additional Arguments (optional):').grid(row=10)
+
+        self.argFrame = Frame(master)
+        self.argFrame.grid(row=11, column=0, columnspan=8)
+
+        self.add_argument_row(row=0, col=0, initialize=True)
+
+
+    def add_argument_row(self, row, col, initialize=False, event=None):
+        if initialize == False:
+            self.addArgButton.grid_forget()
+
+        Label(self.argFrame, text='Arg Name: ').grid(row=row, column=col)
+        argNameEntry = Entry(self.argFrame)
+        argNameEntry.grid(row=row, column=col+1, sticky='EW')
+        col+=2
+
+        Label(self.argFrame, text='Arg Type: ').grid(row=row, column=col)
+        typeBox = ttk.Combobox(self.argFrame, values=['String', 'ImageFile', 'XMPFile', 'Donor', 'Float', 'Int', 'List', 'YesNo', 'Time', 'Coordinates'])
+        typeBox.set('String')
+        typeBox.grid(row=row, column=col+1, sticky='EW')
+        col+=2
+
+        Label(self.argFrame, text='Default Value: ').grid(row=row, column=col)
+        defaultValueBox = Entry(self.argFrame)
+        defaultValueBox.grid(row=row, column=col+1, sticky='EW')
+
+        row+=1
+        col=0
+
+        Label(self.argFrame, text='Description: ').grid(row=row, column=col)
+        descriptionBox = Entry(self.argFrame)
+        descriptionBox.grid(row=row, column=col+1, sticky='EW')
+
+        col+=2
+
+        Label(self.argFrame, text='List Values: ').grid(row=row, column=col)
+        valuesBox = Entry(self.argFrame, state='disabled')
+        valuesBox.grid(row=row, column=col+1, sticky='EW')
+        typeBox.correspondingValues = valuesBox
+        typeBox.bind("<<ComboboxSelected>>", self.set_valuesbox_state)
+
+        col+=2
+        insertButton = Button(self.argFrame, text='Insert', command=lambda:self.insert_arg(argNameEntry))
+        insertButton.grid(row=row, column=col, columnspan=2, sticky='EW')
+
+        row+=1
+        col=0
+        ttk.Separator(self.argFrame, orient=HORIZONTAL).grid(row=row, column=col, columnspan=8, sticky='EW')
+
+        row+=1
+        col=0
+        self.addArgButton = Button(self.argFrame, text='Add another argument', command=lambda: self.add_argument_row(row=row, col=col))
+        self.addArgButton.grid(row=row, column=col, columnspan=2)
+
+        Fields = collections.namedtuple('Fields', 'argname, type, defaultvalue, description, values')
+        f = Fields(argname=argNameEntry, type=typeBox, defaultvalue=defaultValueBox, description=descriptionBox, values=valuesBox)
+        self.arguments.append(f)
+
+
+    def insert_arg(self, entry):
+        idx = self.commandEntry.index(INSERT)
+        currentCommand = self.commandEntry.get()
+        try:
+            if currentCommand[idx-1] != ' ':
+                self.commandEntry.insert(idx, ' ')
+                idx+=1
+        except IndexError:
+            pass
+
+        self.commandEntry.insert(idx, '{' + entry.get().replace(' ', '') + '}') if len(entry.get()) >0 else ''
+
+        idx = self.commandEntry.index(INSERT)
+        currentCommand = self.commandEntry.get()
+        try:
+            if currentCommand[idx+1] != ' ':
+                self.commandEntry.insert(idx, ' ')
+        except IndexError:
+            pass
+
+
+    def set_valuesbox_state(self, event=None):
+        if event is not None:
+            val = event.widget.get()
+            value_entry = event.widget.correspondingValues
+            if val == 'List':
+                value_entry.config(state='normal')
+            else:
+                value_entry.config(state='disabled')
+
+
     def apply(self):
         self.pluginName = self.nameEntry.get().replace(' ', '')
         opName = self.opNameEntry.get()
@@ -86,29 +179,42 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         if '{outputimage}' not in command:
             command.append('{outputimage}')
 
-        data = {"name": self.pluginName,
-                "operation": {
-                    "name": opName,
-                    "category": opCat,
-                    "description": description,
-                    "software": softwareName,
-                    "version": softwareVersion,
-                    "arguments": {},
-                    "transitions": ['image.image']
-                },
-                #"suffix": suffix
-                "command": command
+        self.data = {"name": self.pluginName,
+                    "operation": {
+                        "name": opName,
+                        "category": opCat,
+                        "description": description,
+                        "software": softwareName,
+                        "version": softwareVersion,
+                        "arguments": {},
+                        "transitions": ['image.image']
+                    },
+                    #"suffix": suffix
+                    "command": command
         }
+
+        self.export_arguments()
 
         self.path = os.path.join('plugins', 'Custom', self.pluginName) + '.json'
         # need to step up a directory to save the json
         with open(os.path.join('.', self.path), 'w') as newJSON:
-            json.dump(data, newJSON)
+            json.dump(self.data, newJSON, indent=4)
 
         plugins.loadCustom(self.pluginName, self.path)
 
     def cancel(self, event=None):
         self.destroy()
+
+    def export_arguments(self):
+        for argument in self.arguments:
+            self.data['operation']['arguments'][argument.argname.get().replace(' ', '')] = {
+                'type':argument.type.get().lower(),
+                'defaultvalue':argument.defaultvalue.get(),
+                'description':argument.description.get(),
+            }
+            if argument.type.get() == 'List':
+                vals = argument.values.get().replace(', ', ',').split(',')
+                self.data['operation']['arguments'][argument.argname.get().replace(' ', '')]['values'] = vals
 
     """
     the below functions are taken from the DescriptionCaptureDialog class in description_dialog.py
