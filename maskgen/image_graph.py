@@ -250,11 +250,13 @@ class ImageGraph:
         origdir = os.path.split(os.path.abspath(pathname))[0]
         origname = get_pre_name(fname)
         suffix = get_suffix(fname)
-        newfname = self.new_name(fname, suffix)
+        newfname = self.new_name(fname, suffix.lower())
         nname = get_pre_name(newfname)
         oldpathname = os.path.join(self.dir, fname)
         if os.path.abspath(self.dir) != origdir and os.path.exists(oldpathname):
             fname = newfname
+        elif suffix != suffix.lower():
+            fname = origname + suffix.lower()
         newpathname = os.path.join(self.dir, fname)
         includePathInUndo = (newpathname in self.filesToRemove)
         if (not os.path.exists(newpathname)):
@@ -635,6 +637,8 @@ class ImageGraph:
             self.G.graph['username'] = get_username()
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
+        if 'updatetime' not in self.G.graph:
+            self._setUpdate('project')
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))
