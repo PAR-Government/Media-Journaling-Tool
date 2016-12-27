@@ -138,7 +138,7 @@ class MakeGenUI(Frame):
         if (val != None and len(val) > 0):
             self.scModel.load(val)
             if self.scModel.getProjectData('typespref') is None:
-                self.scModel.setProjectData('typespref', getFileTypes())
+                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
             self._setTitle()
             self.drawState()
             self.canvas.update()
@@ -278,7 +278,7 @@ class MakeGenUI(Frame):
         newtypesStr = tkSimpleDialog.askstring("Set File Types", "Types", initialvalue=toFileTypeString(filetypes))
         if newtypesStr is not None:
             self.prefLoader.save('filetypes', fromFileTypeString(newtypesStr, getFileTypes()))
-            self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr, getFileTypes()))
+            self.scModel.setProjectData('typespref', fromFileTypeString(newtypesStr, getFileTypes()),excludeUpdate=True)
 
     def setSkipStatus(self):
         skip_compare_status = 'yes' if self.prefLoader.get_key('skip_compare') else 'no'
@@ -317,7 +317,7 @@ class MakeGenUI(Frame):
         if top is not None and place > 0:
             prefs[place] = prefs[0]
             prefs[0] = top
-            self.scModel.setProjectData('typespref', prefs)
+            self.scModel.setProjectData('typespref', prefs,excludeUpdate=True)
         elif top is None and allPlace > 0:
             top = prefs[0]
             prefs[0] = prefs[allPlace]
@@ -867,9 +867,9 @@ class MakeGenUI(Frame):
         if self.scModel.getProjectData('typespref') is None:
             preferredFT = self.prefLoader.get_key('filetypes')
             if preferredFT:
-                self.scModel.setProjectData('typespref', preferredFT)
+                self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
             else:
-                self.scModel.setProjectData('typespref', getFileTypes())
+                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
         self.createWidgets()
         if tuple[1]:
             self.getproperties()

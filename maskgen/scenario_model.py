@@ -1341,7 +1341,7 @@ class ImageProjectModel:
             if groups is None:
                 groups = dict()
             groups[operation_name] = op.groupedOperations
-            self.G.setDataItem('groups',groups)
+            self.G.setDataItem('groups',groups,excludeUpdate=True)
 
     def getSeriesName(self):
         """ A Series is the prefix of the first image node """
@@ -2107,7 +2107,7 @@ class ImageProjectModel:
             currentProps[p] = self.getProjectData(p)
         if all(vp in currentProps for vp in validationProps) and currentProps['validatedby'] != get_username():
             for key, val in validationProps.iteritems():
-                self.setProjectData(key, val)
+                self.setProjectData(key, val, excludeUpdate=True)
 
 
 class VideoMaskSetInfo:

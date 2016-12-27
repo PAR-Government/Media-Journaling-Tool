@@ -605,7 +605,8 @@ class ImageGraph:
         return self.G.graph[item] if item in self.G.graph else default_value
 
     def setDataItem(self, item, value,excludeUpdate=False):
-        if not excludeUpdate:
+        localExclude =  item in self.G.graph and  value ==  self.G.graph[item]
+        if not (excludeUpdate or localExclude):
             self._setUpdate(item, update_type='graph')
         self.G.graph[item] = value
 
@@ -638,7 +639,10 @@ class ImageGraph:
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
         if 'updatetime' not in self.G.graph:
-            self._setUpdate('project')
+            if 'exporttime' in self.G.graph:
+                self.G.graph['updatetime'] = self.G.graph['exporttime']
+            else:
+                self._setUpdate('project')
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))

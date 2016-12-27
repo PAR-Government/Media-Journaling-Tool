@@ -1395,7 +1395,7 @@ class CommentViewer(tkSimpleDialog.Dialog):
         box.pack()
 
     def clearComment(self):
-        self.master.scModel.setProjectData('qacomment', '')
+        self.master.scModel.setProjectData('qacomment', '',excludeUpdate=True)
         self.commentLabel.config(text='There are no comments!')
 
 
