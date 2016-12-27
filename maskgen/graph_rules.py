@@ -87,7 +87,8 @@ def check_graph_rules(graph,node):
     """
     errors = []
     nodeData = graph.get_node(node)
-    multiplebaseok = graph.getDataItem('manipulationcategory').lower() == 'provenance'
+    category = graph.getDataItem('manipulationcategory')
+    multiplebaseok =  category.lower() == 'provenance' if category is not None else False
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
