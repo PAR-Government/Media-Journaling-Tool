@@ -75,6 +75,16 @@ def sort_tables(tablesList):
 def check_rotate(im, jpg_file_name):
     return Image.fromarray(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
+def get_subsampling(im):
+    ss = maskgen.exif.getexif(im, ['-f', '-n', '-args', '-YCbCrSubsampling'], separator='=')
+    # can only handle 4:4:4, 4:2:2, or 4:1:1
+    if ss['-YCbCrSubSampling'] == '2 1':
+        return '4:2:2'
+    elif ss['-YCbCrSubSampling'] == '4 1' or ss['-YCbCrSubSampling'] == '2 2':
+        return '4:1:1'
+    else:
+        return '4:4:4'
+
 def cs_save_as(source, target, donor, qTables,rotate):
     """
     Saves image file using quantization tables
@@ -88,7 +98,12 @@ def cs_save_as(source, target, donor, qTables,rotate):
     # much of the time, images will have thumbnail tables included.
     # from what I've seen the thumbnail tables always come first...
     thumbTable = []
-    if len(qTables) > 2:
+    prevTable = []
+    if len(qTables) == 6:
+        thumbTable = qTables[0:2]
+        prevTable = qTables[2:4]
+        finalTable = qTables[4:6]
+    elif len(qTables) > 2 and len(qTables) < 6:
         thumbTable = qTables[0:2]
         finalTable = qTables[-2:]
     else:
@@ -99,23 +114,47 @@ def cs_save_as(source, target, donor, qTables,rotate):
         im = Image.open(fp)
         im.load()
     if rotate:
-      im = check_rotate(im,donor) 
-    im.save(target, subsampling=1, qtables=finalTable)
+      im = check_rotate(im,donor)
+    sbsmp = get_subsampling(donor)
+    try:
+        im.save(target, subsampling=sbsmp, qtables=finalTable)
+    except:
+        im.save(target)
     width, height = im.size
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
     maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
+
+    # Preview is not well standardized in JPG (unlike thumbnail), so it doesn't always work.
+    if prevTable:
+        im.thumbnail((320,320))
+        fd, tempFile = tempfile.mkstemp(suffix='.jpg')
+        os.close(fd)
+        try:
+            im.save(tempFile, subsampling=sbsmp, qtables=prevTable)
+            maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-PreviewImage<=' + tempFile + '', target])
+        except OverflowError:
+            prevTable[:] = [[(x - 128) for x in row] for row in prevTable]
+            try:
+                im.save(tempFile, subsampling=sbsmp, qtables=prevTable)
+                maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-PreviewImage<=' + tempFile + '', target])
+            except Exception as e:
+                print 'Preview generation failed'
+                print e
+        finally:
+            os.remove(tempFile)
+
     if thumbTable:
         im.thumbnail((128, 128))
         fd, tempFile = tempfile.mkstemp(suffix='.jpg')
         os.close(fd)
         try:
-            im.save(tempFile, subsampling=1, qtables=thumbTable)
-            maskgen.exif.runexif(['-overwrite_original', '-P',  '-ThumbnailImage<=' + tempFile + '', target])
+            im.save(tempFile, subsampling=sbsmp, qtables=thumbTable)
+            maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-ThumbnailImage<=' + tempFile + '', target])
         except OverflowError:
             thumbTable[:] = [[(x - 128) for x in row] for row in thumbTable]
             try:
-                im.save(tempFile, subsampling=1, qtables=thumbTable)
-                maskgen.exif.runexif(['-overwrite_original', '-P', '-ThumbnailImage<=' + tempFile + '', target])
+                im.save(tempFile, subsampling=sbsmp, qtables=thumbTable)
+                maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-ThumbnailImage<=' + tempFile + '', target])
             except Exception as e:
                 print 'thumbnail generation failed'
                 print e
