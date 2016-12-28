@@ -142,11 +142,6 @@
           "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Insertion End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "Stream" : {
           "type" : "list",
           "values": ["left", "right", "all"],
@@ -160,6 +155,11 @@
         "checkFrameTimes"
       ],
       "optionalparameters": {
+        "Insertion End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
@@ -214,7 +214,7 @@
         "audio.audio"
       ]
     },
-      {
+    {
       "category": "Audio",
       "name": "AudioAmplify",
       "mandatoryparameters": {
@@ -331,11 +331,6 @@
           "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Insertion End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "Stream" : {
           "type" : "list",
           "values": ["left", "right", "all"],
@@ -349,6 +344,11 @@
         "checkFrameTimes"
       ],
       "optionalparameters": {
+        "Insertion End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
@@ -2352,7 +2352,15 @@
         "motion mapping": {
            "type": "yesno",
            "description": "Is motion mapping used?"
-         }
+         },
+        "purpose" : {
+          "type" : "list",
+           "values": [
+            "remove",
+            "add"
+          ],
+          "description": "Purpose: remove an object or add an object."
+        }
       },
       "rules": [
         "checkForDonor",
@@ -2395,6 +2403,14 @@
         "motion mapping": {
           "type": "yesno",
           "description": "Is motion mapping used?"
+        },
+        "purpose": {
+          "type": "list",
+          "values": [
+            "remove",
+            "add"
+          ],
+          "description": "Purpose: remove an object, add an object."
         }
       },
       "rules": [
@@ -2591,7 +2607,7 @@
     },
     {
       "category": "Select",
-      "name": "SelectRemoveFromFrames",
+      "name": "SelectFromFrames",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2607,7 +2623,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "description": "Remove a region from a series of frames.",
+      "description": "Select a region from a series of frames for the intent of pasting (creating a donor).",
       "includeInMask": true,
       "transitions": [
         "video.video"

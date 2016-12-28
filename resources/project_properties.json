@@ -75,6 +75,12 @@
 
     },
     {
+      "description": "Audio Activity",
+      "name": "audioactivity",
+      "type": "yesno",
+      "information": "Applies to video journals where the final video contains a variety of audio content based on location and audio activity."
+    },
+    {
       "description": "Remove",
       "name": "remove",
       "type": "yesno",
@@ -145,6 +151,7 @@
       "operation" :"PasteSplice",
       "parameter":"subject",
       "value":"man-made object",
+      "nodetype": "image",
       "node" : true
     },
     {
@@ -201,6 +208,174 @@
       "value":"other",
       "node" : true
     },
+    {
+       "description": "Temporal Clone",
+       "name": "temporalclone",
+       "node" : true,
+       "operations": ["CopyPaste"],
+       "type": "text",
+       "information": "Temporal Clone"
+    },
+    {
+       "description": "Temporal Splice",
+       "name": "temporalsplice",
+       "node" : true,
+       "operations": ["PasteFrames"],
+       "type": "text",
+       "information": "Temporal Splice"
+    },
+    {
+       "description": "Temporal Remove",
+       "name": "temporalremove",
+       "node" : true,
+       "operations": ["SelectCutFrames"],
+       "type": "text",
+       "information": "Temporal Remove"
+    },
+    {
+       "description": "Temporal Reorder",
+       "name": "temporalreorder",
+       "node" : true,
+       "operations": ["CutPaste"],
+       "type": "text",
+       "information": "Temporal Reorder"
+    },
+    {
+       "description": "Temporal Other",
+       "name": "temporalother",
+       "node" : true,
+       "operations": ["TimeAlterationEcho","TimeAlterationPosterizeTime","TimeAlterationDifferenceEffect","TimeAlterationDisplacementEffect","TimeAlterationWarp"],
+       "type": "text",
+       "information": "Temporal Other"
+    },
+    {
+       "description": "Spatial Clone",
+       "name": "spatialclone",
+       "node" : true,
+       "rule" : "spatialClone",
+        "_comment": "PasteSampled purpose = clone or PasteOverlay",
+       "type": "text",
+       "information": "Spatial Clone"
+    },
+    {
+       "description": "Spatial Splice",
+       "name": "spatialsplice",
+       "node" : true,
+       "rule" : "spatialSplice",
+        "_comment": "(SelectRegionFromFrames -> PasteOverlay between videos),PasteImageSpliceToFrames",
+       "type": "text",
+       "information": "Spatial Splice"
+    },
+    {
+       "description": "Spatial Remove",
+       "name": "spatialremove",
+        "rule" : "spatialRemove",
+        "_comment": "(SelectRegionFromFrames -> PasteOverlay between videos),PasteImageSpliceToFrames",
+       "node" : true,
+       "type": "text",
+       "information": "Spatial Remove"
+    },
+    {
+       "description": "Spatial Moving Object",
+       "name": "spatialmovingobject",
+        "rule" : "spatialMovingObject",
+        "_comment": "motion mapping == yes",
+       "node" : true,
+       "type": "text",
+       "information": "Spatial Moving Object"
+    },
+    {
+       "description": "Spatial Moving Camera",
+       "name": "spatialmovingcamera",
+        "operations" : "AdditionalEffectCameraMovement",
+       "node" : true,
+       "type": "text",
+       "information": "Spatial Moving Camera"
+    },
+     {
+       "description": "Spatial Other",
+       "name": "spatialother",
+        "rule" : "videoOtherEnhancementRule",
+       "node" : true,
+       "type": "text",
+       "information": "Spatial Other"
+    },
+    {
+       "description": "Audio Removal",
+       "name": "audioremoval",
+       "node" : true,
+       "operation": "DeleteAudioSample",
+       "type": "text",
+       "information": "Audio Removal"
+    },
+    {
+       "description": "Audio Clone",
+       "name": "audioclone",
+       "node" : true,
+       "operation": "AudioCopyAdd",
+       "type": "text",
+       "information": "Audio Clone"
+     },
+    {
+       "description": "Audio Splice",
+       "name": "audiosplice",
+       "node" : true,
+       "operations": ["ReplaceAudioSample","AddAudioSample","AudioCopyAdd"],
+       "type": "text",
+       "information": "Audio Splice"
+     },
+     {
+       "description": "Audio Voice Over",
+       "name": "audiovoiceover",
+       "node" : true,
+       "type": "text",
+       "rule" : "voiceOverlay",
+       "_comment": "overlay add type and voice is yes",
+       "information": "Audio Voice Over"
+     },
+     {
+       "description": "Audio Voice Swapping",
+       "name": "audiovoiceswapping",
+       "node" : true,
+       "rule" : "voiceSwap",
+       "_comment": "replace add type and voice is yes",
+       "type": "text",
+       "information": "Audio Voice Swapping"
+     },
+     {
+       "description": "Audio Other",
+       "name": "audioothers",
+       "node" : true,
+       "operations": ["AudioFilter","AudioAmplify","AudioCompress"],
+       "type": "text",
+       "information": "Audio Other"
+     },
+    {
+       "description": "Post Process Compression",
+       "name": "postprocesscompression",
+       "node" : true,
+       "operations": ["OutputMP4","OutputMOV","OutputXVID"],
+       "type": "text",
+       "information": "Post Process Compression"
+     },
+     {
+       "description": "Post Process Crop Frames",
+       "name": "postprocesscropframes",
+       "node" : true,
+       "operations": ["TransformCrop"],
+       "nodetype": "video",
+       "type": "text",
+       "information": "Post Process Crop Frames"
+     },
+     {
+       "description": "Post Process Stabilization",
+       "name": "postprocessstabilization",
+       "node" : true,
+       "operations": ["AdditionalEffectWarpStabilize"],
+       "nodetype": "video",
+       "type": "text",
+       "information": "Post Process Stabilization"
+     },
      {
       "description": "Image Reformatting",
       "name": "imagereformat",
@@ -210,7 +385,7 @@
       "description": "Image Compression",
       "name": "imagecompression",
       "type": "yesno",
-      "operation" : "AntiForensicExifQuantizationTable",
+      "operations" : ["AntiForensicExifQuantizationTable","AntiForensicJPGCompression"],
       "node" : true
     },
      {

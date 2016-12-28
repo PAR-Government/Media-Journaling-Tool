@@ -8,8 +8,8 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
-igversion='0.3.1201'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201']
+igversion='0.4.0101'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201', '0.4.0101']
 
 def current_version():
     return igversion
@@ -854,6 +854,7 @@ class ImageGraph:
 
     def _setUpdate(self,name, update_type=None):
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.G.graph['igversion'] = igversion
 
     def _buildStructure(self, path, value):
         pos = path.find('.')

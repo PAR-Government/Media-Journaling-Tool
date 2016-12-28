@@ -15,6 +15,7 @@ from group_filter import getOperationWithGroups
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
+import collections
 
 
 def formatStat(val):
@@ -28,15 +29,23 @@ def imageProjectModelFactory(name, **kwargs):
 def loadProject(projectFileName):
     """
       Given JSON file name, open then the appropriate type of project
+      @rtype: ImageProjectModel
     """
     graph = createGraph(projectFileName)
     return ImageProjectModel(projectFileName, graph=graph)
 
 def consolidate(dict1, dict2):
+    """
+    :param dict1:
+    :param dict2:
+    :return:
+    @rtype dict
+    """
     d = dict(dict1)
     d.update(dict2)
     return d
 
+EdgeTuple = collections.namedtuple('EdgeTuple', ['start','end','edge'])
 
 def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
                   organization=None):
@@ -1750,7 +1759,7 @@ class ImageProjectModel:
             isNotDonor = (edge['op'] != 'Donor' or not excludeDonor)
             if isNotDonor:
                 visitSet.append(pred)
-                res.append((pred, node,edge))
+                res.append(EdgeTuple(start=pred,end=node,edge=edge))
             res.extend(self._findEdgesWithCycleDetection(pred, excludeDonor=excludeDonor,
                                                              visitSet=visitSet) if isNotDonor else list())
         return res
@@ -1781,6 +1790,8 @@ class ImageProjectModel:
     def getTerminalToBasePairs(self, suffix='.jpg'):
         """
          find all pairs of leaf nodes to matching base nodes
+         :return list of tuples (leaf, base)
+         @rtype: list of (str,str)
         """
         endPointTuples = self.getTerminalAndBaseNodeTuples()
         pairs = list()
