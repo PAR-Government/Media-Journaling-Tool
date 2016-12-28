@@ -9,7 +9,7 @@ import os
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projectDir', help='Directory of projects')
+    parser.add_argument('--projects', help='Directory of projects')
     args = parser.parse_args()
 
     loadOperations("operations.json")
@@ -19,7 +19,7 @@ def main():
 
     project_list = bulk_export.pick_projects(args.projectDir)
 
-    with open(os.path.join(args.projectDir,'ErrorReport.csv'), 'wb') as csvfile:
+    with open(os.path.join(args.projectDir,'ErrorReport_' + str(os.getpid()) + '.csv'), 'wb') as csvfile:
         error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for project in project_list:
             name = os.path.basename(project)
