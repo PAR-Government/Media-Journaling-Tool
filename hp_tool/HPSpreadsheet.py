@@ -22,8 +22,9 @@ class HPSpreadsheet(Toplevel):
         self.ritCSV=ritCSV
         self.saveState = True
         self.kinematics = self.load_kinematics()
+        self.devices = self.load_devices()
         self.protocol('WM_DELETE_WINDOW', self.check_save)
-        w, h = self.winfo_screenwidth(), self.winfo_screenheight()
+        w, h = self.winfo_screenwidth()-100, self.winfo_screenheight()-100
         self.geometry("%dx%d+0+0" % (w, h))
         #self.attributes('-fullscreen', True)
         self.set_bindings()
@@ -133,6 +134,8 @@ class HPSpreadsheet(Toplevel):
             validValues = ['High', 'Medium', 'Low']
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
+        elif currentCol == 'CameraModel':
+            validValues = self.devices
 
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
             validValues = {'instructions':'Any integer value'}
@@ -150,8 +153,6 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
         elif currentCol == 'HP-DeviceLocalID':
             validValues = {'instructions': 'Local ID number (PAR, RIT) of device'}
-        elif currentCol == 'CameraModel':
-            validValues = {'instructions':'Manufacturer camera model number'}
         else:
             validValues = {'instructions':'Any string of text'}
 
@@ -313,16 +314,20 @@ class HPSpreadsheet(Toplevel):
                         errors.append('Invalid camera kinetickinetic ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 
-    def check_model(self):
-        errors = []
+    def load_devices(self):
         try:
             dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Devices.csv')
             df = pd.read_csv(dataFile)
         except IOError:
             tkMessageBox.showwarning('Warning', 'Camera model reference not found!')
             return
+        manufacturers = [x.lower().strip() for x in df['Manufacturer']]
+        models = [y.lower().strip() for y in df['SeriesModel']]
+        return sorted([manufacturers[z] + ' ' + models[z] for z in range(0, len(manufacturers))])
+        #return [df['Manufacturer'][x].lower().strip() + ' ' + df['SeriesModel'][x].lower.strip() for x in range(0, len(df['SeriesModel']))]
 
-        data = [x.lower().strip() for x in df['SeriesModel']]
+    def check_model(self):
+        errors = []
         cols_to_check = [self.modelcol]
         for col in range(0, self.pt.cols):
             if col in cols_to_check:
@@ -331,7 +336,7 @@ class HPSpreadsheet(Toplevel):
                     if val.lower() == 'nan' or val == '':
                         imageName = self.pt.model.getValueAt(row, 0)
                         errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val.lower() not in data:
+                    elif val.lower() not in self.devices:
                         errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 
