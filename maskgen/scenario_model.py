@@ -1822,15 +1822,20 @@ class ImageProjectModel:
           Prior to calling the plugin, the output file is created and populated with the contents of the input file for convenience.
           The filter plugin must update or overwrite the contents.
           The method returns tuple with an error message and a list of pairs (links) added.  The error message may be none if no error occurred.
+
+          @type filter: str
+          @type im: ImageWrapper
+          @type filename: str
+          @rtype: list of (str, list (str,str))
         """
         op = plugins.getOperation(filter)
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
         preferred = plugins.getPreferredSuffix(filter)
-        resolved = self._resolvePluginValues(kwargs)
+        resolved,donors = self._resolvePluginValues(kwargs,op)
         if preferred is not None:
-            if preferred == 'donor' and 'donor' in resolved:
-                suffix = os.path.splitext(resolved['donor'][1])[1].lower()
+            if preferred in donors:
+                suffix = os.path.splitext(resolved[preferred])[1].lower()
             else:
                 suffix = preferred
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(os.path.split(filename)[1], suffix=suffix))
@@ -1848,7 +1853,7 @@ class ImageProjectModel:
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         software = Software(op['software'], op['version'], internal=True)
         description.setArguments(
-            {k: v for k, v in kwargs.iteritems() if k != 'donor' and k != 'sendNotifications' and k != 'skipRules'})
+            {k: v for k, v in kwargs.iteritems() if k != 'sendNotifications' and k != 'skipRules'})
         if extra_args is not None and type(extra_args) == type({}):
              for k,v in extra_args.iteritems():
                  if k not in kwargs:
@@ -1857,33 +1862,40 @@ class ImageProjectModel:
         description.setAutomated('yes')
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
-                                         position=self._getCurrentPosition((75 if 'donor' in kwargs else 0,75)))
+                                         position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)))
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
                          msg2 if msg2 else '']).strip()
         if status:
             pairs.append((self.start, self.end))
-            if 'donor' in kwargs:
+            for donor in donors:
                 _end = self.end
                 _start = self.start
-                self.selectImage(kwargs['donor'])
+                self.selectImage(kwargs[donor])
                 self.connect(_end)
-                pairs.append((kwargs['donor'], _end))
+                pairs.append((kwargs[donor], _end))
                 self.select((_start, _end))
-                if 'donor'  in msg:
+                # donor error message is skipped.  This annoys me (rwgdrummer).
+                # really need to classify rules and skip certain categories
+                if 'donor' in msg:
                     msg = None
         os.remove(target)
         return self._pluginError(filter, msg), pairs
 
-    def _resolvePluginValues(self, args):
+    def _resolvePluginValues(self, args, operation):
         result = {}
+        donors = []
         for k, v in args.iteritems():
-            if k == 'donor':
-                result[k] = self.getImageAndName(v)
+            if ('arguments' in operation and \
+                            operation['arguments'] is not None and \
+                        k in operation['arguments'] and \
+                            operation['arguments'][k]['type'] == 'donor'):
+                result[k] = self.getImageAndName(v)[1]
+                donors.append(k)
             else:
                 result[k] = v
-        return result
+        return result, donors
 
     def _pluginError(self, filter, msg):
         if msg is not None and len(msg) > 0:

@@ -42,7 +42,7 @@ def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
                    (k in argvalues and argvalues[k] is not None and len(str(argvalues[k])) > 0))
     return ok
 
-def checkValue(name, type, value):
+def checkValue(name, value_type, value):
     """
     Check the value given the type
     :param name:
@@ -53,10 +53,10 @@ def checkValue(name, type, value):
     @type value: str
     @rtype: (str,str)
     """
-    if value and len(value) > 0:
-        if type.startswith('float'):
+    if value is not None and (type(value) != 'str' or len(value) > 0):
+        if value_type.startswith('float'):
             try:
-                vals = [float(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+                vals = [float(x) for x in value_type[value_type.rfind('[') + 1:-1].split(':')]
             except ValueError:
                 vals = [-sys.float_info.max, sys.float_info.max]
             try:
@@ -66,9 +66,9 @@ def checkValue(name, type, value):
             except:
                 return None, 'Invalid value for ' + name + '; not in range ' + str(vals[0]) + ' to ' + str(
                     vals[1])
-        elif type.startswith('int'):
+        elif value_type.startswith('int'):
             try:
-                vals = [int(x) for x in type[type.rfind('[') + 1:-1].split(':')]
+                vals = [int(x) for x in value_type[value_type.rfind('[') + 1:-1].split(':')]
             except ValueError:
                 vals = [-sys.maxint, sys.maxint]
             try:
@@ -78,10 +78,10 @@ def checkValue(name, type, value):
             except:
                 return None, 'Invalid value for ' + name + '; not in range ' + str(vals[0]) + ' to ' + str(
                     vals[1])
-        elif type == 'time':
+        elif value_type == 'time':
             if not validateTimeString(value):
                 return None, 'Invalid time value for ' + name + '; not in format 00:00:00.000 or 00:00:00:00'
-        elif type == 'coordinates':
+        elif value_type == 'coordinates':
             if not validateCoordinates(value):
                 return None, 'Invalid coordinate value for ' + name + '; not (0,0) format'
     return value, None
@@ -307,15 +307,6 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e5.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
-
-
-    def __addToBox(self, arg, mandatory):
-        sep = '*: ' if mandatory else ': '
-        if arg == 'inputmaskname':
-            self.argBox.insert(END, arg + sep + (self.inputMaskName if self.inputMaskName is not None else ''))
-        else:
-            self.argBox.insert(END, arg + sep + (
-            str(self.description.arguments[arg]) if arg in self.description.arguments else ''))
 
     def buildArgBox(self):
         if self.argBox is not None:
@@ -705,7 +696,6 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     optocall = None
     argvalues = {}
     cancelled = True
-    mandatoryinfo = []
 
     def __init__(self, parent, dir, im, pluginOps, name, scModel):
         self.pluginOps = pluginOps
@@ -749,8 +739,23 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         if len(self.pluginOps.keys()) > 0:
             self.newop(None)
 
+    def __getinfo(self,name):
+        for k,v in self.arginfo.iteritems():
+            if k == name:
+                return v
+        return None
+
     def __checkParams(self):
-        return checkMandatory(self.opvar.get(),self.sourcefiletype,self.sourcefiletype,self.argvalues)
+        ok = True
+        for k, v in self.argvalues.iteritems():
+            info = self.__getinfo(k)
+            if info is None:
+                continue
+            cv, error = checkValue(k, info['type'], v)
+            if v is not None and cv is None:
+                ok = False
+        ok &= checkMandatory(self.opvar.get(), self.sourcefiletype, self.sourcefiletype, self.argvalues)
+        return ok
 
     def __buildTuple(self, argument, arginfo, operation):
         argumentTuple = (argument, operation.mandatoryparameters[argument]) if operation is not None and \
@@ -783,6 +788,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+        self.arginfo = arginfo
 
     def buttonbox(self):
         box = Frame(self)
@@ -795,12 +801,12 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         box.pack()
 
     def changeParameter(self, name, type, value):
-        v, error = checkValue(name,type, value)
-        self.argvalues[name] = v
+        self.argvalues[name] = value
         if name == 'inputmaskname' and value is not None:
             self.inputMaskName = value
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
+
 
     def newop(self, event):
         self.argvalues = {}
