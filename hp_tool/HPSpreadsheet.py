@@ -21,7 +21,11 @@ class HPSpreadsheet(Toplevel):
         self.master = master
         self.ritCSV=ritCSV
         self.saveState = True
+        self.kinematics = self.load_kinematics()
         self.protocol('WM_DELETE_WINDOW', self.check_save)
+        w, h = self.winfo_screenwidth(), self.winfo_screenheight()
+        self.geometry("%dx%d+0+0" % (w, h))
+        #self.attributes('-fullscreen', True)
         self.set_bindings()
 
     def create_widgets(self):
@@ -42,11 +46,25 @@ class HPSpreadsheet(Toplevel):
         l.pack(fill=BOTH, expand=1)
 
         image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
-        image.thumbnail((480,480))
+        image.thumbnail((250,250))
         self.photo = ImageTk.PhotoImage(image)
         self.l2 = Button(self.rightFrame, image=self.photo, command=self.open_image)
         self.l2.image = self.photo  # keep a reference!
-        self.l2.pack(side=RIGHT)
+        self.l2.pack(side=TOP)
+
+        self.validateFrame = Frame(self.rightFrame, width=480)
+        self.validateFrame.pack(side=BOTTOM)
+        self.currentColumnLabel = Label(self.validateFrame, text='Current column:')
+        self.currentColumnLabel.grid(row=0, column=0, columnspan=2)
+        lbl = Label(self.validateFrame, text='Valid values for cells in this column:').grid(row=1, column=0, columnspan=2)
+        self.vbVertScroll = Scrollbar(self.validateFrame)
+        self.vbVertScroll.grid(row=2, column=1, sticky='NS')
+        self.vbHorizScroll = Scrollbar(self.validateFrame, orient=HORIZONTAL)
+        self.vbHorizScroll.grid(row=3, sticky='WE')
+        self.validateBox = Listbox(self.validateFrame, xscrollcommand=self.vbHorizScroll.set, yscrollcommand=self.vbVertScroll.set, selectmode=SINGLE, width=50, height=14)
+        self.validateBox.grid(row=2, column=0)
+        self.vbVertScroll.config(command=self.validateBox.yview)
+        self.vbHorizScroll.config(command=self.validateBox.xview)
 
         self.menubar = Menu(self)
         self.fileMenu = Menu(self.menubar, tearoff=0)
@@ -99,6 +117,60 @@ class HPSpreadsheet(Toplevel):
         newimg=ImageTk.PhotoImage(im)
         self.l2.configure(image=newimg)
         self.l2.image = newimg
+        self.update_valid_values()
+
+    def update_valid_values(self):
+        #self.pt.model.df.columns.get_loc('HP-OnboardFilter')
+        cols = list(self.pt.model.df)
+        col = self.pt.getSelectedColumn()
+        currentCol = cols[col]
+        self.currentColumnLabel.config(text='Current column: ' + currentCol)
+        if currentCol in ['HP-OnboardFilter', 'HP-LensFilter', 'HP-Reflections', 'HP-Shadows', 'HP-HDR']:
+            validValues = ['True', 'False']
+        elif currentCol == 'HP-CameraKinematics':
+            validValues = self.kinematics
+        elif currentCol == 'HP-JpgQuality':
+            validValues = ['High', 'Medium', 'Low']
+        elif currentCol == 'Type':
+            validValues = ['image', 'video', 'audio']
+
+        elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
+            validValues = {'instructions':'Any integer value'}
+        elif currentCol in ['GPSLongitude', 'GPSLatitude']:
+            validValues = {'instructions':'Coodinates, specified in decimal degree format'}
+        elif currentCol == 'HP-CollectionRequestID':
+            validValues = {'instructions':'Request ID for this image, if applicable'}
+        elif currentCol == 'CreationDate':
+            validValues = {'instructions':'Date/Time, specified as \"YYYY:MM:DD HH:mm:SS\"'}
+        elif currentCol == 'FileType':
+            validValues = {'instructions':'Any file extension, without the dot (.) (e.g. jpg, png)'}
+        elif currentCol == 'HP-App':
+            validValues = {'instructions': 'Name of phone app used to take this image'}
+        elif currentCol == 'HP-LensLocalId':
+            validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
+        elif currentCol == 'HP-DeviceLocalID':
+            validValues = {'instructions': 'Local ID number (PAR, RIT) of device'}
+        elif currentCol == 'CameraModel':
+            validValues = {'instructions':'Manufacturer camera model number'}
+        else:
+            validValues = {'instructions':'Any string of text'}
+
+        self.validateBox.delete(0, END)
+        if type(validValues) == dict:
+            self.validateBox.insert(END, validValues['instructions'])
+            self.validateBox.unbind('<<ListboxSelect>>')
+        else:
+            for v in validValues:
+                self.validateBox.insert(END, v)
+            self.validateBox.bind('<<ListboxSelect>>', self.insert_item)
+
+    def insert_item(self, event=None):
+        selection = event.widget.curselection()
+        val = event.widget.get(selection[0])
+        row = self.pt.getSelectedRow()
+        col = self.pt.getSelectedColumn()
+        self.pt.model.setValueAt(val, row, col)
+        self.pt.redraw()
 
     def load_images(self):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
@@ -174,7 +246,10 @@ class HPSpreadsheet(Toplevel):
         colList = range(cells.im_self.startcol, cells.im_self.endcol + 1)
         for row in rowList:
             for col in colList:
-                self.pt.model.setValueAt(selection[0][0], row, col)
+                try:
+                    self.pt.model.setValueAt(selection[0][0], row, col)
+                except IndexError:
+                    pass
         self.pt.redraw()
 
     def validate(self):
@@ -214,16 +289,18 @@ class HPSpreadsheet(Toplevel):
         else:
             self.destroy()
 
-    def check_kinematics(self):
-        errors = []
+    def load_kinematics(self):
         try:
             dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Kinematics.csv')
             df = pd.read_csv(dataFile)
         except IOError:
             tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found!')
-            return
+            return []
 
-        data = [x.lower().strip() for x in df['Camera Kinematics']]
+        return [x.lower().strip() for x in df['Camera Kinematics']]
+
+    def check_kinematics(self):
+        errors = []
         cols_to_check = [self.kincol]
         for col in range(0, self.pt.cols):
             if col in cols_to_check:
@@ -232,7 +309,7 @@ class HPSpreadsheet(Toplevel):
                     if val.lower() == 'nan' or val == '':
                         imageName = self.pt.model.getValueAt(row, 0)
                         errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val.lower() not in data:
+                    elif val.lower() not in self.kinematics:
                         errors.append('Invalid camera kinetickinetic ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 
