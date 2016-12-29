@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import random
 import os
-from maskgen.image_wrap import ImageWrapper
+from maskgen.image_wrap import ImageWrapper, openImageFile
 from maskgen import tool_set,image_wrap
 from skimage import  segmentation, color,measure,feature
 from skimage.future import graph
@@ -218,7 +218,7 @@ def pasteAnywhere(img, img_to_paste,mask_of_image_to_paste,mask_of_image_to_past
                           (xplacement, yplacement))
 
 def transform(img,source,target,**kwargs):
-    img_to_paste =kwargs['donor'][0]
+    img_to_paste =openImageFile(kwargs['donor'])
     mask_of_image_to_paste = img_to_paste.to_mask().invert().to_array()
     denoise_img = denoise_tv_bregman(np.asarray(img), weight=0.4)
     denoise_img = (denoise_img * 255).astype('uint8')

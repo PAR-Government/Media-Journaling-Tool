@@ -20,7 +20,7 @@ def updateJournal(scModel):
         _fixQT(scModel)
         _fixUserName(scModel)
         upgrades.append('0.3.1213')
-    scModel.getGraph().setDataItem('jt_upgrades',upgrades)
+    scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
 
 def _fixUserName(scModel):
     """

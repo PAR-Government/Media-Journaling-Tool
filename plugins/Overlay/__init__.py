@@ -1,11 +1,13 @@
 import cv2
 from PIL import Image
 import numpy
+from maskgen.image_wrap import ImageWrapper,openImageFile
 
 def transform(img,source,target,**kwargs):
     rgba = img.convert('RGBA')
-    inputmask = kwargs['donor']
-    donor = inputmask[0].convert('RGBA')
+    donor_img_file = kwargs['donor']
+    inputmask = openImageFile(donor_img_file)
+    donor = inputmask.convert('RGBA')
     if donor.size != rgba.size:
       donor = donor.resize(rgba.size, Image.ANTIALIAS)
     rgba.paste(donor,(0,0),donor)

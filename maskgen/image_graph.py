@@ -8,8 +8,8 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
-igversion='0.3.1201'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201']
+igversion='0.4.0101'
+igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201', '0.4.0101']
 
 def current_version():
     return igversion
@@ -198,7 +198,7 @@ class ImageGraph:
     def openImage(self, fileName, mask=False, metadata={}):
         imgDir = os.path.split(os.path.abspath(fileName))[0]
         return openImage(fileName,
-                         videoFrameTime=None if 'Frame Time' not in metadata else getMilliSeconds(metadata['Frame Time']),
+                         videoFrameTime=None if 'Frame Time' not in metadata else getMilliSecondsAndFrameCount(metadata['Frame Time']),
                          isMask=mask,
                          preserveSnapshot= (imgDir == os.path.abspath(self.dir) and \
                                             ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
@@ -456,7 +456,7 @@ class ImageGraph:
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         self._setUpdate((start, end), update_type='edge')
         newmaskpathname = None
-        if maskname is not None:
+        if maskname is not None and mask is not None:
             newmaskpathname = os.path.join(self.dir, maskname)
             mask.save(newmaskpathname)
         for path, ownership in self.edgeFilePaths.iteritems():
@@ -601,11 +601,12 @@ class ImageGraph:
     def has_node(self, name):
         return self.G.has_node(name)
 
-    def getDataItem(self, item):
-        return self.G.graph[item] if item in self.G.graph else None
+    def getDataItem(self, item, default_value=None):
+        return self.G.graph[item] if item in self.G.graph else default_value
 
     def setDataItem(self, item, value,excludeUpdate=False):
-        if not excludeUpdate:
+        localExclude =  item in self.G.graph and  value ==  self.G.graph[item]
+        if not (excludeUpdate or localExclude):
             self._setUpdate(item, update_type='graph')
         self.G.graph[item] = value
 
@@ -638,7 +639,10 @@ class ImageGraph:
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
         if 'updatetime' not in self.G.graph:
-            self._setUpdate('project')
+            if 'exporttime' in self.G.graph:
+                self.G.graph['updatetime'] = self.G.graph['exporttime']
+            else:
+                self._setUpdate('project')
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))
@@ -850,6 +854,7 @@ class ImageGraph:
 
     def _setUpdate(self,name, update_type=None):
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.G.graph['igversion'] = igversion
 
     def _buildStructure(self, path, value):
         pos = path.find('.')

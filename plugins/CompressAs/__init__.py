@@ -174,15 +174,15 @@ def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
     
-    tables_zigzag = parse_tables(donor[1])
+    tables_zigzag = parse_tables(donor)
     tables_sorted = sort_tables(tables_zigzag)
-    cs_save_as(source, target, donor[1], tables_sorted,rotate)
+    cs_save_as(source, target, donor, tables_sorted,rotate)
     
     return None,None
     
 def operation():
     return {'name':'AntiForensicExifQuantizationTable',
-            'category':'AntiForensicExif',
+            'category':'AntiForensic',
             'description':'Save as a JPEG using original tables and EXIF',
             'software':'PIL',
             'version':'1.1.7',

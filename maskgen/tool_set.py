@@ -163,37 +163,73 @@ class VidTimeManager:
     startTimeandFrame = None
     frameCountSinceStart = 0
     frameCountSinceStop = 0
+    frameSinceBeginning = 0
+    frameCountWhenStarted = 0
+    frameCountWhenStopped = 0
+    milliNow = 0
+    """
+    frameCountWhenStarted: record the frame at start
+    frameCountWhenStopped: record the frame at finish
+    """
 
     def __init__(self,startTimeandFrame = None, stopTimeandFrame = None):
         self.startTimeandFrame = startTimeandFrame
         self.stopTimeandFrame = stopTimeandFrame
+        self.pastEndTime = False
+        self.beforeStartTime = True if startTimeandFrame else False
 
-    def isPastTime(self,milliNow):
+    def getStartFrame(self):
+        return self.frameCountWhenStarted  if self.startTimeandFrame else 1
+
+    def getEndFrame(self):
+       return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
+
+    def updateToNow(self, milliNow):
+        self.milliNow = milliNow
+        self.frameSinceBeginning += 1
         if self.stopTimeandFrame:
-            if milliNow >= self.stopTimeandFrame[0]:
+            if self.milliNow >= self.stopTimeandFrame[0]:
                 self.frameCountSinceStop += 1
                 if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
-                    return True
-        return False
+                    if not self.pastEndTime:
+                        self.pastEndTime = True
+                        self.frameCountWhenStopped= self.frameSinceBeginning
 
-    def isBeforeTime(self,milliNow):
         if self.startTimeandFrame:
-            if milliNow >= self.startTimeandFrame[0]:
+            if self.milliNow >= self.startTimeandFrame[0]:
                self.frameCountSinceStart += 1
                if self.frameCountSinceStart >= self.startTimeandFrame[1]:
-                   return False
-            return True
-        return False
+                   if self.beforeStartTime:
+                        self.frameCountWhenStarted  = self.frameSinceBeginning
+                        self.beforeStartTime=False
 
-def getMilliSeconds(v):
+    def isOpenEnded(self):
+        return self.stopTimeandFrame is None
+
+    def hasStartTimeConstraints(self):
+        return self.startTimeandFrame is not None and self.startTimeandFrame[0] > 0
+
+    def hasEndTimeConstraints(self):
+        return self.startTimeandFrame is not None and self.stopTimeandFrame[0] > 0
+
+    def isPastTime(self):
+        return self.pastEndTime
+
+    def isBeforeTime(self):
+        return self.beforeStartTime
+
+def getMilliSecondsAndFrameCount(v):
     dt = None
     framecount = 0
-    if v.count(':') > 2:
+    coloncount = v.count(':')
+    if coloncount > 2:
         try:
             framecount = int(v[v.rfind(':') + 1:])
             v = v[0:v.rfind(':')]
         except:
             return None,0
+    elif coloncount == 0:
+        return (0,int(v))
     try:
         dt =  datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -328,7 +364,8 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                     break
                 frame = np.roll(frame, 1, axis=-1)
                 elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-                if time_manager.isPastTime(elapsed_time):
+                time_manager.updateToNow(elapsed_time)
+                if time_manager.isPastTime():
                     bestSoFar = frame
                     break
                 varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))

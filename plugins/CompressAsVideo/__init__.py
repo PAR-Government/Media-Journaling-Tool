@@ -14,10 +14,13 @@ def save_as_video(source, target, donor):
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
     maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
     maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=', target])
+    createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
+    if '-FileCreateDate' in createtime:
+        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
-    save_as_video(source, target, donor[1])
+    save_as_video(source, target, donor)
     
     return None,None
     

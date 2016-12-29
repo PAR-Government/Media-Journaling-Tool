@@ -40,6 +40,29 @@ def convertToPDF(filename):
         return newname
     return filename
 
+def openTiff(filename, isMask=False):
+    raw = openRaw(filename,isMask=isMask)
+    info = {}
+    if filename.lower().find('tif'):
+        try:
+            with TiffFile(filename) as tiffdata:
+                for page in tiffdata:
+                    for tag in page.tags.values():
+                        t, v = tag.name, tag.value
+                        if t.startswith('compress'):
+                            info['compress'] = v
+        except:
+            pass
+        try:
+            nonRaw = ImageWrapper(cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB), info=info,
+                            to_mask=isMask)
+            if raw is not None and raw.size[0] > nonRaw.size[0] and raw.size[1] > nonRaw.size[1]:
+                return raw
+            return nonRaw
+        except:
+            return raw
+    return raw
+
 def openImageFile(filename,isMask=False):
     """
 
@@ -65,25 +88,12 @@ def openImageFile(filename,isMask=False):
           im = Image.open(filename)
           im.load()
           if im.format == 'TIFF' and filename.lower().find('tif') < 0:
-            raw = openRaw(filename)
-            if raw is not None and raw.size != im.size:
+            raw = openTiff(filename, isMask=isMask)
+            if raw is not None and raw.size[0] >im.size[0]  and raw.size[1] > im.size[1]:
                 return raw
           return ImageWrapper(np.asarray(im),mode=im.mode,info=im.info,to_mask =isMask)
     except:
-       info = {}
-       try:
-          with TiffFile(filename) as tiffdata:
-              for page in tiffdata:
-                  for tag in page.tags.values():
-                     t,v = tag.name, tag.value
-                     if t.startswith('compress'):
-                         info['compress'] = v
-       except:
-          pass
-       try:
-          return ImageWrapper( cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),info=info,to_mask =isMask)
-       except:
-          return openRaw(filename)
+      return openTiff(filename, isMask=isMask)
 
 def invertMask(mask):
     mask.invert()

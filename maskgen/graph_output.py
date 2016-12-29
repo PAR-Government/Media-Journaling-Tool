@@ -43,8 +43,13 @@ class ImageGraphPainter:
         self._draw().write_png(filename)
         return filename
 
+    def _node_id_filename(self,node_id):
+        import re
+        return re.sub('[\(\)\&\:\-\? ]', '_', node_id) + '_thb.png'
+
     def _draw(self):
         import pydot
+        import cgi
         pydot_nodes = {}
         pygraph = pydot.Dot(graph_type='digraph')
         for node_id in self.graph.get_nodes():
@@ -52,9 +57,10 @@ class ImageGraphPainter:
             im,filename= self.graph.get_image(node_id)
             im = imageResizeRelative(im, self.max_size, self.max_size)
             prefix = os.path.split(filename)[0]
-            im.save(os.path.join(prefix , node_id + '_thb.png'))
+            fn = self._node_id_filename(node_id)
+            im.save(os.path.join(prefix , fn))
             html = '<<TABLE border="0" cellborder="0"><TR><TD ><IMG SRC="' + \
-                   os.path.join(prefix, node_id + '_thb.png') + '" scale="true"/></TD></TR><TR><td><font point-size="10">' + node['file'] + '</font></td></TR></TABLE>>'
+                   os.path.join(prefix, fn) + '" scale="true"/></TD></TR><TR><td><font point-size="10">' + cgi.escape( node['file']) + '</font></td></TR></TABLE>>'
             pydot_nodes[node_id] = pydot.Node(node['file'],label=html,shape='plain')#,labelloc='t', image=prefix + '_thb.png',imagescale=True)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.graph.get_edges():

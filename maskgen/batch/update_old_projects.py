@@ -75,8 +75,8 @@ def rename_donorsandbase(scModel,updatedir, names):
             print 'Rename ' + os.path.split(file_path_name)[1] + ' to ' + new_file_name
             if not os.path.exists(fullname):
                 os.rename(file_path_name, fullname)
-    if base_count > 1:
-            raise ValueError('Only one base image allowed per project')
+    #if base_count > 1:
+    #        raise ValueError('Only one base image allowed per project')
     if base_count == 0:
                 raise ValueError('Project missing base image')
 
@@ -383,7 +383,7 @@ def update_username(scModel):
     usernames = {'smitha':'TheDoorKnob', 'shrivere':'FlowersOfWonderland', 'kozakj':'Walrus','ahill':'WhiteRabbit',
                  'andrewhill':'WhiteRabbit','andrew hill':'WhiteRabbit','cwhitecotton':'Jabberwocky', 'colewhitecotton':'Jabberwocky',
                  'catalingrigoras':'Hedgehogs', 'cgrigoras':'Hedgehogs', 'jzjalic':'Caterpillar', 'jameszjalic':'Caterpillar',
-                 'james zjalic':'Caterpillar','kboschetto':'Dinah', 'karleeboschetto':'Dinah', 'jeffsmith':'DoorMouse', 'jsmith':'DoorMouse',
+                 'james zjalic':'caterpillar','kboschetto':'Dinah', 'karleeboschetto':'Dinah', 'jeffsmith':'DoorMouse', 'jsmith':'DoorMouse',
                  'mpippin':'MadHatter', 'meganpippin':'MadHatter', 'mlawson':'Seven', 'melissalawson':'Seven'}
 
     usr = scModel.getGraph().getDataItem('username')
@@ -430,6 +430,7 @@ def perform_update(project,args, error_writer, semantics, tempdir, names, skips)
         setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
     if (scModel.getName() + '.tgz') in skips:
         return
+
     label_project_nodes(scModel)
     if args.all:
         update_rotation(scModel)
@@ -459,6 +460,9 @@ def perform_update(project,args, error_writer, semantics, tempdir, names, skips)
         replace_oldops(scModel)
 
     scModel.save()
+    if args.updategraph:
+        if os.path.exists(os.path.join(scModel.get_dir(),'_overview_.png')):
+            return
     error_list = scModel.exporttos3(args.uploadfolder, tempdir)
     if len(error_list) > 0:
         for err in error_list:
@@ -479,6 +483,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',  '--file', required=True, help='File of projects')
     parser.add_argument('-df', '--downloadfolder', required=True, help='Download folder')
+    parser.add_argument('-ug', '--updategraph', required=False, help='Upload Graph',action='store_true')
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
     parser.add_argument('-c',  '--composites', help='Reconstruct composite images',action='store_true')
     parser.add_argument('-n',  '--names',required=False, help='New image names')

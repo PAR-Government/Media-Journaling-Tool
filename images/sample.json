@@ -3,6 +3,7 @@
   "graph": {
     "username": "ericrobertson", 
     "igversion": "0.2.1", 
+    "updatetime": "2016-12-27 19:17:59", 
     "idcount": 25, 
     "projecttype": "image", 
     "name": "sample", 
@@ -25,6 +26,11 @@
       ]
     ], 
     "validatedby": "", 
+    "exporttime": "2016-12-27 19:17:59", 
+    "jt_upgrades": [
+      "0.3.1115", 
+      "0.3.1213"
+    ], 
     "validationdate": "", 
     "organization": "PAR", 
     "validation": "no"

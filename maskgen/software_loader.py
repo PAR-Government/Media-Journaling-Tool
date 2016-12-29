@@ -22,7 +22,7 @@ class ProjectProperty:
     description = None
     name = None
     type = None
-    operation = None
+    operations = None
     parameter = None
     rule = None
     values = None
@@ -31,12 +31,18 @@ class ProjectProperty:
     node = False
     readonly = False
     mandatory= False
+    nodetype = None
+    """
+    @type operations: list of str
+    @type nodetype: str
+    """
 
-    def __init__(self, name='', type='', operation=None, parameter=None, description=None,
-                 information=None, value=None, values=None, rule=None, node=False, readonly=False,mandatory=True):
+    def __init__(self, name='', type='', operations=None, parameter=None, description=None,
+                 information=None, value=None, values=None, rule=None, node=False, readonly=False,mandatory=True,
+                 nodetype=None):
         self.name = name
         self.type = type
-        self.operation = operation
+        self.operations = operations
         self.parameter = parameter
         self.description = description
         self.rule = rule
@@ -46,6 +52,7 @@ class ProjectProperty:
         self.node = node
         self.readonly = readonly
         self.mandatory = mandatory
+        self.nodetype = nodetype
 
 
 class Operation:
@@ -143,9 +150,11 @@ def loadProjectPropertyJSON(fileName):
                                                 value=prop['value'] if 'value' in prop else None,
                                                 node=prop['node'] if 'node' in prop else False,
                                                 information=prop['information'] if 'information' in prop else None,
-                                                operation=prop['operation'] if 'operation' in prop else None,
+                                                operations=[prop['operation']] if 'operation' in prop else
+                                                (prop['operations'] if 'operations' in prop else []),
                                                 readonly=prop['readonly'] if 'readonly' in prop else None,
-                                                mandatory=prop['mandatory'] if 'mandatory' in prop else False))
+                                                mandatory=prop['mandatory'] if 'mandatory' in prop else False,
+                                                nodetype=prop['nodetype'] if 'nodetype' in prop else None))
     return res
 
 

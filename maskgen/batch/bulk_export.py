@@ -70,7 +70,7 @@ def upload_projects(s3dir, dir, error_writer):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dir',  help='directory of projects')
+    parser.add_argument('-d', '--projects',  help='directory of projects')
     parser.add_argument('-s', '--s3',   help='bucket/path of s3 storage')
     args = parser.parse_args()
 

@@ -43,7 +43,7 @@ def operation():
           'version':'2.4.13',
           'arguments':{
               'inputmaskname':{
-                  'type':'inputmaskname',
+                  'type':'imagefile',
                   'defaultvalue':None,
                   'description':'Mask image where black pixels identify region to blur'
               }

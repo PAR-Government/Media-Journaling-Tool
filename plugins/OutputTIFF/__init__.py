@@ -9,10 +9,10 @@ import maskgen.exif
 from maskgen.tool_set import *
 import numpy as np
 
-def check_rotate(im, jpg_file_name):
+def check_rotate(im, donor_img, jpg_file_name):
     return ImageWrapper(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
-def tiff_save_as(source_img, source, target, donor_img, donor_file, rotate):
+def tiff_save_as(source_img, source, target, donor_file, rotate):
     """
     Saves image file using the same image compression
     :param source: string filename of source image
@@ -20,8 +20,9 @@ def tiff_save_as(source_img, source, target, donor_img, donor_file, rotate):
     :param donor: string filename of donor TIFF
     :param rotate: boolean True if counter rotation is required
     """
+    donor_img = openImageFile(donor_file)
     if rotate:
-        source_img = check_rotate(source_img,donor_file)
+        source_img = check_rotate(source_img, donor_img,donor_file)
     source_img.save(target, format='TIFF', **donor_img.info)
     width, height = source_img.size
     maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
@@ -33,18 +34,21 @@ def tiff_save_as(source_img, source, target, donor_img, donor_file, rotate):
                  '-ExifImageHeight=' + str(height),
                  '-ImageHeight=' + str(height),
                  target])
+    createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
+    if '-FileCreateDate' in createtime:
+        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
 
 
 def transform(source_img,source,target, **kwargs):
     donor = kwargs['donor']
     rotate = 'rotate' in kwargs and kwargs['rotate'] == 'yes'
-    tiff_save_as(source_img , source, target, donor[0],donor[1], rotate)
+    tiff_save_as(source_img , source, target, donor, rotate)
     
     return None,None
     
 def operation():
     return {'name':'AntiForensicExifQuantizationTable',
-            'category':'AntiForensicExif',
+            'category':'AntiForensic',
             'description':'Save as a TIFF using original tables and EXIF',
             'software':'PIL',
             'version':'1.1.7',
