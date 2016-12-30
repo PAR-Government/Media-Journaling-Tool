@@ -452,7 +452,11 @@ class ImageImageLinkTool(LinkTool):
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
         else:
-            mask, analysis = createMask(startIm, destIm, invert=invert, arguments=arguments, crop=(op == 'TransformCrop'))
+            mask, analysis = createMask(startIm, destIm,
+                                        invert=invert,
+                                        arguments=arguments,
+                                        crop=(op == 'TransformCrop'),
+                                        seam=(op == 'TransformSeamCarving'))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff

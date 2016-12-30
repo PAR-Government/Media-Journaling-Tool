@@ -2,8 +2,8 @@
   "directed": true, 
   "graph": {
     "username": "ericrobertson", 
-    "igversion": "0.2.1", 
-    "updatetime": "2016-12-27 19:17:59", 
+    "igversion": "0.4.0101", 
+    "updatetime": "2016-12-30 16:05:37", 
     "idcount": 25, 
     "projecttype": "image", 
     "name": "sample", 
@@ -37,14 +37,14 @@
   }, 
   "nodes": [
     {
-      "xpos": 354, 
-      "nodetype": "final", 
-      "ownership": "yes", 
-      "ypos": 570, 
-      "seriesname": "orig_input", 
-      "file": "input_mod_2_25.jpg", 
-      "id": "input_mod_2_25", 
-      "ctime": "2016-11-29 14:45:00"
+      "xpos": 325, 
+      "nodetype": "base", 
+      "ctime": "2016-07-28 13:06:28", 
+      "ypos": 14, 
+      "seriesname": "sample", 
+      "ownership": "no", 
+      "file": "sample.jpg", 
+      "id": "sample"
     }, 
     {
       "xpos": 230, 
@@ -68,14 +68,14 @@
       "ctime": "2016-06-29 15:11:34"
     }, 
     {
-      "xpos": 325, 
-      "nodetype": "base", 
-      "ctime": "2016-07-28 13:06:28", 
-      "ypos": 14, 
-      "seriesname": "sample", 
-      "ownership": "no", 
-      "file": "sample.jpg", 
-      "id": "sample"
+      "xpos": 354, 
+      "nodetype": "final", 
+      "ownership": "yes", 
+      "ypos": 570, 
+      "seriesname": "orig_input", 
+      "file": "input_mod_2_25.jpg", 
+      "id": "input_mod_2_25", 
+      "ctime": "2016-11-29 14:45:00"
     }, 
     {
       "xpos": 538, 
@@ -138,156 +138,18 @@
   ], 
   "links": [
     {
-      "global": "yes", 
-      "recordMaskInComposite": "no", 
-      "errors": [], 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.6220126321186452, 
-      "source": 1, 
-      "username": "TheDoorKnob", 
-      "description": "", 
-      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
-      "change size ratio": 0.9320210653543987, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "automated": "no", 
-      "inputmaskname": null, 
-      "shape change": "(0, 0)", 
-      "change size category": "large", 
-      "psnr": 25.23448219085477, 
-      "target": 5, 
-      "exifdiff": {
-        "Background Color": [
-          "delete", 
-          "255 255 255"
-        ], 
-        "Modify Date": [
-          "delete", 
-          "2016:06:10 04:58:51"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_2.png", 
-          "input_mod_2_3.png"
-        ], 
-        "File Size": [
-          "change", 
-          "364 kB", 
-          "250 kB"
-        ], 
-        "Pixels Per Unit Y": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixels Per Unit X": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixel Units": [
-          "delete", 
-          "meters"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "op": "ColorBalance"
-    }, 
-    {
-      "global": "no", 
-      "recordMaskInComposite": "no", 
-      "errors": [], 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.8824301202318747, 
-      "source": 2, 
-      "location": "(0, 0)", 
-      "username": "TheDoorKnob", 
-      "description": "", 
-      "maskname": "input_mod_1_input_mod_2_mask.png", 
-      "change size ratio": 0.13138276817522102, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "automated": "no", 
-      "inputmaskname": null, 
-      "target": 1, 
-      "change size category": "large", 
-      "psnr": 19.43806324641574, 
-      "shape change": "(0, -19)", 
-      "exifdiff": {
-        "Image Size": [
-          "change", 
-          "424x572", 
-          "405x572"
-        ], 
-        "Modify Date": [
-          "change", 
-          "2016:06:07 18:29:06", 
-          "2016:06:10 04:58:51"
-        ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
-        ], 
-        "Image Width": [
-          "change", 
-          "424", 
-          "405"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_1.png", 
-          "input_mod_2.png"
-        ], 
-        "Megapixels": [
-          "change", 
-          "0.243", 
-          "0.232"
-        ], 
-        "File Size": [
-          "change", 
-          "376 kB", 
-          "364 kB"
-        ], 
-        "Gamma": [
-          "delete", 
-          "2.2"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "op": "TransformCrop", 
-      "transform matrix": {
-        "c": 3, 
-        "r": 3, 
-        "r0": [
-          0.06783959972327469, 
-          -0.21558606533590524, 
-          185.15074279915257
-        ], 
-        "r1": [
-          -0.6125210620947953, 
-          0.08012743235628318, 
-          328.90079648346165
-        ], 
-        "r2": [
-          -0.00109942980417734, 
-          -0.0006049090824194641, 
-          1.0
-        ]
-      }
-    }, 
-    {
       "username": "ericrobertson", 
       "maskname": "sample_orig_input_mask.png", 
-      "errors": [], 
+      "psnr": 101.8345154087617, 
       "description": "", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "editable": "yes", 
       "softwareVersion": "12.1", 
       "softwareName": "Adobe Photoshop", 
       "selectmaskname": null, 
-      "source": 3, 
+      "source": 0, 
       "ssim": 0.9999999855200266, 
-      "psnr": 101.8345154087617, 
+      "errors": [], 
       "recordMaskInComposite": "no", 
       "automated": "no", 
       "inputmaskname": null, 
@@ -398,13 +260,152 @@
       "editable": "no", 
       "recordMaskInComposite": "no", 
       "selectmaskname": null, 
-      "source": 3, 
+      "source": 0, 
       "softwareVersion": "", 
       "softwareName": "", 
       "automated": "no", 
       "inputmaskname": null, 
-      "target": 0, 
+      "target": 3, 
       "op": "Donor"
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "errors": [], 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.6220126321186452, 
+      "source": 1, 
+      "username": "TheDoorKnob", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.9320210653543987, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "automated": "no", 
+      "inputmaskname": null, 
+      "shape change": "(0, 0)", 
+      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
+      "psnr": 25.23448219085477, 
+      "target": 5, 
+      "exifdiff": {
+        "Background Color": [
+          "delete", 
+          "255 255 255"
+        ], 
+        "Modify Date": [
+          "delete", 
+          "2016:06:10 04:58:51"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_2.png", 
+          "input_mod_2_3.png"
+        ], 
+        "File Size": [
+          "change", 
+          "364 kB", 
+          "250 kB"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ]
+      }, 
+      "softwareVersion": "CC2015.5.12", 
+      "op": "ColorBalance"
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "no", 
+      "inputmaskownership": "no", 
+      "errors": [], 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.8824301202318747, 
+      "source": 2, 
+      "location": "(0, 0)", 
+      "arguments": {}, 
+      "username": "TheDoorKnob", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.04481132075471698, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "automated": "no", 
+      "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
+      "target": 1, 
+      "maskname": "input_mod_1_input_mod_2_mask.png", 
+      "psnr": 19.43806324641574, 
+      "shape change": "(0, -19)", 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "424x572", 
+          "405x572"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2016:06:07 18:29:06", 
+          "2016:06:10 04:58:51"
+        ], 
+        "Background Color": [
+          "add", 
+          "255 255 255"
+        ], 
+        "Image Width": [
+          "change", 
+          "424", 
+          "405"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_1.png", 
+          "input_mod_2.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "0.243", 
+          "0.232"
+        ], 
+        "File Size": [
+          "change", 
+          "376 kB", 
+          "364 kB"
+        ], 
+        "Gamma": [
+          "delete", 
+          "2.2"
+        ]
+      }, 
+      "softwareVersion": "CC2015.5.12", 
+      "op": "TransformSeamCarving", 
+      "transform matrix": {
+        "c": 3, 
+        "r": 3, 
+        "r0": [
+          0.06783959972327469, 
+          -0.21558606533590524, 
+          185.15074279915257
+        ], 
+        "r1": [
+          -0.6125210620947953, 
+          0.08012743235628318, 
+          328.90079648346165
+        ], 
+        "r2": [
+          -0.00109942980417734, 
+          -0.0006049090824194641, 
+          1.0
+        ]
+      }
     }, 
     {
       "global": "yes", 
@@ -416,7 +417,7 @@
       "location": "(24, 38)", 
       "username": "Saffire", 
       "description": "", 
-      "change size category": "small", 
+      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
       "change size ratio": 0.0, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -424,7 +425,7 @@
       "automated": "no", 
       "inputmaskname": null, 
       "target": 7, 
-      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
+      "change size category": "small", 
       "psnr": 0.0, 
       "shape change": "(-46, -52)", 
       "exifdiff": {
@@ -480,7 +481,7 @@
     {
       "username": "TheDoorKnob", 
       "maskname": "input_mod_2_3_input_mod_2_25_mask.png", 
-      "errors": [], 
+      "psnr": 47.16511443998102, 
       "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
       "opsys": "Windows 7 6.1.7601", 
       "editable": "no", 
@@ -489,7 +490,7 @@
       "selectmaskname": null, 
       "source": 5, 
       "ssim": 0.9333140628895015, 
-      "psnr": 47.16511443998102, 
+      "errors": [], 
       "recordMaskInComposite": "no", 
       "automated": "yes", 
       "inputmaskname": null, 
@@ -508,9 +509,9 @@
           "png", 
           "jpg"
         ], 
-        "Encoding Process": [
+        "Color Space": [
           "add", 
-          "Baseline DCT, Huffman coding"
+          "Uncalibrated"
         ], 
         "Bits Per Sample": [
           "add", 
@@ -550,18 +551,14 @@
           "add", 
           "0100"
         ], 
-        "Exif Byte Order": [
-          "add", 
-          "Little-endian (Intel, II)"
-        ], 
         "File Modification Date/Time": [
           "change", 
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Resolution Unit": [
+        "Exif Byte Order": [
           "add", 
-          "inches"
+          "Little-endian (Intel, II)"
         ], 
         "MIME Type": [
           "change", 
@@ -581,6 +578,10 @@
           "delete", 
           "Adaptive"
         ], 
+        "Software": [
+          "add", 
+          "Google"
+        ], 
         "Color Type": [
           "delete", 
           "RGB with Alpha"
@@ -597,9 +598,9 @@
           "delete", 
           "8"
         ], 
-        "Software": [
+        "Resolution Unit": [
           "add", 
-          "Google"
+          "inches"
         ], 
         "X Resolution": [
           "add", 
@@ -614,16 +615,16 @@
           "input_mod_2_3.png", 
           "input_mod_2_25.jpg"
         ], 
-        "Color Space": [
+        "Encoding Process": [
           "add", 
-          "Uncalibrated"
+          "Baseline DCT, Huffman coding"
         ], 
         "Y Resolution": [
           "add", 
           "72"
         ]
       }, 
-      "target": 0, 
+      "target": 3, 
       "op": "AntiForensicExifQuantizationTable", 
       "arguments": {
         "rotate": "no"
@@ -642,7 +643,7 @@
       }, 
       "username": "Saffire", 
       "description": "", 
-      "change size category": "large", 
+      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
       "change size ratio": 0.4385283950617284, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -650,7 +651,7 @@
       "automated": "no", 
       "inputmaskname": null, 
       "target": 4, 
-      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
+      "change size category": "large", 
       "psnr": 8.309706653719859, 
       "shape change": "(0, 0)", 
       "exifdiff": {
@@ -716,8 +717,6 @@
       "softwareName": "", 
       "automated": "no", 
       "inputmaskname": null, 
-      "op": "Donor", 
-      "target": 2, 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -736,7 +735,9 @@
           -0.0007625612394162303, 
           1.0
         ]
-      }
+      }, 
+      "target": 2, 
+      "op": "Donor"
     }, 
     {
       "username": "ericrobertson", 
@@ -803,10 +804,9 @@
           "jpg", 
           "png"
         ], 
-        "MIME Type": [
-          "change", 
-          "image/jpeg", 
-          "image/png"
+        "Background Color": [
+          "add", 
+          "255 255 255"
         ], 
         "Bits Per Sample": [
           "delete", 
@@ -837,9 +837,10 @@
           "add", 
           "meters"
         ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
+        "MIME Type": [
+          "change", 
+          "image/jpeg", 
+          "image/png"
         ], 
         "Color Components": [
           "delete", 
@@ -896,10 +897,10 @@
       "softwareVersion": "2.4", 
       "ssim": 0.3481807393556555, 
       "softwareName": "GIMP", 
-      "target": 6, 
-      "arguments": {}, 
+      "shape change": "(0, 0)", 
       "op": "SelectRegion", 
-      "shape change": "(0, 0)"
+      "target": 6, 
+      "arguments": {}
     }
   ], 
   "multigraph": false
