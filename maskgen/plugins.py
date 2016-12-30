@@ -1,3 +1,4 @@
+import sys
 import imp
 import os
 import json
@@ -107,7 +108,18 @@ def callPlugin(name,im,source,target,**kwargs):
 
 def runCustomPlugin(name, im, source, target, **kwargs):
     global loaded
-    executionCommand = loaded[name]['command'][:]
+    commands = dict(loaded[name]['command'])
+    executeOk = False
+    for k, command in commands.items():
+        if sys.platform.startswith(k):
+            executeWith(command, im, source, target, **kwargs)
+            executeOk = True
+            break
+    if not executeOk:
+        executeWith(commands['default'], im, source, target, **kwargs)
+    return None, None
+
+def executeWith(executionCommand, im, source, target, **kwargs):
     for i in range(len(executionCommand)):
         if executionCommand[i] == '{inputimage}':
             executionCommand[i] = source
@@ -118,4 +130,3 @@ def runCustomPlugin(name, im, source, target, **kwargs):
         else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
     subprocess.call(executionCommand)
-    return None, None

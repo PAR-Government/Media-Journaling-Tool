@@ -178,7 +178,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
             command.append('{inputimage}')
         if '{outputimage}' not in command:
             command.append('{outputimage}')
-
+        platform = sys.platform
         self.data = {"name": self.pluginName,
                     "operation": {
                         "name": opName,
@@ -190,7 +190,10 @@ class PluginBuilder(tkSimpleDialog.Dialog):
                         "transitions": ['image.image']
                     },
                     #"suffix": suffix
-                    "command": command
+                    "command": {
+                        "default": command,
+                        platform: command
+                    }
         }
 
         self.export_arguments()
