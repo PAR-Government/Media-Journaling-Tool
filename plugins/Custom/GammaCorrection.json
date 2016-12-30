@@ -9,10 +9,31 @@
       "arguments": {},
       "transitions": ["image.image"]
     },
-    "command": ["magick",
-                "convert",
-                "-auto-gamma",
-                "{inputimage}",
-                "{outputimage}"
-                ]
+    "command": {
+      "default": [
+        "convert",
+        "-auto-gamma",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "-auto-gamma",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "darwin":[
+        "convert",
+        "-auto-gamma",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "linux":[
+        "convert",
+        "-auto-gamma",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
 }

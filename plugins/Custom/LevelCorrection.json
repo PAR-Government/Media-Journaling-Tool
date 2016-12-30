@@ -29,12 +29,43 @@
       },
       "transitions": ["image.image"]
     },
-    "command": ["convert",
-                "-level",
-                "{blackpoint}%,{whitepoint}%,{gamma}",
-                "-clip-mask",
-                "{clip mask}",
-                "{inputimage}",
-                "{outputimage}"
-                ]
+    "command": {
+      "default": [
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "-clip-mask",
+        "{clip mask}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "darwin": [
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "-clip-mask",
+        "{clip mask}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "-clip-mask",
+        "{clip mask}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "linux": [
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "-clip-mask",
+        "{clip mask}",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
 }

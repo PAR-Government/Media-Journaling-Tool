@@ -15,11 +15,35 @@
       },
       "transitions": ["image.image"]
     },
-    "command": ["magick",
-                "convert",
-                "-blur",
-                "{RADIUSxSIGMA}",
-                "{inputimage}",
-                "{outputimage}"
-                ]
+    "command": {
+      "default":[
+        "convert",
+        "-blur",
+        "{RADIUSxSIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "-blur",
+        "{RADIUSxSIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "darwin":[
+        "convert",
+        "-blur",
+        "{RADIUSxSIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "linux":[
+        "convert",
+        "-blur",
+        "{RADIUSxSIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
 }
