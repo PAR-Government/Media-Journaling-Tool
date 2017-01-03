@@ -16,6 +16,7 @@ from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
 
+
 """
   Main UI Driver for MaskGen
 """
@@ -260,6 +261,23 @@ class MakeGenUI(Frame):
         if newName is not None:
             self.prefLoader.save('organization', newName)
             self.scModel.setProjectData('organization', newName)
+
+    def setautosave(self):
+        autosave_decision = self.prefLoader.get_key('autosave')
+        d = SelectDialog(self,
+                         "AutoSave",
+                         "Autosave every 'n' seconds. 0 turns off AutoSave",
+                         ['0', '60', '300', '600'],
+                         initial_value=autosave_decision)
+        new_autosave_decision = d.choice if d.choice is not None else autosave_decision
+        self.prefLoader.save('autosave', new_autosave_decision)
+        autosave_decision = float(autosave_decision) if autosave_decision else 0.0
+        new_autosave_decision = float(new_autosave_decision) if new_autosave_decision else 0.0
+        if new_autosave_decision != autosave_decision:
+            cancel_execute(saveme)
+            if new_autosave_decision > 0:
+                 execute_every(new_autosave_decision, saveme, saver=self)
+
 
     def setusername(self):
         name = get_username()
@@ -667,6 +685,7 @@ class MakeGenUI(Frame):
         settingsmenu.add_command(label="Organization", command=self.setorganization)
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
+        settingsmenu.add_command(label="Autosave", command=self.setautosave)
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)
@@ -875,6 +894,23 @@ class MakeGenUI(Frame):
             self.getproperties()
 
 
+def saveme(saver=None):
+    """
+
+    :param gui:
+    :return:
+    @type gui: MakeGenUI
+    """
+    saver.save()
+
+
+def do_every (interval, worker_func, iterations = 0):
+  if iterations != 1:
+    threading.Timer (
+      interval,
+      do_every, [interval, worker_func, 0 if iterations == 0 else iterations-1]
+    ).start ()
+
 def main(argv=None):
     if (argv is None):
         argv = sys.argv
@@ -899,9 +935,13 @@ def main(argv=None):
     loadProjectProperties(uiProfile.projectProperties)
     root = Tk()
 
+    prefLoader = MaskGenLoader()
     gui = MakeGenUI(imgdir[0], master=root, pluginops=plugins.loadPlugins(),
                     base=args.base[0] if args.base is not None else None, uiProfile=uiProfile)
     root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
+    interval =  prefLoader.get_key('autosave')
+    if interval and interval != '0':
+        execute_every(float(interval),saveme, saver=gui)
     gui.mainloop()
 
 
