@@ -16,6 +16,7 @@ from graph_auto_updates import updateJournal
 import hashlib
 import shutil
 import collections
+from threading import Lock
 
 
 def formatStat(val):
@@ -764,6 +765,7 @@ class ImageProjectModel:
     @type start: String
     @type end: String
     """
+    lock = Lock()
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,baseImageFileName=None):
         self._setup(projectFileName, graph=graph,baseImageFileName=baseImageFileName)
@@ -1471,12 +1473,14 @@ class ImageProjectModel:
             return fileType(self.G.get_image_path(nodeid))
 
     def saveas(self, pathname):
-        self.clear_validation_properties()
-        self.G.saveas(pathname)
+        with self.lock:
+            self.clear_validation_properties()
+            self.G.saveas(pathname)
 
     def save(self):
-        self.clear_validation_properties()
-        self.G.save()
+        with self.lock:
+            self.clear_validation_properties()
+            self.G.save()
 
     def getDescriptionForPredecessor(self, node):
         for pred in self.G.predecessors(node):
@@ -2122,6 +2126,13 @@ class ImageProjectModel:
                             errors=edge['errors'] if 'errors' in edge else list(),
                             maskSet=(VideoMaskSetInfo(edge['videomasks']) if (
                                 'videomasks' in edge and len(edge['videomasks']) > 0) else None))
+
+    def set_validation_properties(self,qaState,qaPerson, qaComment):
+        import time
+        self.setProjectData('validation', qaState, excludeUpdate=True)
+        self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
+        self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
+        self.setProjectData('qacomment', qaComment.strip())
 
     def clear_validation_properties(self):
         validationProps = {'validation':'no', 'validatedby':'', 'validationdate':''}

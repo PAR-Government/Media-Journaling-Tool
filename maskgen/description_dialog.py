@@ -1,6 +1,5 @@
 from Tkinter import *
 import ttk
-import time
 import tkMessageBox
 from maskgen import image_wrap
 from group_filter import GroupFilter, GroupFilterLoader
@@ -1248,6 +1247,11 @@ class CompositeViewDialog(tkSimpleDialog.Dialog):
 
 class QAViewDialog(Toplevel):
     def __init__(self, parent):
+        """
+
+        :param parent: MakeGenUI
+        @type parent: MakeGenUI
+        """
         self.parent = parent
         self.probes = self.parent.scModel.getProbeSetWithoutComposites()
         Toplevel.__init__(self, parent)
@@ -1351,12 +1355,8 @@ class QAViewDialog(Toplevel):
 
 
     def qa_done(self, qaState):
-        self.parent.scModel.setProjectData('validation', qaState,excludeUpdate=True)
-        self.parent.scModel.setProjectData('validatedby', self.reporterStr.get(),excludeUpdate=True)
-        self.parent.scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"),excludeUpdate=True)
-        self.parent.scModel.setProjectData('qacomment', self.commentsBox.get(1.0, END),excludeUpdate=True)
+        self.parent.scModel.set_validation_properties(qaState,self.reporterStr.get(),self.commentsBox.get(1.0, END))
         self.parent.scModel.save()
-
         self.destroy()
 
     def check_ok(self, event=None):

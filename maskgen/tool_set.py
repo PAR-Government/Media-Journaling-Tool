@@ -13,6 +13,7 @@ import os
 from image_wrap import *
 from maskgen_loader import  MaskGenLoader
 from subprocess import Popen, PIPE
+import threading
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
@@ -1215,6 +1216,20 @@ def convertToVideo(file_name, preferences = None):
         if mask is None:
             break
     return fn
+
+executions = {}
+
+def cancel_execute(worker_func):
+    if worker_func in executions:
+        executions[worker_func].cancel()
+
+def execute_every (interval, worker_func,  start = True, **kwargs):
+    executions[worker_func] = threading.Timer (
+      interval,
+        execute_every, [interval, worker_func, False], kwargs)
+    executions[worker_func].start()
+    if not start:
+        worker_func(**kwargs)
 
 class GrayBlockReader:
 
