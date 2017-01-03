@@ -21,14 +21,44 @@
     "transitions": ["image.image"],
     "software": "ImageMagick"
 },
-  "command": ["magick",
-    "convert",
-    "{inputimage}",
-    "-resize",
-    "{WIDTHxHEIGHT}!",
-    "-interpolate",
-    "{METHOD}",
-    "{outputimage}"
-  ],
+  "command": {
+    "default":[
+      "convert",
+      "{inputimage}",
+      "-resize",
+      "{WIDTHxHEIGHT}!",
+      "-interpolate",
+      "{METHOD}",
+      "{outputimage}"
+    ],
+    "win": [
+      "magick",
+      "convert",
+      "{inputimage}",
+      "-resize",
+      "{WIDTHxHEIGHT}!",
+      "-interpolate",
+      "{METHOD}",
+      "{outputimage}"
+    ],
+    "darwin":[
+      "convert",
+      "{inputimage}",
+      "-resize",
+      "{WIDTHxHEIGHT}!",
+      "-interpolate",
+      "{METHOD}",
+      "{outputimage}"
+    ],
+    "linux":[
+      "convert",
+      "{inputimage}",
+      "-resize",
+      "{WIDTHxHEIGHT}!",
+      "-interpolate",
+      "{METHOD}",
+      "{outputimage}"
+    ]
+  },
   "name": "Resize"
 }
