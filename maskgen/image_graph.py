@@ -8,8 +8,8 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
+snapshot='$Id$'
 igversion='0.4.0101'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201', '0.4.0101']
 
 def current_version():
     return igversion
@@ -621,11 +621,7 @@ class ImageGraph:
 
     def _setup(self, pathname, projecttype):
         global igversion
-        global igcompatibleversions
-        if 'igversion' in self.G.graph:
-            if self.G.graph['igversion'] not in igcompatibleversions:
-                raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
-        else:
+        if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']

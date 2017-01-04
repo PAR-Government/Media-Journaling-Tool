@@ -575,6 +575,14 @@ class MakeGenUI(Frame):
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
+    def viewmaskoverlay(self):
+        mask = self.scModel.maskImage()
+        if mask is not None:
+            selectImage = self.scModel.nextImage()
+            if selectImage.size != mask.size:
+                selectImage = self.scModel.startImage()
+            CompositeViewDialog(self, self.scModel.start, mask, selectImage)
+
     def viewtransformed(self):
         transformed = self.scModel.getTransformedMask()
         if len(transformed)> 0:
@@ -806,6 +814,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="Inspect", command=self.view)
         self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
+        self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
