@@ -24,8 +24,11 @@ class ImageGraphPainter:
         @type file : file
         @rtype : str
         """
-        file.close()
-        filename = file.name
+        if type(file) is str:
+            filename = file
+        else:
+            file.close()
+            filename = file.name
         if not filename.endswith('.png'):
             filename = filename + '.png'
         self._draw().write_png(filename)
@@ -61,7 +64,7 @@ class ImageGraphPainter:
             im.save(os.path.join(prefix , fn))
             html = '<<TABLE border="0" cellborder="0"><TR><TD ><IMG SRC="' + \
                    os.path.join(prefix, fn) + '" scale="true"/></TD></TR><TR><td><font point-size="10">' + cgi.escape( node['file']) + '</font></td></TR></TABLE>>'
-            pydot_nodes[node_id] = pydot.Node(node['file'],label=html,shape='plain')#,labelloc='t', image=prefix + '_thb.png',imagescale=True)
+            pydot_nodes[node_id] = pydot.Node(node_id,label=html,shape='plain')#,labelloc='t', image=prefix + '_thb.png',imagescale=True)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.graph.get_edges():
             edge = self.graph.get_edge(edge_id[0],edge_id[1])

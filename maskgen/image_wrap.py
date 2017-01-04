@@ -335,7 +335,7 @@ class ImageWrapper:
         :return:new image with give n image overlayed
         @rtype : ImageWrapper
         """
-        image_to_use = self.image_array if len(self.image_array.shape) != 2 else self.convert('RGB').image_array
+        image_to_use = self.image_array if self.mode == 'RGA' else self.convert('RGB').image_array
         self_array = np.copy(image_to_use)
         if len(image_to_use.shape) != len(image.image_array.shape):
             image_array =  np.ones(image_to_use.shape)*255
