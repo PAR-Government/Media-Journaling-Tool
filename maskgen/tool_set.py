@@ -997,8 +997,13 @@ def __checkInterpolation(val):
     validVals = ['nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic']
     return val if val in validVals else 'nearest'
 
+def applyMask(image, mask,value=0):
+    image = np.copy(image)
+    image[mask==0] = value
+    return image
+
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None, crop=False):
+              transformMatrix=None, flip=None, crop=False, cut=False):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1018,16 +1023,18 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
                             (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
     # if transform matrix provided and alternate path is taken above
     if transformMatrix is None and flip is not None:
-        res = __applyFlipComposite(compositeMask, edgeMask,flip)
+        res = __applyFlipComposite(res, edgeMask,flip)
     if location != (0, 0) or crop:
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if expectedSize != res.shape:
         res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
+    if cut:
+        res = applyMask(res, edgeMask, value=0)
     return res
 
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
-              transformMatrix=None, flip=None, crop=False):
+              transformMatrix=None, flip=None, crop=False, cut=False):
     res = donorMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1046,6 +1053,8 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         res = newRes
     if expectedSize != res.shape:
         res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
+    if cut:
+        res = applyMask(res, edgeMask, value=255)
     return res
 
 def __toMask(im):

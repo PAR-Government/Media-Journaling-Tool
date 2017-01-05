@@ -2054,7 +2054,8 @@ class ImageProjectModel:
                                            sizeChange=sizeChange, interpolation=interpolation,
                                            location=location, flip=flip,
                                            transformMatrix=tm,
-                                           crop=edge['op']=='TransformCrop')
+                                           crop=edge['op']=='TransformCrop',
+                                           cut=edge['op'] in ('TransformSeamCarving','SelectRemove'))
         return compositeMask
 
     def _getOrientation(self,edge):
@@ -2094,7 +2095,8 @@ class ImageProjectModel:
                                            sizeChange=sizeChange,
                                            location=location, flip=flip,
                                            transformMatrix=tm,
-                                          crop = edge['op']=='TransformCrop')
+                                          crop = edge['op']=='TransformCrop',
+                                            cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove'))
 
     def _getModificationForEdge(self, start,end, edge):
         """

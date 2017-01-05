@@ -8,11 +8,17 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
-igversion='0.4.0101'
-igcompatibleversions=['0.1','0.2', '0.2.1', '0.3.1007','0.3.1024', '0.3.1115', '0.3.1201', '0.4.0101']
+snapshot='.b583ce'
+igversion='0.4.0101' + snapshot
 
 def current_version():
     return igversion
+
+def compare_other(old,new):
+    return old == new
+
+def compare_str(old,new):
+    return old.lower() == new.lower()
 
 def extract_archive(fname, dir):
     try:
@@ -206,15 +212,17 @@ class ImageGraph:
     def replace_attribute_value(self, attributename, oldvalue, newvalue):
         self._setUpdate(attributename, update_type='attribute')
         found = False
-        if attributename in self.G.graph and self.G.graph[attributename].lower() == oldvalue.lower():
+        strcompare = type(oldvalue) == type(newvalue) and type(oldvalue) is str
+        comparefunc = compare_str if strcompare else compare_other
+        if attributename in self.G.graph and comparefunc(self.G.graph[attributename] , oldvalue):
             self.G.graph[attributename] = newvalue
             found = True
         for n in self.G.nodes():
-            if attributename in self.G.node[n] and self.G.node[n][attributename].lower() == oldvalue.lower():
+            if attributename in self.G.node[n] and  comparefunc(self.G.node[n][attributename], oldvalue):
                 self.G.node[n][attributename] = newvalue
                 found = True
         for e in self.G.edges():
-            if attributename in self.G.edge[e[0]][e[1]] and self.G.edge[e[0]][e[1]][attributename].lower() == oldvalue.lower():
+            if attributename in self.G.edge[e[0]][e[1]] and comparefunc(self.G.edge[e[0]][e[1]][attributename], oldvalue):
                 self.G.edge[e[0]][e[1]][attributename] = newvalue
                 found = True
         return found
@@ -621,11 +629,7 @@ class ImageGraph:
 
     def _setup(self, pathname, projecttype):
         global igversion
-        global igcompatibleversions
-        if 'igversion' in self.G.graph:
-            if self.G.graph['igversion'] not in igcompatibleversions:
-                raise ValueError('Mismatched version. Graph needs to be upgraded to ' + igversion)
-        else:
+        if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']

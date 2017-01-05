@@ -5,7 +5,7 @@ from maskgen.scenario_model import ImageProjectModel,loadProject
 from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
 
 class TestToolSet(unittest.TestCase):
-    def test_aproject(self):
+    def xtest_aproject(self):
         ops = loadOperations("operations.json")
         soft = loadSoftware("software.csv")
         loadProjectProperties("project_properties.json")
@@ -21,6 +21,7 @@ class TestToolSet(unittest.TestCase):
         self.assertEqual('no', result['blurlocal'])
         self.assertEqual('small', result['compositepixelsize'])
         self.assertEqual('yes', result['imagecompression'])
+
 
 
 if __name__ == '__main__':

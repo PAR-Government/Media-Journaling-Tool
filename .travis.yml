@@ -1,0 +1,17 @@
+language: python
+python:
+  - "2.7"
+# command to install dependencies
+before_install:
+ - sudo apt-get update
+ - sudo apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran libraw-dev python-dev
+ - ./installopencv.sh
+install: 
+  - pip install .
+# command to run tests
+script: pytest
+deploy:
+  provider: s3
+  access_key_id: AKIAJ5ICSEI4F44EQPWA
+  secret_access_key: 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
+  bucket: medifor/par/journal
