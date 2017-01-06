@@ -187,6 +187,7 @@ class MakeGenUI(Frame):
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
+        self.maskvar.set(self.scModel.maskStats())
 
     def recomputedonormask(self):
         d = SelectDialog(self, "Mask Reconstruct", "Transform Parameter",
