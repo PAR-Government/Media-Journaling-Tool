@@ -453,7 +453,11 @@ class ImageImageLinkTool(LinkTool):
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
         else:
-            mask, analysis = createMask(startIm, destIm, invert=invert, arguments=arguments, crop=(op == 'TransformCrop'))
+            mask, analysis = createMask(startIm, destIm,
+                                        invert=invert,
+                                        arguments=arguments,
+                                        crop=(op == 'TransformCrop'),
+                                        seam=(op == 'TransformSeamCarving'))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -1133,21 +1137,21 @@ class ImageProjectModel:
         preds = self.G.predecessors(node)
         if len(preds) == 0:
             return [(node, mask)]
-        has_paste_splice = len([pred for pred in preds if self.G.get_edge(pred,node)['op'] == 'PasteSplice']) > 0
         for pred in preds:
             edge = self.G.get_edge(pred,node)
-
+            selection = graph_rules.find_edge_selection(self.G, node, edge)
             if graph_rules.eligible_donor_inputmask(edge):
-                donorMask = self._alterDonor(mask, pred, node, edge, select='match',
+                donorMask = self._alterDonor(mask, pred, node, edge,
+                                             edgeSelection='match',
                                              overideMask=self.G.openImage(os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname'])),
                                              mask=False).to_mask().to_array())
                 result.extend(self._constructDonor(pred, donorMask))
-                has_paste_splice = True
+                # the rest should be pulled from what was not changed
+                selection = 'invert'
             # everything that is black is removed (cut)
             # donors want to keep the pixels pasted
             # pastesplice want to keep the pixels NOT pasted.
-            selection = ('invert' if edge['op'] == 'Donor' else 'match' ) if has_paste_splice else None
-            donorMask = self._alterDonor(mask,pred,node, edge, select=selection)
+            donorMask = self._alterDonor(mask,pred,node, edge, edgeSelection=selection)
             result.extend( self._constructDonor(pred,donorMask))
         return result
 
@@ -2082,7 +2086,7 @@ class ImageProjectModel:
                                                       edge['arguments']['Image Rotated'] == 'yes'))) and \
                                                      'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
 
-    def _alterDonor(self,donorMask,source, target,edge,select=None,overideMask=None):
+    def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):
         if donorMask is None:
             return None
         edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
@@ -2108,15 +2112,14 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0) else None
-        edgeMask = ImageWrapper(edgeMask).invert().to_array() if select == 'invert' else edgeMask
-        #select = None if tm is not None else select
+        edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
         return alterReverseMask(donorMask, edgeMask,
                                 rotation=rotation,
                                 sizeChange=sizeChange,
                                 location=location, flip=flip,
                                 transformMatrix=tm,
                                 crop=edge['op'] == 'TransformCrop',
-                                cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove') or select is not None)
+                                cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove') or edgeSelection is not None)
 
 
     def _getModificationForEdge(self, start,end, edge):

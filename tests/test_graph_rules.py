@@ -5,7 +5,7 @@ from maskgen.scenario_model import ImageProjectModel,loadProject
 from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
 
 class TestToolSet(unittest.TestCase):
-    def xtest_aproject(self):
+    def test_aproject(self):
         ops = loadOperations("operations.json")
         soft = loadSoftware("software.csv")
         loadProjectProperties("project_properties.json")

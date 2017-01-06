@@ -8,8 +8,10 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime
 
+
 snapshot='.b583ce'
 igversion='0.4.0101' + snapshot
+
 
 def current_version():
     return igversion

@@ -46,6 +46,11 @@ def run_rules(op, graph, frm, to):
             results.append(res)
     return results
 
+def find_edge_selection(G, node,edge):
+    preds = G.predecessors(node)
+    has_paste_splice = len([pred for pred in preds if G.get_edge(pred, node)['op'] == 'PasteSplice']) > 0
+    return ('invert' if edge['op'] == 'Donor' else 'match') if has_paste_splice else None
+
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
                          edge['inputmaskname'] is not None and \

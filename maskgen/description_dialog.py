@@ -1640,7 +1640,7 @@ class PropertyFrame(VerticalScrolledFrame):
            if v:
                self.values[row].set(v)
            if prop.type == 'list':
-               widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row])
+               widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row], state='readonly')
                widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
            elif prop.type == 'text':
                widget = Text(master, takefocus=(row == 0), width=60, height=3, relief=RAISED,

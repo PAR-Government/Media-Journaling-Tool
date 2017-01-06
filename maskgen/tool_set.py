@@ -623,11 +623,10 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,argument
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert=False, arguments={}, crop=False):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop)
+def createMask(img1, img2, invert=False, arguments={}, crop=False, seam=False):
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop,seam=seam)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
-
 
 def __indexOf(source, dest):
     positions = []
@@ -826,15 +825,19 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False):
     newMask = newMask*maskInverted + compositeMask*maskAltered
     return newMask
 
-def __composeMask(img1, img2, invert, arguments=dict(),crop=False):
+def __composeMask(img1, img2, invert, arguments=dict(),crop=False, seam=False):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
     if abs(rotation) > 0.0001 and img1.shape != img2.shape:
         return __compareRotatedImage(rotation, img1, img2, invert, arguments)
-    if (sum(img1.shape) > sum(img2.shape)) and crop:
-        return __composeCropImageMask(img1, img2)
+    if (sum(img1.shape) > sum(img2.shape)):
+        if crop:
+           return __composeCropImageMask(img1, img2)
+        elif seam and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
+            # seams can only be calculated in one dimension--only one dimension can change in size
+            return __composeSeamMask(img1,img2)
     if (sum(img1.shape) < sum(img2.shape)):
         return __composeExpandImageMask(img1, img2)
     try:
@@ -916,7 +919,13 @@ def __findBestMatch(big, small):
     return tuple
 
 
-def __composeCropImageMask(img1, img2, seamAnalysis=False):
+def __composeSeamMask(img1,img2):
+    if img1.shape[0] < img2.shape[0]:
+        return abs(255-createHorizontalSeamMask(img1,img2)),{}
+    else:
+        return abs(255-createVerticalSeamMask(img1,img2)),{}
+
+def __composeCropImageMask(img1, img2):
     """ Return a masking where img1 is bigger than img2 and
         img2 is likely a crop of img1.
     """
@@ -935,13 +944,6 @@ def __composeCropImageMask(img1, img2, seamAnalysis=False):
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
         mask = gray_image
-        if len(pinned) >= 2 and seamAnalysis:
-            diffIm2 = np.copy(img1).astype('float32')
-            diffIm2[tuple[0]:tuple[2], tuple[1]:tuple[3]] = img2
-            dst2 = np.abs(img1 - diffIm2)
-            gray_image2 = np.zeros(img1.shape).astype('uint8')
-            gray_image2[dst2 > 0.0001] = 255
-            mask = __seamMask(gray_image2)
     else:
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
@@ -1037,6 +1039,9 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
+    # if we are cutting, then do not want to use the edge mask as mask for transformation.
+    # see the cut section below, where the transform occurs directly on the mask
+    # this  occurs in donor cases
     if transformMatrix is not None and not cut:
         res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix),invert=True)
     elif abs(rotation) > 0.001:
@@ -1101,7 +1106,6 @@ def __diffMask(img1, img2, invert,args=None):
     analysis = img_analytics(img1, img2)
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
 
-
 def fixTransparency(img):
     return img.apply_transparency()
 
@@ -1116,46 +1120,96 @@ def __findNeighbors(paths, next_pixels):
                 s.add(i)
     return newpaths
 
+def __setMask(mask, x,y,value):
+    mask[x,y] = value
 
-def __findVerticalSeam(mask):
-    paths = list()
-    for candidate in np.where(mask[0, :] > 0)[0]:
-        paths.append([candidate])
-    for x in range(1, mask.shape[0]):
-        paths = __findNeighbors(paths, np.where(mask[x, :] > 0)[0])
-    return paths
-
-
-def __findHorizontalSeam(mask):
-    paths = list()
-    for candidate in np.where(mask[:, 0] > 0)[0]:
-        paths.append([candidate])
-    for y in range(1, mask.shape[1]):
-        paths = __findNeighbors(paths, np.where(mask[:, y] > 0)[0])
-    return paths
+def createHorizontalSeamMask(old,new):
+    return __slideAcrossSeams(old,
+                              new,
+                              range(old.shape[1]),
+                              range(old.shape[1]),
+                              old.shape[1],
+                              old.shape[0]
+                              )
 
 
-def __seamMask(mask):
-    seams = __findVerticalSeam(mask)
-    if len(seams) > 0:
-        first = seams[0]
-        # should compare to seams[-1].  this would be accomplished by
-        # looking at the region size of the seam. We want one of the first or last seam that is most
-        # centered
-        mask = np.zeros(mask.shape)
-        for i in range(len(first)):
-            mask[i, first[i]] = 255
-        return mask
-    else:
-        seams = __findHorizontalSeam(mask)
-        if len(seams) == 0:
-            return mask
-        first = seams[0]
-        # should compare to seams[-1]
-        mask = np.zeros(mask.shape)
-        for i in range(len(first)):
-            mask[first[i], i] = 255
-        return mask
+def createVerticalSeamMask(old,new):
+    return __slideAcrossSeams(old,
+                              new,
+                              [x * old.shape[1] for x in range( old.shape[0])],
+                              [x * new.shape[1] for x in range( old.shape[0])],
+                              1,
+                              old.shape[1])
+
+
+def __slideAcrossSeams(old,new,oldmatchchecks,newmatchchecks,increment,count):
+    from functools import partial
+    h, w = old.shape
+    mask = np.zeros((h, w)).astype('uint8')
+    remove_action = partial(__setMask, mask)
+    for pos in range(count):
+        oldmatchchecks, newmatchchecks = __findSeam(old,
+                                                    new,
+                                                    oldmatchchecks,
+                                                    newmatchchecks,
+                                                    increment,
+                                                    lambda pos: remove_action(pos / w, pos % w, 255))
+    return mask
+
+def __findSeam(old,new,oldmatchchecks, newmatchchecks,increment, remove_action):
+    replacement_oldmatchchecks = []
+    replacement_newmatchchecks = []
+    newmaxlen = reduce(lambda x, y: x * y,new.shape,1)
+    for pos in range(len(oldmatchchecks)):
+        old_pixel = old.item(oldmatchchecks[pos])
+        if newmatchchecks[pos] >= newmaxlen:
+            remove_action(oldmatchchecks[pos])
+   #         replacement_newmatchchecks.append(newmatchchecks[pos])
+            continue
+        new_pixel = new.item(newmatchchecks[pos])
+        if old_pixel != new_pixel:
+            remove_action(oldmatchchecks[pos])
+            replacement_newmatchchecks.append(newmatchchecks[pos])
+        else:
+            replacement_newmatchchecks.append(newmatchchecks[pos]+increment)
+        replacement_oldmatchchecks.append(oldmatchchecks[pos] + increment)
+    return replacement_oldmatchchecks,replacement_newmatchchecks
+
+#def __findVerticalSeam(mask):
+#    paths = list()
+##    for candidate in np.where(mask[0, :] > 0)[0]:
+ #       paths.append([candidate])
+ #   for x in range(1, mask.shape[0]):
+ #       paths = __findNeighbors(paths, np.where(mask[x, :] > 0)[0])
+ #   return paths
+#def __findHorizontalSeam(mask):
+#    paths = list()
+#    for candidate in np.where(mask[:, 0] > 0)[0]:
+#        paths.append([candidate])
+#    for y in range(1, mask.shape[1]):
+#        paths = __findNeighbors(paths, np.where(mask[:, y] > 0)[0])
+#    return paths
+#def __seamMask(mask):
+#    seams = __findVerticalSeams(mask)
+##    if len(seams) > 0:
+#        first = seams[0]
+#        # should compare to seams[-1].  this would be accomplished by
+#        # looking at the region size of the seam. We want one of the first or last seam that is most
+#        # centered
+#        mask = np.zeros(mask.shape)
+#        for i in range(len(first)):
+#            mask[i, first[i]] = 255
+#        return mask
+#    else:
+#        seams = __findHorizontalSeam(mask)
+#        if len(seams) == 0:
+#            return mask
+#        first = seams[0]
+#        # should compare to seams[-1]
+#        mask = np.zeros(mask.shape)
+#        for i in range(len(first)):
+#            mask[first[i], i] = 255
+#        return mask
 
 
 def __add_edge(edges, edge_points, points, i, j):

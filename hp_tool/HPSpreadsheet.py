@@ -22,7 +22,11 @@ class HPSpreadsheet(Toplevel):
         self.ritCSV=ritCSV
         self.saveState = True
         self.kinematics = self.load_kinematics()
-        self.devices = self.load_devices()
+        self.devices, self.localIDs = self.load_devices()
+        self.apps = self.load_apps()
+        self.lensFilters = self.load_lens_filters()
+        # self.localIDs = self.load_localIDs()
+        # self.appList = self.load_apps()
         self.protocol('WM_DELETE_WINDOW', self.check_save)
         w, h = self.winfo_screenwidth()-100, self.winfo_screenheight()-100
         self.geometry("%dx%d+0+0" % (w, h))
@@ -126,7 +130,7 @@ class HPSpreadsheet(Toplevel):
         col = self.pt.getSelectedColumn()
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
-        if currentCol in ['HP-OnboardFilter', 'HP-LensFilter', 'HP-Reflections', 'HP-Shadows', 'HP-HDR']:
+        if currentCol in ['HP-OnboardFilter', 'HP-LensFilter', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-PRNU']:
             validValues = ['True', 'False']
         elif currentCol == 'HP-CameraKinematics':
             validValues = self.kinematics
@@ -136,6 +140,12 @@ class HPSpreadsheet(Toplevel):
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
             validValues = self.devices
+        elif currentCol == 'HP-App':
+            validValues = self.apps
+        elif currentCol == 'HP-LensFilter':
+            validValues = self.lensFilters
+        elif currentCol == 'HP-DeviceLocalID':
+            validValues = self.localIDs
 
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
             validValues = {'instructions':'Any integer value'}
@@ -147,12 +157,8 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Date/Time, specified as \"YYYY:MM:DD HH:mm:SS\"'}
         elif currentCol == 'FileType':
             validValues = {'instructions':'Any file extension, without the dot (.) (e.g. jpg, png)'}
-        elif currentCol == 'HP-App':
-            validValues = {'instructions': 'Name of phone app used to take this image'}
         elif currentCol == 'HP-LensLocalId':
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
-        elif currentCol == 'HP-DeviceLocalID':
-            validValues = {'instructions': 'Local ID number (PAR, RIT) of device'}
         else:
             validValues = {'instructions':'Any string of text'}
 
@@ -295,10 +301,9 @@ class HPSpreadsheet(Toplevel):
             dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Kinematics.csv')
             df = pd.read_csv(dataFile)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found!')
+            tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found! (hp_tool/data/Kinematics.csv')
             return []
-
-        return [x.lower().strip() for x in df['Camera Kinematics']]
+        return [x.strip() for x in df['Camera Kinematics']]
 
     def check_kinematics(self):
         errors = []
@@ -311,8 +316,28 @@ class HPSpreadsheet(Toplevel):
                         imageName = self.pt.model.getValueAt(row, 0)
                         errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
                     elif val.lower() not in self.kinematics:
-                        errors.append('Invalid camera kinetickinetic ' + val + ' (row ' + str(row + 1) + ')')
+                        errors.append('Invalid camera kinematic ' + val + ' (row ' + str(row + 1) + ')')
         return errors
+
+    def load_apps(self):
+        try:
+            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'apps.csv')
+            df = pd.read_csv(dataFile)
+        except IOError:
+            tkMessageBox.showwarning('Warning', 'HP-App reference not found! (hp_tool/data/apps.csv)')
+            return
+        apps = [w.strip() for w in df['AppName']]
+        return sorted(list(set(apps)))
+
+    def load_lens_filters(self):
+        try:
+            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'LensFilters.csv')
+            df = pd.read_csv(dataFile)
+        except IOError:
+            tkMessageBox.showwarning('Warning', 'LensFilter reference not found! (hp_tool/data/LensFilters.csv)')
+            return
+        filters = [w.lower().strip() for w in df['LensFilter']]
+        return sorted(list(set(filters)))
 
     def load_devices(self):
         try:
@@ -321,10 +346,10 @@ class HPSpreadsheet(Toplevel):
         except IOError:
             tkMessageBox.showwarning('Warning', 'Camera model reference not found!')
             return
-        manufacturers = [x.lower().strip() for x in df['Manufacturer']]
-        models = [y.lower().strip() for y in df['SeriesModel']]
-        return sorted([manufacturers[z] + ' ' + models[z] for z in range(0, len(manufacturers))])
-        #return [df['Manufacturer'][x].lower().strip() + ' ' + df['SeriesModel'][x].lower.strip() for x in range(0, len(df['SeriesModel']))]
+        manufacturers = [w.strip() for w in df['Manufacturer']]
+        models = [x.strip() for x in df['SeriesModel']]
+        localIDs = [y.strip() for y in df['OrganizationSerialNumber']]
+        return sorted(list(set(models))), localIDs
 
     def check_model(self):
         errors = []
