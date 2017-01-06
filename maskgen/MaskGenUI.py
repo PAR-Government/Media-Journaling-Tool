@@ -590,6 +590,7 @@ class MakeGenUI(Frame):
             CompositeViewDialog(self, self.scModel.start, transformed[0][0], self.scModel.getImage(transformed[0][1]))
 
     def viewdonor(self):
+        #self.scModel.getProbeSetWithoutComposites()
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)

@@ -46,6 +46,18 @@ def run_rules(op, graph, frm, to):
             results.append(res)
     return results
 
+def eligible_donor_inputmask(edge):
+    return ('inputmaskname' in edge and \
+                         edge['inputmaskname'] is not None and \
+                         len(edge['inputmaskname']) > 0 and \
+                         edge['op'] == 'PasteSampled' and \
+                         'arguments' in edge and \
+                         'purpose' in edge['arguments'] and \
+                         edge['arguments']['purpose'] == 'clone')
+
+def eligible_for_donor(edge):
+    return edge['op'] == 'Donor' or eligible_donor_inputmask(edge)
+
 
 def initial_check(op, graph, frm, to):
     edge = graph.get_edge(frm, to)

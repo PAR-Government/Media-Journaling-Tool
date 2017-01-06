@@ -841,17 +841,24 @@ class ImageProjectModel:
 
     def getDonorAndBaseNodeTuples(self):
         """
-        Return a tuple (edge, base node) for each valid donor path through the graph
+        Return a tuple (edge, base node, list of nodes that for the path from edge to base)
+        for each valid donor path through the graph
         """
-        donorEdges = [edge for edge in self.G.get_edges() if
-                         self.G.get_edge(edge[0],edge[1])['op'] == 'Donor']
+        donorEdges = []
+        for edge_id in self.G.get_edges():
+            edge = self.G.get_edge(edge_id[0], edge_id[1])
+            if graph_rules.eligible_for_donor(edge):
+                donorEdges.append(edge_id)
         results = []
         for edge in donorEdges:
-            baseSet = self._findBaseNodes(edge[0])
-            if len(baseSet) > 0:
-                results.append((edge, baseSet[0]))
-            else:
-                results.append((edge, None))
+            baseSet = self._findBaseNodesAndPaths(edge[0],excludeDonor=True)
+            for base in baseSet:
+                if (edge, base) not in results:
+                    results.append((edge, base[0],base[1]))
+            if len(baseSet) == 0:
+                results.append((edge, None, list()))
+        for result in results:
+            result[2].reverse()
         return results
 
     def removeCompositesAndDonors(self):
@@ -922,28 +929,40 @@ class ImageProjectModel:
             edge = self.G.get_edge(edge_id[0],edge_id[1])
             if edge['recordMaskInComposite'] == 'yes':
                 selectMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname')[0]
-                baseNodeIdsAndLevels =  self._findBaseNodesWithCycleDetection(edge_id[0],visitSet=list())
-                baseNodeId,level= baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels)>0 else (None,None)
+                baseNodeIdsAndLevels =  self._findBaseNodesWithCycleDetection(edge_id[0])
+                baseNodeId,level,path= baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels)>0 else (None,None)
+                # build composite
                 for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), selectMask.to_array()):
                     target_mask_filename = os.path.join(self.get_dir(),edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
                     target_mask.save(target_mask_filename,format='PNG')
-                    edge_end_node = self.G.get_node(edge_id[1])
-                    donor_mask_image = None
-                    donor_mask_file_name = None
-                    donorbase = None
-                    if 'donormaskname' in edge_end_node:
-                        donor_mask_image, donor_mask_file_name = self.G.get_donor_mask(edge_id[1])
-                        donorbase = edge_end_node['donorbase']
-                    probes.append(Probe(edge_id,
-                                        finalNodeId,
-                                        baseNodeId,
-                                        target_mask,
-                                        target_mask_filename,
-                                        sizeOfChange(np.asarray(target_mask).astype('uint8')),
-                                        donorbase,
-                                        donor_mask_image,
-                                        donor_mask_file_name,
-                                        level=level))
+                    edge_end_node = edge_id[1]
+                    #build the donors
+                    donormasks = self.G.get_donor_masks(edge_end_node)
+                    if len(donormasks) > 0:
+                        for donorbase, donortuple in donormasks.iteritems():
+                            donor_mask_image, donor_mask_file_name = donortuple[0],donortuple[1]
+                            probes.append(Probe(edge_id,
+                                            finalNodeId,
+                                            baseNodeId,
+                                            target_mask,
+                                            target_mask_filename,
+                                            sizeOfChange(np.asarray(target_mask).astype('uint8')),
+                                            donorbase,
+                                            donor_mask_image,
+                                            donor_mask_file_name,
+                                            level=level))
+                    else:
+                        probes.append(Probe(edge_id,
+                                            finalNodeId,
+                                            baseNodeId,
+                                            target_mask,
+                                            target_mask_filename,
+                                            sizeOfChange(np.asarray(target_mask).astype('uint8')),
+                                            None,
+                                            None,
+                                            None,
+                                            level=level))
+
         return probes
 
     def getProbeSet(self,skipComputation=False,operationTypes=None, otherCondition=None):
@@ -1033,19 +1052,17 @@ class ImageProjectModel:
          Return None if the node is not a leaf node
         """
         nodeName = self.start if self.end is None else self.end
-        mask = None
-        baseImage = None
         # verify the node is a leaf node
         endPointTuples = self.getDonorAndBaseNodeTuples()
         for x in endPointTuples:
             if nodeName == x[0][1]:
                 baseImage,_ = self.G.get_image(x[1])
-                mask, filename = self.G.get_donor_mask(nodeName)
-                if mask is None or force:
-                    self.constructDonors()
-                    mask, filename = self.G.get_donor_mask(nodeName)
-                break
-        return mask,baseImage
+                masks = self.G.get_donor_masks(nodeName)
+                if len(masks) == 0 or force:
+                    self.constructDonors(nodeOfInterest=nodeName)
+                for base, tuple  in self.G.get_donor_masks(nodeName).iteritems():
+                    return tuple[0],baseImage
+        return None,None
 
     def _constructComposites(self, nodeAndMasks, stopAtNode=None,colorMap=dict(),level=IntObject(), operationTypes=None):
         """
@@ -1108,17 +1125,31 @@ class ImageProjectModel:
             results.extend(self._constructTransformedMask((source, target),mask))
         return results if len(successors) > 0 else [(ImageWrapper(mask), edge_id[1])]
 
-    def _constructDonor(self, edge_id, mask):
+    def _constructDonor(self, node, mask):
         """
-          Walks up down the tree from base nodes, assemblying composite masks"
+          Walks up  the tree assembling donor masks"
         """
-        for pred in self.G.predecessors(edge_id[0]):
-            edge = self.G.get_edge(pred, edge_id[0])
-            if edge['op'] == 'Donor':
-                continue
-            donorMask = self._alterDonor(mask,pred, edge_id[0], edge)
-            return self._constructDonor((pred, edge_id[0]),donorMask)
-        return mask
+        result = []
+        preds = self.G.predecessors(node)
+        if len(preds) == 0:
+            return [(node, mask)]
+        has_paste_splice = len([pred for pred in preds if self.G.get_edge(pred,node)['op'] == 'PasteSplice']) > 0
+        for pred in preds:
+            edge = self.G.get_edge(pred,node)
+
+            if graph_rules.eligible_donor_inputmask(edge):
+                donorMask = self._alterDonor(mask, pred, node, edge, select='match',
+                                             overideMask=self.G.openImage(os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname'])),
+                                             mask=False).to_mask().to_array())
+                result.extend(self._constructDonor(pred, donorMask))
+                has_paste_splice = True
+            # everything that is black is removed (cut)
+            # donors want to keep the pixels pasted
+            # pastesplice want to keep the pixels NOT pasted.
+            selection = ('invert' if edge['op'] == 'Donor' else 'match' ) if has_paste_splice else None
+            donorMask = self._alterDonor(mask,pred,node, edge, select=selection)
+            result.extend( self._constructDonor(pred,donorMask))
+        return result
 
     def getTransformedMask(self):
         """
@@ -1180,7 +1211,7 @@ class ImageProjectModel:
                 color_composite),changeCategory)
         return composites
 
-    def constructDonors(self):
+    def constructDonors(self, nodeOfInterest=None):
 
         """
           Construct donor images
@@ -1188,43 +1219,31 @@ class ImageProjectModel:
         """
         self._executeSkippedComparisons()
         donors = list()
-        donor_nodes = set()
-        endPointTuples = self.getDonorAndBaseNodeTuples()
-        for endPointTuple in endPointTuples:
-            edge_im = self.G.get_edge_image(endPointTuple[0][0],endPointTuple[0][1],'maskname')[0]
-            if edge_im is None:
-                continue
-            donor_mask = self._constructDonor(endPointTuple[0],np.asarray(edge_im))
-            if donor_mask is not None:
-                self.G.addDonorToNode(endPointTuple[0][1],endPointTuple[1], ImageWrapper(donor_mask.astype('uint8')))
-                donors.append((endPointTuple[1], donor_mask))
-                donor_nodes.add(endPointTuple[0][1])
         for edge_id in self.G.get_edges():
-            edge = self.G.get_edge(edge_id[0],edge_id[1])
-            edge_end_node = self.G.get_node(edge_id[1])
-            if 'donormaskname' in edge_end_node:
+            if nodeOfInterest is not None and nodeOfInterest != edge_id[1]:
                 continue
-            if 'inputmaskname' in edge and \
-                            edge['inputmaskname'] is not None and \
-                            len(edge['inputmaskname']) > 0 and \
-                            edge['recordMaskInComposite'] == 'yes' and \
-                            edge_id[1] not in donor_nodes:
-                donor_mask_file_name = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
-                try:
-                    if os.path.exists(donor_mask_file_name):
-                        if len(edge['inputmaskname']) == 0:
-                            donor_mask = self.G.get_image(edge_id[0])[0].to_mask().to_array()
-                        else:
-                            donor_mask = self.G.openImage(donor_mask_file_name, mask=False).to_mask().to_array()
-                        donor_mask = self._constructDonor(edge_id,donor_mask)
-                        baseNodes = self._findBaseNodes(edge_id[0])
-                        baseNode = baseNodes[0] if len(baseNodes) > 0 else None
-                        if donor_mask is not None:
-                            self.G.addDonorToNode(edge_id[1], baseNode, ImageWrapper(donor_mask.astype('uint8')))
-                            donors.append((edge_id, donor_mask))
-                            donor_nodes.add(edge_id[1])
-                except Exception as ex:
-                    print 'could not generate donor mask for input mask'  + donor_mask_file_name
+            edge = self.G.get_edge(edge_id[0],edge_id[1])
+            startMask = None
+            if edge['op'] == 'Donor':
+                startMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname')[0]
+            elif  'inputmaskname' in edge and \
+                    edge['inputmaskname'] is not None and \
+                    len(edge['inputmaskname']) > 0 and \
+                    edge['recordMaskInComposite'] == 'yes':
+                startMask = self.G.openImage(os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname'])), mask=False).to_mask().to_array()
+            if startMask is not None:
+                donorsToNodes = {}
+                donor_masks = self._constructDonor(edge_id[0], np.asarray(startMask))
+                for donor_mask_tuple in donor_masks:
+                    donor_mask = donor_mask_tuple[1]
+                    key =  donor_mask_tuple[0]
+                    if key in donorsToNodes:
+                        donorsToNodes[key] = mergeMask(donorsToNodes[key], donor_mask.astype('uint8'))
+                    else:
+                       donorsToNodes[key] = donor_mask.astype('uint8')
+                for key, donor_mask in donorsToNodes.iteritems():
+                    self.G.addDonorToNode(edge_id[1], key, ImageWrapper(donor_mask))
+                    donors.append((edge_id[1], donor_mask))
         return donors
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
@@ -1769,20 +1788,21 @@ class ImageProjectModel:
         return res
 
     def _findBaseNodes(self, node, excludeDonor=True):
-        return [item[0] for item in self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor, visitSet=list())]
+        return [item[0] for item in self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor)]
 
-    def _findBaseNodesWithCycleDetection(self, node, excludeDonor=True, visitSet=list()):
+    def _findBaseNodesAndPaths(self, node, excludeDonor=True):
+        return [(item[0],item[2]) for item in self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor)]
+
+    def _findBaseNodesWithCycleDetection(self, node, excludeDonor=True):
         preds = self.G.predecessors(node)
-        res = [(node,0)] if len(preds) == 0 else list()
+        res = [(node,0,list())] if len(preds) == 0 else list()
         for pred in preds:
-            if pred in visitSet:
+            if  self.G.get_edge(pred, node)['op'] == 'Donor' and  excludeDonor:
                 continue
-            isNotDonor = (self.G.get_edge(pred, node)['op'] != 'Donor' or not excludeDonor)
-            if isNotDonor:
-                visitSet.append(pred)
-            for item in self._findBaseNodesWithCycleDetection(pred, excludeDonor=excludeDonor,
-                                                  visitSet=visitSet) if isNotDonor else list():
-                res.append((item[0],item[1]+1))
+            for item in self._findBaseNodesWithCycleDetection(pred, excludeDonor=excludeDonor):
+                res.append((item[0],item[1]+1,item[2]))
+        for item in res:
+            item[2].append(node)
         return res
 
     def isDonorEdge(self, start, end):
@@ -2062,12 +2082,13 @@ class ImageProjectModel:
                                                       edge['arguments']['Image Rotated'] == 'yes'))) and \
                                                      'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
 
-    def _alterDonor(self,donorMask,source, target,edge):
+    def _alterDonor(self,donorMask,source, target,edge,select=None,overideMask=None):
         if donorMask is None:
             return None
         edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
         selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
         edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+        edgeMask = overideMask if overideMask is not None else edgeMask
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
@@ -2087,12 +2108,16 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0) else None
-        return  alterReverseMask(donorMask, edgeMask, rotation=rotation,
-                                           sizeChange=sizeChange,
-                                           location=location, flip=flip,
-                                           transformMatrix=tm,
-                                          crop = edge['op']=='TransformCrop',
-                                            cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove'))
+        edgeMask = ImageWrapper(edgeMask).invert().to_array() if select == 'invert' else edgeMask
+        #select = None if tm is not None else select
+        return alterReverseMask(donorMask, edgeMask,
+                                rotation=rotation,
+                                sizeChange=sizeChange,
+                                location=location, flip=flip,
+                                transformMatrix=tm,
+                                crop=edge['op'] == 'TransformCrop',
+                                cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove') or select is not None)
+
 
     def _getModificationForEdge(self, start,end, edge):
         """
