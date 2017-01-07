@@ -2050,12 +2050,18 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0)  else None
-        compositeMask = alterMask(compositeMask, edgeMask, rotation=rotation,
-                                           sizeChange=sizeChange, interpolation=interpolation,
-                                           location=location, flip=flip,
-                                           transformMatrix=tm,
-                                           crop=edge['op']=='TransformCrop',
-                                           cut=edge['op'] in ('TransformSeamCarving','SelectRemove'))
+        cut = edge['op'] in ('SelectRemove')
+        cut,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm,edgeMask)
+        compositeMask = alterMask(compositeMask,
+                                  edgeMask,
+                                  rotation=rotation,
+                                  sizeChange=sizeChange,
+                                  interpolation=interpolation,
+                                  location=location,
+                                  flip=flip,
+                                  transformMatrix=tm,
+                                  crop=edge['op'] == 'TransformCrop',
+                                  cut=cut)
         return compositeMask
 
     def _getOrientation(self,edge):
@@ -2095,7 +2101,7 @@ class ImageProjectModel:
                                            sizeChange=sizeChange,
                                            location=location, flip=flip,
                                            transformMatrix=tm,
-                                          crop = edge['op']=='TransformCrop',
+                                           crop = edge['op']=='TransformCrop',
                                             cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove'))
 
     def _getModificationForEdge(self, start,end, edge):

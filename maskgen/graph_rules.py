@@ -4,6 +4,7 @@ import new
 from types import MethodType
 from group_filter import getOperationWithGroups
 import numpy
+from image_wrap import ImageWrapper
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -358,8 +359,7 @@ def checkSize(graph, frm, to):
     return None
 
 
-def getSizeChange(graph, frm, to):
-    edge = graph.get_edge(frm, to)
+def _getSizeChange(edge):
     change = edge['shape change'] if edge is not None and 'shape change' in edge else None
     if change is not None:
         xyparts = change[1:-1].split(',')
@@ -367,6 +367,9 @@ def getSizeChange(graph, frm, to):
         y = int(xyparts[1].strip())
         return (x, y)
     return None
+
+def getSizeChange(graph, frm, to):
+    return _getSizeChange(graph.get_edge(frm, to))
 
 
 def getValue(obj, path, convertFunction=None):
@@ -672,3 +675,13 @@ def getNodeSummary(scModel, node_id):
     """
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
+
+# RULES FOR COMPOSITES AND DONORS
+
+def seamCarvingAlterations(edge, cut, transform_matrix, edgeMask):
+    if edge['op'] == 'TransformSeamCarving':
+        size_changes = _getSizeChange(edge)
+        if size_changes == (0,0):
+            return cut, transform_matrix, edgeMask
+        return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
+    return cut, transform_matrix,edgeMask

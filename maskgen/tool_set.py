@@ -738,7 +738,7 @@ def __applyResizeComposite(compositeMask, size):
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint8')
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 1024
         newLevelMask = cv2.resize(levelMask,(size[1],size[0]))
         newMask[newLevelMask > 150] = level
@@ -1027,10 +1027,10 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     if location != (0, 0) or crop:
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
-    if expectedSize != res.shape:
-        res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
     if cut:
         res = applyMask(res, edgeMask, value=0)
+    if expectedSize != res.shape:
+        res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
     return res
 
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
