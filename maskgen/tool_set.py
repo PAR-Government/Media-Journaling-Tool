@@ -1010,7 +1010,7 @@ def applyMask(image, mask, value=0):
     return image
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None, crop=False, cut=False):
+              transformMatrix=None, flip=None, crop=False, cut=False, maskvalue=255):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1035,7 +1035,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if cut:
-        res = applyMask(res, edgeMask, value=0)
+        res = applyMask(res, edgeMask, value=maskvalue)
     if expectedSize != res.shape:
         res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
     return res

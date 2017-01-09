@@ -338,10 +338,10 @@ class ImageWrapper:
         image_to_use = self.image_array if self.mode == 'RGA' else self.convert('RGB').image_array
         self_array = np.copy(image_to_use)
         if len(image_to_use.shape) != len(image.image_array.shape):
-            image_array =  np.ones(image_to_use.shape)*255
+            image_array =  np.zeros(image_to_use.shape)
+            image_array = image_array.astype('uint8')
             image_array[image.image_array<150,:] = [0, 198, 0]
             image_array[image.image_array >= 150, :] = [0, 0, 0]
-            image_array = image_array.astype('uint8')
         else:
             image_array =np.copy( np.asarray(image))
             image_array[np.all(image_array == [255,255,255],axis=2)] = [0,0,0]

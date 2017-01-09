@@ -1266,7 +1266,9 @@ class QAViewDialog(Toplevel):
         self.optionsLabel.grid(row=row)
         row+=1
         self.crit_links = ['->'.join([p.edgeId[1],p.finalNodeId]) for p in self.probes] if self.probes else []
-        self.crit_links.extend ( ['<-'.join([p.edgeId[1], p.donorBaseNodeId]) for p in self.probes if p.donorMaskImage is not None] if self.probes else [])
+        donors = ['<-'.join([p.edgeId[1], p.donorBaseNodeId]) for p in self.probes if p.donorMaskImage is not None] if self.probes else []
+        donors  = set(sorted(donors))
+        self.crit_links.extend ([x for x in donors])
         self.optionsBox = ttk.Combobox(self, values=self.crit_links)
         if self.crit_links:
             self.optionsBox.set(self.crit_links[0])
@@ -1359,10 +1361,9 @@ class QAViewDialog(Toplevel):
         finalResized = finalResized.overlay(imResized)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize is True:
-            self.c = Canvas(self.cImgFrame, width=finalResized.size[0]+10, height=finalResized.size[1]+10)
+            self.c = Canvas(self.cImgFrame, width=510, height=510)
             self.c.pack()
         self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
-
 
     def qa_done(self, qaState):
         self.parent.scModel.set_validation_properties(qaState,self.reporterStr.get(),self.commentsBox.get(1.0, END))

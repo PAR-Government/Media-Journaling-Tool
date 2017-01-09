@@ -1125,9 +1125,9 @@ class ImageProjectModel:
             edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
             selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
             edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
-            mask = self.__alterComposite(edge,mask,edgeMask)
-            results.extend(self._constructTransformedMask((source, target),mask))
-        return results if len(successors) > 0 else [(ImageWrapper(mask), edge_id[1])]
+            newMask = self.__alterComposite(edge,mask,edgeMask)
+            results.extend(self._constructTransformedMask((source, target), newMask))
+        return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
 
     def _constructDonor(self, node, mask):
         """
@@ -2068,7 +2068,10 @@ class ImageProjectModel:
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
-        sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+        sizeChange =  (0,0)
+        if 'shape change' in edge:
+            changeTuple = toIntTuple(edge['shape change'])
+            sizeChange = (changeTuple[0],changeTuple[1])
         location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
         rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
         args = edge['arguments'] if 'arguments' in edge else {}
@@ -2120,7 +2123,10 @@ class ImageProjectModel:
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
-        sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+        sizeChange =  (0,0)
+        if 'shape change' in edge:
+            changeTuple = toIntTuple(edge['shape change'])
+            sizeChange = (changeTuple[0],changeTuple[1])
         location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
         rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
         args = edge['arguments'] if 'arguments' in edge else {}
