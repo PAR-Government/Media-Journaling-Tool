@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime
 
 
-snapshot='.b583ce'
+snapshot='.1a0d3ed7b5'
 igversion='0.4.0101' + snapshot
 
 
@@ -73,9 +73,19 @@ def getPathValues(d, path):
         return result
     pos = path.find('.')
     if pos < 0:
+        if path == '*':
+            result = []
+            for k, v in d.iteritems():
+                result.append(v)
+            return result
         return [d[path]] if path in d and d[path] else []
     else:
         nextpath = path[0:pos]
+        if nextpath == '*':
+            result = []
+            for k,v in d.iteritems():
+                result.extend(getPathValues(v, path[pos + 1:]))
+            return result
         return getPathValues(d[nextpath], path[pos + 1:]) if nextpath in d else []
 
 
@@ -189,7 +199,7 @@ class ImageGraph:
                      'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}
     nodeFilePaths = {'compositemaskname': None,
-                     'donormaskname': None}
+                     'donors.*': None}
 
     def getUIGraph(self):
         return self.G
@@ -355,11 +365,10 @@ class ImageGraph:
           Remove a donor image associated with a node
         """
         if self.G.has_node(nodeName):
-            fname = nodeName + '_donor_mask.png'
-            if 'donormaskname' in self.G.node[nodeName]:
-                self.G.node[nodeName].pop('donormaskname')
-                if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
-                     os.remove(os.path.abspath(os.path.join(self.dir, fname)))
+            if 'donors' in self.G.node[nodeName]:
+                for base,fname in self.G.node[nodeName].pop('donors').iteritems():
+                    if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
+                        os.remove(os.path.abspath(os.path.join(self.dir, fname)))
 
     def addCompositeToNode(self,  leafNode, baseNode, image, category):
         """
@@ -383,9 +392,10 @@ class ImageGraph:
         Input is a tuple (donor node name, base node name, Image mask)
         """
         if self.G.has_node(recipientNode):
-            fname = recipientNode + '_donor_mask.png'
-            self.G.node[recipientNode]['donormaskname'] = fname
-            self.G.node[recipientNode]['donorbase'] = baseNode
+            if 'donors' not in self.G.node[recipientNode]:
+                self.G.node[recipientNode]['donors'] = {}
+            fname = recipientNode + '_' + baseNode + '_donor_mask.png'
+            self.G.node[recipientNode]['donors'][baseNode] = fname
             try:
                 mask.save(os.path.abspath(os.path.join(self.dir, fname)))
             except IOError:
@@ -498,14 +508,16 @@ class ImageGraph:
         return None, None
 
     def has_donor_mask(self, name):
-        return name in self.G.nodes() and 'donormaskname' in self.G.node[name]
+        return name in self.G.nodes() and 'donors' in self.G.node[name]
 
-    def get_donor_mask(self, name):
-        if name in self.G.nodes() and 'donormaskname' in self.G.node[name]:
-            filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['donormaskname']))
-            im = self.openImage(filename, mask=True)
-            return im, filename
-        return None, None
+    def get_donor_masks(self, name):
+        result = {}
+        if name in self.G.nodes() and 'donors' in self.G.node[name]:
+            for base,fname in self.G.node[name]['donors'].iteritems():
+                filename = os.path.abspath(os.path.join(self.dir, fname))
+                im = self.openImage(filename, mask=True)
+                result[base] = ( im, filename )
+        return result
 
     def get_image(self, name, metadata=dict()):
         """
@@ -619,6 +631,9 @@ class ImageGraph:
         if not (excludeUpdate or localExclude):
             self._setUpdate(item, update_type='graph')
         self.G.graph[item] = value
+
+    def getMetadata(self):
+        return self.G.graph
 
     def get_node(self, name):
         if self.G.has_node(name):
@@ -861,6 +876,7 @@ class ImageGraph:
     def _setUpdate(self,name, update_type=None):
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         self.G.graph['igversion'] = igversion
+
 
     def _buildStructure(self, path, value):
         pos = path.find('.')

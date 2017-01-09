@@ -5,6 +5,8 @@ from types import MethodType
 from group_filter import getOperationWithGroups
 import numpy
 from image_wrap import ImageWrapper
+from image_graph import ImageGraph
+import os
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -46,6 +48,43 @@ def run_rules(op, graph, frm, to):
         if res is not None:
             results.append(res)
     return results
+
+
+def eligible_donor_inputmask(edge):
+    return ('inputmaskname' in edge and \
+                         edge['inputmaskname'] is not None and \
+                         len(edge['inputmaskname']) > 0 and \
+                         edge['op'] == 'PasteSampled' and \
+                         'arguments' in edge and \
+                         'purpose' in edge['arguments'] and \
+                         edge['arguments']['purpose'] == 'clone')
+
+def find_edge_selection(G, node):
+    """
+
+    :param G: ImageGraph
+    :param node:
+    :param edge:
+    :return:
+    @type G: ImageGraph
+    """
+    preds = G.predecessors(node)
+    edgeMask = None
+    edgePredecessor = None
+    for pred in preds:
+        edge = G.get_edge(pred, node)
+        if edge['op'] == 'PasteSplice':
+            edgeMask = G.get_edge_image(pred, node, 'maskname')[0].to_mask().to_array()
+        elif edge['op'] == 'Donor':
+            edgePredecessor = pred
+        elif eligible_donor_inputmask(edge):
+            edgeMask = G.openImage(os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))).to_mask().to_array()
+            edgePredecessor = pred
+    return edgePredecessor,edgeMask, 'invert' if edgeMask is not None else None
+
+
+def eligible_for_donor(edge):
+    return edge['op'] == 'Donor' or eligible_donor_inputmask(edge)
 
 
 def initial_check(op, graph, frm, to):
