@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime
 
 
-snapshot='.b583ce'
+snapshot='.1a0d3ed7b5'
 igversion='0.4.0101' + snapshot
 
 
@@ -632,6 +632,9 @@ class ImageGraph:
             self._setUpdate(item, update_type='graph')
         self.G.graph[item] = value
 
+    def getMetadata(self):
+        return self.G.graph
+
     def get_node(self, name):
         if self.G.has_node(name):
             return self.G.node[name]
@@ -873,6 +876,7 @@ class ImageGraph:
     def _setUpdate(self,name, update_type=None):
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         self.G.graph['igversion'] = igversion
+
 
     def _buildStructure(self, path, value):
         pos = path.find('.')
