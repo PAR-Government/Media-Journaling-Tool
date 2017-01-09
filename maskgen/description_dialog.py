@@ -1266,6 +1266,7 @@ class QAViewDialog(Toplevel):
         self.optionsLabel.grid(row=row)
         row+=1
         self.crit_links = ['->'.join([p.edgeId[1],p.finalNodeId]) for p in self.probes] if self.probes else []
+        self.crit_links.extend ( ['<-'.join([p.edgeId[1], p.donorBaseNodeId]) for p in self.probes if p.donorMaskImage is not None] if self.probes else [])
         self.optionsBox = ttk.Combobox(self, values=self.crit_links)
         if self.crit_links:
             self.optionsBox.set(self.crit_links[0])
@@ -1339,14 +1340,23 @@ class QAViewDialog(Toplevel):
 
     def load_overlay(self, initialize=False):
         edgeTuple = tuple(self.optionsBox.get().split('->'))
-        probe = [probe for probe in self.probes if probe.edgeId[1] == edgeTuple[0] and probe.finalNodeId==edgeTuple[1]][0]
-        n = self.parent.scModel.G.get_node(probe.finalNodeId)
-        finalFile = os.path.join(self.parent.scModel.G.dir, self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
+        if len(edgeTuple) > 1:
+            probe = [probe for probe in self.probes if probe.edgeId[1] == edgeTuple[0] and probe.finalNodeId==edgeTuple[1]][0]
+            n = self.parent.scModel.G.get_node(probe.finalNodeId)
+            finalFile = os.path.join(self.parent.scModel.G.dir,
+                                     self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
+            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500), probe.targetMaskImage.size)
+        else:
+            edgeTuple = tuple(self.optionsBox.get().split('<-'))
+            probe = \
+            [probe for probe in self.probes if probe.edgeId[1] == edgeTuple[0] and probe.donorBaseNodeId == edgeTuple[1]][0]
+            n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
+            finalFile = os.path.join(self.parent.scModel.G.dir,
+                                     self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
+            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
         final = image_wrap.openImageFile(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
-        imResized = imageResizeRelative(probe.targetMaskImage, (500, 500), probe.targetMaskImage.size)
         finalResized = finalResized.overlay(imResized)
-
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize is True:
             self.c = Canvas(self.cImgFrame, width=finalResized.size[0]+10, height=finalResized.size[1]+10)

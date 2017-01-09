@@ -1137,22 +1137,26 @@ class ImageProjectModel:
         preds = self.G.predecessors(node)
         if len(preds) == 0:
             return [(node, mask)]
+        edgePredecessor, overideMask, edgeSelection = graph_rules.find_edge_selection(self.G, node)
         for pred in preds:
             edge = self.G.get_edge(pred,node)
-            selection = graph_rules.find_edge_selection(self.G, node, edge)
-            if graph_rules.eligible_donor_inputmask(edge):
-                donorMask = self._alterDonor(mask, pred, node, edge,
-                                             edgeSelection='match',
-                                             overideMask=self.G.openImage(os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname'])),
-                                             mask=False).to_mask().to_array())
+            # handles donor and inputmask case
+            if pred == edgePredecessor:
+                donorMask = self._alterDonor(mask,
+                                             pred,
+                                             node,
+                                             edge,
+                                             edgeSelection=edgeSelection,
+                                             overideMask=overideMask)
                 result.extend(self._constructDonor(pred, donorMask))
-                # the rest should be pulled from what was not changed
-                selection = 'invert'
-            # everything that is black is removed (cut)
-            # donors want to keep the pixels pasted
-            # pastesplice want to keep the pixels NOT pasted.
-            donorMask = self._alterDonor(mask,pred,node, edge, edgeSelection=selection)
-            result.extend( self._constructDonor(pred,donorMask))
+            if edge['op'] != 'Donor':
+                donorMask = self._alterDonor(mask,
+                                             pred,
+                                             node,
+                                             edge,
+                                             edgeSelection='match' if edgeSelection == 'invert' else None,
+                                             overideMask=overideMask)
+            result.extend(self._constructDonor(pred, donorMask))
         return result
 
     def getTransformedMask(self):
@@ -2051,6 +2055,15 @@ class ImageProjectModel:
             colorMap[level.value] = color
         return self.__alterComposite(edge,compositeMask,edgeMask)
 
+    def _getOrientation(self, edge):
+        return edge['exifdiff']['Orientation'][1] if ('arguments' in edge and \
+                                                      (('rotate' in edge['arguments'] and \
+                                                        edge['arguments']['rotate'] == 'yes') or \
+                                                       ('Image Rotated' in edge['arguments'] and \
+                                                        edge['arguments']['Image Rotated'] == 'yes'))) and \
+                                                     'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
+
+
     def __alterComposite(self,edge, compositeMask, edgeMask):
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
@@ -2070,28 +2083,39 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0)  else None
-        compositeMask = alterMask(compositeMask, edgeMask, rotation=rotation,
-                                           sizeChange=sizeChange, interpolation=interpolation,
-                                           location=location, flip=flip,
-                                           transformMatrix=tm,
-                                           crop=edge['op']=='TransformCrop',
-                                           cut=edge['op'] in ('TransformSeamCarving','SelectRemove'))
+        cut = edge['op'] in ('SelectRemove')
+        cut,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm,edgeMask)
+        compositeMask = alterMask(compositeMask,
+                                  edgeMask,
+                                  rotation=rotation,
+                                  sizeChange=sizeChange,
+                                  interpolation=interpolation,
+                                  location=location,
+                                  flip=flip,
+                                  transformMatrix=tm,
+                                  crop=edge['op'] == 'TransformCrop',
+                                  cut=cut)
         return compositeMask
 
-    def _getOrientation(self,edge):
-        return edge['exifdiff']['Orientation'][1] if ('arguments' in edge and \
-                                                      (('rotate' in edge['arguments'] and \
-                                                     edge['arguments']['rotate'] == 'yes') or \
-                                                     ('Image Rotated' in edge['arguments'] and \
-                                                      edge['arguments']['Image Rotated'] == 'yes'))) and \
-                                                     'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
-
     def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):
+
+        """
+
+        :param self:
+        :param donorMask: The mask to alter and return
+        :param source:
+        :param target:
+        :param edge: the edge the provides the instructions for alteration
+        :param edgeSelection:
+        :param overideMask:
+        :return:
+        """
         if donorMask is None:
             return None
         edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
         selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
         edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+        targetSize = edgeMask.shape
         edgeMask = overideMask if overideMask is not None else edgeMask
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
@@ -2112,15 +2136,17 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0) else None
+        cut = edge['op'] in ('SelectRemove','SelectRegion') or edgeSelection is not None
         edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
+        cut, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm, edgeMask)
         return alterReverseMask(donorMask, edgeMask,
                                 rotation=rotation,
                                 sizeChange=sizeChange,
                                 location=location, flip=flip,
                                 transformMatrix=tm,
+                                targetSize=targetSize,
                                 crop=edge['op'] == 'TransformCrop',
-                                cut=edge['op'] in ('TransformSeamCarving', 'SelectRemove') or edgeSelection is not None)
-
+                                cut=cut)
 
     def _getModificationForEdge(self, start,end, edge):
         """

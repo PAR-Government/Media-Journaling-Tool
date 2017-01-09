@@ -4,6 +4,9 @@ import new
 from types import MethodType
 from group_filter import getOperationWithGroups
 import numpy
+from image_wrap import ImageWrapper
+from image_graph import ImageGraph
+import os
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -46,10 +49,6 @@ def run_rules(op, graph, frm, to):
             results.append(res)
     return results
 
-def find_edge_selection(G, node,edge):
-    preds = G.predecessors(node)
-    has_paste_splice = len([pred for pred in preds if G.get_edge(pred, node)['op'] == 'PasteSplice']) > 0
-    return ('invert' if edge['op'] == 'Donor' else 'match') if has_paste_splice else None
 
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
@@ -59,6 +58,30 @@ def eligible_donor_inputmask(edge):
                          'arguments' in edge and \
                          'purpose' in edge['arguments'] and \
                          edge['arguments']['purpose'] == 'clone')
+
+def find_edge_selection(G, node):
+    """
+
+    :param G: ImageGraph
+    :param node:
+    :param edge:
+    :return:
+    @type G: ImageGraph
+    """
+    preds = G.predecessors(node)
+    edgeMask = None
+    edgePredecessor = None
+    for pred in preds:
+        edge = G.get_edge(pred, node)
+        if edge['op'] == 'PasteSplice':
+            edgeMask = G.get_edge_image(pred, node, 'maskname')[0].to_mask().to_array()
+        elif edge['op'] == 'Donor':
+            edgePredecessor = pred
+        elif eligible_donor_inputmask(edge):
+            edgeMask = G.openImage(os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))).to_mask().to_array()
+            edgePredecessor = pred
+    return edgePredecessor,edgeMask, 'invert' if edgeMask is not None else None
+
 
 def eligible_for_donor(edge):
     return edge['op'] == 'Donor' or eligible_donor_inputmask(edge)
@@ -375,8 +398,7 @@ def checkSize(graph, frm, to):
     return None
 
 
-def getSizeChange(graph, frm, to):
-    edge = graph.get_edge(frm, to)
+def _getSizeChange(edge):
     change = edge['shape change'] if edge is not None and 'shape change' in edge else None
     if change is not None:
         xyparts = change[1:-1].split(',')
@@ -384,6 +406,9 @@ def getSizeChange(graph, frm, to):
         y = int(xyparts[1].strip())
         return (x, y)
     return None
+
+def getSizeChange(graph, frm, to):
+    return _getSizeChange(graph.get_edge(frm, to))
 
 
 def getValue(obj, path, convertFunction=None):
@@ -689,3 +714,13 @@ def getNodeSummary(scModel, node_id):
     """
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
+
+# RULES FOR COMPOSITES AND DONORS
+
+def seamCarvingAlterations(edge, cut, transform_matrix, edgeMask):
+    if edge['op'] == 'TransformSeamCarving':
+        size_changes = _getSizeChange(edge)
+        if size_changes == (0,0):
+            return cut, transform_matrix, edgeMask
+        return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
+    return cut, transform_matrix,edgeMask
