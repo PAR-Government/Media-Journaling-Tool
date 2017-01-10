@@ -240,6 +240,8 @@ class ImageWrapper:
             return ImageWrapper(img,mode='L')
         if self.mode == 'RGB' and convert_type_str == 'L':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY) )
+        if self.mode == 'RGB' and convert_type_str == 'LUV':
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2LUV))
         if self.mode == 'RGBA' and convert_type_str == 'L':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGBA2GRAY) )
         max_value = np.iinfo(img_array.dtype).max
@@ -283,6 +285,30 @@ class ImageWrapper:
         if len(s) == 3 and self.mode.find('A') > 0 :
             gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 255
         return ImageWrapper(gray_image)
+
+    def to_16BitGray(self, equalize_colors=False):
+        """
+        Apply the alpha channel in the process of the conversion
+        :param equalize_colors:
+        :return: float image (mode = 'F')
+        @rtype : ImageWrapper
+        """
+        s = self.image_array.shape
+        if self.mode == 'F':
+            return self
+        if len(s) == 2:
+            return ImageWrapper(tofloat(self.image_array))
+        if self.mode == 'LA':
+            return ImageWrapper(self.image_array[:, :, 0] * tofloat(self.image_array[:, :, 1]).astype('float32'))
+        rgbaimg = self.convert('RGBA') if self.mode != 'RGBA' else self
+        r, g, b = rgbaimg.image_array[:, :, 0], rgbaimg.image_array[:, :, 1], rgbaimg.image_array[:, :, 2]
+        if equalize_colors:
+            r = cv2.equalizeHist(r)
+            g = cv2.equalizeHist(g)
+            b = cv2.equalizeHist(b)
+        a = tofloat(rgbaimg.image_array[:, :, 3]) if s[2] == 4 else np.ones((self.size[1], self.size[0]))
+        gray = ((0.2989 * r + 0.5870 * g + 0.1140 * b) * a)
+        return ImageWrapper(gray.astype('uint16'))
 
     def to_float(self,equalize_colors=False):
         """

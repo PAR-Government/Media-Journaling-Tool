@@ -910,7 +910,16 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
 
 
 def __alignChannels(rawimg1, rawimg2,equalize_colors=False):
-    return rawimg1.to_float(equalize_colors=equalize_colors).to_array(), rawimg2.to_float(equalize_colors=equalize_colors).to_array()
+    """
+
+    :param rawimg1:
+    :param rawimg2:
+    :param equalize_colors:
+    :return:
+    @type rawimg1: ImageWrapper
+    @type rawimg2: ImageWrapper
+    """
+    return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
 def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
