@@ -1122,9 +1122,12 @@ class ImageProjectModel:
             edge = self.G.get_edge(source,target)
             if edge['op'] == 'Donor':
                 continue
-            edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
-            selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-            edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+            edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
+            selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
+            edgeMask = selectMask if selectMask is not None else edgeMask
+            if edgeMask is None:
+                raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+            edgeMask = edgeMask.to_array()
             newMask = self.__alterComposite(edge,mask,edgeMask)
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
@@ -1233,12 +1236,17 @@ class ImageProjectModel:
             edge = self.G.get_edge(edge_id[0],edge_id[1])
             startMask = None
             if edge['op'] == 'Donor':
-                startMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname')[0]
+                startMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname',returnNoneOnMissing=True)[0]
+                if startMask is None:
+                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
             elif  'inputmaskname' in edge and \
                     edge['inputmaskname'] is not None and \
                     len(edge['inputmaskname']) > 0 and \
                     edge['recordMaskInComposite'] == 'yes':
-                startMask = self.G.openImage(os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname'])), mask=False).to_mask().to_array()
+                fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
+                if not os.path.exists(fullpath):
+                    raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                startMask = self.G.openImage(fullpath, mask=False).to_mask().to_array()
             if startMask is not None:
                 donorsToNodes = {}
                 donor_masks = self._constructDonor(edge_id[0], np.asarray(startMask))
@@ -2045,9 +2053,12 @@ class ImageProjectModel:
         # merge masks first, the mask is the same size as the input image
         # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
         # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
-        edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
-        selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-        edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
+        selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
+        edgeMask = selectMask if selectMask is not None else edgeMask
+        if edgeMask is None:
+            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+        edgeMask =  edgeMask.to_array()
         if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' and \
                 (operationTypes is None or edge['op'] in operationTypes):
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
@@ -2115,10 +2126,13 @@ class ImageProjectModel:
         """
         if donorMask is None:
             return None
-        edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
-        selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-        edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
-        targetSize = edgeMask.shape
+        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
+        selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
+        edgeMask = selectMask  if selectMask is not None else edgeMask
+        if edgeMask is None:
+            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+        edgeMask = edgeMask.to_array()
+        targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
         edgeMask = overideMask if overideMask is not None else edgeMask
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped

@@ -338,6 +338,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 
     snapshotFileName = filename
     if not os.path.exists(filename):
+        print filename + ' is missing.'
         return openImage('./icons/RedX.png')
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',

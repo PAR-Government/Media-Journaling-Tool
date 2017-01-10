@@ -307,7 +307,7 @@ class ImageWrapper:
             g = cv2.equalizeHist(g)
             b = cv2.equalizeHist(b)
         a = tofloat(rgbaimg.image_array[:, :, 3]) if s[2] == 4 else np.ones((self.size[1], self.size[0]))
-        gray = ((0.2989 * r + 0.5870 * g + 0.1140 * b) * a)
+        gray = ((2.989 * r + 5.870 * g + 1.140 * b) * a)
         return ImageWrapper(gray.astype('uint16'))
 
     def to_float(self,equalize_colors=False):
