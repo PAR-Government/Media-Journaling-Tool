@@ -74,6 +74,8 @@ class TestToolSet(unittest.TestCase):
         print newmask
         if not np.all(newmask == mask * 255):
             self.assertTrue(sum(sum(newmask != mask * 255)) < 4)
+        new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
+        self.assertTrue(np.all(new==new_rebuilt))
 
     def test_createVerticalSeamMask(self):
         dim = 10
@@ -98,22 +100,24 @@ class TestToolSet(unittest.TestCase):
         print newmask
         if not np.all(newmask==mask*255):
             self.assertTrue(sum(sum(newmask != mask * 255)) < 4)
+        new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
+        self.assertTrue(np.all(new==new_rebuilt))
 
 
 
     def test_fileMask(self):
         pre = tool_set.openImageFile('tests/images/prefill.png')
         post = tool_set.openImageFile('tests/images/postfill.png')
-        mask,analysis = tool_set.createMask(pre,post,invert=False,arguments={'tolerance' : 25})
+        mask,analysis = tool_set.createMask(pre,post,invert=False,arguments={'tolerance' : 2500})
         withtolerance = sum(sum(mask.image_array))
         mask.save('tests/images/maskfill.png')
         mask, analysis = tool_set.createMask(pre, post, invert=False)
         withouttolerance = sum(sum(mask.image_array))
-        mask, analysis = tool_set.createMask(pre, post, invert=False, arguments={'tolerance': 25,'equalize_colors':True})
+        mask, analysis = tool_set.createMask(pre, post, invert=False, arguments={'tolerance': 2500,'equalize_colors':True})
         mask.save('tests/images/maskfillt.png')
         withtoleranceandqu = sum(sum(mask.image_array))
         self.assertTrue(withouttolerance < withtolerance)
-        self.assertTrue(withtolerance < withtoleranceandqu)
+        self.assertTrue(withtolerance <= withtoleranceandqu)
 
     def test_timeparse(self):
         self.assertTrue(tool_set.validateTimeString('03:10:10.434'))

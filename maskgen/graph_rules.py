@@ -724,10 +724,10 @@ def getNodeSummary(scModel, node_id):
 
 # RULES FOR COMPOSITES AND DONORS
 
-def seamCarvingAlterations(edge, cut, transform_matrix, edgeMask):
+def seamCarvingAlterations(edge, transform_matrix, edgeMask):
     if edge['op'] == 'TransformSeamCarving':
         size_changes = _getSizeChange(edge)
         if size_changes == (0,0):
-            return cut, transform_matrix, edgeMask
+            return False, transform_matrix, edgeMask
         return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
-    return cut, transform_matrix,edgeMask
+    return False, transform_matrix,edgeMask

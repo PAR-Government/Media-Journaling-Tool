@@ -474,6 +474,8 @@ class ImageGraph:
         if errors is not None:
             edge['errors'] = errors
         for k,v in kwargs.iteritems():
+            if v is None and k in edge:
+                edge.pop(k)
             edge[k] = v
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):

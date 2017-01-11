@@ -1066,7 +1066,8 @@ class ImageProjectModel:
                 if len(masks) == 0 or force:
                     self.constructDonors(nodeOfInterest=nodeName)
                 for base, tuple  in self.G.get_donor_masks(nodeName).iteritems():
-                    return tuple[0],baseImage
+                    if base == x[1]:
+                        return tuple[0],baseImage
         return None,None
 
     def _constructComposites(self, nodeAndMasks, stopAtNode=None,colorMap=dict(),level=IntObject(), operationTypes=None):
@@ -1129,7 +1130,7 @@ class ImageProjectModel:
             if edgeMask is None:
                 raise ValueError('Missing edge mask from ' + source + ' to ' + target)
             edgeMask = edgeMask.to_array()
-            newMask = self.__alterComposite(edge,mask,edgeMask,maskvalue=0)
+            newMask = self.__alterComposite(edge,mask,edgeMask)
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
 
@@ -1252,10 +1253,11 @@ class ImageProjectModel:
                 donorsToNodes = {}
                 donor_masks = self._constructDonor(edge_id[0], np.asarray(startMask))
                 for donor_mask_tuple in donor_masks:
-                    donor_mask = donor_mask_tuple[1]
+                    donor_mask = donor_mask_tuple[1].astype('uint8')
+                    if sum(sum(donor_mask > 1)) == 0:
+                        continue
                     key =  donor_mask_tuple[0]
                     if key in donorsToNodes:
-                        donor_mask = donor_mask.astype('uint8')
                         donorsToNodes[key][donor_mask > 1] = 255
                     else:
                        donorsToNodes[key] = donor_mask.astype('uint8')
@@ -2077,7 +2079,7 @@ class ImageProjectModel:
                                                      'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
 
 
-    def __alterComposite(self,edge, compositeMask, edgeMask,maskvalue=255):
+    def __alterComposite(self,edge, compositeMask, edgeMask):
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
         # considering a rotation, the mask is now rotated
@@ -2100,7 +2102,7 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0)  else None
         cut = edge['op'] in ('SelectRemove')
-        cut,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm,edgeMask)
+        carve,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, tm,edgeMask)
         compositeMask = alterMask(compositeMask,
                                   edgeMask,
                                   rotation=rotation,
@@ -2111,7 +2113,7 @@ class ImageProjectModel:
                                   transformMatrix=tm,
                                   crop=edge['op'] == 'TransformCrop',
                                   cut=cut,
-                                  maskvalue=maskvalue)
+                                  carve=carve)
         return compositeMask
 
     def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):
@@ -2159,9 +2161,10 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0) else None
-        cut = edge['op'] in ('SelectRemove','SelectRegion') or edgeSelection is not None
+        cut = edge['op'] in ('SelectRemove') or edgeSelection is not None
         edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
-        cut, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm, edgeMask)
+        carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
+        cut = carve or cut
         return alterReverseMask(donorMask, edgeMask,
                                 rotation=rotation,
                                 sizeChange=sizeChange,
