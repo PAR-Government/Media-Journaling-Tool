@@ -74,12 +74,19 @@ def find_edge_selection(G, node):
     for pred in preds:
         edge = G.get_edge(pred, node)
         if edge['op'] == 'PasteSplice':
-            edgeMask = G.get_edge_image(pred, node, 'maskname')[0].to_mask().to_array()
+            edgeMask = G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0]
+            if edgeMask is not None:
+                edgeMask = edgeMask.to_mask().to_array()
+            else:
+                raise ValueError('Missing edge mask for ' + pred + ' to ' + node)
         elif edge['op'] == 'Donor':
             edgePredecessor = pred
-        elif eligible_donor_inputmask(edge):
-            edgeMask = G.openImage(os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))).to_mask().to_array()
-            edgePredecessor = pred
+      ##  elif eligible_donor_inputmask(edge):
+       #     fullpath = os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))
+       #     if not os.path.exists(fullpath):
+       #         raise ValueError('Missing input mask for ' + pred + ' to ' + node)
+       #     edgeMask = G.openImage(fullpath).to_mask().to_array()
+       #     edgePredecessor = pred
     return edgePredecessor,edgeMask, 'invert' if edgeMask is not None else None
 
 
@@ -717,10 +724,10 @@ def getNodeSummary(scModel, node_id):
 
 # RULES FOR COMPOSITES AND DONORS
 
-def seamCarvingAlterations(edge, cut, transform_matrix, edgeMask):
+def seamCarvingAlterations(edge, transform_matrix, edgeMask):
     if edge['op'] == 'TransformSeamCarving':
         size_changes = _getSizeChange(edge)
         if size_changes == (0,0):
-            return cut, transform_matrix, edgeMask
+            return False, transform_matrix, edgeMask
         return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
-    return cut, transform_matrix,edgeMask
+    return False, transform_matrix,edgeMask

@@ -338,7 +338,10 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 
     snapshotFileName = filename
     if not os.path.exists(filename):
-        return openImage('./icons/RedX.png')
+        print filename + ' is missing.'
+        if filename != './icons/RedX.png':
+            return openImage('./icons/RedX.png')
+        return None
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
                                                       'm4v' , 'mts']:
@@ -702,9 +705,10 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
         new_dst_pts = dst_pts
         RANSAC_THRESHOLD = 4.0
         if arguments is not None and 'RANSAC' in arguments:
-            choice = '0' if arguments['RANSAC'] == 'None' else arguments['RANSAC']
+            if arguments['RANSAC'] == 'None':
+                return None,None
             try:
-                 RANSAC_THRESHOLD = float(choice)
+                 RANSAC_THRESHOLD = float(arguments['RANSAC'])
             except:
                 print 'invalid RANSAC ' + arguments['RANSAC']
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
@@ -811,7 +815,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetS
     flags = cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR  # +cv2.CV_WARP_FILL_OUTLIERS
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
-    compositeMaskFlipped = 255 - compositeMask if invert else compositeMask
+    compositeMaskFlipped = compositeMask
 
     # resize only occurs by user error.
     if compositeMaskFlipped.shape != maskInverted.shape:
@@ -828,7 +832,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetS
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    newMask = 255 - newMask if invert else newMask
+    #newMask = 255 - newMask if invert else newMask
     newMask = newMask*maskInverted + compositeMask*maskAltered
     return newMask
 
@@ -910,7 +914,16 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
 
 
 def __alignChannels(rawimg1, rawimg2,equalize_colors=False):
-    return rawimg1.to_float(equalize_colors=equalize_colors).to_array(), rawimg2.to_float(equalize_colors=equalize_colors).to_array()
+    """
+
+    :param rawimg1:
+    :param rawimg2:
+    :param equalize_colors:
+    :return:
+    @type rawimg1: ImageWrapper
+    @type rawimg2: ImageWrapper
+    """
+    return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
 def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
@@ -918,7 +931,7 @@ def __findBestMatch(big, small):
     """
     if np.any(np.asarray([(x[1] - x[0]) for x in zip(small.shape, big.shape)]) < 0):
         return None
-    result = cv2.matchTemplate(big, small, cv2.cv.CV_TM_SQDIFF_NORMED)
+    result = cv2.matchTemplate(big.astype('float32'), small.astype('float32'), cv2.cv.CV_TM_SQDIFF_NORMED)
     mn, _, mnLoc, _ = cv2.minMaxLoc(result)
     tuple = (mnLoc[1], mnLoc[0], mnLoc[1] + small.shape[0], mnLoc[0] + small.shape[1])
     if (tuple[2] > big.shape[0] or tuple[3] > big.shape[1]):
@@ -1009,8 +1022,35 @@ def applyMask(image, mask, value=0):
     image[mask==0] = value
     return image
 
+def carveMask(image, mask, expectedSize):
+    """
+    Trim a mask after seam carving
+    :param image:
+    :param mask:
+    :param expectedSize:
+    :return:
+    """
+    newimage = np.zeros(expectedSize).astype('uint8')
+    if expectedSize[0] == mask.shape[0]:
+        for x in range(expectedSize[0]):
+            topaste = image[x,mask[x,:]==255]
+            if (len(topaste)) <= newimage.shape[1]:
+                newimage[x,0:len(topaste)] = topaste
+            else:
+                newimage[x,:] = topaste[0:len(topaste)]
+    elif expectedSize[1] == mask.shape[1]:
+        for y in range(expectedSize[1]):
+            topaste = image[mask[:,y]==255,y]
+            if (len(topaste)) <= newimage.shape[0]:
+                newimage[0:len(topaste),y] = topaste
+            else:
+                newimage[:,y] = topaste[0:len(topaste)]
+    else:
+        return applyMask(image,mask)
+    return newimage
+
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None, crop=False, cut=False, maskvalue=255):
+              transformMatrix=None, flip=None, crop=False, cut=False, carve=False):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1035,7 +1075,9 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if cut:
-        res = applyMask(res, edgeMask, value=maskvalue)
+        res = applyMask(res, edgeMask)
+    if carve:
+        res = carveMask(res, edgeMask,expectedSize)
     if expectedSize != res.shape:
         res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
     return res
@@ -1053,18 +1095,21 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix),invert=True)
     elif abs(rotation) > 0.001:
         res = __rotateImage(-rotation,  res,
-                            (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1]), cval=255)
+                            (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1]), cval=0)
     elif flip is not None:
         res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0) or crop:
-        newRes = np.ones(expectedSize)*255
+        newRes = np.zeros(expectedSize)
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
         newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0]-location[0]),0:(upperBound[1]-location[1])]
         res = newRes
     if expectedSize != res.shape:
         res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
+    #Need to think through Seam Carving here.
+    #Seam carving essential puts pixels back.
+    #perhaps this is ok, since the resize happens first and then the cut of the removed pixels
     if cut:
-        res = applyMask(res, edgeMask, value=255)
+        res = applyMask(res, edgeMask)
         if transformMatrix is not None:
             res = cv2.warpPerspective(res, deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
                                       flags=cv2.WARP_INVERSE_MAP,

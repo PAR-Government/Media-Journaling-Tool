@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime
 
 
-snapshot='.1a0d3ed7b5'
+snapshot='.b77d9ef02e'
 igversion='0.4.0101' + snapshot
 
 
@@ -402,7 +402,7 @@ class ImageGraph:
                 donorMask = convertToMask(mask)
                 donorMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
-    def get_edge_image(self, start, end, path):
+    def get_edge_image(self, start, end, path,returnNoneOnMissing=False):
         """
         Get image name and file name for image given edge identified by start and end and the edge property path
         :param start:
@@ -418,7 +418,10 @@ class ImageGraph:
         values = getPathValues(edge, path)
         if len(values) > 0:
             value = values[0]
-            im = self.openImage(os.path.abspath(os.path.join(self.dir, value)), mask=True)
+            fullpath = os.path.abspath(os.path.join(self.dir, value))
+            if returnNoneOnMissing and not os.path.exists(fullpath):
+                return None, None
+            im = self.openImage(fullpath, mask=True)
             return im, value
         return None, None
 
@@ -471,6 +474,8 @@ class ImageGraph:
         if errors is not None:
             edge['errors'] = errors
         for k,v in kwargs.iteritems():
+            if v is None and k in edge:
+                edge.pop(k)
             edge[k] = v
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):

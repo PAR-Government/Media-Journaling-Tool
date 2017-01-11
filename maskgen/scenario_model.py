@@ -936,7 +936,8 @@ class ImageProjectModel:
                 baseNodeIdsAndLevels =  self._findBaseNodesWithCycleDetection(edge_id[0])
                 baseNodeId,level,path= baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels)>0 else (None,None)
                 # build composite
-                for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), selectMask.to_array()):
+                for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), selectMask.invert().to_array()):
+                    target_mask = target_mask.invert()
                     target_mask_filename = os.path.join(self.get_dir(),edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
                     target_mask.save(target_mask_filename,format='PNG')
                     edge_end_node = edge_id[1]
@@ -1065,7 +1066,8 @@ class ImageProjectModel:
                 if len(masks) == 0 or force:
                     self.constructDonors(nodeOfInterest=nodeName)
                 for base, tuple  in self.G.get_donor_masks(nodeName).iteritems():
-                    return tuple[0],baseImage
+                    if base == x[1]:
+                        return tuple[0],baseImage
         return None,None
 
     def _constructComposites(self, nodeAndMasks, stopAtNode=None,colorMap=dict(),level=IntObject(), operationTypes=None):
@@ -1122,9 +1124,12 @@ class ImageProjectModel:
             edge = self.G.get_edge(source,target)
             if edge['op'] == 'Donor':
                 continue
-            edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
-            selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-            edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+            edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
+            selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
+            edgeMask = selectMask if selectMask is not None else edgeMask
+            if edgeMask is None:
+                raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+            edgeMask = edgeMask.to_array()
             newMask = self.__alterComposite(edge,mask,edgeMask)
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
@@ -1154,9 +1159,9 @@ class ImageProjectModel:
                                              pred,
                                              node,
                                              edge,
-                                             edgeSelection='match' if edgeSelection == 'invert' else None,
+                                             edgeSelection='match' if edgeSelection is not None else None,
                                              overideMask=overideMask)
-            result.extend(self._constructDonor(pred, donorMask))
+                result.extend(self._constructDonor(pred, donorMask))
         return result
 
     def getTransformedMask(self):
@@ -1233,24 +1238,31 @@ class ImageProjectModel:
             edge = self.G.get_edge(edge_id[0],edge_id[1])
             startMask = None
             if edge['op'] == 'Donor':
-                startMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname')[0]
-            elif  'inputmaskname' in edge and \
+                startMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname',returnNoneOnMissing=True)[0]
+                if startMask is None:
+                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
+            elif 'inputmaskname' in edge and \
                     edge['inputmaskname'] is not None and \
                     len(edge['inputmaskname']) > 0 and \
                     edge['recordMaskInComposite'] == 'yes':
-                startMask = self.G.openImage(os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname'])), mask=False).to_mask().to_array()
+                startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
+                if startMask is None:
+                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
             if startMask is not None:
+                startMask = startMask.invert().to_array()
                 donorsToNodes = {}
                 donor_masks = self._constructDonor(edge_id[0], np.asarray(startMask))
                 for donor_mask_tuple in donor_masks:
-                    donor_mask = donor_mask_tuple[1]
+                    donor_mask = donor_mask_tuple[1].astype('uint8')
+                    if sum(sum(donor_mask > 1)) == 0:
+                        continue
                     key =  donor_mask_tuple[0]
                     if key in donorsToNodes:
-                        donorsToNodes[key] = mergeMask(donorsToNodes[key], donor_mask.astype('uint8'))
+                        donorsToNodes[key][donor_mask > 1] = 255
                     else:
                        donorsToNodes[key] = donor_mask.astype('uint8')
                 for key, donor_mask in donorsToNodes.iteritems():
-                    self.G.addDonorToNode(edge_id[1], key, ImageWrapper(donor_mask))
+                    self.G.addDonorToNode(edge_id[1], key, ImageWrapper(donor_mask).invert())
                     donors.append((edge_id[1], donor_mask))
         return donors
 
@@ -2045,9 +2057,12 @@ class ImageProjectModel:
         # merge masks first, the mask is the same size as the input image
         # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
         # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
-        edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
-        selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-        edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
+        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
+        selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
+        edgeMask = selectMask if selectMask is not None else edgeMask
+        if edgeMask is None:
+            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+        edgeMask =  edgeMask.to_array()
         if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' and \
                 (operationTypes is None or edge['op'] in operationTypes):
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
@@ -2087,7 +2102,7 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0)  else None
         cut = edge['op'] in ('SelectRemove')
-        cut,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm,edgeMask)
+        carve,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, tm,edgeMask)
         compositeMask = alterMask(compositeMask,
                                   edgeMask,
                                   rotation=rotation,
@@ -2097,7 +2112,8 @@ class ImageProjectModel:
                                   flip=flip,
                                   transformMatrix=tm,
                                   crop=edge['op'] == 'TransformCrop',
-                                  cut=cut)
+                                  cut=cut,
+                                  carve=carve)
         return compositeMask
 
     def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):
@@ -2115,10 +2131,13 @@ class ImageProjectModel:
         """
         if donorMask is None:
             return None
-        edgeMask = self.G.get_edge_image(source, target, 'maskname')[0]
-        selectMask = self.G.get_edge_image(source, target, 'selectmaskname')[0]
-        edgeMask = selectMask.to_array() if selectMask is not None else edgeMask.to_array()
-        targetSize = edgeMask.shape
+        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
+        selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
+        edgeMask = selectMask  if selectMask is not None else edgeMask
+        if edgeMask is None:
+            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+        edgeMask = edgeMask.to_array()
+        targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
         edgeMask = overideMask if overideMask is not None else edgeMask
         # change the mask to reflect the output image
         # considering the crop again, the high-lighted change is not dropped
@@ -2142,9 +2161,10 @@ class ImageProjectModel:
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
         tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
         tm = tm if sizeChange == (0,0) else None
-        cut = edge['op'] in ('SelectRemove','SelectRegion') or edgeSelection is not None
+        cut = edge['op'] in ('SelectRemove') or edgeSelection is not None
         edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
-        cut, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, cut, tm, edgeMask)
+        carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
+        cut = carve or cut
         return alterReverseMask(donorMask, edgeMask,
                                 rotation=rotation,
                                 sizeChange=sizeChange,
