@@ -81,12 +81,12 @@ def find_edge_selection(G, node):
                 raise ValueError('Missing edge mask for ' + pred + ' to ' + node)
         elif edge['op'] == 'Donor':
             edgePredecessor = pred
-        elif eligible_donor_inputmask(edge):
-            fullpath = os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))
-            if not os.path.exists(fullpath):
-                raise ValueError('Missing input mask for ' + pred + ' to ' + node)
-            edgeMask = G.openImage(fullpath).to_mask().to_array()
-            edgePredecessor = pred
+      ##  elif eligible_donor_inputmask(edge):
+       #     fullpath = os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))
+       #     if not os.path.exists(fullpath):
+       #         raise ValueError('Missing input mask for ' + pred + ' to ' + node)
+       #     edgeMask = G.openImage(fullpath).to_mask().to_array()
+       #     edgePredecessor = pred
     return edgePredecessor,edgeMask, 'invert' if edgeMask is not None else None
 
 

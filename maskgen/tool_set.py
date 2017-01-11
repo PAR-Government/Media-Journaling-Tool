@@ -339,7 +339,9 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
     snapshotFileName = filename
     if not os.path.exists(filename):
         print filename + ' is missing.'
-        return openImage('./icons/RedX.png')
+        if filename != './icons/RedX.png':
+            return openImage('./icons/RedX.png')
+        return None
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
                                                       'm4v' , 'mts']:
@@ -812,7 +814,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetS
     flags = cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR  # +cv2.CV_WARP_FILL_OUTLIERS
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
-    compositeMaskFlipped = 255 - compositeMask if invert else compositeMask
+    compositeMaskFlipped = compositeMask
 
     # resize only occurs by user error.
     if compositeMaskFlipped.shape != maskInverted.shape:
@@ -829,7 +831,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetS
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    newMask = 255 - newMask if invert else newMask
+    #newMask = 255 - newMask if invert else newMask
     newMask = newMask*maskInverted + compositeMask*maskAltered
     return newMask
 
@@ -928,7 +930,7 @@ def __findBestMatch(big, small):
     """
     if np.any(np.asarray([(x[1] - x[0]) for x in zip(small.shape, big.shape)]) < 0):
         return None
-    result = cv2.matchTemplate(big, small, cv2.cv.CV_TM_SQDIFF_NORMED)
+    result = cv2.matchTemplate(big.astype('float32'), small.astype('float32'), cv2.cv.CV_TM_SQDIFF_NORMED)
     mn, _, mnLoc, _ = cv2.minMaxLoc(result)
     tuple = (mnLoc[1], mnLoc[0], mnLoc[1] + small.shape[0], mnLoc[0] + small.shape[1])
     if (tuple[2] > big.shape[0] or tuple[3] > big.shape[1]):
@@ -1074,7 +1076,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     if expectedSize != res.shape:
         res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
     if cut:
-        res = applyMask(res, edgeMask, value=255)
+        res = applyMask(res, edgeMask, value=0)
         if transformMatrix is not None:
             res = cv2.warpPerspective(res, deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
                                       flags=cv2.WARP_INVERSE_MAP,

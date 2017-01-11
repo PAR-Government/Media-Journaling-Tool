@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime
 
 
-snapshot='.1a0d3ed7b5'
+snapshot='.b77d9ef02e'
 igversion='0.4.0101' + snapshot
 
 
