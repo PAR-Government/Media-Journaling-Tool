@@ -1245,7 +1245,12 @@ class ImageProjectModel:
                     edge['inputmaskname'] is not None and \
                     len(edge['inputmaskname']) > 0 and \
                     edge['recordMaskInComposite'] == 'yes':
-                startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
+                fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
+                if not os.path.exists(fullpath):
+                    raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                #invert sin
+                startMask = self.G.openImage(fullpath, mask=False).to_mask()
+                #startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
                 if startMask is None:
                     raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
             if startMask is not None:
