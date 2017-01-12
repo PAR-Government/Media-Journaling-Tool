@@ -171,16 +171,19 @@ class MakeGenUI(Frame):
             openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val))
 
     def saveas(self):
-        val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Save As",
-                                         filetypes=[("json files", "*.json")])
-        if (val is not None and len(val.name) > 0):
-            dir = os.path.abspath(os.path.split(val.name)[0])
+        val = tkFileDialog.askdirectory(initialdir=self.scModel.get_dir(), title="Save As")
+        if (val is not None and len(val) > 0):
+            dir = val
             if (dir == os.path.abspath(self.scModel.get_dir())):
                 tkMessageBox.showwarning("Save As", "Cannot save to the same directory\n(%s)" % dir)
             else:
-                self.scModel.saveas(val.name)
-                self._setTitle()
-            val.close()
+                contents = os.listdir(dir)
+                if len(contents) > 0:
+                    tkMessageBox.showwarning("Save As", "Directory is not empty\n(%s)" % dir)
+                else:
+                    self.scModel.saveas(dir)
+                    self._setTitle()
+            #val.close()
 
     def recomputeedgemask(self):
         self.scModel.reproduceMask()

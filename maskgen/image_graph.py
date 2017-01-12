@@ -679,7 +679,11 @@ class ImageGraph:
         currentdir = self.dir
         fname = os.path.split(pathname)[1]
         name = get_pre_name(fname)
-        self.dir = os.path.abspath(os.path.split(pathname)[0])
+        if os.path.isdir(pathname):
+            self.dir = pathname
+        else:
+            self.dir = os.path.join(os.path.abspath(os.path.split(pathname)[0]),name)
+            os.mkdir(self.dir)
         self.G.name = name
         filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
         self._copy_contents(currentdir)
