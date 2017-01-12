@@ -7,6 +7,7 @@ import numpy
 from image_wrap import ImageWrapper
 from image_graph import ImageGraph
 import os
+import exif
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -76,7 +77,7 @@ def find_edge_selection(G, node):
         if edge['op'] == 'PasteSplice':
             edgeMask = G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0]
             if edgeMask is not None:
-                edgeMask = edgeMask.to_mask().to_array()
+                edgeMask = edgeMask.to_array()
             else:
                 raise ValueError('Missing edge mask for ' + pred + ' to ' + node)
         elif edge['op'] == 'Donor':
@@ -576,6 +577,14 @@ def spatialRemove(scModel,edgeTuples):
             return 'yes'
     return 'no'
 
+def prnuSetIdRule(scModel,edgeTuples):
+    for edgeTuple in edgeTuples:
+        if edgeTuple.edge['op'] in ['PRNU'] and \
+                'arguments' in edgeTuple.edge and \
+                'Training Set ID' in edgeTuple.edge['arguments']:
+            return edgeTuple.edge['arguments']['Training Set ID']
+    return ''
+
 def spatialMovingObject(scModel,edgeTuples):
     for edgeTuple in edgeTuples:
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
@@ -595,6 +604,22 @@ def voiceSwap(scModel,edgeTuples):
                 'add type' in edgeTuple.edge['arguments'] and \
                 edgeTuple.edge['arguments']['add type'] == 'replace':
             return 'yes'
+    return 'no'
+
+def imageCompressionRule(scModel, edgeTuples):
+    """
+
+    :param scModel:
+    :param edgeTuples:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    for edgeTuple in edgeTuples:
+        if len(scModel.getGraph().successors(edgeTuple.end)) == 0:
+            node = scModel.getGraph().get_node(edgeTuple.end)
+            result = exif.getexif(node['file'])
+            compression = result['Compression'].strip() if 'Compression' in result else None
+            return 'yes'  if compression and len(compression) > 0 and compression.lower() != 'uncompressed' else 'no'
     return 'no'
 
 def compositeSizeRule(scModel, edgeTuples):

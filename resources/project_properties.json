@@ -385,6 +385,14 @@
       "description": "Image Compression",
       "name": "imagecompression",
       "type": "yesno",
+      "rule" : "imageCompressionRule",
+      "_comment": " looks at meta-data of final image ",
+      "node" : true
+    },
+    {
+      "description": "Image Compression Table",
+      "name": "imagecompressiontable",
+      "type": "yesno",
       "operations" : ["AntiForensicExifQuantizationTable","AntiForensicJPGCompression"],
       "node" : true
     },
@@ -404,6 +412,79 @@
        "type": "text",
        "rule" : "unitCountRule",
        "information": "The number of units per node"
+    },
+    {
+       "description": "AntiForensic Illumination",
+       "name": "antiforensicillumination",
+       "node" : true,
+       "type": "text",
+       "rule" : "unitCountRule",
+       "information": "AntiForensic Illumination"
+    },
+    {
+       "description": "Laundering SocialMedia",
+       "name": "launderingsocialmedia",
+       "node" : true,
+       "operations": ["SocialMedia"],
+       "type": "text",
+       "information": "Laundering SocialMedia"
+    },
+    {
+       "description": "Laundering SocialMedia",
+       "name": "launderingsocialmedia",
+       "node" : true,
+       "operations": ["SocialMedia"],
+       "type": "text",
+       "information": "Laundering SocialMedia"
+    },
+    {
+       "description": "Laundering Median Filtering",
+       "name": "launderingmedianfiltering",
+       "node" : true,
+       "operations": ["MedianFilter"],
+       "type": "text",
+       "information": "Laundering Median Filtering"
+    },
+    {
+       "description": "AntiForensic CFACorrection",
+       "name": "antiforensiccfacorrection",
+       "node" : true,
+       "operations": ["CFACorrection"],
+       "type": "text",
+       "information": "AntiForensic CFACorrection"
+    },
+    {
+       "description": "AntiForensic AberrationCorrection",
+       "name": "antiforensicaberrationcorrection",
+       "node" : true,
+       "operations": ["AberrationCorrection"],
+       "type": "text",
+       "information": "AntiForensic AberrationCorrection"
+    },
+    {
+       "description": "Recapture",
+       "name": "recapture",
+       "node" : true,
+       "operations": ["Recapture"],
+       "type": "text",
+       "information": "Recapture"
+    },
+    {
+       "description": "PRNU",
+       "name": "prnu",
+       "node" : true,
+       "operations": ["PRNU"],
+       "type": "text",
+       "information": "PRNU"
+    },
+    {
+       "description": "PRNUTrainingSetID",
+       "name": "prnutrainingsetid",
+       "node" : true,
+       "operations": ["PRNU"],
+       "rule" : "prnuSetIdRule",
+       "type": "text",
+       "information": "PRNUTrainingSetID"
     }
   ]
 }

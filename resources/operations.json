@@ -430,6 +430,49 @@
     },
     {
       "category": "AdditionalEffect",
+      "name": "AdditionalEffectMosaic",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Vertical Block Number": {
+          "type": "int[1:400000]",
+          "description": "Number of rectangular regions created in vertical direction"
+        },
+        "Horizontal Block Number": {
+          "type": "int[1:400000]",
+          "description": "Number of rectangular regions created in horizontal direction"
+        },
+        "Sharp Colors": {
+          "type" : "yesno",
+          "description": "Sharp colors"
+        }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange",
+        "checkFrameTimes"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Create a mosaic pattern and then reassemble",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "AdditionalEffect",
       "name": "AdditionalEffectReduceInterlaceFlicker",
       "mandatoryparameters": {
          "Start Time": {
@@ -837,6 +880,67 @@
       ]
     },
     {
+      "category": "AntiForensic",
+      "name": "CFACorrection",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        }
+      },
+      "description": "CFA Correction",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "PRNU",
+      "mandatoryparameters": {
+         "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        },
+        "Training Set ID": {
+          "type": "text",
+          "description": "ID of the training set"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {},
+      "description": "CFA Correction",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "AberrationCorrection",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {},
+      "description": "Chromatic Aberration Correction",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
       "category": "ArtifactsCGI",
       "name": "ArtifactsCGIArtificialLighting",
       "mandatoryparameters": {},
@@ -1048,6 +1152,40 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Laundering",
+      "name": "SocialMedia",
+      "mandatoryparameters": {
+        "type": {
+           "type":"list",
+           "values" : ["Facebook", "Instagram"],
+           "description":"Service"
+         },
+         "upload": {
+           "type":"list",
+           "values" : ["Mobile Device","Desktop"],
+           "description":"How was the image uploaded?"
+         },
+        "download": {
+           "type":"list",
+           "values" : ["Mobile Device","Desktop"],
+           "description":"How was the image downloaded"
+         }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Laundering",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -2712,6 +2850,32 @@
       "optionalparameters": {
       },
       "description": "Select a single frame into an image.",
+      "includeInMask": false,
+      "transitions": [
+        "video.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputMosaic",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [ ""],
+      "description": "Stitching video frames together to form a comprehensive view of the scene.",
       "includeInMask": false,
       "transitions": [
         "video.image"

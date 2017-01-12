@@ -274,16 +274,17 @@ class ImageWrapper:
 
     def to_mask(self):
         """
-          Produce a mask where all black areas are white
+        Produce a mask where all black areas are white
+        for gray scale: white = selected, black = unselected
         @rtype : ImageWrapper
         """
         s = self.image_array.shape
-
         gray_image_temp = self.convert('L')
-        gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
-        gray_image[gray_image_temp.image_array < np.iinfo(gray_image_temp.image_array.dtype).max] = 0
+        gray_image = np.zeros(gray_image_temp.image_array.shape).astype('uint8')
         if len(s) == 3 and self.mode.find('A') > 0 :
             gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 255
+        else:
+            gray_image[gray_image_temp.image_array > 0] = 255
         return ImageWrapper(gray_image)
 
     def to_16BitGray(self, equalize_colors=False):
