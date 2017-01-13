@@ -512,6 +512,9 @@ class MakeGenUI(Frame):
         if window == self.exportErrorlistDialog:
             self.exportErrorlistDialog = None
 
+    def cloneinputmask(self):
+        self.scModel.fixInputMasks()
+
     def fetchS3(self):
         import graph_rules
         info = self.prefLoader.get_key('s3info')
@@ -573,8 +576,6 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        #self.scModel.getProbeSet()
-        #self.scModel.getProbeSetWithoutComposites()
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
@@ -591,6 +592,10 @@ class MakeGenUI(Frame):
         transformed = self.scModel.getTransformedMask()
         if len(transformed)> 0:
             CompositeViewDialog(self, self.scModel.start, transformed[0][0], self.scModel.getImage(transformed[0][1]))
+
+    def renametobase(self):
+        self.scModel.renametobase()
+        self._setTitle()
 
     def viewdonor(self):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
@@ -715,6 +720,7 @@ class MakeGenUI(Frame):
         filemenu.add_separator()
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_cascade(label="Properties", command=self.getproperties)
+        filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)
@@ -746,6 +752,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="Validate", command=self.validate)
         validationmenu.add_command(label="QA...", command=self.startQA)
         validationmenu.add_command(label="View Comments", command=self.comments)
+        validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
