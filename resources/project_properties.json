@@ -8,6 +8,13 @@
       "information":  "This property may be changed under File->Settings->Username"
     },
     {
+      "description" : "Paste Clone Auto Input Mask",
+      "name": "autopastecloneinputmask",
+      "type":"yesno",
+      "readonly":"true",
+      "information": "if the input mask was guessed"
+    },
+    {
       "description": "Organization",
       "name": "organization",
       "type": "string",

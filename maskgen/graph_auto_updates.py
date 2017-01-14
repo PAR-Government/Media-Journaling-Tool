@@ -21,6 +21,8 @@ def updateJournal(scModel):
         _fixUserName(scModel)
         upgrades.append('0.3.1213')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
+    if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
+        scModel.getGraph().setDataItem('autopastecloneinputmask','no')
 
 def _fixUserName(scModel):
     """

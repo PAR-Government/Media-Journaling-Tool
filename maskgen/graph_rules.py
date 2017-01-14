@@ -50,6 +50,16 @@ def run_rules(op, graph, frm, to):
     return results
 
 
+def missing_donor_inputmask(edge,dir):
+    return (('inputmaskname' not in edge or \
+            edge['inputmaskname'] is None or \
+            len(edge['inputmaskname']) == 0 or
+            not os.path.exists(os.path.join(dir,edge['inputmaskname']))) and \
+            edge['op'] == 'PasteSampled' and \
+            'arguments' in edge and \
+            'purpose' in edge['arguments'] and \
+            edge['arguments']['purpose'] == 'clone')
+
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
                          edge['inputmaskname'] is not None and \

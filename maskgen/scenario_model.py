@@ -1271,6 +1271,37 @@ class ImageProjectModel:
                     donors.append((edge_id[1], donor_mask))
         return donors
 
+    def fixInputMasks(self):
+        """
+        Temporary: Add missing input masks
+        :return:
+        """
+        for edge_id in self.G.get_edges():
+            edge = self.G.get_edge(edge_id[0],edge_id[1])
+            if graph_rules.missing_donor_inputmask(edge,self.G.dir):
+                startimage,name = self.G.get_image(edge_id[0])
+                finalimage, fname = self.G.get_image(edge_id[1])
+                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
+                inputmaskname = name[0:name.rfind('.')] + '_inputmask.png'
+                ImageWrapper(composeCloneMask(mask,startimage,finalimage)).save(inputmaskname)
+#                if 'arguments' not in edge:
+#                    edge['arguments'] = {}
+                edge['inputmaskname'] = os.path.split(inputmaskname)[1]
+                print inputmaskname
+#               edge['arguments']['inputmaskname'] = os.path.split(inputmaskname)[1]
+                self.G.setDataItem('autopastecloneinputmask','yes')
+
+    def renametobase(self):
+        """
+        Rename the project to match the name of the base image
+        :return:
+        """
+        for nodeid in self.G.get_nodes():
+            node = self.G.get_node(nodeid)
+            if 'nodetype' in node and node['nodetype'] == 'base':
+                self.getGraph().set_name(node['file'][0:node['file'].rfind('.')])
+                break
+
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
                      skipRules=False):
         """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.

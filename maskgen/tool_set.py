@@ -750,16 +750,45 @@ def __applyResizeComposite(compositeMask, size):
 
 def __applyFlipComposite(compositeMask, mask, flip):
     """
+    Since SIFT Cannot flip
     Flip the selected area
     :param compositeMask:
     :param mask:
-    :param transform_matrix:
+    :param direction:
     :return:
     """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
     flipCompositeMask = compositeMask * maskInverted
-    flipCompositeMask = cv2.flip(flipCompositeMask, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
+    startx=None
+    endx = None
+    starty = None
+    endy = None
+    for x in range (maskInverted.shape[0]):
+        if sum(maskInverted[x,:]>0) > 1 :
+            if startx is None:
+                startx=x
+                break
+    for y in range (maskInverted.shape[1]):
+        if sum(maskInverted[:,y]>0) > 1 :
+            if starty is None:
+                starty=y
+                break
+    flippedCompositeMask = cv2.flip(flipCompositeMask, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
+    for x in range(flippedCompositeMask.shape[0]):
+        if sum(flippedCompositeMask[x, :] > 0) > 1:
+            if endx is None:
+                endx = x
+                break
+    for y in range(flippedCompositeMask.shape[1]):
+        if sum(flippedCompositeMask[:, y] > 0) > 1:
+            if endy is None:
+                endy = y
+                break
+    flipCompositeMask = np.zeros(flipCompositeMask.shape)
+    flipCompositeMask[startx:,starty:] = \
+        flippedCompositeMask[endx:endx+(maskInverted.shape[0]-startx), \
+        endy:endy+(maskInverted.shape[1] - starty)]
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     return flipCompositeMask*maskInverted + compositeMask*maskAltered
@@ -802,7 +831,7 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
         newMask[newLevelMask<150] = level
     return newMask
 
-def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetSize=None):
+def __applyTransform(compositeMask, mask, transform_matrix,invert=False, returnRaw=False):
     """
     Ceate a new mask applying the transform to only those parts of the
     compositeMask that overlay with the provided mask.
@@ -810,6 +839,7 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetS
     :param mask:  255 for unmanipulated pixels
     :param transform_matrix:
     :param invert:
+    :param returnRaw: do merge back in the composite
     :return:
     """
     flags = cv2.WARP_INVERSE_MAP if invert else cv2.INTER_LINEAR  # +cv2.CV_WARP_FILL_OUTLIERS
@@ -832,7 +862,8 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, targetS
     # put the areas outside the mask back into the composite
     maskAltered  = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    #newMask = 255 - newMask if invert else newMask
+    if returnRaw:
+        return newMask
     newMask = newMask*maskInverted + compositeMask*maskAltered
     return newMask
 
@@ -968,6 +999,36 @@ def __composeCropImageMask(img1, img2):
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
 
+def composeCloneMask(changemask,startimage, finalimage):
+    """
+
+    :param changemask:
+    :param img:
+    :return:
+    @type changemask: ImageWrapper
+    @type img: ImageWrapper
+    """
+    mask = np.asarray(changemask.invert())
+    startimagearray = np.array(startimage)
+    finalimgarray = np.array(finalimage)
+    newmask = np.ones(startimagearray.shape).astype('uint8')*255
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for i in range(0, len(contours)):
+        try:
+            cnt = contours[i]
+            x, y, w, h = cv2.boundingRect(cnt)
+            if w <= 2 or h <= 2:
+                continue
+            tuple = __findBestMatch(startimagearray, finalimgarray[y:y+h,x:x+w])
+            if tuple is not None:
+                newmask[tuple[0]:tuple[2],tuple[1]:tuple[3]] = 0
+        except Exception as e:
+            print e
+            continue
+    return newmask
+
+
+
 
 def __composeExpandImageMask(img1, img2):
     """ Return a masking where img1 is smaller than img2 and
@@ -1091,13 +1152,15 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     # if we are cutting, then do not want to use the edge mask as mask for transformation.
     # see the cut section below, where the transform occurs directly on the mask
     # this  occurs in donor cases
-    if transformMatrix is not None and not cut:
-        res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix),invert=True)
+    if transformMatrix is not None and not cut and not flip:
+        res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix),invert=True,returnRaw=False)
     elif abs(rotation) > 0.001:
-        res = __rotateImage(-rotation,  res,
-                            (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1]), cval=0)
+        res = __rotateImage(-rotation,  res, expectedSize, cval=0)
     elif flip is not None:
-        res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
+        if transformMatrix is not None:
+            res = __applyFlipComposite(res,edgeMask, flip)
+        else:
+            res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0) or crop:
         newRes = np.zeros(expectedSize)
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
