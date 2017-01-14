@@ -280,11 +280,12 @@ class ImageWrapper:
         """
         s = self.image_array.shape
         gray_image_temp = self.convert('L')
-        gray_image = np.zeros(gray_image_temp.image_array.shape).astype('uint8')
         if len(s) == 3 and self.mode.find('A') > 0 :
+            gray_image = np.zeros(gray_image_temp.image_array.shape).astype('uint8')
             gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 255
         else:
-            gray_image[gray_image_temp.image_array > 0] = 255
+            gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
+            gray_image[gray_image_temp.image_array < np.iinfo(gray_image_temp.image_array.dtype).max] = 0
         return ImageWrapper(gray_image)
 
     def to_16BitGray(self, equalize_colors=False):
@@ -370,7 +371,7 @@ class ImageWrapper:
             image_array[image.image_array<150,:] = [0, 198, 0]
             image_array[image.image_array >= 150, :] = [0, 0, 0]
         else:
-            image_array =np.copy( np.asarray(image))
+            image_array =np.copy( np.asarray(image_to_use))
             image_array[np.all(image_array == [255,255,255],axis=2)] = [0,0,0]
         if image_array.dtype != self_array.dtype:
              image_array = image_array.astype(self_array.dtype)

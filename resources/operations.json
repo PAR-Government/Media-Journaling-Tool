@@ -918,7 +918,7 @@
         "check_eight_bit"
       ],
       "optionalparameters": {},
-      "description": "CFA Correction",
+      "description": "PRNU Correction",
       "includeInMask": false,
       "transitions": [
         "image.image"

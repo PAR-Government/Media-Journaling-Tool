@@ -8,6 +8,13 @@
       "information":  "This property may be changed under File->Settings->Username"
     },
     {
+      "description" : "Paste Clone Auto Input Mask",
+      "name": "autopastecloneinputmask",
+      "type":"yesno",
+      "readonly":"true",
+      "information": "if the input mask was guessed"
+    },
+    {
       "description": "Organization",
       "name": "organization",
       "type": "string",
@@ -213,7 +220,7 @@
        "name": "temporalclone",
        "node" : true,
        "operations": ["CopyPaste"],
-       "type": "text",
+       "type": "yesno",
        "information": "Temporal Clone"
     },
     {
@@ -221,7 +228,7 @@
        "name": "temporalsplice",
        "node" : true,
        "operations": ["PasteFrames"],
-       "type": "text",
+       "type": "yesno",
        "information": "Temporal Splice"
     },
     {
@@ -229,7 +236,7 @@
        "name": "temporalremove",
        "node" : true,
        "operations": ["SelectCutFrames"],
-       "type": "text",
+       "type": "yesno",
        "information": "Temporal Remove"
     },
     {
@@ -237,7 +244,7 @@
        "name": "temporalreorder",
        "node" : true,
        "operations": ["CutPaste"],
-       "type": "text",
+       "type": "yesno",
        "information": "Temporal Reorder"
     },
     {
@@ -245,7 +252,7 @@
        "name": "temporalother",
        "node" : true,
        "operations": ["TimeAlterationEcho","TimeAlterationPosterizeTime","TimeAlterationDifferenceEffect","TimeAlterationDisplacementEffect","TimeAlterationWarp"],
-       "type": "text",
+       "type": "yesno",
        "information": "Temporal Other"
     },
     {
@@ -254,7 +261,7 @@
        "node" : true,
        "rule" : "spatialClone",
         "_comment": "PasteSampled purpose = clone or PasteOverlay",
-       "type": "text",
+       "type": "yesno",
        "information": "Spatial Clone"
     },
     {
@@ -263,7 +270,7 @@
        "node" : true,
        "rule" : "spatialSplice",
         "_comment": "(SelectRegionFromFrames -> PasteOverlay between videos),PasteImageSpliceToFrames",
-       "type": "text",
+       "type": "yesno",
        "information": "Spatial Splice"
     },
     {
@@ -272,7 +279,7 @@
         "rule" : "spatialRemove",
         "_comment": "(SelectRegionFromFrames -> PasteOverlay between videos),PasteImageSpliceToFrames",
        "node" : true,
-       "type": "text",
+       "type": "yesno",
        "information": "Spatial Remove"
     },
     {
@@ -281,7 +288,7 @@
         "rule" : "spatialMovingObject",
         "_comment": "motion mapping == yes",
        "node" : true,
-       "type": "text",
+       "type": "yesno",
        "information": "Spatial Moving Object"
     },
     {
@@ -289,7 +296,7 @@
        "name": "spatialmovingcamera",
         "operations" : "AdditionalEffectCameraMovement",
        "node" : true,
-       "type": "text",
+       "type": "yesno",
        "information": "Spatial Moving Camera"
     },
      {
@@ -297,7 +304,7 @@
        "name": "spatialother",
         "rule" : "videoOtherEnhancementRule",
        "node" : true,
-       "type": "text",
+       "type": "yesno",
        "information": "Spatial Other"
     },
     {
@@ -305,7 +312,7 @@
        "name": "audioremoval",
        "node" : true,
        "operation": "DeleteAudioSample",
-       "type": "text",
+       "type": "yesno",
        "information": "Audio Removal"
     },
     {
@@ -313,7 +320,7 @@
        "name": "audioclone",
        "node" : true,
        "operation": "AudioCopyAdd",
-       "type": "text",
+       "type": "yesno",
        "information": "Audio Clone"
      },
     {
@@ -321,14 +328,14 @@
        "name": "audiosplice",
        "node" : true,
        "operations": ["ReplaceAudioSample","AddAudioSample","AudioCopyAdd"],
-       "type": "text",
+       "type": "yesno",
        "information": "Audio Splice"
      },
      {
        "description": "Audio Voice Over",
        "name": "audiovoiceover",
        "node" : true,
-       "type": "text",
+       "type": "yesno",
        "rule" : "voiceOverlay",
        "_comment": "overlay add type and voice is yes",
        "information": "Audio Voice Over"
@@ -339,7 +346,7 @@
        "node" : true,
        "rule" : "voiceSwap",
        "_comment": "replace add type and voice is yes",
-       "type": "text",
+       "type": "yesno",
        "information": "Audio Voice Swapping"
      },
      {
@@ -347,7 +354,7 @@
        "name": "audioothers",
        "node" : true,
        "operations": ["AudioFilter","AudioAmplify","AudioCompress"],
-       "type": "text",
+       "type": "yesno",
        "information": "Audio Other"
      },
     {
@@ -355,7 +362,7 @@
        "name": "postprocesscompression",
        "node" : true,
        "operations": ["OutputMP4","OutputMOV","OutputXVID"],
-       "type": "text",
+       "type": "yesno",
        "information": "Post Process Compression"
      },
      {
@@ -364,7 +371,7 @@
        "node" : true,
        "operations": ["TransformCrop"],
        "nodetype": "video",
-       "type": "text",
+       "type": "yesno",
        "information": "Post Process Crop Frames"
      },
      {
@@ -373,7 +380,7 @@
        "node" : true,
        "operations": ["AdditionalEffectWarpStabilize"],
        "nodetype": "video",
-       "type": "text",
+       "type": "yesno",
        "information": "Post Process Stabilization"
      },
      {
@@ -418,7 +425,7 @@
        "name": "antiforensicillumination",
        "node" : true,
        "type": "text",
-       "rule" : "unitCountRule",
+       "operations": ["Undefined"],
        "information": "AntiForensic Illumination"
     },
     {
@@ -426,15 +433,7 @@
        "name": "launderingsocialmedia",
        "node" : true,
        "operations": ["SocialMedia"],
-       "type": "text",
-       "information": "Laundering SocialMedia"
-    },
-    {
-       "description": "Laundering SocialMedia",
-       "name": "launderingsocialmedia",
-       "node" : true,
-       "operations": ["SocialMedia"],
-       "type": "text",
+       "type": "yesno",
        "information": "Laundering SocialMedia"
     },
     {
@@ -442,7 +441,7 @@
        "name": "launderingmedianfiltering",
        "node" : true,
        "operations": ["MedianFilter"],
-       "type": "text",
+       "type": "yesno",
        "information": "Laundering Median Filtering"
     },
     {
@@ -450,7 +449,7 @@
        "name": "antiforensiccfacorrection",
        "node" : true,
        "operations": ["CFACorrection"],
-       "type": "text",
+       "type": "yesno",
        "information": "AntiForensic CFACorrection"
     },
     {
@@ -458,7 +457,7 @@
        "name": "antiforensicaberrationcorrection",
        "node" : true,
        "operations": ["AberrationCorrection"],
-       "type": "text",
+       "type": "yesno",
        "information": "AntiForensic AberrationCorrection"
     },
     {
@@ -466,7 +465,7 @@
        "name": "recapture",
        "node" : true,
        "operations": ["Recapture"],
-       "type": "text",
+       "type": "yesno",
        "information": "Recapture"
     },
     {
@@ -474,17 +473,53 @@
        "name": "prnu",
        "node" : true,
        "operations": ["PRNU"],
-       "type": "text",
+       "type": "yesno",
        "information": "PRNU"
     },
     {
-       "description": "PRNUTrainingSetID",
+       "description": "PRNU Training SetID",
        "name": "prnutrainingsetid",
        "node" : true,
        "operations": ["PRNU"],
        "rule" : "prnuSetIdRule",
        "type": "text",
-       "information": "PRNUTrainingSetID"
+       "information": "PRNU Training SetID"
+    },
+      {
+       "description": "AntiForensic Noise Restoration",
+       "name": "antiforensicnoiserestoration",
+       "node" : true,
+       "operations": ["AdditionalEffectFilterAddNoise"],
+       "type": "yesno",
+       "information": "AntiForensic Noise Restoration"
+    },
+    {
+       "description": "AntiForensic Other",
+       "name": "antiforensicother",
+       "node" : true,
+       "operations": ["Undefined"],
+       "type": "yesno",
+       "information": "AntiForensic Other"
+    },
+    {
+       "description": "AntiForensic Illumination",
+       "name": "antiforensicillumination",
+       "node" : true,
+       "operations": ["Undefined"],
+       "type": "yesno",
+       "information": "AntiForensic Illumination"
+    },
+    {
+      "description": "Data Embedding Steganography",
+      "name": "dataembeddingsteganography",
+      "type": "yesno",
+      "information": "Data Embedding Steganography.  All final images must have steganography."
+    },
+    {
+      "description": "Data Embedding Watermark",
+      "name": "dataembeddingwatermark",
+      "type": "yesno",
+      "information": "Data Embedding Watermark.  All final images must have watermarks."
     }
   ]
 }

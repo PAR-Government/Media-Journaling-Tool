@@ -171,16 +171,19 @@ class MakeGenUI(Frame):
             openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val))
 
     def saveas(self):
-        val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Save As",
-                                         filetypes=[("json files", "*.json")])
-        if (val is not None and len(val.name) > 0):
-            dir = os.path.abspath(os.path.split(val.name)[0])
+        val = tkFileDialog.askdirectory(initialdir=self.scModel.get_dir(), title="Save As")
+        if (val is not None and len(val) > 0):
+            dir = val
             if (dir == os.path.abspath(self.scModel.get_dir())):
                 tkMessageBox.showwarning("Save As", "Cannot save to the same directory\n(%s)" % dir)
             else:
-                self.scModel.saveas(val.name)
-                self._setTitle()
-            val.close()
+                contents = os.listdir(dir)
+                if len(contents) > 0:
+                    tkMessageBox.showwarning("Save As", "Directory is not empty\n(%s)" % dir)
+                else:
+                    self.scModel.saveas(dir)
+                    self._setTitle()
+            #val.close()
 
     def recomputeedgemask(self):
         self.scModel.reproduceMask()
@@ -509,6 +512,9 @@ class MakeGenUI(Frame):
         if window == self.exportErrorlistDialog:
             self.exportErrorlistDialog = None
 
+    def cloneinputmask(self):
+        self.scModel.fixInputMasks()
+
     def fetchS3(self):
         import graph_rules
         info = self.prefLoader.get_key('s3info')
@@ -570,8 +576,6 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        #self.scModel.getProbeSet()
-        #self.scModel.getProbeSetWithoutComposites()
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
@@ -588,6 +592,10 @@ class MakeGenUI(Frame):
         transformed = self.scModel.getTransformedMask()
         if len(transformed)> 0:
             CompositeViewDialog(self, self.scModel.start, transformed[0][0], self.scModel.getImage(transformed[0][1]))
+
+    def renametobase(self):
+        self.scModel.renametobase()
+        self._setTitle()
 
     def viewdonor(self):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
@@ -712,6 +720,7 @@ class MakeGenUI(Frame):
         filemenu.add_separator()
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_cascade(label="Properties", command=self.getproperties)
+        filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)
@@ -743,6 +752,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="Validate", command=self.validate)
         validationmenu.add_command(label="QA...", command=self.startQA)
         validationmenu.add_command(label="View Comments", command=self.comments)
+        validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
