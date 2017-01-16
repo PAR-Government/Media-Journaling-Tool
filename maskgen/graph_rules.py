@@ -589,10 +589,9 @@ def spatialRemove(scModel,edgeTuples):
 
 def prnuSetIdRule(scModel,edgeTuples):
     for edgeTuple in edgeTuples:
-        if edgeTuple.edge['op'] in ['PRNU'] and \
-                'arguments' in edgeTuple.edge and \
-                'Training Set ID' in edgeTuple.edge['arguments']:
-            return edgeTuple.edge['arguments']['Training Set ID']
+        if 'arguments' in edgeTuple.edge and \
+                'PRNU Training Set ID' in edgeTuple.edge['arguments']:
+            return edgeTuple.edge['arguments']['PRNU Training Set ID']
     return ''
 
 def spatialMovingObject(scModel,edgeTuples):

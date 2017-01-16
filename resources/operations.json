@@ -358,6 +358,43 @@
         "video.video"
       ]
     },
+     {
+      "category": "AdditionalEffect",
+      "name": "CameraMovement",
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Camera Effect": {
+          "type": "list",
+          "values": [
+            "Add",
+            "Remove"
+          ],
+          "description": ""
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange",
+        "checkFrameTimes"
+      ],
+      "optionalparameters": {
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Make it appear is if the camera is moving or not moving",
+      "includeInMask": false,
+      "transitions": [
+        "video.video"
+      ]
+    },
     {
       "category": "AdditionalEffect",
       "name": "AdditionalEffectAddLightSource",
@@ -635,6 +672,10 @@
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Laundering": {
+          "type": "yesno",
+          "description": "Is the intent to launder the image or a simply smoothing."
         }
       },
       "rules": [
@@ -902,13 +943,13 @@
     },
     {
       "category": "AntiForensic",
-      "name": "PRNU",
+      "name": "AddCamFingerprintPRNU",
       "mandatoryparameters": {
          "Capture Camera ID": {
           "type": "text",
           "description": "ID of camera used to capture image if not screen shot"
         },
-        "Training Set ID": {
+        "PRNU Training Set ID": {
           "type": "text",
           "description": "ID of the training set"
         }
@@ -2353,7 +2394,28 @@
     {
       "category": "Output",
       "name": "OutputXVID",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "scale": {
+          "type": "string",
+          "description": "Down sample instructions such as 640:480."
+        },
+        "pixel aspect": {
+          "type": "list",
+          "source": "video",
+          "values": [
+            "Square Pixels (1.0)",
+            "D1/DV NTSC (0.9091)",
+            "D1/DV NTSC Widescreen 16:9 (1.2121)",
+            "D1/DV PAL (1.0940)",
+            "D1/DV PAL Widescreen 16:9 (1.4587)",
+            "Anamorphic 2:1 (2.0)",
+            "HD Anamorphic 1080 (1.333)",
+            "DVCPRO HD (1.5)",
+            "Custom"
+          ],
+          "description": "."
+        }
+      },
       "rules": [
       ],
       "optionalparameters": {},
@@ -2367,7 +2429,28 @@
     {
       "category": "Output",
       "name": "OutputMOV",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "scale": {
+          "type": "string",
+          "description": "Down sample instructions such as 640:480."
+        },
+        "pixel aspect": {
+          "type": "list",
+          "source": "video",
+          "values": [
+            "Square Pixels (1.0)",
+            "D1/DV NTSC (0.9091)",
+            "D1/DV NTSC Widescreen 16:9 (1.2121)",
+            "D1/DV PAL (1.0940)",
+            "D1/DV PAL Widescreen 16:9 (1.4587)",
+            "Anamorphic 2:1 (2.0)",
+            "HD Anamorphic 1080 (1.333)",
+            "DVCPRO HD (1.5)",
+            "Custom"
+          ],
+          "description": "."
+        }
+      },
       "rules": [
       ],
       "optionalparameters": {},
@@ -2381,7 +2464,28 @@
     {
       "category": "Output",
       "name": "OutputMP4",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "scale": {
+          "type": "string",
+          "description": "Down sample instructions such as 640:480."
+        },
+        "pixel aspect": {
+          "type": "list",
+          "source": "video",
+          "values": [
+            "Square Pixels (1.0)",
+            "D1/DV NTSC (0.9091)",
+            "D1/DV NTSC Widescreen 16:9 (1.2121)",
+            "D1/DV PAL (1.0940)",
+            "D1/DV PAL Widescreen 16:9 (1.4587)",
+            "Anamorphic 2:1 (2.0)",
+            "HD Anamorphic 1080 (1.333)",
+            "DVCPRO HD (1.5)",
+            "Custom"
+          ],
+          "description": "."
+        }
+      },
       "rules": [
       ],
       "optionalparameters": {},
@@ -3208,7 +3312,7 @@
       "analysisOperations": [
         "maskgen.tool_set.siftAnalysis"
       ],
-      "description": "Removing edge content from an image.",
+      "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [
@@ -3324,31 +3428,11 @@
       "category": "Transform",
       "name": "TransformResize",
       "mandatoryparameters": {
-         "scale": {
-          "type": "string",
-           "source": "video",
-          "description": "Down sample instructions such as 640:480."
-        }
       },
       "rules": [
         "checkFileTypeChange"
       ],
       "optionalparameters": {
-        "pixel aspect": {
-           "type": "list",
-           "source": "video",
-           "values": [
-             "Square Pixels (1.0)",
-             "D1/DV NTSC (0.9091)",
-             "D1/DV NTSC Widescreen 16:9 (1.2121)",
-             "D1/DV PAL (1.0940)",
-             "D1/DV PAL Widescreen 16:9 (1.4587)",
-             "Anamorphic 2:1 (2.0)",
-             "HD Anamorphic 1080 (1.333)",
-             "DVCPRO HD (1.5)",
-             "Custom"],
-           "description": "."
-        },
         "interpolation": {
           "type": "list",
           "source": "image",
@@ -3588,20 +3672,26 @@
         "scale": {
           "type": "string",
           "description": "Down sample instructions such as 640:480."
+        },
+        "pixel aspect": {
+           "type": "list",
+           "source": "video",
+           "values": [
+             "No Change",
+             "Square Pixels (1.0)",
+             "D1/DV NTSC (0.9091)",
+             "D1/DV NTSC Widescreen 16:9 (1.2121)",
+             "D1/DV PAL (1.0940)",
+             "D1/DV PAL Widescreen 16:9 (1.4587)",
+             "Anamorphic 2:1 (2.0)",
+             "HD Anamorphic 1080 (1.333)",
+             "DVCPRO HD (1.5)",
+             "Custom"],
+           "description": "."
         }
       },
       "rules": [],
       "optionalparameters": {
-        "RANSAC": {
-          "type": "list",
-          "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
-        }
       },
       "description": "Down sample a video to a lower frame resolution.",
       "includeInMask": false,

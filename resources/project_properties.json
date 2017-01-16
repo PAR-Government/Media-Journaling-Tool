@@ -85,6 +85,8 @@
       "description": "Audio Activity",
       "name": "audioactivity",
       "type": "yesno",
+      "node" : true,
+      "operations": ["Undefined"],
       "information": "Applies to video journals where the final video contains a variety of audio content based on location and audio activity."
     },
     {
@@ -384,9 +386,11 @@
        "information": "Post Process Stabilization"
      },
      {
-      "description": "Image Reformatting",
-      "name": "imagereformat",
-      "type": "yesno"
+       "description": "Image Reformatting",
+       "name": "imagereformat",
+       "node" : true,
+       "operations": ["Undefined"],
+       "type": "yesno"
     },
     {
       "description": "Image Compression",
@@ -440,7 +444,9 @@
        "description": "Laundering Median Filtering",
        "name": "launderingmedianfiltering",
        "node" : true,
-       "operations": ["MedianFilter"],
+       "operations": ["AdditionalEffectFilterMedianSmoothing"],
+       "parameter":"Laundering",
+       "value":"yes",
        "type": "yesno",
        "information": "Laundering Median Filtering"
     },
@@ -469,18 +475,18 @@
        "information": "Recapture"
     },
     {
-       "description": "PRNU",
-       "name": "prnu",
+       "description": "AntiForensicAddCamFingerprintPRNU",
+       "name": "antiforensicaddcamfingerprintprnu",
        "node" : true,
-       "operations": ["PRNU"],
+       "operations": ["AddCamFingerprintPRNU"],
        "type": "yesno",
-       "information": "PRNU"
+       "information": "AntiForensicAddCamFingerprintPRNU"
     },
     {
        "description": "PRNU Training SetID",
        "name": "prnutrainingsetid",
        "node" : true,
-       "operations": ["PRNU"],
+       "operations": ["AddCamFingerprintPRNU"],
        "rule" : "prnuSetIdRule",
        "type": "text",
        "information": "PRNU Training SetID"
@@ -513,12 +519,16 @@
       "description": "Data Embedding Steganography",
       "name": "dataembeddingsteganography",
       "type": "yesno",
+      "node" : true,
+      "operations": ["Undefined"],
       "information": "Data Embedding Steganography.  All final images must have steganography."
     },
     {
       "description": "Data Embedding Watermark",
       "name": "dataembeddingwatermark",
       "type": "yesno",
+      "node" : true,
+      "operations": ["Undefined"],
       "information": "Data Embedding Watermark.  All final images must have watermarks."
     }
   ]
