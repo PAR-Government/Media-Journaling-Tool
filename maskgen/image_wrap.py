@@ -371,7 +371,7 @@ class ImageWrapper:
             image_array[image.image_array<150,:] = [0, 198, 0]
             image_array[image.image_array >= 150, :] = [0, 0, 0]
         else:
-            image_array =np.copy( np.asarray(image_to_use))
+            image_array = np.copy(np.asarray(image.image_array))
             image_array[np.all(image_array == [255,255,255],axis=2)] = [0,0,0]
         if image_array.dtype != self_array.dtype:
              image_array = image_array.astype(self_array.dtype)
