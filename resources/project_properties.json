@@ -389,7 +389,8 @@
        "description": "Image Reformatting",
        "name": "imagereformat",
        "node" : true,
-       "operations": ["Undefined"],
+       "rule" : "imageReformatRule",
+       "_comment": " Is the final image a different format than its base image ",
        "type": "yesno"
     },
     {
@@ -530,6 +531,50 @@
       "node" : true,
       "operations": ["Undefined"],
       "information": "Data Embedding Watermark.  All final images must have watermarks."
+    },
+    {
+      "description": "Mosaicing",
+      "name": "mosaicing",
+      "type": "yesno",
+      "node" : true,
+      "operations": ["AdditionalEffectMosaic"],
+      "information": "Mosaicing."
+    },
+    {
+      "description": "Seam Carving",
+      "name": "seamcarving",
+      "type": "yesno",
+      "node" : true,
+      "operations": ["TransformSeamCarving"],
+      "information": "Seam Carving."
+    },
+     {
+      "description": "Semantic Restaging",
+      "name": "semanticrestaging",
+      "type": "yesno",
+       "node" : true,
+       "rule" : "semanticRestageRule",
+      "information": "Staging a photo that does not truly reflect reality. For example, staging a fake bombing that never occurred"
+    },
+    {
+      "description": "Semantic Repurposing",
+      "name": "semanticrepurposing",
+      "type": "yesno",
+       "node" : true,
+       "rule" : "semanticRepurposeRule",
+      "information": "Using an existing piece of media for another purpose (e.g rebroadcasting media in a different context)"
+    },
+    {
+      "description": "Semantic Event Fabrication",
+      "name": "semanticrefabrication",
+      "type": "yesno",
+       "node" : true,
+       "rule" : "semanticEventFabricationRule",
+      "information": "A large scale activity that requires an entire volume of manipulated or generated imagery to provide to simulate a full event. This could include imagery that appears to be from many individuals, cameras, and social media accounts"
+
     }
   ]
 }
+
+
+

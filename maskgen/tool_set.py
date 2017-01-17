@@ -11,7 +11,7 @@ import re
 import imghdr
 import os
 from image_wrap import *
-from maskgen_loader import  MaskGenLoader
+from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
 
@@ -19,12 +19,12 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
-                  ('f4v', '*.flv'),("avi files", "*.avi"), ('asf','*.asf'), ('mts','*.mts')]
-audiofiletypes =  [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"),("mpeg audio files", "*.mp3"),
-                    ("raw audio files", "*.raw"),
-                    ("Standard PC audio files", "*.wav"),("Windows Media  audio files", "*.wma")]
+                  ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts')]
+audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), ("mpeg audio files", "*.mp3"),
+                  ("raw audio files", "*.raw"),
+                  ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
-               ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts"]
+            ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
@@ -51,13 +51,14 @@ def fileTypeChanged(file_one, file_two):
         suffix_two = file_two[pos + 1:] if pos > 0 else ''
         return suffix_one.lower() != suffix_two.lower()
 
+
 def fileType(fileName):
     pos = fileName.rfind('.')
     suffix = '*' + fileName[pos:] if pos > 0 else ''
     if not os.path.exists(fileName):
         return None
     file_type = 'video'
-    if  suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None:
+    if suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None:
         file_type = 'image'
     elif suffix in [x[1] for x in audiofiletypes]:
         file_type = 'audio'
@@ -120,6 +121,7 @@ def setPwdX(api):
 def get_username():
     return pwdAPI.getpwuid()
 
+
 def imageResize(img, dim):
     """
     :param img:
@@ -128,7 +130,8 @@ def imageResize(img, dim):
     @rtype: ImageWrapper
     """
 
-    return img.resize(dim,Image.ANTIALIAS).convert('RGBA')
+    return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
+
 
 def imageResizeRelative(img, dim, otherIm):
     """
@@ -145,7 +148,7 @@ def imageResizeRelative(img, dim, otherIm):
     perc = min(wpercent, hpercent)
     wsize = int((float(img.size[0]) * float(perc)))
     hsize = int((float(img.size[1]) * float(perc)))
-    return img.resize((wsize, hsize),Image.ANTIALIAS)
+    return img.resize((wsize, hsize), Image.ANTIALIAS)
 
 
 def validateCoordinates(v):
@@ -158,8 +161,8 @@ def validateCoordinates(v):
     except ValueError:
         return False
 
-class VidTimeManager:
 
+class VidTimeManager:
     stopTimeandFrame = None
     startTimeandFrame = None
     frameCountSinceStart = 0
@@ -173,17 +176,17 @@ class VidTimeManager:
     frameCountWhenStopped: record the frame at finish
     """
 
-    def __init__(self,startTimeandFrame = None, stopTimeandFrame = None):
+    def __init__(self, startTimeandFrame=None, stopTimeandFrame=None):
         self.startTimeandFrame = startTimeandFrame
         self.stopTimeandFrame = stopTimeandFrame
         self.pastEndTime = False
         self.beforeStartTime = True if startTimeandFrame else False
 
     def getStartFrame(self):
-        return self.frameCountWhenStarted  if self.startTimeandFrame else 1
+        return self.frameCountWhenStarted if self.startTimeandFrame else 1
 
     def getEndFrame(self):
-       return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
+        return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
 
     def updateToNow(self, milliNow):
         self.milliNow = milliNow
@@ -194,15 +197,15 @@ class VidTimeManager:
                 if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
                     if not self.pastEndTime:
                         self.pastEndTime = True
-                        self.frameCountWhenStopped= self.frameSinceBeginning
+                        self.frameCountWhenStopped = self.frameSinceBeginning
 
         if self.startTimeandFrame:
             if self.milliNow >= self.startTimeandFrame[0]:
-               self.frameCountSinceStart += 1
-               if self.frameCountSinceStart >= self.startTimeandFrame[1]:
-                   if self.beforeStartTime:
-                        self.frameCountWhenStarted  = self.frameSinceBeginning
-                        self.beforeStartTime=False
+                self.frameCountSinceStart += 1
+                if self.frameCountSinceStart >= self.startTimeandFrame[1]:
+                    if self.beforeStartTime:
+                        self.frameCountWhenStarted = self.frameSinceBeginning
+                        self.beforeStartTime = False
 
     def isOpenEnded(self):
         return self.stopTimeandFrame is None
@@ -219,6 +222,7 @@ class VidTimeManager:
     def isBeforeTime(self):
         return self.beforeStartTime
 
+
 def getMilliSecondsAndFrameCount(v):
     dt = None
     framecount = 0
@@ -228,29 +232,30 @@ def getMilliSecondsAndFrameCount(v):
             framecount = int(v[v.rfind(':') + 1:])
             v = v[0:v.rfind(':')]
         except:
-            return None,0
+            return None, 0
     elif coloncount == 0:
-        return (0,int(v))
+        return (0, int(v))
     try:
-        dt =  datetime.strptime(v, '%H:%M:%S.%f')
+        dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
-            dt =  datetime.strptime(v, '%H:%M:%S')
+            dt = datetime.strptime(v, '%H:%M:%S')
         except ValueError:
-            return None,0
-    return (dt.hour*360000 + dt.minute*60000 + dt.second*1000 + dt.microsecond/1000,framecount)
+            return None, 0
+    return (dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000, framecount)
+
 
 def validateTimeString(v):
     if v.count(':') > 3:
-       return False
+        return False
 
     framecount = 0
     if v.count(':') > 2:
         try:
-             framecount = int(v[v.rfind(':')+1:])
-             v = v[0:v.rfind(':')]
+            framecount = int(v[v.rfind(':') + 1:])
+            v = v[0:v.rfind(':')]
         except:
-             return False
+            return False
     try:
         datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -273,7 +278,7 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
     argDef = operationDef.mandatoryparameters[
         argName] if not argDef and argName in operationDef.mandatoryparameters else argDef
     if argDef:
-        if  argDef['type'] == 'imagefile':
+        if argDef['type'] == 'imagefile':
             if not os.path.exists(argValue) and not skipFileValidation:
                 raise ValueError(argName + ' is an invalid file')
         elif argDef['type'].startswith('float'):
@@ -316,16 +321,18 @@ def _processFileMeta(stream):
                 streams.append('video')
     return streams
 
+
 def getFileMeta(file):
     ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
     p = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE)
     try:
         meta = _processFileMeta(p.stderr)
-        meta.extend( _processFileMeta(p.stdout))
+        meta.extend(_processFileMeta(p.stdout))
     finally:
         p.stdout.close()
         p.stderr.close()
     return meta
+
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
@@ -344,16 +351,16 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         return None
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
-                                                      'm4v' , 'mts']:
+                                                      'm4v', 'mts']:
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
     if fileType(filename) == 'audio':
         return openImage('./icons/audio.png')
 
     if videoFrameTime is not None or \
-        (snapshotFileName != filename and \
-         (not os.path.exists(snapshotFileName) or \
-            os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
+            (snapshotFileName != filename and \
+                     (not os.path.exists(snapshotFileName) or \
+                                  os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
         if not ('video' in getFileMeta(filename)):
             return openImage('./icons/audio.png')
         cap = cv2.VideoCapture(filename)
@@ -415,12 +422,13 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     mask = mask.astype('uint8')
     try:
         mask1 = convertToMask(img1).invert().to_array() if img1.has_alpha() else None
-        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted,arguments=arguments)
+        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted, arguments=arguments)
     except:
         TM = None
         computed_mask = None
     if TM is not None:
-        newMask = cv2.warpPerspective(mask, TM, (img1.size[0],img1.size[1]), flags=cv2.WARP_INVERSE_MAP,borderMode=cv2.BORDER_CONSTANT, borderValue=255)
+        newMask = cv2.warpPerspective(mask, TM, (img1.size[0], img1.size[1]), flags=cv2.WARP_INVERSE_MAP,
+                                      borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
         return newMask if computed_mask is None else computed_mask, analysis
@@ -488,7 +496,7 @@ def redistribute_intensity(edge_map):
     pos = 1
     colors = []
     for i in intensities:
-        colors.append( pos * increment )
+        colors.append(pos * increment)
         pos += 1
 
     colorMap = cv2.applyColorMap(np.asarray(colors).astype('uint8'), cv2.COLORMAP_HSV)
@@ -498,10 +506,11 @@ def redistribute_intensity(edge_map):
         pos += 1
 
     for k, v in edge_map.iteritems():
-        edge_map[k] = (v[0],intensity_map[v[0]])
+        edge_map[k] = (v[0], intensity_map[v[0]])
     return intensity_map
 
-def maskToColorArray(img,color=[0,0,0]):
+
+def maskToColorArray(img, color=[0, 0, 0]):
     """
     Create a new image setting all white to the color and all black to white.
     :param img:
@@ -511,9 +520,10 @@ def maskToColorArray(img,color=[0,0,0]):
     @rtype ImageWrapper
     """
     imarray = np.asarray(img)
-    rgb = np.ones((imarray.shape[0],imarray.shape[1],3)).astype('uint8')*255
-    rgb[imarray==0,:] = color
+    rgb = np.ones((imarray.shape[0], imarray.shape[1], 3)).astype('uint8') * 255
+    rgb[imarray == 0, :] = color
     return rgb
+
 
 def toColor(img, intensity_map={}):
     """
@@ -532,6 +542,7 @@ def toColor(img, intensity_map={}):
     result[img == 0] = [255, 255, 255]
     return result
 
+
 def toComposite(img):
     """
     Convert to a mask with white indicating change
@@ -542,11 +553,13 @@ def toComposite(img):
     result[img > 0] = 255
     return result
 
+
 def toIntTuple(tupleString):
     import re
     if tupleString is not None and tupleString.find(',') > 0:
         return tuple([int(re.sub('[()]', '', x)) for x in tupleString.split(',')])
     return (0, 0)
+
 
 def sizeOfChange(mask):
     if len(mask.shape) == 2:
@@ -555,37 +568,41 @@ def sizeOfChange(mask):
         mask_size = mask.shape[0] * mask.shape[1]
         return mask_size - sum(sum(np.all(mask == [255, 255, 255], axis=2)))
 
+
 def maskChangeAnalysis(mask, globalAnalysis=False):
     mask = np.asarray(mask)
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
-    totalChange = sum(sum(mask.astype('float32')))/255.0
-    ratio = float(totalChange)/float(totalPossible)
+    totalChange = sum(sum(mask.astype('float32'))) / 255.0
+    ratio = float(totalChange) / float(totalPossible)
     globalchange = False
     if globalAnalysis:
         globalchange = ratio > 0.75
-        kernel = np.ones((5,5),np.uint8)
-        erosion = cv2.erode(mask,kernel,iterations = 2)
+        kernel = np.ones((5, 5), np.uint8)
+        erosion = cv2.erode(mask, kernel, iterations=2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2.findContours(closing.astype('uint8'),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         p = np.asarray([item[0] for sublist in contours for item in sublist])
         if len(p) > 0:
-           area = cv2.contourArea(cv2.convexHull(p))
-           totalArea = cv2.contourArea(np.asarray([[0,0],[0,mask.shape[0]],[mask.shape[1],mask.shape[0]], [mask.shape[1],0],[0,0]]))
-           globalchange = globalchange or area/totalArea > 0.50
-    return globalchange,'small' if totalChange<2500 else ('medium' if totalChange<10000 else 'large'),ratio
+            area = cv2.contourArea(cv2.convexHull(p))
+            totalArea = cv2.contourArea(
+                np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
+            globalchange = globalchange or area / totalArea > 0.50
+    return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
-def globalTransformAnalysis(analysis,img1,img2,mask=None,linktype=None,arguments={}):
+
+def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}):
     globalchange = img1.size != img2.size
     changeCategory = 'large'
     ratio = 1.0
     if mask is not None:
-        globalchange,totalChange,ratio = maskChangeAnalysis(mask,not globalchange)
+        globalchange, totalChange, ratio = maskChangeAnalysis(mask, not globalchange)
     analysis['global'] = 'yes' if globalchange else 'no'
     analysis['change size ratio'] = ratio
     analysis['change size category'] = changeCategory
     return globalchange
 
-def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+
+def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict()):
     """
     Perform SIFT regardless of the global change status
     :param analysis:
@@ -599,37 +616,40 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=
     globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
     if linktype != 'image.image':
         return
-    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
+    mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
-def siftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+
+def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
     if linktype != 'image.image':
         return
-    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
+    mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
-def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,arguments=dict()):
+
+def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict()):
     if 'location change' not in arguments or arguments['location change'] == 'no':
         return
     globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
     if linktype != 'image.image':
         return
-    mask2 = mask.resize(img2.size,Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix,mask = __sift(img1, img2, mask1=mask, mask2=mask2,arguments=arguments)
+    mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
 def createMask(img1, img2, invert=False, arguments={}, crop=False, seam=False):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop,seam=seam)
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop, seam=seam)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
+
 
 def __indexOf(source, dest):
     positions = []
@@ -640,8 +660,8 @@ def __indexOf(source, dest):
                 break
     return positions
 
-def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
 
+def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     """
     Compute homography to transfrom img1 to img2
     Apply the mask to each in order to only compare relevent regions of images
@@ -658,11 +678,10 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
 
-
     FLANN_INDEX_KDTREE = 0
     FLANN_INDEX_LSH = 6
-    TREES=16
-    CHECKS=50
+    TREES = 16
+    CHECKS = 50
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
     # index_params= dict(algorithm         = FLANN_INDEX_LSH,
     #                   table_number      = 6,
@@ -679,10 +698,10 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     (kp2, d2) = extractor.compute(img2, kp2a)
 
     if kp2 is None or len(kp2) == 0:
-        return None,None
+        return None, None
 
     if kp1 is None or len(kp1) == 0:
-        return None,None
+        return None, None
 
     d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
     d1 = np.sqrt(d1)
@@ -698,38 +717,39 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     if len(good) >= 10:
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-        #new_src_pts = cv2.convexHull(src_pts)
+        # new_src_pts = cv2.convexHull(src_pts)
         new_src_pts = src_pts
-        #positions = __indexOf(src_pts,new_src_pts)
-        #new_dst_pts = dst_pts[positions]
+        # positions = __indexOf(src_pts,new_src_pts)
+        # new_dst_pts = dst_pts[positions]
         new_dst_pts = dst_pts
         RANSAC_THRESHOLD = 4.0
         if arguments is not None and 'RANSAC' in arguments:
             if arguments['RANSAC'] == 'None':
-                return None,None
+                return None, None
             try:
-                 RANSAC_THRESHOLD = float(arguments['RANSAC'])
+                RANSAC_THRESHOLD = float(arguments['RANSAC'])
             except:
                 print 'invalid RANSAC ' + arguments['RANSAC']
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
         if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
             return None, None
-        #M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-        #matchesMask = mask.ravel().tolist()
+        # M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        # matchesMask = mask.ravel().tolist()
 
-        #y,x = img1.shape
-        #pts = np.float32([ [0,0],[0,y-1],[x-1,y-1],[x-1,0] ]).reshape(-1,1,2)
-        #dst = cv2.perspectiveTransform(pts,M)
-        #mask = np.zeros((img1.shape[0],img1.shape[1]))
-        #new_src_pts1 = [point[0] for point in new_src_pts.astype('int32')]
-        #new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
-        #cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
+        # y,x = img1.shape
+        # pts = np.float32([ [0,0],[0,y-1],[x-1,y-1],[x-1,0] ]).reshape(-1,1,2)
+        # dst = cv2.perspectiveTransform(pts,M)
+        # mask = np.zeros((img1.shape[0],img1.shape[1]))
+        # new_src_pts1 = [point[0] for point in new_src_pts.astype('int32')]
+        # new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
+        # cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
         ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        return M1,None#mask.astype('uint8')
+        return M1, None  # mask.astype('uint8')
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
-    return None,None
+    return None, None
+
 
 def __applyResizeComposite(compositeMask, size):
     """
@@ -744,9 +764,68 @@ def __applyResizeComposite(compositeMask, size):
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 1024
-        newLevelMask = cv2.resize(levelMask,(size[1],size[0]))
+        newLevelMask = cv2.resize(levelMask, (size[1], size[0]))
         newMask[newLevelMask > 150] = level
     return newMask
+
+
+class Flipper:
+
+    def __init__(self, mask, flip):
+        self.mask = mask
+        self.flipdirection = flip
+        self.region = self._getRegionOfChange(mask)
+
+    def _getRegionOfChange(self, mask):
+        minregion = (mask.shape)
+        maxregion = (0, 0)
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for i in range(0, len(contours)):
+            try:
+                cnt = contours[i]
+                x, y, w, h = cv2.boundingRect(cnt)
+                if x < minregion[0]:
+                    minregion[0] = x
+                if x + w > maxregion[0]:
+                    maxregion[0] = x + w
+                if y < minregion[0]:
+                    minregion[1] = x
+                if y + h > maxregion[1]:
+                    maxregion[1] = y + w
+            except Exception as e:
+                print e
+                continue
+        return minregion, maxregion
+
+    def _lcs(self, alist, blist):
+        """
+        :param alist
+        :param blist:
+        :return:
+        """
+        m = len(alist)
+        n = len(blist)
+        counter = [[0] * (n + 1) for x in range(m + 1)]
+        longest = 0
+        lcs_set = (0, 0)
+        for i in range(m):
+            for j in range(n):
+                if alist[i] == blist[j]:
+                    c = counter[i][j] + 1
+                    counter[i + 1][j + 1] = c
+                    if c > longest:
+                        lcs_set = (i, j)
+                        longest = c
+        return lcs_set, longest
+
+
+    def flip(self):
+        flipped = self.mask[self.region[0][0]:self.region[1][0], self.region[0][1]:self.region[1][1]]
+        flipped = cv2.flip(flipped, 1 if self.flipdirection == 'horizontal' else (-1 if self.flipdirection == 'both' else 0))
+        flipCompositeMask = np.zeros(self.mask.shape).astype('uint8')
+        flipCompositeMask[self.region[0][0]:self.region[1][0], self.region[0][1]:self.region[1][1]] = flipped
+        return flipCompositeMask
+
 
 def __applyFlipComposite(compositeMask, mask, flip):
     """
@@ -760,38 +839,12 @@ def __applyFlipComposite(compositeMask, mask, flip):
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
     flipCompositeMask = compositeMask * maskInverted
-    startx=None
-    endx = None
-    starty = None
-    endy = None
-    for x in range (maskInverted.shape[0]):
-        if sum(maskInverted[x,:]>0) > 1 :
-            if startx is None:
-                startx=x
-                break
-    for y in range (maskInverted.shape[1]):
-        if sum(maskInverted[:,y]>0) > 1 :
-            if starty is None:
-                starty=y
-                break
-    flippedCompositeMask = cv2.flip(flipCompositeMask, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
-    for x in range(flippedCompositeMask.shape[0]):
-        if sum(flippedCompositeMask[x, :] > 0) > 1:
-            if endx is None:
-                endx = x
-                break
-    for y in range(flippedCompositeMask.shape[1]):
-        if sum(flippedCompositeMask[:, y] > 0) > 1:
-            if endy is None:
-                endy = y
-                break
-    flipCompositeMask = np.zeros(flipCompositeMask.shape)
-    flipCompositeMask[startx:,starty:] = \
-        flippedCompositeMask[endx:endx+(maskInverted.shape[0]-startx), \
-        endy:endy+(maskInverted.shape[1] - starty)]
+    flipper = Flipper(flipCompositeMask,flip)
+    flipCompositeMask = flipper.flip()
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    return flipCompositeMask*maskInverted + compositeMask*maskAltered
+    return (flipCompositeMask * maskInverted + compositeMask * maskAltered).astype('uint8')
+
 
 def __applyTransformToComposite(compositeMask, mask, transform_matrix):
     """
@@ -808,9 +861,10 @@ def __applyTransformToComposite(compositeMask, mask, transform_matrix):
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
-        newLevelMask = __applyTransform(levelMask,mask,transform_matrix)
-        newMask[newLevelMask>100] = level
+        newLevelMask = __applyTransform(levelMask, mask, transform_matrix)
+        newMask[newLevelMask > 100] = level
     return newMask
+
 
 def __applyRotateToComposite(rotation, compositeMask, expectedDims):
     """
@@ -825,13 +879,14 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.ones(compositeMask.shape)*255
+        levelMask = np.ones(compositeMask.shape) * 255
         levelMask[compositeMask == level] = 0
-        newLevelMask = __rotateImage(rotation,levelMask,expectedDims, cval=255)
-        newMask[newLevelMask<150] = level
+        newLevelMask = __rotateImage(rotation, levelMask, expectedDims, cval=255)
+        newMask[newLevelMask < 150] = level
     return newMask
 
-def __applyTransform(compositeMask, mask, transform_matrix,invert=False, returnRaw=False):
+
+def __applyTransform(compositeMask, mask, transform_matrix, invert=False, returnRaw=False):
     """
     Ceate a new mask applying the transform to only those parts of the
     compositeMask that overlay with the provided mask.
@@ -849,25 +904,26 @@ def __applyTransform(compositeMask, mask, transform_matrix,invert=False, returnR
 
     # resize only occurs by user error.
     if compositeMaskFlipped.shape != maskInverted.shape:
-        compositeMaskFlipped  = cv2.resize(compositeMaskFlipped, (maskInverted.shape[1],maskInverted.shape[0]))
+        compositeMaskFlipped = cv2.resize(compositeMaskFlipped, (maskInverted.shape[1], maskInverted.shape[0]))
         compositeMask = cv2.resize(compositeMask, (maskInverted.shape[1], maskInverted.shape[0]))
     # zeros out areas outside the mask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
 
     compositeMaskAltered[compositeMaskAltered == 255] = 200
     newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (mask.shape[1], mask.shape[0]), flags=flags,
-                                  borderMode=cv2.BORDER_CONSTANT, borderValue = 0)
-    newMask[newMask>99] = 255
-    newMask[newMask<100]  = 0
+                                  borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    newMask[newMask > 99] = 255
+    newMask[newMask < 100] = 0
     # put the areas outside the mask back into the composite
-    maskAltered  = np.copy(mask)
+    maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     if returnRaw:
         return newMask
-    newMask = newMask*maskInverted + compositeMask*maskAltered
+    newMask = newMask * maskInverted + compositeMask * maskAltered
     return newMask
 
-def __composeMask(img1, img2, invert, arguments=dict(),crop=False, seam=False):
+
+def __composeMask(img1, img2, invert, arguments=dict(), crop=False, seam=False):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
@@ -876,15 +932,15 @@ def __composeMask(img1, img2, invert, arguments=dict(),crop=False, seam=False):
         return __compareRotatedImage(rotation, img1, img2, invert, arguments)
     if (sum(img1.shape) > sum(img2.shape)):
         if crop:
-           return __composeCropImageMask(img1, img2)
+            return __composeCropImageMask(img1, img2)
         elif seam and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
             # seams can only be calculated in one dimension--only one dimension can change in size
-            return __composeSeamMask(img1,img2)
+            return __composeSeamMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
         return __composeExpandImageMask(img1, img2)
     try:
         if img1.shape == img2.shape:
-            return __diffMask(img1, img2, invert,args=arguments)
+            return __diffMask(img1, img2, invert, args=arguments)
     except ValueError as e:
         print 'Mask generation failure ' + str(e)
     mask = np.ones(img1.shape) * 255
@@ -929,7 +985,8 @@ def __rotateImage(rotation, img, expectedDims, cval=0):
 
 def __compareRotatedImage(rotation, img1, img2, invert, arguments):
     res = __rotateImage(rotation, img1, img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,args=arguments)
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,
+                                                                                                    args=arguments)
     res = __rotateImage(-rotation, mask, img1.shape, cval=255)
     return res, analysis
 
@@ -944,7 +1001,7 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
 
-def __alignChannels(rawimg1, rawimg2,equalize_colors=False):
+def __alignChannels(rawimg1, rawimg2, equalize_colors=False):
     """
 
     :param rawimg1:
@@ -955,6 +1012,7 @@ def __alignChannels(rawimg1, rawimg2,equalize_colors=False):
     @type rawimg2: ImageWrapper
     """
     return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
+
 
 def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
@@ -970,11 +1028,12 @@ def __findBestMatch(big, small):
     return tuple
 
 
-def __composeSeamMask(img1,img2):
+def __composeSeamMask(img1, img2):
     if img1.shape[0] < img2.shape[0]:
-        return abs(255-createHorizontalSeamMask(img1,img2)),{}
+        return abs(255 - createHorizontalSeamMask(img1, img2)), {}
     else:
-        return abs(255-createVerticalSeamMask(img1,img2)),{}
+        return abs(255 - createVerticalSeamMask(img1, img2)), {}
+
 
 def __composeCropImageMask(img1, img2):
     """ Return a masking where img1 is bigger than img2 and
@@ -999,7 +1058,8 @@ def __composeCropImageMask(img1, img2):
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
 
-def composeCloneMask(changemask,startimage, finalimage):
+
+def composeCloneMask(changemask, startimage, finalimage):
     """
 
     :param changemask:
@@ -1024,13 +1084,11 @@ def composeCloneMask(changemask,startimage, finalimage):
                 finalimagesubarray[:,:,i]  = finalimagesubarray[:,:,i] * (mask[y:y + h, x:x + w] / 255)
             tuple = __findBestMatch(startimagearray, finalimagesubarray)
             if tuple is not None:
-                newmask[tuple[0]:tuple[2],tuple[1]:tuple[3]] = 0
+                newmask[tuple[0]:tuple[2], tuple[1]:tuple[3]] = 0
         except Exception as e:
             print e
             continue
     return newmask
-
-
 
 
 def __composeExpandImageMask(img1, img2):
@@ -1064,11 +1122,12 @@ def __sizeDiff(z1, z2):
        z1 and z2 are expected to be PIL images
     """
     # size is inverted due to Image's opposite of numpy arrays
-    return str((int(z2.size[1] - z1.size[1]),int( z2.size[0] - z1.size[0])))
+    return str((int(z2.size[1] - z1.size[1]), int(z2.size[0] - z1.size[0])))
 
 
 def invertMask(mask):
     return mask.invert()
+
 
 def convertToMask(im):
     """
@@ -1081,10 +1140,12 @@ def __checkInterpolation(val):
     validVals = ['nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic']
     return val if val in validVals else 'nearest'
 
+
 def applyMask(image, mask, value=0):
     image = np.copy(image)
-    image[mask==0] = value
+    image[mask == 0] = value
     return image
+
 
 def carveMask(image, mask, expectedSize):
     """
@@ -1097,21 +1158,22 @@ def carveMask(image, mask, expectedSize):
     newimage = np.zeros(expectedSize).astype('uint8')
     if expectedSize[0] == mask.shape[0]:
         for x in range(expectedSize[0]):
-            topaste = image[x,mask[x,:]==255]
+            topaste = image[x, mask[x, :] == 255]
             if (len(topaste)) <= newimage.shape[1]:
-                newimage[x,0:len(topaste)] = topaste
+                newimage[x, 0:len(topaste)] = topaste
             else:
-                newimage[x,:] = topaste[0:len(topaste)]
+                newimage[x, :] = topaste[0:len(topaste)]
     elif expectedSize[1] == mask.shape[1]:
         for y in range(expectedSize[1]):
-            topaste = image[mask[:,y]==255,y]
+            topaste = image[mask[:, y] == 255, y]
             if (len(topaste)) <= newimage.shape[0]:
-                newimage[0:len(topaste),y] = topaste
+                newimage[0:len(topaste), y] = topaste
             else:
-                newimage[:,y] = topaste[0:len(topaste)]
+                newimage[:, y] = topaste[0:len(topaste)]
     else:
-        return applyMask(image,mask)
+        return applyMask(image, mask)
     return newimage
+
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
               transformMatrix=None, flip=None, crop=False, cut=False, carve=False):
@@ -1119,35 +1181,40 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
-    #rotation may change the shape
+    # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
     if transformMatrix is not None:
         if flip is not None:
-           res = __applyFlipComposite(compositeMask, edgeMask,flip)
+            res = __applyFlipComposite(compositeMask, edgeMask, flip)
         else:
-           res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
+            res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
         if sizeChange[0] != 0 or abs(rotation) % 90 < 0.001:
-            res = __rotateImage(rotation, compositeMask, (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]), cval=0)
+            res = __rotateImage(rotation, compositeMask,
+                                (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]),
+                                cval=0)
         else:
-            res = __applyRotateToComposite(rotation,  res,
-                            (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]))
+            res = __applyRotateToComposite(rotation, res,
+                                           (compositeMask.shape[0] + sizeChange[0],
+                                            compositeMask.shape[1] + sizeChange[1]))
     # if transform matrix provided and alternate path is taken above
     if transformMatrix is None and flip is not None:
-        res = __applyFlipComposite(res, edgeMask,flip)
+        res = __applyFlipComposite(res, edgeMask, flip)
     if location != (0, 0) or crop:
-        upperBound = (min(res.shape[0],expectedSize[0] + location[0]), min(res.shape[1],expectedSize[1] + location[1]))
+        upperBound = (
+        min(res.shape[0], expectedSize[0] + location[0]), min(res.shape[1], expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if cut:
         res = applyMask(res, edgeMask)
     if carve:
-        res = carveMask(res, edgeMask,expectedSize)
+        res = carveMask(res, edgeMask, expectedSize)
     if expectedSize != res.shape:
-        res = __applyResizeComposite(res,(expectedSize[0],expectedSize[1]))
+        res = __applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
     return res
 
+
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
-              transformMatrix=None, flip=None, crop=False, cut=False, targetSize = None):
+                     transformMatrix=None, flip=None, crop=False, cut=False, targetSize=None):
     res = donorMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1156,24 +1223,25 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     # see the cut section below, where the transform occurs directly on the mask
     # this  occurs in donor cases
     if transformMatrix is not None and not cut and not flip:
-        res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix),invert=True,returnRaw=False)
+        res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix), invert=True, returnRaw=False)
     elif abs(rotation) > 0.001:
-        res = __rotateImage(-rotation,  res, expectedSize, cval=0)
+        res = __rotateImage(-rotation, res, expectedSize, cval=0)
     elif flip is not None:
         if transformMatrix is not None:
-            res = __applyFlipComposite(res,edgeMask, flip)
+            res = __applyFlipComposite(res, edgeMask, flip)
         else:
             res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0) or crop:
         newRes = np.zeros(expectedSize)
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
-        newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0]-location[0]),0:(upperBound[1]-location[1])]
+        newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
+                                                                       0:(upperBound[1] - location[1])]
         res = newRes
     if expectedSize != res.shape:
-        res = cv2.resize(res,(expectedSize[1],expectedSize[0]))
-    #Need to think through Seam Carving here.
-    #Seam carving essential puts pixels back.
-    #perhaps this is ok, since the resize happens first and then the cut of the removed pixels
+        res = cv2.resize(res, (expectedSize[1], expectedSize[0]))
+    # Need to think through Seam Carving here.
+    # Seam carving essential puts pixels back.
+    # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
     if cut:
         res = applyMask(res, edgeMask)
         if transformMatrix is not None:
@@ -1181,6 +1249,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
                                       flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return res
+
 
 def __toMask(im):
     """
@@ -1196,19 +1265,22 @@ def __toMask(im):
         gray_image[im[:, :, 3] == 0] = 255
     return gray_image
 
-def mergeColorMask(compositeMaskArray,newMaskArray):
-    matches = np.any(newMaskArray != [255,255,255], axis=2)
+
+def mergeColorMask(compositeMaskArray, newMaskArray):
+    matches = np.any(newMaskArray != [255, 255, 255], axis=2)
     compositeMaskArray[matches] = newMaskArray[matches]
     return compositeMaskArray
 
-def mergeMask(compositeMask, newMask,level=0):
+
+def mergeMask(compositeMask, newMask, level=0):
     if compositeMask.shape != newMask.shape:
         compositeMask = cv2.resize(compositeMask, (newMask.shape[1], newMask.shape[0]))
         newMask = ImageWrapper(newMask).to_mask().to_array()
     else:
         compositeMask = np.copy(compositeMask)
-    compositeMask[newMask==0] = level
+    compositeMask[newMask == 0] = level
     return compositeMask
+
 
 def img_analytics(z1, z2):
     with warnings.catch_warnings():
@@ -1216,7 +1288,7 @@ def img_analytics(z1, z2):
         return {'ssim': compare_ssim(z1, z2, multichannel=False), 'psnr': __colorPSNR(z1, z2)}
 
 
-def __diffMask(img1, img2, invert,args=None):
+def __diffMask(img1, img2, invert, args=None):
     dst = np.abs(img1 - img2)
     gray_image = np.zeros(img1.shape).astype('uint8')
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
@@ -1224,8 +1296,10 @@ def __diffMask(img1, img2, invert,args=None):
     analysis = img_analytics(img1, img2)
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
 
+
 def fixTransparency(img):
     return img.apply_transparency()
+
 
 def __findNeighbors(paths, next_pixels):
     newpaths = list()
@@ -1238,10 +1312,12 @@ def __findNeighbors(paths, next_pixels):
                 s.add(i)
     return newpaths
 
-def __setMask(mask, x,y,value):
-    mask[x,y] = value
 
-def createHorizontalSeamMask(old,new):
+def __setMask(mask, x, y, value):
+    mask[x, y] = value
+
+
+def createHorizontalSeamMask(old, new):
     return __slideAcrossSeams(old,
                               new,
                               range(old.shape[1]),
@@ -1251,16 +1327,16 @@ def createHorizontalSeamMask(old,new):
                               )
 
 
-def createVerticalSeamMask(old,new):
+def createVerticalSeamMask(old, new):
     return __slideAcrossSeams(old,
                               new,
-                              [x * old.shape[1] for x in range( old.shape[0])],
-                              [x * new.shape[1] for x in range( old.shape[0])],
+                              [x * old.shape[1] for x in range(old.shape[0])],
+                              [x * new.shape[1] for x in range(old.shape[0])],
                               1,
                               old.shape[1])
 
 
-def __slideAcrossSeams(old,new,oldmatchchecks,newmatchchecks,increment,count):
+def __slideAcrossSeams(old, new, oldmatchchecks, newmatchchecks, increment, count):
     from functools import partial
     h, w = old.shape
     mask = np.zeros((h, w)).astype('uint8')
@@ -1274,40 +1350,42 @@ def __slideAcrossSeams(old,new,oldmatchchecks,newmatchchecks,increment,count):
                                                     lambda pos: remove_action(pos / w, pos % w, 255))
     return mask
 
-def __findSeam(old,new,oldmatchchecks, newmatchchecks,increment, remove_action):
+
+def __findSeam(old, new, oldmatchchecks, newmatchchecks, increment, remove_action):
     replacement_oldmatchchecks = []
     replacement_newmatchchecks = []
-    newmaxlen = reduce(lambda x, y: x * y,new.shape,1)
+    newmaxlen = reduce(lambda x, y: x * y, new.shape, 1)
     for pos in range(len(oldmatchchecks)):
         old_pixel = old.item(oldmatchchecks[pos])
         if newmatchchecks[pos] >= newmaxlen:
             remove_action(oldmatchchecks[pos])
-   #         replacement_newmatchchecks.append(newmatchchecks[pos])
+            #         replacement_newmatchchecks.append(newmatchchecks[pos])
             continue
         new_pixel = new.item(newmatchchecks[pos])
         if old_pixel != new_pixel:
             remove_action(oldmatchchecks[pos])
             replacement_newmatchchecks.append(newmatchchecks[pos])
         else:
-            replacement_newmatchchecks.append(newmatchchecks[pos]+increment)
+            replacement_newmatchchecks.append(newmatchchecks[pos] + increment)
         replacement_oldmatchchecks.append(oldmatchchecks[pos] + increment)
-    return replacement_oldmatchchecks,replacement_newmatchchecks
+    return replacement_oldmatchchecks, replacement_newmatchchecks
 
-#def __findVerticalSeam(mask):
+
+# def __findVerticalSeam(mask):
 #    paths = list()
 ##    for candidate in np.where(mask[0, :] > 0)[0]:
- #       paths.append([candidate])
- #   for x in range(1, mask.shape[0]):
- #       paths = __findNeighbors(paths, np.where(mask[x, :] > 0)[0])
- #   return paths
-#def __findHorizontalSeam(mask):
+#       paths.append([candidate])
+#   for x in range(1, mask.shape[0]):
+#       paths = __findNeighbors(paths, np.where(mask[x, :] > 0)[0])
+#   return paths
+# def __findHorizontalSeam(mask):
 #    paths = list()
 #    for candidate in np.where(mask[:, 0] > 0)[0]:
 #        paths.append([candidate])
 #    for y in range(1, mask.shape[1]):
 #        paths = __findNeighbors(paths, np.where(mask[:, y] > 0)[0])
 #    return paths
-#def __seamMask(mask):
+# def __seamMask(mask):
 #    seams = __findVerticalSeams(mask)
 ##    if len(seams) > 0:
 #        first = seams[0]
@@ -1334,7 +1412,7 @@ def __add_edge(edges, edge_points, points, i, j):
     if (i, j) in edges or (j, i) in edges:
         return
     edges.add((i, j))
-    edge_points.extend([points[i],points[j]])
+    edge_points.extend([points[i], points[j]])
 
 
 def __calc_alpha2(alpha, points):
@@ -1354,11 +1432,12 @@ def __calc_alpha2(alpha, points):
         s = (a + b + c) / 2.0
         area = np.sqrt(s * (s - a) * (s - b) * (s - c))
         circum_r = a * b * c / (4.0 * area)
-        if circum_r < 10.0/alpha:
+        if circum_r < 10.0 / alpha:
             __add_edge(edges, edge_points, points, ia, ib)
             __add_edge(edges, edge_points, points, ib, ic)
             __add_edge(edges, edge_points, points, ic, ia)
     return edge_points
+
 
 def grayToRGB(frame):
     """
@@ -1366,15 +1445,16 @@ def grayToRGB(frame):
     """
     #  cv2.cvtColor(result, cv2.COLOR_GRAY2BGR))
     result = np.zeros((frame.shape[0], frame.shape[1], 3))
-    if len (frame.shape) == 2:
+    if len(frame.shape) == 2:
         result[:, :, 1] = frame
     else:
         summary = np.zeros((frame.shape[0], frame.shape[1]))
         for d in range(frame.shape[2]):
-            summary[:,:] += frame[:,:,d]
-        summary[summary>0] = 255
-        result[:,:,1] =summary
+            summary[:, :] += frame[:, :, d]
+        summary[summary > 0] = 255
+        result[:, :, 1] = summary
     return result.astype('uint8')
+
 
 def composeVideoMaskName(maskprefix, starttime, suffix):
     """
@@ -1387,7 +1467,8 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
         return maskprefix + '.' + suffix
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
-def convertToVideo(file_name, preferences = None):
+
+def convertToVideo(file_name, preferences=None):
     suffix = '.' + preferredSuffix(preferences=preferences)
     fn = file_name[:file_name.rfind('.')] + suffix
     if os.path.exists(fn):
@@ -1395,34 +1476,37 @@ def convertToVideo(file_name, preferences = None):
             return fn
         else:
             os.remove(fn)
-    reader = GrayBlockReader(file_name,convert=True, preferences = preferences)
+    reader = GrayBlockReader(file_name, convert=True, preferences=preferences)
     while True:
         mask = reader.read()
         if mask is None:
             break
     return fn
 
+
 executions = {}
+
 
 def cancel_execute(worker_func):
     if worker_func in executions:
         executions[worker_func].cancel()
 
-def execute_every (interval, worker_func,  start = True, **kwargs):
-    executions[worker_func] = threading.Timer (
-      interval,
+
+def execute_every(interval, worker_func, start=True, **kwargs):
+    executions[worker_func] = threading.Timer(
+        interval,
         execute_every, [interval, worker_func, False], kwargs)
     executions[worker_func].start()
     if not start:
         worker_func(**kwargs)
 
-class GrayBlockReader:
 
+class GrayBlockReader:
     pos = 0
     convert = False
     writer = None
 
-    def __init__(self,  filename, convert=False, preferences=None):
+    def __init__(self, filename, convert=False, preferences=None):
         import h5py
         self.filename = filename
         self.h_file = h5py.File(filename, 'r')
@@ -1435,7 +1519,7 @@ class GrayBlockReader:
                                       preferences=preferences) if self.convert else DummyWriter()
 
     def current_frame_time(self):
-        return self.start_time + (self.pos*self.fps)
+        return self.start_time + (self.pos * self.fps)
 
     def read(self):
         if self.dset is None:
@@ -1443,9 +1527,9 @@ class GrayBlockReader:
         if self.pos >= self.dset.shape[0]:
             self.dset = None
             return None
-        mask = self.dset[self.pos,:,:]
+        mask = self.dset[self.pos, :, :]
         mask = mask.astype('uint8')
-        self.writer.write(mask,self.current_frame_time())
+        self.writer.write(mask, self.current_frame_time())
         self.pos += 1
         return mask
 
@@ -1457,12 +1541,14 @@ class GrayBlockReader:
         if self.writer is not None:
             self.writer.close()
 
+
 class DummyWriter:
     def write(self, mask, mask_time):
         None
 
     def close(self):
         None
+
 
 class GrayBlockWriter:
     """
@@ -1483,7 +1569,7 @@ class GrayBlockWriter:
     def write(self, mask, mask_time):
         import h5py
         if self.h_file is None:
-            self.filename = composeVideoMaskName(self.mask_prefix,mask_time,self.suffix)
+            self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
             if os.path.exists(self.filename):
                 os.remove(self.filename)
             self.h_file = h5py.File(self.filename, 'w')
@@ -1492,20 +1578,20 @@ class GrayBlockWriter:
             self.h_file.attrs['start_time'] = mask_time
             self.grp = self.h_file.create_group('masks')
             self.dset = self.grp.create_dataset("masks",
-                                                (10,mask.shape[0], mask.shape[1]),
+                                                (10, mask.shape[0], mask.shape[1]),
                                                 compression="gzip",
                                                 chunks=True,
                                                 maxshape=(None, mask.shape[0], mask.shape[1]))
             self.pos = 0
-        if self.dset.shape[0] < (self.pos+1):
-             self.dset.resize((self.pos+1,mask.shape[0], mask.shape[1]))
+        if self.dset.shape[0] < (self.pos + 1):
+            self.dset.resize((self.pos + 1, mask.shape[0], mask.shape[1]))
         new_mask = mask
-        if len(mask.shape)>2:
-            new_mask = np.ones((mask.shape[0],mask.shape[1]))*255
+        if len(mask.shape) > 2:
+            new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
             for i in range(mask.shape[2]):
-                new_mask[mask[:,:,i]>0] = 0
-        self.dset[self.pos,:,:] = new_mask
-        self.pos+=1
+                new_mask[mask[:, :, i] > 0] = 0
+        self.dset[self.pos, :, :] = new_mask
+        self.pos += 1
 
     def get_file_name(self):
         return self.filename
@@ -1531,6 +1617,7 @@ def preferredSuffix(preferences=None):
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 
+
 class GrayFrameWriter:
     """
     Write Gray scale (Mask) video images
@@ -1550,21 +1637,21 @@ class GrayFrameWriter:
         self.suffix = preferredSuffix(preferences=preferences)
         t_codec = None
         if preferences is not None:
-            t_codec= preferences.get_key('vid_codec')
+            t_codec = preferences.get_key('vid_codec')
         if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
         elif t_codec is not None:
             self.codec = str(t_codec)
         self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
 
-    def write(self,mask,mask_time):
+    def write(self, mask, mask_time):
         if self.capOut is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
             print self.fourcc
             self.capOut = cv2.VideoWriter(unicode(os.path.abspath(self.filename)),
                                           self.fourcc,
                                           self.fps,
-                                          (mask.shape[1],mask.shape[0]),
+                                          (mask.shape[1], mask.shape[0]),
                                           False)
         if cv2.__version__.startswith('2.4.11'):
             mask = grayToRGB(mask)
@@ -1572,9 +1659,8 @@ class GrayFrameWriter:
 
     def close(self):
         if self.capOut is not None:
-          self.capOut.release()
+            self.capOut.release()
         self.capOut = None
 
     def release(self):
         self.close()
-

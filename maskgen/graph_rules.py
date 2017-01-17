@@ -615,6 +615,32 @@ def voiceSwap(scModel,edgeTuples):
             return 'yes'
     return 'no'
 
+def imageReformatRule(scModel, edgeTuples):
+    """
+       :param scModel:
+       :param edgeTuples:
+       :return:
+       @type scModel: ImageProjectModel
+       """
+    start = end = None
+    for edgeTuple in edgeTuples:
+        if len(scModel.getGraph().predecessors(edgeTuple.start)) == 0:
+            start = edgeTuple.start
+        elif len(scModel.getGraph().successors(edgeTuple.end)) == 0:
+            end = edgeTuple.end
+    if end and start:
+        snode = scModel.getGraph().get_node(start)
+        enode = scModel.getGraph().get_node(end)
+        startexif = exif.getexif(os.path.join(scModel.get_dir(),snode['file']))
+        endexif = exif.getexif(os.path.join(scModel.get_dir(),enode['file']))
+        if 'MIME Type' in startexif and 'MIME Type' in endexif and \
+            startexif['MIME Type'] != endexif['MIME Type']:
+            return 'yes'
+        elif 'File Type' in startexif and 'File Type' in endexif and \
+            startexif['File Type'] != endexif['File Type']:
+            return 'yes'
+    return 'no'
+
 def imageCompressionRule(scModel, edgeTuples):
     """
 
@@ -626,10 +652,19 @@ def imageCompressionRule(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
         if len(scModel.getGraph().successors(edgeTuple.end)) == 0:
             node = scModel.getGraph().get_node(edgeTuple.end)
-            result = exif.getexif(node['file'])
+            result = exif.getexif(os.path.join(scModel.get_dir(),node['file']))
             compression = result['Compression'].strip() if 'Compression' in result else None
-            return 'yes'  if compression and len(compression) > 0 and compression.lower() != 'uncompressed' else 'no'
+            return 'yes'  if compression and len(compression) > 0 and not compression.lower().startswith('uncompressed') else 'no'
     return 'no'
+
+def semanticEventFabricationRule(scModel, edgeTuples):
+    return scModel.getProjectData('semanticrefabrication')
+
+def semanticRepurposeRule(scModel, edgeTuples):
+    return scModel.getProjectData('semanticrepurposing')
+
+def semanticRestageRule(scModel, edgeTuples):
+    return scModel.getProjectData('semanticrestaging')
 
 def compositeSizeRule(scModel, edgeTuples):
     value = 0
