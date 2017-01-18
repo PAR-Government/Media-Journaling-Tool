@@ -16,7 +16,7 @@ import pandas as pd
 import itertools
 import subprocess
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png' '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4']}
+exts = {'IMAGE':['.jpg', '.jpeg', '.png' '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ]}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
 def copyrename(image, path, usrname, org, seq, other):
@@ -293,7 +293,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
                                     'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                     'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
                                     'GPSLatitude', 'GPSLongitude', 'CustomRendered', 'HP-OnboardFilter', 'HP-OBFilterType', 'BitDepth', 'ImageWidth', 'ImageHeight',
-                                    'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside', 'HP-Outside', 'HP-PRNU'])
+                                    'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside', 'HP-Outside'])
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
@@ -465,7 +465,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                      sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
                      focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
                      cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app='', camerakinematics='',
-                     inside='', outside='', prnu=''):
+                     inside='', outside=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
@@ -515,14 +515,13 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     36. App
     37. Inside
     38. Outside
-    39. PRNU
     """
     exiftoolargs = []
     data = []
     if not hd:
         hd = path
     master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + \
-             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app, inside, outside, prnu]
+             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app, inside, outside]
     missingIdx = []
 
     if camera:

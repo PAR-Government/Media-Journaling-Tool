@@ -12,6 +12,7 @@ from PIL import Image, ImageTk
 
 class KeywordsSheet(HPSpreadsheet):
     def __init__(self, dir=None, keyCSV=None, master=None, oldImageNames=[], newImageNames=[]):
+        self.keywords = self.load_keywords()
         HPSpreadsheet.__init__(self, dir=dir, master=master)
         self.oldImageNames = oldImageNames
         self.newImageNames = newImageNames
@@ -23,27 +24,47 @@ class KeywordsSheet(HPSpreadsheet):
         self.saveState = True
         self.protocol("WM_DELETE_WINDOW", self.check_save)
 
-
-
     def create_widgets(self):
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
         self.topFrame = Frame(self)
-        self.topFrame.grid(row=0, column=1)
-        self.bottomFrame = Frame(self)
-        self.bottomFrame.grid(row=1, column=1)
+        self.topFrame.pack(side=TOP, fill=X)
+        self.rightFrame = Frame(self, width=480)
+        self.rightFrame.pack(side=RIGHT, fill=Y)
         self.leftFrame = Frame(self)
-        self.leftFrame.grid(row=0, column=0, rowspan=2)
-        self.pt = CustomTable(self.leftFrame)
+        self.leftFrame.pack(side=LEFT, fill=BOTH, expand=1)
+        self.pt = CustomTable(self.leftFrame, scrollregion=None, width=1024, height=720)
+        self.leftFrame.pack(fill=BOTH, expand=1)
         self.pt.show()
         self.currentImageNameVar = StringVar()
         self.currentImageNameVar.set('Current Image: ')
-        l = Label(self.topFrame, textvariable=self.currentImageNameVar)
-        l.grid()
+        l = Label(self.topFrame, height=1, textvariable=self.currentImageNameVar)
+        l.pack(fill=BOTH, expand=1)
 
         image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+        image.thumbnail((250,250))
         self.photo = ImageTk.PhotoImage(image)
-        self.l2 = Label(self.bottomFrame, width=250, height=250, image=self.photo)
+        self.l2 = Button(self.rightFrame, image=self.photo, command=self.open_image)
         self.l2.image = self.photo  # keep a reference!
-        self.l2.grid()
+        self.l2.pack(side=TOP)
+
+        self.validateFrame = Frame(self.rightFrame, width=480)
+        self.validateFrame.pack(side=BOTTOM)
+        self.currentColumnLabel = Label(self.validateFrame, text='Current column:')
+        self.currentColumnLabel.grid(row=0, column=0, columnspan=2)
+        lbl = Label(self.validateFrame, text='Valid values for cells in this column:').grid(row=1, column=0, columnspan=2)
+        self.vbVertScroll = Scrollbar(self.validateFrame)
+        self.vbVertScroll.grid(row=2, column=1, sticky='NS')
+        self.vbHorizScroll = Scrollbar(self.validateFrame, orient=HORIZONTAL)
+        self.vbHorizScroll.grid(row=3, sticky='WE')
+        self.validateBox = Listbox(self.validateFrame, xscrollcommand=self.vbHorizScroll.set, yscrollcommand=self.vbVertScroll.set, selectmode=SINGLE, width=50, height=14)
+        self.validateBox.grid(row=2, column=0)
+        self.vbVertScroll.config(command=self.validateBox.yview)
+        self.vbHorizScroll.config(command=self.validateBox.xview)
+
+        for v in self.keywords:
+            self.validateBox.insert(END, v)
+        self.validateBox.bind('<<ListboxSelect>>', self.insert_item)
 
         self.menubar = Menu(self)
         self.fileMenu = Menu(self.menubar, tearoff=0)
@@ -76,6 +97,17 @@ class KeywordsSheet(HPSpreadsheet):
         self.title(self.keyCSV)
         self.pt.importCSV(self.keyCSV)
 
+    def load_keywords(self):
+        try:
+            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'ImageKeywords.csv')
+            df = pd.read_csv(dataFile)
+        except IOError:
+            tkMessageBox.showwarning('Warning', 'Keywords list not found! (hp_tool/data/ImageKeywords.csv')
+            return []
+        return [x.strip() for x in df['keywords']]
+
+    def update_valid_values(self):
+        pass
 
     def createKeywordsCSV(self):
         keywordsName = os.path.join(self.dir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + 'keywords.csv')
