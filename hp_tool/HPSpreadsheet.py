@@ -130,7 +130,7 @@ class HPSpreadsheet(Toplevel):
         col = self.pt.getSelectedColumn()
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
-        if currentCol in ['HP-OnboardFilter', 'HP-LensFilter', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-PRNU']:
+        if currentCol in ['HP-OnboardFilter', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside']:
             validValues = ['True', 'False']
         elif currentCol == 'HP-CameraKinematics':
             validValues = self.kinematics
@@ -202,12 +202,13 @@ class HPSpreadsheet(Toplevel):
         self.modelcol = self.pt.model.df.columns.get_loc('CameraModel')
         self.hdrcol = self.pt.model.df.columns.get_loc('HP-HDR')
         self.kincol = self.pt.model.df.columns.get_loc('HP-CameraKinematics')
+        self.localidcol = self.pt.model.df.columns.get_loc('HP-DeviceLocalID')
 
         self.color_code_cells()
 
     def color_code_cells(self):
         notnans = self.pt.model.df.notnull()
-        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol]
+        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol, self.localidcol]
         videoonlycols = [self.kincol]
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
