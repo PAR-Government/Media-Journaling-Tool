@@ -274,8 +274,8 @@ class ImageWrapper:
 
     def to_mask(self):
         """
-          Produce a mask where all black areas are white.
-          For a gray scale mask image, white areas for areas cropped.
+        Produce a mask where all black areas are white
+        for gray scale: white = selected, black = unselected
         @rtype : ImageWrapper
         """
         s = self.image_array.shape

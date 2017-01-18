@@ -7,6 +7,7 @@ import numpy
 from image_wrap import ImageWrapper
 from image_graph import ImageGraph
 import os
+import exif
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -86,7 +87,7 @@ def find_edge_selection(G, node):
         if edge['op'] == 'PasteSplice':
             edgeMask = G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0]
             if edgeMask is not None:
-                edgeMask = edgeMask.to_mask().to_array()
+                edgeMask = edgeMask.to_array()
             else:
                 raise ValueError('Missing edge mask for ' + pred + ' to ' + node)
         elif edge['op'] == 'Donor':
@@ -586,6 +587,13 @@ def spatialRemove(scModel,edgeTuples):
             return 'yes'
     return 'no'
 
+def prnuSetIdRule(scModel,edgeTuples):
+    for edgeTuple in edgeTuples:
+        if 'arguments' in edgeTuple.edge and \
+                'PRNU Training Set ID' in edgeTuple.edge['arguments']:
+            return edgeTuple.edge['arguments']['PRNU Training Set ID']
+    return ''
+
 def spatialMovingObject(scModel,edgeTuples):
     for edgeTuple in edgeTuples:
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
@@ -606,6 +614,57 @@ def voiceSwap(scModel,edgeTuples):
                 edgeTuple.edge['arguments']['add type'] == 'replace':
             return 'yes'
     return 'no'
+
+def imageReformatRule(scModel, edgeTuples):
+    """
+       :param scModel:
+       :param edgeTuples:
+       :return:
+       @type scModel: ImageProjectModel
+       """
+    start = end = None
+    for edgeTuple in edgeTuples:
+        if len(scModel.getGraph().predecessors(edgeTuple.start)) == 0:
+            start = edgeTuple.start
+        elif len(scModel.getGraph().successors(edgeTuple.end)) == 0:
+            end = edgeTuple.end
+    if end and start:
+        snode = scModel.getGraph().get_node(start)
+        enode = scModel.getGraph().get_node(end)
+        startexif = exif.getexif(os.path.join(scModel.get_dir(),snode['file']))
+        endexif = exif.getexif(os.path.join(scModel.get_dir(),enode['file']))
+        if 'MIME Type' in startexif and 'MIME Type' in endexif and \
+            startexif['MIME Type'] != endexif['MIME Type']:
+            return 'yes'
+        elif 'File Type' in startexif and 'File Type' in endexif and \
+            startexif['File Type'] != endexif['File Type']:
+            return 'yes'
+    return 'no'
+
+def imageCompressionRule(scModel, edgeTuples):
+    """
+
+    :param scModel:
+    :param edgeTuples:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    for edgeTuple in edgeTuples:
+        if len(scModel.getGraph().successors(edgeTuple.end)) == 0:
+            node = scModel.getGraph().get_node(edgeTuple.end)
+            result = exif.getexif(os.path.join(scModel.get_dir(),node['file']))
+            compression = result['Compression'].strip() if 'Compression' in result else None
+            return 'yes'  if compression and len(compression) > 0 and not compression.lower().startswith('uncompressed') else 'no'
+    return 'no'
+
+def semanticEventFabricationRule(scModel, edgeTuples):
+    return scModel.getProjectData('semanticrefabrication')
+
+def semanticRepurposeRule(scModel, edgeTuples):
+    return scModel.getProjectData('semanticrepurposing')
+
+def semanticRestageRule(scModel, edgeTuples):
+    return scModel.getProjectData('semanticrestaging')
 
 def compositeSizeRule(scModel, edgeTuples):
     value = 0

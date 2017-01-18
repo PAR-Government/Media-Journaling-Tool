@@ -299,6 +299,9 @@ class BatchProject:
                 local_state['project'][k] =  self.G.graph[k]
         return local_state
 
+    def getName(self):
+        return self.G.graph['name'] if 'name' in self.G.graph else 'Untitled'
+
     def executeOnce(self, global_state=dict()):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         local_state = self._buildLocalState()
@@ -336,6 +339,28 @@ class BatchProject:
         return local_state['model'].get_dir()
 
 
+    def dump(self):
+        filename = self.getName() + '.png'
+        self._draw().write_png(filename)
+
+    def _draw(self):
+        import pydot
+        pydot_nodes = {}
+        pygraph = pydot.Dot(graph_type='digraph')
+        for node_id in self.G.nodes():
+            node = self.G.node[node_id]
+            name = op_type = node['op_type']
+            if op_type == 'PluginOperation':
+                name = node['plugin']
+            pydot_nodes[node_id] = pydot.Node(node_id, label=name,
+                                              shape='plain')
+            pygraph.add_node(pydot_nodes[node_id])
+        for edge_id in self.G.edges():
+            edge = self.G.edge[edge_id[0]][edge_id[1]]
+            color = 'black'
+            pygraph.add_edge(
+                pydot.Edge(pydot_nodes[edge_id[0]], pydot_nodes[edge_id[1]],  color=color))
+        return pygraph
 
     def validate(self):
         """
@@ -408,9 +433,10 @@ def getBatch(jsonFile,loglevel=50):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--json',             required=True,         help='JSON File')
-    parser.add_argument('--count', required=False, help='dir')
-    parser.add_argument('--results', required=True, help='dir')
+    parser.add_argument('--count', required=False, help='number of projects to build')
+    parser.add_argument('--results', required=True, help='project results directory')
     parser.add_argument('--loglevel', required=False, help='log level')
+    parser.add_argument('--graph', required=False, action='store_true',help='create graph PNG file')
     args = parser.parse_args()
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
@@ -418,6 +444,8 @@ def main():
     batchProject =getBatch(args.json, loglevel=args.loglevel)
     globalState =  {'projects' : args.results}
     count = int(args.count) if args.count is not None else 1
+    if args.graph is not None:
+        batchProject.dump()
     for i in range(count):
         project_directory =  batchProject.executeOnce(globalState)
         if project_directory is not None:
