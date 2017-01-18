@@ -76,7 +76,7 @@ def main():
 
     with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
         error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        upload_projects(args.s3, args.dir,error_writer)
+        upload_projects(args.s3, args.projects,error_writer)
 
 if __name__ == '__main__':
     main()
