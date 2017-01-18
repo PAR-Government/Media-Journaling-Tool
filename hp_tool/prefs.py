@@ -44,8 +44,10 @@ class Preferences(Toplevel):
         self.orgVar = StringVar()
         self.orgVar.set('RIT (R)')
         self.orgVar.trace('w', self.update_preview)
+        self.orgVar.trace('w', self.update_metadata)
         self.orgVar.trace('w', self.update_org)
         self.usrVar.trace('w', self.update_preview)
+        self.usrVar.trace('w', self.update_metadata)
         self.seqVar.trace('w', self.update_preview)
 
         self.copyrightVar = StringVar()
@@ -75,7 +77,6 @@ class Preferences(Toplevel):
             self.creditVar.set(self.metadata['credit'])
 
         self.usageVar.set('CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/')
-        self.usageEntry.config(state='disabled')
 
     def create_widgets(self):
         self.usrLabel = Label(self.prefsFrame, text='Initials: ')
@@ -134,6 +135,28 @@ class Preferences(Toplevel):
             self.prefs['organization'] = self.orgVar.get()[-2]
         except IndexError:
             self.prefs['organization'] = self.orgVar.get()
+
+    def update_metadata(self, *args):
+        initials = self.usrVar.get()
+        org = self.orgVar.get()
+        self.copyrightEntry.delete(0, END)
+        self.bylineEntry.delete(0, END)
+        self.creditEntry.delete(0, END)
+
+        if org == 'U of M (M)':
+            org = 'University of Michigan'
+        elif org == 'PAR (P)':
+            org = 'PAR Government Systems'
+        elif org == 'RIT (R)':
+            org = 'Rochester Institute of Technology'
+        elif org == 'Drexel (D)':
+            org = 'Drexel University'
+        elif org == 'CU Denver (C)':
+            org = 'University of Colorado, Denver'
+
+        self.copyrightEntry.insert(0, '(c) 2016 ' + org + ' - Under contract of MediFor')
+        self.bylineEntry.insert(0, initials)
+        self.creditEntry.insert(0, org)
 
     def save_prefs(self):
         if self.usrEntry.get():
