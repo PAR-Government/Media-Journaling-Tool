@@ -16,7 +16,7 @@ import pandas as pd
 import itertools
 import subprocess
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png' '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4']}
+exts = {'IMAGE':['.jpg', '.jpeg', '.png' '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ]}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
 def copyrename(image, path, usrname, org, seq, other):
