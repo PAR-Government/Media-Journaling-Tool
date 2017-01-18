@@ -1232,7 +1232,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         else:
             res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0) or crop:
-        newRes = np.zeros(expectedSize)
+        newRes = np.zeros(expectedSize).astype('uint8')
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
         newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                        0:(upperBound[1] - location[1])]
@@ -1247,7 +1247,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         if transformMatrix is not None:
             res = cv2.warpPerspective(res, deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
                                       flags=cv2.WARP_INVERSE_MAP,
-                                      borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+                                      borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
     return res
 
 
