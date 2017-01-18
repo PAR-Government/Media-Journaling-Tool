@@ -117,7 +117,10 @@ def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + id,
                                        filetypes=filetypes)
     var = obj.values[row]
-    var.set(val if (val is not None and len(val) > 0) else None)
+    if val is not None and len(val) > 0:
+        var.set(val)
+    else:
+        val = None
     obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else ' ' * 30)
 
 
