@@ -190,7 +190,8 @@ def check_mandatory(edge, op, graph, frm, to):
     inputmasks = [param for param in opObj.optionalparameters.keys() if param == 'inputmaskname' and
                   'purpose' in edge and edge['purpose'] == 'clone' and ruleApplies]
     if ('inputmaskname' in opObj.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
-            'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0):
+            'inputmaskname' not in edge or edge['inputmaskname'] is None or len(edge['inputmaskname']) == 0 or
+            not os.path.exists(os.path.join(graph.dir,edge['inputmaskname']))):
         missing.append('inputmaskname')
     return [('Mandatory parameter ' + m + ' is missing') for m in missing]
 
