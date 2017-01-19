@@ -1045,7 +1045,7 @@ def __composeCropImageMask(img1, img2):
     analysis['location'] = '(0,0)'
     if tuple is not None:
         dims = (0, img2.shape[0], 0, img2.shape[1])
-        diffIm = np.zeros(img1.shape).astype('float32')
+        diffIm = np.zeros(img1.shape).astype(img1.dtype)
         diffIm[tuple[0]:tuple[2], tuple[1]:tuple[3]] = img2
         pinned = np.where(np.array(dims) == np.array(tuple))[0]
         analysis = img_analytics(img1, diffIm)
@@ -1142,6 +1142,8 @@ def __checkInterpolation(val):
 
 
 def applyMask(image, mask, value=0):
+    if mask.shape != image.shape:
+        mask = cv2.resize(mask, (image.shape[1],image.shape[0]))
     image = np.copy(image)
     image[mask == 0] = value
     return image

@@ -936,7 +936,9 @@ class ImageProjectModel:
                 baseNodeIdsAndLevels =  self._findBaseNodesWithCycleDetection(edge_id[0])
                 baseNodeId,level,path= baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels)>0 else (None,None)
                 # build composite
-                for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), selectMask.invert().to_array()):
+                composite = selectMask.invert().to_array()
+                composite = self.__alterComposite(edge,composite,selectMask.to_array())
+                for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), composite):
                     target_mask = target_mask.invert()
                     target_mask_filename = os.path.join(self.get_dir(),edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
                     target_mask.save(target_mask_filename,format='PNG')
