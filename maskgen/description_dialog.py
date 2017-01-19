@@ -377,10 +377,10 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         Label(master, text="Software Version:").grid(row=5, sticky=W)
         Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0, columnspan=2)
 
-        groupFrame = Frame(master)
+        groupFrame = Frame(master,height=3)
         scrollbar = Scrollbar(groupFrame, orient=VERTICAL)
-        self.semanticGroupsList = Listbox(master)
-        self.semanticGroupsList.grid(row=7, column=0, columnspan=2)
+        self.semanticGroupsList = Listbox(groupFrame,height=3)
+        self.semanticGroupsList.grid(row=0, column=0, columnspan=2)
         self.listbox = Listbox(groupFrame, yscrollcommand=scrollbar.set)
         self.listbox.grid(row=0, column=0)
         scrollbar.config(command=self.listbox.yview)
