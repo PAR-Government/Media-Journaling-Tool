@@ -375,7 +375,18 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         Label(master, text="Description:").grid(row=3, sticky=W)
         Label(master, text="Software Name:").grid(row=4, sticky=W)
         Label(master, text="Software Version:").grid(row=5, sticky=W)
-        row = 6
+        Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0, columnspan=2)
+
+        groupFrame = Frame(master)
+        scrollbar = Scrollbar(groupFrame, orient=VERTICAL)
+        self.semanticGroupsList = Listbox(master)
+        self.semanticGroupsList.grid(row=7, column=0, columnspan=2)
+        self.listbox = Listbox(groupFrame, yscrollcommand=scrollbar.set)
+        self.listbox.grid(row=0, column=0)
+        scrollbar.config(command=self.listbox.yview)
+        scrollbar.grid(row=0, column=1, stick=N + S)
+        groupFrame.grid(row=7,columnspan=2)
+        row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
         self.argBoxRow = row
@@ -1265,8 +1276,12 @@ class QAViewDialog(Toplevel):
     def createWidgets(self):
         row=0
         col=0
+        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
+        self.validateButton.grid(row=row, column=col, padx=10, columnspan=5, sticky='EW')
+        row = 1
+        col = 1
         self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
-        self.optionsLabel.grid(row=row)
+        self.optionsLabel.grid(row=row,columnspan=5)
         row+=1
         self.crit_links = ['->'.join([p.edgeId[1],p.finalNodeId]) for p in self.probes] if self.probes else []
         donors = ['<-'.join([p.edgeId[1], p.donorBaseNodeId]) for p in self.probes if p.donorMaskImage is not None] if self.probes else []
@@ -1275,20 +1290,20 @@ class QAViewDialog(Toplevel):
         self.optionsBox = ttk.Combobox(self, values=self.crit_links)
         if self.crit_links:
             self.optionsBox.set(self.crit_links[0])
-        self.optionsBox.grid(row=row, sticky='EW')
+        self.optionsBox.grid(row=row, columnspan=6, sticky='EW',padx=10)
         self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
         row+=1
+        self.operationVar = StringVar()
+        self.operationLabel = Label(self, textvariable=self.operationVar, justify=LEFT)
+        self.operationLabel.grid(row=row,column=0,columnspan=1,sticky='EW',padx=10)
+        row += 1
+        self.optionsLabel.grid(row=row, columnspan=5)
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionLabel = Label(self)
         self.load_overlay(initialize=True)
 
-        row=1
         col=1
-
-        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
-        self.validateButton.grid(row=row, column=col, padx=10, columnspan=6, sticky='EW')
-        row+=1
 
         self.infolabel = Label(self, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
         row+=1
@@ -1359,6 +1374,8 @@ class QAViewDialog(Toplevel):
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
+        edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
+        self.operationVar.set(edge['op'])
         final = image_wrap.openImageFile(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
