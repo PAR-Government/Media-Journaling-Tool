@@ -559,7 +559,6 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange",
         "checkFrameTimes"
       ],
       "optionalparameters": {
