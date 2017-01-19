@@ -605,7 +605,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make details unclear or less distinct.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1192,7 +1192,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1798,7 +1798,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Modify an image or image selection to create the illusion of Camera Noise.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
