@@ -1251,7 +1251,7 @@ class ImageProjectModel:
                 if not os.path.exists(fullpath):
                     raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
                 #invert sin
-                startMask = self.G.openImage(fullpath, mask=False).invert().to_mask()
+                startMask = self.G.openImage(fullpath, mask=False).to_mask()
                 #startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
                 if startMask is None:
                     raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])

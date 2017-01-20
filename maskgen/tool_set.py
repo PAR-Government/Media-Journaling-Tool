@@ -1071,7 +1071,7 @@ def composeCloneMask(changemask, startimage, finalimage):
     mask = np.asarray(changemask.invert())
     startimagearray = np.array(startimage)
     finalimgarray = np.array(finalimage)
-    newmask = np.ones(startimagearray.shape).astype('uint8')*255
+    newmask = np.zeros(startimagearray.shape).astype('uint8')
     contours, hierarchy = cv2.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for i in range(0, len(contours)):
         try:
@@ -1084,7 +1084,7 @@ def composeCloneMask(changemask, startimage, finalimage):
                 finalimagesubarray[:,:,i]  = finalimagesubarray[:,:,i] * (mask[y:y + h, x:x + w] / 255)
             tuple = __findBestMatch(startimagearray, finalimagesubarray)
             if tuple is not None:
-                newmask[tuple[0]:tuple[2], tuple[1]:tuple[3]] = 0
+                newmask[tuple[0]:tuple[2], tuple[1]:tuple[3]] = 255
         except Exception as e:
             print e
             continue
