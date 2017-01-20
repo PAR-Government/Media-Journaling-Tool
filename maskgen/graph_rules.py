@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties
-from tool_set import validateAndConvertTypedValue, fileTypeChanged, fileType,getMilliSecondsAndFrameCount
+from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
@@ -114,6 +114,7 @@ def initial_check(op, graph, frm, to):
     errorsResult = check_errors(edge, op, graph, frm, to)
     mandatoryResult = check_mandatory(edge, op, graph, frm, to)
     argResult = check_arguments(edge, op, graph, frm, to)
+    maskResult = check_masks(edge, op, graph, frm, to)
     result = []
     if versionResult is not None:
         result.append(versionResult)
@@ -123,6 +124,8 @@ def initial_check(op, graph, frm, to):
         result.extend(mandatoryResult)
     if errorsResult is not None:
         result.extend(errorsResult)
+    if maskResult is not None:
+        result.extend(maskResult)
     return result
 
 def check_operation(edge, op, graph, frm, to):
@@ -198,6 +201,7 @@ def check_mandatory(edge, op, graph, frm, to):
 
 
 
+
 def check_version(edge, op, graph, frm, to):
     global global_loader
     if op == 'Donor':
@@ -226,6 +230,23 @@ def check_arguments(edge, op, graph, frm, to):
             results.append(argName + str(e))
     return results
 
+
+def check_masks(edge, op, graph, frm, to):
+    """
+      Validate a typed operation argument
+      return the type converted argument if necessary
+      raise a ValueError if invalid
+    """
+    if 'maskname' not in edge or edge['maskname'] is None or \
+        len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
+        return ['Change mask missing.']
+    inputmasknanme = edge['inputmaskname'] if 'inputmaskname' in edge  else None
+    if  inputmasknanme is not None and len(inputmasknanme) > 0 and \
+         os.path.exists(os.path.join(graph.dir, inputmasknanme)):
+            inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme))
+            mask = openImageFile(os.path.join(graph.dir, edge['maskname']))
+            if inputmask.size != mask.size:
+                return ['input mask name parameter has an invalid size']
 
 def setup():
     ops = getOperations()

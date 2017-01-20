@@ -1239,17 +1239,22 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                        0:(upperBound[1] - location[1])]
         res = newRes
-    if expectedSize != res.shape:
-        res = cv2.resize(res, (expectedSize[1], expectedSize[0]))
+
     # Need to think through Seam Carving here.
     # Seam carving essential puts pixels back.
     # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
     if cut:
+        # res is the donor mask
+        # edgeMask may be the overriding mask from a PasteSplice, thus in the same shape
+        # The transfrom will convert to the target mask size of the donor path.
         res = applyMask(res, edgeMask)
         if transformMatrix is not None:
             res = cv2.warpPerspective(res, deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
                                       flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
+    # need to use target size since the expected does ot align with the donor paths.
+    if targetSize != res.shape:
+        res = cv2.resize(res, (targetSize[1], targetSize[0]))
     return res
 
 
