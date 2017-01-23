@@ -287,6 +287,7 @@ class Modification:
     ctime = ''
     start = ''
     end = ''
+    semanticGroups = None
 
     def __init__(self, operationName, additionalInfo,
                  start='',
@@ -301,7 +302,8 @@ class Modification:
                  automated=None,
                  username=None,
                  ctime=None,
-                 errors=list()):
+                 errors=list(),
+                 semanticGroups = None):
         self.start = start
         self.end = end
         self.additionalInfo = additionalInfo
@@ -310,6 +312,7 @@ class Modification:
         self.errors = errors if errors else list()
         self.setOperationName(operationName)
         self.setArguments(arguments)
+        self.semanticGroups = semanticGroups
         if inputMaskName is not None:
             self.setInputMaskName(inputMaskName)
         self.changeMaskName = changeMaskName
@@ -319,6 +322,9 @@ class Modification:
         self.software = software
         if recordMaskInComposite is not None:
             self.recordMaskInComposite = recordMaskInComposite
+
+    def setSemanticGroups(self, groups):
+        self.semanticGroups = groups
 
     def setErrors(self, val):
         self.errors = val if val else list()
@@ -813,11 +819,17 @@ class ImageProjectModel:
         return nname
 
     def update_edge(self, mod):
+        """
+        :param mod:
+        :return:
+        @type mod: Modification
+        """
         self.G.update_edge(self.start, self.end,
                            op=mod.operationName,
                            description=mod.additionalInfo,
                            arguments={k: v for k, v in mod.arguments.iteritems() if k != 'inputmaskname'},
                            recordMaskInComposite=mod.recordMaskInComposite,
+                           semanticGroups = mod.semanticGroups,
                            editable='no' if (
                                                 mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes',
                            softwareName=('' if mod.software is None else mod.software.name),
@@ -1418,6 +1430,7 @@ class ImageProjectModel:
                              inputmaskname=mod.inputMaskName,
                              selectmaskname=mod.selectMaskName,
                              automated=mod.automated,
+                             semanticGroups = mod.semanticGroups,
                              errors=mod.errors,
                              **additionalParameters)
         self._save_group(mod.operationName)
@@ -2240,12 +2253,24 @@ class ImageProjectModel:
                                               'editable' in edge and edge['editable'] == 'no'),
                             recordMaskInComposite=edge[
                                 'recordMaskInComposite'] if 'recordMaskInComposite' in edge else 'no',
+                            semanticGroups=edge['semanticGroups'] if 'semanticGroups' in edge else None,
                             automated=edge['automated'] if 'automated' in edge else 'no',
                             username =edge['username'] if 'username' in edge else '',
                             ctime=edge['ctime'] if 'ctime' in edge else default_ctime,
                             errors=edge['errors'] if 'errors' in edge else list(),
                             maskSet=(VideoMaskSetInfo(edge['videomasks']) if (
                                 'videomasks' in edge and len(edge['videomasks']) > 0) else None))
+
+    def getSemanticGroups(self,start,end):
+        edge = self.getGraph().get_edge(start, end)
+        if edge is not None:
+            return edge['semanticGroups'] if 'semanticGroups' in edge else []
+        return None
+
+    def setSemanticGroups(self,start,end,grps):
+        edge = self.getGraph().get_edge(start, end)
+        if edge is not None:
+            self.getGraph().update_edge(start, end, semanticGroups=grps)
 
     def set_validation_properties(self,qaState,qaPerson, qaComment):
         import time

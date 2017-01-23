@@ -18,6 +18,7 @@ operationsByCategory = {}
 projectProperties = {}
 
 
+
 class ProjectProperty:
     description = None
     name = None
@@ -28,6 +29,7 @@ class ProjectProperty:
     values = None
     value = None
     information = None
+    semanticgroup = False
     node = False
     readonly = False
     mandatory= False
@@ -39,7 +41,7 @@ class ProjectProperty:
 
     def __init__(self, name='', type='', operations=None, parameter=None, description=None,
                  information=None, value=None, values=None, rule=None, node=False, readonly=False,mandatory=True,
-                 nodetype=None):
+                 nodetype=None,semanticgroup=False):
         self.name = name
         self.type = type
         self.operations = operations
@@ -53,6 +55,7 @@ class ProjectProperty:
         self.readonly = readonly
         self.mandatory = mandatory
         self.nodetype = nodetype
+        self.semanticgroup = semanticgroup
 
 
 class Operation:
@@ -154,6 +157,7 @@ def loadProjectPropertyJSON(fileName):
                                                 (prop['operations'] if 'operations' in prop else []),
                                                 readonly=prop['readonly'] if 'readonly' in prop else None,
                                                 mandatory=prop['mandatory'] if 'mandatory' in prop else False,
+                                                semanticgroup=prop['semanticgroup'] if 'semanticgroup' in prop else False,
                                                 nodetype=prop['nodetype'] if 'nodetype' in prop else None))
     return res
 
@@ -193,6 +197,9 @@ def getProjectProperties():
     global projectProperties
     return projectProperties
 
+
+def getSemanticGroups():
+    return [prop.description for prop in getProjectProperties() if prop.semanticgroup]
 
 def loadOperations(fileName):
     global operations
@@ -261,6 +268,8 @@ class Software:
         self.name = name
         self.version = version
         self.internal = internal
+
+
 
 
 class SoftwareLoader:

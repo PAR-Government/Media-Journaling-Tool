@@ -4,7 +4,9 @@ import os
 import platform
 from math import atan2, pi, cos, sin
 from description_dialog import DescriptionCaptureDialog, createCompareDialog
+import collections
 
+EventTuple = collections.namedtuple('EventTuple', ['x_root','y_root','items'])
 
 def restrictPosition(position):
     return max(position, 5)
@@ -43,6 +45,8 @@ class MaskGraphCanvas(tk.Canvas):
         self.bind('<ButtonPress-1>', self.startregion)
         self.bind('<ButtonRelease-1>', self.stopregion)
         self.bind('<B1-Motion>', self.regionmove)
+        self.bind('<Button-2>' if platform.system() == 'Darwin' else '<Button-3>',
+                  self.regionmenu)
         self._plot_graph()
 
     def clear(self):
@@ -161,6 +165,11 @@ class MaskGraphCanvas(tk.Canvas):
         for k, v in self.itemToCanvas.items():
             v.config(cursor='crosshair')
 
+    def regionmenu(self,event):
+        if  self.lassoitems is not None and len(self.lassoitems) > 0:
+            proxy = EventTuple(event.x_root,event.y_root,[self.itemToNodeIds[item] for item in self.lassoitems])
+            self.callback(proxy,'rcGroup')
+
     def regionmove(self, event):
         if self.lassobox:
             self.delete(self.lassobox)
@@ -178,6 +187,36 @@ class MaskGraphCanvas(tk.Canvas):
         x = self.canvasx(event.x)
         y = self.canvasy(event.y)
         self.region = (x, y)
+
+    def add_selected_item(self,item):
+        #if self.lassobox:
+        #    self.delete(self.lassobox)
+        addedid = [k for (k, v) in self.itemToCanvas.items() if v == item][0]
+        edgeid = self.itemToEdgeIds[addedid] if addedid in self.itemToEdgeIds else None
+        if edgeid is not None:
+            start = [k for (k, v) in self.itemToNodeIds.items() if v == edgeid[0]][0]
+            end = [k for (k, v) in self.itemToNodeIds.items() if v == edgeid[1]][0]
+            self.itemToCanvas[start].selectgroup()
+            self.itemToCanvas[end].selectgroup()
+            if self.lassoitems:
+                if start not in self.lassoitems:
+                    self.lassoitems.append(start)
+                if end not in self.lassoitems:
+                    self.lassoitems.append(end)
+            else:
+                self.lassoitems = [start,end]
+        else:
+            nodeid = self.itemToNodeIds[addedid] if addedid in self.itemToNodeIds else Nonde
+            if nodeid is not None:
+                item.selectgroup()
+                if self.lassoitems:
+                    if nodeid not in self.lassoitems:
+                        self.lassoitems.append(addedid)
+                else:
+                    self.lassoitems = [addedid]
+
+
+
 
     def stopregion(self, event):
         if self.lassobox:
@@ -474,12 +513,16 @@ class NodeObj(tk.Canvas):
         self.bind('<Button-2>' if platform.system() == 'Darwin' else '<Button-3>',
                   self._host_event('onTokenRightClick'))
         self.bind('<Double-Button-1>', self._host_event('onTokenRightClick'))
+        self.bind('<Shift-ButtonPress-1>', self.addregion)
         #        self.bind('<Key>', self._host_event('onNodeKey'))
         #        self.bind('<Enter>', lambda e: self.focus_set())
         #        self.bind('<Leave>', lambda e: self.master.focus())
 
         # Draw myself
         self.render()
+
+    def addregion(self, event):
+        self.master.add_selected_item(self)
 
     def selectModel(self, model):
         model.selectImage(self.node_id)
@@ -561,10 +604,14 @@ class LineTextObj(tk.Canvas):
         self.bind('<Button-2>' if platform.system() == 'Darwin' else '<Button-3>',
                   self._host_event('onTokenRightClick'))
         self.bind('<Double-Button-1>', self._host_event('onTokenRightClick'))
+        self.bind('<Shift-ButtonPress-1>', self.addregion)
         #        self.bind('<Enter>', lambda e: self.focus_set())
         #        self.bind('<Leave>', lambda e: self.master.focus())
 
         self._render(coords)
+
+    def addregion(self, event):
+        self.master.add_selected_item(self)
 
     def _newcfg(self):
         cfg = {}

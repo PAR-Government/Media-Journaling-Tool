@@ -16,7 +16,7 @@ from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
-from software_loader import ProjectProperty
+from software_loader import ProjectProperty, getSemanticGroups
 import sys
 
 
@@ -360,6 +360,30 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         else:
             self.e2.set_completion_list([])
 
+    def group_remove(self):
+        self.listbox.delete(ANCHOR)
+
+    def group_add(self):
+        d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
+                         getSemanticGroups())
+        res = d.choice
+        if res is not None:
+            self.listbox.insert(END,res)
+
+    def listBoxHandler(self,evt):
+        # Note here that Tkinter passes an event object to onselect()
+        w = evt.widget
+        index = int(w.curselection()[0])
+        value = w.get(index)
+        x = w.winfo_rootx()
+        y = w.winfo_rooty()
+        self.group_to_remove = index
+        try:
+            self.popup.tk_popup(x, y, 0)
+        finally:
+            # make sure to release the grab (Tk 8.0a1 only)
+            self.popup.grab_release()
+
     def body(self, master):
         self.okButton = None
 
@@ -375,7 +399,23 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         Label(master, text="Description:").grid(row=3, sticky=W)
         Label(master, text="Software Name:").grid(row=4, sticky=W)
         Label(master, text="Software Version:").grid(row=5, sticky=W)
-        row = 6
+        Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0, columnspan=2)
+
+        self.popup = Menu(master, tearoff=0)
+        self.popup.add_command(label="Add", command=self.group_add)
+        self.popup.add_command(label="Remove",command=self.group_remove)  #
+
+        self.groupFrame = Frame(master) #,height=100,width=100)
+        self.gscrollbar = Scrollbar(self.groupFrame, orient=VERTICAL)
+        self.listbox = Listbox(master, yscrollcommand=self.gscrollbar.set,height=3)
+        self.listbox.config(yscrollcommand=self.gscrollbar.set)
+        self.listbox.bind("<<ListboxSelect>>", self.listBoxHandler)
+        self.listbox.grid(row=7, column=0,columnspan=3,sticky=E+W)
+        self.gscrollbar.config(command=self.listbox.yview)
+        self.gscrollbar.grid(row=0, column=1, stick=N + S)
+       # self.groupFrame.grid(row=7,columnspan=2)
+        #self.groupFrame.grid_propagate(0)
+        row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
         self.argBoxRow = row
@@ -405,7 +445,13 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.e4.grid(row=4, column=1, sticky=EW)
         self.e5.grid(row=5, column=1)
 
+
         if self.description is not None:
+            if self.description.semanticGroups is not None:
+                pos = 1
+                for grp in self.description.semanticGroups:
+                    self.listbox.insert(pos,grp)
+                    pos += 1
             if (self.description.inputMaskName is not None):
                 self.inputMaskName = self.description.inputMaskName
             if self.description.operationName is not None and len(self.description.operationName) > 0:
@@ -486,6 +532,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.description.setOperationName(self.e2.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
+        self.description.semanticGroups =  list(self.listbox.get(0,END))
         self.description.setArguments(
             {k: v for (k, v) in self.argvalues.iteritems() if k in [x[0] for x in self.arginfo]})
         self.description.setSoftware(Software(self.e4.get(), self.e5.get()))
@@ -1265,8 +1312,12 @@ class QAViewDialog(Toplevel):
     def createWidgets(self):
         row=0
         col=0
+        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
+        self.validateButton.grid(row=row, column=col, padx=10, columnspan=5, sticky='EW')
+        row = 1
+        col = 1
         self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
-        self.optionsLabel.grid(row=row)
+        self.optionsLabel.grid(row=row,columnspan=5)
         row+=1
         self.crit_links = ['->'.join([p.edgeId[1],p.finalNodeId]) for p in self.probes] if self.probes else []
         donors = ['<-'.join([p.edgeId[1], p.donorBaseNodeId]) for p in self.probes if p.donorMaskImage is not None] if self.probes else []
@@ -1275,20 +1326,20 @@ class QAViewDialog(Toplevel):
         self.optionsBox = ttk.Combobox(self, values=self.crit_links)
         if self.crit_links:
             self.optionsBox.set(self.crit_links[0])
-        self.optionsBox.grid(row=row, sticky='EW')
+        self.optionsBox.grid(row=row, columnspan=6, sticky='EW',padx=10)
         self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
         row+=1
+        self.operationVar = StringVar()
+        self.operationLabel = Label(self, textvariable=self.operationVar, justify=LEFT)
+        self.operationLabel.grid(row=row,column=0,columnspan=1,sticky='EW',padx=10)
+        row += 1
+        self.optionsLabel.grid(row=row, columnspan=5)
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionLabel = Label(self)
         self.load_overlay(initialize=True)
 
-        row=1
         col=1
-
-        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
-        self.validateButton.grid(row=row, column=col, padx=10, columnspan=6, sticky='EW')
-        row+=1
 
         self.infolabel = Label(self, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
         row+=1
@@ -1359,6 +1410,8 @@ class QAViewDialog(Toplevel):
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
+        edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
+        self.operationVar.set(edge['op'])
         final = image_wrap.openImageFile(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
