@@ -333,6 +333,15 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+
+def check_local_warn(graph, frm, to):
+    edge = graph.get_edge(frm,to)
+    included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
+    is_global = 'global' in edge and edge['global'] == 'yes'
+    if not is_global and not included_in_composite:
+        return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
+    return None
+
 def check_local(graph, frm, to):
     edge = graph.get_edge(frm,to)
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
@@ -759,11 +768,18 @@ def setFinalNodeProperties(scModel, finalNode):
     edges =_cleanEdges(scModel,scModel.getEdges(finalNode))
     analysis = dict()
     for prop in getProjectProperties():
-        if not prop.node:
+        if not prop.node and not prop.semanticgroup:
             continue
         filtered_edges= edges
         if prop.nodetype is not None:
             filtered_edges = _filterEdgesByNodeType(scModel, filtered_edges,prop.nodetype)
+        if prop.semanticgroup:
+            foundOne = False
+            for edgeTuple in filtered_edges:
+                if 'semanticGroups' in edgeTuple.edge and prop.description in edgeTuple.edge['semanticGroups']:
+                    foundOne = True
+                    break
+            analysis[prop.name] = 'yes' if foundOne else 'no'
         if prop.operations is not None and len(prop.operations) > 0:
             foundOne = False
             for op in prop.operations:

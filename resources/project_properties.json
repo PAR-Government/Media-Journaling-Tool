@@ -426,14 +426,6 @@
        "information": "The number of units per node"
     },
     {
-       "description": "AntiForensic Illumination",
-       "name": "antiforensicillumination",
-       "node" : true,
-       "type": "text",
-       "operations": ["Undefined"],
-       "information": "AntiForensic Illumination"
-    },
-    {
        "description": "Laundering SocialMedia",
        "name": "launderingsocialmedia",
        "node" : true,
@@ -511,8 +503,7 @@
     {
        "description": "AntiForensic Illumination",
        "name": "antiforensicillumination",
-       "node" : true,
-       "operations": ["Undefined"],
+       "semanticgroup" : true,
        "type": "yesno",
        "information": "AntiForensic Illumination"
     },
@@ -520,16 +511,14 @@
       "description": "Data Embedding Steganography",
       "name": "dataembeddingsteganography",
       "type": "yesno",
-      "node" : true,
-      "operations": ["Undefined"],
+      "semanticgroup" : true,
       "information": "Data Embedding Steganography.  All final images must have steganography."
     },
     {
       "description": "Data Embedding Watermark",
       "name": "dataembeddingwatermark",
       "type": "yesno",
-      "node" : true,
-      "operations": ["Undefined"],
+      "semanticgroup" : true,
       "information": "Data Embedding Watermark.  All final images must have watermarks."
     },
     {

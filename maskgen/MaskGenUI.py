@@ -5,7 +5,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties
+from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -85,6 +85,7 @@ class MakeGenUI(Frame):
     nodemenu = None
     edgemenu = None
     filteredgemenu = None
+    groupmenu = None
     canvas = None
     errorlistDialog = None
     exportErrorlistDialog = None
@@ -576,7 +577,7 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-       # self.scModel.getProbeSet()
+        #self.scModel.getProbeSet()
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
@@ -626,6 +627,18 @@ class MakeGenUI(Frame):
             self.canvas.showNode(start)
         self.setSelectState('normal')
 
+    def selectgroup(self):
+        d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.', getSemanticGroups())
+        res = d.choice
+        if res is not None and len(res) > 0:
+            for start in self.groupselection:
+                for end in self.groupselection:
+                    edge = self.scModel.getGraph().get_edge(start,end)
+                    if edge is not None:
+                        grps = self.scModel.getSemanticGroups(start,end)
+                        if res  not in grps:
+                            grps.append(res)
+                            self.scModel.setSemanticGroups(start,end,grps)
     def select(self):
         self.drawState()
         self.setSelectState('normal')
@@ -836,6 +849,9 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
         self.filteredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
 
+        self.groupmenu = Menu(self.master, tearoff=0)
+        self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
+
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
         iframe.grid_columnconfigure(0, weight=1)
@@ -870,6 +886,9 @@ class MakeGenUI(Frame):
             self.edgemenu.post(event.x_root, event.y_root)
         elif eventName == 'rcNonEditEdge':
             self.filteredgemenu.post(event.x_root, event.y_root)
+        elif eventName == 'rcGroup':
+            self.groupselection = event.items
+            self.groupmenu.post(event.x_root, event.y_root)
         elif eventName == 'n':
             self.drawState()
 
