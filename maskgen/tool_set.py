@@ -1018,6 +1018,11 @@ def __findBestMatch(big, small):
     """ Return a tuple describing the bounding box (xl,xh,yl,yh) with the most
         likely match to the small image.
     """
+    if len(small.shape) == 3 and len(big.shape)  == 3 and \
+        small.shape[2] ==4 and big.shape[2] == 3:
+        newsmall = np.zeros((small.shape[0],small.shape[1],3))
+        newsmall[:,:,:] = small[:,:,0:3]
+        small = newsmall
     if np.any(np.asarray([(x[1] - x[0]) for x in zip(small.shape, big.shape)]) < 0):
         return None
     result = cv2.matchTemplate(big.astype('float32'), small.astype('float32'), cv2.cv.CV_TM_SQDIFF_NORMED)

@@ -74,6 +74,10 @@
           "source" :"2",
           "target": "5"
 
+        },
+        "invertmask": {
+          "type":"value",
+          "value":true
         }
       }
     }

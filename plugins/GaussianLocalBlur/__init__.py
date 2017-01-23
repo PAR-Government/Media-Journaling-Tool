@@ -14,7 +14,9 @@ def transform(img,source,target,**kwargs):
     Image.fromarray(blurred_region).save(target)
     return None,None
 
-  mask = tool_set.openImageFile(kwargs['inputmaskname']).to_mask().invert()
+  mask = tool_set.openImageFile(kwargs['inputmaskname']).to_mask()
+  if 'invertmask' in kwargs:
+      mask = mask.invert()
   mask_array = numpy.asarray(mask)
   mask_array = cv2.dilate(mask_array, kernel, iterations=5)
   region_to_blur = cv2.bitwise_and(image_to_cover, image_to_cover, mask=mask_array)

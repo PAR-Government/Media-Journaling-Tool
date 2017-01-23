@@ -7,6 +7,6 @@ setup(name='maskgen',
       author='PAR Team',
       author_email='eric_robertson@partech.com',
       license='APL',
-      packages=['maskgen'],
+      packages=['maskgen','maskgen.batch'],
       install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy'],
       zip_safe=False)

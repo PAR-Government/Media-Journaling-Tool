@@ -212,14 +212,14 @@ def pasteAnywhere(img, img_to_paste,mask_of_image_to_paste,mask_of_image_to_past
     xplacement = random.randint(w/2+1, img.size[1]-w/2-1)
     yplacement = random.randint(h/2+1,img.size[0]-h/2-1)
     return place_in_image(
-                          ImageWrapper(img_to_paste).to_mask().invert().to_array(),
+                          ImageWrapper(img_to_paste).to_mask().to_array(),
                           img_to_paste,
                           np.asarray(img),
                           (xplacement, yplacement))
 
 def transform(img,source,target,**kwargs):
     img_to_paste =openImageFile(kwargs['donor'])
-    mask_of_image_to_paste = img_to_paste.to_mask().invert().to_array()
+    mask_of_image_to_paste = img_to_paste.to_mask().to_array()
     denoise_img = denoise_tv_bregman(np.asarray(img), weight=0.4)
     denoise_img = (denoise_img * 255).astype('uint8')
     gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
@@ -264,7 +264,7 @@ def transform(img,source,target,**kwargs):
                         #ImageWrapper(transformed_image).save('s.png')
                         #img_to_paste.save('i.png')
                         out2 = place_in_image(
-                                              ImageWrapper(transformed_image).to_mask().invert().to_array(),
+                                              ImageWrapper(transformed_image).to_mask().to_array(),
                                               transformed_image,
                                               np.asarray(img),
                                               (placement_ellipse[0], placement_ellipse[1]))

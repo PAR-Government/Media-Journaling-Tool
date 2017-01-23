@@ -275,14 +275,14 @@ class ImageWrapper:
     def to_mask(self):
         """
         Produce a mask where all black areas are white
-        for gray scale: white = selected, black = unselected
+        white = selected, black = unselected
         @rtype : ImageWrapper
         """
         s = self.image_array.shape
         gray_image_temp = self.convert('L')
         if len(s) == 3 and self.mode.find('A') > 0 :
-            gray_image = np.zeros(gray_image_temp.image_array.shape).astype('uint8')
-            gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 255
+            gray_image = 255*np.ones(gray_image_temp.image_array.shape).astype('uint8')
+            gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 0
         else:
             gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
             gray_image[gray_image_temp.image_array < np.iinfo(gray_image_temp.image_array.dtype).max] = 0

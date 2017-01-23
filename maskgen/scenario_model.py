@@ -1262,9 +1262,9 @@ class ImageProjectModel:
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
                 if not os.path.exists(fullpath):
                     raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
-                #invert sin
-                startMask = self.G.openImage(fullpath, mask=False).to_mask()
-                #startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
+                #invert because these masks are white=Keep(unchanged), Black=Remove (changed)
+                #we want to capture the 'unchanged' part, where as the other type we capture the changed part
+                startMask = self.G.openImage(fullpath, mask=False).to_mask().invert()
                 if startMask is None:
                     raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
             if startMask is not None:
