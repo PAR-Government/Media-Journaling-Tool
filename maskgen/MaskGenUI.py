@@ -576,7 +576,7 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-       # self.scModel.getProbeSet()
+        self.scModel.getProbeSet()
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())

@@ -1,6 +1,7 @@
 from image_graph import current_version
 import tool_set
 import os
+from group_filter import getOperationWithGroups
 
 def updateJournal(scModel):
     """
@@ -20,9 +21,19 @@ def updateJournal(scModel):
         _fixQT(scModel)
         _fixUserName(scModel)
         upgrades.append('0.3.1213')
+    if scModel.G.getVersion() <= "0.4.0101" and "0.4.0101" not in upgrades:
+        _fixTransforms(scModel)
+        upgrades.append('0.4.0101')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
+
+def _fixTransforms(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = getOperationWithGroups(edge['op'], fake=True)
+        if op.category in 'Transform' and edge['recordMaskInComposite'] == 'yes':
+            edge['recordMaskInComposite']= 'no'
 
 def _fixUserName(scModel):
     """

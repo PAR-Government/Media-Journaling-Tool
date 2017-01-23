@@ -333,6 +333,15 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+
+def check_local_warn(graph, frm, to):
+    edge = graph.get_edge(frm,to)
+    included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
+    is_global = 'global' in edge and edge['global'] == 'yes'
+    if not is_global and not included_in_composite:
+        return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
+    return None
+
 def check_local(graph, frm, to):
     edge = graph.get_edge(frm,to)
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'

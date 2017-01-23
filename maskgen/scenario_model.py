@@ -918,7 +918,7 @@ class ImageProjectModel:
                                       skipDonorAnalysis=skipDonorAnalysis)
 
 
-    def getProbeSetWithoutComposites(self,skipComputation=False):
+    def getProbeSetWithoutComposites(self,skipComputation=False, otherCondition=None):
         """
         Calls constructDonors()
         :return: list of Probe
@@ -931,7 +931,7 @@ class ImageProjectModel:
         probes = list()
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0],edge_id[1])
-            if edge['recordMaskInComposite'] == 'yes':
+            if edge['recordMaskInComposite'] == 'yes' or (otherCondition is not None and otherCondition(edge)):
                 selectMask = self.G.get_edge_image(edge_id[0],edge_id[1], 'maskname')[0]
                 baseNodeIdsAndLevels =  self._findBaseNodesWithCycleDetection(edge_id[0])
                 baseNodeId,level,path= baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels)>0 else (None,None)
@@ -991,7 +991,7 @@ class ImageProjectModel:
         """
         self._executeSkippedComparisons()
         self.__assignColors()
-        probes = self.getProbeSetWithoutComposites(skipComputation=skipComputation)
+        probes = self.getProbeSetWithoutComposites(skipComputation=skipComputation,otherCondition=otherCondition)
         probes = sorted(probes,key=lambda probe: probe.level)
         composites=dict()
         # build composites first
