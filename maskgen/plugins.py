@@ -108,7 +108,8 @@ def callPlugin(name,im,source,target,**kwargs):
 
 def runCustomPlugin(name, im, source, target, **kwargs):
     global loaded
-    commands = dict(loaded[name]['command'])
+    import copy
+    commands = copy.deepcopy(loaded[name]['command'])
     executeOk = False
     for k, command in commands.items():
         if sys.platform.startswith(k):
@@ -120,6 +121,10 @@ def runCustomPlugin(name, im, source, target, **kwargs):
     return None, None
 
 def executeWith(executionCommand, im, source, target, **kwargs):
+    shell=False
+    if executionCommand[0].startswith('s/'):
+        executionCommand[0] = executionCommand[0][2:]
+        shell = True
     for i in range(len(executionCommand)):
         if executionCommand[i] == '{inputimage}':
             executionCommand[i] = source
@@ -129,4 +134,4 @@ def executeWith(executionCommand, im, source, target, **kwargs):
         # Replace bracketed text with arg
         else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
-    subprocess.call(executionCommand)
+    subprocess.call(executionCommand,shell=shell)
