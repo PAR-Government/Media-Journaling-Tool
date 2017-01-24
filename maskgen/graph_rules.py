@@ -776,7 +776,8 @@ def setFinalNodeProperties(scModel, finalNode):
         if prop.semanticgroup:
             foundOne = False
             for edgeTuple in filtered_edges:
-                if 'semanticGroups' in edgeTuple.edge and prop.description in edgeTuple.edge['semanticGroups']:
+                if 'semanticGroups' in edgeTuple.edge and edgeTuple.edge['semanticGroups'] is not None and \
+                                prop.description in edgeTuple.edge['semanticGroups']:
                     foundOne = True
                     break
             analysis[prop.name] = 'yes' if foundOne else 'no'
