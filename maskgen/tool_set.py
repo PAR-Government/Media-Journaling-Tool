@@ -777,8 +777,8 @@ class Flipper:
         self.region = self._getRegionOfChange(mask)
 
     def _getRegionOfChange(self, mask):
-        minregion = (mask.shape)
-        maxregion = (0, 0)
+        minregion = list(mask.shape)
+        maxregion = list((0, 0))
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for i in range(0, len(contours)):
             try:
@@ -795,7 +795,7 @@ class Flipper:
             except Exception as e:
                 print e
                 continue
-        return minregion, maxregion
+        return tuple(minregion), tuple(maxregion)
 
     def _lcs(self, alist, blist):
         """
