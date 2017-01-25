@@ -1036,7 +1036,7 @@ class ImageProjectModel:
             probe.targetMaskImage.save(probe.targetMaskFileName)
         # look through composite masks and add to the graph
         for finalNodeId,compositeMask in composites.iteritems():
-            result = np.zeros((result.shape[0],result.shape[1])).astype('uint8')
+            result = np.zeros((compositeMask.shape[0],compositeMask.shape[1])).astype('uint8')
             matches = np.any(compositeMask != [255, 255, 255], axis=2)
             result[matches] = 255
             if not skipComputation:
