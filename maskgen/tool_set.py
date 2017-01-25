@@ -779,7 +779,7 @@ class Flipper:
     def _getRegionOfChange(self, mask):
         minregion = list(mask.shape)
         maxregion = list((0, 0))
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for i in range(0, len(contours)):
             try:
                 cnt = contours[i]
@@ -788,10 +788,10 @@ class Flipper:
                     minregion[0] = x
                 if x + w > maxregion[0]:
                     maxregion[0] = x + w
-                if y < minregion[0]:
-                    minregion[1] = x
+                if y < minregion[1]:
+                    minregion[1] = y
                 if y + h > maxregion[1]:
-                    maxregion[1] = y + w
+                    maxregion[1] = y + h
             except Exception as e:
                 print e
                 continue
@@ -819,11 +819,11 @@ class Flipper:
         return lcs_set, longest
 
 
-    def flip(self):
-        flipped = self.mask[self.region[0][0]:self.region[1][0], self.region[0][1]:self.region[1][1]]
+    def flip(self,compositeMask):
+        flipped = compositeMask[self.region[0][1]:self.region[1][1],self.region[0][0]:self.region[1][0]]
         flipped = cv2.flip(flipped, 1 if self.flipdirection == 'horizontal' else (-1 if self.flipdirection == 'both' else 0))
         flipCompositeMask = np.zeros(self.mask.shape).astype('uint8')
-        flipCompositeMask[self.region[0][0]:self.region[1][0], self.region[0][1]:self.region[1][1]] = flipped
+        flipCompositeMask[self.region[0][1]:self.region[1][1],self.region[0][0]:self.region[1][0]] = flipped
         return flipCompositeMask
 
 
@@ -837,10 +837,9 @@ def __applyFlipComposite(compositeMask, mask, flip):
     :return:
     """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
+    flipper = Flipper(maskInverted,flip)
+    flipCompositeMask = flipper.flip(compositeMask)
     maskInverted[maskInverted > 0] = 1
-    flipCompositeMask = compositeMask * maskInverted
-    flipper = Flipper(flipCompositeMask,flip)
-    flipCompositeMask = flipper.flip()
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     return (flipCompositeMask * maskInverted + compositeMask * maskAltered).astype('uint8')
