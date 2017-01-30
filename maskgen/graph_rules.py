@@ -835,7 +835,9 @@ def getNodeSummary(scModel, node_id):
 def seamCarvingAlterations(edge, transform_matrix, edgeMask):
     if edge['op'] == 'TransformSeamCarving':
         size_changes = _getSizeChange(edge)
-        if size_changes == (0,0):
+        matchx =  size_changes[0] == 0
+        matchy =  size_changes[1] == 0
+        if (not matchx and not matchy) or ( matchx and matchy):
             return False, transform_matrix, edgeMask
         return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
     return False, transform_matrix,edgeMask

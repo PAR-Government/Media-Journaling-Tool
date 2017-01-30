@@ -621,7 +621,6 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
-
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict()):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
@@ -930,7 +929,7 @@ def __composeMask(img1, img2, invert, arguments=dict(), crop=False, seam=False):
     if abs(rotation) > 0.0001 and img1.shape != img2.shape:
         return __compareRotatedImage(rotation, img1, img2, invert, arguments)
     if (sum(img1.shape) > sum(img2.shape)):
-        if crop:
+        if crop or (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
             return __composeCropImageMask(img1, img2)
         elif seam and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
             # seams can only be calculated in one dimension--only one dimension can change in size
@@ -1182,17 +1181,17 @@ def carveMask(image, mask, expectedSize):
 
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None, crop=False, cut=False, carve=False):
+              transformMatrix=None, flip=None,  crop=False, cut=False, carve=False):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
-    if transformMatrix is not None:
-        if flip is not None:
-            res = __applyFlipComposite(compositeMask, edgeMask, flip)
-        else:
+    if location != (0, 0) or crop:
+        upperBound = (min(res.shape[0], expectedSize[0] + location[0]), min(res.shape[1], expectedSize[1] + location[1]))
+        res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
+    if transformMatrix is not None and not cut and flip is None:
             res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
     elif abs(rotation) > 0.001:
         if sizeChange[0] != 0 or abs(rotation) % 90 < 0.001:
@@ -1204,12 +1203,8 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
                                            (compositeMask.shape[0] + sizeChange[0],
                                             compositeMask.shape[1] + sizeChange[1]))
     # if transform matrix provided and alternate path is taken above
-    if transformMatrix is None and flip is not None:
+    if flip is not None:
         res = __applyFlipComposite(res, edgeMask, flip)
-    if location != (0, 0) or crop:
-        upperBound = (
-        min(res.shape[0], expectedSize[0] + location[0]), min(res.shape[1], expectedSize[1] + location[1]))
-        res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if cut:
         res = applyMask(res, edgeMask)
     if carve:
@@ -1228,21 +1223,19 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     # if we are cutting, then do not want to use the edge mask as mask for transformation.
     # see the cut section below, where the transform occurs directly on the mask
     # this  occurs in donor cases
-    if transformMatrix is not None and not cut and not flip:
-        res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix), invert=True, returnRaw=False)
-    elif abs(rotation) > 0.001:
-        res = __rotateImage(-rotation, res, expectedSize, cval=0)
-    elif flip is not None:
-        if transformMatrix is not None:
-            res = __applyFlipComposite(res, edgeMask, flip)
-        else:
-            res = cv2.flip(res, 1 if flip == 'horizontal' else (-1 if flip == 'both' else 0))
     if location != (0, 0) or crop:
         newRes = np.zeros(expectedSize).astype('uint8')
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
         newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                        0:(upperBound[1] - location[1])]
         res = newRes
+    if transformMatrix is not None and not cut and flip is None:
+        res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix), invert=True, returnRaw=False)
+    elif abs(rotation) > 0.001:
+        res = __rotateImage(-rotation, res, expectedSize, cval=0)
+    elif flip is not None:
+        res = __applyFlipComposite(res, edgeMask, flip)
+
 
     # Need to think through Seam Carving here.
     # Seam carving essential puts pixels back.

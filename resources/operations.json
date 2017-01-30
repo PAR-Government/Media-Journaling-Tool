@@ -2816,6 +2816,14 @@
          "Resolution": {
           "type": "text",
           "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
+        },
+         "Capture Distance": {
+          "type": "int[0-100000]",
+          "description": "Distance in centimeters from camera to print"
+        },
+        "Magnification": {
+          "type": "float[0-100000]",
+          "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
         }
       },
       "rules": [
@@ -2824,6 +2832,20 @@
         "Capture Camera ID": {
           "type": "text",
           "description": "ID of camera used to capture image if not screen shot"
+        },
+        "Capture Printer ID": {
+          "type": "text",
+          "description": "ID of printer used to compose the image"
+        },
+        "Capture Printer Type": {
+          "type": "list",
+          "values": [
+            "Inkjet",
+            "Laser",
+            "Analog",
+            "Other"
+          ],
+          "description": "Base type of printer used to compose the image"
         }
       },
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
@@ -3346,21 +3368,10 @@
         "location": {
           "type": "coordinates",
           "description": "Tuple in form of (x,y) describing the upper left crop corner."
-        },
-        "RANSAC": {
-          "type": "list",
-          "source": "image",
-           "values": [
-             "None",
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
       "includeInMask": false,
@@ -3429,7 +3440,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": false,
