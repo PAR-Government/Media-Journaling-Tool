@@ -85,7 +85,7 @@ def openImageFile(filename,isMask=False):
        if filename.lower().endswith('pdf'):
           filename = convertToPDF(filename)
        with open(filename,'rb') as f:
-          im = Image.open(filename)
+          im = Image.open(f)
           im.load()
           if im.format == 'TIFF' and filename.lower().find('tif') < 0:
             raw = openTiff(filename, isMask=isMask)
