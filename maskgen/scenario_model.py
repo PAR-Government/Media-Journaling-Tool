@@ -2147,13 +2147,14 @@ class ImageProjectModel:
         tm = edge['transform matrix'] if 'transform matrix' in edge  else None
         flip = args['flip direction'] if 'flip direction' in args else None
         orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
-        flip = flip if flip is not None else orientflip
         rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-        tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
-        tm = tm if sizeChange == (0,0)  else None
         cut = edge['op'] in ('SelectRemove')
         carve,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, tm,edgeMask)
+        crop = sizeChange != (0, 0) and (edge['op'] == 'TransformCrop' or (edge['op'] == 'TransformSeamCarving' and not carve and tm is None))
+        flip = flip if flip is not None else orientflip
+        global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
+        tm = None if (crop or cut or flip or carve or global_resize) else tm
         compositeMask = alterMask(compositeMask,
                                   edgeMask,
                                   rotation=rotation,
@@ -2162,7 +2163,7 @@ class ImageProjectModel:
                                   location=location,
                                   flip=flip,
                                   transformMatrix=tm,
-                                  crop=edge['op'] == 'TransformCrop',
+                                  crop=crop,
                                   cut=cut,
                                   carve=carve)
         return compositeMask
@@ -2207,22 +2208,24 @@ class ImageProjectModel:
         flip = args['flip direction'] if 'flip direction' in args else None
         orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
         orientrotate = -orientrotate if orientrotate is not None else None
-        flip = flip if flip is not None else orientflip
         rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
         tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-        tm = None if ('global' in edge and edge['global'] == 'yes' and flip is not None) else tm
-        tm = tm if sizeChange == (0,0) else None
         cut = edge['op'] in ('SelectRemove') or edgeSelection is not None
         edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
         carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
         cut = carve or cut
+        crop = sizeChange != (0, 0) and ( edge['op'] == 'TransformCrop' or (edge['op'] == 'TransformSeamCarving' and not carve and tm is None))
+        flip = flip if flip is not None else orientflip
+        global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
+        tm = None if (crop or cut or flip or carve or global_resize) else tm
         return alterReverseMask(donorMask, edgeMask,
                                 rotation=rotation,
                                 sizeChange=sizeChange,
-                                location=location, flip=flip,
+                                location=location,
+                                flip=flip,
                                 transformMatrix=tm,
                                 targetSize=targetSize,
-                                crop=edge['op'] == 'TransformCrop',
+                                crop=crop,
                                 cut=cut)
 
     def _getModificationForEdge(self, start,end, edge):

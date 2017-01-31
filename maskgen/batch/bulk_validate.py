@@ -17,16 +17,24 @@ def main():
 
     graph_rules.setup()
 
-    project_list = bulk_export.pick_projects(args.projectDir)
+    project_list = bulk_export.pick_projects(args.projects)
 
-    with open(os.path.join(args.projectDir,'ErrorReport_' + str(os.getpid()) + '.csv'), 'wb') as csvfile:
+    with open(os.path.join(args.projects,'ErrorReport_' + str(os.getpid()) + '.csv'), 'wb') as csvfile:
         error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for project in project_list:
-            name = os.path.basename(project)
-            sm = scenario_model.loadProject(project)
-            error_list = sm.validate()
-            for err in error_list:
-                error_writer.writerow((name, str(err)))
+            try:
+                name = os.path.basename(project)
+                sm = scenario_model.loadProject(project)
+                for node in sm.getNodeNames():
+                    sm.labelNodes(node)
+                #sm.fixInputMasks()
+                error_list = sm.validate()
+                sm.getProbeSet()
+                for err in error_list:
+                    error_writer.writerow((name, str(err)))
+            except Exception as e:
+                print project
+                print e
 
 if __name__ == '__main__':
     main()
