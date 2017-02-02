@@ -18,6 +18,7 @@ from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
+from collapsing_frame import  Chord, Accordion
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -373,11 +374,11 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     def listBoxHandler(self,evt):
         # Note here that Tkinter passes an event object to onselect()
         w = evt.widget
-        index = int(w.curselection()[0])
-        value = w.get(index)
         x = w.winfo_rootx()
         y = w.winfo_rooty()
-        self.group_to_remove = index
+        if w.curselection() is not None and len(w.curselection()) > 0:
+            index = int(w.curselection()[0])
+            self.group_to_remove = index
         try:
             self.popup.tk_popup(x, y, 0)
         finally:
@@ -399,22 +400,24 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         Label(master, text="Description:").grid(row=3, sticky=W)
         Label(master, text="Software Name:").grid(row=4, sticky=W)
         Label(master, text="Software Version:").grid(row=5, sticky=W)
-        Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0, columnspan=2)
+        #Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0)
 
         self.popup = Menu(master, tearoff=0)
         self.popup.add_command(label="Add", command=self.group_add)
         self.popup.add_command(label="Remove",command=self.group_remove)  #
 
-        self.groupFrame = Frame(master) #,height=100,width=100)
+        self.collapseFrame = Accordion(master) #,height=100,width=100)
+        self.groupFrame = Chord(self.collapseFrame,title='Semantic Groups' )
         self.gscrollbar = Scrollbar(self.groupFrame, orient=VERTICAL)
-        self.listbox = Listbox(master, yscrollcommand=self.gscrollbar.set,height=3)
+        self.listbox = Listbox(self.groupFrame, yscrollcommand=self.gscrollbar.set,height=3)
         self.listbox.config(yscrollcommand=self.gscrollbar.set)
         self.listbox.bind("<<ListboxSelect>>", self.listBoxHandler)
-        self.listbox.grid(row=7, column=0,columnspan=3,sticky=E+W)
+        self.listbox.grid(row=0, column=0,columnspan=3,sticky=E+W)
         self.gscrollbar.config(command=self.listbox.yview)
         self.gscrollbar.grid(row=0, column=1, stick=N + S)
-       # self.groupFrame.grid(row=7,columnspan=2)
-        #self.groupFrame.grid_propagate(0)
+        self.collapseFrame.append_chords([self.groupFrame])
+        self.collapseFrame.grid(row=6,column=0,columnspan=3)
+        #self.collapseFrame.grid_propagate(0)
         row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1

@@ -2122,13 +2122,17 @@ class ImageProjectModel:
         return self.__alterComposite(edge,compositeMask,edgeMask)
 
     def _getOrientation(self, edge):
-        return edge['exifdiff']['Orientation'][1] if ('arguments' in edge and \
-                                                      (('rotate' in edge['arguments'] and \
-                                                        edge['arguments']['rotate'] == 'yes') or \
-                                                       ('Image Rotated' in edge['arguments'] and \
-                                                        edge['arguments']['Image Rotated'] == 'yes'))) and \
-                                                     'exifdiff' in edge and 'Orientation' in edge['exifdiff'] else ''
-
+        if ('arguments' in edge and \
+                    ('Image Rotated' in edge['arguments'] and \
+                                 edge['arguments']['Image Rotated'] == 'yes')) and \
+                        'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+            return edge['exifdiff']['Orientation'][1]
+        if ('arguments' in edge and \
+                    ('rotate' in edge['arguments'] and \
+                    edge['arguments']['rotate'] == 'yes')) and \
+                        'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+            return edge['exifdiff']['Orientation'][2]
+        return ''
 
     def __alterComposite(self,edge, compositeMask, edgeMask):
         # change the mask to reflect the output image

@@ -296,7 +296,7 @@
     {
        "description": "Spatial Moving Camera",
        "name": "spatialmovingcamera",
-        "operations" : "AdditionalEffectCameraMovement",
+        "operations" : "CameraMovement",
        "node" : true,
        "type": "yesno",
        "information": "Spatial Moving Camera"
