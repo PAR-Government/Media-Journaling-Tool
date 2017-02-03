@@ -33,7 +33,6 @@ def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
     for k, v in op.optionalparameters.iteritems():
         if 'source' in v and v['source'] != sourcefiletype:
             continue
-            continue
         if 'target' in v and v['target'] != targetfiletype:
             continue
         if 'rule' in v and len(v['rule']) > 0:
@@ -117,6 +116,27 @@ def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     """
     val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + id,
                                        filetypes=filetypes)
+    var = obj.values[row]
+    if val is not None and len(val) > 0:
+        var.set(val)
+    else:
+        val = None
+    obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else ' ' * 30)
+
+
+def promptForFolderAndFillButtonText(obj, dir, id, row):
+    """
+    Prompt for a folder given the file types.
+    Set the button's text, identify by the id.
+    :param obj:
+    :param dir: Starting place for browser
+    :param id: button identitifer
+    :param row:
+    @type obj: PropertyFrame
+    @type row: int
+    :return:
+    """
+    val = tkFileDialog.askdirectory(initialdir=dir, title="Select " + id)
     var = obj.values[row]
     if val is not None and len(val) > 0:
         var.set(val)
@@ -763,7 +783,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         self.c = Canvas(master, width=250, height=250)
         self.c.create_image(128, 128, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
-        self.e1 = AutocompleteEntryInText(master, values=self.pluginOps.keys(), takefocus=True)
+        self.e1 = AutocompleteEntryInText(master, values=sorted(self.pluginOps.keys(), key=lambda s: s.lower()), takefocus=True)
         self.e1.bind("<Return>", self.newop)
         self.e1.bind("<<ComboboxSelected>>", self.newop)
         row = 1
@@ -1743,9 +1763,17 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type.startswith('fileset:'):
                initialdir_parts = tuple(prop.type[8:].split('/'))
                initialdir = os.path.join(*tuple(initialdir_parts))
-               partialf = partial(promptForFileAndFillButtonText, self, initialdir, prop.name, row, [('Text', '*.txt')])
+               partialf = partial(promptForFileAndFillButtonText, self, initialdir, prop.name, row, [('Text', '*.txt'), ('All Files', '*')])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type.startswith('folder:'):
+               initialdir_parts = tuple(prop.type[7:].split('/'))
+               initialdir = os.path.join(*tuple(initialdir_parts))
+               partialf = partial(promptForFolderAndFillButtonText, self, initialdir, prop.name, row)
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ',
+                                                         takefocus=False,
+                                                         command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('donor'):
                partialf = partial(promptForDonorandFillButtonText, self, prop.name, row)
