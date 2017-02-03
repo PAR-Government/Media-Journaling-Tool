@@ -199,6 +199,7 @@ class ImageGraph:
                      'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}
     nodeFilePaths = {'compositemaskname': None,
+                     'proxyfile':None,
                      'donors.*': None}
 
     def getUIGraph(self):
@@ -266,6 +267,7 @@ class ImageGraph:
         return fname
 
     def add_node(self, pathname, seriesname=None, **kwargs):
+        proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
         origname = get_pre_name(fname)
@@ -284,6 +286,7 @@ class ImageGraph:
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
         self._setUpdate(nname, update_type='node')
+
         self.G.add_node(nname,
                         seriesname=(origname if seriesname is None else seriesname),
                         file=fname,
@@ -291,6 +294,9 @@ class ImageGraph:
                         username=get_username(),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
                         **kwargs)
+        if proxypathname is not None:
+            self.G.node[nname]['proxyfile'] = proxypathname
+
         self.U = []
         self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
         # adding back a file that was targeted for removal

@@ -398,7 +398,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
     else:
         try:
             img = openImageFile(snapshotFileName, isMask=isMask)
-            return img
+            return img if img is not None else openImage('./icons/RedX.png')
         except Exception as e:
             print e
             return openImage('./icons/RedX.png')
