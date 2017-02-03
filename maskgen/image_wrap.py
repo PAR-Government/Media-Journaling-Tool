@@ -123,7 +123,7 @@ def proxyOpen(filename, isMask):
     return None
 
 # openTiff supports raw files as well
-file_registry = [('xdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
+file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
 
 def openFromRegistry(filename,isMask=False):
     for suffixList in file_registry:
