@@ -1055,7 +1055,6 @@ def toNumString(v):
 
 def compareNumString(numstringa,numstringb):
     diff = numstringa[0] - numstringb[0]
-    print diff
     if abs(diff) < 0.00000001:
         return -1 if numstringa[1] < numstringb[1] else (0 if numstringa[1] == numstringb[1] else 1)
     return int(np.sign(diff))
