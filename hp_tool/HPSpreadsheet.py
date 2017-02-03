@@ -9,6 +9,7 @@ import csv
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
 import hp_data
+import datetime
 
 
 class HPSpreadsheet(Toplevel):
@@ -18,6 +19,7 @@ class HPSpreadsheet(Toplevel):
         self.dir = dir
         if self.dir:
             self.imageDir = os.path.join(self.dir, 'image')
+            self.videoDir = os.path.join(self.dir, 'video')
         self.master = master
         self.ritCSV=ritCSV
         self.saveState = True
@@ -101,6 +103,8 @@ class HPSpreadsheet(Toplevel):
 
     def open_image(self):
         image = os.path.join(self.imageDir, self.imName)
+        if not os.path.exists(image):
+            image = os.path.join(self.videoDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
@@ -130,7 +134,7 @@ class HPSpreadsheet(Toplevel):
         col = self.pt.getSelectedColumn()
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
-        if currentCol in ['HP-OnboardFilter', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside']:
+        if currentCol in self.booleanCols:
             validValues = ['True', 'False']
         elif currentCol == 'HP-CameraKinematics':
             validValues = self.kinematics
@@ -146,6 +150,24 @@ class HPSpreadsheet(Toplevel):
             validValues = self.lensFilters
         elif currentCol == 'HP-DeviceLocalID':
             validValues = self.localIDs
+        elif currentCol == 'HP-ProximitytoSource':
+            validValues = ['close', 'medium', 'far']
+        elif currentCol == 'HP-AudioChannels':
+            validValues = ['stereo', 'mono']
+        elif currentCol ==  "HP-BackgroundNoise":
+            validValues = ["constant", "intermittant", "none"]
+        elif currentCol == "HP-Description":
+            validValues = ["voice", "man-made object", "weather", "environment"]
+        elif currentCol == "HP-MicLocation":
+            validValues = ["built in", "attached to recorder", "attached to subject", "boom pole"]
+        elif currentCol == "HP-AngleofRecording":
+            validValues = ["12:00", "1:00", "2:00", "3:00", "4:00", "5:00", "6:00", "7:00", "8:00", "9:00", "10:00", "11:00"]
+        elif currentCol == 'HP-PrimarySecondary':
+            validValues = ['primary', 'secondary']
+        elif currentCol == 'HP-ZoomLevel':
+            validValues = ['max optical zoom', 'max digital zoom', 'no zoom']
+        elif currentCol == 'HP-Recapture':
+            validValues = ['Screenshot', 'scan', 're-photograph']
 
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
             validValues = {'instructions':'Any integer value'}
@@ -192,29 +214,41 @@ class HPSpreadsheet(Toplevel):
         self.title(self.ritCSV)
         self.pt.importCSV(self.ritCSV)
 
-        self.obfiltercol = self.pt.model.df.columns.get_loc('HP-OnboardFilter')
-        try:
-            self.reflectionscol = self.pt.model.df.columns.get_loc('HP-Reflections')
-            self.shadcol = self.pt.model.df.columns.get_loc('HP-Shadows')
-        except KeyError:
-            self.reflectionscol = self.pt.model.df.columns.get_loc('Reflections')
-            self.shadcol = self.pt.model.df.columns.get_loc('Shadows')
-        self.modelcol = self.pt.model.df.columns.get_loc('CameraModel')
-        self.hdrcol = self.pt.model.df.columns.get_loc('HP-HDR')
-        self.kincol = self.pt.model.df.columns.get_loc('HP-CameraKinematics')
-        self.localidcol = self.pt.model.df.columns.get_loc('HP-DeviceLocalID')
+        self.booleanCols = []
+        booleans = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection',
+                    'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-MultiInput', 'HP-Echo', 'HP-Modifier']
+        for b in booleans:
+            self.booleanCols.append(self.pt.model.df.columns.get_loc(b))
+
+
+        self.mandatoryImage = []
+        image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
+                 'HP-Shadows', 'CameraModel', 'HP-HDR', 'HP-DeviceLocalID']
+        for i in image:
+            self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
+
+        self.mandatoryVideo = []
+        video = image + ['HP-CameraKinematics']
+        for v in video:
+            self.mandatoryVideo.append(self.pt.model.df.columns.get_loc(v))
+
+        audio = ['CameraModel', 'HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
+                 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation']
+        self.mandatoryAudio = []
+        for c in audio:
+            self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
         self.color_code_cells()
 
     def color_code_cells(self):
         notnans = self.pt.model.df.notnull()
-        redcols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.modelcol, self.hdrcol, self.localidcol]
-        videoonlycols = [self.kincol]
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
                 currentExt = os.path.splitext(self.pt.model.getValueAt(row,0))[1].lower()
                 x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
-                if col in redcols or (col in videoonlycols and currentExt in hp_data.exts['VIDEO']):
+                if (col in self.mandatoryImage and currentExt in hp_data.exts['IMAGE']) or \
+                        (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
+                        (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
                     rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                     fill='#ff5b5b',
                                                     outline='#084B8A',
@@ -236,16 +270,41 @@ class HPSpreadsheet(Toplevel):
             self.validate()
         self.pt.doExport(self.ritCSV)
         tmp = self.ritCSV + '-tmp.csv'
-        with open(self.ritCSV, 'rb') as source:
+        with open(self.ritCSV, 'r') as source:
             rdr = csv.reader(source)
             with open(tmp, 'wb') as result:
-                wtr = csv.writer(result)
+                wtr = csv.writer(result, lineterminator='\n', quoting=csv.QUOTE_ALL)
                 for r in rdr:
                     wtr.writerow((r[1:]))
         os.remove(self.ritCSV)
         os.rename(tmp, self.ritCSV)
+        self.export_rankOne()
         self.saveState = True
         msg = tkMessageBox.showinfo('Status', 'Saved!')
+
+    def export_rankOne(self):
+        rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
+        with open(self.ritCSV, 'r') as rit:
+            rdr = csv.reader(rit)
+            with open(rankOnecsv, 'w') as ro:
+                wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
+                wtr_quotes = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
+                wtr.writerow(['#@version=01.03'])
+                wtr_quotes.writerow(
+                    ['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'Collector',
+                     'HP-CollectionRequestID', 'HP-DeviceLocalID',
+                     'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType',
+                     'HP-LensFilter',
+                     'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside',
+                     'HP-Outside', 'ImportDate'])
+                count = 0
+                now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
+                for r in rdr:
+                    if count != 0:
+                        wtr_quotes.writerow([r[4], r[5], r[6], r[8], r[9], r[0], r[1], r[1], r[7], r[10], r[17], r[24], r[26], r[25],
+                                      r[32], r[34], r[35], r[36], r[38], r[41], r[39], r[40], now])
+                    count+=1
+
 
     def fill_down(self, event=None):
         selection = self.pt.getSelectionValues()
@@ -262,9 +321,8 @@ class HPSpreadsheet(Toplevel):
 
     def validate(self):
         errors = []
-        booleanCols = [self.obfiltercol, self.reflectionscol, self.shadcol, self.hdrcol]
         for col in range(0, self.pt.cols):
-            if col in booleanCols:
+            if col in self.booleanCols:
                 for row in range(0, self.pt.rows):
                     val = str(self.pt.model.getValueAt(row, col))
                     if val.title() == 'True' or val.title() == 'False':
@@ -308,16 +366,18 @@ class HPSpreadsheet(Toplevel):
 
     def check_kinematics(self):
         errors = []
-        cols_to_check = [self.kincol]
+        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraKinematics')]
         for col in range(0, self.pt.cols):
             if col in cols_to_check:
                 for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
-                    if val.lower() == 'nan' or val == '':
-                        imageName = self.pt.model.getValueAt(row, 0)
-                        errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val.lower() not in self.kinematics:
-                        errors.append('Invalid camera kinematic ' + val + ' (row ' + str(row + 1) + ')')
+                    currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
+                    if currentExt in hp_data.exts['VIDEO']:
+                        val = str(self.pt.model.getValueAt(row, col))
+                        if val.lower() == 'nan' or val == '':
+                            imageName = self.pt.model.getValueAt(row, 0)
+                            errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+                        elif val.lower() not in self.kinematics:
+                            errors.append('Invalid camera kinematic ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 
     def load_apps(self):
@@ -354,7 +414,7 @@ class HPSpreadsheet(Toplevel):
 
     def check_model(self):
         errors = []
-        cols_to_check = [self.modelcol]
+        cols_to_check = [self.pt.model.df.columns.get_loc('CameraModel')]
         for col in range(0, self.pt.cols):
             if col in cols_to_check:
                 for row in range(0, self.pt.rows):
@@ -362,7 +422,7 @@ class HPSpreadsheet(Toplevel):
                     if val.lower() == 'nan' or val == '':
                         imageName = self.pt.model.getValueAt(row, 0)
                         errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val.lower() not in self.devices:
+                    elif val not in self.devices:
                         errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 

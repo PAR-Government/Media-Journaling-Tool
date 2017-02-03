@@ -16,7 +16,8 @@ import pandas as pd
 import itertools
 import subprocess
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png' '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ]}
+exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ],
+        'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
 def copyrename(image, path, usrname, org, seq, other):
@@ -38,7 +39,9 @@ def copyrename(image, path, usrname, org, seq, other):
 
     currentExt = os.path.splitext(image)[1]
     if currentExt.lower() in exts['VIDEO']:
-        sub ='video'
+        sub = 'video'
+    elif currentExt.lower() in exts['AUDIO']:
+        sub = 'audio'
     else:
         sub = 'image'
     newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
@@ -169,7 +172,7 @@ def grab_dir(inpath, outdir=None, r=False):
     """
     imageList = []
     names = os.listdir(inpath)
-    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'])
+    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
     if r:
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
@@ -293,11 +296,14 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
                                     'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                     'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
                                     'GPSLatitude', 'GPSLongitude', 'CustomRendered', 'HP-OnboardFilter', 'HP-OBFilterType', 'BitDepth', 'ImageWidth', 'ImageHeight',
-                                    'HP-LensFilter', 'Type', 'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside', 'HP-Outside'])
+                                    'HP-LensFilter', 'Type', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
+                                    'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside', 'HP-Outside',
+                                    'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
+                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject'])
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
-                ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5, info[imNo][30]] +
+                ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], os.path.dirname(imageList[imNo]), os.path.basename(imageList[imNo]), md5, info[imNo][30]] +
                                    info[imNo][2:4] + [info[imNo][31]] + info[imNo][4:30] + info[imNo][32:])
         else:
             for imNo in xrange(len(imageList)):
@@ -323,6 +329,27 @@ def build_history_file(imageList, newNameList, data, csvFile):
         for imNo in range(len(imageList)):
             md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
             historyWriter.writerow([os.path.basename(imageList[imNo]), os.path.basename(newNameList[imNo]), md5, data[imNo][29]])
+
+
+def rankone_camera_update_csv(imageList, newNameList, data, csvFile):
+    newFile = not os.path.isfile(csvFile)
+    with open(csvFile, 'w') as csv_ro:
+        wtr_quotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
+        wtr_noquotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
+        if newFile:
+            wtr_noquotes.writerow(['#@version=01.03'])
+            wtr_quotes.writerow(['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'Collector', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
+                               'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
+                               'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
+                               'HP-App', 'HP-Inside', 'HP-Outside', 'ImportDate'])
+        for imNo in range(len(imageList)):
+            md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
+            now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
+            wtr_quotes.writerow([md5, data[imNo][30], data[imNo][2], data[imNo][31], data[imNo][4], os.path.basename(newNameList[imNo]), data[imNo][0], data[imNo][0],
+                               data[imNo][3], data[imNo][5], data[imNo][12], data[imNo][19], data[imNo][23], data[imNo][24], data[imNo][28],
+                               data[imNo][32], data[imNo][33], data[imNo][34], data[imNo][35], data[imNo][36], data[imNo][37], data[imNo][38],
+                               data[imNo][39], data[imNo][40], data[imNo][41], now])
+
 
 def parse_extra(data, csvFile):
     """
@@ -442,7 +469,7 @@ def frac2dec(fracStr):
     #     return str(float(num)/float(denom))
 
 def check_create_subdirectories(path):
-    subs = ['image', 'video', 'csv']
+    subs = ['image', 'video', 'audio', 'csv']
     for sub in subs:
         if not os.path.exists(os.path.join(path, sub, '.hptemp')):
             os.makedirs(os.path.join(path, sub, '.hptemp'))
@@ -453,7 +480,7 @@ def check_create_subdirectories(path):
 
 
 def remove_temp_subs(path):
-    subs = ['image', 'video', 'csv']
+    subs = ['image', 'video', 'audio', 'csv']
     for sub in subs:
         for f in os.listdir(os.path.join(path,sub,'.hptemp')):
             shutil.move(os.path.join(path,sub,'.hptemp',f), os.path.join(path,sub))
@@ -465,7 +492,9 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                      sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
                      focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
                      cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app='', camerakinematics='',
-                     inside='', outside=''):
+                     inside='', outside='', proximity='', multiinput='', audiochannels='', echo='', bgnoise='',
+                     description='', modifier='', recordangle='', miclocation='', primarysecondary='', zoomlvl='',
+                     recapture='', recapturesubject=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
@@ -476,52 +505,69 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     is supplied and no exif data can be found.
 
     GUIDE of INDICES: (We'll make this a dictionary eventually)
-    0: CollectionRequestID
-    1: HD Location
+    0: HP-CollectionRequestID
+    1: HP-HDLocation
     2. DeviceSN
-    3. DeviceLocalID
+    3. HP-DeviceLocalID
     4. LensSN
-    5. LensLocalID
+    5. HP-LensLocalID
     6. FileType
-    7. JPGQuality
+    7. HP-JPGQuality
     8. ShutterSpeed
     9. Aperture
     10. ExpCompensation
     11. ISO
     12. NoiseReduction
     13. WhiteBalance
-    14. DegreesKelvin
+    14. HP-DegreesKelvin
     15. ExposureMode
     16. FlashFired
     17. FocusMode
     18. CreationDate
-    19. Location
+    19. HP-Location
     20. GPSLatitude
     21. GPSLongitude
     22. CustomRendered
-    23. OnboardFilter (T/F)
-    24. OBFilterType
+    23. HP-OnboardFilter (T/F)
+    24. HP-OBFilterType
     25. BitDepth
     26. ImageWidth
     27. ImageHeight
-    28. LensFilter
+    28. HP-LensFilter
     29. Type (IMAGE or VIDEO)
     30. CameraModel
     31. LensModel
-    32. Reflections
-    33. Shadows
-    34. HDR
-    35. CameraKinematics
-    36. App
-    37. Inside
-    38. Outside
+    32. HP-WeakReflection
+    33. HP-StrongReflection
+    34. HP-TransparentReflection
+    35. HP-ReflectedObject
+    36. HP-Shadows
+    37. HP-HDR
+    38. HP-CameraKinematics
+    39. HP-App
+    40. HP-Inside
+    41. HP-Outside
+    42. HP-ProximitytoSource
+    43. HP-MultiInput
+    44. HP-AudioChannels
+    45. HP-Echo
+    46. HP-BackgroundNoise
+    47. HP-Description
+    48. HP-Modifier
+    49. HP-AngleofRecording
+    50. HP-MicLocation
+    51. HP-PrimarySecondary
+    52. HP-ZoomLevel
+    53. HP-Recapture
+    54. HP-RecaptureSubject
     """
     exiftoolargs = []
     data = []
     if not hd:
         hd = path
     master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + \
-             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app, inside, outside]
+             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app, inside, outside, proximity, multiinput, audiochannels, echo, bgnoise,
+                     description, modifier, recordangle, miclocation, primarysecondary, zoomlvl, recapture, recapturesubject]
     missingIdx = []
 
     if camera:
@@ -648,10 +694,12 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
             data.append(master[:])
             ex = os.path.splitext(imageList[i])[1]
             data[i][6] = os.path.splitext(imageList[i])[1][1:]
-            if ex.lower() in exts['IMAGE']:
-                data[i][29] = 'image'
-            else:
+            if ex.lower() in exts['AUDIO']:
+                data[i][29] = 'audio'
+            elif ex.lower() in exts['VIDEO']:
                 data[i][29] = 'video'
+            else:
+                data[i][29] = 'image'
             newExifSubset = newExifData[j:j + diff]
             k = 0
             for dataIdx in missingIdx:
@@ -744,6 +792,7 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
     if imgdir:
         change_all_metadata.process(os.path.join(outputdir, 'image', '.hptemp'), newData, quiet=True)
         change_all_metadata.process(os.path.join(outputdir, 'video', '.hptemp'), newData, quiet=True)
+        change_all_metadata.process(os.path.join(outputdir, 'audio', '.hptemp'), newData, quiet=True)
     else:
         change_all_metadata.process(newNameList, newData, quiet=True)
 
@@ -756,6 +805,10 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
     print 'Building history file'
     csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'history.csv')
     build_history_file(imageList, newNameList, imageInfo, csv_history)
+
+    print 'Building RankOne file'
+    csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'rankone.csv')
+    rankone_camera_update_csv(imageList, newNameList, imageInfo, csv_ro)
 
     if tally:
         # write final csv
