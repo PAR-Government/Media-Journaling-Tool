@@ -936,10 +936,6 @@
         "Capture Camera ID": {
           "type": "text",
           "description": "ID of camera used to capture image if not screen shot"
-        },
-        "MosaicTrace": {
-          "type": "folder:plugins/CFASpoof/traces",
-          "description": "Folder containing camera demosaic trace"
         }
       },
       "description": "CFA Correction",
