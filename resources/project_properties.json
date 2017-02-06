@@ -363,7 +363,7 @@
        "description": "Post Process Compression",
        "name": "postprocesscompression",
        "node" : true,
-       "operations": ["OutputMP4","OutputMOV","OutputXVID"],
+       "operations": ["OutputMP4","OutputMOV","OutputXVID", "OutputJpg"],
        "type": "yesno",
        "information": "Post Process Compression"
      },

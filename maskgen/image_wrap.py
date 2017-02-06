@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import os
 import subprocess
-
+from pkg_resources import iter_entry_points
 
 try:
     from tifffile import TiffFile,imsave
@@ -29,16 +29,6 @@ def openRaw(filename,isMask=False):
     except:
         return None
 
-def convertToPDF(filename):
-    import platform
-    prefix = filename[0:filename.rfind('.')]
-    newname = prefix + '.png'
-    if "Darwin" in platform.platform():
-        if not os.path.exists(newname):
-            with open(os.devnull, 'w') as fp:
-                subprocess.call(['sips', '-s', 'format', 'png', filename, '--out', newname], stdout=fp)
-        return newname
-    return filename
 
 def openTiff(filename, isMask=False):
     raw = openRaw(filename,isMask=isMask)
@@ -63,9 +53,96 @@ def openTiff(filename, isMask=False):
             return raw
     return raw
 
+def wand_image_extractor(filename,isMask=False):
+    import PythonMagick
+    im = PythonMagick.Image(filename)
+    myPilImage = Image.new('RGB', (im.GetWidth(), im.GetHeight()))
+    myPilImage.fromstring(im.GetData())
+    return ImageWrapper(np.asarray(myPilImage), mode=myPilImage.mode, info=myPilImage.info,to_mask=isMask)
+
+def pdf2_image_extractor(filename,isMask=False):
+    import PyPDF2
+    import io
+    from PyPDF2 import generic
+    with open(filename, "rb") as f:
+        input1 = PyPDF2.PdfFileReader(f)
+        page0 = input1.getPage(0)
+        xObject = page0['/Resources']['/XObject'].getObject()
+        for obj in xObject:
+            if xObject[obj]['/Subtype'] == '/Image':
+                size = (xObject[obj]['/Width'], xObject[obj]['/Height'])
+                if xObject[obj]['/ColorSpace'] == '/DeviceRGB':
+                    mode = "RGB"
+                else:
+                    mode = "P"
+                hasJPEG = len([x for x in xObject[obj]['/Filter'] if x == '/DCTDecode']) > 0
+                if  hasJPEG:
+                    if type(xObject[obj]['/Filter']) == generic.ArrayObject:
+                            xObject[obj].update({generic.NameObject('/Filter'):
+                                            generic.ArrayObject( [x for x in xObject[obj]['/Filter']
+                                                                  if x not in  ['/DCTDecode','/JBIG2Decode']])})
+                    im = Image.open(io.BytesIO(bytearray(xObject[obj].getData())))
+                    return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info,to_mask=isMask)
+    return None
+
+def convertToPDF(filename,isMask=False):
+    import platform
+    prefix = filename[0:filename.rfind('.')]
+    newname = prefix + '.png'
+    if "Darwin" in platform.platform():
+        if not os.path.exists(newname):
+            with open(os.devnull, 'w') as fp:
+                subprocess.call(['sips', '-s', 'format', 'png', filename, '--out', newname], stdout=fp)
+    with open(newname, 'rb') as f:
+        im = Image.open(f)
+        im.load()
+        return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info,to_mask=isMask)
+    return None
+
+def getProxy(filename):
+    proxyname = filename[0:filename.rfind('.')] +'_proxy.png'
+    if os.path.exists(proxyname):
+        return proxyname
+    return None
+
+def defaultOpen(filename,isMask=False):
+    with open(filename, 'rb') as f:
+        im = Image.open(f)
+        im.load()
+        if im.format == 'TIFF' and filename.lower().find('tif') < 0:
+            raw = openTiff(filename, isMask=isMask)
+            if raw is not None and raw.size[0] > im.size[0] and raw.size[1] > im.size[1]:
+                return raw
+    result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
+    return None if result.size == (0,0) else result
+
+def proxyOpen(filename, isMask):
+    proxyname = getProxy(filename)
+    if proxyname is not None:
+        return openImageFile(filename,isMask=isMask)
+    return None
+
+# openTiff supports raw files as well
+file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
+
+for entry_point in iter_entry_points(group='img.plugin', name=None):
+    file_registry.append(('',entry_point.load()))
+
+def openFromRegistry(filename,isMask=False):
+    for suffixList in file_registry:
+        if suffixList[0] in filename.lower():
+            for func in suffixList[1]:
+                try:
+                    result = func(filename,isMask=isMask)
+                    if result is not None and result.size != (0,0):
+                        return result
+                except Exception as e:
+                    print 'Cannot to open image file ' + filename + ' with ' + str(func) + '...trying another opener.'
+                    print e
+    return None
+
 def openImageFile(filename,isMask=False):
     """
-
     :param filename:
     :param isMask:
     :return:
@@ -81,19 +158,7 @@ def openImageFile(filename,isMask=False):
            filename = mod_filename
     if not os.path.exists(filename):
         raise ValueError("File not found: " + filename)
-    try:
-       if filename.lower().endswith('pdf'):
-          filename = convertToPDF(filename)
-       with open(filename,'rb') as f:
-          im = Image.open(f)
-          im.load()
-          if im.format == 'TIFF' and filename.lower().find('tif') < 0:
-            raw = openTiff(filename, isMask=isMask)
-            if raw is not None and raw.size[0] >im.size[0]  and raw.size[1] > im.size[1]:
-                return raw
-          return ImageWrapper(np.asarray(im),mode=im.mode,info=im.info,to_mask =isMask)
-    except:
-      return openTiff(filename, isMask=isMask)
+    return openFromRegistry(filename,isMask=isMask)
 
 def invertMask(mask):
     mask.invert()

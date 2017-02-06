@@ -797,7 +797,9 @@ class ImageProjectModel:
         totalSet = []
         for suffix in suffixes:
             totalSet.extend([filename for filename in os.listdir(dir) if
-                             filename.lower().endswith(suffix) and not filename.endswith('_mask' + suffix)])
+                             filename.lower().endswith(suffix) and \
+                             not filename.endswith('_mask' + suffix) and \
+                             not filename.endswith('_proxy' + suffix)])
         totalSet = sorted(totalSet, key=sortalg)
         for filename in totalSet:
             pathname = os.path.abspath(os.path.join(dir, filename))
@@ -2027,7 +2029,9 @@ class ImageProjectModel:
             prefix = seriesName
 
         def filterFunction(file):
-            return not self.G.has_node(os.path.split(file[0:file.rfind('.')])[1]) and not (file.rfind('_mask') > 0)
+            return not self.G.has_node(os.path.split(file[0:file.rfind('.')])[1]) and \
+                   not (file.rfind('_mask') > 0) and \
+                   not (file.rfind('_proxy') > 0)
 
         def findFiles(dir, preFix, filterFunction):
             set = [os.path.abspath(os.path.join(dir, filename)) for filename in os.listdir(dir) if
@@ -2159,6 +2163,7 @@ class ImageProjectModel:
         flip = flip if flip is not None else orientflip
         global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
         tm = None if (crop or cut or flip or carve or global_resize) else tm
+        inversecrop =  (sizeChange != (0, 0) and edge['op'] == 'TransformResize' and 'none' in args['interpolation'])
         compositeMask = alterMask(compositeMask,
                                   edgeMask,
                                   rotation=rotation,
@@ -2169,7 +2174,8 @@ class ImageProjectModel:
                                   transformMatrix=tm,
                                   crop=crop,
                                   cut=cut,
-                                  carve=carve)
+                                  carve=carve,
+                                  inversecrop=inversecrop)
         return compositeMask
 
     def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):

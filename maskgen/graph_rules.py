@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties
-from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount
+from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
@@ -325,6 +325,15 @@ def checkFrameTimes(graph, frm, to):
     if st[0] > et[0] or (st[0] == et[0] and st[1] >= et[1] and st[1] > 0):
         return 'Start Time occurs after End Time'
     return None
+
+def checkResizeInterpolation(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    interpolation = edge['arguments']['interpolation']
+    if 'shape change' in edge:
+        changeTuple = toIntTuple(edge['shape change'])
+        sizeChange = (changeTuple[0], changeTuple[1])
+        if sizeChange(0) < 0 or sizeChange(0) and 'none' in interpolation:
+            return interpolation + ' interpolation is not permitted with a decrease in size'
 
 def checkFileTypeChange(graph, frm, to):
     frm_file = graph.get_image(frm)[1]

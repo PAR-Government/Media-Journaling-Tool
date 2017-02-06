@@ -9,6 +9,10 @@ import os
 
 class TestImageWrap(unittest.TestCase):
 
+    def test_pdf(self):
+        #img = image_wrap.wand_image_extractor('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf')
+        self.assertTrue( image_wrap.pdf2_image_extractor('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf') is not None)
+        #img.save('foo.png')
 
     def test_open(self):
         wrapper = image_wrap.openImageFile('images/sample.jpg')
