@@ -351,7 +351,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         return None
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
-                                                      'm4v', 'mts']:
+                                                      'm4v', 'mts', 'mpg'] or fileType(filename) == 'video':
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
     if fileType(filename) == 'audio':
@@ -1105,6 +1105,7 @@ def __composeExpandImageMask(img1, img2):
         diffIm = img2[tuple[0]:tuple[2], tuple[1]:tuple[3]]
         analysis = img_analytics(img1, diffIm)
         dst = np.abs(img1 - diffIm)
+        analysis['location'] = str((int(tuple[0]), int(tuple[1])))
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
         mask = gray_image
@@ -1181,15 +1182,19 @@ def carveMask(image, mask, expectedSize):
 
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None,  crop=False, cut=False, carve=False):
+              transformMatrix=None, flip=None,  crop=False, cut=False, carve=False,inversecrop=False):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
-    if location != (0, 0) or crop:
-        upperBound = (min(res.shape[0], expectedSize[0] + location[0]), min(res.shape[1], expectedSize[1] + location[1]))
+    if location != (0, 0) or crop or inversecrop:
+        if not inversecrop:
+            upperBound = (min(res.shape[0], expectedSize[0] + location[0]), min(res.shape[1], expectedSize[1] + location[1]))
+        else:
+            res = np.zeros((expectedSize[0], expectedSize[1]))
+            upperBound = (location[0]+compositeMask.shape[0],location[1]+compositeMask.shape[1])
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if transformMatrix is not None and not cut and flip is None:
             res = __applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))

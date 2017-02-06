@@ -1954,7 +1954,17 @@
         "checkFileTypeChange",
         "check_local_warn"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+         "gamma": {
+          "type": "float[0-10]",
+          "description": "Gamma Correction, if applicable"
+        },
+         "selection type": {
+          "type": "list",
+          "values": ["auto","manual"],
+          "description": "Gamma Correction, if applicable"
+        }
+      },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Normalize using histograms.",
       "includeInMask": false,
@@ -3526,23 +3536,26 @@
       "category": "Transform",
       "name": "TransformResize",
       "mandatoryparameters": {
-      },
-      "rules": [
-        "checkFileTypeChange"
-      ],
-      "optionalparameters": {
-        "interpolation": {
+          "interpolation": {
           "type": "list",
           "source": "image",
           "values": [
-            "nearest",
-            "lanczos",
-            "bilinear",
-            "bicubic",
-            "cubic"
+             "none-canvas expanded",
+             "bicubic",
+             "bilinear",
+             "cubic",
+             "lanczos",
+             "nearest",
+             "other"
           ],
-          "description": "Interpolation is used to resize entire composite images."
-        },
+          "description": "Interpolation is used to resize entire composite images. 'none' indicates a canvas size increase."
+        }
+      },
+      "rules": [
+        "checkFileTypeChange",
+        "checkResizeInterpolation"
+      ],
+      "optionalparameters": {
         "RANSAC": {
           "type": "list",
           "source": "image",

@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import os
 import subprocess
-
+from pkg_resources import iter_entry_points
 
 try:
     from tifffile import TiffFile,imsave
@@ -124,6 +124,9 @@ def proxyOpen(filename, isMask):
 
 # openTiff supports raw files as well
 file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
+
+for entry_point in iter_entry_points(group='img.plugin', name=None):
+    file_registry.append(('',entry_point.load()))
 
 def openFromRegistry(filename,isMask=False):
     for suffixList in file_registry:

@@ -24,9 +24,22 @@ def updateJournal(scModel):
     if scModel.G.getVersion() <= "0.4.0101" and "0.4.0101" not in upgrades:
         _fixTransforms(scModel)
         upgrades.append('0.4.0101')
+    if  "0.4.0101.8593b8f323" not in upgrades:
+        _fixResize(scModel)
+        upgrades.append('0.4.0101.8593b8f323')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
+
+def _fixResize(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = getOperationWithGroups(edge['op'], fake=True)
+        if op.name == 'TransformResize':
+            if 'arguments' not in edge:
+                edge['arguments'] = {}
+            if 'interpolation' not in edge['arguments']:
+                edge['arguments']['interpolation']  = 'other'
 
 def _fixTransforms(scModel):
     for frm, to in scModel.G.get_edges():

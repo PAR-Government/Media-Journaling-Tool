@@ -2163,6 +2163,7 @@ class ImageProjectModel:
         flip = flip if flip is not None else orientflip
         global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
         tm = None if (crop or cut or flip or carve or global_resize) else tm
+        inversecrop =  (sizeChange != (0, 0) and edge['op'] == 'TransformResize' and 'none' in args['interpolation'])
         compositeMask = alterMask(compositeMask,
                                   edgeMask,
                                   rotation=rotation,
@@ -2173,7 +2174,8 @@ class ImageProjectModel:
                                   transformMatrix=tm,
                                   crop=crop,
                                   cut=cut,
-                                  carve=carve)
+                                  carve=carve,
+                                  inversecrop=inversecrop)
         return compositeMask
 
     def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):
