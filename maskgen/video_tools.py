@@ -355,9 +355,17 @@ def _getOrder(packet, orderAttr, lasttime, pkt_duration_time='pkt_duration_time'
             print packet
             raise e
 
+def getIntFromPacket(key, packet):
+    if key in packet:
+        try:
+            return int(packet[key])
+        except:
+            pass
+    return 0
+
 # video_tools.compareStream([{'i':0,'h':1},{'i':1,'h':1},{'i':2,'h':1},{'i':3,'h':1},{'i':5,'h':2},{'i':6,'k':3}],[{'i':0,'h':1},{'i':3,'h':1},{'i':4,'h':9},{'i':4,'h':2}], orderAttr='i')
 # [('delete', 1.0, 2.0, 2), ('add', 4.0, 4.0, 2), ('delete', 5.0, 6.0, 2)]
-def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
+def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None, counters={}):
     """
       Compare to lists of hash maps, generating 'add', 'delete' and 'change' records.
       An order attribute (time stamp) is provided as the orderAttr, to identify each individual record.
@@ -371,6 +379,8 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
     start = 0
     aptime =None
     bptime = None
+   # a = sorted(a,key=lambda apacket: apacket[orderAttr])
+    #b = sorted(b, key=lambda apacket: apacket[orderAttr])
     while apos < len(a) and bpos < len(b):
         apacket = a[apos]
         if orderAttr not in apacket:
@@ -382,7 +392,12 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
             bpos += 1
             continue
         bptime = _getOrder(bpacket, orderAttr, bptime)
-        if aptime == bptime:
+        for k in counters.keys():
+            counters[k][0] = counters[k][0] + getIntFromPacket(k,apacket)
+            counters[k][1] = counters[k][1] + getIntFromPacket(k,bpacket)
+        if aptime == bptime or \
+                (aptime < bptime and (apos+1) < len(a) and _getOrder(a[apos+1], orderAttr,aptime) > bptime) or \
+                (aptime > bptime and (bpos+1) < len(b) and _getOrder(b[bpos+1], orderAttr,bptime) < aptime):
             metaDiff = compareMeta(apacket, bpacket, skipMeta=skipMeta)
             if len(metaDiff) > 0:
                 diff.append(('change', apos, bpos, aptime, metaDiff))
@@ -425,11 +440,11 @@ def compareStream(a, b, orderAttr='pkt_pts_time', skipMeta=None):
     return diff
 
 
-def compareFrames(one_frames, two_frames, skip_meta=None):
+def compareFrames(one_frames, two_frames, skip_meta=None, counters={}):
     diff = {}
     for streamId, packets in one_frames.iteritems():
         if streamId in two_frames:
-            diff[streamId] = ('change', compareStream(packets, two_frames[streamId], skipMeta=skip_meta))
+            diff[streamId] = ('change', compareStream(packets, two_frames[streamId], skipMeta=skip_meta,counters=counters))
         else:
             diff[streamId] = ('delete', [])
     for streamId, packets in two_frames.iteritems():
@@ -446,7 +461,14 @@ def formMetaDataDiff(file_one, file_two):
     one_meta, one_frames = getMeta(file_one, with_frames=True)
     two_meta, two_frames = getMeta(file_two, with_frames=True)
     meta_diff = compareMeta(one_meta, two_meta)
-    frame_diff = compareFrames(one_frames, two_frames, skip_meta=['pkt_pos', 'pkt_size'])
+    counters= {}
+    counters['interlaced_frame'] = [0,0]
+    counters['key_frame'] = [0, 0]
+    frame_diff = compareFrames(one_frames, two_frames, skip_meta=['pkt_pos', 'pkt_size'], counters = counters)
+    if counters['interlaced_frame'][0] - counters['interlaced_frame'][1] != 0:
+        meta_diff ['interlaced_frames'] = ('change',counters['interlaced_frame'][0] , counters['interlaced_frame'][1])
+    if counters['key_frame'][0] - counters['key_frame'][1] != 0:
+        meta_diff ['key_frames'] = ('change',counters['key_frame'][0] , counters['key_frame'][1])
     return meta_diff, frame_diff
 
 

@@ -253,6 +253,10 @@ class VideoMetaDiff:
             dictKey = k if prefix == '' else prefix + ': ' + str(k)
             old = v[1] if v[0].lower() == 'change' or v[0].lower() == 'delete' else ''
             new = v[2] if v[0].lower() == 'change' else (v[1] if v[0].lower() == 'add' else '')
+            if type(old) is not str:
+                old = str(old)
+            if type(new) is not str:
+                new = str(new)
             old = old.encode('ascii', 'xmlcharrefreplace')
             new = new.encode('ascii', 'xmlcharrefreplace')
             d[dictKey] = {'Operation': v[0], 'Old': old, 'New': new}
