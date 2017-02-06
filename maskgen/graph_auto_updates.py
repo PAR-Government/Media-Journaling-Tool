@@ -26,10 +26,17 @@ def updateJournal(scModel):
         upgrades.append('0.4.0101')
     if  "0.4.0101.8593b8f323" not in upgrades:
         _fixResize(scModel)
+        _fixResolution(scModel)
         upgrades.append('0.4.0101.8593b8f323')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
+
+def _fixResolution(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'arguments' in edge and 'scale'  in edge['arguments']:
+            edge['arguments']['resolution'] = edge['arguments']['scale'].replace(':','x')
 
 def _fixResize(scModel):
     for frm, to in scModel.G.get_edges():

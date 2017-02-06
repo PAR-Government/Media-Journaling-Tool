@@ -2452,10 +2452,6 @@
       "category": "Output",
       "name": "OutputXVID",
       "mandatoryparameters": {
-         "scale": {
-          "type": "string",
-          "description": "Down sample instructions such as 640:480."
-        },
         "resolution": {
           "type": "string",
           "description": "Format width × height:  1280x960"
@@ -2491,10 +2487,6 @@
       "category": "Output",
       "name": "OutputMOV",
       "mandatoryparameters": {
-         "scale": {
-          "type": "string",
-          "description": "Down sample instructions such as 640:480."
-        },
         "resolution": {
           "type": "string",
           "description": "Format width × height:  1280x960"
@@ -2530,10 +2522,6 @@
       "category": "Output",
       "name": "OutputMP4",
       "mandatoryparameters": {
-        "scale": {
-          "type": "string",
-          "description": "Down sample instructions such as 640:480."
-        },
         "resolution": {
           "type": "string",
           "description": "Format width × height:  1280x960"
@@ -2572,10 +2560,6 @@
       "rules": [
       ],
       "optionalparameters": {
-         "scale": {
-          "type": "string",
-          "description": "Down sample instructions such as 640:480."
-        },
         "resolution": {
           "type": "string",
           "description": "Format width × height:  1280x960"
@@ -3780,10 +3764,6 @@
       "category": "Transform",
       "name": "TransformDownSample",
       "mandatoryparameters": {
-        "scale": {
-          "type": "string",
-          "description": "Down sample instructions such as 640:480."
-        },
         "resolution": {
           "type": "string",
           "description": "Format width × height:  1280x960"
