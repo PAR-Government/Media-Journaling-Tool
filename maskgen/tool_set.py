@@ -1220,7 +1220,8 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
 
 
 def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
-                     transformMatrix=None, flip=None, crop=False, cut=False, targetSize=None):
+                     transformMatrix=None, flip=None, crop=False, cut=False, targetSize=None,
+                     inversecrop=True):
     res = donorMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1228,12 +1229,16 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     # if we are cutting, then do not want to use the edge mask as mask for transformation.
     # see the cut section below, where the transform occurs directly on the mask
     # this  occurs in donor cases
-    if location != (0, 0) or crop:
-        newRes = np.zeros(expectedSize).astype('uint8')
-        upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
-        newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
-                                                                       0:(upperBound[1] - location[1])]
-        res = newRes
+    if location != (0, 0) or crop or inversecrop:
+        if not inversecrop:
+            newRes = np.zeros(expectedSize).astype('uint8')
+            upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
+            newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
+                                                                           0:(upperBound[1] - location[1])]
+            res = newRes
+        else:
+            upperBound = (min(expectedSize[0] + location[0],res.shape[0]), min(expectedSize[1] + location[1],res.shape[1]))
+            res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if transformMatrix is not None and not cut and flip is None:
         res = __applyTransform(res, edgeMask, deserializeMatrix(transformMatrix), invert=True, returnRaw=False)
     elif abs(rotation) > 0.001:
