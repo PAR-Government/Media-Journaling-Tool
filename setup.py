@@ -11,7 +11,7 @@ setup(name='maskgen',
       data_files=[('resources',['resources/operations.json','resources/software.csv','resources/project_properties.json']),
                   ('plugins/Custom',
                    ['plugins/Custom/GammaCorrection.json', 'plugins/Custom/GaussianBlur.json', 'plugins/Custom/LevelCorrection.json',
-                    'plugins/Custom/Resize.json','plugins/Custom/SmoothDemo.json'
+                    'plugins/Custom/Resize.json'
                     ])],
       install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy'],
       entry_points=
