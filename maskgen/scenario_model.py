@@ -2232,6 +2232,7 @@ class ImageProjectModel:
         flip = flip if flip is not None else orientflip
         global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
         tm = None if (crop or cut or flip or carve or global_resize) else tm
+        inversecrop = (sizeChange != (0, 0) and edge['op'] == 'TransformResize' and 'none' in args['interpolation'])
         return alterReverseMask(donorMask, edgeMask,
                                 rotation=rotation,
                                 sizeChange=sizeChange,
@@ -2240,7 +2241,8 @@ class ImageProjectModel:
                                 transformMatrix=tm,
                                 targetSize=targetSize,
                                 crop=crop,
-                                cut=cut)
+                                cut=cut,
+                                inversecrop=inversecrop)
 
     def _getModificationForEdge(self, start,end, edge):
         """
