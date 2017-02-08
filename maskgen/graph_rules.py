@@ -332,7 +332,7 @@ def checkResizeInterpolation(graph, frm, to):
     if 'shape change' in edge:
         changeTuple = toIntTuple(edge['shape change'])
         sizeChange = (changeTuple[0], changeTuple[1])
-        if sizeChange(0) < 0 or sizeChange(0) and 'none' in interpolation:
+        if( sizeChange[0] < 0 or sizeChange[1] < 0) and 'none' in interpolation:
             return interpolation + ' interpolation is not permitted with a decrease in size'
 
 def checkFileTypeChange(graph, frm, to):
