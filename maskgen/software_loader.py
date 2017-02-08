@@ -18,6 +18,18 @@ operationsByCategory = {}
 projectProperties = {}
 
 
+def getFileName(fileName):
+    import sys
+    if (os.path.exists(fileName)):
+        print 'Loading ' + fileName
+        return fileName
+    places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
+    places.extend([x for x in sys.path if 'maskgen' in x])
+    for place in places:
+        fileName = os.path.join(place, fileName)
+        if os.path.exists(fileName):
+            print 'Loading ' + fileName
+            return fileName
 
 class ProjectProperty:
     description = None
@@ -141,8 +153,7 @@ def saveJSON(filename):
 
 def loadProjectPropertyJSON(fileName):
     res = list()
-    if not (os.path.exists(fileName)):
-        fileName = os.path.join('resources', fileName)
+    fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
         props = json.load(f)
         for prop in props['properties']:
@@ -164,8 +175,7 @@ def loadProjectPropertyJSON(fileName):
 
 def loadOperationJSON(fileName):
     res = {}
-    if not (os.path.exists(fileName)):
-        fileName = os.path.join('resources', fileName)
+    fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
         ops = json.load(f)
         for op in ops['operations']:
@@ -220,8 +230,7 @@ def toSoftware(columns):
 
 def loadSoftware(fileName):
     global softwareset
-    if not (os.path.exists(fileName)):
-        fileName = os.path.join('resources', fileName)
+    fileName = getFileName(fileName)
     softwareset = {'image': {}, 'video': {},'audio': {}}
     with open(fileName) as f:
         line_no = 0

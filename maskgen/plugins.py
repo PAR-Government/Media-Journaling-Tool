@@ -4,27 +4,33 @@ import os
 import json
 import subprocess
 
-PluginFolder = os.path.join('.', "plugins")
 MainModule = "__init__"
 
 loaded = None
 
 def getPlugins():
     plugins = {}
-    possibleplugins = os.listdir(PluginFolder)
-    customplugins = os.listdir(os.path.join(PluginFolder, 'Custom'))
-    for i in possibleplugins:
-        if i == 'Custom':
-            continue
-        location = os.path.join(PluginFolder, i)
-        if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
-            continue
-        info = imp.find_module(MainModule, [location])
-        plugins[i] = {"info": info}
+    pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
+    pluginFolders.extend([os.path.join(x,'plugins') for x in sys.path if 'maskgen' in x])
+    for folder in pluginFolders:
+        if os.path.exists(folder):
+            possibleplugins = os.listdir(folder)
+            customfolder = os.path.join(folder, 'Custom')
+            customplugins = os.listdir(customfolder) if os.path.exists(customfolder) else []
+            for i in possibleplugins:
+                if i in plugins:
+                    continue
+                if i == 'Custom':
+                    continue
+                location = os.path.join(folder, i)
+                if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
+                    continue
+                info = imp.find_module(MainModule, [location])
+                plugins[i] = {"info": info}
 
-    for j in customplugins:
-        location = os.path.join(PluginFolder, 'Custom', j)
-        plugins[os.path.splitext(j)[0]] = {"custom": location}
+            for j in customplugins:
+                location = os.path.join(folder, 'Custom', j)
+                plugins[os.path.splitext(j)[0]] = {"custom": location}
 
     return plugins
 
