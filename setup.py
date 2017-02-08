@@ -7,6 +7,7 @@ setup(name='maskgen',
       author='PAR Team',
       author_email='eric_robertson@partech.com',
       license='APL',
+
       packages=find_packages(exclude=["images", "plugins", "resources", "tests"]),
       data_files=[('resources',['resources/operations.json','resources/software.csv','resources/project_properties.json']),
                   ('plugins/Custom',
@@ -16,10 +17,11 @@ setup(name='maskgen',
       install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy'],
       entry_points=
        {'gui_scripts': [
-            'jtui = maskgen.MaskGenUI:main',
+            'jtuiw = maskgen.MaskGenUI:main',
         ],
         'console_scripts': [
                'jtproject = maskgen.batch.batch_project:main',
+'               jtui = maskgen.MaskGenUI:main',
                'jtprocess = maskgen.batch.batch_process:main'
            ]
        },
