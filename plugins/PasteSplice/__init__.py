@@ -228,7 +228,11 @@ def transform(img,source,target,**kwargs):
     img_to_paste = img_to_paste.apply_mask_rgba(mask_of_image_to_paste)
     out2 = None
     sigma = 1
+    w, h, area, x, y = minimum_bounding_box(mask_of_image_to_paste)
+    xbounds = (w / 2 + 1, img.size[1] - w / 2 - 1)
+    ybounds = (h / 2 + 1, img.size[0] - h / 2 - 1)
     while out2 is None and sigma<5:
+
         #labels1 = sgmentation.slic(gray, compactness=0.5, n_segments=200)e
         labels1= segmentation.felzenszwalb(denoise_img, scale=100, sigma=sigma, min_size=100)
 
@@ -249,14 +253,22 @@ def transform(img,source,target,**kwargs):
             mask = mask.astype('uint8')
             ret, thresh = cv2.threshold(mask, 127, 255, 0)
             (contours, _) = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            areas = [(cnt, cv2.contourArea(cnt)) for cnt in contours
+                     if cv2.moments(cnt)['m00'] > 2.0]
+            contours = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
+            contours = contours[0: min(15, len(contours))]
             if len(contours) > 0:
-                for cnt in contours:
+                for contour in contours:
                     try:
+                        cnt = contour[0]
                         mask = np.zeros(labels1.shape)
                         cv2.fillConvexPoly(mask,cnt,255)
                         placement_ellipse = minimum_bounding_ellipse(mask.astype('uint8'))
                         if placement_ellipse is None:
                            continue
+                        if placement_ellipse[0] < xbounds[0] or placement_ellipse[0] > xbounds[1] or \
+                                placement_ellipse[1] < ybounds[0] or placement_ellipse[1] > ybounds[1]:
+                            break
                         transform_matrix = build_transform_matrix(placement_ellipse,mask_of_image_to_paste_ellipse)
                         if transform_matrix is None:
                             continue
