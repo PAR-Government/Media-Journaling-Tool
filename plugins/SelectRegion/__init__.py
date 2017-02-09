@@ -4,6 +4,7 @@ import random
 from maskgen.image_wrap import ImageWrapper
 from skimage.restoration import denoise_tv_bregman
 from skimage.segmentation import felzenszwalb
+import math
 
 """
 Select region from the image.
@@ -17,7 +18,10 @@ def transform(img,source,target,**kwargs):
     gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
 
-    segments_fz = felzenszwalb(denoise_img, scale=100, sigma=0.5, min_size=100)
+    dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0,math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
+    sigma = max(0.75,math.log10(dims[0]*dims[1]/10000.0) - 0.5)
+    min_size = max(100.0,math.ceil(sigma*10.0)*10)
+    segments_fz = felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
 
     cnts = []
     for label in numpy.unique(segments_fz):

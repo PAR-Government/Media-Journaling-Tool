@@ -17,17 +17,17 @@ import maskgen.plugins
 def check_ops(ops, soft, args):
     """
     Error-checking function that ensures operations and software are valid.
-    """
+     """
     if (ops != getOperations() or soft != getSoftwareSet()) and not args.continueWithWarning:
         print 'ERROR: Invalid operation file. Please update.'
         sys.exit(0)
 
-    if not getOperation(args.op) and not args.continueWithWarning:
+    if args.op is not None and not getOperation(args.op) and not args.continueWithWarning:
         print 'ERROR: Invalid operation: ' + args.op
         print 'Reference the operations.json file for accepted operations.'
         sys.exit(0)
 
-    if not validateSoftware(args.softwareName, args.softwareVersion) and not args.continueWithWarning:
+    if args.softwareName is not None and args.softwareVersion is not None and not validateSoftware(args.softwareName, args.softwareVersion) and not args.continueWithWarning:
         print 'ERROR: Invalid software/version: ' + args.softwareName + ' ' + args.softwareVersion
         print 'Reference the software.csv file for accepted names and versions. They are case-sensitive.'
         sys.exit(0)
@@ -143,13 +143,9 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
 
     # Decide what to do with input (create new or add)
     if endDir:
-        new = True
         endingImages = create_image_list(endDir)
-        print 'Creating new projects...'
     else:
-        new = False
         endingImages = None
-        print 'Adding to existing projects...'
 
     if inputMaskPath:
         inputMaskImages = create_image_list(inputMaskPath)
@@ -174,11 +170,12 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
         new = not os.path.exists(project)
         sm = maskgen.scenario_model.ImageProjectModel(project)
         if new:
-            sm.addImage(os.path.join(sourceDir, sImg))
-            lastNodeName = sImgName
+            print 'Creating...'  + project
+            lastNodeName = sm.addImage(os.path.join(sourceDir, sImg))
+            #lastNodeName = sImgName
             for prop, val in props.iteritems():
                 sm.setProjectData(prop, val)
-            eImg = os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
+            eImg = None if endDir is  None else os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
         else:
             eImg = os.path.join(sourceDir, sImg)
             #print sm.G.get_nodes()
@@ -186,25 +183,27 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
             lastNodeName = lastNodes[-1]
 
         lastNode = sm.G.get_node(lastNodeName)
-
-        # prepare details for new link
-        softwareDetails = Software(software, version)
-        if arguments:
-            opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,
-                                                    arguments=arguments, automated='yes')
-        else:
-            opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
-
-        position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
-                     80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
-
-        # create link
         sm.selectImage(lastNodeName)
-        sm.addNextImage(eImg, mod=opDetails,
-                        sendNotifications=False, position=position)
+
+        if software is not None or version is not None and op is not None and eImg is not None:
+            # prepare details for new link
+            softwareDetails = Software(software, version)
+            if arguments:
+                opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,
+                                                        arguments=arguments, automated='yes')
+            else:
+                opDetails = maskgen.scenario_model.Modification(op, opDescr, software=softwareDetails, inputMaskName=maskIm,automated='yes')
+
+            position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
+                         80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
+
+            # create link
+            sm.addNextImage(eImg, mod=opDetails,
+                            sendNotifications=False, position=position)
+            print 'Operation ' + op + ' complete on project (' + str(processNo) + '/' + str(total) + '): ' + project
         sm.save()
 
-        print 'Operation ' + op + ' complete on project (' + str(processNo) + '/' + str(total) + '): ' + project
+
         processNo += 1
 
 
@@ -231,8 +230,7 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
             sm = maskgen.scenario_model.ImageProjectModel(project)
             for prop, val in props.iteritems():
                 sm.setProjectData(prop, val)
-            sm.addImage(os.path.join(sourceDir, i))
-            lastNode = sImgName
+            lastNode = sm.addImage(os.path.join(sourceDir, i))
         else:
             sm = maskgen.scenario_model.ImageProjectModel(i)
             lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
@@ -368,18 +366,19 @@ def main():
     # perform the specified operation
     if args.plugin:
         maskgen.plugins.loadPlugins()
-        opTuple = maskgen.plugins.getOperation(args.plugin)
+        opDef = maskgen.plugins.getOperation(args.plugin)
         additionalArgs = {}
-        if opTuple is not None:
-            op = getOperation(opTuple[0])
+        if opDef is not None:
+            op = getOperation(opDef['name'])
             additionalArgs = check_additional_args(args.arguments, op, args.continueWithWarning)
 
         print 'Performing plugin operation ' + args.plugin + '...'
         process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
     elif args.sourceDir:
         check_ops(ops, soft, args)
-        additionalArgs = check_additional_args(args.arguments, getOperation(args.op), args.continueWithWarning)
-        print 'Adding operation '+ args.op + '...'
+        additionalArgs = {} if args.op is None else check_additional_args(args.arguments, getOperation(args.op), args.continueWithWarning)
+        if args.op:
+            print 'Adding operation '+ args.op + '...'
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
                 args.softwareVersion, args.description, args.inputmaskpath, additionalArgs,
                 props)

@@ -227,14 +227,16 @@ def transform(img,source,target,**kwargs):
     mask_of_image_to_paste_ellipse = minimum_bounding_ellipse(mask_of_image_to_paste)
     img_to_paste = img_to_paste.apply_mask_rgba(mask_of_image_to_paste)
     out2 = None
-    sigma = 1
     w, h, area, x, y = minimum_bounding_box(mask_of_image_to_paste)
     xbounds = (w / 2 + 1, img.size[1] - w / 2 - 1)
     ybounds = (h / 2 + 1, img.size[0] - h / 2 - 1)
+    dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0, math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
+    sigma = max(1.0, math.log10(dims[0] * dims[1] / 10000.0) - 0.5)
+    min_size = max(100.0, math.ceil(sigma * 10.0) * 10)
     while out2 is None and sigma<5:
 
         #labels1 = sgmentation.slic(gray, compactness=0.5, n_segments=200)e
-        labels1= segmentation.felzenszwalb(denoise_img, scale=100, sigma=sigma, min_size=100)
+        labels1= segmentation.felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
 
         #Compute the Region Adjacency Graph using mean colors.
         #
@@ -242,8 +244,13 @@ def transform(img,source,target,**kwargs):
         # Each node represents a set of pixels  within image with the same label in labels.
         # The weight between two adjacent regions represents how similar or dissimilar two
         # regions are depending on the mode parameter.
-        #g = graph.rag_mean_color(gray, labels1, mode='similarity')
-        #out2 = color.label2rgb(labels1, gray, kind='avg')
+        cutThresh = 0.0000000005
+        labelset = np.unique(labels1)
+        while len(labels1) > 100000 or len(labelset) > 500:
+            g = graph.rag_mean_color(denoise_img, labels1, mode='similarity')
+            labels1 = graph.cut_threshold(labels1, g,cutThresh)
+            labelset = np.unique(labels1)
+            cutThresh += 0.000000001
         labelset = np.unique(labels1)
         for label in labelset:
             if label == 0:
@@ -256,7 +263,7 @@ def transform(img,source,target,**kwargs):
             areas = [(cnt, cv2.contourArea(cnt)) for cnt in contours
                      if cv2.moments(cnt)['m00'] > 2.0]
             contours = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
-            contours = contours[0: min(15, len(contours))]
+            contours = contours[0: min(20, len(contours))]
             if len(contours) > 0:
                 for contour in contours:
                     try:
@@ -266,13 +273,16 @@ def transform(img,source,target,**kwargs):
                         placement_ellipse = minimum_bounding_ellipse(mask.astype('uint8'))
                         if placement_ellipse is None:
                            continue
-                        if placement_ellipse[0] < xbounds[0] or placement_ellipse[0] > xbounds[1] or \
-                                placement_ellipse[1] < ybounds[0] or placement_ellipse[1] > ybounds[1]:
-                            break
-                        transform_matrix = build_transform_matrix(placement_ellipse,mask_of_image_to_paste_ellipse)
-                        if transform_matrix is None:
-                            continue
-                        transformed_image = transform_image(img_to_paste.to_array(), transform_matrix)
+                        #if placement_ellipse[0] < xbounds[0] or placement_ellipse[0] > xbounds[1] or \
+                        #        placement_ellipse[1] < ybounds[0] or placement_ellipse[1] > ybounds[1]:
+                        #    break
+                        if mask_of_image_to_paste_ellipse is not None:
+                            transform_matrix = build_transform_matrix(placement_ellipse,mask_of_image_to_paste_ellipse)
+                            if transform_matrix is None:
+                                continue
+                            transformed_image = transform_image(img_to_paste.to_array(), transform_matrix)
+                        else:
+                            transformed_image = img_to_paste.to_array()
                         #ImageWrapper(transformed_image).save('s.png')
                         #img_to_paste.save('i.png')
                         out2 = place_in_image(
@@ -287,7 +297,7 @@ def transform(img,source,target,**kwargs):
                         continue
             if out2 is not None:
                 break
-        sigma+=1
+        sigma+=0.5
     if out2 is None:
         out2 = pasteAnywhere(img, img_to_paste.to_array(),mask_of_image_to_paste,mask_of_image_to_paste_ellipse)
     ImageWrapper(out2).save(target)
