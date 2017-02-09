@@ -134,7 +134,7 @@ class HPSpreadsheet(Toplevel):
         col = self.pt.getSelectedColumn()
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
-        if currentCol in self.booleanCols:
+        if currentCol in self.booleanColNames:
             validValues = ['True', 'False']
         elif currentCol == 'HP-CameraKinematics':
             validValues = self.kinematics
@@ -214,16 +214,16 @@ class HPSpreadsheet(Toplevel):
         self.title(self.ritCSV)
         self.pt.importCSV(self.ritCSV)
 
-        self.booleanCols = []
-        booleans = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection',
-                    'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-MultiInput', 'HP-Echo', 'HP-Modifier']
-        for b in booleans:
-            self.booleanCols.append(self.pt.model.df.columns.get_loc(b))
+        self.booleanColNums = []
+        self.booleanColNames = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection',
+                        'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-MultiInput', 'HP-Echo', 'HP-Modifier']
+        for b in self.booleanColNames:
+            self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 
 
         self.mandatoryImage = []
         image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                 'HP-Shadows', 'CameraModel', 'HP-HDR', 'HP-DeviceLocalID']
+                 'HP-Shadows', 'CameraModel', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
         for i in image:
             self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
 
@@ -233,7 +233,8 @@ class HPSpreadsheet(Toplevel):
             self.mandatoryVideo.append(self.pt.model.df.columns.get_loc(v))
 
         audio = ['CameraModel', 'HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
-                 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation']
+                 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation',
+                 'HP-Inside', 'HP-Outside']
         self.mandatoryAudio = []
         for c in audio:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
@@ -322,7 +323,7 @@ class HPSpreadsheet(Toplevel):
     def validate(self):
         errors = []
         for col in range(0, self.pt.cols):
-            if col in self.booleanCols:
+            if col in self.booleanColNums:
                 for row in range(0, self.pt.rows):
                     val = str(self.pt.model.getValueAt(row, col))
                     if val.title() == 'True' or val.title() == 'False':
