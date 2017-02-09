@@ -269,6 +269,25 @@ def processMeta(stream):
             addToMeta(meta, prefix, line, split=False)
     return meta
 
+def processMetaStreams(stream):
+    streams = []
+    temp = {}
+    while True:
+        line = stream.readline()
+        if line is None or len(line) == 0:
+            break
+        if '[STREAM]' in line or '[FORMAT]' in line:
+            while True:
+                line = stream.readline()
+                if '[/STREAM]' in line or '[/FORMAT]' in line:
+                    streams.append(temp)
+                    temp = {}
+                    break
+                else:
+                    setting = line.split('=')
+                    temp[setting[0]] = '='.join(setting[1:]).strip()
+
+    return streams
 
 def sortFrames(frames):
     for k, v in frames.iteritems():
@@ -304,12 +323,16 @@ def processFrames(stream):
 
 #   sortFrames(frames)
 
-def getMeta(file, with_frames=False):
-    ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
-    p = Popen([ffmpegcommand, file, '-show_frames'] if with_frames else ['ffprobe', file], stdout=PIPE, stderr=PIPE)
+def getMeta(file, with_frames=False, show_streams=False):
+    ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe'), file]
+    if with_frames:
+        ffmpegcommand.append('-show_frames')
+    if show_streams:
+        ffmpegcommand.append('-show_streams')
+    p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
     try:
         frames = processFrames(p.stdout) if with_frames else {}
-        meta = processMeta(p.stderr)
+        meta = processMetaStreams(p.stdout) if show_streams else processMeta(p.stderr)
     finally:
         p.stdout.close()
         p.stderr.close()
