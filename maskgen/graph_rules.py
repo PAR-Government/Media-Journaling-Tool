@@ -627,13 +627,6 @@ def spatialRemove(scModel,edgeTuples):
             return 'yes'
     return 'no'
 
-def prnuSetIdRule(scModel,edgeTuples):
-    for edgeTuple in edgeTuples:
-        if 'arguments' in edgeTuple.edge and \
-                'PRNU Training Set ID' in edgeTuple.edge['arguments']:
-            return edgeTuple.edge['arguments']['PRNU Training Set ID']
-    return ''
-
 def spatialMovingObject(scModel,edgeTuples):
     for edgeTuple in edgeTuples:
         if scModel.getNodeFileType(edgeTuple.start) != 'video':

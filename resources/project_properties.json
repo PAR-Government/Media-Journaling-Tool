@@ -476,15 +476,6 @@
        "information": "AntiForensicAddCamFingerprintPRNU"
     },
     {
-       "description": "PRNU Training SetID",
-       "name": "prnutrainingsetid",
-       "node" : true,
-       "operations": ["AddCamFingerprintPRNU"],
-       "rule" : "prnuSetIdRule",
-       "type": "text",
-       "information": "PRNU Training SetID"
-    },
-      {
        "description": "AntiForensic Noise Restoration",
        "name": "antiforensicnoiserestoration",
        "node" : true,
