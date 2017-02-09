@@ -17,7 +17,7 @@ def transform(img,source,target,**kwargs):
     gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
 
-    segments_fz = felzenszwalb(denoise_img, scale=100, sigma=0.5, min_size=50)
+    segments_fz = felzenszwalb(denoise_img, scale=100, sigma=0.5, min_size=100)
 
     cnts = []
     for label in numpy.unique(segments_fz):
