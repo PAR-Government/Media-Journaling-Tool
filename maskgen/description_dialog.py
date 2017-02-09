@@ -348,6 +348,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+        self.argBox.grid_propagate(0)
 
     def newcommand(self, event):
         op = getOperationWithGroups(self.e2.get())
@@ -436,8 +437,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.gscrollbar.config(command=self.listbox.yview)
         self.gscrollbar.grid(row=0, column=1, stick=N + S)
         self.collapseFrame.append_chords([self.groupFrame])
-        self.collapseFrame.grid(row=6,column=0,columnspan=3)
-        #self.collapseFrame.grid_propagate(0)
+        self.collapseFrame.grid(row=6,column=0,columnspan=3,sticky=W)
         row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1

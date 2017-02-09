@@ -51,7 +51,7 @@ class Accordion(Frame):
                           bd=2, relief='groove')
 
             label.grid(row=row, column=0,sticky='w')
-            c.grid(row=row, column=1, sticky='nsew')
+            c.grid(row=row, column=1, columnspan=2,sticky='nsew')
             c.grid_remove()
             row += 1
 

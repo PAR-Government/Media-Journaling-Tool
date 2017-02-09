@@ -246,8 +246,12 @@ class MakeGenUI(Frame):
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to upload export")
 
+    def _promptRotate(self,donor_im,rotated_im, orientation):
+        dialog = RotateDialog(self.master, donor_im, rotated_im, orientation)
+        return dialog.rotate
+
     def createJPEGorTIFF(self):
-        msg, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(self.master)
+        msg, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(promptFunc=self._promptRotate)
         if msg is not None:
             tkMessageBox.showwarning("Error", msg)
             if not pairs:

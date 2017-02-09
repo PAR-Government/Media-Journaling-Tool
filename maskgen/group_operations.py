@@ -1,8 +1,6 @@
 import plugins
 import sys
 import exif
-from description_dialog import RotateDialog
-import tkSimpleDialog
 import numpy as np
 import tool_set
 
@@ -46,7 +44,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                 result.append(pair)
         return result
 
-    def performOp(self, master_ui=None):
+    def performOp(self, promptFunc=None):
         """
           Return error message valid link pairs in a tuple
         """
@@ -62,11 +60,10 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                 donor_im, donor_filename = self.scModel.getImageAndName(pair[1])
                 orientation = exif.getOrientationFromExif(donor_filename)
                 rotate = 'no'
-                if orientation is not None and master_ui:
+                if orientation is not None and promptFunc is not None:
                     rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
-                    dialog = RotateDialog(master_ui, donor_im, rotated_im, orientation)
-                    rotate = dialog.rotate
-                elif orientation is not None and not master_ui:
+                    rotate = promptFunc(donor_im, rotated_im, orientation)
+                elif orientation is not None:
                     rotated_im = tool_set.ImageWrapper(exif.rotateAccordingToExif(np.asarray(im), orientation))
                     width1, height1 = im.size
                     width2, height2 = rotated_im.size
