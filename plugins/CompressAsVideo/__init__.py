@@ -8,7 +8,7 @@ def save_as_video(source, target, donor):
     :param target: string filename of target (result). target should have same extension as donor.
     :param donor: string filename of donor MP4
     """
-    donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)
+    donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)[0]
     video_settings = {'-codec:v':'codec_name', '-b:v':'bit_rate', '-r':'r_frame_rate', '-pix_fmt':'pix_fmt', '-profile:v':'profile'}
     audio_settings = {'-codec:a':'codec_name', '-b:a':'bit_rate', '-channel_layout':'channel_layout'}
     ffargs = ['-i', source]
@@ -54,7 +54,7 @@ def operation():
             'category':'AntiForensic',
             'description':'Convert video to donor filetype and copy metadata.',
             'software':'ffmpeg',
-            'version':'2.8.4',
+            'version':'3.2.2',
             'arguments':{
                 'donor':{
                     'type':'donor',
