@@ -687,7 +687,8 @@ def imageCompressionRule(scModel, edgeTuples):
             node = scModel.getGraph().get_node(edgeTuple.end)
             result = exif.getexif(os.path.join(scModel.get_dir(),node['file']))
             compression = result['Compression'].strip() if 'Compression' in result else None
-            return 'yes'  if compression and len(compression) > 0 and not compression.lower().startswith('uncompressed') else 'no'
+            jpeg = result['File Type'].lower() == 'jpeg' if 'File Type' in result else False
+            return 'yes' if  jpeg or (compression and len(compression) > 0 and not compression.lower().startswith('uncompressed')) else 'no'
     return 'no'
 
 def semanticEventFabricationRule(scModel, edgeTuples):
