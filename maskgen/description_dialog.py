@@ -286,7 +286,7 @@ class PropertyFunction:
     def setValue(self, name,value):
         return None
 
-class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
+class DescriptionCaptureDialog(Toplevel):
     description = None
     im = None
     inputMaskName = None
@@ -323,7 +323,47 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         self.argvalues = description.arguments if description is not None else {}
         self.description = description if description is not None else Modification('', '')
         self.softwareLoader = SoftwareLoader()
-        tkSimpleDialog.Dialog.__init__(self, parent, name)
+        Toplevel.__init__(self, parent)
+        self.withdraw()  # remain invisible for now
+        # If the master is not viewable, don't
+        # make the child transient, or else it
+        # would be opened withdrawn
+        if parent.winfo_viewable():
+            self.transient(parent)
+
+        self.title(name)
+
+        self.parent = parent
+
+        self.result = None
+
+        body = Frame(self)
+        self.initial_focus = self.body(body)
+        self.buttonbox()
+        body.pack(padx=5, pady=5)
+
+        if not self.initial_focus:
+            self.initial_focus = self
+
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
+
+        if self.parent is not None:
+            self.geometry("+%d+%d" % (parent.winfo_rootx() + 50,
+                                      parent.winfo_rooty() + 50))
+
+        self.deiconify()  # become visibile now
+
+        self.initial_focus.focus_set()
+
+        # wait for window to appear on screen before calling grab_set
+        self.wait_visibility()
+        self.grab_set()
+        self.wait_window(self)
+
+    def destroy(self):
+        '''Destroy the window'''
+        self.initial_focus = None
+        Toplevel.destroy(self)
 
     def newsoftware(self, event):
         sname = self.e4.get()
@@ -348,7 +388,7 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
-        self.argBox.grid_propagate(0)
+        self.argBox.grid_propagate(1)
 
     def newcommand(self, event):
         op = getOperationWithGroups(self.e2.get())
@@ -530,7 +570,16 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
         w = Button(box, text="Cancel", width=10, command=self.cancel)
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Escape>", self.cancel)
-        box.pack()
+        box.pack(side=BOTTOM)
+
+    def ok(self, event=None):
+
+        self.withdraw()
+        self.update_idletasks()
+        try:
+            self.apply()
+        finally:
+            self.cancel()
 
     def changeParameter(self, name, type, value):
         self.argvalues[name] = value
@@ -548,7 +597,10 @@ class DescriptionCaptureDialog(tkSimpleDialog.Dialog):
     def cancel(self):
         if self.cancelled:
             self.description = None
-        tkSimpleDialog.Dialog.cancel(self)
+        # put focus back to the parent window
+        if self.parent is not None:
+            self.parent.focus_set()
+        self.destroy()
 
     def apply(self):
         self.cancelled = False
