@@ -14,6 +14,7 @@ class TestBatchProcess(unittest.TestCase):
       if os.path.exists('test_projects'):
           shutil.rmtree('test_projects')
       os.mkdir('test_projects')
+      batch_project.loadCustomFunctions()
       software_loader.loadOperations("operations.json")
       software_loader.loadSoftware("software.csv")
       software_loader.loadProjectProperties("project_properties.json")

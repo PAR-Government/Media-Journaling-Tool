@@ -191,9 +191,23 @@ def loadOperationJSON(fileName):
                                             'compareparameters'] if 'compareparameters' in op else dict())
     return res
 
+customRuleFunc = {}
+def loadCustomRules():
+    global customRuleFunc
+    import pkg_resources
+    for p in  pkg_resources.iter_entry_points("maskgen_rules"):
+       customRuleFunc[p.name] = p.load()
+
+def getRule(name):
+    global customRuleFunc
+    if name in customRuleFunc:
+        return customRuleFunc[name]
+    else:
+        return globals().get(name)
 
 def loadProjectProperties(fileName):
     global projectProperties
+    loadCustomRules()
     projectProperties = loadProjectPropertyJSON(fileName)
     return projectProperties
 

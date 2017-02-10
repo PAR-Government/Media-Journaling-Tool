@@ -21,8 +21,8 @@ setup(name='maskgen',
         ],
         'console_scripts': [
                'jtproject = maskgen.batch.batch_project:main',
-'               jtui = maskgen.MaskGenUI:main',
+               'jtui = maskgen.MaskGenUI:main',
                'jtprocess = maskgen.batch.batch_process:main'
-           ]
+        ]
        },
       zip_safe=False)

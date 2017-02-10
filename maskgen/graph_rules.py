@@ -1,4 +1,4 @@
-from software_loader import getOperations, SoftwareLoader, getProjectProperties
+from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple
 import new
 from types import MethodType
@@ -256,7 +256,7 @@ def setup():
 
 def set_rules(op, ruleNames):
     global rules
-    rules[op] = [globals().get(name) for name in ruleNames if len(name) > 0]
+    rules[op] = [getRule(name) for name in ruleNames if len(name) > 0]
 
 
 def findOp(graph, node_id, op):
@@ -516,7 +516,7 @@ def _setupPropertyRules():
     if len(project_property_rules) == 0:
         for prop in getProjectProperties():
             if prop.rule is not None:
-                project_property_rules[prop.name] = globals().get(prop.rule)
+                project_property_rules[prop.name] = getRule(prop.rule)
 
 def blurLocalRule( scModel,edgeTuples):
     found = False

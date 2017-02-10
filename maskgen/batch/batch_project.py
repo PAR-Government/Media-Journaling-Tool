@@ -46,6 +46,14 @@ def pickArg(param, local_state):
         return random.choice(choices)
     return None
 
+pluginSpecFuncs = {}
+def loadCustomFunctions():
+    import pkg_resources
+    for p in  pkg_resources.iter_entry_points("maskgen_specs"):
+        pluginSpecFuncs[p.name] = p.load()
+
+def callPluginSpec(specification):
+    return pluginSpecFuncs[specification['name']](specification['parameters'])
 
 def executeParamSpec(specification, global_state, local_state, predecessors):
     """
@@ -72,6 +80,8 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
     if specification['type'] == 'imagefile':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
+    if specification['type'] == 'plugin':
+        return  callPluginSpec(specification)
     return None
 
 def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
@@ -441,6 +451,7 @@ def main():
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
         return
+    loadCustomFunctions()
     batchProject =getBatch(args.json, loglevel=args.loglevel)
     globalState =  {'projects' : args.results}
     count = int(args.count) if args.count is not None else 1
