@@ -50,9 +50,12 @@ pluginSpecFuncs = {}
 def loadCustomFunctions():
     import pkg_resources
     for p in  pkg_resources.iter_entry_points("maskgen_specs"):
+        print 'load spec ' + p.name
         pluginSpecFuncs[p.name] = p.load()
 
 def callPluginSpec(specification):
+    if specification['name'] not in pluginSpecFuncs:
+        raise ValueError("Invalid specification name:" + str(specification['name']))
     return pluginSpecFuncs[specification['name']](specification['parameters'])
 
 def executeParamSpec(specification, global_state, local_state, predecessors):
@@ -107,7 +110,7 @@ def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
                 continue
             v = pickArg(paramDef,local_state)
             if v is None:
-                raise 'Missing Value for parameter ' + param + ' in ' + operation.name
+                raise ValueError('Missing Value for parameter ' + param + ' in ' + operation.name)
             args[param] = v
     for param in operation.optionalparameters:
         if argument_specs is None or param not in argument_specs:
@@ -269,6 +272,8 @@ class PluginOperation(BatchOperation):
         args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
         self.logger.debug('Execute plugin ' + plugin_name + ' on ' + filename  + ' with ' + str(args))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
+        if errors is not None or  (type(errors) is list and len (errors) > 0 ):
+            raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
         my_state['node'] = pairs[0][1]
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)

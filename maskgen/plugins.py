@@ -103,10 +103,15 @@ def getOperationNames(noArgs=False):
     
 def getOperation(name):
     global loaded
+    if name not in loaded:
+        print 'Request plugined not found: ' + str(name)
+        return None
     return loaded[name]['operation']
 
 def callPlugin(name,im,source,target,**kwargs):
     global loaded
+    if name not in loaded:
+        raise ValueError('Request plugined not found: ' + str(name))
     if loaded[name]['function'] == 'custom':
         return runCustomPlugin(name, im, source, target, **kwargs)
     else:
@@ -115,6 +120,8 @@ def callPlugin(name,im,source,target,**kwargs):
 def runCustomPlugin(name, im, source, target, **kwargs):
     global loaded
     import copy
+    if name not in loaded:
+        raise ValueError('Request plugined not found: ' + str(name))
     commands = copy.deepcopy(loaded[name]['command'])
     executeOk = False
     for k, command in commands.items():

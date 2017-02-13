@@ -196,7 +196,8 @@ def loadCustomRules():
     global customRuleFunc
     import pkg_resources
     for p in  pkg_resources.iter_entry_points("maskgen_rules"):
-       customRuleFunc[p.name] = p.load()
+        print 'load rule ' + p.name
+        customRuleFunc[p.name] = p.load()
 
 def getRule(name):
     global customRuleFunc
