@@ -15,7 +15,7 @@ def save_as_video(source, target, donor):
     for data in donor_data:
             if data['codec_type'] == 'video':
                 for option, setting in video_settings.iteritems():
-                    if setting in data:
+                    if setting in data and data[setting] != 'unknown':
                         ffargs.extend([option, data[setting]])
                 try:
                     width = data['width']
@@ -30,7 +30,7 @@ def save_as_video(source, target, donor):
                     continue
             elif data['codec_type'] == 'audio':
                 for option, setting in audio_settings.iteritems():
-                    if setting in data:
+                    if setting in data and data[setting] != 'unknown':
                         ffargs.extend([option, data[setting]])
     ffargs.extend(['-y', target])
 
