@@ -199,12 +199,12 @@ def loadCustomRules():
         print 'load rule ' + p.name
         customRuleFunc[p.name] = p.load()
 
-def getRule(name):
+def getRule(name, globals={}):
     global customRuleFunc
     if name in customRuleFunc:
         return customRuleFunc[name]
     else:
-        return globals().get(name)
+        return globals.get(name)
 
 def loadProjectProperties(fileName):
     global projectProperties

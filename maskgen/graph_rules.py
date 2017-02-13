@@ -256,7 +256,7 @@ def setup():
 
 def set_rules(op, ruleNames):
     global rules
-    rules[op] = [getRule(name) for name in ruleNames if len(name) > 0]
+    rules[op] = [getRule(name, globals=globals()) for name in ruleNames if len(name) > 0]
 
 
 def findOp(graph, node_id, op):
@@ -511,12 +511,6 @@ def getValue(obj, path, convertFunction=None):
         return getValue(current, path, convertFunction)
     return None
 
-def _setupPropertyRules():
-    global project_property_rules
-    if len(project_property_rules) == 0:
-        for prop in getProjectProperties():
-            if prop.rule is not None:
-                project_property_rules[prop.name] = getRule(prop.rule)
 
 def blurLocalRule( scModel,edgeTuples):
     found = False
@@ -819,6 +813,13 @@ def processProjectProperties(scModel, rule=None):
             scModel.setProjectData(prop.name, 'yes' if foundOne else 'no')
         if prop.rule is not None:
             scModel.setProjectData(prop.name,project_property_rules[prop.name](scModel, edges))
+
+def _setupPropertyRules():
+    global project_property_rules
+    if len(project_property_rules) == 0:
+        for prop in getProjectProperties():
+            if prop.rule is not None:
+                project_property_rules[prop.name] = getRule(prop.rule, globals=globals())
 
 def getNodeSummary(scModel, node_id):
     """
