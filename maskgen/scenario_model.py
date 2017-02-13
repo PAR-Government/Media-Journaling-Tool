@@ -2139,7 +2139,7 @@ class ImageProjectModel:
                     ('rotate' in edge['arguments'] and \
                     edge['arguments']['rotate'] == 'yes')) and \
                         'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-            return edge['exifdiff']['Orientation'][2]
+            return edge['exifdiff']['Orientation'][2] if  edge['exifdiff']['Orientation'][0].lower() == 'change' else edge['exifdiff']['Orientation'][1]
         return ''
 
     def __alterComposite(self,edge, compositeMask, edgeMask):
