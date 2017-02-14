@@ -519,6 +519,20 @@
       "semanticgroup" : true,
       "information": "Manipulations to alter a face or faces (e.g. warp, swap, etc.)."
     },
+       {
+      "description": "Shadow Manipulations",
+      "name": "shadowmanipulations",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Manipulations to alter a shadows."
+    },
+       {
+      "description": "Reflection Manipulations",
+      "name": "reflectionmanipulations",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Manipulations to reflections."
+    },
     {
       "description": "Mosaicing",
       "name": "mosaicing",
