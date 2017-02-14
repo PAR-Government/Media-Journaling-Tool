@@ -1,14 +1,17 @@
 from PIL import Image
 from maskgen import exif
 import numpy as np
+from maskgen.tool_set import *
+
+
+def check_rotate(im, jpg_file_name):
+    return ImageWrapper(exif.rotateAccordingToExif(np.asarray(im),exif.getOrientationFromExif(jpg_file_name)))
 
 def transform(im, source, target, **kwargs):
-
-    im = Image.open(source)
-    if 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
-        orientation = exif.getOrientationFromExif(source)
-        if orientation is not None:
-            im = Image.fromarray(exif.rotateAccordingToExif(np.asarray(im), orientation, counter=True))
+    if 'donor' in kwargs and 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
+        im = check_rotate(im, kwargs['donor'])
+    else:
+        im = Image.open(source)
     im.save(target, format='BMP')
 
     if 'donor' in kwargs:
@@ -32,6 +35,11 @@ def operation():
                     'type':'donor',
                     'defaultvalue':None,
                     'description':'BMP file with desired metadata.'
+                },
+                'Image Rotated': {
+                    'type': 'yesno',
+                    'defaultvalue': None,
+                    'description': 'Answer yes if the image should be counter rotated according to EXIF Orientation.'
                 }
             },
             'transitions':[

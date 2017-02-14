@@ -2365,7 +2365,12 @@
     {
       "category": "Output",
       "name": "OutputBmp",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
       "rules": [
         "checkSize"
       ],
