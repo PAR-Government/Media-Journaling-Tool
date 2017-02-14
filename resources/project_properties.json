@@ -512,6 +512,13 @@
       "semanticgroup" : true,
       "information": "Data Embedding Watermark.  All final images must have watermarks."
     },
+     {
+      "description": "Face Manipulations",
+      "name": "facemanipulations",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Manipulations to alter a face or faces (e.g. warp, swap, etc.)."
+    },
     {
       "description": "Mosaicing",
       "name": "mosaicing",
