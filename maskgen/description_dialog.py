@@ -1421,7 +1421,9 @@ class QAViewDialog(Toplevel):
         qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
                    'PasteSplice operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
                    'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
+                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.',
+                   'All relevant semantic groups are identified.',
+                   'End nodes are renamed to their MD5 value (Process->Rename Final Images).']
         checkboxes = []
         self.checkboxvars = []
         for q in qa_list:
