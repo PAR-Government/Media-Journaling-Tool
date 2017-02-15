@@ -947,18 +947,38 @@
     {
       "category": "AntiForensic",
       "name": "AddCamFingerprintPRNU",
-      "mandatoryparameters": {
-         "Capture Camera ID": {
-          "type": "text",
-          "description": "ID of camera used to capture image if not screen shot"
-        }
-      },
+      "mandatoryparameters": {},
       "rules": [
         "checkSize",
         "check_eight_bit"
       ],
-      "optionalparameters": {},
-      "description": "PRNU Correction",
+      "optionalparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        }
+      },
+      "description": "Add PRNU fingerprint trace from an image.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "RemoveCamFingerprintPRNU",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        }
+      },
+      "description": "Remove PRNU fingerprint from image.",
       "includeInMask": false,
       "transitions": [
         "image.image"
@@ -2345,7 +2365,12 @@
     {
       "category": "Output",
       "name": "OutputBmp",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
       "rules": [
         "checkSize"
       ],
