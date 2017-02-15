@@ -450,13 +450,13 @@ class ImageImageLinkTool(LinkTool):
                 for pred in predecessors:
                     edge = scModel.G.get_edge(pred, start)
                     # probably should change this to == 'SelectRegion'
-                    if edge['op'] != 'Donor':
+                    if edge['op'] == 'SelectRegion':
                         mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0])
                         if mask.size != startIm.size:
                             mask = mask.resize(startIm.size,Image.ANTIALIAS)
                         break
             if mask is None:
-                mask = convertToMask(startIm)
+                mask = convertToMask(startIm).invert()
                 if expect_donor_mask:
                     errors = ["Donor image has insufficient features for SIFT and does not have a predecessor node."]
                 analysis = {}

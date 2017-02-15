@@ -116,7 +116,7 @@ def defaultOpen(filename,isMask=False):
     result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
     return None if result.size == (0,0) else result
 
-def proxyOpen(filename, isMask):
+def proxyOpen(filename, isMask=False):
     proxyname = getProxy(filename)
     if proxyname is not None:
         return openImageFile(filename,isMask=isMask)
@@ -125,8 +125,8 @@ def proxyOpen(filename, isMask):
 # openTiff supports raw files as well
 file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
 
-for entry_point in iter_entry_points(group='img.plugin', name=None):
-    file_registry.append(('',entry_point.load()))
+for entry_point in iter_entry_points(group='maskgen_image', name=None):
+    file_registry.append((entry_point.name,[entry_point.load()]))
 
 def openFromRegistry(filename,isMask=False):
     for suffixList in file_registry:
