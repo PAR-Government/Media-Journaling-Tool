@@ -49,6 +49,7 @@ def loadCustom(plugin, path):
     loaded[plugin]['function'] = 'custom'
     loaded[plugin]['operation'] = data['operation']
     loaded[plugin]['command'] = data['command']
+    loaded[plugin]['mapping'] = data['mapping'] if 'mapping' in data else None
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
 
 
@@ -123,21 +124,23 @@ def runCustomPlugin(name, im, source, target, **kwargs):
     if name not in loaded:
         raise ValueError('Request plugined not found: ' + str(name))
     commands = copy.deepcopy(loaded[name]['command'])
+    mapping = copy.deepcopy(loaded[name]['mapping'])
     executeOk = False
     for k, command in commands.items():
         if sys.platform.startswith(k):
-            executeWith(command, im, source, target, **kwargs)
+            executeWith(command, im, source, target, mapping, **kwargs)
             executeOk = True
             break
     if not executeOk:
-        executeWith(commands['default'], im, source, target, **kwargs)
+        executeWith(commands['default'], im, source, target, mapping, **kwargs)
     return None, None
 
-def executeWith(executionCommand, im, source, target, **kwargs):
+def executeWith(executionCommand, im, source, target, mapping, **kwargs):
     shell=False
     if executionCommand[0].startswith('s/'):
         executionCommand[0] = executionCommand[0][2:]
         shell = True
+    kwargs = mapCmdArgs(kwargs, mapping)
     for i in range(len(executionCommand)):
         if executionCommand[i] == '{inputimage}':
             executionCommand[i] = source
@@ -147,4 +150,45 @@ def executeWith(executionCommand, im, source, target, **kwargs):
         # Replace bracketed text with arg
         else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
+
     subprocess.call(executionCommand,shell=shell)
+
+def mapCmdArgs(args, mapping):
+    if mapping is not None:
+        for key, val in args.iteritems():
+            if key in mapping:
+                try:
+                    args[key] = mapping[key][val]
+                except KeyError:
+                    continue
+    return args
+
+def mapInvalidArgs(name, args):
+    global loaded
+    mapping = loaded[name]['mapping'] if 'mapping' in loaded[name] else None
+    if mapping is not None:
+        for key, val in args.iteritems(): # iterate over keys and vals in args
+            """
+            change to a valid value. The way this is tracked is defined by the keys in the mapping. If the value is
+            in the mapping, set it to that mapping's value, otherwise leave it alone.
+
+            ex. If the mapping says:
+            bicubic: Catrom
+            bilinear: Bilinear
+            other:bilinear,
+
+            and your args say
+            interpolation: other
+
+            Then your args get changed to:
+            interpolation: bilinear
+
+            Since "bilinear" is also a key in the mapping.
+            """
+            if key in mapping and mapping[key][val] in mapping[key]: 
+                badSetting = args[key]
+                args[key] = mapping[key][val]
+                print 'Option \"' + badSetting + '\" for argument \"' + key + '\" is not supported by this plugin. Using option \"' + \
+                      args[key] + '\" instead.'
+
+    return args

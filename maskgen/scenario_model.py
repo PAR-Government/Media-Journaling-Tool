@@ -1933,6 +1933,7 @@ class ImageProjectModel:
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
         preferred = plugins.getPreferredSuffix(filter)
+        kwargs = plugins.mapInvalidArgs(filter, kwargs)
         resolved,donors = self._resolvePluginValues(kwargs,op)
         if preferred is not None:
             if preferred in donors:

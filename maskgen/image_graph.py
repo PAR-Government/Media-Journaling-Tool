@@ -195,6 +195,7 @@ class ImageGraph:
     edgeFilePaths = {'inputmaskname': 'inputmaskownership',
                      'arguments.XMP File Name': 'xmpfileownership',
                      'arguments.qtfile': 'qtfileownership',
+                     'arguments.PNG File Name': 'pngfileownership',
                      'maskname': None,
                      'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}

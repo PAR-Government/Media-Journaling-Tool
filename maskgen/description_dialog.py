@@ -1813,6 +1813,11 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'pngfile':
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('PNG Image', '*.png')])
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
+                                                command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('fileset:'):
                initialdir_parts = tuple(prop.type[8:].split('/'))
                initialdir = os.path.join(*tuple(initialdir_parts))
