@@ -337,18 +337,19 @@ def rankone_camera_update_csv(imageList, newNameList, data, csvFile):
         wtr_quotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
         wtr_noquotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
         if newFile:
-            wtr_noquotes.writerow(['#@version=01.03'])
-            wtr_quotes.writerow(['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'Collector', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
+            wtr_noquotes.writerow(['#@version=01.04'])
+            wtr_quotes.writerow(['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
                                'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
                                'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
-                               'HP-App', 'HP-Inside', 'HP-Outside', 'ImportDate'])
+                               'HP-App', 'HP-Inside', 'HP-Outside', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
+                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject', 'ImportDate'])
         for imNo in range(len(imageList)):
             md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
             now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
-            wtr_quotes.writerow([md5, data[imNo][30], data[imNo][2], data[imNo][31], data[imNo][4], os.path.basename(newNameList[imNo]), data[imNo][0], data[imNo][0],
-                               data[imNo][3], data[imNo][5], data[imNo][12], data[imNo][19], data[imNo][23], data[imNo][24], data[imNo][28],
-                               data[imNo][32], data[imNo][33], data[imNo][34], data[imNo][35], data[imNo][36], data[imNo][37], data[imNo][38],
-                               data[imNo][39], data[imNo][40], data[imNo][41], now])
+            wtr_quotes.writerow([md5, data[imNo][30], data[imNo][2], data[imNo][31], data[imNo][4], os.path.basename(newNameList[imNo]), data[imNo][0],
+                               data[imNo][3], data[imNo][5], data[imNo][12], data[imNo][19], data[imNo][23], data[imNo][24], data[imNo][28]] + data[imNo][32:] + [now])
+                               # data[imNo][32], data[imNo][33], data[imNo][34], data[imNo][35], data[imNo][36], data[imNo][37], data[imNo][38],
+                               # data[imNo][39], data[imNo][40] + data[imNo][41:], now])
 
 
 def parse_extra(data, csvFile):
@@ -491,7 +492,7 @@ def remove_temp_subs(path):
 def parse_image_info(imageList, path='', rec=False, collReq='', camera='', localcam='', lens='', locallens='', hd='',
                      sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
                      focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
-                     cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app='', camerakinematics='',
+                     cameramodel='', lensmodel='', jq='', reflweak='', reflstrg='', refltrans='', reflobj='', shadows='', hdr='', app='', camerakinematics='',
                      inside='', outside='', proximity='', multiinput='', audiochannels='', echo='', bgnoise='',
                      description='', modifier='', recordangle='', miclocation='', primarysecondary='', zoomlvl='',
                      recapture='', recapturesubject=''):
@@ -566,7 +567,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     if not hd:
         hd = path
     master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + \
-             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app, inside, outside, proximity, multiinput, audiochannels, echo, bgnoise,
+             [''] * 3 + [lensfilter, '', '', '', reflweak, reflstrg, refltrans, reflobj, shadows, hdr, camerakinematics, app, inside, outside, proximity, multiinput, audiochannels, echo, bgnoise,
                      description, modifier, recordangle, miclocation, primarysecondary, zoomlvl, recapture, recapturesubject]
     missingIdx = []
 
@@ -711,7 +712,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 data[i][20] = convert_GPS(data[i][20])
                 data[i][21] = convert_GPS(data[i][21])
             if 'hdr' in imageList[i].lower():
-                data[i][34] = 'True'
+                data[i][37] = 'True'
 
     return data
 

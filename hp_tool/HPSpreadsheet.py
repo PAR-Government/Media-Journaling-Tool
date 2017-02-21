@@ -290,20 +290,19 @@ class HPSpreadsheet(Toplevel):
             with open(rankOnecsv, 'w') as ro:
                 wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
                 wtr_quotes = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
-                wtr.writerow(['#@version=01.03'])
+                wtr.writerow(['#@version=01.04'])
                 wtr_quotes.writerow(
-                    ['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'Collector',
-                     'HP-CollectionRequestID', 'HP-DeviceLocalID',
-                     'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType',
-                     'HP-LensFilter',
-                     'HP-Reflections', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside',
-                     'HP-Outside', 'ImportDate'])
+                    ['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
+                               'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
+                               'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
+                               'HP-App', 'HP-Inside', 'HP-Outside', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
+                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject', 'ImportDate'])
                 count = 0
                 now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
                 for r in rdr:
                     if count != 0:
-                        wtr_quotes.writerow([r[4], r[5], r[6], r[8], r[9], r[0], r[1], r[1], r[7], r[10], r[17], r[24], r[26], r[25],
-                                      r[32], r[34], r[35], r[36], r[38], r[41], r[39], r[40], now])
+                        wtr_quotes.writerow([r[4], r[5], r[6], r[8], r[9], r[0], r[1], r[7], r[10], r[17], r[24], r[28], r[29], r[33]] +
+                                        r[35:] + [now])
                     count+=1
 
 
