@@ -2304,7 +2304,7 @@ class ImageProjectModel:
     def getSemanticGroups(self,start,end):
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
-            return edge['semanticGroups'] if 'semanticGroups' in edge else []
+            return edge['semanticGroups'] if 'semanticGroups' in edge and edge['semanticGroups'] is not None else []
         return []
 
     def setSemanticGroups(self,start,end,grps):

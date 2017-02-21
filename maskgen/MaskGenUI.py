@@ -642,7 +642,7 @@ class MakeGenUI(Frame):
                     edge = self.scModel.getGraph().get_edge(start,end)
                     if edge is not None:
                         grps = self.scModel.getSemanticGroups(start,end)
-                        if res  not in grps:
+                        if res not in grps:
                             grps.append(res)
                             self.scModel.setSemanticGroups(start,end,grps)
     def select(self):
