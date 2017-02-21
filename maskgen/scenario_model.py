@@ -50,6 +50,7 @@ EdgeTuple = collections.namedtuple('EdgeTuple', ['start','end','edge'])
 
 def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
                   organization=None):
+    import tempfile
     """
         This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
@@ -70,10 +71,14 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
      @rtype (ImageProjectModel, bool)
     """
 
+    if path is None:
+        path = tempfile.mkdtemp(dir='.',prefix='jt_')
+        name  = os.path.split(path)[1] + '.json'
+        return projectModelFactory(os.path.join(path,name), notify=notify), True
     if (path.endswith(".json")):
         return projectModelFactory(os.path.abspath(path), notify=notify), False
     selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
-    if len(selectionSet) != 0 and base is not None:
+    if  len(selectionSet) != 0 and base is not None:
         print 'Cannot add base image/video to an existing project'
         return None
     if len(selectionSet) == 0 and base is None:

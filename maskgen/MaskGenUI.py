@@ -962,11 +962,11 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--imagedir', help='image directory', nargs=1)
-    parser.add_argument('--base', help='base image or video', nargs=1)
+    parser.add_argument('--imagedir', help='image directory', required=False)
+    parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
-    imgdir = ['.']
+    imgdir = None
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
@@ -982,8 +982,8 @@ def main(argv=None):
     root = Tk()
 
     prefLoader = MaskGenLoader()
-    gui = MakeGenUI(imgdir[0], master=root, pluginops=plugins.loadPlugins(),
-                    base=args.base[0] if args.base is not None else None, uiProfile=uiProfile)
+    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
     root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':
