@@ -1767,7 +1767,7 @@ class PropertyFrame(VerticalScrolledFrame):
 
    def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None, dir='.',changeParameterCB=None, **kwargs):
      self.parent = parent
-     self.properties = [prop for prop in properties if not prop.node]
+     self.properties = [prop for prop in properties if not prop.node and not prop.semanticgroup]
      self.values =   [None for prop in properties]
      self.widgets =[None for prop in properties]
      self.changeParameterCB = changeParameterCB
