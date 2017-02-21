@@ -1470,6 +1470,13 @@ class QAViewDialog(Toplevel):
 
         self.check_ok()
 
+    def _compose_label(self,edge):
+        op  = edge['op']
+        if 'semanticGroups' in edge:
+            groups = edge['semanticGroups']
+            op += ' [' + ', '.join(groups) + ']'
+        return op
+
     def load_overlay(self, initialize=False):
         edgeTuple = tuple(self.optionsBox.get().split('->'))
         if len(edgeTuple) > 1:
@@ -1487,7 +1494,7 @@ class QAViewDialog(Toplevel):
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
-        self.operationVar.set(edge['op'])
+        self.operationVar.set(self._compose_label(edge))
         final = image_wrap.openImageFile(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)

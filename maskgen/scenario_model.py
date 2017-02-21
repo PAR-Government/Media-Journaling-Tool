@@ -50,7 +50,6 @@ EdgeTuple = collections.namedtuple('EdgeTuple', ['start','end','edge'])
 
 def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
                   organization=None):
-    import tempfile
     """
         This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
@@ -72,12 +71,15 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
     """
 
     if path is None:
-        path = tempfile.mkdtemp(dir='.',prefix='jt_')
-        name  = os.path.split(path)[1] + '.json'
-        return projectModelFactory(os.path.join(path,name), notify=notify), True
-    if (path.endswith(".json")):
-        return projectModelFactory(os.path.abspath(path), notify=notify), False
-    selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
+        path = '.'
+        selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json") and \
+                        filename != 'operations.json' and filename != 'project_properties.json']
+        if len(selectionSet) == 0:
+            return projectModelFactory(os.path.join('.', 'Untitled.json'), notify=notify), True
+    else:
+        if (path.endswith(".json")):
+         return projectModelFactory(os.path.abspath(path), notify=notify), False
+        selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if  len(selectionSet) != 0 and base is not None:
         print 'Cannot add base image/video to an existing project'
         return None
@@ -828,6 +830,20 @@ class ImageProjectModel:
         self.start = nname
         self.end = None
         return nname
+
+    def getEdgesBySemanticGroup(self):
+        """
+        :return: association of semantics groups to edge id tuples (start,end)
+        @rtype: dict of list of tuple
+        """
+        result = {}
+        for edgeid in self.getGraph().get_edges():
+            for grp in self.getSemanticGroups(edgeid[0],edgeid[1]):
+                if grp not in result:
+                    result[grp] = [edgeid]
+                else:
+                    result[grp].append(edgeid)
+        return result
 
     def update_edge(self, mod):
         """
@@ -2289,7 +2305,7 @@ class ImageProjectModel:
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             return edge['semanticGroups'] if 'semanticGroups' in edge else []
-        return None
+        return []
 
     def setSemanticGroups(self,start,end,grps):
         edge = self.getGraph().get_edge(start, end)
