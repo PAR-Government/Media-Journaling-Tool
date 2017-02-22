@@ -150,45 +150,13 @@ def executeWith(executionCommand, im, source, target, mapping, **kwargs):
         # Replace bracketed text with arg
         else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
-
     subprocess.call(executionCommand,shell=shell)
 
 def mapCmdArgs(args, mapping):
     if mapping is not None:
         for key, val in args.iteritems():
             if key in mapping:
-                try:
-                    args[key] = mapping[key][val]
-                except KeyError:
-                    continue
-    return args
-
-def mapInvalidArgs(name, args):
-    global loaded
-    mapping = loaded[name]['mapping'] if 'mapping' in loaded[name] else None
-    if mapping is not None:
-        for key, val in args.iteritems(): # iterate over keys and vals in args
-            """
-            change to a valid value. The way this is tracked is defined by the keys in the mapping. If the value is
-            in the mapping, set it to that mapping's value, otherwise leave it alone.
-
-            ex. If the mapping says:
-            bicubic: Catrom
-            bilinear: Bilinear
-            other:bilinear,
-
-            and your args say
-            interpolation: other
-
-            Then your args get changed to:
-            interpolation: bilinear
-
-            Since "bilinear" is also a key in the mapping.
-            """
-            if key in mapping and mapping[key][val] in mapping[key]: 
-                badSetting = args[key]
+                if val not in mapping[key] or mapping[key][val] is None:
+                    raise ValueError('Option \"' + str(val) + '\" is not permitted for this plugin.')
                 args[key] = mapping[key][val]
-                print 'Option \"' + badSetting + '\" for argument \"' + key + '\" is not supported by this plugin. Using option \"' + \
-                      args[key] + '\" instead.'
-
     return args

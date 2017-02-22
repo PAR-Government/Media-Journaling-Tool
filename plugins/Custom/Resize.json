@@ -22,14 +22,11 @@
     "software": "ImageMagick"
 },"mapping": {
     "interpolation":{
-      "none-canvas expanded": "bilinear",
       "bicubic": "Catrom",
       "bilinear": "Bilinear",
       "cubic": "Spline",
       "nearest": "Nearest",
-      "mesh": "Mesh",
-      "lanczos": "bilinear",
-      "other": "bilinear"
+      "mesh": "Mesh"
   }
 },
   "command": {
