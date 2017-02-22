@@ -3549,6 +3549,7 @@
              "bicubic",
              "bilinear",
              "cubic",
+             "mesh",
              "lanczos",
              "nearest",
              "other"

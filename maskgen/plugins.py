@@ -49,6 +49,7 @@ def loadCustom(plugin, path):
     loaded[plugin]['function'] = 'custom'
     loaded[plugin]['operation'] = data['operation']
     loaded[plugin]['command'] = data['command']
+    loaded[plugin]['mapping'] = data['mapping'] if 'mapping' in data else None
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
 
 
@@ -123,21 +124,23 @@ def runCustomPlugin(name, im, source, target, **kwargs):
     if name not in loaded:
         raise ValueError('Request plugined not found: ' + str(name))
     commands = copy.deepcopy(loaded[name]['command'])
+    mapping = copy.deepcopy(loaded[name]['mapping'])
     executeOk = False
     for k, command in commands.items():
         if sys.platform.startswith(k):
-            executeWith(command, im, source, target, **kwargs)
+            executeWith(command, im, source, target, mapping, **kwargs)
             executeOk = True
             break
     if not executeOk:
-        executeWith(commands['default'], im, source, target, **kwargs)
+        executeWith(commands['default'], im, source, target, mapping, **kwargs)
     return None, None
 
-def executeWith(executionCommand, im, source, target, **kwargs):
+def executeWith(executionCommand, im, source, target, mapping, **kwargs):
     shell=False
     if executionCommand[0].startswith('s/'):
         executionCommand[0] = executionCommand[0][2:]
         shell = True
+    kwargs = mapCmdArgs(kwargs, mapping)
     for i in range(len(executionCommand)):
         if executionCommand[i] == '{inputimage}':
             executionCommand[i] = source
@@ -148,3 +151,12 @@ def executeWith(executionCommand, im, source, target, **kwargs):
         else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
     subprocess.call(executionCommand,shell=shell)
+
+def mapCmdArgs(args, mapping):
+    if mapping is not None:
+        for key, val in args.iteritems():
+            if key in mapping:
+                if val not in mapping[key] or mapping[key][val] is None:
+                    raise ValueError('Option \"' + str(val) + '\" is not permitted for this plugin.')
+                args[key] = mapping[key][val]
+    return args
