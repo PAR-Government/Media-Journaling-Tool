@@ -645,6 +645,13 @@ class MakeGenUI(Frame):
                         if res not in grps:
                             grps.append(res)
                             self.scModel.setSemanticGroups(start,end,grps)
+
+    def removegroup(self):
+        if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
+            for name in self.groupselection:
+                self.scModel.selectImage(name)
+                self.remove()
+
     def select(self):
         self.drawState()
         self.setSelectState('normal')
@@ -857,6 +864,7 @@ class MakeGenUI(Frame):
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
+        self.groupmenu.add_command(label="Remove", command=self.removegroup)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
