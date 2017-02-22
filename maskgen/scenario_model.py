@@ -70,10 +70,17 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
      @rtype (ImageProjectModel, bool)
     """
 
-    if (path.endswith(".json")):
-        return projectModelFactory(os.path.abspath(path), notify=notify), False
-    selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
-    if len(selectionSet) != 0 and base is not None:
+    if path is None:
+        path = '.'
+        selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json") and \
+                        filename != 'operations.json' and filename != 'project_properties.json']
+        if len(selectionSet) == 0:
+            return projectModelFactory(os.path.join('.', 'Untitled.json'), notify=notify), True
+    else:
+        if (path.endswith(".json")):
+         return projectModelFactory(os.path.abspath(path), notify=notify), False
+        selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
+    if  len(selectionSet) != 0 and base is not None:
         print 'Cannot add base image/video to an existing project'
         return None
     if len(selectionSet) == 0 and base is None:
@@ -823,6 +830,20 @@ class ImageProjectModel:
         self.start = nname
         self.end = None
         return nname
+
+    def getEdgesBySemanticGroup(self):
+        """
+        :return: association of semantics groups to edge id tuples (start,end)
+        @rtype: dict of list of tuple
+        """
+        result = {}
+        for edgeid in self.getGraph().get_edges():
+            for grp in self.getSemanticGroups(edgeid[0],edgeid[1]):
+                if grp not in result:
+                    result[grp] = [edgeid]
+                else:
+                    result[grp].append(edgeid)
+        return result
 
     def update_edge(self, mod):
         """
@@ -2283,8 +2304,8 @@ class ImageProjectModel:
     def getSemanticGroups(self,start,end):
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
-            return edge['semanticGroups'] if 'semanticGroups' in edge else []
-        return None
+            return edge['semanticGroups'] if 'semanticGroups' in edge and edge['semanticGroups'] is not None else []
+        return []
 
     def setSemanticGroups(self,start,end,grps):
         edge = self.getGraph().get_edge(start, end)
