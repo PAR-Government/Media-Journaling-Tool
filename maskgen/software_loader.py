@@ -94,8 +94,8 @@ class Operation:
         self.category = category
         self.includeInMask = includeInMask
         self.rules = rules
-        self.mandatoryparameters = mandatoryparameters
-        self.optionalparameters = optionalparameters
+        self.mandatoryparameters = mandatoryparameters if mandatoryparameters is not None else []
+        self.optionalparameters = optionalparameters if optionalparameters is not None else []
         self.description = description
         self.analysisOperations = analysisOperations
         self.transitions = transitions

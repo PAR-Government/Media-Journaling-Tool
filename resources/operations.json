@@ -2377,6 +2377,23 @@
         "video.video"
       ]
     },
+     {
+      "category": "Output",
+      "name": "OutputCopy",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Export the image in the in the same format. Used to branch off a final image  node",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
     {
       "category": "Output",
       "name": "OutputBmp",
