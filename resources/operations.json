@@ -904,6 +904,21 @@
     },
     {
       "category": "AntiForensic",
+      "name": "AntiForensicDither",
+      "mandatoryparameters": {},
+      "rules": [
+        "check_eight_bit",
+        "checkSize"
+      ],
+      "optionalparameters": {},
+      "description": "Disguise quantization artifacts by adding noise.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
       "name": "AntiForensicExifQuantizationTable",
       "mandatoryparameters": {
         "rotate": {
