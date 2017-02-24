@@ -267,6 +267,13 @@ class ImageGraph:
         fname = nname + suffix
         return fname
 
+    def __filter_args(self,args):
+        result = {}
+        for k, v in args.iteritems():
+            if v is not None:
+                result[k] = v
+        return result
+
     def add_node(self, pathname, seriesname=None, **kwargs):
         proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
@@ -294,7 +301,7 @@ class ImageGraph:
                         ownership=('yes' if includePathInUndo else 'no'),
                         username=get_username(),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                        **kwargs)
+                        **self.__filter_args(kwargs))
         if proxypathname is not None:
             self.G.node[nname]['proxyfile'] = proxypathname
 

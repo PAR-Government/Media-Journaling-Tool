@@ -1344,7 +1344,7 @@ class ImageProjectModel:
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
-                     skipRules=False):
+                     skipRules=False, expirement_id=None):
         """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
              Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
              to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -1353,7 +1353,7 @@ class ImageProjectModel:
         """
         if (self.end is not None):
             self.start = self.end
-        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), xpos=position[0], ypos=position[1],
+        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),expirement_id=expirement_id, xpos=position[0], ypos=position[1],
                                       nodetype='base')
         msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules)
@@ -1974,8 +1974,9 @@ class ImageProjectModel:
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         software = Software(op['software'], op['version'], internal=True)
+        expirement_id = kwargs['expirement_id'] if 'expirement_id' in kwargs else None
         description.setArguments(
-            {k: v for k, v in kwargs.iteritems() if k != 'sendNotifications' and k != 'skipRules'})
+            {k: v for k, v in kwargs.iteritems() if k not in ['sendNotifications', 'skipRules', 'expirement_id']})
         if extra_args is not None and type(extra_args) == type({}):
              for k,v in extra_args.iteritems():
                  if k not in kwargs:
@@ -1984,7 +1985,8 @@ class ImageProjectModel:
         description.setAutomated('yes')
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
-                                         position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)))
+                                         position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)),
+                                         expirement_id=expirement_id)
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
