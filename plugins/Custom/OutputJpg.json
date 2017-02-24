@@ -1,0 +1,38 @@
+{
+    "operation": {
+        "category": "Output", 
+        "name": "OutputJpg", 
+        "description": "Output image in JPG format with desired quality value using ImageMagick.", 
+        "version": "7.0", 
+        "arguments": {
+            "quality": {
+                "defaultvalue": "92", 
+                "type": "int[1:100]", 
+                "description": "Jpeg quality factor (1-100)"
+            }
+        }, 
+        "transitions": [
+            "image.image"
+        ], 
+        "software": "ImageMagick"
+    },
+    "suffix": ".jpg",
+    "command": {
+        "default": [
+            "convert", 
+            "{inputimage}", 
+            "-quality", 
+            "{quality}", 
+            "{outputimage}"
+        ], 
+        "win32": [
+            "magick", 
+            "convert", 
+            "{inputimage}", 
+            "-quality", 
+            "{quality}", 
+            "{outputimage}"
+        ]
+    }, 
+    "name": "OutputJpg"
+}
