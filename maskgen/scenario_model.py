@@ -17,6 +17,7 @@ import hashlib
 import shutil
 import collections
 from threading import Lock
+import mask_rules
 
 
 def formatStat(val):
@@ -997,8 +998,8 @@ class ImageProjectModel:
                 selectMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
                 # build composite
                 composite = selectMask.invert().to_array()
-                composite = self.__alterComposite(edge, composite, selectMask.to_array())
-                for target_mask, finalNodeId in self._constructTransformedMask((edge_id[0], edge_id[1]), composite):
+                composite = mask_rules.alterComposite(edge,composite,selectMask.to_array())
+                for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), composite):
                     target_mask = target_mask.invert()
                     target_mask_filename = os.path.join(self.get_dir(),
                                                         edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
@@ -1207,7 +1208,7 @@ class ImageProjectModel:
             if edgeMask is None:
                 raise ValueError('Missing edge mask from ' + source + ' to ' + target)
             edgeMask = edgeMask.to_array()
-            newMask = self.__alterComposite(edge,mask,edgeMask)
+            newMask = mask_rules.alterComposite(edge,mask,edgeMask)
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
 
@@ -1224,18 +1225,20 @@ class ImageProjectModel:
             edge = self.G.get_edge(pred,node)
             # handles donor and inputmask case
             if pred == edgePredecessor:
-                donorMask = self._alterDonor(mask,
+                donorMask = mask_rules.alterDonor(mask,
                                              pred,
                                              node,
                                              edge,
+                                             self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
                                              edgeSelection=edgeSelection,
                                              overideMask=overideMask)
                 result.extend(self._constructDonor(pred, donorMask))
             if edge['op'] != 'Donor':
-                donorMask = self._alterDonor(mask,
+                donorMask = mask_rules.alterDonor(mask,
                                              pred,
                                              node,
                                              edge,
+                                             self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
                                              edgeSelection='match' if edgeSelection is not None else None,
                                              overideMask=overideMask)
                 result.extend(self._constructDonor(pred, donorMask))
@@ -1383,7 +1386,7 @@ class ImageProjectModel:
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
-                     skipRules=False):
+                     skipRules=False, expirement_id=None):
         """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
              Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
              to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -1392,7 +1395,7 @@ class ImageProjectModel:
         """
         if (self.end is not None):
             self.start = self.end
-        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), xpos=position[0], ypos=position[1],
+        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(),expirement_id=expirement_id, xpos=position[0], ypos=position[1],
                                       nodetype='base')
         msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules)
@@ -2006,8 +2009,9 @@ class ImageProjectModel:
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         software = Software(op['software'], op['version'], internal=True)
+        expirement_id = kwargs['expirement_id'] if 'expirement_id' in kwargs else None
         description.setArguments(
-            {k: v for k, v in kwargs.iteritems() if k != 'sendNotifications' and k != 'skipRules'})
+            {k: v for k, v in kwargs.iteritems() if k not in ['sendNotifications', 'skipRules', 'expirement_id']})
         if extra_args is not None and type(extra_args) == type({}):
              for k,v in extra_args.iteritems():
                  if k not in kwargs:
@@ -2016,7 +2020,8 @@ class ImageProjectModel:
         description.setAutomated('yes')
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
-                                         position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)))
+                                         position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)),
+                                         expirement_id=expirement_id)
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
@@ -2180,122 +2185,7 @@ class ImageProjectModel:
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else [0,0,0]
             colorMap[level.value] = color
-        return self.__alterComposite(edge,compositeMask,edgeMask)
-
-    def _getOrientation(self, edge):
-        if ('arguments' in edge and \
-                    ('Image Rotated' in edge['arguments'] and \
-                                 edge['arguments']['Image Rotated'] == 'yes')) and \
-                        'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-            return edge['exifdiff']['Orientation'][1]
-        if ('arguments' in edge and \
-                    ('rotate' in edge['arguments'] and \
-                    edge['arguments']['rotate'] == 'yes')) and \
-                        'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-            return edge['exifdiff']['Orientation'][2] if  edge['exifdiff']['Orientation'][0].lower() == 'change' else edge['exifdiff']['Orientation'][1]
-        return ''
-
-    def __alterComposite(self,edge, compositeMask, edgeMask):
-        # change the mask to reflect the output image
-        # considering the crop again, the high-lighted change is not dropped
-        # considering a rotation, the mask is now rotated
-        sizeChange =  (0,0)
-        if 'shape change' in edge:
-            changeTuple = toIntTuple(edge['shape change'])
-            sizeChange = (changeTuple[0],changeTuple[1])
-        location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
-        rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
-        args = edge['arguments'] if 'arguments' in edge else {}
-        rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
-        interpolation = args['interpolation'] if 'interpolation' in args and len(
-            args['interpolation']) > 0 else 'nearest'
-        tm = edge['transform matrix'] if 'transform matrix' in edge  else None
-        flip = args['flip direction'] if 'flip direction' in args else None
-        orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
-        rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
-        tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-        cut = edge['op'] in ('SelectRemove')
-        carve,tm,edgeMask = graph_rules.seamCarvingAlterations(edge, tm,edgeMask)
-        crop = sizeChange != (0, 0) and (edge['op'] == 'TransformCrop' or (edge['op'] == 'TransformSeamCarving' and not carve and tm is None))
-        flip = flip if flip is not None else orientflip
-        global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
-        tm = None if (crop or cut or flip or carve or global_resize) else tm
-        inversecrop =  (sizeChange != (0, 0) and edge['op'] == 'TransformResize' and 'none' in args['interpolation'])
-        compositeMask = alterMask(compositeMask,
-                                  edgeMask,
-                                  rotation=rotation,
-                                  sizeChange=sizeChange,
-                                  interpolation=interpolation,
-                                  location=location,
-                                  flip=flip,
-                                  transformMatrix=tm,
-                                  crop=crop,
-                                  cut=cut,
-                                  carve=carve,
-                                  inversecrop=inversecrop)
-        return compositeMask
-
-    def _alterDonor(self,donorMask,source, target,edge,edgeSelection=None,overideMask=None):
-
-        """
-
-        :param self:
-        :param donorMask: The mask to alter and return
-        :param source:
-        :param target:
-        :param edge: the edge the provides the instructions for alteration
-        :param edgeSelection:
-        :param overideMask:
-        :return:
-        """
-        if donorMask is None:
-            return None
-        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
-        selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
-        edgeMask = selectMask  if selectMask is not None else edgeMask
-        if edgeMask is None:
-            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
-        edgeMask = edgeMask.to_array()
-        targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
-        edgeMask = overideMask if overideMask is not None else edgeMask
-        # change the mask to reflect the output image
-        # considering the crop again, the high-lighted change is not dropped
-        # considering a rotation, the mask is now rotated
-        sizeChange =  (0,0)
-        if 'shape change' in edge:
-            changeTuple = toIntTuple(edge['shape change'])
-            sizeChange = (changeTuple[0],changeTuple[1])
-        location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
-        rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
-        args = edge['arguments'] if 'arguments' in edge else {}
-        rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
-        interpolation = args['interpolation'] if 'interpolation' in args and len(
-            args['interpolation']) > 0 else 'nearest'
-        tm = edge['transform matrix'] if 'transform matrix' in edge  else None
-        flip = args['flip direction'] if 'flip direction' in args else None
-        orientflip, orientrotate = exif.rotateAmount(self._getOrientation(edge))
-        orientrotate = -orientrotate if orientrotate is not None else None
-        rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
-        tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-        cut = edge['op'] in ('SelectRemove') or edgeSelection is not None
-        edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
-        carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
-        cut = carve or cut
-        crop = sizeChange != (0, 0) and ( edge['op'] == 'TransformCrop' or (edge['op'] == 'TransformSeamCarving' and not carve and tm is None))
-        flip = flip if flip is not None else orientflip
-        global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
-        tm = None if (crop or cut or flip or carve or global_resize) else tm
-        inversecrop = (sizeChange != (0, 0) and edge['op'] == 'TransformResize' and 'none' in args['interpolation'])
-        return alterReverseMask(donorMask, edgeMask,
-                                rotation=rotation,
-                                sizeChange=sizeChange,
-                                location=location,
-                                flip=flip,
-                                transformMatrix=tm,
-                                targetSize=targetSize,
-                                crop=crop,
-                                cut=cut,
-                                inversecrop=inversecrop)
+        return mask_rules.alterComposite(edge,compositeMask,edgeMask)
 
     def _getModificationForEdge(self, start,end, edge):
         """

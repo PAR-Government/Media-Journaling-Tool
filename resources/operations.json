@@ -904,6 +904,21 @@
     },
     {
       "category": "AntiForensic",
+      "name": "AntiForensicDither",
+      "mandatoryparameters": {},
+      "rules": [
+        "check_eight_bit",
+        "checkSize"
+      ],
+      "optionalparameters": {},
+      "description": "Disguise quantization artifacts by adding noise.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
       "name": "AntiForensicExifQuantizationTable",
       "mandatoryparameters": {
         "rotate": {
@@ -2362,6 +2377,23 @@
         "video.video"
       ]
     },
+     {
+      "category": "Output",
+      "name": "OutputCopy",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Export the image in the in the same format. Used to branch off a final image  node",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
     {
       "category": "Output",
       "name": "OutputBmp",
@@ -2878,6 +2910,9 @@
           "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
         }
       },
+      "analysisOperations": [
+        "maskgen.tool_set.siftAnalysis"
+      ],
       "rules": [
       ],
       "optionalparameters": {
@@ -2900,6 +2935,7 @@
           "description": "Base type of printer used to compose the image"
         }
       },
+      "maskTransformFunction": "maskgen.mask_rules.recapture_transform",
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
       "includeInMask": false,
       "transitions": [
@@ -3577,6 +3613,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.resize_transform",
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
       "generateMask" : false,
