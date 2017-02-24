@@ -820,6 +820,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     optocall = None
     argvalues = {}
     cancelled = True
+    okButton = None
 
     def __init__(self, parent, dir, im, pluginOps, name, scModel):
         self.pluginOps = pluginOps
@@ -963,6 +964,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.versionvar.set('')
             self.optocall = None
             self.buildArgBox(None, [])
+        if self.okButton is not None:
+            self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def cancel(self):
         if self.cancelled:
