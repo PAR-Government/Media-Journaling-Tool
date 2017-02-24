@@ -1,11 +1,13 @@
+sudo apt-get update  -y
 sudo apt-get install -y build-essential checkinstall make pkg-config
 sudo apt-get install -y libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev
 sudo apt-get install -y zlib1g-dev tk-dev
-sudo apt-get install -y git
+sudo apt-get install -y git yasm
 sudo apt-get install -y cmake mercurial
 sudo apt-get install -y libgtk2.0-dev
 sudo apt-get install -y pkg-config
 sudo apt-get install -y python python-numpy python-dev
+sudo apt-get install -y build-essential checkinstall
 sudo apt-get install -y libavcodec-dev libavformat-dev libswscale-dev
 sudo apt-get install -y libjpeg-dev libpng12-dev libtiff5-dev libjasper-dev
  
@@ -13,7 +15,7 @@ sudo apt-get -y install autoconf automake build-essential libass-dev libfreetype
   libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev \
   libxcb-xfixes0-dev pkg-config texinfo zlib1g-dev
 
-sudo apt-get -qq install libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2 libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils
+sudo apt-get -y install libopencv-dev libdc1394-22-dev libxine2 libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev libtbb-dev libqt4-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libxvidcore-dev x264 v4l-utils
  
 sudo apt-get -y install libx264-dev
 
@@ -28,7 +30,6 @@ make distclean
 
 sudo apt-get -y install zip
 sudo apt-get -y install libfdk-aac-dev
-sudo apt-get -y  install libmp3lame-dev
 sudo apt-get -y install libopus-dev
 
 cd ~/ffmpeg_sources
@@ -67,14 +68,6 @@ sudo make install
 sudo make clean
 hash -r
 
-#cd ~
-#wget https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tgz
-#tar xvf Python-2.7.13.tgz
-#cd Python-2.7.13
-#./configure --with-zlib --enable-shared
-#make
-#sudo make altinstall
-
 
 cd ~
 # download opencv-2.4.13
@@ -102,7 +95,7 @@ sudo pip install graphviz
 sudo pip install numpy --upgrade
 sudo pip install PyPDF2
 
-https://github.com/rwgdrummer/maskgen.git
-pip install setuptools
+git clone https://github.com/rwgdrummer/maskgen.git
+sudo pip install setuptools
 cd maskgen
-python setup.py install
+sudo python setup.py install
