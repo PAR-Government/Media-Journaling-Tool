@@ -898,6 +898,19 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             arginfo = []
         operation = getOperationWithGroups(operationName)
         argumentTuples = [self.__buildTuple(arg, arginfo[arg], operation) for arg in arginfo]
+        for k, v in operation.mandatoryparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+                continue
+            if k in arginfo:
+                continue
+            argumentTuples.append((k, v))
+        for k, v in operation.optionalparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+                continue
+            if k in arginfo:
+                continue
+            argumentTuples.append((k, v))
+
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
