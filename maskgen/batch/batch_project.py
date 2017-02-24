@@ -467,7 +467,7 @@ def main():
     for i in range(count):
         project_directory =  batchProject.executeOnce(globalState)
         if project_directory is not None:
-            print  'completed' + project_directory
+            print 'completed' + project_directory
         else:
             break
 
