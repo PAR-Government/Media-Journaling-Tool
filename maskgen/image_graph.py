@@ -196,6 +196,7 @@ class ImageGraph:
                      'arguments.XMP File Name': 'xmpfileownership',
                      'arguments.qtfile': 'qtfileownership',
                      'arguments.PNG File Name': 'pngfileownership',
+                     'arguments.convolutionkernel': 'convolutionfileownership',
                      'maskname': None,
                      'selectmaskname': 'selectmaskownership',
                      'videomasks.videosegment': None}

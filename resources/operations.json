@@ -1818,6 +1818,35 @@
     },
     {
       "category": "Filter",
+      "name": "FilterConvolutionKernel",
+      "mandatoryparameters": {
+        "convolutionkernel":{
+          "type": "fileset:",
+          "description": "Text file containing 3x3 or 5x5 convolution kernel, separated by spaces and/or newlines."
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange",
+        "check_local_warn"
+      ],
+      "optionalparameters": {
+        "description":{
+          "type": "text",
+          "description": "Description of the desired effect of the kernel (e.g. anti-aliasing, blurring, etc.)"
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Convolve an image with a custom convolution kernel.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Filter",
       "name": "FilterBlurMotion",
       "mandatoryparameters": {},
       "rules": [
