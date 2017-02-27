@@ -4,6 +4,12 @@ import numpy as np
 import os
 import subprocess
 from pkg_resources import iter_entry_points
+from cachetools import LRUCache
+from cachetools import cached
+from threading import RLock
+
+image_lock = RLock()
+image_cache = LRUCache(maxsize=24)
 
 try:
     from tifffile import TiffFile,imsave
@@ -141,6 +147,7 @@ def openFromRegistry(filename,isMask=False):
                     print e
     return None
 
+@cached(image_cache, lock=image_lock)
 def openImageFile(filename,isMask=False):
     """
     :param filename:
@@ -150,6 +157,7 @@ def openImageFile(filename,isMask=False):
     @rtype: ImageWrapper
     """
     import os
+
 
     if not os.path.exists(filename):
         pos = filename.rfind('.')
@@ -254,6 +262,10 @@ class ImageWrapper:
         return ImageWrapper(totype(np.copy(img.image_array),type))
 
     def save(self, filename, **kwargs):
+        #global image_cache
+        #global image_lock
+        with image_lock:
+            image_cache[filename] = self
         format = kwargs['format'] if 'format' in kwargs else 'PNG'
         format = 'TIFF' if self.image_array.dtype == 'uint16' else format
         newargs = dict(kwargs)
