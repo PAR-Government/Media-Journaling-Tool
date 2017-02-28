@@ -270,8 +270,8 @@ class PluginOperation(BatchOperation):
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
         args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
-        if 'expirement_id' in node:
-            args['expirement_id'] = node['expirement_id']
+        if 'experiment_id' in node:
+            args['experiment_id'] = node['experiment_id']
         self.logger.debug('Execute plugin ' + plugin_name + ' on ' + filename  + ' with ' + str(args))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
         if errors is not None or  (type(errors) is list and len (errors) > 0 ):
