@@ -1832,8 +1832,9 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "description":{
-          "type": "text",
+        "type":{
+          "type": "list",
+          "values": ["edge detection", "anti-alias", "sharpen", "unsharp masking", "blur", "gaussian blur", "other"],
           "description": "Description of the desired effect of the kernel (e.g. anti-aliasing, blurring, etc.)"
         }
       },

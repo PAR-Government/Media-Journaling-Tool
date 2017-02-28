@@ -2,6 +2,8 @@ import cv2
 from PIL import Image, ImageFilter
 from maskgen import image_wrap
 import itertools
+import numpy as np
+import math
 
 def get_kernel(data):
     k = []
@@ -16,20 +18,22 @@ def get_kernel(data):
 
 def transform(im, source, target, **kwargs):
     with open(kwargs['convolutionkernel']) as f:
-        k = get_kernel(f)
+        k = np.asarray(get_kernel(f))
 
-    if len(k) == 9:
-        sz = (3,3)
-    elif len(k) == 25:
-        sz = (5,5)
-    else:
-        raise ValueError('Kernel must be length 3x3 (9) or 5x5 (25)')
+    # kernel should be dimensions ZxZ
+    sz = int(math.sqrt(k.size))
+    try:
+        k = np.reshape(k, (sz,sz))
+    except ValueError:
+        # kernel was not square
+        raise ValueError('Kernel must be square (2x2, 3x3, etc).')
 
-    kernel = ImageFilter.Kernel(sz, k)
+    # openCV filter2D actually does correlation, not convolution. Flip the kernel to do convolution.
+    k = cv2.flip(k, 0)
 
-    out = im.toPIL().filter(kernel)
-
-    out.save(target)
+    res = cv2.filter2D(im.image_array, -1, k)
+    res_bgr = cv2.cvtColor(res, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(target, res_bgr)
 
     return None, None
 
@@ -39,12 +43,7 @@ def operation():
             'description':'Apply a custom convolution kernel to an image.',
             'software':'PIL',
             'version':'1.1.7',
-            'arguments':{
-                "convolutionkernel": {
-                    "type": "fileset:",
-                    "description": "Text file containing 3x3 or 5x5 convolution kernel, separated by spaces and/or newlines."
-                }
-            },
+            'arguments':{},
             'transitions':[
                 'image.image'
                 ]
