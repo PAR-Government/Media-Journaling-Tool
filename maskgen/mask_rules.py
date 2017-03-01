@@ -22,12 +22,12 @@ def recapture_transform(edge, edgeMask, compositeMask=None, donorMask=None, edge
                                                      tool_set.deserializeMatrix(tm),
                                                      shape=expectedSize,
                                                      returnRaw=True)
-        elif location != (0, 0):
-            upperBound = (
-                min(res.shape[0], expectedSize[0]), min(res.shape[1], expectedSize[1]))
-            res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
+        #elif location != (0, 0):
+        #    upperBound = (
+        #        min(res.shape[0], location[0]+expectedSize[0]), min(res.shape[1], location[1]+expectedSize[1]))
+        #    res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
         elif expectedSize != res.shape:
-            res = tool_set.applyResizeComposite(edgeMask, (expectedSize[0], expectedSize[1]))
+            res = tool_set.applyResizeComposite(compositeMask, (expectedSize[0], expectedSize[1]))
         return res
     elif donorMask is not None:
         res = donorMask
@@ -39,15 +39,15 @@ def recapture_transform(edge, edgeMask, compositeMask=None, donorMask=None, edge
                                           invert=True,
                                           shape=expectedSize,
                                           returnRaw=True)
-        elif location != (0, 0):
-            newRes = np.zeros(expectedSize).astype('uint8')
-            upperBound = (
-                min(expectedSize[0] + location[0], res.shape[0]), min(expectedSize[1] + location[1], res.shape[1]))
-            newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
-                                                                           0:(upperBound[1] - location[1])]
-            res = newRes
+        #elif location != (0, 0):
+        #    newRes = np.zeros(expectedSize).astype('uint8')
+        #    upperBound = (
+        #        min(expectedSize[0] + location[0], res.shape[0]), min(expectedSize[1] + location[1], res.shape[1]))
+        #    newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
+        #                                                                   0:(upperBound[1] - location[1])]
+        #    res = newRes
         elif expectedSize != res.shape:
-            res = tool_set.applyResizeComposite(edgeMask, (expectedSize[0], expectedSize[1]))
+            res = tool_set.applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
         return res
     return edgeMask
 
