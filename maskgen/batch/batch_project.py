@@ -262,7 +262,10 @@ class PluginOperation(BatchOperation):
         """
         my_state = getNodeState(node_name,local_state)
 
-        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) if predecessor != connect_to_node_name]
+        predecessors = [getNodeState(predecessor, local_state)['node']
+                        for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+        
         predecessor_state=getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
@@ -308,7 +311,8 @@ class InputMaskPluginOperation(PluginOperation):
         """
         my_state = getNodeState(node_name,local_state)
 
-        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) if predecessor != connect_to_node_name]
+        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
         predecessor_state=getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
@@ -394,7 +398,8 @@ class BatchProject:
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
                     continue
-                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)]
+                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
+                            and self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
                 #if not self.G.edge[predecessor][op_node_name]['donor']]
                 connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
