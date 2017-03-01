@@ -35,6 +35,9 @@
         "Image Rotated" : {
           "type" : "value",
           "value" :"yes"
+        },
+        "foo" : {
+          "type" : "int[10:100]"
         }
       }
     },

@@ -25,17 +25,17 @@ def loadJSONGraph(pathname):
 def pickArg(param, local_state):
     if param['type'] == 'list':
         return random.choice(param['values'])
-    elif param['type'] == 'int':
+    elif 'int' in param['type']  :
         v = param['type']
         vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len (vals) > 0 else 0
-        end = vals[1] if len(vals) > 2 else 0
+        end = vals[1] if len(vals) > 1 else beg+1
         return random.randint(beg, end)
-    elif param['type'] == 'float':
+    elif 'float' in param['type'] :
         v = param['type']
         vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 2 else 0
+        end = vals[1] if len(vals) > 1 else beg+1.0
         diff = end - beg
         return beg+ random.random()* diff
     elif param['type'] == 'yesno':
@@ -87,8 +87,7 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
         return getNodeState(specification['source'], local_state)['output']
     if specification['type'] == 'plugin':
         return  callPluginSpec(specification)
-    pickArg(specification,local_state)
-    return None
+    return pickArg(specification,local_state)
 
 def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
     """
