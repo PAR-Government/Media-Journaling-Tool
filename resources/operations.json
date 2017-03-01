@@ -876,6 +876,22 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
+      "description": "Copy metadata information from a source.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+        {
+      "category": "AntiForensic",
+      "name": "AntiForensicEditExif",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {},
       "description": "Alter image metadata.",
       "includeInMask": false,
       "transitions": [
