@@ -87,6 +87,7 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
         return getNodeState(specification['source'], local_state)['output']
     if specification['type'] == 'plugin':
         return  callPluginSpec(specification)
+    pickArg(specification,local_state)
     return None
 
 def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
