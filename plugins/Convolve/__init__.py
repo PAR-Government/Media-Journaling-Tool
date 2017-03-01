@@ -41,8 +41,8 @@ def operation():
     return {'name':'FilterConvolutionKernel',
             'category':'Filter',
             'description':'Apply a custom convolution kernel to an image.',
-            'software':'PIL',
-            'version':'1.1.7',
+            'software':'OpenCV',
+            'version':'2.4.13',
             'arguments':{},
             'transitions':[
                 'image.image'
