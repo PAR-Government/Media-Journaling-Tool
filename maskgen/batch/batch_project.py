@@ -83,6 +83,8 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
     if specification['type'] == 'imagefile':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
+    if specification['type'] == 'input':
+        return getNodeState(specification['source'], local_state)['output']
     if specification['type'] == 'plugin':
         return  callPluginSpec(specification)
     return None
@@ -283,8 +285,65 @@ class PluginOperation(BatchOperation):
             local_state['model'].selectImage(my_state['node'])
         return local_state['model']
 
+class InputMaskPluginOperation(PluginOperation):
+    logger = logging.getLogger('InputMaskPluginOperation')
+
+    def execute(self, graph, node_name, node,connect_to_node_name, local_state={},global_state={}):
+        """
+        Add a node through an operation.
+        :param graph:
+        :param node_name:
+        :param node:
+        :param connect_to_node_name:
+        :param local_state:
+        :param global_state:
+        :return:
+        @type graph: nx.DiGraph
+        @type node_name : str
+        @type node: Dict
+        @type connect_to_node_name : str
+        @type global_state: Dict
+        @type global_state: Dict
+        @rtype: scenario_model.ImageProjectModel
+        """
+        my_state = getNodeState(node_name,local_state)
+
+        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) if predecessor != connect_to_node_name]
+        predecessor_state=getNodeState(connect_to_node_name, local_state)
+        local_state['model'].selectImage(predecessor_state['node'])
+        im, filename = local_state['model'].currentImage()
+        plugin_name = node['plugin']
+        plugin_op = plugins.getOperation(plugin_name)
+        if plugin_op is None:
+            raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
+        op = software_loader.getOperation(plugin_op['name'],fake=True)
+        args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        targetfile = self.imageFromPlugin(plugin_name, im, filename, **args)
+        my_state['output'] = targetfile
+        return local_state['model']
+
+    def imageFromPlugin(self, filter, im, filename, **kwargs):
+        import tempfile
+        """
+          @type filter: str
+          @type im: ImageWrapper
+          @type filename: str
+          @rtype: list of (str, list (str,str))
+        """
+        file = os.path.split(filename)[1]
+        file = file[0:file.rfind('.')]
+        target = os.path.join(tempfile.gettempdir(),  file+ '_' + filter + '.png')
+        shutil.copy2(filename, target)
+        try:
+            plugins.callPlugin(filter, im, filename, target, **kwargs)
+        except Exception as e:
+            msg = str(e)
+            raise ValueError("Plugin " + filter + " failed:" + msg)
+        return target
+
+
 batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
-                    'PluginOperation' : PluginOperation()}
+                    'PluginOperation' : PluginOperation(),'InputMaskPluginOperation' : InputMaskPluginOperation()}
 
 def getOperationGivenDescriptor(descriptor):
     """

@@ -1386,7 +1386,7 @@ class ImageProjectModel:
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
-                     skipRules=False, experiment_id=None):
+                     skipRules=False, edge_parameters={}, node_parameters={}):
         """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
              Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
              to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -1395,10 +1395,14 @@ class ImageProjectModel:
         """
         if (self.end is not None):
             self.start = self.end
-        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), experiment_id=experiment_id, xpos=position[0], ypos=position[1],
-                                      nodetype='base')
+        params = dict(node_parameters)
+        params['xpos'] = position[0]
+        params['ypos'] = position[1]
+        params['nodetype'] = 'base'
+        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
+        analysis_params = dict(edge_parameters)
         msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
-                                             skipRules=skipRules)
+                                             skipRules=skipRules, analysis_params=analysis_params)
         return msg, status
 
     def getLinkType(self, start, end):
@@ -1472,7 +1476,11 @@ class ImageProjectModel:
             self.end = destination
             if errors:
                 mod.errors = errors
+            for k,v in analysis_params.iteritems():
+                if k not in analysis:
+                    analysis[k] = v
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
+
             edgeErrors = graph_rules.run_rules(mod.operationName, self.G, self.start, destination)
             msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 and not skipRules else ''
             if (self.notify is not None and sendNotifications):
@@ -1489,8 +1497,11 @@ class ImageProjectModel:
     def __addEdge(self, start, end, mask, maskname, mod, additionalParameters):
         if len(mod.arguments) > 0:
             additionalParameters['arguments'] = {k: v for k, v in mod.arguments.iteritems() if k != 'inputmaskname'}
-        im = self.G.add_edge(start, end, mask=mask, maskname=maskname,
-                             op=mod.operationName, description=mod.additionalInfo,
+        im = self.G.add_edge(start, end,
+                             mask=mask,
+                             maskname=maskname,
+                             op=mod.operationName,
+                             description=mod.additionalInfo,
                              recordMaskInComposite=mod.recordMaskInComposite,
                              editable='no' if (
                                                   mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes',
@@ -2021,7 +2032,8 @@ class ImageProjectModel:
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)),
-                                         experiment_id=experiment_id)
+                                         edge_parameters={'plugin_name':filter},
+                                         node_parameters={'experiment_id':experiment_id} if experiment_id is not None else {})
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
