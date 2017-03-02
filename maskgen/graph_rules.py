@@ -389,6 +389,10 @@ def checkForDonorWithRegion(graph, frm, to):
     if len(pred) < 2:
         return 'donor image missing'
     donor = pred[0] if pred[1] == frm else pred[1]
+    edge = graph.get_edge(frm, to)
+    if 'arguments' in edge and edge['arguments'] and \
+        'purpose' in edge['arguments'] and edge['arguments']['purpose']  == 'blend':
+        return None
     if not findOp(graph, donor, 'SelectRegion'):
         return 'SelectRegion missing on path to donor'
     return None
