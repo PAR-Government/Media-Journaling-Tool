@@ -24,12 +24,12 @@ def getFileName(fileName):
         print 'Loading ' + fileName
         return fileName
     places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
-    places.extend([x for x in sys.path if 'maskgen' in x])
+    places.extend([os.path.join(x,'resources') for x in sys.path if 'maskgen' in x])
     for place in places:
-        fileName = os.path.join(place, fileName)
-        if os.path.exists(fileName):
-            print 'Loading ' + fileName
-            return fileName
+        newNanme = os.path.abspath(os.path.join(place, fileName))
+        if os.path.exists(newNanme):
+            print 'Loading ' + newNanme
+            return newNanme
 
 class ProjectProperty:
     description = None

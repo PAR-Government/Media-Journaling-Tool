@@ -1250,7 +1250,7 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": true,
-      "hidden" : true,
+      "hidden" : false,
       "transitions": [
         "video.video"
       ]
