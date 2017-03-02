@@ -257,12 +257,12 @@ def check_masks(edge, op, graph, frm, to):
                 inputmaskarraysize = sum(sum(inputmask))
                 intersectionsize = sum(sum(intersection))
                 if inputmaskarraysize == 0:
-                    return 'input mask does not represent moved pixels. It is empty.'
+                    return ['input mask does not represent moved pixels. It is empty.']
                 ratio_of_intersection = float(intersectionsize)/float(inputmaskarraysize)
                 ratio_of_difference = float(differencesize) / float(inputmaskarraysize)
                 # intersection is too small or difference is too great
                 if ratio_of_intersection < 0.9 or abs(ratio_of_difference-1.0) > 0.5:
-                    return 'input mask does not represent the moved pixels'
+                    return ['input mask does not represent the moved pixels']
 def setup():
     ops = getOperations()
     for op, data in ops.iteritems():
