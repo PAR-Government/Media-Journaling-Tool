@@ -121,6 +121,8 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', donorMask=
     if compositeMask is not None:
         res = compositeMask
         expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+        if inputmask.shape != res.shape:
+            inputmask = cv2.resize(inputmask,(res.shape[1],res.shape[0]))
         if tm is not None:
             res = tool_set.applyTransformToComposite(res, inputmask, tool_set.deserializeMatrix(tm))
         else:
@@ -132,7 +134,7 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', donorMask=
             res = tool_set.applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
         return res
     elif donorMask is not None:
-        res = compositeMask
+        res = donorMask
         expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
         targetSize = edgeMask.shape if edgeMask is not None else expectedSize
         if tm is not None:
@@ -208,7 +210,7 @@ def alterComposite(edge, compositeMask, edgeMask,directory):
     return compositeMask
 
 
-def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, overideMask=None):
+def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, overideMask=None, directory='.'):
     """
 
     :param self:
@@ -228,7 +230,7 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
     edgeMask = edgeMask.to_array()
     op = getOperationWithGroups(edge['op'])
     if op.maskTransformFunction is not None:
-        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, donorMask=donorMask,
+        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, directory=directory,donorMask=donorMask,
                                                              edgeSelection=edgeSelection, overideMask=overideMask)
 
     targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
@@ -244,8 +246,6 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
     rotation = float(edge['rotation'] if 'rotation' in edge and edge['rotation'] is not None else 0.0)
     args = edge['arguments'] if 'arguments' in edge else {}
     rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
-    interpolation = args['interpolation'] if 'interpolation' in args and len(
-        args['interpolation']) > 0 else 'nearest'
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     flip = args['flip direction'] if 'flip direction' in args else None
     orientflip, orientrotate = exif.rotateAmount(_getOrientation(edge))

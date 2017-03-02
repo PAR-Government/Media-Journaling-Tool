@@ -2676,16 +2676,7 @@
             "other"
           ],
           "description": "Subject catgeory pasted to image"
-        },
-        "mode": {
-           "type":"list",
-           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
-             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
-             "Pin Light","Hard Mix","Linear Light",
-             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
-           "description":"Blend Mode",
-           "rule" : {"purpose": "blend"}
-         }
+        }
       },
       "rules": [
         "checkSize",
@@ -2698,7 +2689,16 @@
          "inputmaskname": {
           "type": "imagefile",
           "description": "An image file containing a mask describing the areas affected."
-        }
+        },
+        "mode": {
+           "type":"list",
+           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
+             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
+             "Pin Light","Hard Mix","Linear Light",
+             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+           "description":"Blend Mode",
+           "rule" : {"purpose": "blend"}
+         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",

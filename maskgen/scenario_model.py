@@ -1287,7 +1287,8 @@ class ImageProjectModel:
                                              edge,
                                              self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
                                              edgeSelection=edgeSelection,
-                                             overideMask=overideMask)
+                                             overideMask=overideMask,
+                                             directory=self.get_dir())
                 result.extend(self._constructDonor(pred, donorMask))
             if edge['op'] != 'Donor':
                 donorMask = mask_rules.alterDonor(mask,
@@ -1296,7 +1297,8 @@ class ImageProjectModel:
                                              edge,
                                              self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
                                              edgeSelection='match' if edgeSelection is not None else None,
-                                             overideMask=overideMask)
+                                             overideMask=overideMask,
+                                             directory=self.get_dir())
                 result.extend(self._constructDonor(pred, donorMask))
         return result
 
@@ -1935,12 +1937,17 @@ class ImageProjectModel:
 
     def labelNodes(self, destination):
         baseNodes = []
-        candidateBaseDonorNodes = []
-        for terminal in self._findTerminalNodes(destination):
-            baseNodes.extend(self._findBaseNodes(terminal))
-            candidateBaseDonorNodes.extend(self._findBaseNodes(terminal, excludeDonor=False))
-        baseDonorNodes = [node for node in candidateBaseDonorNodes if node not in baseNodes]
-        for node in baseDonorNodes:
+        donorNodes = []
+        terminalNodes = []
+        candidateBaseDonorNodes  = self._findBaseNodes(destination, excludeDonor=False)
+        for baseCandidate in candidateBaseDonorNodes:
+            foundTerminalNodes = self._findTerminalNodes(baseCandidate,excludeDonor=True)
+            terminalNodes.extend(foundTerminalNodes)
+            if len(foundTerminalNodes) > 0:
+                baseNodes.append(baseCandidate)
+            else:
+                donorNodes.append(baseCandidate)
+        for node in donorNodes:
             self.__assignLabel(node, 'donor')
         for node in baseNodes:
             self.__assignLabel(node, 'base')
@@ -1954,17 +1961,19 @@ class ImageProjectModel:
         elif 'nodetype' not in self.G.get_node(destination):
             self.__assignLabel(destination, 'base')
 
-    def _findTerminalNodes(self, node):
-        return self._findTerminalNodesWithCycleDetection(node, visitSet=list())
+    def _findTerminalNodes(self, node, excludeDonor=False):
+        return self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor)
 
-    def _findTerminalNodesWithCycleDetection(self, node, visitSet=list()):
+    def _findTerminalNodesWithCycleDetection(self, node, visitSet=list(),excludeDonor=False):
         succs = self.G.successors(node)
         res = [node] if len(succs) == 0 else list()
         for succ in succs:
             if succ in visitSet:
                 continue
+            if self.G.get_edge(node, succ)['op'] == 'Donor' and excludeDonor:
+                continue
             visitSet.append(succ)
-            res.extend(self._findTerminalNodesWithCycleDetection(succ, visitSet=visitSet))
+            res.extend(self._findTerminalNodesWithCycleDetection(succ, visitSet=visitSet,excludeDonor=excludeDonor))
         return res
 
     def _findEdgesWithCycleDetection(self, node, excludeDonor=True, visitSet=list()):
