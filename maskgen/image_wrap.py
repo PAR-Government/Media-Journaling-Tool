@@ -351,7 +351,6 @@ class ImageWrapper:
 
     def to_mask(self):
         """
-        Produce a mask where all black areas are white
         white = selected, black = unselected
         @rtype : ImageWrapper
         """
