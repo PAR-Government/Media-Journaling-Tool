@@ -1231,6 +1231,8 @@ def __composeExpandImageMask(img1, img2):
 
 
 def __colorPSNR(z1, z2, size=None):
+    if size == 0:
+        return 0.0
     d = (z1 - z2) ** 2
     sse = np.sum(d)
     size = float(reduce(lambda x, y: x * y, d.shape)) if size is None else float(size)
