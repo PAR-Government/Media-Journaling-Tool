@@ -1,11 +1,18 @@
 {
   "properties": [
     {
-      "description": "User Name",
+      "description": "Last Update User Name",
       "name": "username",
       "type": "string",
       "readonly": "true",
       "information":  "This property may be changed under File->Settings->Username"
+    },
+     {
+      "description": "Creator",
+      "name": "creator",
+      "type": "string",
+      "readonly": "true",
+      "information":  "This property cannot be changed"
     },
     {
       "description" : "Paste Clone Auto Input Mask",

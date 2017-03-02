@@ -875,8 +875,8 @@ class MakeGenUI(Frame):
         #iframe.grid_propagate(False)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
-        mframe.grid_rowconfigure(0, weight=1)
-        mframe.grid_columnconfigure(0, weight=1)
+        mframe.grid_rowconfigure(0, weight=5)
+        mframe.grid_columnconfigure(0, weight=5)
         self.vscrollbar = Scrollbar(mframe, orient=VERTICAL)
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N + S)

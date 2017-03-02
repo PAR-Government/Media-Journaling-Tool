@@ -28,9 +28,48 @@ def updateJournal(scModel):
         _fixResize(scModel)
         _fixResolution(scModel)
         upgrades.append('0.4.0101.8593b8f323')
+    if '0.4.0101.b4561b475b' not in upgrades:
+        _fixCreator(scModel)
+        _fixValidationTime(scModel)
+        upgrades.append('0.4.0101.b4561b475b')
+    if "0.4.0101.52bb2811db" not in upgrades:
+        _fixBlend(scModel)
+        upgrades.append('0.4.0101.52bb2811db')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
+
+def _fixValidationTime(scModel):
+    import time
+    validationdate = scModel.getProjectData('validationdate')
+    if validationdate is not None and len(validationdate) > 0:
+        scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
+
+def _fixCreator(scModel):
+    """
+    :param scModel:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    modifications = sorted(scModel.getDescriptions(), key=lambda mod: mod.ctime, reverse=False)
+    if len(modifications) > 0:
+       scModel.getGraph().setDataItem('creator',modifications[0].username,excludeUpdate=True)
+
+def _fixBlend(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'BlendHardLight':
+            edge['op'] = 'Blend'
+            if 'arguments' not in edge:
+                edge['arguments'] = {'mode' : 'Hard Light'}
+            else:
+                edge['arguments']['mode']  = 'Hard Light'
+        elif edge['op'] == 'BlendSoftLight':
+            edge['op'] = 'Blend'
+            if 'arguments' not in edge:
+                edge['arguments'] = {'mode' : 'Soft Light'}
+            else:
+                edge['arguments']['mode']  = 'Soft Light'
 
 def _fixResolution(scModel):
     for frm, to in scModel.G.get_edges():

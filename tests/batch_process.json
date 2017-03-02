@@ -89,7 +89,7 @@
       "op_type": "PluginOperation",
       "plugin": "CompressAs",
       "id": "7",
-      "expirement_id":"1a",
+      "experiment_id":"1a",
       "arguments": {
          "donor" : {
            "type": "donor",
