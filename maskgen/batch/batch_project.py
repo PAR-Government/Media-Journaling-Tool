@@ -76,6 +76,8 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
         return specification['value']
     if specification['type'] == 'list':
         return random.choice(specification['values'])
+    if specification['type'] == 'variable':
+        return getNodeState(specification['source'], local_state)[specification['name']]
     if specification['type'] == 'donor':
         if 'source' in specification:
             return getNodeState(specification['source'], local_state)['node']
@@ -322,8 +324,11 @@ class InputMaskPluginOperation(PluginOperation):
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
         args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
-        targetfile = self.imageFromPlugin(plugin_name, im, filename, **args)
+        targetfile,params = self.imageFromPlugin(plugin_name, im, filename, **args)
         my_state['output'] = targetfile
+        if params is not None and type(params) == type({}):
+            for k, v in params.iteritems():
+                my_state[k] = v
         return local_state['model']
 
     def imageFromPlugin(self, filter, im, filename, **kwargs):
@@ -338,12 +343,17 @@ class InputMaskPluginOperation(PluginOperation):
         file = file[0:file.rfind('.')]
         target = os.path.join(tempfile.gettempdir(),  file+ '_' + filter + '.png')
         shutil.copy2(filename, target)
+        params = {}
         try:
-            plugins.callPlugin(filter, im, filename, target, **kwargs)
+            extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
+            if extra_args is not None and type(extra_args) == type({}):
+                for k, v in extra_args.iteritems():
+                    if k not in kwargs:
+                        params[k] = v
         except Exception as e:
             msg = str(e)
             raise ValueError("Plugin " + filter + " failed:" + msg)
-        return target
+        return target,params
 
 
 batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
