@@ -2301,14 +2301,23 @@ class ImageProjectModel:
         self.setProjectData('validation', qaState, excludeUpdate=True)
         self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
         self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
+        self.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
         self.setProjectData('qacomment', qaComment.strip())
 
     def clear_validation_properties(self):
-        validationProps = {'validation':'no', 'validatedby':'', 'validationdate':''}
+        import time
+        validationProps = {'validation':'no', 'validatedby':'', 'validationtime':'','validationdate':''}
         currentProps = {}
         for p in validationProps:
             currentProps[p] = self.getProjectData(p)
-        if all(vp in currentProps for vp in validationProps) and currentProps['validatedby'] != get_username():
+        datetimeval = time.clock()
+        if currentProps['validationdate'] is not None and \
+            len(currentProps['validationdate']) > 0:
+            datetimestr = currentProps['validationdate'] + ' ' + currentProps['validationtime']
+            datetimeval = time.strptime(datetimestr, "%m/%d/%Y %H:%M:%S")
+        if all(vp in currentProps for vp in validationProps) and \
+                        currentProps['validatedby'] != get_username() and \
+                        self.getGraph().getLastUpdateTime() > datetimeval:
             for key, val in validationProps.iteritems():
                 self.setProjectData(key, val, excludeUpdate=True)
 

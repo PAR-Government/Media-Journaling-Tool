@@ -6,7 +6,7 @@ import shutil
 from software_loader import getOS
 import tarfile
 from tool_set import *
-from time import gmtime, strftime
+from time import gmtime, strftime,strptime
 
 
 snapshot='.52bb2811db'
@@ -686,6 +686,8 @@ class ImageGraph:
         self.dir = os.path.abspath(os.path.split(pathname)[0])
         if 'username' not in self.G.graph:
             self.G.graph['username'] = get_username()
+        if 'creator' not in self.G.graph:
+            self.G.graph['creator'] = get_username()
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
         if 'updatetime' not in self.G.graph:
@@ -905,6 +907,9 @@ class ImageGraph:
             return edgePaths[0] + (
             ("." + self._buildPath(value[edgePaths[0]], edgePaths[1:])) if len(edgePaths) > 1 else '')
         return ''
+
+    def getLastUpdateTime(self):
+        return strptime(self.G.graph['updatetime'],"%Y-%m-%d %H:%M:%S")
 
     def _setUpdate(self,name, update_type=None):
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
