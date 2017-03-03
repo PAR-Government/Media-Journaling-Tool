@@ -424,13 +424,14 @@ def perform_update(project,args, error_writer, semantics, tempdir, names, skips)
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
     validator = scModel.getProjectData('validatedby')
-    if validator is  not None:
-        setPwdX(CustomPwdX(validator))
-    else:
-        setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
+    if not args.validate:
+        if validator is  not None:
+            setPwdX(CustomPwdX(validator))
+        else:
+            setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
+
     if (scModel.getName() + '.tgz') in skips:
         return
-
     label_project_nodes(scModel)
     if args.all:
         update_rotation(scModel)
@@ -458,7 +459,8 @@ def perform_update(project,args, error_writer, semantics, tempdir, names, skips)
     if args.all:
         fix_noncroplinks(scModel)
         replace_oldops(scModel)
-
+    if args.validate:
+        scModel.set_validation_properties('yes', get_username(), 'QA redone via Batch Updater')
     scModel.save()
     if args.updategraph:
         if os.path.exists(os.path.join(scModel.get_dir(),'_overview_.png')):
@@ -487,6 +489,7 @@ def main():
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
     parser.add_argument('-c',  '--composites', help='Reconstruct composite images',action='store_true')
     parser.add_argument('-n',  '--names',required=False, help='New image names')
+    parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')
     parser.add_argument('-rd', '--renamedonors', help='Rename donor images',action='store_true')
     parser.add_argument('-tf', '--tempfolder', required=False, help='Temp Holder')
     parser.add_argument('-rc', '--redomasks', help='Rebuild link masks',action='store_true')

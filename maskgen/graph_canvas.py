@@ -35,6 +35,7 @@ class MaskGraphCanvas(tk.Canvas):
 
     drag_item = None
     drag_data = None
+    scrollregion = (100,100)
 
     def __init__(self, master, uiProfile, scModel, callback, **kwargs):
         self.scModel = scModel
@@ -48,6 +49,7 @@ class MaskGraphCanvas(tk.Canvas):
         self.bind('<Button-2>' if platform.system() == 'Darwin' else '<Button-3>',
                   self.regionmenu)
         self._plot_graph()
+        self.scrollregion = kwargs['scrollregion']
 
     def clear(self):
         self._unmark()
@@ -84,19 +86,27 @@ class MaskGraphCanvas(tk.Canvas):
 
         x, y = self.coords(wid)
 
+        x-=self.winfo_width()/2
+        y-=self.winfo_height()/2
+
+        x = max(x,0)
+        y = max(y, 0)
+
         # Find center of canvas
-        w = self.winfo_width() / 2
-        h = self.winfo_height() / 2
+        w = self.scrollregion[2] #- self.winfo_width()
+        h =  self.scrollregion[3] #-self.winfo_height()
         if w == 0:
             # We haven't been drawn yet
-            w = int(self['width']) / 2
-            h = int(self['height']) / 2
+            w = int(self['width'])
+            h = int(self['height'])
 
         # Calc delta to move to center
         delta_x = w - x
         delta_y = h - y
 
-        self.move(tk.ALL, delta_x, delta_y)
+        self.xview_moveto(x/w)
+        self.yview_moveto(y/h)
+       # self.move(tk.ALL, delta_x, delta_y)
 
     def redrawNode(self, nodeid):
         wid = self.toItemIds[nodeid][1] if nodeid in self.toItemIds else None

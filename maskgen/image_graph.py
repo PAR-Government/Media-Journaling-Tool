@@ -6,10 +6,10 @@ import shutil
 from software_loader import getOS
 import tarfile
 from tool_set import *
-from time import gmtime, strftime
+from time import gmtime, strftime,strptime
 
 
-snapshot='.e473ee1531'
+snapshot='.52bb2811db'
 igversion='0.4.0101' + snapshot
 
 
@@ -195,8 +195,10 @@ class ImageGraph:
     edgeFilePaths = {'inputmaskname': 'inputmaskownership',
                      'arguments.XMP File Name': 'xmpfileownership',
                      'arguments.qtfile': 'qtfileownership',
+                     'arguments.PNG File Name': 'pngfileownership',
+                     'arguments.convolutionkernel': 'convolutionfileownership',
                      'maskname': None,
-                     'selectmaskname': 'selectmaskownership',
+                     'selectmasks.mask': None,
                      'videomasks.videosegment': None}
     nodeFilePaths = {'compositemaskname': None,
                      'proxyfile':None,
@@ -266,6 +268,13 @@ class ImageGraph:
         fname = nname + suffix
         return fname
 
+    def __filter_args(self,args):
+        result = {}
+        for k, v in args.iteritems():
+            if v is not None:
+                result[k] = v
+        return result
+
     def add_node(self, pathname, seriesname=None, **kwargs):
         proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
@@ -293,7 +302,7 @@ class ImageGraph:
                         ownership=('yes' if includePathInUndo else 'no'),
                         username=get_username(),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                        **kwargs)
+                        **self.__filter_args(kwargs))
         if proxypathname is not None:
             self.G.node[nname]['proxyfile'] = proxypathname
 
@@ -677,6 +686,8 @@ class ImageGraph:
         self.dir = os.path.abspath(os.path.split(pathname)[0])
         if 'username' not in self.G.graph:
             self.G.graph['username'] = get_username()
+        if 'creator' not in self.G.graph:
+            self.G.graph['creator'] = get_username()
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
         if 'updatetime' not in self.G.graph:
@@ -896,6 +907,9 @@ class ImageGraph:
             return edgePaths[0] + (
             ("." + self._buildPath(value[edgePaths[0]], edgePaths[1:])) if len(edgePaths) > 1 else '')
         return ''
+
+    def getLastUpdateTime(self):
+        return strptime(self.G.graph['updatetime'],"%Y-%m-%d %H:%M:%S")
 
     def _setUpdate(self,name, update_type=None):
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())

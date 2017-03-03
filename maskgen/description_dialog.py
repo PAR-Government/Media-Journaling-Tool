@@ -820,6 +820,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     optocall = None
     argvalues = {}
     cancelled = True
+    okButton = None
 
     def __init__(self, parent, dir, im, pluginOps, name, scModel):
         self.pluginOps = pluginOps
@@ -898,6 +899,19 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             arginfo = []
         operation = getOperationWithGroups(operationName)
         argumentTuples = [self.__buildTuple(arg, arginfo[arg], operation) for arg in arginfo]
+        for k, v in operation.mandatoryparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+                continue
+            if k in arginfo:
+                continue
+            argumentTuples.append((k, v))
+        for k, v in operation.optionalparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+                continue
+            if k in arginfo:
+                continue
+            argumentTuples.append((k, v))
+
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
@@ -950,6 +964,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.versionvar.set('')
             self.optocall = None
             self.buildArgBox(None, [])
+        if self.okButton is not None:
+            self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def cancel(self):
         if self.cancelled:
@@ -1256,14 +1272,20 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     start_type = None
     end_type = None
 
-    def __init__(self, parent, start_type, end_type,  dir, im, name, modification):
-        self.dir = dir
-        self.im = im
-        self.start_type = start_type
-        self.end_type = end_type
+    def __init__(self, parent,   scModel ):
+        """
+
+        :param parent:
+        :param scModel:
+        @type scModel : ImageProjectModel
+        """
+        self.dir = scModel.get_dir()
+        self.start_type = scModel.getStartType()
+        self.end_type = scModel.getEndType()
         self.parent = parent
-        self.name = name
-        self.modification = modification
+        self.scModel = scModel
+        name = scModel.start + ' to ' + scModel.end
+        self.modification = scModel.getDescription()
         self.selectMaskName = self.modification.selectMaskName
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
@@ -1470,6 +1492,13 @@ class QAViewDialog(Toplevel):
 
         self.check_ok()
 
+    def _compose_label(self,edge):
+        op  = edge['op']
+        if 'semanticGroups' in edge:
+            groups = edge['semanticGroups']
+            op += ' [' + ', '.join(groups) + ']'
+        return op
+
     def load_overlay(self, initialize=False):
         edgeTuple = tuple(self.optionsBox.get().split('->'))
         if len(edgeTuple) > 1:
@@ -1487,7 +1516,7 @@ class QAViewDialog(Toplevel):
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
-        self.operationVar.set(edge['op'])
+        self.operationVar.set(self._compose_label(edge))
         final = image_wrap.openImageFile(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
@@ -1760,7 +1789,7 @@ class PropertyFrame(VerticalScrolledFrame):
 
    def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None, dir='.',changeParameterCB=None, **kwargs):
      self.parent = parent
-     self.properties = [prop for prop in properties if not prop.node]
+     self.properties = [prop for prop in properties if not prop.node and not prop.semanticgroup]
      self.values =   [None for prop in properties]
      self.widgets =[None for prop in properties]
      self.changeParameterCB = changeParameterCB
@@ -1810,6 +1839,11 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type == 'xmpfile':
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('XMP', '*.xmp')])
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
+                                                command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'pngfile':
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('PNG Image', '*.png')])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)

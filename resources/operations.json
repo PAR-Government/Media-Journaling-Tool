@@ -876,6 +876,22 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
+      "description": "Copy metadata information from a source.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+        {
+      "category": "AntiForensic",
+      "name": "AntiForensicEditExif",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {},
       "description": "Alter image metadata.",
       "includeInMask": false,
       "transitions": [
@@ -897,6 +913,21 @@
       ],
       "optionalparameters": {},
       "description": "Use quantization tables and exif data from a particular camera to save an image as JPG.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "AntiForensicDither",
+      "mandatoryparameters": {},
+      "rules": [
+        "check_eight_bit",
+        "checkSize"
+      ],
+      "optionalparameters": {},
+      "description": "Disguise quantization artifacts by adding noise.",
       "includeInMask": false,
       "transitions": [
         "image.image"
@@ -1184,14 +1215,6 @@
       "category": "Layer",
       "name": "Blend",
       "mandatoryparameters": {
-         "mode": {
-           "type":"list",
-           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
-             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
-             "Pin Light","Hard Mix","Linear Light",
-             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
-           "description":"Blend Mode"
-         },
          "Start Time": {
           "type": "time",
           "source": "video",
@@ -1201,7 +1224,15 @@
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
+        },
+        "mode": {
+           "type":"list",
+           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
+             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
+             "Pin Light","Hard Mix","Linear Light",
+             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+           "description":"Blend Mode"
+         }
       },
       "rules": [
         "checkLengthSame",
@@ -1219,8 +1250,8 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": true,
+      "hidden" : false,
       "transitions": [
-        "image.image",
         "video.video"
       ]
     },
@@ -1803,6 +1834,36 @@
     },
     {
       "category": "Filter",
+      "name": "FilterConvolutionKernel",
+      "mandatoryparameters": {
+        "convolutionkernel":{
+          "type": "fileset:",
+          "description": "Text file containing 3x3 or 5x5 convolution kernel, separated by spaces and/or newlines."
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange",
+        "check_local_warn"
+      ],
+      "optionalparameters": {
+        "type":{
+          "type": "list",
+          "values": ["edge detection", "anti-alias", "sharpen", "unsharp masking", "blur", "gaussian blur", "other"],
+          "description": "Description of the desired effect of the kernel (e.g. anti-aliasing, blurring, etc.)"
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Convolve an image with a custom convolution kernel.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Filter",
       "name": "FilterBlurMotion",
       "mandatoryparameters": {},
       "rules": [
@@ -2095,30 +2156,6 @@
       ]
     },
     {
-      "category": "Layer",
-      "name": "BlendHardlight",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Increase the contrast of high values in a luminance histogram.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
       "category": "Intensity",
       "name": "IntensityHighlight",
       "mandatoryparameters": {},
@@ -2208,30 +2245,6 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the values of a luminance histogram.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Layer",
-      "name": "BlendSoftlight",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Decrease the contrast in high value areas of the luminance histogram.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -2357,6 +2370,23 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
       "includeInMask": true,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+     {
+      "category": "Output",
+      "name": "OutputCopy",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Export the image in the in the same format. Used to branch off a final image  node",
+      "includeInMask": false,
       "transitions": [
         "image.image",
         "video.video"
@@ -2629,7 +2659,8 @@
           "type": "list",
           "values": [
             "remove",
-            "add"
+            "add",
+            "blend"
           ],
           "description": "Purpose: remove an object, add an object."
         },
@@ -2654,7 +2685,21 @@
         "checkFileTypeChange",
         "check_local"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+         "inputmaskname": {
+          "type": "imagefile",
+          "description": "An image file containing a mask describing the areas affected."
+        },
+        "mode": {
+           "type":"list",
+           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
+             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
+             "Pin Light","Hard Mix","Linear Light",
+             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+           "description":"Blend Mode",
+           "rule" : {"purpose": "blend"}
+         }
+      },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,
@@ -2878,6 +2923,9 @@
           "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
         }
       },
+      "analysisOperations": [
+        "maskgen.tool_set.siftAnalysis"
+      ],
       "rules": [
       ],
       "optionalparameters": {
@@ -2900,6 +2948,7 @@
           "description": "Base type of printer used to compose the image"
         }
       },
+      "maskTransformFunction": "maskgen.mask_rules.recapture_transform",
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
       "includeInMask": false,
       "transitions": [
@@ -3513,13 +3562,15 @@
       },
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkInputMask"
       ],
       "optionalparameters": {
         "RANSAC": {
           "type": "list",
           "source": "image",
            "values": [
+             "None",
              "3",
              "4",
              "5"
@@ -3528,8 +3579,9 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.forcedSiftAnalysis"
+        "maskgen.tool_set.forcedSiftWithInputAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.move_transform",
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false,
       "transitions": [
@@ -3549,6 +3601,7 @@
              "bicubic",
              "bilinear",
              "cubic",
+             "mesh",
              "lanczos",
              "nearest",
              "other"
@@ -3576,6 +3629,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.resize_transform",
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
       "generateMask" : false,

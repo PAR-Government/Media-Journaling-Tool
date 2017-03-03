@@ -645,6 +645,13 @@ class MakeGenUI(Frame):
                         if res not in grps:
                             grps.append(res)
                             self.scModel.setSemanticGroups(start,end,grps)
+
+    def removegroup(self):
+        if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
+            for name in self.groupselection:
+                self.scModel.selectImage(name)
+                self.remove()
+
     def select(self):
         self.drawState()
         self.setSelectState('normal')
@@ -684,12 +691,7 @@ class MakeGenUI(Frame):
                                   description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
 
     def viewselectmask(self):
-        im, filename = self.scModel.getSelectMask()
-        if (im is None):
-            return
-        name = self.scModel.start + ' to ' + self.scModel.end
-        d = CompositeCaptureDialog(self, self.scModel.getStartType(), self.scModel.getEndType(), self.scModel.get_dir(),
-                                   im, name, self.scModel.getDescription())
+        d = CompositeCaptureDialog(self,self.scModel)
         if not d.cancelled:
             self.scModel.update_edge(d.modification)
 
@@ -857,6 +859,7 @@ class MakeGenUI(Frame):
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
+        self.groupmenu.add_command(label="Remove", command=self.removegroup)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
@@ -867,8 +870,8 @@ class MakeGenUI(Frame):
         #iframe.grid_propagate(False)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
-        mframe.grid_rowconfigure(0, weight=1)
-        mframe.grid_columnconfigure(0, weight=1)
+        mframe.grid_rowconfigure(0, weight=5)
+        mframe.grid_columnconfigure(0, weight=5)
         self.vscrollbar = Scrollbar(mframe, orient=VERTICAL)
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N + S)
@@ -962,11 +965,11 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--imagedir', help='image directory', nargs=1)
-    parser.add_argument('--base', help='base image or video', nargs=1)
+    parser.add_argument('--imagedir', help='image directory', required=False)
+    parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
-    imgdir = ['.']
+    imgdir = None
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
@@ -982,8 +985,8 @@ def main(argv=None):
     root = Tk()
 
     prefLoader = MaskGenLoader()
-    gui = MakeGenUI(imgdir[0], master=root, pluginops=plugins.loadPlugins(),
-                    base=args.base[0] if args.base is not None else None, uiProfile=uiProfile)
+    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
     root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':

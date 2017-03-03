@@ -170,7 +170,19 @@ class TestToolSet(unittest.TestCase):
         self.assertEqual(3, time_manager.getEndFrame())
         self.assertEqual(3, time_manager.getStartFrame())
 
-
+    def xtest_opacity_analysis(self):
+        # need to redo with generated data.
+        initialImage = image_wrap.openImageFile('tests/images/pre_blend.png')
+        finalImage = image_wrap.openImageFile('tests/images/post_blend.png')
+        mask = image_wrap.openImageFile('tests/images/blend_mask.png')
+        donorMask = image_wrap.openImageFile('tests/images/donor_to_blend_mask.png')
+        donorImage = image_wrap.openImageFile('tests/images/donor_to_blend.png')
+        result = tool_set.generateOpacityImage(initialImage.to_array(), donorImage.to_array(), finalImage.to_array(), mask.to_array(),
+                                               donorMask.to_array(),None)
+        min = np.min(result)
+        max = np.max(result)
+        result = (result - min)/(max-min) * 255.0
+        print np.mean(result)
 
     def test_gray_writing(self):
         import os

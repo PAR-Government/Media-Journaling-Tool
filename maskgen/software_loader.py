@@ -24,12 +24,12 @@ def getFileName(fileName):
         print 'Loading ' + fileName
         return fileName
     places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
-    places.extend([x for x in sys.path if 'maskgen' in x])
+    places.extend([os.path.join(x,'resources') for x in sys.path if 'maskgen' in x])
     for place in places:
-        fileName = os.path.join(place, fileName)
-        if os.path.exists(fileName):
-            print 'Loading ' + fileName
-            return fileName
+        newNanme = os.path.abspath(os.path.join(place, fileName))
+        if os.path.exists(newNanme):
+            print 'Loading ' + newNanme
+            return newNanme
 
 class ProjectProperty:
     description = None
@@ -84,16 +84,18 @@ class Operation:
     generateMask  = True
     groupedOperations = None
     groupedCategories = None
+    maskTransformFunction = None
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=list(),
                  mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None):
+                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
+                 maskTransformFunction=maskTransformFunction):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
         self.rules = rules
-        self.mandatoryparameters = mandatoryparameters
-        self.optionalparameters = optionalparameters
+        self.mandatoryparameters = mandatoryparameters if mandatoryparameters is not None else []
+        self.optionalparameters = optionalparameters if optionalparameters is not None else []
         self.description = description
         self.analysisOperations = analysisOperations
         self.transitions = transitions
@@ -101,6 +103,7 @@ class Operation:
         self.generateMask  = generateMask
         self.groupedOperations = groupedOperations
         self.groupedCategories = groupedCategories
+        self.maskTransformFunction = maskTransformFunction
 
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
@@ -188,7 +191,8 @@ def loadOperationJSON(fileName):
                                             'analysisOperations'] if 'analysisOperations' in op else [],
                                         transitions=op['transitions'] if 'transitions' in op else [],
                                         compareparameters=op[
-                                            'compareparameters'] if 'compareparameters' in op else dict())
+                                            'compareparameters'] if 'compareparameters' in op else dict(),
+                                        maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
     return res
 
 customRuleFunc = {}
@@ -200,11 +204,17 @@ def loadCustomRules():
         customRuleFunc[p.name] = p.load()
 
 def getRule(name, globals={}):
+    import importlib
     global customRuleFunc
     if name in customRuleFunc:
         return customRuleFunc[name]
     else:
-        return globals.get(name)
+        if '.' not in name:
+            return globals.get(name)
+        mod_name, func_name = name.rsplit('.', 1)
+        mod = importlib.import_module(mod_name)
+        func = getattr(mod, func_name)
+        return func#globals.get(name)
 
 def loadProjectProperties(fileName):
     global projectProperties

@@ -243,11 +243,26 @@ def check_masks(edge, op, graph, frm, to):
     inputmasknanme = edge['inputmaskname'] if 'inputmaskname' in edge  else None
     if  inputmasknanme is not None and len(inputmasknanme) > 0 and \
          os.path.exists(os.path.join(graph.dir, inputmasknanme)):
-            inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme))
-            mask = openImageFile(os.path.join(graph.dir, edge['maskname']))
-            if inputmask.size != mask.size:
+            inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme)).to_mask().to_array()
+            mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
+            if inputmask.shape != mask.shape:
                 return ['input mask name parameter has an invalid size']
-
+            if edge['op'] == 'TransformMove':
+                inputmask[inputmask>0] = 1
+                mask[mask>0] = 1
+                intersection = inputmask*mask
+                difference= mask-inputmask
+                difference[difference<0] = 0
+                differencesize = sum(sum(difference))
+                inputmaskarraysize = sum(sum(inputmask))
+                intersectionsize = sum(sum(intersection))
+                if inputmaskarraysize == 0:
+                    return ['input mask does not represent moved pixels. It is empty.']
+                ratio_of_intersection = float(intersectionsize)/float(inputmaskarraysize)
+                ratio_of_difference = float(differencesize) / float(inputmaskarraysize)
+                # intersection is too small or difference is too great
+                if ratio_of_intersection < 0.9 or abs(ratio_of_difference-1.0) > 0.5:
+                    return ['input mask does not represent the moved pixels']
 def setup():
     ops = getOperations()
     for op, data in ops.iteritems():
@@ -374,6 +389,10 @@ def checkForDonorWithRegion(graph, frm, to):
     if len(pred) < 2:
         return 'donor image missing'
     donor = pred[0] if pred[1] == frm else pred[1]
+    edge = graph.get_edge(frm, to)
+    if 'arguments' in edge and edge['arguments'] and \
+        'purpose' in edge['arguments'] and edge['arguments']['purpose']  == 'blend':
+        return None
     if not findOp(graph, donor, 'SelectRegion'):
         return 'SelectRegion missing on path to donor'
     return None
@@ -416,6 +435,7 @@ def seamCarvingCheck(graph, frm, to):
     if change is not None and change[0] != 0 and change[1] != 0:
         return 'seam carving should not alter both dimensions of an image'
     return None
+
 
 def checkSIFT(graph, frm, to):
     """
