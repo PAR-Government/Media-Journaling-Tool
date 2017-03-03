@@ -15,11 +15,14 @@ import logging
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
+        json_data = {}
         try:
-            G =  json_graph.node_link_graph(json.load(f, encoding='utf-8'), multigraph=False, directed=True)
+            json_data = json.load(f, encoding='utf-8')
+            G =  json_graph.node_link_graph(json_data, multigraph=False, directed=True)
         except  ValueError:
-            G = json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
-        return BatchProject(G)
+            json_data = json.load(f)
+            G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
+        return BatchProject(G,json_data)
     return None
 
 def pickArg(param, local_state):
@@ -373,12 +376,13 @@ class BatchProject:
 
     G = nx.DiGraph(name="Empty")
 
-    def __init__(self,G):
+    def __init__(self,G,json_data):
         """
         :param G:
         @type G: nx.DiGraph
         """
         self.G = G
+        self.json_data = json_data
         tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
 
     def _buildLocalState(self):
@@ -404,6 +408,8 @@ class BatchProject:
             completed = [base_node]
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
+                if op_node_name in completed:
+                    continue
                 predecessors = list(self.G.predecessors(op_node_name))
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
@@ -414,6 +420,7 @@ class BatchProject:
                 connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                 completed.append(op_node_name)
+                self.logger.debug('Completed: ' + op_node_name)
                 queue.extend(self.G.successors(op_node_name))
             if recompress:
                 self.logger.debug("Run Save As")
@@ -433,6 +440,12 @@ class BatchProject:
     def dump(self):
         filename = self.getName() + '.png'
         self._draw().write_png(filename)
+        filename = self.getName() + '.csv'
+        position = 0
+        with open(filename,'w') as f:
+            for node in self.json_data['nodes']:
+                f.write(node['id']  + ',' + str(position) + '\n')
+                position += 1
 
     def _draw(self):
         import pydot
