@@ -228,7 +228,7 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
         raise ValueError('Missing edge mask from ' + source + ' to ' + target)
 
     edgeMask = edgeMask.to_array()
-    op = getOperationWithGroups(edge['op'])
+    op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
         return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, directory=directory,donorMask=donorMask,
                                                              edgeSelection=edgeSelection, overideMask=overideMask)
