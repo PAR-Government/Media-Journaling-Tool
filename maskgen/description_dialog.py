@@ -3,7 +3,7 @@ import ttk
 import tkMessageBox
 from maskgen import image_wrap
 from group_filter import GroupFilter, GroupFilterLoader
-import Tkconstants, tkFileDialog, tkSimpleDialog
+import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
@@ -1266,15 +1266,15 @@ class DecisionListDialog(ListDialog):
 
 class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     im = None
-    selectMaskName = None
     cancelled = True
     modification = None
     start_type = None
     end_type = None
+    selectMasks = None
+
 
     def __init__(self, parent,   scModel ):
         """
-
         :param parent:
         :param scModel:
         @type scModel : ImageProjectModel
@@ -1286,63 +1286,81 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.scModel = scModel
         name = scModel.start + ' to ' + scModel.end
         self.modification = scModel.getDescription()
-        self.selectMaskName = self.modification.selectMaskName
+        self.selectMasks = self.scModel.getSelectMasks()
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
+    def load_overlay(self, event, initialize=False, master=None):
+        option = self.item.get()
+        if option in self.selectMasks.keys():
+            finalNode = option
+        else:
+            finalNode = self.selectMasks.keys()[0]
+        value = os.path.split(self.selectMasks[finalNode][0])[1] if self.selectMasks[finalNode] is not None else ''
+        self.filename.set(value)
+        finalImage = self.scModel.getImageAndName(finalNode)[0]
+        imTuple  = self.selectMasks[finalNode]
+        if imTuple is None:
+            red = openImage('./icons/RedX.png').to_mask()
+            im = red.resize(finalImage.size,1)
+        else:
+            im = imTuple[1]
+        imResized = imageResizeRelative(im, (250, 250), im.size)
+        finalResized = imageResizeRelative(finalImage, (250, 250), finalImage.size)
+        finalResized = finalResized.overlay(imResized)
+        self.photo = ImageTk.PhotoImage(finalResized.toPIL())
+        if initialize:
+            self.c = Canvas(master, width=260, height=260)
+            self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW)
+        else:
+            self.c.itemconfig(self.image_on_canvas, image=self.photo)
+
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c = Canvas(master, width=250, height=250)
-        self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
+        self.item = StringVar()
+        self.item.set(self.selectMasks.keys()[0])
+        self.filename = StringVar()
+        self.load_overlay(None, initialize=True, master=master)
         self.c.grid(row=0, column=0, columnspan=2)
+        row = 1
+        self.label = Label(master, textvariable=self.filename, justify=LEFT)
+        self.label.grid(row=row, column=0, columnspan=2,sticky='EW',padx=10)
+        row += 1
+        self.optionsBox = ttk.Combobox(master,
+                                       values=list(self.selectMasks.keys()),
+                                       textvariable=self.item)
+
+        row += 1
+        self.optionsBox.grid(row=row, column=0, columnspan=2, sticky='EW')
+        self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
+        row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
         self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
                                                 onvalue="yes", offvalue="no")
-        self.useInputMaskVar = StringVar()
-        self.useInputMaskVar.set('yes' if self.modification.usesInputMaskForSelectMask() else 'no')
-        row = 1
         self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
         row += 1
-        if self.modification.inputMaskName is not None:
-            self.cbUseInputMask = Checkbutton(master, text="Use Input Mask", variable=self.useInputMaskVar,
-                                              onvalue="yes", offvalue="no", command=self.useinputmask)
-            self.cbUseInputMask.grid(row=row, column=0, columnspan=2, sticky=W)
-            row += 1
-        self.b = Button(master, text="Change Mask", command=self.changemask, borderwidth=0, relief=FLAT)
-        self.b.grid(row=row, column=0)
+        self.bc = Button(master, text="Change Mask", command=self.changemask,relief=FLAT)
+        self.bc.grid(row=row, column=0)
+        self.bd = Button(master, text="Delete Mask", command=self.deletemask,relief=FLAT)
+        self.bd.grid(row=row, column=1)
         return self.cbIncludeInComposite
 
-    def useinputmask(self):
-        if self.useInputMaskVar.get() == 'yes':
-            self.im = openImage(os.path.join(self.dir, self.modification.inputMaskName), isMask=True,
-                                preserveSnapshot=True)
-            self.selectMaskName = self.modification.inputMaskName
-        elif self.modification.changeMaskName is not None:
-            self.im = openImage(os.path.join(self.dir, self.modification.changeMaskName), isMask=True,
-                                preserveSnapshot=True)
-            self.selectMaskName = self.modification.changeMaskName
-        else:
-            self.im = ImageWrapper(np.zeros((250, 250, 3)))
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c.itemconfig(self.image_on_canvas, image=self.photo)
+    def deletemask(self):
+        self.selectMasks[self.optionsBox.get()] = None
+        self.load_overlay(None)
 
     def changemask(self):
         val = tkFileDialog.askopenfilename(initialdir=self.dir, title="Select Input Mask",
                                            filetypes=getMaskFileTypes())
         if (val != None and len(val) > 0):
-            self.selectMaskName = val
-            self.im = openImage(val, isMask=True, preserveSnapshot=os.path.split(os.path.abspath(val))[0] == dir)
-            self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-            self.c.itemconfig(self.image_on_canvas, image=self.photo)
+            self.selectMasks[self.optionsBox.get()]  = (val,openImage(val, isMask=True, preserveSnapshot=os.path.split(os.path.abspath(val))[0] == dir))
+            self.load_overlay(None)
 
     def cancel(self):
         tkSimpleDialog.Dialog.cancel(self)
 
     def apply(self):
         self.cancelled = False
-        self.modification.setSelectMaskName(self.selectMaskName)
         self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
-
 
 class CompositeViewDialog(tkSimpleDialog.Dialog):
     im = None

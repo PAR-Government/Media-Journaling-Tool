@@ -693,6 +693,7 @@ class MakeGenUI(Frame):
     def viewselectmask(self):
         d = CompositeCaptureDialog(self,self.scModel)
         if not d.cancelled:
+            self.scModel.updateSelectMask(d.selectMasks)
             self.scModel.update_edge(d.modification)
 
     def startQA(self):

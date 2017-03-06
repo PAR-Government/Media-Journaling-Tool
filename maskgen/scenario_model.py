@@ -289,8 +289,6 @@ class Modification:
     recordMaskInComposite = 'no'
     # arguments used by the operation
     arguments = dict()
-    # represents the composite selection mask, if different from the link mask
-    selectMaskName = None
     # instance of Software
     software = None
     # automated
@@ -311,7 +309,6 @@ class Modification:
                  arguments={},
                  recordMaskInComposite=None,
                  changeMaskName=None,
-                 selectMaskName=None,
                  inputMaskName=None,
                  software=None,
                  maskSet=None,
@@ -332,7 +329,6 @@ class Modification:
         if inputMaskName is not None:
             self.setInputMaskName(inputMaskName)
         self.changeMaskName = changeMaskName
-        self.selectMaskName = selectMaskName
         self.username=username if username is not None else ''
         self.ctime =ctime if ctime is not None else datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
         self.software = software
@@ -360,9 +356,6 @@ class Modification:
     def setSoftware(self, software):
         self.software = software
 
-    def usesInputMaskForSelectMask(self):
-        return self.inputMaskName == self.selectMaskName
-
     def setArguments(self, args):
         self.arguments = dict()
         for k, v in args.iteritems():
@@ -370,8 +363,6 @@ class Modification:
             if k == 'inputmaskname':
                 self.setInputMaskName(v)
 
-    def setSelectMaskName(self, selectMaskName):
-        self.selectMaskName = selectMaskName
 
     def setInputMaskName(self, inputMaskName):
         self.inputMaskName = inputMaskName
@@ -922,8 +913,7 @@ class ImageProjectModel:
                                                 mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes',
                            softwareName=('' if mod.software is None else mod.software.name),
                            softwareVersion=('' if mod.software is None else mod.software.version),
-                           inputmaskname=mod.inputMaskName,
-                           selectmaskname=mod.selectMaskName)
+                           inputmaskname=mod.inputMaskName)
         self._save_group(mod.operationName)
 
     def compare(self, destination, arguments={}):
@@ -1053,7 +1043,7 @@ class ImageProjectModel:
                         continue
                 edgeMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
                 # build composite
-                selectMasks = edge['selectmasks']
+                selectMasks =  self._getUnresolvedSelectMasksForEdge(edge)
                 composite = edgeMask.invert().to_array()
                 composite = mask_rules.alterComposite(edge,composite,edgeMask.to_array(),self.get_dir())
                 for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), composite):
@@ -1566,7 +1556,6 @@ class ImageProjectModel:
                              softwareName=('' if mod.software is None else mod.software.name),
                              softwareVersion=('' if mod.software is None else mod.software.version),
                              inputmaskname=mod.inputMaskName,
-                             selectmaskname=mod.selectMaskName,
                              automated=mod.automated,
                              semanticGroups = mod.semanticGroups,
                              errors=mod.errors,
@@ -1756,6 +1745,25 @@ class ImageProjectModel:
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
         return self.getImage(self.end)
 
+    def updateSelectMask(self,selectMasks):
+        if self.end is None:
+            return
+        sms = []
+        for k,v in selectMasks.iteritems():
+            if v is not None:
+                sms.append({'mask': v[0], 'node': k})
+        self.G.update_edge(self.start, self.end, selectmasks=sms)
+
+    def _getUnresolvedSelectMasksForEdge(self, edge):
+        """
+             A selectMask is a mask the is used in composite mask production, overriding the default link mask
+        """
+        images = edge['selectmasks'] if 'selectmasks' in edge  else []
+        sms = {}
+        for image in images:
+            sms[image['node']] = image['mask']
+        return sms
+
     def getSelectMasks(self):
         """
         A selectMask is a mask the is used in composite mask production, overriding the default link mask
@@ -1763,9 +1771,17 @@ class ImageProjectModel:
         if self.end is None:
             return {}
         edge  = self.G.get_edge(self.start, self.end)
-        if 'selectmasks' in edge:
-            return edge['selectmasks']
-        return {}
+        terminals = self._findTerminalNodes(self.end,excludeDonor=True)
+        images = edge['selectmasks'] if 'selectmasks' in edge  else []
+        sms = {}
+        for image in images:
+            sms[image['node']] = image['mask']
+        for terminal in terminals:
+            if terminal not in sms:
+                sms[terminal] = None
+            else:
+                sms[terminal] = (sms[terminal],openImageFile(os.path.join(self.get_dir(),sms[terminal]),isMask=False))
+        return sms
 
     def maskImage(self):
         if self.end is None:
@@ -2281,8 +2297,6 @@ class ImageProjectModel:
                             arguments=edge['arguments'] if 'arguments' in edge else {},
                             inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and edge[
                                 'inputmaskname'] and len(edge['inputmaskname']) > 0 else None,
-                            selectMaskName=edge['selectmaskname'] if 'selectmaskname' in edge and edge[
-                                'selectmaskname'] and len(edge['selectmaskname']) > 0 else None,
                             changeMaskName=edge['maskname'] if 'maskname' in edge else None,
                             software=Software(edge['softwareName'] if 'softwareName' in edge else None,
                                               edge['softwareVersion'] if 'softwareVersion' in edge else None,
