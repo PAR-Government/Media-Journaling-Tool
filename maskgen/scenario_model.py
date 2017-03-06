@@ -2091,6 +2091,8 @@ class ImageProjectModel:
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         software = Software(op['software'], op['version'], internal=True)
+        if 'recordInCompositeMask' in kwargs:
+            description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
         experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
         description.setArguments(
             {k: v for k, v in kwargs.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
