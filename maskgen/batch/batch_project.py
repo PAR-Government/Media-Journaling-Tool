@@ -447,6 +447,7 @@ class BatchProject:
                 f.write(node['id']  + ',' + str(position) + '\n')
                 position += 1
 
+    colors_bytype ={ 'InputMaskPluginOperation' : 'blue'}
     def _draw(self):
         import pydot
         pydot_nodes = {}
@@ -454,14 +455,17 @@ class BatchProject:
         for node_id in self.G.nodes():
             node = self.G.node[node_id]
             name = op_type = node['op_type']
-            if op_type == 'PluginOperation':
+            if op_type in ['PluginOperation','InputMaskPluginOperation']:
                 name = node['plugin']
+            color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
-                                              shape='plain')
+                                              shape='plain',
+                                              color=color)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.G.edges():
-            edge = self.G.edge[edge_id[0]][edge_id[1]]
-            color = 'black'
+            node = self.G.node[edge_id[0]]
+            op_type = node['op_type']
+            color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pygraph.add_edge(
                 pydot.Edge(pydot_nodes[edge_id[0]], pydot_nodes[edge_id[1]],  color=color))
         return pygraph
