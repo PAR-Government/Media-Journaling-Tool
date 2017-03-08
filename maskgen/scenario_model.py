@@ -842,6 +842,7 @@ class ImageProjectModel:
     G = None
     start = None
     end = None
+    notify = None
     """
     @type G: ImageGraph
     @type start: String
@@ -850,8 +851,8 @@ class ImageProjectModel:
     lock = Lock()
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,baseImageFileName=None):
-        self._setup(projectFileName, graph=graph,baseImageFileName=baseImageFileName)
         self.notify = notify
+        self._setup(projectFileName, graph=graph,baseImageFileName=baseImageFileName)
 
     def get_dir(self):
         return self.G.dir
