@@ -1488,7 +1488,7 @@ class QAViewDialog(Toplevel):
 
     def _compose_label(self,edge):
         op  = edge['op']
-        if 'semanticGroups' in edge:
+        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
             groups = edge['semanticGroups']
             op += ' [' + ', '.join(groups) + ']'
         return op

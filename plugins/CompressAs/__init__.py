@@ -72,7 +72,7 @@ def sort_tables(tablesList):
             newTables.append(tempTable)
     return newTables
 
-def check_rotate(im, jpg_file_name):
+def ca_check_rotate(im, jpg_file_name):
     return Image.fromarray(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
 def get_subsampling(im):
@@ -114,7 +114,7 @@ def cs_save_as(source, target, donor, qTables,rotate):
         im = Image.open(fp)
         im.load()
     if rotate:
-      im = check_rotate(im,donor)
+      im = ca_check_rotate(im,donor)
     sbsmp = get_subsampling(donor)
     try:
         im.save(target, subsampling=sbsmp, qtables=finalTable)
