@@ -9,8 +9,8 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 
 
-snapshot='.52bb2811db'
-igversion='0.4.0101' + snapshot
+snapshot='.f7d9a62a7e'
+igversion='0.4.0308' + snapshot
 
 
 def current_version():
