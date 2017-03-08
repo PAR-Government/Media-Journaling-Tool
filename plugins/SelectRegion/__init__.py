@@ -36,11 +36,11 @@ def transform(img,source,target,**kwargs):
     cnts = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
     cnts = cnts[0: min(15,len(cnts))]
     cnt = random.choice(cnts)
-    max_mask = numpy.zeros(denoise_img.shape, numpy.uint8)
-    cv2.fillPoly(max_mask, pts=[cnt[0]], color=(255, 255, 255))
+    max_mask = numpy.zeros((denoise_img.shape[0],denoise_img.shape[1]), numpy.uint8)
+    cv2.fillPoly(max_mask, pts=[cnt[0]], color=255)
     rgba = numpy.asarray(img.convert('RGBA'))
     rgba = numpy.copy(rgba)
-    rgba[numpy.all(max_mask!=[255,255,255],axis=2),3] = 0
+    rgba[max_mask!=255] = 0
     ImageWrapper(rgba).save(target)
     return None,None
 

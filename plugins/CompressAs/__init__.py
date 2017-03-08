@@ -72,15 +72,16 @@ def sort_tables(tablesList):
             newTables.append(tempTable)
     return newTables
 
-def check_rotate(im, jpg_file_name):
+def ca_check_rotate(im, jpg_file_name):
     return Image.fromarray(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
 def get_subsampling(im):
     ss = maskgen.exif.getexif(im, ['-f', '-n', '-args', '-YCbCrSubsampling'], separator='=')
     # can only handle 4:4:4, 4:2:2, or 4:1:1
-    if ss['-YCbCrSubSampling'] == '2 1':
+    yyval = ss['-YCbCrSubSampling'] if '-YCbCrSubSampling' in ss else ''
+    if yyval == '2 1':
         return '4:2:2'
-    elif ss['-YCbCrSubSampling'] == '4 1' or ss['-YCbCrSubSampling'] == '2 2':
+    elif yyval in ['4 1','2 2']:
         return '4:1:1'
     else:
         return '4:4:4'
@@ -114,7 +115,7 @@ def cs_save_as(source, target, donor, qTables,rotate):
         im = Image.open(fp)
         im.load()
     if rotate:
-      im = check_rotate(im,donor)
+      im = ca_check_rotate(im,donor)
     sbsmp = get_subsampling(donor)
     try:
         im.save(target, subsampling=sbsmp, qtables=finalTable)
