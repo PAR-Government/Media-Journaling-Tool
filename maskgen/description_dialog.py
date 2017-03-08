@@ -1299,14 +1299,16 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.filename.set(value)
         finalImage = self.scModel.getImageAndName(finalNode)[0]
         imTuple  = self.selectMasks[finalNode]
+        color = [0,198,0]
         if imTuple is None:
             red = openImage('./icons/RedX.png').to_mask()
+            color = [198,0,0]
             im = red.resize(finalImage.size,1)
         else:
             im = imTuple[1]
         imResized = imageResizeRelative(im, (250, 250), im.size)
         finalResized = imageResizeRelative(finalImage, (250, 250), finalImage.size)
-        finalResized = finalResized.overlay(imResized)
+        finalResized = finalResized.overlay(imResized,color=color)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize:
             self.c = Canvas(master, width=260, height=260)
