@@ -40,7 +40,7 @@ def transform(img,source,target,**kwargs):
     cv2.fillPoly(max_mask, pts=[cnt[0]], color=255)
     rgba = numpy.asarray(img.convert('RGBA'))
     rgba = numpy.copy(rgba)
-    rgba[numpy.all(max_mask!=255)] = 0
+    rgba[max_mask!=255] = 0
     ImageWrapper(rgba).save(target)
     return None,None
 

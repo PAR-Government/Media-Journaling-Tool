@@ -101,13 +101,13 @@ def transform_image(image,transform_matrix):
     :return:
     @rtype array
     """
-    return cv2.warpAffine(image,transform_matrix,(image.shape[0],image.shape[1]))
+    return cv2.warpAffine(image,transform_matrix,(image.shape[1],image.shape[0]))
 
 def widthandheight(img):
     a = np.where(img != 0)
     bbox = np.min(a[0]), np.max(a[0]), np.min(a[1]), np.max(a[1])
-    w,h = bbox[1] - bbox[0], bbox[3] - bbox[2]
-    return bbox[0]+w/2,bbox[2]+h/2,w,h
+    h,w = bbox[1] - bbox[0], bbox[3] - bbox[2]
+    return bbox[2],bbox[0],w,h
 
 def place_in_image(mask,image_to_place,image_to_cover, placement_center):
     x,y,w, h = widthandheight(mask)
@@ -115,26 +115,18 @@ def place_in_image(mask,image_to_place,image_to_cover, placement_center):
     h += h%2
     x_offset = int(placement_center[0]) - int(math.floor(w/2))
     y_offset = int(placement_center[1]) - int(math.floor(h/2))
-    mask_x_offset = int(x) - int(math.floor(w / 2))
-    mask_y_offset = int(y) - int(math.floor(h / 2))
-    if mask_y_offset<0:
-        return None
-    if mask_x_offset<0:
-        return None
     if y_offset < 0:
         return None
     if x_offset < 0:
         return None
-    if w < 25 or h < 25:
-        return None
     image_to_cover = np.copy(image_to_cover)
     flipped_mask = 255 - mask
     for c in range(0, 3):
-        image_to_cover[x_offset:x_offset + w,y_offset:y_offset + h,  c] = \
-        image_to_cover[ x_offset:x_offset + w,y_offset:y_offset + h, c] * \
-        (flipped_mask[mask_x_offset:mask_x_offset+w,mask_y_offset:mask_y_offset+h]/255) + \
-        image_to_place[mask_x_offset:mask_x_offset + w,mask_y_offset:mask_y_offset + h, c] * \
-        (mask[mask_x_offset:mask_x_offset + w,mask_y_offset:mask_y_offset + h]/255)
+        image_to_cover[y_offset:y_offset + h,x_offset:x_offset + w,  c] = \
+        image_to_cover[y_offset:y_offset + h,x_offset:x_offset + w,  c] * \
+        (flipped_mask[y:y+h,x:x+w]/255) + \
+        image_to_place[y:y + h,x:x+ w, c] * \
+        (mask[y:y + h,x:x + w]/255)
     return image_to_cover
 
 def minimum_bounding_rectangle(image):
@@ -209,8 +201,8 @@ def minimum_bounding_rectangle(image):
 
 def pasteAnywhere(img, img_to_paste,mask_of_image_to_paste,mask_of_image_to_paste_ellipse):
     w,h,area,x,y = minimum_bounding_box(mask_of_image_to_paste)
-    xplacement = random.randint(w/2+1, img.size[1]-w/2-1)
-    yplacement = random.randint(h/2+1,img.size[0]-h/2-1)
+    xplacement = random.randint(w/2+1, img.size[0]-w/2-1)
+    yplacement = random.randint(h/2+1,img.size[1]-h/2-1)
     return place_in_image(
                           ImageWrapper(img_to_paste).to_mask().to_array(),
                           img_to_paste,
@@ -225,6 +217,8 @@ def transform(img,source,target,**kwargs):
     gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
     mask_of_image_to_paste_ellipse = minimum_bounding_ellipse(mask_of_image_to_paste)
+    if mask_of_image_to_paste_ellipse is None:
+        print 'Cannot paste an empty selection mask'
     img_to_paste = img_to_paste.apply_mask_rgba(mask_of_image_to_paste)
     out2 = None
     w, h, area, x, y = minimum_bounding_box(mask_of_image_to_paste)
@@ -268,9 +262,9 @@ def transform(img,source,target,**kwargs):
                 for contour in contours:
                     try:
                         cnt = contour[0]
-                        mask = np.zeros(labels1.shape)
+                        mask = np.zeros(labels1.shape).astype('uint8')
                         cv2.fillConvexPoly(mask,cnt,255)
-                        placement_ellipse = minimum_bounding_ellipse(mask.astype('uint8'))
+                        placement_ellipse = minimum_bounding_ellipse(mask)
                         if placement_ellipse is None:
                            continue
                         #if placement_ellipse[0] < xbounds[0] or placement_ellipse[0] > xbounds[1] or \
