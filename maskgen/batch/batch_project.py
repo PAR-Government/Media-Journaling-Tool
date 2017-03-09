@@ -15,27 +15,30 @@ import logging
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
+        json_data = {}
         try:
-            G =  json_graph.node_link_graph(json.load(f, encoding='utf-8'), multigraph=False, directed=True)
+            json_data = json.load(f, encoding='utf-8')
+            G =  json_graph.node_link_graph(json_data, multigraph=False, directed=True)
         except  ValueError:
-            G = json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
-        return BatchProject(G)
+            json_data = json.load(f)
+            G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
+        return BatchProject(G,json_data)
     return None
 
 def pickArg(param, local_state):
     if param['type'] == 'list':
         return random.choice(param['values'])
-    elif param['type'] == 'int':
+    elif 'int' in param['type']  :
         v = param['type']
         vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len (vals) > 0 else 0
-        end = vals[1] if len(vals) > 2 else 0
+        end = vals[1] if len(vals) > 1 else beg+1
         return random.randint(beg, end)
-    elif param['type'] == 'float':
+    elif 'float' in param['type'] :
         v = param['type']
         vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 2 else 0
+        end = vals[1] if len(vals) > 1 else beg+1.0
         diff = end - beg
         return beg+ random.random()* diff
     elif param['type'] == 'yesno':
@@ -76,6 +79,8 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
         return specification['value']
     if specification['type'] == 'list':
         return random.choice(specification['values'])
+    if specification['type'] == 'variable':
+        return getNodeState(specification['source'], local_state)[specification['name']]
     if specification['type'] == 'donor':
         if 'source' in specification:
             return getNodeState(specification['source'], local_state)['node']
@@ -83,9 +88,11 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
     if specification['type'] == 'imagefile':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
+    if specification['type'] == 'input':
+        return getNodeState(specification['source'], local_state)['output']
     if specification['type'] == 'plugin':
         return  callPluginSpec(specification)
-    return None
+    return pickArg(specification,local_state)
 
 def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
     """
@@ -260,7 +267,10 @@ class PluginOperation(BatchOperation):
         """
         my_state = getNodeState(node_name,local_state)
 
-        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) if predecessor != connect_to_node_name]
+        predecessors = [getNodeState(predecessor, local_state)['node'] \
+                        for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+
         predecessor_state=getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
@@ -283,8 +293,74 @@ class PluginOperation(BatchOperation):
             local_state['model'].selectImage(my_state['node'])
         return local_state['model']
 
+class InputMaskPluginOperation(PluginOperation):
+    logger = logging.getLogger('InputMaskPluginOperation')
+
+    def execute(self, graph, node_name, node,connect_to_node_name, local_state={},global_state={}):
+        """
+        Add a node through an operation.
+        :param graph:
+        :param node_name:
+        :param node:
+        :param connect_to_node_name:
+        :param local_state:
+        :param global_state:
+        :return:
+        @type graph: nx.DiGraph
+        @type node_name : str
+        @type node: Dict
+        @type connect_to_node_name : str
+        @type global_state: Dict
+        @type global_state: Dict
+        @rtype: scenario_model.ImageProjectModel
+        """
+        my_state = getNodeState(node_name,local_state)
+
+        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+        predecessor_state=getNodeState(connect_to_node_name, local_state)
+        local_state['model'].selectImage(predecessor_state['node'])
+        im, filename = local_state['model'].currentImage()
+        plugin_name = node['plugin']
+        plugin_op = plugins.getOperation(plugin_name)
+        if plugin_op is None:
+            raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
+        op = software_loader.getOperation(plugin_op['name'],fake=True)
+        args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        targetfile,params = self.imageFromPlugin(plugin_name, im, filename, **args)
+        my_state['output'] = targetfile
+        if params is not None and type(params) == type({}):
+            for k, v in params.iteritems():
+                my_state[k] = v
+        return local_state['model']
+
+    def imageFromPlugin(self, filter, im, filename, **kwargs):
+        import tempfile
+        """
+          @type filter: str
+          @type im: ImageWrapper
+          @type filename: str
+          @rtype: list of (str, list (str,str))
+        """
+        file = os.path.split(filename)[1]
+        file = file[0:file.rfind('.')]
+        target = os.path.join(tempfile.gettempdir(),  file+ '_' + filter + '.png')
+        shutil.copy2(filename, target)
+        params = {}
+        try:
+            extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
+            if extra_args is not None and type(extra_args) == type({}):
+                for k, v in extra_args.iteritems():
+                    if k not in kwargs:
+                        params[k] = v
+        except Exception as e:
+            msg = str(e)
+            raise ValueError("Plugin " + filter + " failed:" + msg)
+        return target,params
+
+
 batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
-                    'PluginOperation' : PluginOperation()}
+                    'PluginOperation' : PluginOperation(),'InputMaskPluginOperation' : InputMaskPluginOperation()}
 
 def getOperationGivenDescriptor(descriptor):
     """
@@ -300,12 +376,13 @@ class BatchProject:
 
     G = nx.DiGraph(name="Empty")
 
-    def __init__(self,G):
+    def __init__(self,G,json_data):
         """
         :param G:
         @type G: nx.DiGraph
         """
         self.G = G
+        self.json_data = json_data
         tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
 
     def _buildLocalState(self):
@@ -331,15 +408,19 @@ class BatchProject:
             completed = [base_node]
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
+                if op_node_name in completed:
+                    continue
                 predecessors = list(self.G.predecessors(op_node_name))
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
                     continue
-                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)]
+                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
+                            if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
                 #if not self.G.edge[predecessor][op_node_name]['donor']]
                 connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                 completed.append(op_node_name)
+                self.logger.debug('Completed: ' + op_node_name)
                 queue.extend(self.G.successors(op_node_name))
             if recompress:
                 self.logger.debug("Run Save As")
@@ -359,7 +440,14 @@ class BatchProject:
     def dump(self):
         filename = self.getName() + '.png'
         self._draw().write_png(filename)
+        filename = self.getName() + '.csv'
+        position = 0
+        with open(filename,'w') as f:
+            for node in self.json_data['nodes']:
+                f.write(node['id']  + ',' + str(position) + '\n')
+                position += 1
 
+    colors_bytype ={ 'InputMaskPluginOperation' : 'blue'}
     def _draw(self):
         import pydot
         pydot_nodes = {}
@@ -367,14 +455,17 @@ class BatchProject:
         for node_id in self.G.nodes():
             node = self.G.node[node_id]
             name = op_type = node['op_type']
-            if op_type == 'PluginOperation':
+            if op_type in ['PluginOperation','InputMaskPluginOperation']:
                 name = node['plugin']
+            color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
-                                              shape='plain')
+                                              shape='plain',
+                                              color=color)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.G.edges():
-            edge = self.G.edge[edge_id[0]][edge_id[1]]
-            color = 'black'
+            node = self.G.node[edge_id[0]]
+            op_type = node['op_type']
+            color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pygraph.add_edge(
                 pydot.Edge(pydot_nodes[edge_id[0]], pydot_nodes[edge_id[1]],  color=color))
         return pygraph

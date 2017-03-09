@@ -847,7 +847,7 @@ class ImageGraph:
                         (str(nname), str(nname), str(nname) + ' missing ' + pathvalue))
         return errors
 
-    def _output_summary(self,archive):
+    def _output_summary(self,archive, options={}):
         """
         Add a summary PNG to the archicve
         :param archive: TarFile
@@ -857,7 +857,7 @@ class ImageGraph:
         from graph_output import ImageGraphPainter
         summary_file = os.path.join(self.dir, '_overview_.png')
         try:
-            ImageGraphPainter(self).output(summary_file)
+            ImageGraphPainter(self).output(summary_file,options=options)
             archive.add(summary_file,
                     arcname=os.path.join(self.G.name, '_overview_.png'))
         except Exception as e:

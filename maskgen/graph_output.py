@@ -17,7 +17,7 @@ class ImageGraphPainter:
         """
         self.graph = graph
 
-    def outputToFile(self, file):
+    def outputToFile(self, file,options={}):
         """
         :param file:
         :return:
@@ -31,10 +31,10 @@ class ImageGraphPainter:
             filename = file.name
         if not filename.endswith('.png'):
             filename = filename + '.png'
-        self._draw().write_png(filename)
+        self._draw(pluginName=('use_plugin_name' in options and options['use_plugin_name'])).write_png(filename)
         return filename
 
-    def output(self, filename):
+    def output(self, filename,options={}):
         """
         :param filename:
         :return:
@@ -43,14 +43,14 @@ class ImageGraphPainter:
         """
         if not filename.endswith('.png'):
             filename = filename + '.png'
-        self._draw().write_png(filename)
+        self._draw(pluginName=('use_plugin_name' in options and options['use_plugin_name'])).write_png(filename)
         return filename
 
     def _node_id_filename(self,node_id):
         import re
         return re.sub('[\(\)\&\:\-\? ]', '_', node_id) + '_thb.png'
 
-    def _draw(self):
+    def _draw(self, pluginName=False):
         import pydot
         import cgi
         pydot_nodes = {}
@@ -68,7 +68,8 @@ class ImageGraphPainter:
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.graph.get_edges():
             edge = self.graph.get_edge(edge_id[0],edge_id[1])
+            label = edge['plugin_name'] if 'plugin_name' in edge and pluginName else edge['op']
             blue = "blue" if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' else 'black'
-            pygraph.add_edge(pydot.Edge(pydot_nodes[edge_id[0]],pydot_nodes[edge_id[1]],label=edge['op'], color = blue))
+            pygraph.add_edge(pydot.Edge(pydot_nodes[edge_id[0]],pydot_nodes[edge_id[1]],label=label, color = blue))
         return pygraph
 

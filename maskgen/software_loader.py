@@ -120,6 +120,8 @@ def getOperation(name, fake = False):
     global operations
     if name == 'Donor':
         return Operation(name='Donor', category='Donor')
+    if name not in operations:
+        print 'Requested missing operation ' + str(name)
     return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)
 
 
