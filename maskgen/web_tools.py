@@ -3,13 +3,15 @@
 
 def loadS3(values):
   import boto3
+  import os
   print 'Download operations and software via S3'
   s3 = boto3.client('s3','us-east-1')
   BUCKET = values[0][0:values[0].find('/')]
   DIR=values[0][values[0].find('/')+1:]
-  s3.download_file( BUCKET,DIR + "/operations.json", "operations.json")
-  s3.download_file( BUCKET,DIR + "/software.csv", "software.csv")
-  s3.download_file( BUCKET,DIR + "/project_properties.json", "project_properties.json")
+  place = os.path.abspath(os.getenv('MASKGEN_RESOURCES', '.'))
+  s3.download_file( BUCKET,DIR + "/operations.json", os.path.join(place,"operations.json"))
+  s3.download_file( BUCKET,DIR + "/software.csv", os.path.join(place,"software.csv"))
+  s3.download_file( BUCKET,DIR + "/project_properties.json", os.path.join(place,"project_properties.json"))
 
 def loadHTTP(values):
     import requests

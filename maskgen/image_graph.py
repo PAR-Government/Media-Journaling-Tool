@@ -65,28 +65,43 @@ def getPathValues(d, path):
     return all the values reference by the given path.
     Always returns a list.
     If the value is not found, the list is empty
+
+    NOTE: Processing a list is its own recursion.
     """
+    pos = path.find('.')
+    currentpath = path[0:pos] if pos > 0 else path
+    nextpath = path[pos+1:] if pos > 0 else None
+    lbracket = path.find('[')
+    itemnum= None
+    if lbracket >= 0 and (pos < 0 or lbracket < pos):
+        rbracket = path.find(']')
+        itemnum = int(path[lbracket + 1:rbracket])
+        currentpath = path[0:lbracket]
+        # keep the bracket for the next recurive depth
+        nextpath = path[lbracket:] if lbracket > 0 else nextpath
     if type(d) is list:
         result = []
-        for item in d:
-            result.extend(getPathValues(item, path))
+        if itemnum is not None:
+            result.extend(getPathValues(d[itemnum], nextpath))
+        else:
+            for item in d:
+                #still on the current path node
+                result.extend(getPathValues(item, path))
         return result
-    pos = path.find('.')
     if pos < 0:
-        if path == '*':
+        if currentpath == '*':
             result = []
             for k, v in d.iteritems():
                 result.append(v)
             return result
-        return [d[path]] if path in d and d[path] else []
+        return [d[currentpath]] if currentpath in d and d[currentpath] else []
     else:
-        nextpath = path[0:pos]
-        if nextpath == '*':
+        if currentpath == '*':
             result = []
             for k,v in d.iteritems():
-                result.extend(getPathValues(v, path[pos + 1:]))
+                result.extend(getPathValues(v, nextpath))
             return result
-        return getPathValues(d[nextpath], path[pos + 1:]) if nextpath in d else []
+        return getPathValues(d[currentpath], nextpath) if currentpath in d else []
 
 
 def getPathPartAndValue(path, data):
@@ -198,7 +213,7 @@ class ImageGraph:
                      'arguments.PNG File Name': 'pngfileownership',
                      'arguments.convolutionkernel': 'convolutionfileownership',
                      'maskname': None,
-                     'selectmaskname': 'selectmaskownership',
+                     'selectmasks.mask': None,
                      'videomasks.videosegment': None}
     nodeFilePaths = {'compositemaskname': None,
                      'proxyfile':None,
@@ -897,16 +912,22 @@ class ImageGraph:
 
     def _updatePathValue(self, d, path, value):
         pos = path.find('.')
+        lbracket = path.find('[')
+        listpos = None
+        nextpath = path[pos + 1:] if pos > 0 else None
+        if lbracket>0 and (pos < 0 or lbracket < pos):
+            rbracket = path.find(']')
+            listpos  = int(path[lbracket+1:rbracket])
+            pos = lbracket
         if pos < 0:
-            d[path] = value
+            if listpos is not None:
+                d[path][listpos] = value
+            else:
+                d[path] = value
+        elif listpos is not None:
+            self._updatePathValue(d[path[0:pos]][listpos], nextpath, value)
         else:
-            self._updatePathValue(d[path[0:pos]], path[pos + 1:], value)
-
-    def _buildPath(self, value, edgePaths):
-        if type(value) is dict and edgePaths[0] in value:
-            return edgePaths[0] + (
-            ("." + self._buildPath(value[edgePaths[0]], edgePaths[1:])) if len(edgePaths) > 1 else '')
-        return ''
+            self._updatePathValue(d[path[0:pos]], nextpath, value)
 
     def getLastUpdateTime(self):
         return strptime(self.G.graph['updatetime'],"%Y-%m-%d %H:%M:%S")
@@ -915,25 +936,49 @@ class ImageGraph:
         self.G.graph['updatetime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         self.G.graph['igversion'] = igversion
 
-
     def _buildStructure(self, path, value):
         pos = path.find('.')
         if pos > 0:
             return {path[0:pos]: self._buildStructure(path[pos + 1:], value)}
         return {path: value}
 
+    def _buildPath(self, value, edgePaths):
+        r = []
+        if type(value) is list:
+            for c in range(len(value)):
+                iv = value[c]
+                for path in self._buildPath( iv, edgePaths):
+                    if len(path) > 0:
+                        r.append('[{1:d}].{0}.{2}'.format( edgePaths[0],c, path))
+                    else:
+                        r.append('[{1:d}].{0}'.format(edgePaths[0], c))
+            return r
+        if type(value) is dict and edgePaths[0] in value:
+           for path in self._buildPath(value[edgePaths[0]], edgePaths[1:]):
+                r.append(edgePaths[0] + "." + path if len(edgePaths) > 1 else '')
+           return [x.replace('.[','[') for x in r]
+        return ['']
+
+    def _matchPath(self, path, pathTemplate):
+        pos = path.find('[')
+        while pos > 0:
+            end = path.find(']')
+            path = path[0:pos] + path[end+1:]
+            pos = path.find('[')
+        return path == pathTemplate
+
     def _updateEdgePathValue(self, start, end, path, value):
         self._updatePathValue(self.G[start][end], path, value)
         for edgePath in self.edgeFilePaths:
             struct = self._buildStructure(path, value)
-            revisedPath = self._buildPath(struct, edgePath.split('.'))
-            if revisedPath == edgePath:
-                ownership = self.edgeFilePaths[revisedPath]
-                if ownership:
-                    filenamevalue, ownershipvalue = self._handle_inputfile(getPathValues(struct, revisedPath)[0])
-                    self._updatePathValue(self.G[start][end], revisedPath, filenamevalue)
-                    self._updatePathValue(self.G[start][end], ownership, ownershipvalue)
-                return
+            for revisedPath in self._buildPath(struct, edgePath.split('.')):
+                if self._matchPath(revisedPath, edgePath):
+                    ownership = self.edgeFilePaths[edgePath]
+                    for pathValue in  getPathValues(struct, revisedPath):
+                        filenamevalue, ownershipvalue = self._handle_inputfile(pathValue)
+                        self._updatePathValue(self.G[start][end], revisedPath, filenamevalue)
+                        if ownership:
+                            self._updatePathValue(self.G[start][end], ownership, ownershipvalue)
 
     def create_path_archive(self, location, end):
         self.save()

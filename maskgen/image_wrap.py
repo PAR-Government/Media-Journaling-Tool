@@ -433,7 +433,7 @@ class ImageWrapper:
         xx[:, :, self.image_array.shape[2]-1] = np.ones((xx.shape[0], xx.shape[1])) * float(np.iinfo(self.image_array.dtype).max)
         return ImageWrapper(xx)
 
-    def overlay(self, image):
+    def overlay(self, image, color=[0,198,0]):
         """
         :param image:
         :return:new image with give n image overlayed
@@ -444,7 +444,7 @@ class ImageWrapper:
         if len(image_to_use.shape) != len(image.image_array.shape):
             image_array =  np.zeros(image_to_use.shape)
             image_array = image_array.astype('uint8')
-            image_array[image.image_array<150,:] = [0, 198, 0]
+            image_array[image.image_array<150,:] = color
             image_array[image.image_array >= 150, :] = [0, 0, 0]
         else:
             image_array = np.copy(np.asarray(image.image_array))

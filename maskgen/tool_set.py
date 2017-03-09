@@ -1146,6 +1146,17 @@ def __findBestMatch(big, small):
         return None
     return tuple
 
+def bm(X,patch):
+    from sklearn.metrics  import mean_absolute_error
+    bv = 999999.0
+    bp = (0,0)
+    for i in range(X.shape[0]-patch.shape[0]):
+        for j in range(X.shape[1] - patch.shape[1]):
+            v = mean_absolute_error (X[i:i+patch.shape[0],j:j+patch.shape[1]],patch)
+            if v < bv:
+                bv = v
+                bp = (i,j)
+    return bp,bv
 
 def __composeSeamMask(img1, img2):
     if img1.shape[0] < img2.shape[0]:
@@ -1308,7 +1319,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
-    if (location != (0, 0) or crop):
+    if ((location != (0, 0) or crop) and not carve):
         upperBound = (min(res.shape[0], expectedSize[0] + location[0]), min(res.shape[1], expectedSize[1] + location[1]))
         res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if transformMatrix is not None and not cut and flip is None:
@@ -1343,7 +1354,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     # if we are cutting, then do not want to use the edge mask as mask for transformation.
     # see the cut section below, where the transform occurs directly on the mask
     # this  occurs in donor cases
-    if (location != (0, 0) or crop):
+    if ((location != (0, 0) or crop) and not cut):
         newRes = np.zeros(expectedSize).astype('uint8')
         upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
         newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),

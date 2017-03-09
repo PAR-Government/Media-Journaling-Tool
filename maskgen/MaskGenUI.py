@@ -691,13 +691,9 @@ class MakeGenUI(Frame):
                                   description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
 
     def viewselectmask(self):
-        im, filename = self.scModel.getSelectMask()
-        if (im is None):
-            return
-        name = self.scModel.start + ' to ' + self.scModel.end
-        d = CompositeCaptureDialog(self, self.scModel.getStartType(), self.scModel.getEndType(), self.scModel.get_dir(),
-                                   im, name, self.scModel.getDescription())
+        d = CompositeCaptureDialog(self,self.scModel)
         if not d.cancelled:
+            self.scModel.updateSelectMask(d.selectMasks)
             self.scModel.update_edge(d.modification)
 
     def startQA(self):

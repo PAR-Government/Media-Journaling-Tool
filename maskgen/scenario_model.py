@@ -289,8 +289,6 @@ class Modification:
     recordMaskInComposite = 'no'
     # arguments used by the operation
     arguments = dict()
-    # represents the composite selection mask, if different from the link mask
-    selectMaskName = None
     # instance of Software
     software = None
     # automated
@@ -311,7 +309,6 @@ class Modification:
                  arguments={},
                  recordMaskInComposite=None,
                  changeMaskName=None,
-                 selectMaskName=None,
                  inputMaskName=None,
                  software=None,
                  maskSet=None,
@@ -332,7 +329,6 @@ class Modification:
         if inputMaskName is not None:
             self.setInputMaskName(inputMaskName)
         self.changeMaskName = changeMaskName
-        self.selectMaskName = selectMaskName
         self.username=username if username is not None else ''
         self.ctime =ctime if ctime is not None else datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
         self.software = software
@@ -360,9 +356,6 @@ class Modification:
     def setSoftware(self, software):
         self.software = software
 
-    def usesInputMaskForSelectMask(self):
-        return self.inputMaskName == self.selectMaskName
-
     def setArguments(self, args):
         self.arguments = dict()
         for k, v in args.iteritems():
@@ -370,8 +363,6 @@ class Modification:
             if k == 'inputmaskname':
                 self.setInputMaskName(v)
 
-    def setSelectMaskName(self, selectMaskName):
-        self.selectMaskName = selectMaskName
 
     def setInputMaskName(self, inputMaskName):
         self.inputMaskName = inputMaskName
@@ -923,8 +914,7 @@ class ImageProjectModel:
                                                 mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes',
                            softwareName=('' if mod.software is None else mod.software.name),
                            softwareVersion=('' if mod.software is None else mod.software.version),
-                           inputmaskname=mod.inputMaskName,
-                           selectmaskname=mod.selectMaskName)
+                           inputmaskname=mod.inputMaskName)
         self._save_group(mod.operationName)
 
     def compare(self, destination, arguments={}):
@@ -1052,12 +1042,19 @@ class ImageProjectModel:
                     if len(sample_probes) > 0:
                         probes.extend(sample_probes)
                         continue
-                selectMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
+                edgeMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
                 # build composite
-                composite = selectMask.invert().to_array()
-                composite = mask_rules.alterComposite(edge,composite,selectMask.to_array(),self.get_dir())
+                selectMasks =  self._getUnresolvedSelectMasksForEdge(edge)
+                composite = edgeMask.invert().to_array()
+                composite = mask_rules.alterComposite(edge,composite,edgeMask.to_array(),self.get_dir())
                 for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), composite):
                     target_mask = target_mask.invert()
+                    if finalNodeId in selectMasks:
+                        try:
+                           tm = openImageFile(os.path.join(self.get_dir(),selectMasks[finalNodeId]),isMask=True)
+                           target_mask = tm
+                        except Exception as e:
+                           print 'bad replacement file ' + selectMasks[finalNodeId]
                     target_mask_filename = os.path.join(self.get_dir(),
                                                         edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
                     target_mask.save(target_mask_filename, format='PNG')
@@ -1256,16 +1253,14 @@ class ImageProjectModel:
         for successor in successors:
             source = edge_id[1]
             target = successor
-            edge = self.G.get_edge(source,target)
+            edge = self.G.get_edge(source, target)
             if edge['op'] == 'Donor':
                 continue
-            edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
-            selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
-            edgeMask = selectMask if selectMask is not None else edgeMask
+            edgeMask = self.G.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)[0]
             if edgeMask is None:
                 raise ValueError('Missing edge mask from ' + source + ' to ' + target)
             edgeMask = edgeMask.to_array()
-            newMask = mask_rules.alterComposite(edge,mask,edgeMask,self.get_dir())
+            newMask = mask_rules.alterComposite(edge, mask, edgeMask, self.get_dir())
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
 
@@ -1562,7 +1557,6 @@ class ImageProjectModel:
                              softwareName=('' if mod.software is None else mod.software.name),
                              softwareVersion=('' if mod.software is None else mod.software.version),
                              inputmaskname=mod.inputMaskName,
-                             selectmaskname=mod.selectMaskName,
                              automated=mod.automated,
                              semanticGroups = mod.semanticGroups,
                              errors=mod.errors,
@@ -1752,17 +1746,42 @@ class ImageProjectModel:
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
         return self.getImage(self.end)
 
-    def getSelectMask(self):
+    def updateSelectMask(self,selectMasks):
+        if self.end is None:
+            return
+        sms = []
+        for k,v in selectMasks.iteritems():
+            if v is not None:
+                sms.append({'mask': v[0], 'node': k})
+        self.G.update_edge(self.start, self.end, selectmasks=sms)
+
+    def _getUnresolvedSelectMasksForEdge(self, edge):
+        """
+             A selectMask is a mask the is used in composite mask production, overriding the default link mask
+        """
+        images = edge['selectmasks'] if 'selectmasks' in edge  else []
+        sms = {}
+        for image in images:
+            sms[image['node']] = image['mask']
+        return sms
+
+    def getSelectMasks(self):
         """
         A selectMask is a mask the is used in composite mask production, overriding the default link mask
         """
         if self.end is None:
-            return None, None
-        mask = self.G.get_edge_image(self.start, self.end, 'maskname')
-        selectMask = self.G.get_edge_image(self.start, self.end, 'selectmaskname')
-        if selectMask[0] != None:
-            return selectMask
-        return mask
+            return {}
+        edge  = self.G.get_edge(self.start, self.end)
+        terminals = self._findTerminalNodes(self.end,excludeDonor=True, includeOps=['Recapture','TransformWarp','TransformContentAwareScale','TransformDistort','TransformSkew'])
+        images = edge['selectmasks'] if 'selectmasks' in edge  else []
+        sms = {}
+        for image in images:
+            if image['node'] in terminals:
+                sms[image['node']] = (image['mask'], openImageFile(os.path.join(self.get_dir(), image['mask']), isMask=False))
+        for terminal in terminals:
+            if terminal not in sms:
+                sms[terminal] = None
+        return sms
 
     def maskImage(self):
         if self.end is None:
@@ -1962,16 +1981,19 @@ class ImageProjectModel:
         elif 'nodetype' not in self.G.get_node(destination):
             self.__assignLabel(destination, 'base')
 
-    def _findTerminalNodes(self, node, excludeDonor=False):
-        return self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor)
+    def _findTerminalNodes(self, node, excludeDonor=False,includeOps=None):
+        return self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor,includeOps=includeOps)
 
-    def _findTerminalNodesWithCycleDetection(self, node, visitSet=list(),excludeDonor=False):
+    def _findTerminalNodesWithCycleDetection(self, node, visitSet=list(),excludeDonor=False,includeOps=None):
         succs = self.G.successors(node)
         res = [node] if len(succs) == 0 else list()
         for succ in succs:
             if succ in visitSet:
                 continue
-            if self.G.get_edge(node, succ)['op'] == 'Donor' and excludeDonor:
+            op = self.G.get_edge(node, succ)['op']
+            if  op == 'Donor' and excludeDonor:
+                continue
+            if includeOps is not None and op not in includeOps:
                 continue
             visitSet.append(succ)
             res.extend(self._findTerminalNodesWithCycleDetection(succ, visitSet=visitSet,excludeDonor=excludeDonor))
@@ -2247,8 +2269,6 @@ class ImageProjectModel:
         # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
         # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
         edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
-        selectMask = self.G.get_edge_image(source, target, 'selectmaskname',returnNoneOnMissing=True)[0]
-        edgeMask = selectMask if selectMask is not None else edgeMask
         if edgeMask is None:
             raise ValueError('Missing edge mask from ' + source + ' to ' + target)
         edgeMask =  edgeMask.to_array()
@@ -2258,6 +2278,7 @@ class ImageProjectModel:
             color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else [0,0,0]
             colorMap[level.value] = color
         return mask_rules.alterComposite(edge,compositeMask,edgeMask,self.get_dir())
+
 
     def _getModificationForEdge(self, start,end, edge):
         """
@@ -2279,8 +2300,6 @@ class ImageProjectModel:
                             arguments=edge['arguments'] if 'arguments' in edge else {},
                             inputMaskName=edge['inputmaskname'] if 'inputmaskname' in edge and edge[
                                 'inputmaskname'] and len(edge['inputmaskname']) > 0 else None,
-                            selectMaskName=edge['selectmaskname'] if 'selectmaskname' in edge and edge[
-                                'selectmaskname'] and len(edge['selectmaskname']) > 0 else None,
                             changeMaskName=edge['maskname'] if 'maskname' in edge else None,
                             software=Software(edge['softwareName'] if 'softwareName' in edge else None,
                                               edge['softwareVersion'] if 'softwareVersion' in edge else None,
