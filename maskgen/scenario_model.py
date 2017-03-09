@@ -1771,16 +1771,15 @@ class ImageProjectModel:
         if self.end is None:
             return {}
         edge  = self.G.get_edge(self.start, self.end)
-        terminals = self._findTerminalNodes(self.end,excludeDonor=True)
+        terminals = self._findTerminalNodes(self.end,excludeDonor=True, includeOps=['Recapture','TransformWarp','TransformContentAwareScale','TransformDistort','TransformSkew'])
         images = edge['selectmasks'] if 'selectmasks' in edge  else []
         sms = {}
         for image in images:
-            sms[image['node']] = image['mask']
+            if image['node'] in terminals:
+                sms[image['node']] = (image['mask'], openImageFile(os.path.join(self.get_dir(), image['mask']), isMask=False))
         for terminal in terminals:
             if terminal not in sms:
                 sms[terminal] = None
-            else:
-                sms[terminal] = (sms[terminal],openImageFile(os.path.join(self.get_dir(),sms[terminal]),isMask=False))
         return sms
 
     def maskImage(self):
@@ -1981,16 +1980,19 @@ class ImageProjectModel:
         elif 'nodetype' not in self.G.get_node(destination):
             self.__assignLabel(destination, 'base')
 
-    def _findTerminalNodes(self, node, excludeDonor=False):
-        return self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor)
+    def _findTerminalNodes(self, node, excludeDonor=False,includeOps=None):
+        return self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor,includeOps=includeOps)
 
-    def _findTerminalNodesWithCycleDetection(self, node, visitSet=list(),excludeDonor=False):
+    def _findTerminalNodesWithCycleDetection(self, node, visitSet=list(),excludeDonor=False,includeOps=None):
         succs = self.G.successors(node)
         res = [node] if len(succs) == 0 else list()
         for succ in succs:
             if succ in visitSet:
                 continue
-            if self.G.get_edge(node, succ)['op'] == 'Donor' and excludeDonor:
+            op = self.G.get_edge(node, succ)['op']
+            if  op == 'Donor' and excludeDonor:
+                continue
+            if includeOps is not None and op not in includeOps:
                 continue
             visitSet.append(succ)
             res.extend(self._findTerminalNodesWithCycleDetection(succ, visitSet=visitSet,excludeDonor=excludeDonor))

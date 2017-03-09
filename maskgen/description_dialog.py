@@ -1318,32 +1318,33 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
     def body(self, master):
         self.item = StringVar()
-        self.item.set(self.selectMasks.keys()[0])
-        self.filename = StringVar()
-        self.load_overlay(None, initialize=True, master=master)
-        self.c.grid(row=0, column=0, columnspan=2)
-        row = 1
-        self.label = Label(master, textvariable=self.filename, justify=LEFT)
-        self.label.grid(row=row, column=0, columnspan=2,sticky='EW',padx=10)
-        row += 1
-        self.optionsBox = ttk.Combobox(master,
+        row = 0
+        if len(self.selectMasks.keys()) > 0:
+            self.item.set(self.selectMasks.keys()[0] if len(self.selectMasks.keys()) > 0 else '')
+            self.filename = StringVar()
+            self.load_overlay(None, initialize=True, master=master)
+            self.c.grid(row=row, column=0, columnspan=2)
+            row += 1
+            self.label = Label(master, textvariable=self.filename, justify=LEFT)
+            self.label.grid(row=row, column=0, columnspan=2,sticky='EW',padx=10)
+            row += 1
+            self.optionsBox = ttk.Combobox(master,
                                        values=list(self.selectMasks.keys()),
                                        textvariable=self.item)
-
-        row += 1
-        self.optionsBox.grid(row=row, column=0, columnspan=2, sticky='EW')
-        self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
-        row += 1
+            row += 1
+            self.optionsBox.grid(row=row, column=0, columnspan=2, sticky='EW')
+            self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
+            row += 1
+            self.bc = Button(master, text="Change Mask", command=self.changemask, relief=FLAT)
+            self.bc.grid(row=row, column=0)
+            self.bd = Button(master, text="Delete Mask", command=self.deletemask, relief=FLAT)
+            self.bd.grid(row=row, column=1)
+            row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
         self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
                                                 onvalue="yes", offvalue="no")
         self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
-        row += 1
-        self.bc = Button(master, text="Change Mask", command=self.changemask,relief=FLAT)
-        self.bc.grid(row=row, column=0)
-        self.bd = Button(master, text="Delete Mask", command=self.deletemask,relief=FLAT)
-        self.bd.grid(row=row, column=1)
         return self.cbIncludeInComposite
 
     def deletemask(self):
@@ -1514,7 +1515,7 @@ class QAViewDialog(Toplevel):
 
     def _compose_label(self,edge):
         op  = edge['op']
-        if 'semanticGroups' in edge:
+        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
             groups = edge['semanticGroups']
             op += ' [' + ', '.join(groups) + ']'
         return op
