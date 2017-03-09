@@ -2727,9 +2727,9 @@
         "check_local"
       ],
       "optionalparameters": {
-         "inputmaskname": {
+         "pastemask": {
           "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
+          "description": "An image file containing a mask describing the area pasted into."
         },
         "mode": {
            "type":"list",
@@ -2741,6 +2741,7 @@
            "rule" : {"purpose": "blend"}
          }
       },
+      "maskTransformFunction": "maskgen.mask_rules.pastesplice",
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,

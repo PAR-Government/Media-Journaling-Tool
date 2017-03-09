@@ -38,6 +38,9 @@ def updateJournal(scModel):
     if "0.4.0308.f7d9a62a7e" not in upgrades:
         _fixLabels(scModel)
         upgrades.append('0.4.0308.f7d9a62a7e')
+    if "0.4.0308.dd9555e4ba" not in upgrades:
+        _fixPasteSpliceMask(scModel)
+        upgrades.append('0.4.0308.dd9555e4ba')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -93,6 +96,17 @@ def _fixResize(scModel):
                 edge['arguments'] = {}
             if 'interpolation' not in edge['arguments']:
                 edge['arguments']['interpolation']  = 'other'
+
+def _fixPasteSpliceMask(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = getOperationWithGroups(edge['op'], fake=True)
+        if op.name == 'PasteSplice':
+            if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
+                edge['arguments']['pastemask'] = edge['inputmaskname']
+                edge.pop('inputmaskname')
+                if 'inputmaskownership' in edge:
+                    edge.pop('inputmaskownership')
 
 def _fixTransforms(scModel):
     for frm, to in scModel.G.get_edges():
