@@ -35,6 +35,9 @@ def updateJournal(scModel):
     if "0.4.0101.52bb2811db" not in upgrades:
         _fixBlend(scModel)
         upgrades.append('0.4.0101.52bb2811db')
+    if "0.4.0308.f7d9a62a7e" not in upgrades:
+        _fixLabels(scModel)
+        upgrades.append('0.4.0308.f7d9a62a7e')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -44,6 +47,10 @@ def _fixValidationTime(scModel):
     validationdate = scModel.getProjectData('validationdate')
     if validationdate is not None and len(validationdate) > 0:
         scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
+
+def _fixLabels(scModel):
+    for node in scModel.getNodeNames():
+        scModel.labelNodes(node)
 
 def _fixCreator(scModel):
     """
