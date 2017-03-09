@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 
 
-snapshot='.f7d9a62a7e'
+snapshot='.dd9555e4ba'
 igversion='0.4.0308' + snapshot
 
 
@@ -210,6 +210,7 @@ class ImageGraph:
     edgeFilePaths = {'inputmaskname': 'inputmaskownership',
                      'arguments.XMP File Name': 'xmpfileownership',
                      'arguments.qtfile': 'qtfileownership',
+                     'arguments.pastemask': None,
                      'arguments.PNG File Name': 'pngfileownership',
                      'arguments.convolutionkernel': 'convolutionfileownership',
                      'maskname': None,
@@ -954,9 +955,12 @@ class ImageGraph:
                         r.append('[{1:d}].{0}'.format(edgePaths[0], c))
             return r
         if type(value) is dict and edgePaths[0] in value:
-           for path in self._buildPath(value[edgePaths[0]], edgePaths[1:]):
-                r.append(edgePaths[0] + "." + path if len(edgePaths) > 1 else '')
-           return [x.replace('.[','[') for x in r]
+            if len(edgePaths) == 1:
+                return [edgePaths[0]]
+            else:
+                for path in self._buildPath(value[edgePaths[0]], edgePaths[1:]):
+                     r.append(edgePaths[0] + (("." + path) if len(path) > 0 else ''))
+                return [x.replace('.[','[') for x in r]
         return ['']
 
     def _matchPath(self, path, pathTemplate):

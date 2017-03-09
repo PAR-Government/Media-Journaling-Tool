@@ -1196,7 +1196,7 @@ class ImageProjectModel:
                 baseImage,_ = self.G.get_image(x[1])
                 masks = self.G.get_donor_masks(nodeName)
                 if len(masks) == 0 or force:
-                    self.constructDonors(nodeOfInterest=nodeName)
+                    self.constructDonors(nodeOfInterest=nodeName, recompute=force)
                 for base, tuple  in self.G.get_donor_masks(nodeName).iteritems():
                     if base == x[1]:
                         return tuple[0],baseImage
@@ -2291,8 +2291,7 @@ class ImageProjectModel:
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else [0,0,0]
             colorMap[level.value] = color
-        return mask_rules.alterComposite(edge,compositeMask,edgeMask,self.get_dir())
-
+        return mask_rules.alterComposite(edge,compositeMask,edgeMask,self.get_dir(),level=level.value)
 
     def _getModificationForEdge(self, start,end, edge):
         """
