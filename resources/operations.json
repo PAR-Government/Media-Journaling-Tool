@@ -1017,6 +1017,47 @@
     },
     {
       "category": "AntiForensic",
+      "name": "AddCamFingerprintAveragePRNUFromSet",
+      "mandatoryparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "Local ID of camera used to capture images"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Add PRNU fingerprint trace, generated from a set of images.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "RemoveCamFingerprintAveragePRNUFromSet",
+      "mandatoryparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "Local ID of camera used to capture images"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {},
+      "description": "Remove PRNU fingerprint trace, generated from a set of images from a camera.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
       "name": "AberrationCorrection",
       "mandatoryparameters": {
       },
