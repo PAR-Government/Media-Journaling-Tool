@@ -426,7 +426,7 @@ class BatchProject:
                 self.logger.debug("Run Save As")
                 op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
                 op.performOp()
-            local_state['model'].save()
+            local_state['model'].renameFileImages()
             if 'archives' in global_state:
                 local_state['model'].export(global_state['archives'])
         except Exception as e:
