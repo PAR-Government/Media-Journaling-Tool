@@ -24,4 +24,7 @@ def operation():
           ]
           }
 
+def suffix():
+    return None
+
 

@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 
 
-def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',donorMask=None, edgeSelection=None, overideMask=None):
+def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None, edgeSelection=None, overideMask=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
@@ -52,7 +52,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',donorM
     return edgeMask
 
 
-def resize_transform(edge, edgeMask, compositeMask=None,directory='.', donorMask=None, edgeSelection=None, overideMask=None):
+def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
@@ -110,7 +110,7 @@ def move_pixels(frommask, tomask, image):
     transformedImage = (transformedImage/50).astype('uint8')
     return transformedImage
 
-def move_transform(edge, edgeMask, compositeMask=None, directory='.', donorMask=None, edgeSelection=None, overideMask=None):
+def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
     import os
     inputmask =  \
         tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
@@ -149,6 +149,18 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', donorMask=
         return res
     return edgeMask
 
+
+def pastesplice(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
+    import os
+    if compositeMask is not None:
+        pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
+        if pastemask is not None and os.path.exists (os.path.join(directory,pastemask)):
+           inputmask =  tool_set.openImageFile(os.path.join(directory,pastemask)).to_mask().to_array()
+           compositeMask[compositeMask == level]  = 0
+           compositeMask[inputmask>0] = level
+        return compositeMask
+    return donorMask
+
 def _getOrientation(edge):
     if ('arguments' in edge and \
                 ('Image Rotated' in edge['arguments'] and \
@@ -164,10 +176,10 @@ def _getOrientation(edge):
     return ''
 
 
-def alterComposite(edge, compositeMask, edgeMask,directory):
+def alterComposite(edge, compositeMask, edgeMask,directory,level=255):
     op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
-        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, compositeMask=compositeMask,directory=directory)
+        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, level=level,compositeMask=compositeMask,directory=directory)
 
     # change the mask to reflect the output image
     # considering the crop again, the high-lighted change is not dropped
@@ -228,7 +240,7 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
         raise ValueError('Missing edge mask from ' + source + ' to ' + target)
 
     edgeMask = edgeMask.to_array()
-    op = getOperationWithGroups(edge['op'])
+    op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
         return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, directory=directory,donorMask=donorMask,
                                                              edgeSelection=edgeSelection, overideMask=overideMask)

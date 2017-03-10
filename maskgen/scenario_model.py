@@ -898,6 +898,9 @@ class ImageProjectModel:
                     result[grp].append(edgeid)
         return result
 
+    def add_to_edge(self,**items):
+        self.G.update_edge(self.start, self.end, **items)
+
     def update_edge(self, mod):
         """
         :param mod:
@@ -1196,7 +1199,7 @@ class ImageProjectModel:
                 baseImage,_ = self.G.get_image(x[1])
                 masks = self.G.get_donor_masks(nodeName)
                 if len(masks) == 0 or force:
-                    self.constructDonors(nodeOfInterest=nodeName)
+                    self.constructDonors(nodeOfInterest=nodeName, recompute=force)
                 for base, tuple  in self.G.get_donor_masks(nodeName).iteritems():
                     if base == x[1]:
                         return tuple[0],baseImage
@@ -1440,7 +1443,7 @@ class ImageProjectModel:
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
-                     skipRules=False, experiment_id=None):
+                     skipRules=False, edge_parameters={}, node_parameters={}):
         """ Given a image file name and  PIL Image, add the image to the project, copying into the project directory if necessary.
              Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
              to the currently selected node.  Create the mask, inverting the mask if requested.
@@ -1449,10 +1452,14 @@ class ImageProjectModel:
         """
         if (self.end is not None):
             self.start = self.end
-        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), experiment_id=experiment_id, xpos=position[0], ypos=position[1],
-                                      nodetype='base')
+        params = dict(node_parameters)
+        params['xpos'] = position[0]
+        params['ypos'] = position[1]
+        params['nodetype'] = 'base'
+        destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
+        analysis_params = dict(edge_parameters)
         msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
-                                             skipRules=skipRules)
+                                             skipRules=skipRules, analysis_params=analysis_params)
         return msg, status
 
     def getLinkType(self, start, end):
@@ -1532,7 +1539,11 @@ class ImageProjectModel:
             self.end = destination
             if errors:
                 mod.errors = errors
+            for k,v in analysis_params.iteritems():
+                if k not in analysis:
+                    analysis[k] = v
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
+
             edgeErrors = graph_rules.run_rules(mod.operationName, self.G, self.start, destination)
             msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 and not skipRules else ''
             if (self.notify is not None and sendNotifications):
@@ -1549,8 +1560,11 @@ class ImageProjectModel:
     def __addEdge(self, start, end, mask, maskname, mod, additionalParameters):
         if len(mod.arguments) > 0:
             additionalParameters['arguments'] = {k: v for k, v in mod.arguments.iteritems() if k != 'inputmaskname'}
-        im = self.G.add_edge(start, end, mask=mask, maskname=maskname,
-                             op=mod.operationName, description=mod.additionalInfo,
+        im = self.G.add_edge(start, end,
+                             mask=mask,
+                             maskname=maskname,
+                             op=mod.operationName,
+                             description=mod.additionalInfo,
                              recordMaskInComposite=mod.recordMaskInComposite,
                              editable='no' if (
                                                   mod.software is not None and mod.software.internal) or mod.operationName == 'Donor' else 'yes',
@@ -1699,6 +1713,10 @@ class ImageProjectModel:
         with self.lock:
             self.clear_validation_properties()
             self.G.save()
+
+    def getEdgeItem(self, name, default=None):
+        edge = self.G.get_edge(self.start,self.end)
+        return edge[name] if name in edge else default
 
     def getDescriptionForPredecessor(self, node):
         for pred in self.G.predecessors(node):
@@ -2103,6 +2121,8 @@ class ImageProjectModel:
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         software = Software(op['software'], op['version'], internal=True)
+        if 'recordInCompositeMask' in kwargs:
+            description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
         experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
         description.setArguments(
             {k: v for k, v in kwargs.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
@@ -2115,7 +2135,8 @@ class ImageProjectModel:
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0,75)),
-                                         experiment_id=experiment_id)
+                                         edge_parameters={'plugin_name':filter},
+                                         node_parameters={'experiment_id':experiment_id} if experiment_id is not None else {})
         pairs = list()
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
@@ -2277,8 +2298,7 @@ class ImageProjectModel:
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else [0,0,0]
             colorMap[level.value] = color
-        return mask_rules.alterComposite(edge,compositeMask,edgeMask,self.get_dir())
-
+        return mask_rules.alterComposite(edge,compositeMask,edgeMask,self.get_dir(),level=level.value)
 
     def _getModificationForEdge(self, start,end, edge):
         """
