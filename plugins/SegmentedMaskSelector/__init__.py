@@ -47,20 +47,30 @@ def transform(img,source,target,**kwargs):
     shape = rgba.shape
     x, y, w, h = cv2.boundingRect(cnt[0])
     trial_boxes = [
-        [0, 0, x - w, shape[0] - h],
-        [0, 0, shape[1] - w, y - h],
+        [0, 0, x , shape[0] - h],
+        [0, 0, shape[1] - w, y],
         [x + w, 0, shape[1] - w, shape[0] - h],
         [0, y + h, shape[1] - w, shape[0] - h]
     ]
 
     boxes = [box for box in trial_boxes \
-             if (box[2] - box[0]) > w and (box[3] - box[1]) > h]
+             if (box[2] - box[0]) > 0 and (box[3] - box[1]) > 0]
 
-    box = choice(boxes)
+    maxbox = 0
+    maxboxid = 0
+    pos = 0
+    for box in trial_boxes:
+        area = (box[2] - box[0]) * (box[3] - box[1])
+        if area > maxbox:
+            maxbox = area
+            maxboxid = pos
+        pos += 1
+
+    box = choice(boxes) if len(boxes) > 0 else trial_boxes[maxboxid]
 
     new_position_x = randint(box[0], box[2])
     new_position_y = randint(box[1], box[3])
-    return (new_position_x, new_position_y)
+    return {'paste_x': new_position_x, 'paste_y': new_position_y}, None
 
 
 # the actual link name to be used. 

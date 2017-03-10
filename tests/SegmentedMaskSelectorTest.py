@@ -35,10 +35,13 @@ class SegmentedMaskSelectorTestCase(unittest.TestCase):
         output = wrapper.to_array()
         self.assertTrue(sum(sum(output[:,:,3])) > 255)
         x,y,w,h = widthandheight (output[:,:,3])
-        self.assertTrue(sum(sum(output[0:,0:x-1, :, 3])) == 0)
-        self.assertTrue(sum(sum(output[0:y-1, 0:, 3])) == 0)
+        if x>1:
+            self.assertTrue(sum(sum(output[:,0:x-1, 3])) == 0)
+        if y>1:
+            self.assertTrue(sum(sum(output[0:y-1,:, 3])) == 0)
         self.assertTrue(sum(sum(output[y+h+1:,x+w+1:, 3])) == 0)
-        self.assertEqual(output.shape, img.shape)
+        self.assertEqual(output.shape[0], img.shape[0])
+        self.assertEqual(output.shape[1], img.shape[1])
         self.assertTrue('paste_x' in args and args['paste_x'] > 0)
         self.assertTrue('paste_y' in args and args['paste_y'] > 0)
 

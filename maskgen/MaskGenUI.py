@@ -693,13 +693,6 @@ class MakeGenUI(Frame):
         d = DescriptionViewDialog(self, self.scModel.get_dir(), im, os.path.split(filename)[1],
                                   description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
 
-    def viewpoints(self):
-        left_box = coordsFromString(self.scModel.getEdgeItem('start_points', default='(0,0,0,0)'))
-        right_box = coordsFromString(self.scModel.getEdgeItem('end_points',default='(0,0,0,0)'))
-        d = PointsViewDialog(self,left_box, right_box)
-        if not d.cancelled:
-            self.scModel.add_to_edge(start_points=str(d.left_box),
-                                     end_points=str(d.right_box))
 
     def viewselectmask(self):
         d = CompositeCaptureDialog(self,self.scModel)
@@ -861,7 +854,6 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
-        self.edgemenu.add_command(label="Points Mask", command=self.viewpoints)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)

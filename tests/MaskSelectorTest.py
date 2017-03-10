@@ -30,6 +30,7 @@ class MaskSelectorTestCase(unittest.TestCase):
         wrapper = image_wrap.openImageFile(filename_output)
         output = wrapper.to_array()
         self.assertTrue(sum(sum(output))>255)
+        self.assertTrue(sum(sum(output)) < numpy.prod(output.shape))
         self.assertEqual(output.shape, img.shape)
         self.assertTrue('paste_x' in args and args['paste_x'] > 0)
         self.assertTrue('paste_y' in args and args['paste_y'] > 0)
