@@ -170,7 +170,7 @@ class TestToolSet(unittest.TestCase):
         self.assertEqual(3, time_manager.getEndFrame())
         self.assertEqual(3, time_manager.getStartFrame())
 
-    def xtest_opacity_analysis(self):
+    def test_opacity_analysis(self):
         # need to redo with generated data.
         initialImage = image_wrap.openImageFile('tests/images/pre_blend.png')
         finalImage = image_wrap.openImageFile('tests/images/post_blend.png')

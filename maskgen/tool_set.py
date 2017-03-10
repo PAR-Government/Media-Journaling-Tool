@@ -1183,7 +1183,8 @@ def __composeCropImageMask(img1, img2):
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
         mask = gray_image
-        analysis = img_analytics(img1, diffIm,mask=mask)
+        for k,v in  img_analytics(img1, diffIm,mask=mask).iteritems():
+            analysis[k] = v
     else:
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
@@ -1235,7 +1236,8 @@ def __composeExpandImageMask(img1, img2):
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
         mask = gray_image
-        analysis = img_analytics(img1, diffIm, mask=mask)
+        for k,v in  img_analytics(img1, diffIm,mask=mask).iteritems():
+            analysis[k] = v
     else:
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
@@ -1415,6 +1417,35 @@ def mergeMask(compositeMask, newMask, level=0):
         compositeMask = np.copy(compositeMask)
     compositeMask[newMask == 0] = level
     return compositeMask
+
+def applyRotateToCompositeImage(img,angle, pivot):
+    """
+       Loop through each level add apply the rotation.
+       Need to convert levels to 0 and unmapped levels to 255
+       :param compositeMask:
+       :param mask:
+       :param transform_matrix:
+       :return:
+       """
+    newMask = np.zeros(img.shape).astype('uint8')
+    for level in list(np.unique(img)):
+        if level == 0:
+            continue
+        levelMask = np.ones(img.shape) * 255
+        levelMask[img == level] = 0
+        newLevelMask = rotateImage(img,angle, pivot)
+        newMask[newLevelMask < 150] = level
+    return newMask
+
+def rotateImage(img, angle, pivot):
+    padX = [img.shape[1] - pivot[1], pivot[1]]
+    padY = [img.shape[0] - pivot[0], pivot[0]]
+    imgP = np.pad(img, [padY, padX], 'constant')
+    if abs(angle) % 90 == 0:
+        imgR = np.rot90(imgP,int(angle/90)).astype('uint8')
+    else:
+        imgR = ndimage.rotate(imgP, angle, cval=255, reshape=False, mode='constant').astype('uint8')
+    return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
 
 
 def  ssim(X,Y,MASK,**kwargs):

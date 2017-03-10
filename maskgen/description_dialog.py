@@ -163,12 +163,13 @@ def promptForBoxPairAndFillButtonText(obj, id, row):
     full_value_left = '(0,0,{},{})'.format(extra_args['start_im'].size[0],extra_args['start_im'].size[1])
     full_value_right = '(0,0,{},{})'.format(extra_args['end_im'].size[0], extra_args['end_im'].size[1])
     parts =  initial_value.split(':') if initial_value is not None and len(initial_value) > 0 \
-        else [full_value_left,full_value_right]
+        else [full_value_left,full_value_right,'0']
     left_box = coordsFromString(parts[0])
     right_box = coordsFromString(parts[1])
-    d = PointsViewDialog (obj,left_box, right_box, extra_args['start_im'], extra_args['end_im'])
+    angle = int(float(parts[2]))
+    d = PointsViewDialog (obj,left_box, right_box,angle, extra_args['start_im'], extra_args['end_im'])
     if not d.cancelled:
-        res = str(d.left_box) + ':' + str(d.right_box)
+        res = str(d.left_box) + ':' + str(d.right_box) + ':' + str(d.angle)
         var.set(res if (res is not None and len(res) > 0) else None)
         obj.buttons[id].configure(text=res if (res is not None and len(res) > 0) else '')
 
@@ -1601,9 +1602,10 @@ class QAViewDialog(Toplevel):
 
 class PointsViewDialog(tkSimpleDialog.Dialog):
     cancelled= True
-    def __init__(self, parent, start_box, end_box,start_im, end_im):
-        """
+    angle = 0
 
+    def __init__(self, parent, start_box, end_box, angle, start_im, end_im):
+        """
         :param parent: MakeGenUI
         @type parent: MakeGenUI
         """
@@ -1612,19 +1614,27 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.nextIM = end_im
         self.left_box  = start_box
         self.right_box = end_box
+        self.angle = angle
         tkSimpleDialog.Dialog.__init__(self, parent)
 
     def body(self,master):
         self.left = PictureEditor(master,self.startIM.toPIL(), self.left_box)
-        self.right = PictureEditor(master, self.nextIM.toPIL(),self.right_box)
+        self.right = PictureEditor(master, self.nextIM.toPIL(),self.right_box,angle=self.angle)
         self.left.grid(row=0, column=0)
         self.right.grid(row=0, column=1)
+        self.w = Scale(master, from_=-180, to=180,orient=HORIZONTAL,command=self.rotate)
+        self.w.grid(row=1,column=1)
+        self.w.set(self.angle)
+
+    def rotate(self,event):
+        self.right.rotate(self.w.get())
 
     def cancel(self):
         tkSimpleDialog.Dialog.cancel(self)
 
     def apply(self):
         self.cancelled = False
+        self.angle = self.w.get()
         self.left_box = (min(self.left.box[0],self.left.box[2]),
                          min(self.left.box[1], self.left.box[3]),
                          max(self.left.box[0], self.left.box[2]),
