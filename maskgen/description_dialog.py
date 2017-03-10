@@ -19,6 +19,7 @@ from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroup
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import  Chord, Accordion
+from PictureEditor import PictureEditor
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -1562,6 +1563,42 @@ class QAViewDialog(Toplevel):
             self.acceptButton.config(state=NORMAL)
         else:
             self.acceptButton.config(state=DISABLED)
+
+class PointsViewDialog(tkSimpleDialog.Dialog):
+    cancelled= True
+    def __init__(self, parent, start_box, end_box):
+        """
+
+        :param parent: MakeGenUI
+        @type parent: MakeGenUI
+        """
+        self.parent = parent
+        self.startIM = self.parent.scModel.startImage()
+        self.nextIM = self.parent.scModel.nextImage()
+        self.left_box  = start_box
+        self.right_box = end_box
+        tkSimpleDialog.Dialog.__init__(self, parent)
+
+    def body(self,master):
+        self.left = PictureEditor(master,self.startIM.toPIL(), self.left_box)
+        self.right = PictureEditor(master, self.nextIM.toPIL(),self.right_box)
+        self.left.grid(row=0, column=0)
+        self.right.grid(row=0, column=1)
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+        self.left_box = (min(self.left.box[0],self.left.box[2]),
+                         min(self.left.box[1], self.left.box[3]),
+                         max(self.left.box[0], self.left.box[2]),
+                         max(self.left.box[1], self.left.box[3]))
+        self.right_box = (min(self.right.box[0], self.right.box[2]),
+                         min(self.right.box[1], self.right.box[3]),
+                         max(self.right.box[0], self.right.box[2]),
+                         max(self.right.box[1], self.right.box[3]))
+
 
 
 class CommentViewer(tkSimpleDialog.Dialog):
