@@ -690,8 +690,9 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        d = DescriptionViewDialog(self, self.scModel.get_dir(), im, os.path.split(filename)[1],
+        d = DescriptionViewDialog(self, self.scModel, os.path.split(filename)[1],
                                   description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
+
 
     def viewselectmask(self):
         d = CompositeCaptureDialog(self,self.scModel)

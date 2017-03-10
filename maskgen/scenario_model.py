@@ -898,6 +898,9 @@ class ImageProjectModel:
                     result[grp].append(edgeid)
         return result
 
+    def add_to_edge(self,**items):
+        self.G.update_edge(self.start, self.end, **items)
+
     def update_edge(self, mod):
         """
         :param mod:
@@ -1710,6 +1713,10 @@ class ImageProjectModel:
         with self.lock:
             self.clear_validation_properties()
             self.G.save()
+
+    def getEdgeItem(self, name, default=None):
+        edge = self.G.get_edge(self.start,self.end)
+        return edge[name] if name in edge else default
 
     def getDescriptionForPredecessor(self, node):
         for pred in self.G.predecessors(node):

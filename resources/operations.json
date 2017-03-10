@@ -419,7 +419,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -455,7 +455,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -532,7 +532,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -566,7 +566,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -602,7 +602,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -689,7 +689,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -725,7 +725,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -761,7 +761,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -796,7 +796,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -832,7 +832,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1084,7 +1084,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1108,7 +1108,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1132,7 +1132,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1148,8 +1148,8 @@
       "category": "ArtifactsCGI",
       "name": "ArtifactsCGIObjectCGI",
       "mandatoryparameters": {
-         "imagefile": {
-          "type": "imagefile",
+         "file:image": {
+          "type": "file:image",
           "description": "An image file containing the image used.  The unused portion of the image should be transparent with an alpha-channel"
         }
       },
@@ -1161,7 +1161,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1200,7 +1200,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1240,7 +1240,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1284,7 +1284,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1342,7 +1342,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1366,7 +1366,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1390,7 +1390,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1414,7 +1414,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1431,7 +1431,7 @@
       "name": "ColorMatch",
       "mandatoryparameters": {
          "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1464,7 +1464,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1488,7 +1488,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1512,7 +1512,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1536,7 +1536,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1559,7 +1559,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1595,7 +1595,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1641,7 +1641,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1680,7 +1680,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1716,7 +1716,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1740,7 +1740,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1765,7 +1765,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1789,7 +1789,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1813,7 +1813,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1859,7 +1859,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "source": "image",
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule" : {"purpose": "clone"}
@@ -1915,7 +1915,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1939,7 +1939,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1962,7 +1962,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2160,7 +2160,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2184,7 +2184,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2208,7 +2208,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2232,7 +2232,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2256,7 +2256,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2280,7 +2280,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2447,7 +2447,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2480,7 +2480,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2505,7 +2505,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2530,7 +2530,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2728,7 +2728,7 @@
       ],
       "optionalparameters": {
          "pastemask": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the area pasted into."
         },
         "mode": {
@@ -2963,6 +2963,10 @@
         "Magnification": {
           "type": "float[0:100000]",
           "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
+        },
+        "Position Mapping": {
+          "type": "boxpair",
+          "description": "Maps the bounding regions of each image"
         }
       },
       "analysisOperations": [
@@ -3028,7 +3032,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3145,7 +3149,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3427,7 +3431,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3534,7 +3538,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {
@@ -3578,7 +3582,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3598,7 +3602,7 @@
       "name": "TransformMove",
       "mandatoryparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the component that was moved"
         }
       },
@@ -3745,7 +3749,7 @@
       "name": "TransformSeamCarving",
       "mandatoryparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing preserved and sliced areas"
         }
       },
@@ -3785,7 +3789,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {
@@ -3819,7 +3823,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {
@@ -3853,7 +3857,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {

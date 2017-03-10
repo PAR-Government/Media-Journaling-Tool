@@ -7,7 +7,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getFileTypes, get_username
+    validateCoordinates, getMaskFileTypes, getFileTypes, get_username, coordsFromString
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -19,6 +19,7 @@ from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroup
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import  Chord, Accordion
+from PictureEditor import PictureEditor
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -144,6 +145,32 @@ def promptForFolderAndFillButtonText(obj, dir, id, row):
         val = None
     obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else ' ' * 30)
 
+
+def promptForBoxPairAndFillButtonText(obj, id, row):
+    """
+    Prompt for a donor and place the name in the button text
+    Set the variable to the  selected image node name
+    :param obj:
+    :param id:
+    :param var:
+    @type obj: PropertyFrame
+    @type row: int
+    :return:
+    """
+    extra_args = obj.extra_args
+    var = obj.values[row]
+    initial_value  = var.get()
+    full_value_left = '(0,0,{},{})'.format(extra_args['start_im'].size[0],extra_args['start_im'].size[1])
+    full_value_right = '(0,0,{},{})'.format(extra_args['end_im'].size[0], extra_args['end_im'].size[1])
+    parts =  initial_value.split(':') if initial_value is not None and len(initial_value) > 0 \
+        else [full_value_left,full_value_right]
+    left_box = coordsFromString(parts[0])
+    right_box = coordsFromString(parts[1])
+    d = PointsViewDialog (obj,left_box, right_box, extra_args['start_im'], extra_args['end_im'])
+    if not d.cancelled:
+        res = str(d.left_box) + ':' + str(d.right_box)
+        var.set(res if (res is not None and len(res) > 0) else None)
+        obj.buttons[id].configure(text=res if (res is not None and len(res) > 0) else '')
 
 def promptForDonorandFillButtonText(obj, id, row):
     """
@@ -301,7 +328,7 @@ class DescriptionCaptureDialog(Toplevel):
     arginfo = []
     argBox = None
 
-    def __init__(self, parent, uiProfile, scModel, targetfiletype, im, name, description=None):
+    def __init__(self, parent, uiProfile, scModel, targetfiletype, end_im, name, description=None):
         """
 
         :param parent:
@@ -315,7 +342,8 @@ class DescriptionCaptureDialog(Toplevel):
         """
         self.dir = scModel.get_dir()
         self.uiProfile = uiProfile
-        self.im = im
+        self.end_im = end_im
+        self.start_im = scModel.startImage()
         self.parent = parent
         self.scModel = scModel
         self.sourcefiletype = scModel.getStartType()
@@ -386,6 +414,8 @@ class DescriptionCaptureDialog(Toplevel):
                                 scModel=self.scModel,
                                 propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
+                                extra_args={'end_im': self.end_im,
+                                            'start_im':self.start_im},
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
         self.argBox.grid_propagate(1)
@@ -449,7 +479,7 @@ class DescriptionCaptureDialog(Toplevel):
     def body(self, master):
         self.okButton = None
 
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.end_im, (250, 250))).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
@@ -507,7 +537,6 @@ class DescriptionCaptureDialog(Toplevel):
         self.e3.grid(row=3, column=1, sticky=EW)
         self.e4.grid(row=4, column=1, sticky=EW)
         self.e5.grid(row=5, column=1)
-
 
         if self.description is not None:
             if self.description.semanticGroups is not None:
@@ -617,15 +646,22 @@ class DescriptionCaptureDialog(Toplevel):
 
 class DescriptionViewDialog(tkSimpleDialog.Dialog):
     description = None
-    im = None
-    photo = None
-    c = None
     metadiff = None
     metaBox = None
 
-    def __init__(self, parent, dir, im, name, description=None, metadiff=None):
-        self.im = im
-        self.dir = dir
+
+    def __init__(self, parent, scModel, name, description=None, metadiff=None):
+        """
+
+        :param parent:
+        :param scModel:
+        :param im:  end image
+        :param name:
+        :param description:
+        :param metadiff:
+        @type scModel: ImageProjectModel
+        """
+        self.dir = scModel.get_dir()
         self.parent = parent
         self.description = description if description is not None else Modification('', '')
         self.metadiff = metadiff
@@ -1563,6 +1599,42 @@ class QAViewDialog(Toplevel):
         else:
             self.acceptButton.config(state=DISABLED)
 
+class PointsViewDialog(tkSimpleDialog.Dialog):
+    cancelled= True
+    def __init__(self, parent, start_box, end_box,start_im, end_im):
+        """
+
+        :param parent: MakeGenUI
+        @type parent: MakeGenUI
+        """
+        self.parent = parent
+        self.startIM = start_im
+        self.nextIM = end_im
+        self.left_box  = start_box
+        self.right_box = end_box
+        tkSimpleDialog.Dialog.__init__(self, parent)
+
+    def body(self,master):
+        self.left = PictureEditor(master,self.startIM.toPIL(), self.left_box)
+        self.right = PictureEditor(master, self.nextIM.toPIL(),self.right_box)
+        self.left.grid(row=0, column=0)
+        self.right.grid(row=0, column=1)
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+        self.left_box = (min(self.left.box[0],self.left.box[2]),
+                         min(self.left.box[1], self.left.box[3]),
+                         max(self.left.box[0], self.left.box[2]),
+                         max(self.left.box[1], self.left.box[3]))
+        self.right_box = (min(self.right.box[0], self.right.box[2]),
+                         min(self.right.box[1], self.right.box[3]),
+                         max(self.right.box[0], self.right.box[2]),
+                         max(self.right.box[1], self.right.box[3]))
+
+
 
 class CommentViewer(tkSimpleDialog.Dialog):
     def __init__(self, master):
@@ -1804,11 +1876,16 @@ class PropertyFrame(VerticalScrolledFrame):
    buttons = {}
    scModel = None
    propertyFunction = PropertyFunction()
+   extra_args = {}
    """
    @type scModel: ImageProjectModel
    """
 
-   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None, dir='.',changeParameterCB=None, **kwargs):
+   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None,
+                dir='.',
+                changeParameterCB=None,
+                extra_args ={},
+                **kwargs):
      self.parent = parent
      self.properties = [prop for prop in properties if not prop.node and not prop.semanticgroup]
      self.values =   [None for prop in properties]
@@ -1817,6 +1894,7 @@ class PropertyFrame(VerticalScrolledFrame):
      self.dir = dir
      self.propertyFunction = propertyFunction
      self.scModel = scModel
+     self.extra_args = extra_args
      VerticalScrolledFrame.__init__(self, parent, **kwargs)
      self.body()
 
@@ -1853,18 +1931,15 @@ class PropertyFrame(VerticalScrolledFrame):
                widget[1] =  Radiobutton(master, text='No', takefocus=(row == 0), variable=self.values[row], value='no')
                widget[1].grid(row=row, column=2, sticky=E)
                #widget[1].select()
-           elif prop.type == 'imagefile':
+           elif prop.type == 'file:image':
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, getFileTypes())
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
-           elif prop.type == 'xmpfile':
-               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('XMP', '*.xmp')])
-               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
-                                                command=partialf)
-               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
-           elif prop.type == 'pngfile':
-               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('PNG Image', '*.png')])
+           elif prop.type.startswith == 'file:':
+               typematch = '*.' + prop[prop.find(':')+1:]
+               typename =  prop[prop.find(':') + 1:].upper()
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
@@ -1896,6 +1971,13 @@ class PropertyFrame(VerticalScrolledFrame):
                widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
                v = prop.type
+           elif prop.type.startswith('boxpair'):
+               partialf = partial(promptForBoxPairAndFillButtonText, self, prop.name, row)
+               self.buttons[prop.name] = widget = Button(master,
+                                                         text=v if v is not None else '',
+                                                         takefocus=False,
+                                                         command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
