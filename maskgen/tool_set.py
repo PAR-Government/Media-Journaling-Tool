@@ -1481,6 +1481,12 @@ def __diffMask(img1, img2, invert, args=None):
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
 
 
+def coordsFromString(value):
+    import re
+    value = re.sub('[\(\)\,]', ' ', value)
+    vals = [int(float(v)) for v in value.split(' ') if v != ' ' and v != '']
+    return tuple(vals)
+
 def fixTransparency(img):
     return img.apply_transparency()
 
