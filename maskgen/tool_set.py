@@ -1183,7 +1183,8 @@ def __composeCropImageMask(img1, img2):
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
         mask = gray_image
-        analysis = img_analytics(img1, diffIm,mask=mask)
+        for k,v in  img_analytics(img1, diffIm,mask=mask).iteritems():
+            analysis[k] = v
     else:
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
@@ -1235,7 +1236,8 @@ def __composeExpandImageMask(img1, img2):
         gray_image = np.zeros(img1.shape).astype('uint8')
         gray_image[dst > 0.0001] = 255
         mask = gray_image
-        analysis = img_analytics(img1, diffIm, mask=mask)
+        for k,v in  img_analytics(img1, diffIm,mask=mask).iteritems():
+            analysis[k] = v
     else:
         mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), analysis
