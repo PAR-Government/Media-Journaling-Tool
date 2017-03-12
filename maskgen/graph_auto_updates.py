@@ -41,6 +41,9 @@ def updateJournal(scModel):
     if "0.4.0308.dd9555e4ba" not in upgrades:
         _fixPasteSpliceMask(scModel)
         upgrades.append('0.4.0308.dd9555e4ba')
+    if "0.4.0308.90e0ce497f" not in upgrades:
+        _fixTransformCrop(scModel)
+        upgrades.append('0.4.0308.90e0ce497f')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -80,6 +83,23 @@ def _fixBlend(scModel):
                 edge['arguments'] = {'mode' : 'Soft Light'}
             else:
                 edge['arguments']['mode']  = 'Soft Light'
+
+def _fixTransformCrop(scModel):
+    """
+    :param scModel:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'TransformCrop':
+            if 'location' not in edge or \
+                edge['location'] == "(0, 0)":
+                scModel.select((frm,to))
+                try:
+                    scModel.reproduceMask()
+                except Exception as e:
+                    'Failed repair of TransformCrop ' + frm + " to " + to + ": " + str(e)
 
 def _fixResolution(scModel):
     for frm, to in scModel.G.get_edges():
