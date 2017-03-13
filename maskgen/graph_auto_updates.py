@@ -12,16 +12,16 @@ def updateJournal(scModel):
     """
     upgrades = scModel.getGraph().getDataItem('jt_upgrades')
     upgrades = upgrades if upgrades is not None else []
-    if scModel.G.getVersion() <= "0.3.1115" and "0.3.1115" not in upgrades:
+    if "0.3.1115" not in upgrades:
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
         _fixTransforms(scModel)
         upgrades.append('0.3.1115')
-    if scModel.G.getVersion() <= "0.3.1213" and "0.3.1213" not in upgrades:
+    if  "0.3.1213" not in upgrades:
         _fixQT(scModel)
         _fixUserName(scModel)
         upgrades.append('0.3.1213')
-    if scModel.G.getVersion() <= "0.4.0101" and "0.4.0101" not in upgrades:
+    if  "0.4.0101" not in upgrades:
         _fixTransforms(scModel)
         upgrades.append('0.4.0101')
     if  "0.4.0101.8593b8f323" not in upgrades:
@@ -41,6 +41,9 @@ def updateJournal(scModel):
     if "0.4.0308.dd9555e4ba" not in upgrades:
         _fixPasteSpliceMask(scModel)
         upgrades.append('0.4.0308.dd9555e4ba')
+    if "0.4.0308.90e0ce497f" not in upgrades:
+        _fixTransformCrop(scModel)
+        upgrades.append('0.4.0308.90e0ce497f')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -81,6 +84,23 @@ def _fixBlend(scModel):
             else:
                 edge['arguments']['mode']  = 'Soft Light'
 
+def _fixTransformCrop(scModel):
+    """
+    :param scModel:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'TransformCrop':
+            if 'location' not in edge or \
+                edge['location'] == "(0, 0)":
+                scModel.select((frm,to))
+                try:
+                    scModel.reproduceMask()
+                except Exception as e:
+                    'Failed repair of TransformCrop ' + frm + " to " + to + ": " + str(e)
+
 def _fixResolution(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -103,6 +123,8 @@ def _fixPasteSpliceMask(scModel):
         op = getOperationWithGroups(edge['op'], fake=True)
         if op.name == 'PasteSplice':
             if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
+                if 'arguments' not in edge:
+                    edge['arguments']  = {}
                 edge['arguments']['pastemask'] = edge['inputmaskname']
                 edge.pop('inputmaskname')
                 if 'inputmaskownership' in edge:
@@ -145,7 +167,7 @@ def _fixTransforms(scModel):
        """
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        if edge['op'] in ['TransformContentAwareScale','TransformAffine','TransformDistort','TransformMove','TransformResize',
+        if edge['op'] in ['TransformContentAwareScale','TransformAffine','TransformDistort','TransformMove',
             'TransformScale','TransformShear','TransformSkew','TransformWarp'] and \
                 'transform matrix' not in edge :
             scModel.select((frm,to))

@@ -28,11 +28,26 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
             res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
             newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
             if angle!=0:
-                center = (right_box[1] + (right_box[3] -right_box[0]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
+                center = (right_box[1] + (right_box[3] -right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
                 res = tool_set.applyRotateToCompositeImage(newMask,angle,center)
             else:
                 res = newMask.astype('uint8')
             return res
+        elif donorMask is not None:
+            res = donorMask
+            expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+            targetSize = edgeMask.shape if edgeMask is not None else expectedSize
+            expectedPasteSize = ((left_box[3] - left_box[1]), (left_box[2] - left_box[0]))
+            newMask = np.zeros(targetSize)
+            if angle != 0:
+                center = (
+                    right_box[1] + (right_box[3] - right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
+                res = tool_set.applyRotateToCompositeImage(res, -angle, center)
+            clippedMask = res[right_box[1]:right_box[3], right_box[0]:right_box[2]]
+            res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
+            newMask[left_box[1]:left_box[3], left_box[0]:left_box[2]] = res
+            return res
+
     if compositeMask is not None:
         res = compositeMask
         expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])

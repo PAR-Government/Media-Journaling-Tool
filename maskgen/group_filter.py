@@ -199,13 +199,13 @@ def getCategoryForOperation(name):
         return ops[name].category
     return groupOpLoader.getCategoryForGroup(name)
 
-def getOperationWithGroups(name, fake=False):
+def getOperationWithGroups(name, fake=False,warning=True):
     global groupOpLoader
-    op = getOperation(name,fake=False)
+    op = getOperation(name,fake=False, warning=warning)
     if op is None:
         op = groupOpLoader.getOperation(name)
     if op is None and fake:
-        return getOperation(name,fake=True)
+        return getOperation(name,fake=True,warning=warning)
     return op
 
 def getOperationsByCategoryWithGroups(sourcetype, targettype):

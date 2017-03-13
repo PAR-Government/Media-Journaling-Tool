@@ -7,7 +7,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getFileTypes, get_username, coordsFromString
+    validateCoordinates, getMaskFileTypes, getFileTypes, get_username, coordsFromString, IntObject
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -20,6 +20,7 @@ from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
+from CompositeViewer import  ScrollCompositeViewer
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -167,9 +168,12 @@ def promptForBoxPairAndFillButtonText(obj, id, row):
     left_box = coordsFromString(parts[0])
     right_box = coordsFromString(parts[1])
     angle = int(float(parts[2]))
-    d = PointsViewDialog (obj,left_box, right_box,angle, extra_args['start_im'], extra_args['end_im'])
+    d = PointsViewDialog (obj,left_box, right_box,angle,
+                          extra_args['start_im'], extra_args['end_im'],
+                          extra_args['model'],
+                          argument_name=id)
     if not d.cancelled:
-        res = str(d.left_box) + ':' + str(d.right_box) + ':' + str(d.angle)
+        res = d.getStringConfiguration()
         var.set(res if (res is not None and len(res) > 0) else None)
         obj.buttons[id].configure(text=res if (res is not None and len(res) > 0) else '')
 
@@ -416,7 +420,8 @@ class DescriptionCaptureDialog(Toplevel):
                                 propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
-                                            'start_im':self.start_im},
+                                            'start_im':self.start_im,
+                                            'model': self.scModel},
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
         self.argBox.grid_propagate(1)
@@ -1402,52 +1407,6 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.cancelled = False
         self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
 
-class CompositeViewDialog(tkSimpleDialog.Dialog):
-    im = None
-    composite = None
-    """
-    @type im: ImageWrapper
-    @type composite: ImageWrapper
-    """
-
-    def __init__(self, parent, name, composite, im):
-        self.composite = composite
-        self.im= im
-        self.parent = parent
-        self.name = name
-        tkSimpleDialog.Dialog.__init__(self, parent, name)
-
-    def body(self, master):
-        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
-        if self.im is not None:
-            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
-            imResized = imResized.overlay(compositeResized)
-        else:
-            imResized = compositeResized
-        self.photo = ImageTk.PhotoImage(imResized.toPIL())
-        self.c = Canvas(master, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
-        self.image_on_canvas = self.c.create_image(0,0, image=self.photo,anchor=NW, tag='imgd')
-        self.c.grid(row=0, column=0, columnspan=2)
-
-    def buttonbox(self):
-        box = Frame(self)
-        w1 = Button(box, text="Close", width=10, command=self.ok, default=ACTIVE)
-        w2 = Button(box, text="Export", width=10, command=self.saveThenOk, default=ACTIVE)
-        w1.pack(side=LEFT, padx=5, pady=5)
-        w2.pack(side=RIGHT, padx=5, pady=5)
-        self.bind("<Return>", self.cancel)
-        self.bind("<Escape>", self.cancel)
-        box.pack()
-
-    def saveThenOk(self):
-        val = tkFileDialog.asksaveasfilename(initialdir='.', initialfile=self.name + '_composite.png',
-                                             filetypes=[("png files", "*.png")], defaultextension='.png')
-        if (val is not None and len(val) > 0):
-            # to cover a bug in some platforms
-            if not val.endswith('.png'):
-                val = val + '.png'
-            self.im.save(val)
-            self.ok()
 
 class QAViewDialog(Toplevel):
     def __init__(self, parent):
@@ -1601,10 +1560,17 @@ class QAViewDialog(Toplevel):
             self.acceptButton.config(state=DISABLED)
 
 class PointsViewDialog(tkSimpleDialog.Dialog):
+    """
+    View mapping bounding boxes between to images.
+    The second image's bounding box can be rotated to align with the first
+    """
     cancelled= True
     angle = 0
+    level = IntObject()
+    colorMap = dict()
+    ws = None
 
-    def __init__(self, parent, start_box, end_box, angle, start_im, end_im):
+    def __init__(self, parent, start_box, end_box, angle, start_im, end_im,model,argument_name=None):
         """
         :param parent: MakeGenUI
         @type parent: MakeGenUI
@@ -1615,34 +1581,81 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.left_box  = start_box
         self.right_box = end_box
         self.angle = angle
+        self.scModel = model
+        self.prior_composite = None
+        self.argument_name = argument_name
         tkSimpleDialog.Dialog.__init__(self, parent)
 
+    def notify(self,event):
+        if self.nb.tab(event.widget.select(), "text"):
+            self.composite_view.update(self._newComposite())
+
+    def getStringConfiguration(self):
+        return str(self.left_box) + ':' + str(self.right_box) + ':' + str(self.angle)
+
+    def _newComposite(self):
+        if self.prior_composite is None:
+            self.prior_composite = \
+                self.scModel.constructCompositeForNode(self.scModel.getPredecessorNode(),
+                                                       level=self.level,
+                                                       colorMap=self.colorMap)
+        override_args=dict()
+        if self.argument_name is not None and self.ws is not None:
+            self.updateBox()
+            override_args['arguments'] = {self.argument_name :
+                                    self.getStringConfiguration()}
+        return self.scModel.extendCompositeByOne(self.prior_composite,
+                                                 level=self.level,
+                                                 colorMap=self.colorMap,
+                                                 override_args=override_args)
+
     def body(self,master):
+        self.nb = ttk.Notebook(master)
         self.left = PictureEditor(master,self.startIM.toPIL(), self.left_box)
-        self.right = PictureEditor(master, self.nextIM.toPIL(),self.right_box,angle=self.angle)
+        self.right = PictureEditor(self.nb, self.nextIM.toPIL(),self.right_box,angle=self.angle)
+        self.composite_view = ScrollCompositeViewer(self.nb, self.nextIM,self._newComposite())
+        self.nb.add(self.right, text='Image')
+        self.nb.add(self.composite_view, text='Composite')
+        self.nb.select(self.right)
+        self.nb.bind('<<NotebookTabChanged>>', self.notify)
+
         self.left.grid(row=0, column=0)
-        self.right.grid(row=0, column=1)
-        self.w = Scale(master, from_=-180, to=180,orient=HORIZONTAL,command=self.rotate)
-        self.w.grid(row=1,column=1)
-        self.w.set(self.angle)
+        self.nb.grid(row=0, column=1)
+
+        self.ls = Scale(master, from_=15, to=100, orient=HORIZONTAL, command=self.rescale)
+        self.ls.grid(row=1, column=0)
+        self.ls.set(100)
+        self.ws = Scale(master, from_=-180, to=180,orient=HORIZONTAL,command=self.rotate)
+        self.ws.grid(row=1,column=1)
+        self.ws.set(self.angle)
+
+    def rescale(self,event):
+        self.right.set_scale(float(self.ls.get())/100.0)
+        self.left.set_scale(float(self.ls.get()) / 100.0)
+        self.composite_view.set_scale(float(self.ls.get()) / 100.0)
 
     def rotate(self,event):
-        self.right.rotate(self.w.get())
+        self.right.rotate(self.ws.get())
 
     def cancel(self):
         tkSimpleDialog.Dialog.cancel(self)
 
+    def updateBox(self):
+        if self.ws is not None:
+            self.angle = self.ws.get()
+            self.left_box = (min(self.left.box[0], self.left.box[2]),
+                             min(self.left.box[1], self.left.box[3]),
+                             max(self.left.box[0], self.left.box[2]),
+                             max(self.left.box[1], self.left.box[3]))
+            self.right_box = (min(self.right.box[0], self.right.box[2]),
+                              min(self.right.box[1], self.right.box[3]),
+                              max(self.right.box[0], self.right.box[2]),
+                              max(self.right.box[1], self.right.box[3]))
+
     def apply(self):
         self.cancelled = False
-        self.angle = self.w.get()
-        self.left_box = (min(self.left.box[0],self.left.box[2]),
-                         min(self.left.box[1], self.left.box[3]),
-                         max(self.left.box[0], self.left.box[2]),
-                         max(self.left.box[1], self.left.box[3]))
-        self.right_box = (min(self.right.box[0], self.right.box[2]),
-                         min(self.right.box[1], self.right.box[3]),
-                         max(self.right.box[0], self.right.box[2]),
-                         max(self.right.box[1], self.right.box[3]))
+        self.updateBox()
+
 
 
 

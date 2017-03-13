@@ -79,6 +79,16 @@ def openFile(fileName):
         os.system('open "' + fileName + '"')
 
 
+class IntObject:
+    value = 0
+
+    def __init__(self):
+        pass
+
+    def increment(self):
+        self.value += 1
+        return self.value
+
 """
    Support UID discovery using a class that supports a method getpwuid().
    tool_set.setPwdX(classInstance) to set the class.  By default, the os UID is used.
@@ -308,8 +318,9 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
 
 def _processFileMeta(stream):
     streams = []
-    while True:
-        line = stream.readline()
+    if stream is None:
+        return streams
+    for line in stream.splitlines():
         if line is None or len(line) == 0:
             break
         if 'Stream' in line:
@@ -322,13 +333,11 @@ def _processFileMeta(stream):
 
 def getFileMeta(file):
     ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
-    p = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE)
-    try:
-        meta = _processFileMeta(p.stderr)
-        meta.extend(_processFileMeta(p.stdout))
-    finally:
-        p.stdout.close()
-        p.stderr.close()
+    stdout,stderr = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE).communicate()
+    if stderr is not None:
+        meta = _processFileMeta(stderr)
+    if stdout is not None:
+        meta.extend(_processFileMeta(stdout))
     return meta
 
 
@@ -1431,10 +1440,10 @@ def applyRotateToCompositeImage(img,angle, pivot):
     for level in list(np.unique(img)):
         if level == 0:
             continue
-        levelMask = np.ones(img.shape) * 255
-        levelMask[img == level] = 0
-        newLevelMask = rotateImage(img,angle, pivot)
-        newMask[newLevelMask < 150] = level
+        levelMask = np.zeros(img.shape).astype('uint8')
+        levelMask[img == level] = 255
+        newLevelMask = rotateImage(levelMask,angle, pivot)
+        newMask[newLevelMask > 0] = level
     return newMask
 
 def rotateImage(img, angle, pivot):
@@ -1444,7 +1453,7 @@ def rotateImage(img, angle, pivot):
     if abs(angle) % 90 == 0:
         imgR = np.rot90(imgP,int(angle/90)).astype('uint8')
     else:
-        imgR = ndimage.rotate(imgP, angle, cval=255, reshape=False, mode='constant').astype('uint8')
+        imgR = ndimage.rotate(imgP, angle, cval=0, reshape=False, mode='constant').astype('uint8')
     return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
 
 
@@ -1537,6 +1546,12 @@ def __findNeighbors(paths, next_pixels):
 def __setMask(mask, x, y, value):
     mask[x, y] = value
 
+def dictDeepUpdate(aDictionary, aPartialDictionary):
+    for k,v in aPartialDictionary.iteritems():
+        if k in aDictionary and type(v) == dict:
+            dictDeepUpdate(aDictionary[k],v)
+        else:
+            aDictionary[k] = v
 
 def createHorizontalSeamMask(old, new):
     return __slideAcrossSeams(old,

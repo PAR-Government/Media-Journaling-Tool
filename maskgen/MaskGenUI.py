@@ -15,6 +15,7 @@ from graph_rules import processProjectProperties
 from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
+from CompositeViewer import CompositeViewDialog
 
 
 """

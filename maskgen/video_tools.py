@@ -567,23 +567,19 @@ def _formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
     #    if endSegment:
     #        command.extend(['-t', getDuration(startSegment, endSegment)])
     command.extend(['-i', fileTwo, '-filter_complex', 'blend=all_mode=difference', outFileName])
-    p = Popen(command, stderr=PIPE)
+    p = Popen(command, stdout=PIPE,stderr=PIPE)
+    stdout, stderr = p.communicate()
     errors = []
     sendErrors = False
     try:
-        while True:
-            line = p.stderr.readline()
-            if line:
-                errors.append(line)
-            else:
-                break
-        sendErrors = p.wait() != 0
+        if stderr is not None:
+            for line in stderr.splitlines():
+                if len(line) > 2:
+                    errors.append(line)
+        sendErrors = p.returncode != 0
     except OSError as e:
         sendErrors = True
         errors.append(str(e))
-    finally:
-        p.stderr.close()
-
     if not sendErrors:
         result = buildMasksFromCombinedVideo(outFileName, time_manager)
     else:
