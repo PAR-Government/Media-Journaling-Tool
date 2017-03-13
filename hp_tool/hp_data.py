@@ -16,7 +16,7 @@ import pandas as pd
 import itertools
 import subprocess
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ],
+exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
@@ -176,11 +176,11 @@ def grab_dir(inpath, outdir=None, r=False):
     if r:
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
-                if filename.lower().endswith(valid_exts):
+                if filename.lower().endswith(valid_exts) and not filename.startswith('.'):
                     imageList.append(os.path.join(dirname, filename))
     else:
         for f in names:
-            if f.lower().endswith(valid_exts):
+            if f.lower().endswith(valid_exts) and not f.startswith('.'):
                 imageList.append(os.path.join(inpath, f))
 
     imageList = sorted(imageList, key=str.lower)

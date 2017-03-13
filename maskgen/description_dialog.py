@@ -1455,7 +1455,10 @@ class QAViewDialog(Toplevel):
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionLabel = Label(self)
-        self.load_overlay(initialize=True)
+
+        # only load the overlay if there are blue links
+        if self.crit_links:
+            self.load_overlay(initialize=True)
 
         col=1
 
