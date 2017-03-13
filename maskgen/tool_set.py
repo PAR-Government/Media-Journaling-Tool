@@ -308,8 +308,9 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
 
 def _processFileMeta(stream):
     streams = []
-    while True:
-        line = stream.readline()
+    if stream is None:
+        return streams
+    for line in stream.splitlines():
         if line is None or len(line) == 0:
             break
         if 'Stream' in line:
@@ -322,13 +323,11 @@ def _processFileMeta(stream):
 
 def getFileMeta(file):
     ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
-    p = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE)
-    try:
-        meta = _processFileMeta(p.stderr)
-        meta.extend(_processFileMeta(p.stdout))
-    finally:
-        p.stdout.close()
-        p.stderr.close()
+    stdout,stderr = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE).communicate()
+    if stderr is not None:
+        meta = _processFileMeta(stderr)
+    if stdout is not None:
+        meta.extend(_processFileMeta(stdout))
     return meta
 
 

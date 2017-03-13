@@ -4,6 +4,7 @@ import os
 import shutil
 from maskgen.batch import batch_project
 from maskgen import software_loader
+from threading import Lock
 
 class TestBatchProcess(unittest.TestCase):
 
@@ -19,7 +20,11 @@ class TestBatchProcess(unittest.TestCase):
       software_loader.loadSoftware("software.csv")
       software_loader.loadProjectProperties("project_properties.json")
       batchProject = batch_project.loadJSONGraph('tests/batch_process.json')
-      batchProject.executeOnce(global_state={'projects' : 'test_projects'})
+      batchProject.executeOnce(global_state={
+          'projects' : 'test_projects',
+          'picklists_files': {},
+          'picklistlock':Lock()
+      })
 
 if __name__ == '__main__':
     unittest.main()
