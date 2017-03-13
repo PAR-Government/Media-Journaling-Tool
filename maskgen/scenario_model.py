@@ -1544,8 +1544,9 @@ class ImageProjectModel:
                     analysis[k] = v
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-            edgeErrors = graph_rules.run_rules(mod.operationName, self.G, self.start, destination)
-            msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 and not skipRules else ''
+
+            edgeErrors = [] if skipRules else graph_rules.run_rules(mod.operationName, self.G, self.start, destination)
+            msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 else ''
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start, destination), 'connect')
             msgFromErrors = "Comparison errors occured" if errors and len(errors) > 0 else ''
