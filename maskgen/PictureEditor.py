@@ -1,4 +1,4 @@
-from tkinter import *
+from Tkinter import *
 from PIL import ImageTk
 
 class PictureEditor(Frame):
