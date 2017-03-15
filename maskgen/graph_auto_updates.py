@@ -32,9 +32,6 @@ def updateJournal(scModel):
         _fixCreator(scModel)
         _fixValidationTime(scModel)
         upgrades.append('0.4.0101.b4561b475b')
-    if "0.4.0101.52bb2811db" not in upgrades:
-        _fixBlend(scModel)
-        upgrades.append('0.4.0101.52bb2811db')
     if "0.4.0308.f7d9a62a7e" not in upgrades:
         _fixLabels(scModel)
         upgrades.append('0.4.0308.f7d9a62a7e')
@@ -44,6 +41,10 @@ def updateJournal(scModel):
     if "0.4.0308.90e0ce497f" not in upgrades:
         _fixTransformCrop(scModel)
         upgrades.append('0.4.0308.90e0ce497f')
+    if "0.4.0308.adee798679" not in upgrades:
+        _fixEdgeFiles(scModel)
+        _fixBlend(scModel)
+        upgrades.append('0.4.0308.adee798679')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -58,6 +59,21 @@ def _fixLabels(scModel):
     for node in scModel.getNodeNames():
         scModel.labelNodes(node)
 
+def _fixEdgeFiles(scModel):
+    import shutil
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'inputmaskname'  in edge and edge['inputmaskname'] is not None:
+            edge['inputmaskname'] = os.path.split(edge['inputmaskname'])[1]
+        arguments = edge['arguments'] if 'arguments' in edge  else None
+        if arguments is not None:
+            for id in ['XMP File Name','qtfile','pastemask','PNG File Name','convolutionkernel']:
+                if id in arguments:
+                   arguments[id] = os.path.split(arguments[id])[1]
+                   fullfile = os.path.join('plugins/JpgFromCamera/QuantizationTables',arguments[id])
+                   if os.path.exists(fullfile):
+                       shutil.copy(fullfile,os.path.join(scModel.get_dir(),arguments[id]))
+
 def _fixCreator(scModel):
     """
     :param scModel:
@@ -71,13 +87,13 @@ def _fixCreator(scModel):
 def _fixBlend(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        if edge['op'] == 'BlendHardLight':
+        if edge['op'].lower() == 'blendhardlight':
             edge['op'] = 'Blend'
             if 'arguments' not in edge:
                 edge['arguments'] = {'mode' : 'Hard Light'}
             else:
                 edge['arguments']['mode']  = 'Hard Light'
-        elif edge['op'] == 'BlendSoftLight':
+        elif edge['op'].lower() == 'blendsoftlight':
             edge['op'] = 'Blend'
             if 'arguments' not in edge:
                 edge['arguments'] = {'mode' : 'Soft Light'}
