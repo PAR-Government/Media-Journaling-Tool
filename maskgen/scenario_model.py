@@ -1311,15 +1311,31 @@ class ImageProjectModel:
         selectMask = self.G.get_edge_image(self.start, self.end, 'maskname')[0]
         return self._constructTransformedMask((self.start, self.end), selectMask.to_array())
 
-    def extendCompositeByOne(self,compositeMask,level=None,colorMap={}, override_args={}):
+    def extendCompositeByOne(self,compositeMask,level=None,replacementEdgeMask=None,colorMap={}, override_args={}):
+        """
+
+        :param compositeMask:
+        :param level:
+        :param replacementEdgeMask:
+        :param colorMap:
+        :param override_args:
+        :return:
+        @type compositeMask: ImageWrapper
+        @type level: IntObject
+        @type replacementEdgeMask: ImageWrapper
+        @rtype ImageWrapper
+        """
         import copy
         edge = self.G.get_edge(self.start, self.end)
-        if len(override_args)> 0:
+        if len(override_args)> 0 and edge is not None:
             edge = copy.deepcopy(edge)
             dictDeepUpdate(edge,override_args)
+        else:
+            edge = override_args
         level = IntObject() if level is None else level
         compositeMask = self._extendComposite(compositeMask, edge, self.start, self.end,
                                               level=level,
+                                              replacementEdgeMask=replacementEdgeMask,
                                               colorMap=colorMap)
 
         return ImageWrapper(toColor(compositeMask, intensity_map=colorMap))
@@ -2303,7 +2319,11 @@ class ImageProjectModel:
         return ((startNode['xpos'] if startNode.has_key('xpos') else 50) + augment[0],
                 (startNode['ypos'] if startNode.has_key('ypos') else 50) + augment[1])
 
-    def _extendComposite(self,compositeMask,edge,source,target,level=IntObject(),colorMap={}, operationTypes=None):
+    def _extendComposite(self,compositeMask,edge,source,target,
+                         replacementEdgeMask=None,
+                         level=IntObject(),
+                         colorMap={},
+                         operationTypes=None):
         """
         Pulls the color from the compositescolor attribute of the edge
         :param compositeMask:
@@ -2321,12 +2341,15 @@ class ImageProjectModel:
         # merge masks first, the mask is the same size as the input image
         # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
         # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
-        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0]
-        if edgeMask is None:
-            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
-        edgeMask =  edgeMask.to_array()
+        edgeMask = self.G.get_edge_image(source, target, 'maskname',returnNoneOnMissing=True)[0] if target is not None else None
+        if edgeMask is not None:
+            edgeMask =  edgeMask.to_array()
+        else:
+            edgeMask = replacementEdgeMask
         if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' and \
                 (operationTypes is None or edge['op'] in operationTypes):
+            if edgeMask is None:
+                raise ValueError('Missing edge mask from ' + source + ' to ' + target)
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else [0,0,0]
             colorMap[level.value] = color

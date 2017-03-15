@@ -171,6 +171,7 @@ def promptForBoxPairAndFillButtonText(obj, id, row):
     d = PointsViewDialog (obj,left_box, right_box,angle,
                           extra_args['start_im'], extra_args['end_im'],
                           extra_args['model'],
+                          op=extra_args['op'],
                           argument_name=id)
     if not d.cancelled:
         res = d.getStringConfiguration()
@@ -404,7 +405,7 @@ class DescriptionCaptureDialog(Toplevel):
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
 
-    def buildArgBox(self):
+    def buildArgBox(self, opname):
         if self.argBox is not None:
             self.argBox.destroy()
         properties = [ProjectProperty(name=argumentTuple[0],
@@ -421,7 +422,8 @@ class DescriptionCaptureDialog(Toplevel):
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
                                             'start_im':self.start_im,
-                                            'model': self.scModel},
+                                            'model': self.scModel,
+                                            'op': opname},
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
         self.argBox.grid_propagate(1)
@@ -442,7 +444,7 @@ class DescriptionCaptureDialog(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 self.arginfo.append((k, v))
-        self.buildArgBox()
+        self.buildArgBox(self.e2.get())
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -519,7 +521,7 @@ class DescriptionCaptureDialog(Toplevel):
         row += 1
         self.argBoxRow = row
         self.argBoxMaster = master
-        self.argBox = self.buildArgBox()
+        self.argBox = self.buildArgBox(None)
         row += 1
 
         cats = self.organizeOperationsByCategory()
@@ -1570,7 +1572,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
     colorMap = dict()
     ws = None
 
-    def __init__(self, parent, start_box, end_box, angle, start_im, end_im,model,argument_name=None):
+    def __init__(self, parent, start_box, end_box, angle, start_im, end_im,model,op=None,argument_name=None):
         """
         :param parent: MakeGenUI
         @type parent: MakeGenUI
@@ -1582,6 +1584,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.right_box = end_box
         self.angle = angle
         self.scModel = model
+        self.op = op
         self.prior_composite = None
         self.argument_name = argument_name
         tkSimpleDialog.Dialog.__init__(self, parent)
@@ -1594,32 +1597,40 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         return str(self.left_box) + ':' + str(self.right_box) + ':' + str(self.angle)
 
     def _newComposite(self):
+        from PIL import Image
         if self.prior_composite is None:
             self.prior_composite = \
-                self.scModel.constructCompositeForNode(self.scModel.getPredecessorNode(),
+                self.scModel.constructCompositeForNode(self.scModel.start,
                                                        level=self.level,
                                                        colorMap=self.colorMap)
-        override_args=dict()
+        override_args={
+            'op' : self.op,
+            'shape change': str((self.nextIM.size[1]-self.startIM.size[1],
+                             self.nextIM.size[0]-self.startIM.size[0]))
+        }
         if self.argument_name is not None and self.ws is not None:
             self.updateBox()
             override_args['arguments'] = {self.argument_name :
                                     self.getStringConfiguration()}
-        return self.scModel.extendCompositeByOne(self.prior_composite,
-                                                 level=self.level,
-                                                 colorMap=self.colorMap,
-                                                 override_args=override_args)
+        composite = self.scModel.extendCompositeByOne(self.prior_composite,
+                                                  level=self.level,
+                                                  colorMap=self.colorMap,
+                                                  override_args=override_args)
+        if composite.size != self.nextIM.size:
+            composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
+        return composite
 
     def instructionsFrame(self,master):
         f = Frame(master)
         w1 = Label(f, text="The left image is the image prior to recapture. " + \
-                          "The right image is the image is the recaptured image. " + \
-                          "Of portion of the left image is recaptured, cropping parts of the image, " + \
-                          " then draw a rectangle around the portion of the left image that is " + \
-                          "captured in the right image.  If the recapture image is framed " + \
-                          "containing 100% of the left image with additional framing (background), " + \
-                          "draw a rectange around the portion of the right image that represents 100% of the" + \
-                          "left image.  The rectangle can be adjusted by clicking and dragging the corners"
-                  , font=("Helvetica", 14),wraplength=400, justify=LEFT)
+                           "The right image is the recaptured image. " + \
+                           "If a portion of the left image is recaptured, cropping parts of the image, " + \
+                           " then draw a rectangle around the portion of the left image that is " + \
+                           "captured in the right image. \n If the recapture image is framed " + \
+                           "containing 100% of the left image with additional framing (background), " + \
+                           "draw a rectange around the portion of the right image that represents 100% of the" + \
+                           "left image.  The rectangle can be adjusted by clicking and dragging the corners."
+                   , font=("Helvetica", 14), wraplength=400, justify=LEFT)
         w1.grid(row=0)
         w2 = Label(f, text=
                            "Once the rectangles are complete, rotate the right rectangle to indicate the amount of rotation applied to " + \

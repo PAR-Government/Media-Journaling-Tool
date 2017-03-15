@@ -137,16 +137,17 @@ class PictureEditor(Frame):
         click_position_y = self.canvas.canvasy(event.y)
         self.corner = 0
         found_corner = False
+        rebuild_rect = True
         for corner in self.getCorners():
             if abs(click_position_x - corner[0]) <= 5 and \
                             abs(click_position_y - corner[1]) < 5:
                 self.corner = corner[2]
                 found_corner = True
+                rebuild_rect = False
                 break
 
         if not found_corner:
             self.corner = 2
-            rebuild_rect = True
 
         rebuild_rect = (self.out_of_scope == 1) and rebuild_rect
 

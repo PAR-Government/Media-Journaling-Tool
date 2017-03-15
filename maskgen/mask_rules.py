@@ -13,6 +13,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     position_str = edge['arguments']['Position Mapping'] if 'arguments' in edge and \
+                   edge['arguments'] is not None and \
                    'Position Mapping' in edge['arguments'] else None
     if position_str is not None and len(position_str) > 0:
         parts = position_str.split(':')

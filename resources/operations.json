@@ -2963,10 +2963,6 @@
         "Magnification": {
           "type": "float[0:100000]",
           "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
-        },
-        "Position Mapping": {
-          "type": "boxpair",
-          "description": "Maps the bounding regions of each image"
         }
       },
       "analysisOperations": [
@@ -2992,6 +2988,10 @@
             "Other"
           ],
           "description": "Base type of printer used to compose the image"
+        },
+        "Position Mapping": {
+          "type": "boxpair",
+          "description": "Maps the bounding regions of each image"
         }
       },
       "maskTransformFunction": "maskgen.mask_rules.recapture_transform",
