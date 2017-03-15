@@ -32,9 +32,6 @@ def updateJournal(scModel):
         _fixCreator(scModel)
         _fixValidationTime(scModel)
         upgrades.append('0.4.0101.b4561b475b')
-    if "0.4.0101.52bb2811db" not in upgrades:
-        _fixBlend(scModel)
-        upgrades.append('0.4.0101.52bb2811db')
     if "0.4.0308.f7d9a62a7e" not in upgrades:
         _fixLabels(scModel)
         upgrades.append('0.4.0308.f7d9a62a7e')
@@ -46,6 +43,7 @@ def updateJournal(scModel):
         upgrades.append('0.4.0308.90e0ce497f')
     if "0.4.0308.adee798679" not in upgrades:
         _fixEdgeFiles(scModel)
+        _fixBlend(scModel)
         upgrades.append('0.4.0308.adee798679')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
@@ -89,13 +87,13 @@ def _fixCreator(scModel):
 def _fixBlend(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        if edge['op'] == 'BlendHardLight':
+        if edge['op'].lower() == 'blendhardlight':
             edge['op'] = 'Blend'
             if 'arguments' not in edge:
                 edge['arguments'] = {'mode' : 'Hard Light'}
             else:
                 edge['arguments']['mode']  = 'Hard Light'
-        elif edge['op'] == 'BlendSoftLight':
+        elif edge['op'].lower() == 'blendsoftlight':
             edge['op'] = 'Blend'
             if 'arguments' not in edge:
                 edge['arguments'] = {'mode' : 'Soft Light'}

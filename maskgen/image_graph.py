@@ -41,6 +41,29 @@ def extract_archive(fname, dir):
 
     return True
 
+def buildPath( value, edgePaths):
+    r = []
+    if type(value) is list:
+        for c in range(len(value)):
+            iv = value[c]
+            if len(edgePaths) == 1:
+                r.append('[{1:d}].{0}'.format(edgePaths[0], c))
+            else:
+                for path in buildPath(iv, edgePaths[1:]):
+                    if len(path) > 0:
+                        r.append('[{1:d}].{0}.{2}'.format(edgePaths[0], c, path))
+                    else:
+                        r.append('[{1:d}].{0}'.format(edgePaths[0], c))
+        return r
+    if type(value) is dict and edgePaths[0] in value:
+        if len(edgePaths) == 1:
+            return [edgePaths[0]]
+        else:
+            for path in buildPath(value[edgePaths[0]], edgePaths[1:]):
+                r.append(edgePaths[0] + (("." + path) if len(path) > 0 else ''))
+            return [x.replace('.[', '[') for x in r]
+    return ['']
+
 def extract_and_list_archive(fname, dir):
     try:
         archive = tarfile.open(fname, "r:gz", errorlevel=2)
@@ -942,26 +965,6 @@ class ImageGraph:
             return {}
         return {path: value}
 
-    def _buildPath(self, value, edgePaths):
-        r = []
-        if type(value) is list:
-            for c in range(len(value)):
-                iv = value[c]
-                for path in self._buildPath( iv, edgePaths):
-                    if len(path) > 0:
-                        r.append('[{1:d}].{0}.{2}'.format( edgePaths[0],c, path))
-                    else:
-                        r.append('[{1:d}].{0}'.format(edgePaths[0], c))
-            return r
-        if type(value) is dict and edgePaths[0] in value:
-            if len(edgePaths) == 1:
-                return [edgePaths[0]]
-            else:
-                for path in self._buildPath(value[edgePaths[0]], edgePaths[1:]):
-                     r.append(edgePaths[0] + (("." + path) if len(path) > 0 else ''))
-                return [x.replace('.[','[') for x in r]
-        return ['']
-
     def _matchPath(self, path, pathTemplate):
         pos = path.find('[')
         while pos > 0:
@@ -974,10 +977,10 @@ class ImageGraph:
         self._updatePathValue(edge, path, value)
         for edgePath in self.edgeFilePaths:
             struct = self._buildStructure(path, value)
-            for revisedPath in self._buildPath(struct, edgePath.split('.')):
+            for revisedPath in buildPath(struct, edgePath.split('.')):
                 if self._matchPath(revisedPath, edgePath):
                     ownership = self.edgeFilePaths[edgePath]
-                    for pathValue in  getPathValues(struct, revisedPath):
+                    for pathValue in getPathValues(struct, revisedPath):
                         filenamevalue, ownershipvalue = self._handle_inputfile(pathValue)
                         self._updatePathValue(edge, revisedPath, filenamevalue)
                         if ownership:

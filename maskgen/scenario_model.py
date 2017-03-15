@@ -620,7 +620,7 @@ class VideoVideoLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8')), {}
-        if op != 'Donor' and not getOperationWithGroups(op).generateMask:
+        if op != 'Donor' and not getOperationWithGroups(op,fake=True).generateMask:
             maskSet = list()
             errors = list()
         elif op == 'Donor':
