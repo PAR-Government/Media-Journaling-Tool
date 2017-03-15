@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 
 
-snapshot='.90e0ce497f'
+snapshot='.adee798679'
 igversion='0.4.0308' + snapshot
 
 
@@ -477,7 +477,7 @@ class ImageGraph:
         unsetkeys = []
         for k, v in kwargs.iteritems():
             if v is not None:
-                self._updateEdgePathValue(start, end, k, v)
+                self._updateEdgePathValue(self.G[start][end], k, v)
             else:
                 unsetkeys.append(k)
         for k in unsetkeys:
@@ -516,18 +516,15 @@ class ImageGraph:
             edge[k] = v
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
+        import copy
         self._setUpdate((start, end), update_type='edge')
         newmaskpathname = None
         if maskname is not None and mask is not None:
             newmaskpathname = os.path.join(self.dir, maskname)
             mask.save(newmaskpathname)
-        for path, ownership in self.edgeFilePaths.iteritems():
-            vals = getPathValues(kwargs, path)
-            if ownership and len(vals) > 0:
-                pathvalue, ownershipvalue = self._handle_inputfile(vals[0])
-                if vals[0]:
-                    kwargs[path] = pathvalue
-                    kwargs[ownership] = ownershipvalue
+        for k, v in copy.deepcopy(kwargs).iteritems():
+            if v is not None:
+                self._updateEdgePathValue(kwargs, k, v)
         # do not remove old version of mask if not saved previously
         if newmaskpathname in self.filesToRemove:
             self.filesToRemove.remove(newmaskpathname)
@@ -940,7 +937,9 @@ class ImageGraph:
     def _buildStructure(self, path, value):
         pos = path.find('.')
         if pos > 0:
-            return {path[0:pos]: self._buildStructure(path[pos + 1:], value)}
+            if path[0:pos] in value:
+                return {path[0:pos]: self._buildStructure(path[pos + 1:], value)}
+            return {}
         return {path: value}
 
     def _buildPath(self, value, edgePaths):
@@ -971,8 +970,8 @@ class ImageGraph:
             pos = path.find('[')
         return path == pathTemplate
 
-    def _updateEdgePathValue(self, start, end, path, value):
-        self._updatePathValue(self.G[start][end], path, value)
+    def _updateEdgePathValue(self, edge, path, value):
+        self._updatePathValue(edge, path, value)
         for edgePath in self.edgeFilePaths:
             struct = self._buildStructure(path, value)
             for revisedPath in self._buildPath(struct, edgePath.split('.')):
@@ -980,9 +979,9 @@ class ImageGraph:
                     ownership = self.edgeFilePaths[edgePath]
                     for pathValue in  getPathValues(struct, revisedPath):
                         filenamevalue, ownershipvalue = self._handle_inputfile(pathValue)
-                        self._updatePathValue(self.G[start][end], revisedPath, filenamevalue)
+                        self._updatePathValue(edge, revisedPath, filenamevalue)
                         if ownership:
-                            self._updatePathValue(self.G[start][end], ownership, ownershipvalue)
+                            self._updatePathValue(edge, ownership, ownershipvalue)
 
     def create_path_archive(self, location, end):
         self.save()

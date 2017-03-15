@@ -44,6 +44,9 @@ def updateJournal(scModel):
     if "0.4.0308.90e0ce497f" not in upgrades:
         _fixTransformCrop(scModel)
         upgrades.append('0.4.0308.90e0ce497f')
+    if "0.4.0308.adee798679" not in upgrades:
+        _fixEdgeFiles(scModel)
+        upgrades.append('0.4.0308.adee798679')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -57,6 +60,21 @@ def _fixValidationTime(scModel):
 def _fixLabels(scModel):
     for node in scModel.getNodeNames():
         scModel.labelNodes(node)
+
+def _fixEdgeFiles(scModel):
+    import shutil
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'inputmaskname'  in edge and edge['inputmaskname'] is not None:
+            edge['inputmaskname'] = os.path.split(edge['inputmaskname'])[1]
+        arguments = edge['arguments'] if 'arguments' in edge  else None
+        if arguments is not None:
+            for id in ['XMP File Name','qtfile','pastemask','PNG File Name','convolutionkernel']:
+                if id in arguments:
+                   arguments[id] = os.path.split(arguments[id])[1]
+                   fullfile = os.path.join('plugins/JpgFromCamera/QuantizationTables',arguments[id])
+                   if os.path.exists(fullfile):
+                       shutil.copy(fullfile,os.path.join(scModel.get_dir(),arguments[id]))
 
 def _fixCreator(scModel):
     """
