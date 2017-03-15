@@ -1609,24 +1609,56 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
                                                  colorMap=self.colorMap,
                                                  override_args=override_args)
 
+    def instructionsFrame(self,master):
+        f = Frame(master)
+        w1 = Label(f, text="The left image is the image prior to recapture. " + \
+                          "The right image is the image is the recaptured image. " + \
+                          "Of portion of the left image is recaptured, cropping parts of the image, " + \
+                          " then draw a rectangle around the portion of the left image that is " + \
+                          "captured in the right image.  If the recapture image is framed " + \
+                          "containing 100% of the left image with additional framing (background), " + \
+                          "draw a rectange around the portion of the right image that represents 100% of the" + \
+                          "left image.  The rectangle can be adjusted by clicking and dragging the corners"
+                  , font=("Helvetica", 14),wraplength=400, justify=LEFT)
+        w1.grid(row=0)
+        w2 = Label(f, text=
+                           "Once the rectangles are complete, rotate the right rectangle to indicate the amount of rotation applied to " + \
+                           "the image, if any.  In most cases, the amount of rotation is -90,0,90 or 180.",
+                   font=("Helvetica", 14), wraplength=400, justify=LEFT)
+        w2.grid(row=1)
+        w3 = Label(f, text=
+        "The composite image is for review only.  The refresh button reapplies the changes to the composite, as does " + \
+        "switching between the composite tab and the other tabs. The scale is only for aiding the edit process; it is " + \
+        "not applied to the final images.",
+                   font=("Helvetica", 14), wraplength=400, justify=LEFT)
+        w3.grid(row=2)
+        return f
+
     def body(self,master):
         self.nb = ttk.Notebook(master)
         self.left = PictureEditor(master,self.startIM.toPIL(), self.left_box)
+        f = self.instructionsFrame(self.nb)
+
         self.right = PictureEditor(self.nb, self.nextIM.toPIL(),self.right_box,angle=self.angle)
         self.composite_view = ScrollCompositeViewer(self.nb, self.nextIM,self._newComposite())
         self.nb.add(self.right, text='Image')
         self.nb.add(self.composite_view, text='Composite')
+        self.nb.add(f, text='Instructions')
         self.nb.select(self.right)
         self.nb.bind('<<NotebookTabChanged>>', self.notify)
 
-        self.left.grid(row=0, column=0)
-        self.nb.grid(row=0, column=1)
+        self.left.grid(row=0, column=0, columnspan=2)
+        self.nb.grid(row=0, column=2,columnspan=2)
 
+        label1 = Label(master,text='Scale:',justify=RIGHT,anchor=S)
+        label1.grid(row=1, column=0,sticky=E)
         self.ls = Scale(master, from_=15, to=100, orient=HORIZONTAL, command=self.rescale)
-        self.ls.grid(row=1, column=0)
+        self.ls.grid(row=1, column=1,sticky=W)
         self.ls.set(100)
+        label2 = Label(master, text='Rotation:',justify=RIGHT,anchor=S)
+        label2.grid(row=1, column=2,sticky=E)
         self.ws = Scale(master, from_=-180, to=180,orient=HORIZONTAL,command=self.rotate)
-        self.ws.grid(row=1,column=1)
+        self.ws.grid(row=1,column=3,sticky=W)
         self.ws.set(self.angle)
 
     def rescale(self,event):
@@ -1639,6 +1671,9 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
 
     def cancel(self):
         tkSimpleDialog.Dialog.cancel(self)
+
+    def refresh_composite(self):
+        self.composite_view.update(self._newComposite())
 
     def updateBox(self):
         if self.ws is not None:
@@ -1656,7 +1691,20 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.cancelled = False
         self.updateBox()
 
+    def buttonbox(self):
+        box = Frame(self)
 
+        w = Button(box, text="OK", width=10, command=self.ok)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=15, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Refresh Composite", width=15, command=self.refresh_composite)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
 
 
 class CommentViewer(tkSimpleDialog.Dialog):

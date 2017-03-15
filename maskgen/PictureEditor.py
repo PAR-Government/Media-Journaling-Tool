@@ -6,6 +6,7 @@ class PictureEditor(Frame):
     box = (0, 0, 0, 0)
     polygon_item = None
     framescale = 1.0
+    corner = 0
 
     def __init__(self, master, image, box, angle=0):
         Frame.__init__(self, master, bd=2, relief=SUNKEN)
@@ -14,9 +15,9 @@ class PictureEditor(Frame):
         self.box = box
 
         self.canvas = Canvas(self, cursor="cross", width=500, height=500, confine=True,
-                             scrollregion=(0, 0, image.size[1] * 10, image.size[0] * 10),
+                             scrollregion=(0, 0, image.size[0] * 1.1, image.size[1] * 1.1),
                              relief="groove",
-                             bg="blue")
+                             bg="white")
 
         self.grid_rowconfigure(0, weight=5)
         self.grid_columnconfigure(0, weight=5)
@@ -37,8 +38,6 @@ class PictureEditor(Frame):
         self.canvas.bind("<Double-Button-1>", self.on_double_click)
         self.rect = None
         self.text = None
-        self.start_x = None
-        self.start_y = None
         self.boxdata = StringVar()
 
         self.label = Label(self, textvariable=self.boxdata, justify=CENTER)
@@ -97,48 +96,72 @@ class PictureEditor(Frame):
 
     def on_button_leave(self, event):
         self.out_of_scope = 2
-        # print "out_of_scope....", self.out_of_scope
 
     def on_button_enter(self, event):
-        # print("entering...")
         self.out_of_scope = 1
 
     def on_double_click(self, event):
-        # print("double click")
         pass
+
+    def getCorners(self):
+        if self.rect is not None:
+            coords = self.canvas.coords(self.rect)
+            corners = [(coords[0], coords[1], 0), (coords[0], coords[3], 1),
+                       (coords[2], coords[3], 2), (coords[2], coords[1], 3)]
+            return corners
+        return []
+
+    def updateCorners(self, x, y):
+        coords = self.canvas.coords(self.rect)
+        upper_choices = [
+            (x, y),
+            (x, coords[1]),
+            (coords[0], coords[1]),
+            (coords[0], y)
+        ]
+        lower_choices = [
+            (coords[2], coords[3]),
+            (coords[2], y),
+            (x, y),
+            (x, coords[3])
+        ]
+        self.canvas.coords(self.rect,
+                           upper_choices[self.corner][0],
+                           upper_choices[self.corner][1],
+                           lower_choices[self.corner][0],
+                           lower_choices[self.corner][1])
 
     def on_button_press(self, event):
         # save mouse drag start position
         click_position_x = self.canvas.canvasx(event.x)
-        click_position_y = self.canvas.canvasx(event.y)
-        coords = self.canvas.coords(self.rect)
-        if abs(click_position_x - coords[0]) > 5 and \
-                        abs(click_position_y - coords[1]) > 5:
-            if (abs(click_position_x) - coords[2]) > 5 and \
-                            (abs(click_position_y) - coords[3]) > 5:
-                self.start_x = click_position_x
-                self.start_y = click_position_y
-            else:
-                self.start_x = coords[0]
-                self.start_y = coords[1]
-        else:
-            if (abs(click_position_x) - coords[2]) > 5 and \
-                            (abs(click_position_y) - coords[3]) > 5:
-                self.start_x = click_position_x
-                self.start_y = click_position_y
-            else:
-                self.start_x = coords[2]
-                self.start_y = coords[3]
+        click_position_y = self.canvas.canvasy(event.y)
+        self.corner = 0
+        found_corner = False
+        for corner in self.getCorners():
+            if abs(click_position_x - corner[0]) <= 5 and \
+                            abs(click_position_y - corner[1]) < 5:
+                self.corner = corner[2]
+                found_corner = True
+                break
+
+        if not found_corner:
+            self.corner = 2
+            rebuild_rect = True
+
+        rebuild_rect = (self.out_of_scope == 1) and rebuild_rect
 
         if self.polygon_item:
             self.canvas.delete(self.polygon_item)
             self.polygon_item = None
 
-        # create rectangle if not yet exist
-        if not self.rect:
-            if self.out_of_scope == 1:
-                self.rect = self.canvas.create_rectangle(self.x, self.y, 1, 1,
-                                                         outline='blue',tags='rect')  # since it's only created once it always remains at the bottom
+        if rebuild_rect:
+            if not self.rect:
+                self.rect = self.canvas.create_rectangle(click_position_x, click_position_y,
+                                                         click_position_x + 1, click_position_y + 1,
+                                                         outline='blue', tags='rect')
+            else:
+                self.canvas.coords(self.rect, click_position_x, click_position_y,
+                                   click_position_x + 1, click_position_y + 1)
 
     def get_out_of_scope(self, x, y):
         return self.out_of_scope
@@ -157,11 +180,12 @@ class PictureEditor(Frame):
                 self.canvas.yview_scroll(1, 'units')
             elif event.y < 0.05 * h:
                 self.canvas.yview_scroll(-1, 'units')
-                # expand rectangle as you drag the mouse
-            self.canvas.coords(self.rect, self.start_x, self.start_y, curX, curY)
+             # expand rectangle as you drag the mouse
+            self.updateCorners(curX, curY)
 
     def on_button_release(self, event):
-        self.box = (int(self.start_x), int(self.start_y), self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
+        coords = self.canvas.coords(self.rect)
+        self.box = (int(coords[0]), int(coords[1]), int(coords[2]), int(coords[3]))
         self.setBoxData()
         pass
 
@@ -190,7 +214,7 @@ class PictureEditor(Frame):
         xy = [(scaled_box[0], scaled_box[1]), (scaled_box[2], scaled_box[1]), (scaled_box[2], scaled_box[3]),
               (scaled_box[0], scaled_box[3])]
         if self.polygon_item is None:
-            self.polygon_item = self.canvas.create_polygon(xy, outline='blue', fill='',tags="rect")
+            self.polygon_item = self.canvas.create_polygon(xy, outline='blue', fill='', tags="rect")
         for x, y in xy:
             newX = center[0] + math.cos(rangle) * (x - center[0]) - math.sin(rangle) * (y - center[1])
             newY = center[1] + math.sin(rangle) * (x - center[0]) + math.cos(rangle) * (y - center[1])
