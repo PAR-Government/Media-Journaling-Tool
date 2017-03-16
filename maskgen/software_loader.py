@@ -110,7 +110,7 @@ class Operation:
                           sort_keys=True, indent=4)
 
 
-def getOperation(name, fake = False):
+def getOperation(name, fake = False, warning=True):
     """
 
     :param name: name of the operation
@@ -120,7 +120,7 @@ def getOperation(name, fake = False):
     global operations
     if name == 'Donor':
         return Operation(name='Donor', category='Donor')
-    if name not in operations:
+    if name not in operations and warning:
         print 'Requested missing operation ' + str(name)
     return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)
 

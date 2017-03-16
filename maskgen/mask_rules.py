@@ -12,7 +12,43 @@ import cv2
 def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None, edgeSelection=None, overideMask=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
-    location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
+    position_str = edge['arguments']['Position Mapping'] if 'arguments' in edge and \
+                   edge['arguments'] is not None and \
+                   'Position Mapping' in edge['arguments'] else None
+    if position_str is not None and len(position_str) > 0:
+        parts = position_str.split(':')
+        left_box = tool_set.coordsFromString(parts[0])
+        right_box = tool_set.coordsFromString(parts[1])
+        angle = int(float(parts[2]))
+        if compositeMask is not None:
+            res = compositeMask
+            expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+            expectedPasteSize = ((right_box[3]-right_box[1]),(right_box[2]-right_box[0]))
+            newMask = np.zeros(expectedSize)
+            clippedMask = res[left_box[1]:left_box[3],left_box[0]:left_box[2]]
+            res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
+            newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
+            if angle!=0:
+                center = (right_box[1] + (right_box[3] -right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
+                res = tool_set.applyRotateToCompositeImage(newMask,angle,center)
+            else:
+                res = newMask.astype('uint8')
+            return res
+        elif donorMask is not None:
+            res = donorMask
+            expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
+            targetSize = edgeMask.shape if edgeMask is not None else expectedSize
+            expectedPasteSize = ((left_box[3] - left_box[1]), (left_box[2] - left_box[0]))
+            newMask = np.zeros(targetSize)
+            if angle != 0:
+                center = (
+                    right_box[1] + (right_box[3] - right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
+                res = tool_set.applyRotateToCompositeImage(res, -angle, center)
+            clippedMask = res[right_box[1]:right_box[3], right_box[0]:right_box[2]]
+            res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
+            newMask[left_box[1]:left_box[3], left_box[0]:left_box[2]] = res
+            return res
+
     if compositeMask is not None:
         res = compositeMask
         expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])

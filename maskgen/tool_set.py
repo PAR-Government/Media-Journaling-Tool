@@ -79,6 +79,16 @@ def openFile(fileName):
         os.system('open "' + fileName + '"')
 
 
+class IntObject:
+    value = 0
+
+    def __init__(self):
+        pass
+
+    def increment(self):
+        self.value += 1
+        return self.value
+
 """
    Support UID discovery using a class that supports a method getpwuid().
    tool_set.setPwdX(classInstance) to set the class.  By default, the os UID is used.
@@ -1417,6 +1427,35 @@ def mergeMask(compositeMask, newMask, level=0):
     compositeMask[newMask == 0] = level
     return compositeMask
 
+def applyRotateToCompositeImage(img,angle, pivot):
+    """
+       Loop through each level add apply the rotation.
+       Need to convert levels to 0 and unmapped levels to 255
+       :param compositeMask:
+       :param mask:
+       :param transform_matrix:
+       :return:
+       """
+    newMask = np.zeros(img.shape).astype('uint8')
+    for level in list(np.unique(img)):
+        if level == 0:
+            continue
+        levelMask = np.zeros(img.shape).astype('uint8')
+        levelMask[img == level] = 255
+        newLevelMask = rotateImage(levelMask,angle, pivot)
+        newMask[newLevelMask > 0] = level
+    return newMask
+
+def rotateImage(img, angle, pivot):
+    padX = [img.shape[1] - pivot[1], pivot[1]]
+    padY = [img.shape[0] - pivot[0], pivot[0]]
+    imgP = np.pad(img, [padY, padX], 'constant')
+    if abs(angle) % 90 == 0:
+        imgR = np.rot90(imgP,int(angle/90)).astype('uint8')
+    else:
+        imgR = ndimage.rotate(imgP, angle, cval=0, reshape=False, mode='constant').astype('uint8')
+    return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
+
 
 def  ssim(X,Y,MASK,**kwargs):
     from scipy.ndimage import uniform_filter, gaussian_filter
@@ -1507,6 +1546,12 @@ def __findNeighbors(paths, next_pixels):
 def __setMask(mask, x, y, value):
     mask[x, y] = value
 
+def dictDeepUpdate(aDictionary, aPartialDictionary):
+    for k,v in aPartialDictionary.iteritems():
+        if k in aDictionary and type(v) == dict:
+            dictDeepUpdate(aDictionary[k],v)
+        else:
+            aDictionary[k] = v
 
 def createHorizontalSeamMask(old, new):
     return __slideAcrossSeams(old,
