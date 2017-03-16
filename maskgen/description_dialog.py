@@ -1627,7 +1627,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         f = Frame(master)
         w1 = Label(f, text="The left image is the image prior to recapture. " + \
                            "The right image is the recaptured image. " + \
-                           "The idea is to draw rectangles around the corresponding areas in each. " + \ 
+                           "The idea is to draw rectangles around the corresponding areas in each. " + \
                            "If a portion of the left image is recaptured, cropping parts of the image, " + \
                            "then draw a rectangle around the portion of the left image that is " + \
                            "captured in the right image. If the recapture image is framed " + \
