@@ -1624,21 +1624,21 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         f = Frame(master)
         w1 = Label(f, text="The left image is the image prior to recapture. " + \
                            "The right image is the recaptured image. " + \
+                           "The idea is to draw rectangles around the corresponding areas in each. " + \ 
                            "If a portion of the left image is recaptured, cropping parts of the image, " + \
-                           " then draw a rectangle around the portion of the left image that is " + \
-                           "captured in the right image. \n If the recapture image is framed " + \
+                           "then draw a rectangle around the portion of the left image that is " + \
+                           "captured in the right image. If the recapture image is framed " + \
                            "containing 100% of the left image with additional framing (background), " + \
-                           "draw a rectange around the portion of the right image that represents 100% of the" + \
+                           "draw a rectange around the portion of the right image that represents 100% of the " + \
                            "left image.  The rectangle can be adjusted by clicking and dragging the corners."
                    , font=("Helvetica", 14), wraplength=400, justify=LEFT)
         w1.grid(row=0)
-        w2 = Label(f, text=
-                           "Once the rectangles are complete, rotate the right rectangle to indicate the amount of rotation applied to " + \
+        w2 = Label(f, text="Once the rectangles are complete, rotate the right rectangle to indicate the amount of rotation applied to " + \
                            "the image, if any.  In most cases, the amount of rotation is -90,0,90 or 180.",
                    font=("Helvetica", 14), wraplength=400, justify=LEFT)
         w2.grid(row=1)
         w3 = Label(f, text=
-        "The composite image is for review only.  The refresh button reapplies the changes to the composite, as does " + \
+        "The composite image tab is for review only.  The refresh button reapplies the changes to the composite, as does " + \
         "switching between the composite tab and the other tabs. The scale is only for aiding the edit process; it is " + \
         "not applied to the final images.",
                    font=("Helvetica", 14), wraplength=400, justify=LEFT)
