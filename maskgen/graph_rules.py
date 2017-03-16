@@ -56,10 +56,11 @@ def missing_donor_inputmask(edge,dir):
             edge['inputmaskname'] is None or \
             len(edge['inputmaskname']) == 0 or
             not os.path.exists(os.path.join(dir,edge['inputmaskname']))) and \
-            edge['op'] == 'PasteSampled' and \
+            (edge['op'] == 'PasteSampled' and \
             'arguments' in edge and \
             'purpose' in edge['arguments'] and \
-            edge['arguments']['purpose'] == 'clone')
+            edge['arguments']['purpose'] == 'clone') or
+            edge['op'] == 'TransformMove')
 
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
@@ -251,17 +252,17 @@ def check_masks(edge, op, graph, frm, to):
                 inputmask[inputmask>0] = 1
                 mask[mask>0] = 1
                 intersection = inputmask*mask
-                difference= mask-inputmask
-                difference[difference<0] = 0
-                differencesize = sum(sum(difference))
-                inputmaskarraysize = sum(sum(inputmask))
+                leftover_mask = mask - intersection
+                leftover_inputmask = inputmask - intersection
+                masksize = sum(sum(leftover_mask))
+                inputmasksize = sum(sum(leftover_inputmask))
                 intersectionsize = sum(sum(intersection))
-                if inputmaskarraysize == 0:
+                if inputmasksize == 0 and intersectionsize == 0:
                     return ['input mask does not represent moved pixels. It is empty.']
-                ratio_of_intersection = float(intersectionsize)/float(inputmaskarraysize)
-                ratio_of_difference = float(differencesize) / float(inputmaskarraysize)
+                ratio_of_intersection = float(intersectionsize)/float(inputmasksize)
+                ratio_of_difference = float(masksize) / float(inputmasksize)
                 # intersection is too small or difference is too great
-                if ratio_of_intersection < 0.9 or abs(ratio_of_difference-1.0) > 0.5:
+                if abs(ratio_of_difference-1.0) > 0.25:
                     return ['input mask does not represent the moved pixels']
 def setup():
     ops = getOperations()
