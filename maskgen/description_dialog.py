@@ -202,13 +202,16 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
       
     """
     res = None
-    if argumentTuple[1]['type'] == 'imagefile':
+    if argumentTuple[1]['type'] == 'file:image':
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0], filetypes=filetypes)
         if (val != None and len(val) > 0):
             res = val
-    elif argumentTuple[1]['type'] == 'xmpfile':
+    elif argumentTuple[1]['type'] == 'file:':
+        prop = argumentTuple[1]['type']
+        typematch = '*.' + prop[prop.find(':') + 1:]
+        typename = prop[prop.find(':') + 1:].upper()
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0],
-                                           filetypes=[('XMP', '*.xmp')])
+                                           filetypes=[(typename, typematch)])
         if (val != None and len(val) > 0):
             res = val
     elif argumentTuple[1]['type'].startswith('fileset:'):
