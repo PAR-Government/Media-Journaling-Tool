@@ -8,7 +8,7 @@ setup(name='maskgen',
       author_email='eric_robertson@partech.com',
       license='APL',
 
-      packages=find_packages(exclude=["images", "plugins", "resources", "tests"]),
+      packages=find_packages(exclude=["images", "plugins", "resources", "tests","wrapper_plugins"]),
       data_files=[('resources',['resources/operations.json','resources/software.csv','resources/project_properties.json']),
                   ('plugins/Custom',
                    ['plugins/Custom/GammaCorrection.json', 'plugins/Custom/GaussianBlur.json', 'plugins/Custom/LevelCorrection.json',

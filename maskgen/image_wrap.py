@@ -132,7 +132,7 @@ def proxyOpen(filename, isMask=False):
 file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):
-    file_registry.append((entry_point.name,[entry_point.load()]))
+    file_registry.insert(0,(entry_point.name,[entry_point.load()]))
 
 def openFromRegistry(filename,isMask=False):
     for suffixList in file_registry:
@@ -140,6 +140,8 @@ def openFromRegistry(filename,isMask=False):
             for func in suffixList[1]:
                 try:
                     result = func(filename,isMask=isMask)
+                    if result is not None and result.__class__ is not ImageWrapper:
+                        result  = ImageWrapper(result[0],mode=result[1])
                     if result is not None and result.size != (0,0):
                         return result
                 except Exception as e:
