@@ -1611,8 +1611,8 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
                                                        colorMap=self.colorMap)
         override_args={
             'op' : self.op,
-            'shape change': str((self.nextIM.size[1]-self.startIM.size[1],
-                             self.nextIM.size[0]-self.startIM.size[0]))
+            'shape change': str((int(self.nextIM.size[1]-self.startIM.size[1]),
+                             int(self.nextIM.size[0]-self.startIM.size[0]))).replace('L','')
         }
         if self.argument_name is not None and self.ws is not None:
             self.updateBox()
