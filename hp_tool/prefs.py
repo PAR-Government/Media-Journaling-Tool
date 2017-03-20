@@ -50,6 +50,8 @@ class Preferences(Toplevel):
         self.usrVar.trace('w', self.update_metadata)
         self.seqVar.trace('w', self.update_preview)
 
+        self.s3var = StringVar()
+
         self.copyrightVar = StringVar()
         self.bylineVar = StringVar()
         self.creditVar = StringVar()
@@ -71,6 +73,9 @@ class Preferences(Toplevel):
             else:
                 self.prefs['seq'] = '00000'
 
+            if self.prefs.has_key('aws'):
+                self.s3var.set(self.prefs['aws'])
+
         if self.metadata:
             self.copyrightVar.set(self.metadata['copyrightnotice'])
             self.bylineVar.set(self.metadata['by-line'])
@@ -79,43 +84,57 @@ class Preferences(Toplevel):
         self.usageVar.set('CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/')
 
     def create_widgets(self):
+        r = 0
         self.usrLabel = Label(self.prefsFrame, text='Initials: ')
-        self.usrLabel.grid(row=0, column=0)
+        self.usrLabel.grid(row=r, column=0)
         self.usrEntry = Entry(self.prefsFrame, textvar=self.usrVar, width=5)
-        self.usrEntry.grid(row=0, column=1)
+        self.usrEntry.grid(row=r, column=1)
         self.orgLabel = Label(self.prefsFrame, text='Organization: ')
-        self.orgLabel.grid(row=0, column=2)
+        self.orgLabel.grid(row=r, column=2)
         self.boxItems = [key + ' (' + hp_data.orgs[key] + ')' for key in hp_data.orgs]
 
         self.orgBox = ttk.Combobox(self.prefsFrame, values=self.boxItems, textvariable=self.orgVar, state='readonly')
         self.orgBox.grid(row=0, column=3, columnspan=4)
 
-        self.descrLabel1 = Label(self.prefsFrame,
-                                 textvar=self.prevVar)
-        self.descrLabel1.grid(row=3, column=0, columnspan=8)
+        r+=3
+        self.descrLabel1 = Label(self.prefsFrame, textvar=self.prevVar)
+        self.descrLabel1.grid(row=r, column=0, columnspan=8)
 
+        r+=1
+        self.s3Label = Label(self.prefsFrame, text='S3 bucket/path: ')
+        self.s3Label.grid(row=r, column=0, columnspan=4)
+
+        self.s3Box = Entry(self.prefsFrame, textvar=self.s3var)
+        self.s3Box.grid(row=r, column=4)
+
+
+        r+=1
         self.metalabel1 = Label(self.metaFrame, text='Metadata tags:\n(to be applied to copies only. Original images are unaffected.)')
-        self.metalabel1.grid(row=4, column=0, columnspan=8)
+        self.metalabel1.grid(row=r, column=0, columnspan=8)
 
+        r+=1
         self.copyrightLabel = Label(self.metaFrame, text='CopyrightNotice: ')
-        self.copyrightLabel.grid(row=5)
+        self.copyrightLabel.grid(row=r)
         self.copyrightEntry = Entry(self.metaFrame, textvar=self.copyrightVar)
-        self.copyrightEntry.grid(row=5, column=1)
+        self.copyrightEntry.grid(row=r, column=1)
 
+        r+=1
         self.bylineLabel = Label(self.metaFrame, text='By-Line: ')
-        self.bylineLabel.grid(row=6)
+        self.bylineLabel.grid(row=r)
         self.bylineEntry = Entry(self.metaFrame, textvar=self.bylineVar)
-        self.bylineEntry.grid(row=6, column=1)
+        self.bylineEntry.grid(row=r, column=1)
 
+        r+=1
         self.creditLabel = Label(self.metaFrame, text='Credit: ')
-        self.creditLabel.grid(row=7)
+        self.creditLabel.grid(row=r)
         self.creditEntry = Entry(self.metaFrame, textvar=self.creditVar)
-        self.creditEntry.grid(row=7, column=1)
+        self.creditEntry.grid(row=r, column=1)
 
+        r+=1
         self.usageLabel = Label(self.metaFrame, text='UsageTerms: ')
-        self.usageLabel.grid(row=8)
+        self.usageLabel.grid(row=r)
         self.usageEntry = Entry(self.metaFrame, textvar=self.usageVar)
-        self.usageEntry.grid(row=8, column=1)
+        self.usageEntry.grid(row=r, column=1)
 
         self.applyButton = Button(self.buttonFrame, text='Save & Close', command=self.save_prefs)
         self.applyButton.grid(padx=5)
@@ -164,6 +183,8 @@ class Preferences(Toplevel):
 
         update = self.orgVar.get()
         self.prefs['seq'] = self.seqVar.get()
+
+        self.prefs['aws'] = self.s3var.get()
 
         with open(self.prefsFile, 'w') as f:
             for key in self.prefs:

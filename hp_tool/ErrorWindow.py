@@ -1,12 +1,14 @@
 from Tkinter import *
+from tkSimpleDialog import Dialog
 
-class ErrorWindow(Toplevel):
-    def __init__(self, errors, master=None):
-        Toplevel.__init__(self, master)
-        self.wm_title('Spreadsheet Validation')
+class ErrorWindow(Dialog):
+    def __init__(self, master, errors):
         self.errors = errors
+        self.cancelPressed = True
+        Dialog.__init__(self, master, title='Spreadsheet Validation')
 
-    def show_errors(self):
+
+    def body(self, master):
         scrollbar = Scrollbar(self)
         scrollbar.pack(side=RIGHT, fill=Y)
 
@@ -19,3 +21,6 @@ class ErrorWindow(Toplevel):
         # attach listbox to scrollbar
         listbox.config(yscrollcommand=scrollbar.set)
         scrollbar.config(command=listbox.yview)
+
+    def apply(self):
+        self.cancelPressed = False

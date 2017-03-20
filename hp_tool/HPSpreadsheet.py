@@ -1,9 +1,12 @@
+import tarfile
 from Tkinter import *
 import tkFileDialog
 import os
 import sys
+import boto3
 import pandas as pd
 import tkMessageBox
+import tkSimpleDialog
 import pandastable
 import csv
 from PIL import Image, ImageTk
@@ -20,13 +23,16 @@ class HPSpreadsheet(Toplevel):
         if self.dir:
             self.imageDir = os.path.join(self.dir, 'image')
             self.videoDir = os.path.join(self.dir, 'video')
+            self.audioDir = os.path.join(self.dir, 'audio')
         self.master = master
         self.ritCSV=ritCSV
+
         self.saveState = True
         self.kinematics = self.load_kinematics()
         self.devices, self.localIDs = self.load_devices()
         self.apps = self.load_apps()
         self.lensFilters = self.load_lens_filters()
+        self.load_prefs()
         # self.localIDs = self.load_localIDs()
         # self.appList = self.load_apps()
         self.protocol('WM_DELETE_WINDOW', self.check_save)
@@ -79,6 +85,7 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
         self.fileMenu.add_command(label='Load image directory', command=self.load_images)
         self.fileMenu.add_command(label='Validate', command=self.validate)
+        self.fileMenu.add_command(label='Export to S3...', command=self.s3export)
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
@@ -265,10 +272,12 @@ class HPSpreadsheet(Toplevel):
                 self.pt.lift('cellrect')
         self.pt.redraw()
 
-    def exportCSV(self, showErrors=True):
+    def exportCSV(self, showErrors=True, quiet=False):
         self.pt.redraw()
         if showErrors:
-            self.validate()
+            (errors, cancelled) = self.validate()
+            if cancelled == True:
+                return cancelled
         self.pt.doExport(self.ritCSV)
         tmp = self.ritCSV + '-tmp.csv'
         with open(self.ritCSV, 'r') as source:
@@ -281,13 +290,16 @@ class HPSpreadsheet(Toplevel):
         os.rename(tmp, self.ritCSV)
         self.export_rankOne()
         self.saveState = True
-        msg = tkMessageBox.showinfo('Status', 'Saved!')
+        if not quiet:
+            msg = tkMessageBox.showinfo('Status', 'Saved!')
+
+        return None
 
     def export_rankOne(self):
-        rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
+        self.rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
         with open(self.ritCSV, 'r') as rit:
             rdr = csv.reader(rit)
-            with open(rankOnecsv, 'w') as ro:
+            with open(self.rankOnecsv, 'w') as ro:
                 wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
                 wtr_quotes = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
                 wtr.writerow(['#@version=01.04'])
@@ -305,6 +317,63 @@ class HPSpreadsheet(Toplevel):
                                         r[35:] + [now])
                     count+=1
 
+    def s3export(self):
+        cancelled = self.exportCSV(quiet=True)
+        if cancelled:
+            return
+
+        initial = self.prefs['aws'] if 'aws' in self.prefs else ''
+        val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
+        if (val is not None and len(val) > 0):
+            self.prefs['aws'] = val
+            with open(self.prefsFile, 'w') as f:
+                for key in self.prefs:
+                    f.write(key + '=' + self.prefs[key] + '\n')
+            print 'Creating archive...'
+            archive = self.create_hp_archive()
+            s3 = boto3.client('s3', 'us-east-1')
+            BUCKET = val.split('/')[0].strip()
+            DIR = val[val.find('/') + 1:].strip()
+            DIR = DIR if DIR.endswith('/') else DIR + '/'
+
+            print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val
+            s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
+
+            # print 'Uploading CSV...'
+            # s3.upload_file(self.rankOnecsv, BUCKET, DIR + 'csv/' + os.path.split(self.rankOnecsv)[1])
+            #
+            # print 'Uploading Image Files [' + str(len(os.listdir(self.imageDir))) +']...'
+            # for image in os.listdir(self.imageDir):
+            #     s3.upload_file(os.path.join(self.imageDir, image), BUCKET, DIR + 'image/' + image)
+            #
+            # print 'Uploading Video Files [' + str(len(os.listdir(self.videoDir))) +']...'
+            # for video in os.listdir(self.videoDir):
+            #     s3.upload_file(os.path.join(self.videoDir, video), BUCKET, DIR + 'video/' + video)
+            #
+            # print 'Uploading Audio Files [' + str(len(os.listdir(self.videoDir))) +']...'
+            # for audio in os.listdir(self.audioDir):
+            #     s3.upload_file(os.path.join(self.audioDir, audio), BUCKET, DIR + 'audio/' + audio)
+
+            os.remove(archive)
+            print 'Complete.'
+            d = tkMessageBox.showinfo(title='Status', message='Complete!')
+
+
+    def create_hp_archive(self):
+        val = str(self.pt.model.getValueAt(0, 7))
+        dt = datetime.datetime.now().strftime('%Y%m%d')[2:]
+        fname = os.path.join(self.dir, val + '-' + dt + '.tgz')
+        DIRNAME = self.dir
+        archive = tarfile.open(fname, "w:gz", errorlevel=2)
+        for item in os.listdir(DIRNAME):
+            if item != fname:
+                archive.add(os.path.join(DIRNAME, item), arcname=item)
+        archive.close()
+        return fname
+
+    def load_prefs(self):
+        self.prefsFile = os.path.join('data', 'preferences.txt')
+        self.prefs = hp_data.parse_prefs(self.prefsFile)
 
     def fill_down(self, event=None):
         selection = self.pt.getSelectionValues()
@@ -334,11 +403,14 @@ class HPSpreadsheet(Toplevel):
 
         errors.extend(self.check_model())
         errors.extend(self.check_kinematics())
+        errors.extend(self.check_localID())
 
+        cancelPressed = None
         if errors:
-            ErrorWindow(errors).show_errors()
+            d = ErrorWindow(self, errors)
+            cancelPressed = d.cancelPressed
 
-        return errors
+        return errors, cancelPressed
 
     def check_save(self):
         if self.saveState == False:
@@ -424,6 +496,23 @@ class HPSpreadsheet(Toplevel):
                         errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
                     elif val not in self.devices:
                         errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
+        return errors
+
+    def check_localID(self):
+        errors = []
+        uniques = []
+        cols_to_check = [self.pt.model.df.columns.get_loc('HP-DeviceLocalID')]
+        for col in range(0, self.pt.cols):
+            if col in cols_to_check:
+                for row in range(0, self.pt.rows):
+                    val = str(self.pt.model.getValueAt(row, col))
+                    if val.lower() == 'nan' or val == '':
+                        imageName = self.pt.model.getValueAt(row, 0)
+                        errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row+ 1 ) + ')')
+                    if val not in uniques:
+                        uniques.append(val)
+        if len(uniques) > 1:
+            errors.append('Multiple Local IDs are identified. Each process should only contain one unique Local ID.')
         return errors
 
 
