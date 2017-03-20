@@ -12,6 +12,7 @@ setup(name='rawphoto_wrapper',
       entry_points=
        {'maskgen_image': [
             'cr2 = rawphoto_wrapper.opener:openRawFile'
+            'raf = rawphoto_wrapper.opener:openRawFile'
         ]
        },
       zip_safe=False)
