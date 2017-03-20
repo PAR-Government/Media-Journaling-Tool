@@ -141,6 +141,7 @@ def check_errors(edge, op, graph, frm, to):
         return [('Link has mask processing errors')]
 
 def check_graph_rules(graph,node):
+    import re
     """
 
     :param graph: ImageGraph
@@ -152,6 +153,14 @@ def check_graph_rules(graph,node):
     category = graph.getDataItem('manipulationcategory')
     multiplebaseok =  category.lower() == 'provenance' if category is not None else False
 
+    if 'file' not in nodeData:
+        errors.append('Missing file information.')
+    else:
+        pattern = re.compile(r'[\|\'\"\(\)\,\$\?]')
+        foundItems = pattern.findall(nodeData['file'])
+        if foundItems:
+            errors.append("Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file']))
+
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
             othernodeData = graph.get_node(othernode)
@@ -159,7 +168,7 @@ def check_graph_rules(graph,node):
                 errors.append("Projects should only have one base image")
     if nodeData['nodetype'] in ('base','final','donor'):
             if 'file' not in nodeData:
-                errors.append(nodeData['id'] + ' missing file')
+                errors.append('Missing media file')
             else:
                 file = nodeData['file']
                 suffix_pos = file.rfind ('.')
