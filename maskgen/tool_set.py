@@ -569,7 +569,7 @@ def toComposite(img):
 def toIntTuple(tupleString):
     import re
     if tupleString is not None and tupleString.find(',') > 0:
-        return tuple([int(re.sub('[()]', '', x)) for x in tupleString.split(',')])
+        return tuple([int(re.sub('[()L]', '', x)) for x in tupleString.split(',')])
     return (0, 0)
 
 

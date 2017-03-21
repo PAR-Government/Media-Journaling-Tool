@@ -26,7 +26,11 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
             expectedPasteSize = ((right_box[3]-right_box[1]),(right_box[2]-right_box[0]))
             newMask = np.zeros(expectedSize)
             clippedMask = res[left_box[1]:left_box[3],left_box[0]:left_box[2]]
-            res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
+            angleFactor = round(float(angle)/90.0)
+            if abs(angleFactor) > 0:
+                res = np.rot90(clippedMask, int(angleFactor)).astype('uint8')
+                angle = angle - int(angleFactor*90)
+            res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
             newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
             if angle!=0:
                 center = (right_box[1] + (right_box[3] -right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
@@ -40,11 +44,18 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
             targetSize = edgeMask.shape if edgeMask is not None else expectedSize
             expectedPasteSize = ((left_box[3] - left_box[1]), (left_box[2] - left_box[0]))
             newMask = np.zeros(targetSize)
+            ninetyRotate = 0
+            angleFactor = round(float(angle) / 90.0)
+            if abs(angleFactor) > 0:
+                res = ninetyRotate= int(angleFactor)
+                angle = angle - int(angleFactor*90)
             if angle != 0:
                 center = (
                     right_box[1] + (right_box[3] - right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
                 res = tool_set.applyRotateToCompositeImage(res, -angle, center)
             clippedMask = res[right_box[1]:right_box[3], right_box[0]:right_box[2]]
+            if ninetyRotate != 0:
+                res = np.rot90(clippedMask, -ninetyRotate).astype('uint8')
             res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
             newMask[left_box[1]:left_box[3], left_box[0]:left_box[2]] = res
             return res
