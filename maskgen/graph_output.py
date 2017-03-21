@@ -59,6 +59,7 @@ class ImageGraphPainter:
             node = self.graph.get_node(node_id)
             im,filename= self.graph.get_image(node_id)
             im = imageResizeRelative(im, self.max_size, self.max_size)
+            im.touint8()
             prefix = os.path.split(filename)[0]
             fn = self._node_id_filename(node_id)
             im.save(os.path.join(prefix , fn))
