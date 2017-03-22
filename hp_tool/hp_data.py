@@ -719,7 +719,8 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
             newExifSubset = newExifData[j:j + diff]
             k = 0
             for dataIdx in missingIdx:
-                data[i][dataIdx] = newExifSubset[k]
+                if newExifSubset:
+                    data[i][dataIdx] = newExifSubset[k]
                 k += 1
             j += diff
             data[i][8] = frac2dec(data[i][8])
