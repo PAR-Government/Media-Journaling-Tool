@@ -524,6 +524,8 @@ class ImageGraph:
                 shutil.copy2(inputfile, newpathname)
             if newpathname in self.filesToRemove:
                 self.filesToRemove.remove(newpathname)
+        if not os.path.exists(newpathname):
+            return None, None
         return filename, 'yes' if includePathInUndo else 'no'
 
     def update_mask(self, start,end,mask=None,errors=None,**kwargs):
@@ -943,6 +945,8 @@ class ImageGraph:
         if pos < 0:
             if listpos is not None:
                 d[path][listpos] = value
+            elif value is None:
+                d.pop(path)
             else:
                 d[path] = value
         elif listpos is not None:
