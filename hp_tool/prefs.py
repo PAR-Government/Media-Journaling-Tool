@@ -4,6 +4,7 @@ import os
 import datetime
 import hp_data
 import change_all_metadata
+import tkMessageBox
 
 class Preferences(Toplevel):
     def __init__(self, master=None):
@@ -51,6 +52,9 @@ class Preferences(Toplevel):
         self.seqVar.trace('w', self.update_preview)
 
         self.s3var = StringVar()
+        self.imageVar = StringVar()
+        self.videoVar = StringVar()
+        self.audioVar = StringVar()
 
         self.copyrightVar = StringVar()
         self.bylineVar = StringVar()
@@ -75,6 +79,15 @@ class Preferences(Toplevel):
 
             if self.prefs.has_key('aws'):
                 self.s3var.set(self.prefs['aws'])
+
+            if self.prefs.has_key('imagetypes'):
+                self.imageVar.set(self.prefs['imagetypes'])
+
+            if self.prefs.has_key('videotypes'):
+                self.videoVar.set(self.prefs['videotypes'])
+
+            if self.prefs.has_key('audiotypes'):
+                self.audioVar.set(self.prefs['audiotypes'])
 
         if self.metadata:
             self.copyrightVar.set(self.metadata['copyrightnotice'])
@@ -107,6 +120,14 @@ class Preferences(Toplevel):
         self.s3Box = Entry(self.prefsFrame, textvar=self.s3var)
         self.s3Box.grid(row=r, column=4)
 
+        types = {'Image':self.imageVar, 'Video':self.videoVar, 'Audio':self.audioVar}
+        self.extensions = {}
+        for t in types.keys():
+            r+=1
+            but = Button(self.prefsFrame, text='Additional ' + t + ' Filetypes: ', command=self.show_default_types)
+            but.grid(row=r, column=0, columnspan=4)
+            self.extensions[t] = Entry(self.prefsFrame, textvar=types[t])
+            self.extensions[t].grid(row=r, column=4)
 
         r+=1
         self.metalabel1 = Label(self.metaFrame, text='Metadata tags:\n(to be applied to copies only. Original images are unaffected.)')
@@ -140,6 +161,15 @@ class Preferences(Toplevel):
         self.applyButton.grid(padx=5)
         self.cancelButton = Button(self.buttonFrame, text='Cancel', command=self.destroy)
         self.cancelButton.grid(row=0, column=1, padx=5)
+
+    def show_default_types(self):
+        imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
+        vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf']
+        audExts = ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']
+        tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
+                                                    'Image: ' + ', '.join(imExts) + '\n' +
+                                                    'Video: ' + ', '.join(vidExts) + '\n' +
+                                                    'Audio: ' + ', '.join(audExts))
 
     def update_preview(self, *args):
         try:
@@ -185,6 +215,9 @@ class Preferences(Toplevel):
         self.prefs['seq'] = self.seqVar.get()
 
         self.prefs['aws'] = self.s3var.get()
+        self.prefs['imagetypes'] = self.imageVar.get()
+        self.prefs['videotypes'] = self.videoVar.get()
+        self.prefs['audiotypes'] = self.audioVar.get()
 
         with open(self.prefsFile, 'w') as f:
             for key in self.prefs:

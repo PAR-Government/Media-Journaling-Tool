@@ -16,7 +16,7 @@ import pandas as pd
 import itertools
 import subprocess
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ],
+exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
@@ -99,7 +99,22 @@ def parse_prefs(data):
         newData['date'] = datetime.datetime.now().strftime('%Y%m%d')[2:]
         add_date(data)
 
+    if 'imagetypes' in newData:
+        add_types(newData['imagetypes'], 'image')
+    if 'videotypes' in newData:
+        add_types(newData['videotypes'], 'video')
+    if 'audiotypes' in newData:
+        add_types(newData['audiotypes'], 'audio')
+
     return newData
+
+def add_types(data, mformat):
+    global exts
+    mformat = mformat.upper()
+    data = data.replace(',', ' ').split(' ')
+    for i in data:
+        if i not in exts[mformat] and len(i) > 0:
+            exts[mformat].append(i)
 
 def convert_GPS(coordinate):
     """
