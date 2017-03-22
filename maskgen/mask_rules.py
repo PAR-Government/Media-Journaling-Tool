@@ -159,9 +159,12 @@ def move_pixels(frommask, tomask, image):
 
 def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
     import os
-    inputmask =  \
-        tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
-        if 'inputmaskname' in edge else edgeMask
+    try:
+        inputmask =  \
+            tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
+            if 'inputmaskname' in edge and edge['inputmaskname'] is not None else edgeMask
+    except:
+        inputmask = edgeMask
 
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
