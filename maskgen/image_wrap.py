@@ -263,6 +263,15 @@ class ImageWrapper:
              return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB),mode='RGB')
         return ImageWrapper(totype(np.copy(img.image_array),type))
 
+    def touint8(self):
+        if self.image_array.dtype == 'uint16':
+            img_array = (self.image_array.astype('float')/65536.0)*256.0
+            img_array = img_array.astype('uint8')
+            self.image_array = img_array
+        elif self.image_array.dtype == 'float':
+            img_array = self.image_array * 256
+            self.image_array = img_array.astype('uint8')
+
     def save(self, filename, **kwargs):
         #global image_cache
         #global image_lock
