@@ -181,6 +181,9 @@ def _fixTransforms(scModel):
        :return: None. Updates JSON.
        @type scModel: ImageProjectModel
        """
+    validatedby = scModel.getProjectData('validatedby')
+    if  validatedby is not None and len(validatedby) > 0:
+        return
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] in ['TransformContentAwareScale','TransformAffine','TransformDistort','TransformMove',
