@@ -30,6 +30,8 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
             if abs(angleFactor) > 0:
                 res = np.rot90(clippedMask, int(angleFactor)).astype('uint8')
                 angle = angle - int(angleFactor*90)
+            else:
+                res = clippedMask
             res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
             newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
             if angle!=0:
@@ -55,7 +57,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
                 res = tool_set.applyRotateToCompositeImage(res, -angle, center)
             clippedMask = res[right_box[1]:right_box[3], right_box[0]:right_box[2]]
             if ninetyRotate != 0:
-                res = np.rot90(clippedMask, -ninetyRotate).astype('uint8')
+                clippedMask = np.rot90(clippedMask, -ninetyRotate).astype('uint8')
             res = tool_set.applyResizeComposite(clippedMask, (expectedPasteSize[0], expectedPasteSize[1]))
             newMask[left_box[1]:left_box[3], left_box[0]:left_box[2]] = res
             return res
