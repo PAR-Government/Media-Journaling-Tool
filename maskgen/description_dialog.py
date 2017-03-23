@@ -1596,7 +1596,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self, parent)
 
     def notify(self,event):
-        if self.nb.tab(event.widget.select(), "text"):
+        if self.nb.tab(event.widget.select(), "text") == 'Composite':
             self.composite_view.update(self._newComposite())
 
     def getStringConfiguration(self):
@@ -1674,7 +1674,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.ls.set(100)
         label2 = Label(master, text='Rotation:',justify=RIGHT,anchor=S)
         label2.grid(row=1, column=2,sticky=E)
-        self.ws = Scale(master, from_=-180, to=180,orient=HORIZONTAL,command=self.rotate)
+        self.ws = Scale(master, from_=-180, to=180,length=360,resolution=1,orient=HORIZONTAL,command=self.rotate)
         self.ws.grid(row=1,column=3,sticky=W)
         self.ws.set(self.angle)
 

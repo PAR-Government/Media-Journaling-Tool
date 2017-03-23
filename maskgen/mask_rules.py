@@ -191,6 +191,8 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
         if tm is not None:
             res = tool_set.applyTransform(res, inputmask, tool_set.deserializeMatrix(tm),invert=True, returnRaw=False)
         else:
+            if inputmask.shape != edgeMask.shape:
+                inputmask = cv2.resize(inputmask, (res.shape[1], res.shape[0]))
             inputmask = 255 - inputmask
             differencemask =  (255-edgeMask) - inputmask
             differencemask[differencemask < 0] = 0
