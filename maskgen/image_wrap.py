@@ -149,7 +149,12 @@ def openFromRegistry(filename,isMask=False):
                     print e
     return None
 
-@cached(image_cache, lock=image_lock)
+def filehashkey(*args, **kwargs):
+    """Return a cache key for the specified hashable arguments."""
+    return args[0]
+
+
+@cached(image_cache, lock=image_lock,key=filehashkey)
 def openImageFile(filename,isMask=False):
     """
     :param filename:
