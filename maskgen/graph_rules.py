@@ -71,35 +71,6 @@ def eligible_donor_inputmask(edge):
                          'purpose' in edge['arguments'] and \
                          edge['arguments']['purpose'] == 'clone')
 
-def find_edge_selection(G, node):
-    """
-
-    :param G: ImageGraph
-    :param node:
-    :param edge:
-    :return:
-    @type G: ImageGraph
-    """
-    preds = G.predecessors(node)
-    edgeMask = None
-    edgePredecessor = None
-    for pred in preds:
-        edge = G.get_edge(pred, node)
-        if edge['op'] == 'PasteSplice':
-            edgeMask = G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0]
-            if edgeMask is not None:
-                edgeMask = edgeMask.to_array()
-            else:
-                raise ValueError('Missing edge mask for ' + pred + ' to ' + node)
-        elif edge['op'] == 'Donor':
-            edgePredecessor = pred
-      ##  elif eligible_donor_inputmask(edge):
-       #     fullpath = os.path.abspath(os.path.join(G.dir, edge['inputmaskname']))
-       #     if not os.path.exists(fullpath):
-       #         raise ValueError('Missing input mask for ' + pred + ' to ' + node)
-       #     edgeMask = G.openImage(fullpath).to_mask().to_array()
-       #     edgePredecessor = pred
-    return edgePredecessor,edgeMask, 'invert' if edgeMask is not None else None
 
 
 def eligible_for_donor(edge):

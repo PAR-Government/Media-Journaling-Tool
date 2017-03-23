@@ -119,7 +119,7 @@ def getOperation(name, fake = False, warning=True):
     """
     global operations
     if name == 'Donor':
-        return Operation(name='Donor', category='Donor')
+        return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
     if name not in operations and warning:
         print 'Requested missing operation ' + str(name)
     return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)

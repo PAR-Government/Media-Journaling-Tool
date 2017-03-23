@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 
 
-def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None, edgeSelection=None, overideMask=None):
+def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None,pred_edges=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     position_str = edge['arguments']['Position Mapping'] if 'arguments' in edge and \
@@ -101,7 +101,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
     return edgeMask
 
 
-def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
+def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,donorMask=None,pred_edges=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
@@ -126,7 +126,6 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
         return res
     elif donorMask is not None:
         res = donorMask
-        edgeMask = overideMask if overideMask is not None else edgeMask
         expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
         targetSize = edgeMask.shape if edgeMask is not None else expectedSize
         if canvas_change:
@@ -159,7 +158,7 @@ def move_pixels(frommask, tomask, image):
     transformedImage = (transformedImage/50).astype('uint8')
     return transformedImage
 
-def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
+def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     import os
     try:
         inputmask =  \
@@ -202,7 +201,7 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
     return edgeMask
 
 
-def pastesplice(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None, edgeSelection=None, overideMask=None):
+def pastesplice(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     import os
     if compositeMask is not None:
         pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
@@ -211,6 +210,34 @@ def pastesplice(edge, edgeMask, compositeMask=None, directory='.', level=None,do
            compositeMask[compositeMask == level]  = 0
            compositeMask[inputmask>0] = level
         return compositeMask
+    else:
+        donorMask = tool_set.applyMask(donorMask, edgeMask)
+    return donorMask
+
+
+def donor(edge, edgeMask,
+          compositeMask=None,
+          directory='.',
+          level=None,
+          donorMask=None,
+          pred_edges=None):
+    if compositeMask is not None:
+        return compositeMask
+    else:
+        # removed code to handle the paste splice issue where part of the donor
+        # may NOT be used.  The old method tried a reverse transform of the
+        # inverted paste splice edge mask, rather than using the  edge mask itself.
+        # this only works IF there a transform matrix.
+        # pred_edges would contain the paste splice mask
+        # (edgeMask = edge['maskname']) to which can be use to zero out the
+        # unchanged pixels and then apply a transform.
+        donorMask = ImageWrapper(edgeMask).invert().to_array()
+        #tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+        #targetSize = edgeMask.shape
+        #if tm is not None:
+         #   donorMask = cv2.warpPerspective(donorMask, tool_set.deserializeMatrix(tm), (targetSize[1], targetSize[0]),
+          #                            flags=cv2.WARP_INVERSE_MAP,
+           #                           borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
     return donorMask
 
 def _getOrientation(edge):
@@ -274,7 +301,7 @@ def alterComposite(edge, compositeMask, edgeMask,directory,level=255):
     return compositeMask
 
 
-def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, overideMask=None, directory='.'):
+def alterDonor(donorMask, source, target, edge, edgeMask,  directory='.',pred_edges=[]):
     """
 
     :param self:
@@ -282,8 +309,6 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
     :param source:
     :param target:
     :param edge: the edge the provides the instructions for alteration
-    :param edgeSelection:
-    :param overideMask:
     :return:
     """
     if donorMask is None:
@@ -294,11 +319,9 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
     edgeMask = edgeMask.to_array()
     op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
-        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, directory=directory,donorMask=donorMask,
-                                                             edgeSelection=edgeSelection, overideMask=overideMask)
+        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, directory=directory,donorMask=donorMask,pred_edges=pred_edges)
 
     targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
-    edgeMask = overideMask if overideMask is not None else edgeMask
     # change the mask to reflect the output image
     # considering the crop again, the high-lighted change is not dropped
     # considering a rotation, the mask is now rotated
@@ -316,8 +339,7 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
     orientrotate = -orientrotate if orientrotate is not None else None
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-    cut = edge['op'] in ('SelectRemove') or edgeSelection is not None
-    edgeMask = ImageWrapper(edgeMask).invert().to_array() if edgeSelection == 'invert' else edgeMask
+    cut = edge['op'] in ('SelectRemove')
     carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
     cut = carve or cut
     crop = sizeChange != (0, 0) and (
@@ -325,7 +347,8 @@ def alterDonor(donorMask, source, target, edge, edgeMask, edgeSelection=None, ov
     flip = flip if flip is not None else orientflip
     global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
     tm = None if (crop or cut or flip or carve or global_resize) else tm
-    return alterReverseMask(donorMask, edgeMask,
+    return alterReverseMask(donorMask,
+                            edgeMask,
                             rotation=rotation,
                             sizeChange=sizeChange,
                             location=location,

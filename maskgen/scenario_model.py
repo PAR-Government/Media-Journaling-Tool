@@ -1278,30 +1278,17 @@ class ImageProjectModel:
         preds = self.G.predecessors(node)
         if len(preds) == 0:
             return [(node, mask)]
-        edgePredecessor, overideMask, edgeSelection = graph_rules.find_edge_selection(self.G, node)
+        pred_edges = [self.G.get_edge(pred,node) for pred in preds]
         for pred in preds:
             edge = self.G.get_edge(pred,node)
-            # handles donor and inputmask case
-            if pred == edgePredecessor:
-                donorMask = mask_rules.alterDonor(mask,
+            donorMask = mask_rules.alterDonor(mask,
                                              pred,
                                              node,
                                              edge,
                                              self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
-                                             edgeSelection=edgeSelection,
-                                             overideMask=overideMask,
-                                             directory=self.get_dir())
-                result.extend(self._constructDonor(pred, donorMask))
-            if edge['op'] != 'Donor':
-                donorMask = mask_rules.alterDonor(mask,
-                                             pred,
-                                             node,
-                                             edge,
-                                             self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
-                                             edgeSelection='match' if edgeSelection is not None else None,
-                                             overideMask=overideMask,
-                                             directory=self.get_dir())
-                result.extend(self._constructDonor(pred, donorMask))
+                                             directory=self.get_dir(),
+                                             pred_edges=[p for p in pred_edges if p != edge])
+            result.extend(self._constructDonor(pred, donorMask))
         return result
 
     def getTransformedMask(self):
