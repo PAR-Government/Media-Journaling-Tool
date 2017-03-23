@@ -33,6 +33,9 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
             else:
                 res = clippedMask
             res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
+            if right_box[3] > newMask.shape[0] and right_box[2] > newMask.shape[1]:
+                print 'The mask for recapture edge with file {} has an incorrect size'.format(edge['maskname'])
+                newMask = np.resize(newMask, (right_box[3] + 1, right_box[2] + 1))
             newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
             if angle!=0:
                 center = (right_box[1] + (right_box[3] -right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)

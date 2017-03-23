@@ -471,6 +471,8 @@ class ImageWrapper:
              image_array*=256
         TUNE1 = 0.75
         TUNE2 = 0.75
+        if (self_array.shape[0],self_array.shape[1]) != (image_array.shape[0],image_array.shape[1]):
+            self_array = np.resize(self_array[:,:,0:3],image_array.shape)
         return ImageWrapper(cv2.addWeighted(image_array, TUNE1, self_array[:,:,0:3],  TUNE2,
                         0, self_array))
 
