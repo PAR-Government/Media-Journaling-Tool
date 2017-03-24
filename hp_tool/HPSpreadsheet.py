@@ -175,6 +175,12 @@ class HPSpreadsheet(Toplevel):
             validValues = ['max optical zoom', 'max digital zoom', 'no zoom']
         elif currentCol == 'HP-Recapture':
             validValues = ['Screenshot', 'scan', 're-photograph']
+        elif currentCol == 'HP-LightSource':
+            validValues = ['overhead fluorescent', 'daylight', 'cloudy', 'two surrounding fluorescent lights', 'Two Impact Fluorescent Ready Cool 22 lights on each side']
+        elif currentCol == 'HP-Orientation':
+            validValues = ['landscape', 'portrait']
+        elif currentCol == 'HP-DynamicStatic':
+            validValues = ['dynamic', 'static']
 
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
             validValues = {'instructions':'Any integer value'}
@@ -302,13 +308,14 @@ class HPSpreadsheet(Toplevel):
             with open(self.rankOnecsv, 'w') as ro:
                 wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
                 wtr_quotes = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
-                wtr.writerow(['#@version=01.04'])
+                wtr.writerow(['#@version=01.05'])
                 wtr_quotes.writerow(
                     ['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
                                'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
                                'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
                                'HP-App', 'HP-Inside', 'HP-Outside', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
-                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject', 'ImportDate'])
+                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject',
+                                'HP-LightSource', 'HP-Orientation', 'HP-DynamicStatic', 'ImportDate'])
                 count = 0
                 now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
                 for r in rdr:
@@ -448,7 +455,7 @@ class HPSpreadsheet(Toplevel):
                         if val.lower() == 'nan' or val == '':
                             imageName = self.pt.model.getValueAt(row, 0)
                             errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                        elif val.lower() not in self.kinematics:
+                        elif val.lower() not in [x.lower() for x in self.kinematics]:
                             errors.append('Invalid camera kinematic ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 
@@ -481,7 +488,7 @@ class HPSpreadsheet(Toplevel):
             return
         manufacturers = [w.strip() for w in df['Manufacturer']]
         models = [x.strip() for x in df['SeriesModel']]
-        localIDs = [y.strip() for y in df['OrganizationSerialNumber']]
+        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
         return sorted(list(set(models))), localIDs
 
     def check_model(self):

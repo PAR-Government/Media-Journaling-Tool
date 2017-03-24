@@ -7,6 +7,7 @@ tool for bulk renaming of files to standard
 import argparse
 import shutil
 import os
+from PIL import Image
 import change_all_metadata
 import datetime
 import sys
@@ -314,7 +315,8 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
                                     'HP-LensFilter', 'Type', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
                                     'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside', 'HP-Outside',
                                     'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
-                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject'])
+                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject',
+                                    'HP-LightSource', 'HP-Orientation', 'HP-DynamicStatic'])
         if newNameList:
             for imNo in xrange(len(imageList)):
                 md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
@@ -352,12 +354,13 @@ def rankone_camera_update_csv(imageList, newNameList, data, csvFile):
         wtr_quotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
         wtr_noquotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
         if newFile:
-            wtr_noquotes.writerow(['#@version=01.04'])
+            wtr_noquotes.writerow(['#@version=01.05'])
             wtr_quotes.writerow(['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
                                'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
                                'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
                                'HP-App', 'HP-Inside', 'HP-Outside', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
-                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject', 'ImportDate'])
+                               'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject',
+                               'HP-LightSource', 'HP-Orientation', 'HP-DynamicStatic', 'ImportDate'])
         for imNo in range(len(imageList)):
             md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
             now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
@@ -510,7 +513,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                      cameramodel='', lensmodel='', jq='', reflweak='', reflstrg='', refltrans='', reflobj='', shadows='', hdr='', app='', camerakinematics='',
                      inside='', outside='', proximity='', multiinput='', audiochannels='', echo='', bgnoise='',
                      description='', modifier='', recordangle='', miclocation='', primarysecondary='', zoomlvl='',
-                     recapture='', recapturesubject=''):
+                     recapture='', recapturesubject='', lightsource='', orientation='', dynamicstatic=''):
     """
     Prepare list of values about the specified image.
     If an argument is entered as an empty string, will check image's exif data for it.
@@ -576,6 +579,9 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
     52. HP-ZoomLevel
     53. HP-Recapture
     54. HP-RecaptureSubject
+    55. HP-LightSource
+    56. HP-Orientation
+    57. HP-DynamicStatic
     """
     exiftoolargs = []
     data = []
@@ -583,7 +589,7 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
         hd = path
     master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + \
              [''] * 3 + [lensfilter, '', '', '', reflweak, reflstrg, refltrans, reflobj, shadows, hdr, camerakinematics, app, inside, outside, proximity, multiinput, audiochannels, echo, bgnoise,
-                     description, modifier, recordangle, miclocation, primarysecondary, zoomlvl, recapture, recapturesubject]
+                     description, modifier, recordangle, miclocation, primarysecondary, zoomlvl, recapture, recapturesubject, lightsource, orientation, dynamicstatic]
     missingIdx = []
 
     if camera:
@@ -729,6 +735,15 @@ def parse_image_info(imageList, path='', rec=False, collReq='', camera='', local
                 data[i][21] = convert_GPS(data[i][21])
             if 'hdr' in imageList[i].lower():
                 data[i][37] = 'True'
+            try:
+                with Image.open(imageList[i]) as im:
+                    width, height = im.size
+                    if width < height:
+                        data[i][56] = 'portrait'
+                    else:
+                        data[i][56] = 'landscape'
+            except (IOError, AttributeError):
+                pass
 
     return data
 
