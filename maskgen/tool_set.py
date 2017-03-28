@@ -1453,7 +1453,11 @@ def rotateImage(img, angle, pivot):
     if abs(angle) % 90 == 0:
         imgR = np.rot90(imgP,int(angle/90)).astype('uint8')
     else:
-        imgR = ndimage.rotate(imgP, angle, cval=0, reshape=False, mode='constant').astype('uint8')
+        try:
+            imgR = np.asarray(Image.fromarray(imgP).rotate(angle))
+        except:
+            imgR = ndimage.rotate(imgP, angle, cval=0, reshape=False, mode='constant').astype('uint8')
+
     return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
 
 
