@@ -53,7 +53,7 @@ OUTPUTS
 RIT CSV:
 The RIT CSV includes the following information for each image:
 "ImageFilename", "HP-CollectionRequestID", "HP-HDLocation", "OriginalImageName", "MD5","CameraModel", "DeviceSN","HP-DeviceLocalID" ,"LensModel",
-"LensSN", "HP-LensLocalId" ,"FileType" ,"HP-JpgQuality" ,"ShutterSpeed" ,"Aperture" ,"ExpCompensation" ,"ISO", "NoiseReduction", "WhiteBalance",
+"LensSN", "HP-LensLocalID" ,"FileType" ,"HP-JpgQuality" ,"ShutterSpeed" ,"Aperture" ,"ExpCompensation" ,"ISO", "NoiseReduction", "WhiteBalance",
 "HP-DegreesKelvin", "ExposureMode", "FlashFired", "FocusMode", "CreationDate", "HP-Location", "GPSLatitude", "GPSLongitude", "CustomRendered",
 "HP-OnboardFilter", "HP-OBFilterType", "BitDepth", "ImageWidth", "ImageHeight", "HP-LensFilter", "Type", "HP-Reflections", "HP-Shadows",
 "HP-HDR", "HP-CameraKinematics", "HP-App", "HP-Inside", "HP-Outside"

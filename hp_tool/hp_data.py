@@ -308,7 +308,7 @@ def build_rit_file(imageList, info, csvFile, newNameList=None):
         ritWriter = csv.writer(csv_rit, lineterminator='\n', quoting=csv.QUOTE_ALL)
         if newFile:
             ritWriter.writerow(['ImageFilename', 'HP-CollectionRequestID', 'HP-HDLocation', 'OriginalImageName', 'MD5',
-                                    'CameraModel', 'DeviceSN', 'HP-DeviceLocalID', 'LensModel','LensSN', 'HP-LensLocalId', 'FileType', 'HP-JpgQuality',
+                                    'CameraModel', 'DeviceSN', 'HP-DeviceLocalID', 'LensModel','LensSN', 'HP-LensLocalID', 'FileType', 'HP-JpgQuality',
                                     'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
                                     'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
                                     'GPSLatitude', 'GPSLongitude', 'CustomRendered', 'HP-OnboardFilter', 'HP-OBFilterType', 'BitDepth', 'ImageWidth', 'ImageHeight',

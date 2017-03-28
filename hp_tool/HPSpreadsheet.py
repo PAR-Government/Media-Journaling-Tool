@@ -192,7 +192,7 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Date/Time, specified as \"YYYY:MM:DD HH:mm:SS\"'}
         elif currentCol == 'FileType':
             validValues = {'instructions':'Any file extension, without the dot (.) (e.g. jpg, png)'}
-        elif currentCol == 'HP-LensLocalId':
+        elif currentCol == 'HP-LensLocalID':
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
         else:
             validValues = {'instructions':'Any string of text'}
