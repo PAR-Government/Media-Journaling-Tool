@@ -833,6 +833,8 @@ class ImageProjectModel:
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,baseImageFileName=None):
         self.notify = notify
+        if graph is not None:
+            graph.arg_checker_callback = self.__scan_args_callback
         self._setup(projectFileName, graph=graph,baseImageFileName=baseImageFileName)
 
     def get_dir(self):
@@ -949,11 +951,6 @@ class ImageProjectModel:
             result[2].reverse()
         return results
 
-    def removeCompositesAndDonors(self):
-        """
-        Remove a composite image or a donor image associated with any node
-        """
-        self.G.removeCompositesAndDonors()
 
     def getTerminalAndBaseNodeTuples(self):
         """
@@ -1059,7 +1056,7 @@ class ImageProjectModel:
         return name[0:name.rfind('.png')] + '_c.png'
 
     def _add_final_node_with_donors(self,probes,edge_id, finalNodeId, baseNodeId, target_mask, target_mask_filename, end_node, level):
-        donormasks = self.G.get_donor_masks(end_node)
+        donormasks = self.G.get_masks(end_node,'donors')
         if len(donormasks) > 0:
             for donorbase, donortuple in donormasks.iteritems():
                 donor_mask_image, donor_mask_file_name = donortuple[0], donortuple[1]
@@ -1152,10 +1149,77 @@ class ImageProjectModel:
             result[matches] = 255
             globalchange, changeCategory, ratio = maskChangeAnalysis(result,
                                                                      globalAnalysis=True)
-            self.G.addCompositeToNode(finalNodeId, composite_bases[finalNodeId], ImageWrapper(compositeMask),
+            self.addCompositeToNode(finalNodeId, composite_bases[finalNodeId], ImageWrapper(compositeMask),
                                       changeCategory)
 
         return probes
+
+    def removeCompositesAndDonors(self):
+        """
+          Remove a composite image or a donor image associated with any node
+        """
+        for node in self.G.get_nodes():
+            self.removeCompositeFromNode(node)
+            self.removeDonorFromNode(node)
+
+    def removeCompositeFromNode(self, nodeName):
+        """
+          Remove a composite image associated with a node
+        """
+        if self.G.has_node(nodeName):
+            fname = nodeName + '_composite_mask.png'
+            if 'compositemaskname' in self.G.get_node(nodeName):
+                self.G.get_node(nodeName).pop('compositemaskname')
+                if 'compositebase' in self.G.get_node(nodeName):
+                    self.G.get_node(nodeName).pop('compositebase')
+                if 'composite change size category' in self.G.get_node(nodeName):
+                    self.G.get_node(nodeName).pop('composite change size category')
+                if os.path.exists(os.path.abspath(os.path.join(self.get_dir(), fname))):
+                    os.remove(os.path.abspath(os.path.join(self.get_dir(), fname)))
+
+    def removeDonorFromNode(self, nodeName):
+        """
+          Remove a donor image associated with a node
+        """
+        if self.G.has_node(nodeName):
+            if 'donors' in self.G.get_node(nodeName):
+                for base,fname in self.G.get_node(nodeName).pop('donors').iteritems():
+                    if os.path.exists(os.path.abspath(os.path.join(self.get_dir(), fname))):
+                        os.remove(os.path.abspath(os.path.join(self.get_dir(), fname)))
+
+
+    def addCompositeToNode(self,  leafNode, baseNode, image, category):
+        """
+        Add mask to leaf node and save mask to disk
+        """
+        if self.G.has_node(leafNode):
+            fname = leafNode + '_composite_mask.png'
+            try:
+                image.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
+            except IOError:
+                compositeMask = convertToMask(image)
+                compositeMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
+
+            node = self.G.get_node(leafNode)
+            node['compositemaskname'] = fname
+            node['compositebase'] = baseNode
+            node['composite change size category'] = category
+
+    def addDonorToNode(self, recipientNode, baseNode, mask):
+        """
+        Add mask to interim node and save mask to disk that has a input mask or
+        a donor link
+        """
+        if self.G.has_node(recipientNode):
+            if 'donors' not in self.G.get_node(recipientNode):
+                self.G.get_node(recipientNode)['donors'] = {}
+            fname = recipientNode + '_' + baseNode + '_donor_mask.png'
+            self.G.get_node(recipientNode)['donors'][baseNode] = fname
+            try:
+                mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
+            except IOError:
+                donorMask = convertToMask(mask)
+                donorMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
 
     def getPredecessorNode(self):
         if self.end is None:
@@ -1172,16 +1236,18 @@ class ImageProjectModel:
          Return None if the node is not a leaf node
         """
         nodeName = self.start if self.end is None else self.end
-        mask, filename = self.G.get_composite_mask(nodeName)
-        if mask is None:
+        masks = self.G.get_masks(nodeName,'compositemaskname')
+        if len(masks)==0:
             # verify the node is a leaf node
             endPointTuples = self.getTerminalAndBaseNodeTuples()
             if nodeName in [x[0] for x in endPointTuples]:
                 self.constructCompositesAndDonors()
-                mask, filename = self.G.get_composite_mask(nodeName)
+                masks = self.G.get_masks(nodeName,'compositemaskname')
+                if len(masks) == 0:
+                    return None
             else:
                 return self.constructComposite()
-        return mask
+        return masks[nodeName][0]
 
     def getDonorAndBaseImages(self,force=False):
         """
@@ -1195,10 +1261,10 @@ class ImageProjectModel:
         for x in endPointTuples:
             if nodeName == x[0][1]:
                 baseImage,_ = self.G.get_image(x[1])
-                masks = self.G.get_donor_masks(nodeName)
+                masks = self.G.get_masks(nodeName, 'donors')
                 if len(masks) == 0 or force:
                     self.constructDonors(nodeOfInterest=nodeName, recompute=force)
-                for base, tuple  in self.G.get_donor_masks(nodeName).iteritems():
+                for base, tuple  in self.G.get_masks(nodeName,'donors').iteritems():
                     if base == x[1]:
                         return tuple[0],baseImage
         return None,None
@@ -1391,7 +1457,7 @@ class ImageProjectModel:
             globalchange, changeCategory, ratio = maskChangeAnalysis(toComposite(composite[2]),
                                                                      globalAnalysis=True)
             changes.append((globalchange, changeCategory, ratio))
-            self.G.addCompositeToNode(composite[1], composite[0], ImageWrapper(
+            self.addCompositeToNode(composite[1], composite[0], ImageWrapper(
                 color_composite),changeCategory)
         return composites
 
@@ -1407,7 +1473,7 @@ class ImageProjectModel:
         for edge_id in self.G.get_edges():
             if nodeOfInterest is not None and nodeOfInterest != edge_id[1]:
                 continue
-            if self.G.has_donor_mask(edge_id[1]) and not recompute:
+            if self.G.has_mask(edge_id[1],'donors') and not recompute:
                 continue
             edge = self.G.get_edge(edge_id[0],edge_id[1])
             startMask = None
@@ -1441,7 +1507,7 @@ class ImageProjectModel:
                     else:
                        donorsToNodes[key] = donor_mask.astype('uint8')
                 for key, donor_mask in donorsToNodes.iteritems():
-                    self.G.addDonorToNode(edge_id[1], key, ImageWrapper(donor_mask).invert())
+                    self.addDonorToNode(edge_id[1], key, ImageWrapper(donor_mask).invert())
                     donors.append((edge_id[1], donor_mask))
         return donors
 
@@ -1461,7 +1527,6 @@ class ImageProjectModel:
 #                if 'arguments' not in edge:
 #                    edge['arguments'] = {}
                 edge['inputmaskname'] = os.path.split(inputmaskname)[1]
-                print inputmaskname
 #               edge['arguments']['inputmaskname'] = os.path.split(inputmaskname)[1]
                 self.G.setDataItem('autopastecloneinputmask','yes')
 
@@ -1592,6 +1657,29 @@ class ImageProjectModel:
         except ValueError as e:
             return 'Exception (' + str(e) + ')', False
 
+    def __scan_args_callback(self,opName, arguments):
+        """
+        Call back function for image graph's arg_checker_callback.
+        Add any discovered arguments that are associated with
+        file paths so that the image graph can managed the file
+        existence and archiving
+        :param opName:
+        :param arguments:
+        :return:
+        """
+        if len(arguments) > 0:
+            op = getOperationWithGroups(opName, fake=True)
+            for k,v in op.mandatoryparameters.iteritems():
+                if k =='inputmaskname':
+                    continue
+                if v['type'].startswith('fileset:') or v['type'].startswith('file:'):
+                    self.G.addEdgeFilePath('arguments.' +k,'')
+            for k,v in op.optionalparameters.iteritems():
+                if k == 'inputmaskname':
+                    continue
+                if v['type'].startswith('fileset:') or v['type'].startswith('file:'):
+                    self.G.addEdgeFilePath('arguments.' +k,'')
+
     def __addEdge(self, start, end, mask, maskname, mod, additionalParameters):
         if len(mod.arguments) > 0:
             additionalParameters['arguments'] = {k: v for k, v in mod.arguments.iteritems() if k != 'inputmaskname'}
@@ -1703,7 +1791,14 @@ class ImageProjectModel:
         self._setup(pathname)
 
     def _openProject(self, projectFileName, projecttype):
-        return createGraph(projectFileName, projecttype=projecttype)
+        return createGraph(projectFileName,
+                           projecttype=projecttype,
+                           arg_checker_callback=self.__scan_args_callback,
+                           edgeFilePaths={'inputmaskname': 'inputmaskownership',
+                                           'selectmasks.mask': '',
+                                           'videomasks.videosegment': ''},
+                           nodeFilePaths={'compositemaskname': '',
+                                        'donors.*': ''})
 
     def _autocorrect(self):
         updateJournal(self)

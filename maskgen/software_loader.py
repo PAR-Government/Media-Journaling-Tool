@@ -75,8 +75,8 @@ class Operation:
     category = None
     includeInMask = False
     description = None
-    optionalparameters = []
-    mandatoryparameters = []
+    optionalparameters = {}
+    mandatoryparameters = {}
     rules = []
     analysisOperations = []
     transitions = []
@@ -86,16 +86,16 @@ class Operation:
     groupedCategories = None
     maskTransformFunction = None
 
-    def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=list(),
-                 mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list(),
+    def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
+                 mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
                  maskTransformFunction=maskTransformFunction):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
         self.rules = rules
-        self.mandatoryparameters = mandatoryparameters if mandatoryparameters is not None else []
-        self.optionalparameters = optionalparameters if optionalparameters is not None else []
+        self.mandatoryparameters = mandatoryparameters if mandatoryparameters is not None else {}
+        self.optionalparameters = optionalparameters if optionalparameters is not None else {}
         self.description = description
         self.analysisOperations = analysisOperations
         self.transitions = transitions

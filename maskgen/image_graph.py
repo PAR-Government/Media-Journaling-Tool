@@ -9,7 +9,7 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 
 
-snapshot='.adee798679'
+snapshot='.db2133eadc'
 igversion='0.4.0308' + snapshot
 
 
@@ -193,7 +193,7 @@ def find_project_json(prefix, directory):
             return os.path.join(sub, files[index])
     return None
 
-def createGraph(pathname, projecttype=None):
+def createGraph(pathname, projecttype=None, nodeFilePaths={},edgeFilePaths={},arg_checker_callback=None):
     """
       Factory for an Project Graph, existing or new.
       Supports a tgz of a project or the .json of a project
@@ -216,7 +216,12 @@ def createGraph(pathname, projecttype=None):
         G = loadJSONGraph(pathname)
         projecttype = G.graph['projecttype'] if 'projecttype' in G.graph else projecttype
 
-    return ImageGraph(pathname, graph=G, projecttype=projecttype)
+    return ImageGraph(pathname,
+                      graph=G,
+                      projecttype=projecttype,
+                      arg_checker_callback=arg_checker_callback,
+                      nodeFilePaths=nodeFilePaths,
+                      edgeFilePaths=edgeFilePaths)
 
 
 class ImageGraph:
@@ -224,24 +229,10 @@ class ImageGraph:
     U = []
     idc = 0
     dir = os.path.abspath('.')
+    # permits a function to scan arguments and take action
+    # node arguments are labeled with 'op' = 'node'
+    arg_checker_callback = None
     filesToRemove = set()
-    # Will likely change this to be externally managed, except 'ownership'
-    # ownership indicates that ownership of the image must be checked prior to deletion,
-    # otherwise the image graph is assumed to be the owner
-    # ownership occurs if the image file is copied into the project directory
-    # These paths are all the paths associated with image or video files for a link (edge).
-    edgeFilePaths = {'inputmaskname': 'inputmaskownership',
-                     'arguments.XMP File Name': 'xmpfileownership',
-                     'arguments.qtfile': 'qtfileownership',
-                     'arguments.pastemask': None,
-                     'arguments.PNG File Name': 'pngfileownership',
-                     'arguments.convolutionkernel': 'convolutionfileownership',
-                     'maskname': None,
-                     'selectmasks.mask': None,
-                     'videomasks.videosegment': None}
-    nodeFilePaths = {'compositemaskname': None,
-                     'proxyfile':None,
-                     'donors.*': None}
 
     def getUIGraph(self):
         return self.G
@@ -249,11 +240,38 @@ class ImageGraph:
     def get_name(self):
         return self.G.name
 
-    def __init__(self, pathname, graph=None, projecttype=None):
+    def __init__(self, pathname, graph=None, projecttype=None,nodeFilePaths={},edgeFilePaths={},arg_checker_callback=None):
         fname = os.path.split(pathname)[1]
         name = get_pre_name(fname)
+        self.arg_checker_callback = arg_checker_callback
         self.G = graph if graph is not None else nx.DiGraph(name=name)
-        self._setup(pathname, projecttype)
+        self._setup(pathname, projecttype,nodeFilePaths,edgeFilePaths)
+
+    def addEdgeFilePath(self, path, ownership):
+        """
+        :param path: the edge propertes path to a filename
+                This is not a file path name.  Instead, this is a path
+                through the key's of the edge dictionary leading up to the
+                nested dictionary key that references a file name
+        :param ownership: an attribute in the edge that informs
+                the ImageGraph if the file should be removed if
+                the path is changed/removed from the edge.
+        :return: None
+        """
+        self.G.graph['edgeFilePaths'][path] = ownership
+
+    def addNodeFilePath(self, path, ownership):
+        """
+        :param path: the node propertes path to a filename
+               This is not a file path name.  Instead, this is a path
+               through the key's of the node dictionary leading up to the
+                nested dictionary key that references a file name
+        :param ownership: an attribute in the node that informs
+               the ImageGraph if the file should be removed if
+               the path is changed/removed from the edge.
+        :return: None
+        """
+        self.G.graph['nodeFilePaths'][path] = ownership
 
     def openImage(self, fileName, mask=False, metadata={}):
         imgDir = os.path.split(os.path.abspath(fileName))[0]
@@ -314,6 +332,11 @@ class ImageGraph:
                 result[k] = v
         return result
 
+    def __scan_args(self, op, args):
+        if self.arg_checker_callback is None:
+            return
+        self.arg_checker_callback(op, args)
+
     def add_node(self, pathname, seriesname=None, **kwargs):
         proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
@@ -342,6 +365,9 @@ class ImageGraph:
                         username=get_username(),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
                         **self.__filter_args(kwargs))
+
+        self.__scan_args('node', kwargs)
+
         if proxypathname is not None:
             self.G.node[nname]['proxyfile'] = proxypathname
 
@@ -350,13 +376,14 @@ class ImageGraph:
         # adding back a file that was targeted for removal
         if newpathname in self.filesToRemove:
             self.filesToRemove.remove(newpathname)
-        for path, ownership in self.nodeFilePaths.iteritems():
+        for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
             vals = getPathValues(kwargs, path)
-            if ownership and len(vals) > 0:
+            if len(vals) > 0:
                 pathvalue, ownershipvalue = self._handle_inputfile(vals[0])
                 if vals[0]:
                     kwargs[path] = pathvalue
-                    kwargs[ownership] = ownershipvalue
+                    if len(ownership) > 0:
+                        kwargs[ownership] = ownershipvalue
         return nname
 
     def undo(self):
@@ -366,7 +393,7 @@ class ImageGraph:
                 k = os.path.join(self.dir, d['file'])
                 if k in self.filesToRemove:
                     self.filesToRemove.remove(k)
-                for path, ownership in self.nodeFilePaths.iteritems():
+                for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
                     for value in getPathValues(d, path):
                         filePath = os.path.join(self.dir, value)
                         if filePath in self.filesToRemove:
@@ -374,7 +401,7 @@ class ImageGraph:
                 name = d.pop('name')
                 self.G.add_node(name, **d)
             elif action == 'removeEdge':
-                for path, ownership in self.edgeFilePaths.iteritems():
+                for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
                     for value in getPathValues(d, path):
                         filePath = os.path.join(self.dir, value)
                         if filePath in self.filesToRemove:
@@ -391,70 +418,6 @@ class ImageGraph:
                 self.remove_edge(d['start'], d['end'])
         self.U = []
 
-    def removeCompositesAndDonors(self):
-        """
-          Remove a composite image or a donor image associated with any node
-        """
-        for node in self.G.nodes():
-            self.removeCompositeFromNode(node)
-            self.removeDonorFromNode(node)
-
-    def removeCompositeFromNode(self, nodeName):
-        """
-          Remove a composite image associated with a node
-        """
-        if self.G.has_node(nodeName):
-            fname = nodeName + '_composite_mask.png'
-            if 'compositemaskname' in self.G.node[nodeName]:
-                self.G.node[nodeName].pop('compositemaskname')
-                if 'compositebase' in self.G.node[nodeName]:
-                    self.G.node[nodeName].pop('compositebase')
-                if 'composite change size category' in self.G.node[nodeName]:
-                    self.G.node[nodeName].pop('composite change size category')
-                if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
-                    os.remove(os.path.abspath(os.path.join(self.dir, fname)))
-
-    def removeDonorFromNode(self, nodeName):
-        """
-          Remove a donor image associated with a node
-        """
-        if self.G.has_node(nodeName):
-            if 'donors' in self.G.node[nodeName]:
-                for base,fname in self.G.node[nodeName].pop('donors').iteritems():
-                    if os.path.exists(os.path.abspath(os.path.join(self.dir, fname))):
-                        os.remove(os.path.abspath(os.path.join(self.dir, fname)))
-
-    def addCompositeToNode(self,  leafNode, baseNode, image, category):
-        """
-        Add mask to leaf node and save mask to disk
-        Input is a tuple (leaf node name, base node name, Image mask)
-        """
-        if self.G.has_node(leafNode):
-            fname = leafNode + '_composite_mask.png'
-            self.G.node[leafNode]['compositemaskname'] = fname
-            self.G.node[leafNode]['compositebase'] = baseNode
-            self.G.node[leafNode]['composite change size category'] = category
-            try:
-                image.save(os.path.abspath(os.path.join(self.dir, fname)))
-            except IOError:
-                compositeMask = convertToMask(image)
-                compositeMask.save(os.path.abspath(os.path.join(self.dir, fname)))
-
-    def addDonorToNode(self, recipientNode, baseNode, mask):
-        """
-        Add mask to leaf node and save mask to disk
-        Input is a tuple (donor node name, base node name, Image mask)
-        """
-        if self.G.has_node(recipientNode):
-            if 'donors' not in self.G.node[recipientNode]:
-                self.G.node[recipientNode]['donors'] = {}
-            fname = recipientNode + '_' + baseNode + '_donor_mask.png'
-            self.G.node[recipientNode]['donors'][baseNode] = fname
-            try:
-                mask.save(os.path.abspath(os.path.join(self.dir, fname)))
-            except IOError:
-                donorMask = convertToMask(mask)
-                donorMask.save(os.path.abspath(os.path.join(self.dir, fname)))
 
     def get_edge_image(self, start, end, path,returnNoneOnMissing=False):
         """
@@ -488,6 +451,7 @@ class ImageGraph:
     def update_node(self, node, **kwargs):
         self._setUpdate(node, update_type='node')
         if self.G.has_node(node):
+            self.__scan_args('node',kwargs)
             for k, v in kwargs.iteritems():
                 self.G.node[node][k] = v
 
@@ -497,6 +461,7 @@ class ImageGraph:
         if not self.G.has_node(start) or not self.G.has_node(end):
             return
         self._setUpdate((start, end), update_type='edge')
+        self.__scan_args(kwargs['op'],kwargs)
         unsetkeys = []
         for k, v in kwargs.iteritems():
             if v is not None:
@@ -540,9 +505,11 @@ class ImageGraph:
                 edge.pop(k)
             edge[k] = v
 
+
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         import copy
         self._setUpdate((start, end), update_type='edge')
+        self.__scan_args(op, kwargs)
         newmaskpathname = None
         if maskname is not None and mask is not None:
             newmaskpathname = os.path.join(self.dir, maskname)
@@ -564,24 +531,24 @@ class ImageGraph:
         self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
         return mask
 
-    def get_composite_mask(self, name):
-        if name in self.G.nodes() and 'compositemaskname' in self.G.node[name]:
-            filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['compositemaskname']))
-            im = self.openImage(filename, mask=False)
-            return im, filename
-        return None, None
-
-    def has_donor_mask(self, name):
-        return name in self.G.nodes() and 'donors' in self.G.node[name]
-
-    def get_donor_masks(self, name):
+    def get_masks(self, name, maskname):
         result = {}
-        if name in self.G.nodes() and 'donors' in self.G.node[name]:
-            for base,fname in self.G.node[name]['donors'].iteritems():
-                filename = os.path.abspath(os.path.join(self.dir, fname))
-                im = self.openImage(filename, mask=True)
-                result[base] = ( im, filename )
+        if name in self.G.nodes() and maskname in self.G.node[name]:
+            item = self.G.node[name][maskname]
+            if type(item) != dict:
+                filename = os.path.abspath(os.path.join(self.dir, self.G.node[name][maskname]))
+                im = self.openImage(filename, mask=False)
+                result[name] = ( im, filename)
+            else:
+                for base, fname in self.G.node[name][maskname].iteritems():
+                    filename = os.path.abspath(os.path.join(self.dir, fname))
+                    im = self.openImage(filename, mask=True)
+                    result[base] = (im, filename)
         return result
+
+    def has_mask(self, name, maskname):
+        return name in self.G.nodes() and maskname in self.G.node[name]
+
 
     def get_image(self, name, metadata=dict()):
         """
@@ -590,7 +557,14 @@ class ImageGraph:
         :return:
         @rtype (ImageWrapper,str)
         """
-        filename = os.path.abspath(os.path.join(self.dir, self.G.node[name]['file']))
+        node = self.G.node[name]
+        filename = os.path.abspath(os.path.join(self.dir, node['file']))
+        proxy = getProxy(filename)
+        if proxy and 'proxyfile' not in node:
+            # do not assume the proxy will be open but make sure
+            #it is preserved, since it may have been added after
+            # the node was added to the project
+            node['proxyfile'] = os.path.split(proxy)[1]
         im = self.openImage(filename,metadata=metadata)
         return im, filename
 
@@ -623,7 +597,7 @@ class ImageGraph:
         if (node['ownership'] == 'yes' and os.path.exists(f)):
             self.filesToRemove.add(f)
 
-        for path, ownership in self.nodeFilePaths.iteritems():
+        for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
             for pathvalue in getPathValues(node, path):
                 if pathvalue and len(pathvalue) > 0 and (ownership not in node or node[ownership] == 'yes'):
                     f = os.path.abspath(os.path.join(self.dir, pathvalue))
@@ -708,7 +682,7 @@ class ImageGraph:
     def getVersion(self):
         return self.G.graph['igversion']  if 'igversion' in self.G.graph else igversion
 
-    def _setup(self, pathname, projecttype):
+    def _setup(self, pathname, projecttype,nodeFilePaths,edgeFilePaths):
         global igversion
         if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
@@ -733,6 +707,18 @@ class ImageGraph:
                 self.G.graph['updatetime'] = self.G.graph['exporttime']
             else:
                 self._setUpdate('project')
+        # edgeFilePaths are paths to files that are managed by the graph
+        # so that the paths are both archived and removed if deleted
+        if 'edgeFilePaths' not in self.G.graph:
+            self.G.graph['edgeFilePaths'] = {'maskname': ''}
+        # nodeFilePaths are paths to files that are managed by the graph
+        # so that the paths are both archived and removed if deleted
+        if 'nodeFilePaths' not in self.G.graph:
+            self.G.graph['nodeFilePaths'] = {'proxyfile': ''}
+        for k,v in edgeFilePaths.iteritems():
+            self.G.graph['edgeFilePaths'][k] = v
+        for k, v in nodeFilePaths.iteritems():
+            self.G.graph['nodeFilePaths'][k] = v
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))
@@ -779,21 +765,21 @@ class ImageGraph:
         for nname in self.G.nodes():
             node = self.G.node[nname]
             moveFile(self.dir, currentdir, node['file'])
-            for path, ownership in self.nodeFilePaths.iteritems():
+            for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
                 for pathvalue in getPathValues(node, path):
                     if not pathvalue or len(pathvalue) == 0:
                         continue
-                    if ownership:
+                    if len(ownership)>0:
                         node[ownership] = 'yes'
                     moveFile(self.dir, currentdir, pathvalue)
 
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
-            for path, ownership in self.edgeFilePaths.iteritems():
+            for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
                 for pathvalue in getPathValues(edge, path):
                     if not pathvalue or len(pathvalue) == 0:
                         continue
-                    if ownership:
+                    if len(ownership)>0:
                         edge[ownership] = 'yes'
                     moveFile(self.dir, currentdir, pathvalue)
 
@@ -803,7 +789,7 @@ class ImageGraph:
             node = self.G.node[nname]
             if not os.path.exists(os.path.join(self.dir, node['file'])):
                 missing.append((str(nname), str(nname), str(nname) + ' is missing image file in project'))
-            for path, ownership in self.nodeFilePaths.iteritems():
+            for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
                 for pathvalue in getPathValues(node, path):
                     if not pathvalue or len(pathvalue) == 0:
                         continue
@@ -811,7 +797,7 @@ class ImageGraph:
                         missing.append((str(nname),str(nname),str(nname) + ' is missing ' + path + ' file in project'))
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
-            for path, ownership in self.edgeFilePaths.iteritems():
+            for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
                 for pathvalue in getPathValues(edge, path):
                     if not pathvalue or len(pathvalue) == 0:
                         continue
@@ -857,7 +843,7 @@ class ImageGraph:
             names_added.append(os.path.join(self.G.name, node['file']))
         else:
             errors.append((str(nname), str(nname), str(nname) + " missing file"))
-        for path, ownership in self.nodeFilePaths.iteritems():
+        for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
             for pathvalue in getPathValues(node, path):
                 if not pathvalue or len(pathvalue) == 0:
                     continue
@@ -909,7 +895,7 @@ class ImageGraph:
 
     def _archive_edge(self, start, end, edge, archive_name, archive, names_added=list()):
         errors = []
-        for path, ownership in self.edgeFilePaths.iteritems():
+        for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
             for pathvalue in getPathValues(edge, path):
                 if not pathvalue or len(pathvalue) == 0:
                     continue
@@ -979,15 +965,15 @@ class ImageGraph:
 
     def _updateEdgePathValue(self, edge, path, value):
         self._updatePathValue(edge, path, value)
-        for edgePath in self.edgeFilePaths:
+        for edgePath in self.G.graph['edgeFilePaths']:
             struct = self._buildStructure(path, value)
             for revisedPath in buildPath(struct, edgePath.split('.')):
                 if self._matchPath(revisedPath, edgePath):
-                    ownership = self.edgeFilePaths[edgePath]
+                    ownership = self.G.graph['edgeFilePaths'][edgePath]
                     for pathValue in getPathValues(struct, revisedPath):
                         filenamevalue, ownershipvalue = self._handle_inputfile(pathValue)
                         self._updatePathValue(edge, revisedPath, filenamevalue)
-                        if ownership:
+                        if len(ownership)>0:
                             self._updatePathValue(edge, ownership, ownershipvalue)
 
     def create_path_archive(self, location, end):

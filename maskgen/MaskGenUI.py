@@ -942,6 +942,7 @@ class MakeGenUI(Frame):
             preferredFT = self.prefLoader.get_key('filetypes')
             if preferredFT:
                 self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
+                self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
             else:
                 self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
         self.createWidgets()
