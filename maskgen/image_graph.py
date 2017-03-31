@@ -580,7 +580,7 @@ class ImageGraph:
         """
         if edgeFunc is not None:
             edgeFunc(edge)
-        for path, ownership in self.edgeFilePaths.iteritems():
+        for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
             for pathvalue in getPathValues(edge, path):
                 if pathvalue and len(pathvalue) > 0 and (ownership not in edge or edge[ownership] == 'yes'):
                     f = os.path.abspath(os.path.join(self.dir, pathvalue))

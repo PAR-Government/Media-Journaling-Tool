@@ -1667,7 +1667,7 @@ class ImageProjectModel:
         :param arguments:
         :return:
         """
-        if len(arguments) > 0:
+        if len(arguments) > 0 and opName != 'node':
             op = getOperationWithGroups(opName, fake=True)
             for k,v in op.mandatoryparameters.iteritems():
                 if k =='inputmaskname':
