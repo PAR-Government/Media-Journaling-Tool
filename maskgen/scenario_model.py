@@ -5,7 +5,7 @@ import os
 import numpy as np
 from tool_set import *
 import video_tools
-from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader
+from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader,getRule
 import tempfile
 import plugins
 import graph_rules
@@ -18,12 +18,14 @@ import shutil
 import collections
 from threading import Lock
 import mask_rules
-
+from maskgen.image_graph import ImageGraph
 
 def formatStat(val):
    if type(val) == float:
       return "{:5.3f}".format(val)
    return str(val)
+
+prefLoader = MaskGenLoader()
 
 def imageProjectModelFactory(name, **kwargs):
     return ImageProjectModel(name, **kwargs)
@@ -46,6 +48,7 @@ def consolidate(dict1, dict2):
     d = dict(dict1)
     d.update(dict2)
     return d
+
 
 EdgeTuple = collections.namedtuple('EdgeTuple', ['start','end','edge'])
 
@@ -625,7 +628,8 @@ class VideoVideoLinkTool(LinkTool):
                                                                                                  'Start Time']) if 'Start Time' in arguments else None,
                                                        endSegment=getMilliSecondsAndFrameCount(arguments[
                                                                                                'End Time']) if 'End Time' in arguments else None,
-                                                       analysis=analysis)
+                                                       analysis=analysis,
+                                                       arguments=consolidate(arguments, analysis_params))
         # for now, just save the first mask
         if len(maskSet) > 0:
             mask = ImageWrapper(maskSet[0]['mask'])
@@ -800,7 +804,7 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool() }
 
-prefLoader = MaskGenLoader()
+
 
 class ImageProjectModel:
     """
@@ -980,6 +984,34 @@ class ImageProjectModel:
             if suc == child or self.findChild(suc, child):
                 return True
         return False
+
+    def compress(self, all=False):
+        if all:
+            return [self._compress(node) for node in self.G.get_nodes()]
+        else:
+            return self._compress(self.start)
+
+    def _compress(self, start, force=False):
+        defaults = {'compressor.video': 'maskgen.video_tools.x264',
+                    'compressor.audio': None,
+                    'compressor.image': None}
+        node = self.G.get_node(start)
+        ftype = self.getNodeFileType(start)
+        # cannot finish the action since the edge analysis was skipped
+        for skipped_edge in self.G.getDataItem('skipped_edges', []):
+            if skipped_edge['start'] == start:
+                    return
+        if (len(self.G.successors(start)) == 0 or len(self.G.predecessors(start)) == 0)  and not force:
+            return
+        func = getRule(prefLoader.get_key('compressor.' + ftype,
+                                          default_value=defaults['compressor.' + ftype]))
+        newfile = None
+        if func is not None:
+            newfilename = func(os.path.join(self.get_dir(),node['file']))
+            if newfilename is not None:
+                newfile = os.path.split(newfilename)[1]
+                node['file'] = newfile
+        return newfile
 
     def connect(self, destination, mod=Modification('Donor', ''), invert=False, sendNotifications=True,
                 skipDonorAnalysis=False):
@@ -1590,7 +1622,6 @@ class ImageProjectModel:
     def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True,
                        analysis_params=dict(),
                        force=False):
-        edge = self.G.get_edge(self.start, destination)
         if prefLoader.get_key('skip_compare') and not force:
             self.G.setDataItem('skipped_edges', self.G.getDataItem('skipped_edges',list()) + [{"start":start,
                                                                                                "end":destination,
@@ -1643,7 +1674,6 @@ class ImageProjectModel:
                     analysis[k] = v
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-
             edgeErrors = [] if skipRules else graph_rules.run_rules(mod.operationName, self.G, self.start, destination)
             msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 else ''
             if (self.notify is not None and sendNotifications):
@@ -1683,7 +1713,7 @@ class ImageProjectModel:
     def __addEdge(self, start, end, mask, maskname, mod, additionalParameters):
         if len(mod.arguments) > 0:
             additionalParameters['arguments'] = {k: v for k, v in mod.arguments.iteritems() if k != 'inputmaskname'}
-        im = self.G.add_edge(start, end,
+        self.G.add_edge(start, end,
                              mask=mask,
                              maskname=maskname,
                              op=mod.operationName,
@@ -2372,12 +2402,14 @@ class ImageProjectModel:
 
     def export(self, location,include=[]):
         self.clear_validation_properties()
+        self.compress(all=True)
         path, errors = self.G.create_archive(location,include=include)
         return errors
 
     def exporttos3(self, location, tempdir=None):
         import boto3
         self.clear_validation_properties()
+        self.compress(all=True)
         path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
         if len(errors) == 0:
             s3 = boto3.client('s3', 'us-east-1')

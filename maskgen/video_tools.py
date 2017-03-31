@@ -155,7 +155,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
             result[:, :] = 0
             result[abs(thresh) > 0.000001] = 255
             opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
-            closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+            closing = result #cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             totalMatch = sum(sum(closing))
             result = closing
             if totalMatch > 0:
@@ -546,6 +546,61 @@ def getDuration(st, et):
     ss = sec - (hr * 3600) - mi * 60
     return '{:=02d}:{:=02d}:{:=02d}'.format(hr, mi, ss)
 
+def x265(filename ,outputname=None, crf=0):
+    return _vid_compress(filename,
+                         ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
+                         'hvec',
+                         outputname=outputname)
+
+def x264(filename, outputname=None, crf=0):
+    return _vid_compress(filename,
+                         ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
+                         'h264',
+                         outputname=outputname)
+
+def vid_md5(filename):
+    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    prefix = filename[0:filename.rfind('.')]
+    outFileName = prefix + '_compressed.mp4'
+    if filename == outFileName:
+        return filename
+    command = [ffmpegcommand, '-i', filename,'-loglevel','error','-map','0:v', '-f','md5','-']
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    try:
+        if stderr is not None:
+            for line in stderr.splitlines():
+                print line
+        return stdout.strip() if p.returncode == 0 else None
+    except OSError as e:
+        print str(e)
+
+def _vid_compress(filename, expressions, criteria,outputname=None):
+    #md5 = vid_md5(filename)
+    one_meta, one_frames = getMeta(filename, with_frames=False)
+    #see if already compressed
+    if one_meta is not None:
+        for k,v in one_meta.iteritems():
+            if 'Stream' in k and criteria in v:
+                return filename
+    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    prefix = filename[0:filename.rfind('.')]
+    outFileName = prefix + '_compressed.avi' if outputname is None else outputname
+    if filename == outFileName:
+        return filename
+    command = [ffmpegcommand, '-y','-i', filename]
+    command.extend(expressions)
+    command.append(outFileName)
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    try:
+        if stderr is not None:
+            for line in stderr.splitlines():
+                print line
+        return outFileName if p.returncode == 0 else None
+    except OSError as e:
+        print str(e)
+
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
 def _formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
@@ -614,7 +669,7 @@ class VidAnalysisComponents:
     def __init__(self):
         pass
 
-def cutDetect(vidAnalysisComponents, ranges=list()):
+def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     """
     Find a region of cut frames given the current starting point
     :param vidAnalysisComponents: VidAnalysisComponents
@@ -650,13 +705,16 @@ def cutDetect(vidAnalysisComponents, ranges=list()):
         cut['frames'] = count
         ranges.append(cut)
 
-def addDetect(vidAnalysisComponents, ranges=list()):
+def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     """
     Find a region of added frames given the current starting point
     :param vidAnalysisComponents:
     :param ranges: collection of meta-data describing then range of add frames
     :return:
     """
+    frame_count_diff = vidAnalysisComponents.vid_one.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT) - \
+       vidAnalysisComponents.vid_two.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)
+
     diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
     if (__changeCount(vidAnalysisComponents.mask) > 0 and
                 diff_in_time < vidAnalysisComponents.fps_one) or not vidAnalysisComponents.vid_one.isOpened():
@@ -692,7 +750,7 @@ def __changeCount(mask):
         return __changeCount(sum(mask))
     return mask
 
-def addChange(vidAnalysisComponents, ranges=list()):
+def addChange(vidAnalysisComponents, ranges=list(),arguments={}):
     """
        Find a region of changed frames given the current starting point
        :param vidAnalysisComponents:
@@ -724,16 +782,17 @@ def formMaskDiff(fileOne,
                  opName,
                  startSegment=None,
                  endSegment=None,
-                 analysis=None):
+                 analysis=None,
+                 arguments= {}):
     preferences = MaskGenLoader()
     diffPref = preferences.get_key('vid_diff')
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
-    result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager)
+    result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager,arguments=arguments)
     analysis['startframe'] = time_manager.getStartFrame()
     analysis['stopframe'] = time_manager.getEndFrame()
     return result
 
-def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager):
+def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,arguments={}):
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
     if opFunc == addChange and (diffPref is None or diffPref == '2'):
         return _formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName,time_manager)
@@ -774,11 +833,11 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager):
             analysis_components.mask = np.zeros((analysis_components.frame_one.shape[0],analysis_components.frame_one.shape[1])).astype('uint8')
             diff  = cv2.cvtColor(diff,cv2.COLOR_RGBA2GRAY)
             analysis_components.mask[diff > 0.0001] = 255
-            opening = cv2.erode(analysis_components.mask, kernel,1)
-            analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
-            opFunc(analysis_components,ranges)
+            #opening = cv2.erode(analysis_components.mask, kernel,1)
+            #analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+            opFunc(analysis_components,ranges,arguments)
         analysis_components.mask = 0
-        opFunc(analysis_components,ranges)
+        opFunc(analysis_components,ranges,arguments)
         analysis_components.writer.release()
     finally:
         analysis_components.vid_one.release()
