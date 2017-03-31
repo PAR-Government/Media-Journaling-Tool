@@ -2143,7 +2143,7 @@ class ImageProjectModel:
                 suffix = os.path.splitext(resolved[preferred])[1].lower()
             else:
                 suffix = preferred
-        target = os.path.join(tempfile.gettempdir(), self.G.new_name(os.path.split(filename)[1], suffix=suffix))
+        target = os.path.join(tempfile.gettempdir(), self.G.new_name(self.start, suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
         try:
