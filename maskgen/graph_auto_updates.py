@@ -45,6 +45,9 @@ def updateJournal(scModel):
         _fixEdgeFiles(scModel)
         _fixBlend(scModel)
         upgrades.append('0.4.0308.adee798679')
+    if "0.4.0308.db2133eadc" not in upgrades:
+        _fixFileArgs(scModel)
+        upgrades.append('0.4.0308.db2133eadc')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -58,6 +61,20 @@ def _fixValidationTime(scModel):
 def _fixLabels(scModel):
     for node in scModel.getNodeNames():
         scModel.labelNodes(node)
+
+def _fixFileArgs(scModel):
+    #  add all the known file paths for now
+    # rather than trying to find out which ones were actually used.
+    scModel.G.addEdgeFilePath('arguments.XMP File Name','')
+    scModel.G.addEdgeFilePath('arguments.qtfile', '')
+    scModel.G.addEdgeFilePath('arguments.pastemask', '')
+    scModel.G.addEdgeFilePath('arguments.PNG File Name', '')
+    scModel.G.addEdgeFilePath('arguments.convolutionkernel', '')
+    scModel.G.addEdgeFilePath('inputmaskname', 'inputmaskownership')
+    scModel.G.addEdgeFilePath('selectmasks.mask', '')
+    scModel.G.addEdgeFilePath('videomasks.videosegment', '')
+    scModel.G.addNodeFilePath('compositemaskname', '')
+    scModel.G.addNodeFilePath('donors.*', '')
 
 def _fixEdgeFiles(scModel):
     import shutil

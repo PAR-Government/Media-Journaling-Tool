@@ -943,7 +943,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         if self.argBox is not None:
             self.argBox.destroy()
         if arginfo is None:
-            arginfo = []
+            arginfo = {}
         operation = getOperationWithGroups(operationName)
         argumentTuples = [self.__buildTuple(arg, arginfo[arg], operation) for arg in arginfo]
         for k, v in operation.mandatoryparameters.iteritems():
