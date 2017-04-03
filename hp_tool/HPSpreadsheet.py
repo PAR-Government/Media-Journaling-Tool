@@ -696,7 +696,14 @@ class CustomTable(pandastable.Table):
             else:
                 self.currentcol = self.currentcol + 1
         elif event.keysym == 'Left':
-            self.currentcol = self.currentcol - 1
+            if self.currentcol == 0:
+                if self.currentrow > 0:
+                    self.currentcol = self.cols - 1
+                    self.currentrow = self.currentrow - 1
+                else:
+                    return
+            else:
+                self.currentcol = self.currentcol - 1
         self.drawSelectedRect(self.currentrow, self.currentcol)
         coltype = self.model.getColumnType(self.currentcol)
         # if coltype == 'text' or coltype == 'number':
