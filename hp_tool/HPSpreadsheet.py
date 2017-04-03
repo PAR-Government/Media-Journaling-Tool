@@ -160,7 +160,6 @@ class HPSpreadsheet(Toplevel):
         with open(os.path.join('data', 'hptabs.json')) as j:
             tabs = json.load(j)
         clickedTab = self.nb.tab(event.widget.select(), 'text')
-        print clickedTab
         if clickedTab == 'All Items':
             self.update_main()
             self.on_main_tab = True
@@ -176,7 +175,7 @@ class HPSpreadsheet(Toplevel):
 
     def update_main(self):
         if self.on_main_tab:
-            # switching from main tab to another. don't need to do anything special?
+            # switching from main tab to another. don't need to do any extra prep
             pass
         else:
             # switching from an alt tab, to any other tab. need to save headers back into pt, and then del tabpt

@@ -285,8 +285,8 @@ def build_csv_file(oldNameList, newNameList, info, csvFile, type):
                     try:
                         row.append(info[imNo][h])
                     except KeyError:
-                        print 'poop'
-                        row.append('poop')
+                        print 'Could not find column ' + h
+                        row.append('ERROR')
             wtr.writerow(row)
 
 
