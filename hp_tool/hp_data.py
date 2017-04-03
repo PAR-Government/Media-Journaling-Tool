@@ -6,6 +6,7 @@ tool for bulk renaming of files to standard
 
 import shutil
 import os
+import sys
 from PIL import Image
 import change_all_metadata
 import datetime
@@ -20,7 +21,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 FIELDSPATH = os.path.join('data', 'fieldnames.json')
 HEADERSPATH = os.path.join('data', 'headers.json')
-RVERSION = '#@version=01.05'
+RVERSION = '#@version=01.06'
 
 def copyrename(image, path, usrname, org, seq, other):
     """
@@ -118,25 +119,25 @@ def add_types(data, mformat):
         if i not in exts[mformat] and len(i) > 0:
             exts[mformat].append(i)
 
-def convert_GPS(coordinate):
-    """
-    Converts lat/long output from exiftool (DMS) to decimal degrees
-    :param coordinate: string of coordinate in the form 'X degrees Y' Z' N/S/W/E'
-    :return: (string) input coordinate in decimal degrees, rounded to 6 decimal places
-    """
-    if coordinate:
-        coord = coordinate.split(' ')
-        whole = float(coord[0])
-        direction = coord[-1]
-        min = float(coord[2][:-1])
-        sec = float(coord[3][:-1])
-        dec = min + (sec/60)
-        coordinate = round(whole + dec/60, 6)
-
-        if direction == 'S' or direction == 'W':
-            coordinate *= -1
-
-    return str(coordinate)
+# def convert_GPS(coordinate):
+#     """
+#     Converts lat/long output from exiftool (DMS) to decimal degrees
+#     :param coordinate: string of coordinate in the form 'X degrees Y' Z' N/S/W/E'
+#     :return: (string) input coordinate in decimal degrees, rounded to 6 decimal places
+#     """
+#     if coordinate:
+#         coord = coordinate.split(' ')
+#         whole = float(coord[0])
+#         direction = coord[-1]
+#         min = float(coord[2][:-1])
+#         sec = float(coord[3][:-1])
+#         dec = min + (sec/60)
+#         coordinate = round(whole + dec/60, 6)
+#
+#         if direction == 'S' or direction == 'W':
+#             coordinate *= -1
+#
+#     return str(coordinate)
 
 def pad_to_5_str(num):
     """
@@ -351,8 +352,8 @@ def set_other_data(data, imfile):
         data['Type'] = 'video'
     else:
         data['Type'] = 'image'
-    data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
-    data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
+    # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
+    # data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
 
     try:
         if int(data['ImageWidth']) < int(data['ImageHeight']):
@@ -370,7 +371,7 @@ def set_other_data(data, imfile):
 
     return data
 
-def parse_image_info2(imageList, **kwargs):
+def parse_image_info(imageList, **kwargs):
     """
     Extract image information from imageList
     :param imageList: list of image filepaths
@@ -394,12 +395,11 @@ def parse_image_info2(imageList, **kwargs):
     exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
     # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
-    # easy to convert into a list of dicts with eval()
     try:
-        exifDataResult = eval(exifDataResult)
+        exifDataResult = json.loads(exifDataResult)
     except:
-        print 'Could not successfully process images'
-        return 'ERROR OR SOMETHING'
+        print 'Exiftool could not return data for all input. Process cancelled.'
+        return None
 
     # further organize exif data into a dictionary based on source filename
     exifDict = {}
@@ -449,7 +449,9 @@ def process(preferences='', metadata='', imgdir='', outputdir='', recursive=Fals
 
     # build information list. This is the bulk of the processing, and what runs exiftool
     print 'Building image info...',
-    imageInfo = parse_image_info2(imageList, path=imgdir, rec=recursive, **kwargs)
+    imageInfo = parse_image_info(imageList, path=imgdir, rec=recursive, **kwargs)
+    if imageInfo is None:
+        return None, None
     print ' done'
 
     # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories

@@ -68,10 +68,6 @@ class HPGUI(Frame):
         else:
             self.okbutton.config(state='disabled')
 
-            # if 'metadata' in self.prefs:
-            #     self.metadatafilename.insert(END, self.prefs['metadata'])
-            # else:
-            #     self.metadatafilename.insert(END, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
 
     def load_input(self):
         d = tkFileDialog.askdirectory(initialdir=self.inputdir.get())
@@ -111,6 +107,8 @@ class HPGUI(Frame):
         self.update_defaults()
 
         (self.oldImageNames, self.newImageNames) = process(**kwargs)
+        if self.oldImageNames == None:
+            return
         aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
         aSheet.open_spreadsheet()
         self.keywordsbutton.config(state=NORMAL)

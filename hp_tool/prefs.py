@@ -136,25 +136,25 @@ class Preferences(Toplevel):
         r+=1
         self.copyrightLabel = Label(self.metaFrame, text='CopyrightNotice: ')
         self.copyrightLabel.grid(row=r)
-        self.copyrightEntry = Entry(self.metaFrame, textvar=self.copyrightVar)
+        self.copyrightEntry = Entry(self.metaFrame, textvar=self.copyrightVar, state='readonly')
         self.copyrightEntry.grid(row=r, column=1)
 
         r+=1
         self.bylineLabel = Label(self.metaFrame, text='By-Line: ')
         self.bylineLabel.grid(row=r)
-        self.bylineEntry = Entry(self.metaFrame, textvar=self.bylineVar)
+        self.bylineEntry = Entry(self.metaFrame, textvar=self.bylineVar, state='readonly')
         self.bylineEntry.grid(row=r, column=1)
 
         r+=1
         self.creditLabel = Label(self.metaFrame, text='Credit: ')
         self.creditLabel.grid(row=r)
-        self.creditEntry = Entry(self.metaFrame, textvar=self.creditVar)
+        self.creditEntry = Entry(self.metaFrame, textvar=self.creditVar, state='readonly')
         self.creditEntry.grid(row=r, column=1)
 
         r+=1
         self.usageLabel = Label(self.metaFrame, text='UsageTerms: ')
         self.usageLabel.grid(row=r)
-        self.usageEntry = Entry(self.metaFrame, textvar=self.usageVar)
+        self.usageEntry = Entry(self.metaFrame, textvar=self.usageVar, state='readonly')
         self.usageEntry.grid(row=r, column=1)
 
         self.applyButton = Button(self.buttonFrame, text='Save & Close', command=self.save_prefs)
@@ -188,9 +188,9 @@ class Preferences(Toplevel):
     def update_metadata(self, *args):
         initials = self.usrVar.get()
         org = self.orgVar.get()
-        self.copyrightEntry.delete(0, END)
-        self.bylineEntry.delete(0, END)
-        self.creditEntry.delete(0, END)
+        # self.copyrightEntry.delete(0, END)
+        # self.bylineEntry.delete(0, END)
+        # self.creditEntry.delete(0, END)
 
         if org == 'U of M (M)':
             org = 'University of Michigan'
@@ -203,9 +203,9 @@ class Preferences(Toplevel):
         elif org == 'CU Denver (C)':
             org = 'University of Colorado, Denver'
 
-        self.copyrightEntry.insert(0, '(c) 2016 ' + org + ' - Under contract of MediFor')
-        self.bylineEntry.insert(0, initials)
-        self.creditEntry.insert(0, org)
+        self.copyrightVar.set('(c) 2016 ' + org + ' - Under contract of MediFor')
+        self.bylineVar.set(initials)
+        self.creditVar.set(org)
 
     def save_prefs(self):
         if self.usrEntry.get():
