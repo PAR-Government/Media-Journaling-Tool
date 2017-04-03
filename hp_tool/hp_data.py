@@ -491,16 +491,16 @@ def process(preferences='', metadata='', imgdir='', outputdir='', recursive=Fals
         change_all_metadata.process(newNameList, newData, quiet=True)
 
     print 'Building RIT file'
-    csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'rit.csv')
+    csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rit.csv')
     build_csv_file(imageList, newNameList, imageInfo, csv_rit, 'rit')
 
     # history file:
     print 'Building history file'
-    csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'history.csv')
+    csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'history.csv')
     build_csv_file(imageList, newNameList, imageInfo, csv_history, 'history')
 
     print 'Building RankOne file'
-    csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'rankone.csv')
+    csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rankone.csv')
     build_csv_file(imageList, newNameList, imageInfo, csv_ro, 'rankone')
 
     # move out of tempfolder

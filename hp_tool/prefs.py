@@ -49,6 +49,7 @@ class Preferences(Toplevel):
         self.orgVar.trace('w', self.update_org)
         self.usrVar.trace('w', self.update_preview)
         self.usrVar.trace('w', self.update_metadata)
+        self.usrVar.trace('w', self.limit_length)
         self.seqVar.trace('w', self.update_preview)
 
         self.s3var = StringVar()
@@ -170,6 +171,11 @@ class Preferences(Toplevel):
                                                     'Image: ' + ', '.join(imExts) + '\n' +
                                                     'Video: ' + ', '.join(vidExts) + '\n' +
                                                     'Audio: ' + ', '.join(audExts))
+
+    def limit_length(self, *args):
+        s = self.usrVar.get()
+        if len(s) > 3:
+            self.usrVar.set(s[0:3])
 
     def update_preview(self, *args):
         try:
