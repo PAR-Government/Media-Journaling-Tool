@@ -97,6 +97,22 @@ class KeywordsSheet(HPSpreadsheet):
         self.title(self.keyCSV)
         self.pt.importCSV(self.keyCSV)
 
+    def update_current_image(self, event):
+        row = self.pt.getSelectedRow()
+        self.imName = str(self.pt.model.getValueAt(row, 0))
+        self.currentImageNameVar.set('Current Image: ' + self.imName)
+        maxSize = 480
+        try:
+            im = Image.open(os.path.join(self.imageDir, self.imName))
+        except (IOError, AttributeError):
+            im = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+        if im.size[0] > maxSize or im.size[1] > maxSize:
+            im.thumbnail((maxSize,maxSize), Image.ANTIALIAS)
+        newimg=ImageTk.PhotoImage(im)
+        self.l2.configure(image=newimg)
+        self.l2.image = newimg
+        self.update_valid_values()
+
     def load_keywords(self):
         try:
             dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'ImageKeywords.csv')
