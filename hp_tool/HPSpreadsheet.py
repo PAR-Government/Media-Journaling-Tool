@@ -1,9 +1,12 @@
+import json
 import tarfile
+import ttk
 from Tkinter import *
 import tkFileDialog
 import os
 import sys
 import boto3
+import collections
 import pandas as pd
 import tkMessageBox
 import tkSimpleDialog
@@ -50,9 +53,17 @@ class HPSpreadsheet(Toplevel):
         self.rightFrame.pack(side=RIGHT, fill=Y)
         self.leftFrame = Frame(self)
         self.leftFrame.pack(side=LEFT, fill=BOTH, expand=1)
-        self.pt = CustomTable(self.leftFrame, scrollregion=None, width=1024, height=720)
         self.leftFrame.pack(fill=BOTH, expand=1)
+        self.nb = ttk.Notebook(self.leftFrame)
+        self.nb.pack()
+        self.nbtabs = {'main': ttk.Frame(self.nb)}
+        self.nb.add(self.nbtabs['main'], text='All Items')
+        self.pt = CustomTable(self.nbtabs['main'], scrollregion=None, width=1024, height=720)
         self.pt.show()
+        self.on_main_tab = True
+        self.add_tabs()
+        self.nb.bind('<<NotebookTabChanged>>', self.switch_tabs)
+
         self.currentImageNameVar = StringVar()
         self.currentImageNameVar.set('Current Image: ')
         l = Label(self.topFrame, height=1, textvariable=self.currentImageNameVar)
@@ -120,7 +131,10 @@ class HPSpreadsheet(Toplevel):
             os.system('open "' + image + '"')
 
     def update_current_image(self, event):
-        row = self.pt.getSelectedRow()
+        if self.on_main_tab:
+            row = self.pt.getSelectedRow()
+        else:
+            row = self.tabpt.getSelectedRow()
         self.imName = str(self.pt.model.getValueAt(row, 0))
         self.currentImageNameVar.set('Current Image: ' + self.imName)
         maxSize = 480
@@ -135,10 +149,49 @@ class HPSpreadsheet(Toplevel):
         self.l2.image = newimg
         self.update_valid_values()
 
+    def add_tabs(self):
+        with open(os.path.join('data', 'hptabs.json')) as j:
+            tabs = json.load(j, object_pairs_hook=collections.OrderedDict)
+        for tab in tabs:
+            self.nbtabs[tab] = ttk.Frame(self.nb)
+            self.nb.add(self.nbtabs[tab], text=tab)
+
+    def switch_tabs(self, event=None):
+        with open(os.path.join('data', 'hptabs.json')) as j:
+            tabs = json.load(j)
+        clickedTab = self.nb.tab(event.widget.select(), 'text')
+        print clickedTab
+        if clickedTab == 'All Items':
+            self.update_main()
+            self.on_main_tab = True
+        else:
+            self.update_main()
+            headers = tabs[clickedTab]
+            self.tabpt = CustomTable(self.nbtabs[clickedTab], scrollregion=None, width=1024, height=720, rows=0, cols=0)
+            for h in headers:
+                self.tabpt.model.df[h] = self.pt.model.df[h]
+            self.tabpt.show()
+            self.tabpt.redraw()
+            self.on_main_tab = False
+
+    def update_main(self):
+        if self.on_main_tab:
+            # switching from main tab to another. don't need to do anything special?
+            pass
+        else:
+            # switching from an alt tab, to any other tab. need to save headers back into pt, and then del tabpt
+            for h in self.tabpt.model.df:
+                self.pt.model.df[h] = self.tabpt.model.df[h]
+            del self.tabpt
+
     def update_valid_values(self):
         #self.pt.model.df.columns.get_loc('HP-OnboardFilter')
-        cols = list(self.pt.model.df)
-        col = self.pt.getSelectedColumn()
+        if self.on_main_tab:
+            col = self.pt.getSelectedColumn()
+            cols = list(self.pt.model.df)
+        else:
+            col = self.tabpt.getSelectedColumn()
+            cols = list(self.tabpt.model.df)
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
         if currentCol in self.booleanColNames:
@@ -209,10 +262,14 @@ class HPSpreadsheet(Toplevel):
     def insert_item(self, event=None):
         selection = event.widget.curselection()
         val = event.widget.get(selection[0])
-        row = self.pt.getSelectedRow()
-        col = self.pt.getSelectedColumn()
-        self.pt.model.setValueAt(val, row, col)
-        self.pt.redraw()
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+        row = currentTable.getSelectedRow()
+        col = currentTable.getSelectedColumn()
+        currentTable.model.setValueAt(val, row, col)
+        currentTable.redraw()
 
     def load_images(self):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
@@ -279,6 +336,11 @@ class HPSpreadsheet(Toplevel):
         self.pt.redraw()
 
     def exportCSV(self, showErrors=True, quiet=False):
+        if not self.on_main_tab:
+            self.nb.select(self.nbtabs['main'])
+            self.update_main()
+            self.on_main_tab = True
+
         self.pt.redraw()
         if showErrors:
             (errors, cancelled) = self.validate()
@@ -383,17 +445,22 @@ class HPSpreadsheet(Toplevel):
         self.prefs = hp_data.parse_prefs(self.prefsFile)
 
     def fill_down(self, event=None):
-        selection = self.pt.getSelectionValues()
-        cells = self.pt.getSelectedColumn
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+
+        selection = currentTable.getSelectionValues()
+        cells = currentTable.getSelectedColumn
         rowList = range(cells.im_self.startrow, cells.im_self.endrow + 1)
         colList = range(cells.im_self.startcol, cells.im_self.endcol + 1)
         for row in rowList:
             for col in colList:
                 try:
-                    self.pt.model.setValueAt(selection[0][0], row, col)
+                    currentTable.model.setValueAt(selection[0][0], row, col)
                 except IndexError:
                     pass
-        self.pt.redraw()
+        currentTable.redraw()
 
     def validate(self):
         errors = []

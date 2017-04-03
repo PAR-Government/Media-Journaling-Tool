@@ -97,7 +97,7 @@ class HPGUI(Frame):
 
 
     def go(self):
-        shortFields = ['collReq', 'localcam', 'locallens', 'hd']
+        globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-LensLocalID', 'HP-HDLocation']
         kwargs = {'preferences':self.prefsfilename.get(),
                   'metadata':self.metadatafilename.get(),
                   'imgdir':self.inputdir.get(),
@@ -105,8 +105,8 @@ class HPGUI(Frame):
                   'recursive':self.recBool.get(),
                   'additionalInfo':self.additionalinfo.get(),
                   }
-        for fieldNum in xrange(len(shortFields)):
-            kwargs[shortFields[fieldNum]] = self.attributes[self.descriptionFields[fieldNum]].get()
+        for fieldNum in xrange(len(globalFields)):
+            kwargs[globalFields[fieldNum]] = self.attributes[self.descriptionFields[fieldNum]].get()
 
         self.update_defaults()
 

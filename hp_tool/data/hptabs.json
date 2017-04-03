@@ -1,0 +1,79 @@
+{
+  "Device": [
+    "ImageFilename",
+    "DeviceSN",
+    "HP-DeviceLocalID",
+    "LensModel",
+    "LensSN",
+    "HP-LensLocalID",
+    "HP-LensFilter",
+    "HP-PrimarySecondary"
+  ],
+  "CaptureInfo": [
+    "ImageFilename",
+    "HP-CollectionRequestID",
+    "HP-Recapture",
+    "HP-RecaptureSubject",
+    "HP-ZoomLevel",
+    "HP-LightSource",
+    "HP-Orientation",
+    "HP-DynamicStatic",
+    "HP-JpgQuality",
+    "HP-DegreesKelvin",
+    "ShutterSpeed",
+    "Aperture",
+    "ExpCompensation",
+    "ISO",
+    "NoiseReduction",
+    "WhiteBalance",
+    "ExposureMode",
+    "FlashFired",
+    "FocusMode",
+    "BitDepth",
+    "ImageWidth",
+    "ImageHeight"
+  ],
+  "Refl/Shadow": [
+    "ImageFilename",
+    "HP-WeakReflection",
+    "HP-StrongReflection",
+    "HP-TransparentReflection",
+    "HP-ReflectedObject",
+    "HP-Shadows"
+  ],
+  "Location": [
+    "ImageFilename",
+    "HP-Location",
+    "GPSLatitude",
+    "GPSLongitude",
+    "HP-Inside",
+    "HP-Outside"
+  ],
+  "FilterInfo": [
+    "ImageFilename",
+    "CustomRendered",
+    "HP-OnboardFilter",
+    "HP-OBFilterType",
+    "HP-LensFilter",
+    "HP-HDR",
+    "HP-App"
+  ],
+  "Video": [
+    "ImageFilename",
+    "HP-CameraKinematics"
+  ],
+  "Audio": [
+    "ImageFilename",
+    "HP-Inside",
+    "HP-Outside",
+    "HP-ProximitytoSource",
+    "HP-MultiInput",
+    "HP-AudioChannels",
+    "HP-Echo",
+    "HP-BackgroundNoise",
+    "HP-Description",
+    "HP-Modifier",
+    "HP-AngleofRecording",
+    "HP-MicLocation"
+  ]
+}
