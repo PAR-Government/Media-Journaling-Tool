@@ -461,7 +461,8 @@ class ImageGraph:
         if not self.G.has_node(start) or not self.G.has_node(end):
             return
         self._setUpdate((start, end), update_type='edge')
-        self.__scan_args(kwargs['op'],kwargs)
+        op = kwargs['op'] if 'op' in kwargs else self.G.edge[start][end]['op']
+        self.__scan_args(op,kwargs)
         unsetkeys = []
         for k, v in kwargs.iteritems():
             if v is not None:
