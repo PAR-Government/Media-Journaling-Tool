@@ -68,10 +68,6 @@ class HPGUI(Frame):
         else:
             self.okbutton.config(state='disabled')
 
-            # if 'metadata' in self.prefs:
-            #     self.metadatafilename.insert(END, self.prefs['metadata'])
-            # else:
-            #     self.metadatafilename.insert(END, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
 
     def load_input(self):
         d = tkFileDialog.askdirectory(initialdir=self.inputdir.get())
@@ -97,7 +93,7 @@ class HPGUI(Frame):
 
 
     def go(self):
-        shortFields = ['collReq', 'localcam', 'locallens', 'hd']
+        globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-LensLocalID', 'HP-HDLocation']
         kwargs = {'preferences':self.prefsfilename.get(),
                   'metadata':self.metadatafilename.get(),
                   'imgdir':self.inputdir.get(),
@@ -105,12 +101,14 @@ class HPGUI(Frame):
                   'recursive':self.recBool.get(),
                   'additionalInfo':self.additionalinfo.get(),
                   }
-        for fieldNum in xrange(len(shortFields)):
-            kwargs[shortFields[fieldNum]] = self.attributes[self.descriptionFields[fieldNum]].get()
+        for fieldNum in xrange(len(globalFields)):
+            kwargs[globalFields[fieldNum]] = self.attributes[self.descriptionFields[fieldNum]].get()
 
         self.update_defaults()
 
         (self.oldImageNames, self.newImageNames) = process(**kwargs)
+        if self.oldImageNames == None:
+            return
         aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
         aSheet.open_spreadsheet()
         self.keywordsbutton.config(state=NORMAL)

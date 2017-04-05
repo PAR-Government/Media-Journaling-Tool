@@ -2736,7 +2736,7 @@
         "mode": {
            "type":"list",
            "values" : ["Color Dodge","Color","Darken","Difference","Dissolve","Divide","Exclusion","Hard Light","Hard Mix","Hue","IntensityBurn","Lighten","Lighter Dodge","Linear Burn",
-             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Multiply","Pin Light","Saturation","Screen","Smudge","Soft Light","Subtract","Vivid Light" ],
+             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Multiply","Opacity","Overlay","Pin Light","Saturation","Screen","Soft Light","Subtract","Vivid Light" ],
            "description":"Blend Mode",
            "rule" : {"purpose": "blend"}
          }

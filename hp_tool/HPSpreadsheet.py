@@ -1,9 +1,12 @@
+import json
 import tarfile
+import ttk
 from Tkinter import *
 import tkFileDialog
 import os
 import sys
 import boto3
+import collections
 import pandas as pd
 import tkMessageBox
 import tkSimpleDialog
@@ -14,6 +17,7 @@ from ErrorWindow import ErrorWindow
 import hp_data
 import datetime
 
+RVERSION = hp_data.RVERSION
 
 class HPSpreadsheet(Toplevel):
     def __init__(self, dir=None, ritCSV=None, master=None):
@@ -33,8 +37,6 @@ class HPSpreadsheet(Toplevel):
         self.apps = self.load_apps()
         self.lensFilters = self.load_lens_filters()
         self.load_prefs()
-        # self.localIDs = self.load_localIDs()
-        # self.appList = self.load_apps()
         self.protocol('WM_DELETE_WINDOW', self.check_save)
         w, h = self.winfo_screenwidth()-100, self.winfo_screenheight()-100
         self.geometry("%dx%d+0+0" % (w, h))
@@ -50,9 +52,16 @@ class HPSpreadsheet(Toplevel):
         self.rightFrame.pack(side=RIGHT, fill=Y)
         self.leftFrame = Frame(self)
         self.leftFrame.pack(side=LEFT, fill=BOTH, expand=1)
-        self.pt = CustomTable(self.leftFrame, scrollregion=None, width=1024, height=720)
-        self.leftFrame.pack(fill=BOTH, expand=1)
+        self.nb = ttk.Notebook(self.leftFrame)
+        self.nb.pack(fill=BOTH, expand=1)
+        self.nbtabs = {'main': ttk.Frame(self.nb)}
+        self.nb.add(self.nbtabs['main'], text='All Items')
+        self.pt = CustomTable(self.nbtabs['main'], scrollregion=None, width=1024, height=720)
         self.pt.show()
+        self.on_main_tab = True
+        self.add_tabs()
+        self.nb.bind('<<NotebookTabChanged>>', self.switch_tabs)
+
         self.currentImageNameVar = StringVar()
         self.currentImageNameVar.set('Current Image: ')
         l = Label(self.topFrame, height=1, textvariable=self.currentImageNameVar)
@@ -120,7 +129,10 @@ class HPSpreadsheet(Toplevel):
             os.system('open "' + image + '"')
 
     def update_current_image(self, event):
-        row = self.pt.getSelectedRow()
+        if self.on_main_tab:
+            row = self.pt.getSelectedRow()
+        else:
+            row = self.tabpt.getSelectedRow()
         self.imName = str(self.pt.model.getValueAt(row, 0))
         self.currentImageNameVar.set('Current Image: ' + self.imName)
         maxSize = 480
@@ -135,10 +147,48 @@ class HPSpreadsheet(Toplevel):
         self.l2.image = newimg
         self.update_valid_values()
 
+    def add_tabs(self):
+        with open(os.path.join('data', 'hptabs.json')) as j:
+            tabs = json.load(j, object_pairs_hook=collections.OrderedDict)
+        for tab in tabs:
+            self.nbtabs[tab] = ttk.Frame(self.nb)
+            self.nb.add(self.nbtabs[tab], text=tab)
+
+    def switch_tabs(self, event=None):
+        with open(os.path.join('data', 'hptabs.json')) as j:
+            tabs = json.load(j)
+        clickedTab = self.nb.tab(event.widget.select(), 'text')
+        if clickedTab == 'All Items':
+            self.update_main()
+            self.on_main_tab = True
+        else:
+            self.update_main()
+            headers = tabs[clickedTab]
+            self.tabpt = CustomTable(self.nbtabs[clickedTab], scrollregion=None, width=1024, height=720, rows=0, cols=0)
+            for h in headers:
+                self.tabpt.model.df[h] = self.pt.model.df[h]
+            self.tabpt.show()
+            self.tabpt.redraw()
+            self.on_main_tab = False
+
+    def update_main(self):
+        if self.on_main_tab:
+            # switching from main tab to another. don't need to do any extra prep
+            pass
+        else:
+            # switching from an alt tab, to any other tab. need to save headers back into pt, and then del tabpt
+            for h in self.tabpt.model.df:
+                self.pt.model.df[h] = self.tabpt.model.df[h]
+            del self.tabpt
+
     def update_valid_values(self):
         #self.pt.model.df.columns.get_loc('HP-OnboardFilter')
-        cols = list(self.pt.model.df)
-        col = self.pt.getSelectedColumn()
+        if self.on_main_tab:
+            col = self.pt.getSelectedColumn()
+            cols = list(self.pt.model.df)
+        else:
+            col = self.tabpt.getSelectedColumn()
+            cols = list(self.tabpt.model.df)
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
         if currentCol in self.booleanColNames:
@@ -194,6 +244,8 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Any file extension, without the dot (.) (e.g. jpg, png)'}
         elif currentCol == 'HP-LensLocalID':
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
+        elif currentCol == 'HP-NumberOfSpeakers':
+            validValues = {'instructions':'Number of people speaking in recording. Do not count background noise.'}
         else:
             validValues = {'instructions':'Any string of text'}
 
@@ -209,10 +261,14 @@ class HPSpreadsheet(Toplevel):
     def insert_item(self, event=None):
         selection = event.widget.curselection()
         val = event.widget.get(selection[0])
-        row = self.pt.getSelectedRow()
-        col = self.pt.getSelectedColumn()
-        self.pt.model.setValueAt(val, row, col)
-        self.pt.redraw()
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+        row = currentTable.getSelectedRow()
+        col = currentTable.getSelectedColumn()
+        currentTable.model.setValueAt(val, row, col)
+        currentTable.redraw()
 
     def load_images(self):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
@@ -279,6 +335,11 @@ class HPSpreadsheet(Toplevel):
         self.pt.redraw()
 
     def exportCSV(self, showErrors=True, quiet=False):
+        if not self.on_main_tab:
+            self.nb.select(self.nbtabs['main'])
+            self.update_main()
+            self.on_main_tab = True
+
         self.pt.redraw()
         if showErrors:
             (errors, cancelled) = self.validate()
@@ -302,27 +363,20 @@ class HPSpreadsheet(Toplevel):
         return None
 
     def export_rankOne(self):
+        global RVERSION
         self.rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
-        with open(self.ritCSV, 'r') as rit:
-            rdr = csv.reader(rit)
-            with open(self.rankOnecsv, 'w') as ro:
-                wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
-                wtr_quotes = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
-                wtr.writerow(['#@version=01.05'])
-                wtr_quotes.writerow(
-                    ['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
-                               'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
-                               'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
-                               'HP-App', 'HP-Inside', 'HP-Outside', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
-                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject',
-                                'HP-LightSource', 'HP-Orientation', 'HP-DynamicStatic', 'ImportDate'])
-                count = 0
-                now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
-                for r in rdr:
-                    if count != 0:
-                        wtr_quotes.writerow([r[4], r[5], r[6], r[8], r[9], r[0], r[1], r[7], r[10], r[17], r[24], r[28], r[29], r[33]] +
-                                        r[35:] + [now])
-                    count+=1
+        with open(os.path.join('data', 'headers.json')) as j:
+            headers = json.load(j)['rankone']
+        with open(self.rankOnecsv, 'w') as ro:
+            wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
+            wtr.writerow([RVERSION])
+            now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
+            subset = self.pt.model.df.filter(items=headers)
+            importDates = []
+            for row in range(0, len(subset.index)):
+                importDates.append(now)
+            subset['ImportDate'] = importDates
+            subset.to_csv(ro, columns=headers, index=False)
 
     def s3export(self):
         cancelled = self.exportCSV(quiet=True)
@@ -383,17 +437,22 @@ class HPSpreadsheet(Toplevel):
         self.prefs = hp_data.parse_prefs(self.prefsFile)
 
     def fill_down(self, event=None):
-        selection = self.pt.getSelectionValues()
-        cells = self.pt.getSelectedColumn
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+
+        selection = currentTable.getSelectionValues()
+        cells = currentTable.getSelectedColumn
         rowList = range(cells.im_self.startrow, cells.im_self.endrow + 1)
         colList = range(cells.im_self.startcol, cells.im_self.endcol + 1)
         for row in rowList:
             for col in colList:
                 try:
-                    self.pt.model.setValueAt(selection[0][0], row, col)
+                    currentTable.model.setValueAt(selection[0][0], row, col)
                 except IndexError:
                     pass
-        self.pt.redraw()
+        currentTable.redraw()
 
     def validate(self):
         errors = []
@@ -637,7 +696,14 @@ class CustomTable(pandastable.Table):
             else:
                 self.currentcol = self.currentcol + 1
         elif event.keysym == 'Left':
-            self.currentcol = self.currentcol - 1
+            if self.currentcol == 0:
+                if self.currentrow > 0:
+                    self.currentcol = self.cols - 1
+                    self.currentrow = self.currentrow - 1
+                else:
+                    return
+            else:
+                self.currentcol = self.currentcol - 1
         self.drawSelectedRect(self.currentrow, self.currentcol)
         coltype = self.model.getColumnType(self.currentcol)
         # if coltype == 'text' or coltype == 'number':
