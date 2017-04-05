@@ -2736,7 +2736,7 @@
            "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
              "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
              "Pin Light","Hard Mix","Linear Light",
-             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Opacity","Overlay"],
            "description":"Blend Mode",
            "rule" : {"purpose": "blend"}
          }
