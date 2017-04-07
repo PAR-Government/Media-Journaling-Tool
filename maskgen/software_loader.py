@@ -205,6 +205,10 @@ def loadCustomRules():
         print 'load rule ' + p.name
         customRuleFunc[p.name] = p.load()
 
+def insertCustomRule(name,func):
+    global customRuleFunc
+    customRuleFunc[name] = func
+
 def getRule(name, globals={}):
     import importlib
     global customRuleFunc
