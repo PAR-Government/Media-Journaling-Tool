@@ -247,13 +247,18 @@ class PRNU_Uploader(Frame):
                     msg = 'Root PRNU directory must have \"Images\" and \"Video\" folers.'
                     break
                 if files:
+                    for f in files:
+                        if f.startswith('.'):
+                            os.remove(os.path.join(path, f))
                     msg = 'There should be no files in the root directory. Only \"Images\" and \"Video\" folders.'
                     break
-
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
                     msg = 'Images and Video folders must each contain Primary and Secondary folders.'
                 if files:
+                    for f in files:
+                        if f.startswith('.'):
+                            os.remove(os.path.join(path, f))
                     msg = 'There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".'
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
@@ -261,11 +266,21 @@ class PRNU_Uploader(Frame):
                         msg = 'Invalid reference type: ' + sub
                         break
                 if files:
-                    msg = 'There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).'
-                    break
+                    for f in files:
+                        if f.startswith('.'):
+                            os.remove(os.path.join(path, f))
+                        else:
+                            msg = 'There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).'
+                            break
             elif last.lower() in self.vocab:
                 if dirs:
                     msg = 'There should be no additional subfolders in folder ' + path
+                if files:
+                    for f in files:
+                        if f.startswith('.'):
+                            os.remove(os.path.join(path, f))
+                else:
+                    msg = 'There are no images in: ' + path
 
         if passed_root == False:
             msg = 'Device local ID does not match reference. If this is a new camera, please register it with the Google form by clicking below.'
@@ -316,9 +331,11 @@ class PRNU_Uploader(Frame):
 
         os.remove(archive)
 
-        self.uploadButton.config(state=DISABLED)
         tkMessageBox.showinfo(title='PRNU Upload', message='Complete!')
         print '... done'
+
+        # reset state of buttons and boxes
+        self.cancel_upload()
 
     def cancel_upload(self):
         self.uploadButton.config(state=DISABLED)
@@ -326,12 +343,11 @@ class PRNU_Uploader(Frame):
         self.localCamEntry.config(state=NORMAL)
 
     def archive_prnu(self):
-        fd, zf = tempfile.mkstemp(suffix='.tar')
-        archive = tarfile.open(zf, "w", errorlevel=2)
+        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
+        archive = tarfile.open(ftar, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
-        os.close(fd)
-        return zf
+        return ftar
 
     def capitalize_dirs(self):
         # http://stackoverflow.com/questions/3075443/python-recursively-remove-capitalisation-from-directory-structure
