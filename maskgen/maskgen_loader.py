@@ -23,9 +23,9 @@ class MaskGenLoader:
                 global_image = json.load(jsonfile)
         imageLoaded = True
 
-    def get_key(self, image_id):
+    def get_key(self, image_id, default_value=None):
         global global_image
-        return global_image[image_id] if image_id in global_image else None
+        return global_image[image_id] if image_id in global_image else default_value
 
     def save(self, image_id, data):
         global global_image

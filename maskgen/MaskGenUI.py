@@ -614,6 +614,14 @@ class MakeGenUI(Frame):
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
+    def compress(self):
+        newnode = self.scModel.compress()
+        if newnode is not None:
+            tkMessageBox.showinfo("Compress","Compressed as file " + newnode  + ".")
+            self.canvas.redrawNode(self.scModel.start)
+        else:
+            tkMessageBox.showinfo("Compress", "Node not eligble for compression or error occurred.")
+
     def connectto(self):
         self.drawState()
         self.canvas.connectto()
@@ -845,6 +853,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
         self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
+        self.nodemenu.add_command(label="Compress", command=self.compress)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)

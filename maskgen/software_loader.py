@@ -210,6 +210,8 @@ def insertCustomRule(name,func):
     customRuleFunc[name] = func
 
 def getRule(name, globals={}):
+    if name is None:
+        return None
     import importlib
     global customRuleFunc
     if name in customRuleFunc:
@@ -220,6 +222,7 @@ def getRule(name, globals={}):
         mod_name, func_name = name.rsplit('.', 1)
         mod = importlib.import_module(mod_name)
         func = getattr(mod, func_name)
+        customRuleFunc[name] = func
         return func#globals.get(name)
 
 def loadProjectProperties(fileName):
