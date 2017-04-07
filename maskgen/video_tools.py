@@ -130,7 +130,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
         LEARN_RATE = 0.03
         first = True
         sample = None
-        kernel = np.ones((5, 5), np.uint8)
+        kernel = np.ones((3, 3), np.uint8)
         while capIn.isOpened():
             ret, frame = capIn.read()
             if not ret:
@@ -155,7 +155,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
             result[:, :] = 0
             result[abs(thresh) > 0.000001] = 255
             opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
-            closing = result #cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+            closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             totalMatch = sum(sum(closing))
             result = closing
             if totalMatch > 0:
@@ -805,9 +805,9 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,argu
     analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
                                                   analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
     analysis_components.time_manager = time_manager
+    analysis_components.elapsed_time_one = 0
+    analysis_components.elapsed_time_two = 0
     ranges = list()
-    #dir = os.path.split(fileOne)[0]
-    kernel = np.ones((5, 5), np.uint8)
     try:
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
             ret_one, analysis_components.frame_one = analysis_components.vid_one.read()

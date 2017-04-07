@@ -2769,7 +2769,7 @@
       },
       "rules": [
         "checkForDonor",
-        "checkLengthBigger",
+        "checkPasteFrameLength",
         "checkFrameTimes"
       ],
       "optionalparameters": {},
@@ -2916,7 +2916,7 @@
         }
       },
       "rules": [
-        "checkLengthBigger"
+        "checkLengthSame"
       ],
       "optionalparameters": {},
       "description": "Cut & Paste a series of frames within the same video",

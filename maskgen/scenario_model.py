@@ -797,8 +797,21 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
                               start=start, end=destination, scModel=scModel)
         return mask, analysis, errors
 
+class AddTool:
+    def getAdditionalMetaData(self, media):
+        return {}
 
+class VideoAddTool(AddTool):
 
+    def getAdditionalMetaData(self, media):
+        return video_tools.getMeta(media)[0]
+
+class OtherAddTool(AddTool):
+
+    def getAdditionalMetaData(self, media):
+        return {}
+
+addTools = {'video': VideoAddTool(),'audio':OtherAddTool(),'image':OtherAddTool()}
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
@@ -809,7 +822,7 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
 class ImageProjectModel:
     """
        A ProjectModel manages a project.  A project is made up of a directed graph of Image nodes and links.
-       Each link is associated with a manipulation between the source image to the target image.  
+       Each link is associated with a manipulation between the source image to the target image.
        A link contains a mask(black and white) image file describing the changes.
        A mask's X&Y dimensions match the source image.
        A link contains a description of the manipulation operation, software used to perfrom the manipulation,
@@ -863,7 +876,8 @@ class ImageProjectModel:
         totalSet = sorted(totalSet, key=sortalg)
         for filename in totalSet:
             pathname = os.path.abspath(os.path.join(dir, filename))
-            nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base')
+            additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+            nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base',**additional)
             ypos += 50
             if ypos == 450:
                 ypos = initialYpos
@@ -875,7 +889,8 @@ class ImageProjectModel:
     def addImage(self, pathname,cgi=False):
         maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
         maxy = max([self.G.get_node(node)['ypos'] for node in self.G.get_nodes() if 'ypos' in self.G.get_node(node)] + [50])
-        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx+75, ypos=maxy)
+        additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx+75, ypos=maxy,**additional)
         self.start = nname
         self.end = None
         return nname
@@ -1587,6 +1602,8 @@ class ImageProjectModel:
         params['xpos'] = position[0]
         params['ypos'] = position[1]
         params['nodetype'] = 'base'
+        for k,v in self.getAddTool(pathname).getAdditionalMetaData(pathname).iteritems():
+            params[k] = v
         destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
         analysis_params = dict(edge_parameters)
         msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
@@ -1598,6 +1615,14 @@ class ImageProjectModel:
 
     def getLinkTool(self, start, end):
         return linkTools[self.getLinkType(start, end)]
+
+    def getAddTool(self, media):
+        """"
+        :param media:
+        :return:
+        @rtype : AddTool
+        """
+        return addTools[fileType(media)]
 
     def _executeSkippedComparisons(self):
         allErrors = []

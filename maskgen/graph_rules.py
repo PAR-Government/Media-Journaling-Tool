@@ -364,6 +364,16 @@ def check_eight_bit(graph, frm, to):
         return '(Warning) JPEG image size is not aligned to 8x8 pixels'
     return None
 
+def getDonor(graph,node):
+    predecessors = graph.predecessors(node)
+    if len(predecessors) < 2:
+        return 'donor image missing'
+    for pred in predecessors:
+        edge = graph.get_edge(pred, node)
+        if edge['op'] == 'Donor':
+            return (pred, edge)
+    return None
+
 
 def checkForDonorWithRegion(graph, frm, to):
     pred = graph.predecessors(to)
@@ -403,8 +413,36 @@ def checkLengthSmaller(graph, frm, to):
         return "Length of video is not shorter"
 
 
+def checkPasteFrameLength(graph,frm,to):
+    edge = graph.get_edge(frm, to)
+    addType = getValue(edge, 'arguments.add type')
+    from_node = graph.get_node(frm)
+    to_node = graph.get_node(to)
+    diff = 0
+    duration = 0
+    if 'duration' in from_node and 'duration' in to_node:
+        from_duration = getMilliSecondsAndFrameCount(from_node['duration'])[0]
+        to_duration = getMilliSecondsAndFrameCount(to_node['duration'])[0]
+        donor_tuple = getDonor(graph, to)
+        if donor_tuple is None:
+            return "Missing donor"
+        else:
+            donor_node = graph.get_node(donor_tuple[0])
+            if donor_node is not None and 'duration' in donor_node:
+                duration = getMilliSecondsAndFrameCount(donor_node['duration'])[0]
+                diff = (to_duration - from_duration) - duration
+            else:
+                return "Missing duration in donor node's meta-data"
+    #if addType == 'replace' and  diff < 0:
+    #    return "Replacement should maintain or increase the size"
+    if addType == 'replace' and  diff > duration:
+       return "Replacement contain not increase the size of video beyond the size of the donor"
+    if addType != 'replace':
+        return checkLengthBigger(graph,frm,to)
+
 def checkLengthBigger(graph, frm, to):
     edge = graph.get_edge(frm, to)
+
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
