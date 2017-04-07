@@ -111,13 +111,52 @@ def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
 
-def check_graph_rules(graph,node):
+def get_journal(url, apitoken):
+    import requests
+    import json
+    headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+    url = url + '?fields=name'
+    try:
+        response = requests.get(url,  headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'name' in r:
+                return r['name']
+    except Exception as e:
+        print e
+        print "Cannot reach external service"
+    return url
+
+def get_journals(filename, apitoken, url):
+    import requests
+    import json
+    if url is None:
+        print 'Missing external service URL.  Check settings'
+        return []
+    try:
+        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
+        url = url + '/images/filters/?fields=manipulation_journal'
+        data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
+        print 'checking external service APIs for ' + filename
+        response = requests.post(url, data=data,headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'count' in r and r['count'] > 0:
+                return [get_journal(item['manipulation_journal'],apitoken) for item in r['results']]
+    except Exception as e:
+        print e
+        print "Cannot reach external service"
+    return []
+
+def check_graph_rules(graph,node,external=False, prefLoader=None):
     import re
     """
 
     :param graph: ImageGraph
     :param node:
+    :param prefLoader:
     :return:
+    @type prefLoader: MaskGenLoader
     """
     errors = []
     nodeData = graph.get_node(node)
@@ -131,6 +170,17 @@ def check_graph_rules(graph,node):
         foundItems = pattern.findall(nodeData['file'])
         if foundItems:
             errors.append("Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file']))
+
+    if nodeData['nodetype'] == 'base' and external and \
+            prefLoader.get_key('apitoken') is not None and \
+            len(get_journals(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')) == 0):
+        errors.append("Cannot find base file in the remote service ")
+
+    if nodeData['nodetype'] == 'final' and external and \
+            prefLoader.get_key('apitoken') is not None:
+            for journal in get_journals(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')):
+                if journal is not None and journal != graph.G.name:
+                    errors.append("[Warning] Final node used in journal {}".format(journal))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
