@@ -377,7 +377,7 @@ class ImageWrapper:
             gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 0
         else:
             gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
-            gray_image[gray_image_temp.image_array < np.iinfo(gray_image_temp.image_array.dtype).max] = 0
+            gray_image[gray_image_temp.image_array == 0] = 0
         return ImageWrapper(gray_image)
 
     def to_16BitGray(self, equalize_colors=False):
