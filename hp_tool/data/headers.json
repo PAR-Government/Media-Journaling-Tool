@@ -6,6 +6,7 @@
     "OriginalImageName",
     "MD5",
     "CameraModel",
+    "HP-CameraModel",
     "DeviceSN",
     "HP-DeviceLocalID",
     "LensModel",
@@ -68,6 +69,7 @@
   "rankone": [
     "MD5",
     "CameraModel",
+    "HP-CameraModel"
     "DeviceSerialNumber",
     "LensModel",
     "LensSN",

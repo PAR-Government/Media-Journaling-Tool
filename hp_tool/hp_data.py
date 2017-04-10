@@ -21,7 +21,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 FIELDSPATH = os.path.join('data', 'fieldnames.json')
 HEADERSPATH = os.path.join('data', 'headers.json')
-RVERSION = '#@version=01.06'
+RVERSION = '#@version=01.07'
 
 def copyrename(image, path, usrname, org, seq, other):
     """
