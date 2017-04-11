@@ -2055,7 +2055,7 @@ class ImageProjectModel:
     def getGraph(self):
         return self.G
 
-    def validate(self):
+    def validate(self, external=False):
         """ Return the list of errors from all validation rules on the graph. """
 
         self._executeSkippedComparisons()
@@ -2096,7 +2096,7 @@ class ImageProjectModel:
             total_errors.append((str(cycleNode), str(cycleNode), "Graph has a cycle"))
 
         for node in self.G.get_nodes():
-            for error in graph_rules.check_graph_rules(self.G,node):
+            for error in graph_rules.check_graph_rules(self.G,node,external=external,prefLoader=prefLoader):
                 total_errors.append((str(node), str(node), error))
 
         for frm, to in self.G.get_edges():

@@ -111,13 +111,61 @@ def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
 
-def check_graph_rules(graph,node):
+def get_journal(url, apitoken):
+    import requests
+    import json
+    headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+    url = url + '?fields=name'
+    try:
+        response = requests.get(url,  headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'name' in r:
+                return r['name']
+    except Exception as e:
+        print e
+        print "Cannot reach external service"
+    return url
+
+def get_fields(filename, apitoken, url, type):
+    import requests
+    import json
+    if url is None:
+        print 'Missing external service URL.  Check settings'
+        return []
+    try:
+        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
+        url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
+        data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
+        print 'checking external service APIs for ' + filename
+        response = requests.post(url, data=data,headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'count' in r and r['count'] > 0:
+                result = []
+                for item in r['results']:
+                    info = {}
+                    result.append(info)
+                    if item['manipulation_journal'] is not None and \
+                        len(item['manipulation_journal']) > 0:
+                        info['manipulation_journal']  = get_journal(item['manipulation_journal'],apitoken)
+                    info['high_provenance'] = item['high_provenance']
+                return result
+    except Exception as e:
+        print e
+        print "Cannot reach external service"
+    return []
+
+def check_graph_rules(graph,node,external=False, prefLoader=None):
     import re
+    import hashlib
     """
 
     :param graph: ImageGraph
     :param node:
+    :param prefLoader:
     :return:
+    @type prefLoader: MaskGenLoader
     """
     errors = []
     nodeData = graph.get_node(node)
@@ -131,6 +179,28 @@ def check_graph_rules(graph,node):
         foundItems = pattern.findall(nodeData['file'])
         if foundItems:
             errors.append("Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file']))
+
+    if nodeData['nodetype'] == 'final':
+        fname = os.path.join(graph.dir, nodeData['file'])
+        if os.path.exists(fname):
+            with open(fname) as rp:
+                hashname = hashlib.md5(rp.read()).hexdigest()
+                if hashname not in nodeData['file']:
+                    errors.append("[Warning] Final image {} is not composed of its MD5.".format( nodeData['file']))
+
+    if nodeData['nodetype'] == 'base' and external and \
+            prefLoader.get_key('apitoken') is not None:
+                fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
+                if len(fields)  == 0:
+                    errors.append("Cannot find base media file {} in the remote system".format(nodeData['file']))
+                elif not fields[0]['high_provenance']:
+                    errors.append("{} media is not HP".format(nodeData['file']))
+
+    if nodeData['nodetype'] == 'final' and external and \
+            prefLoader.get_key('apitoken') is not None:
+            for journal in get_fields(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')):
+                if journal['manipulation_journal'] is not None and journal['manipulation_journal']  != graph.G.name:
+                    errors.append("Final media node {} used in journal {}".format(nodeData['file'], journal['manipulation_journal']))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
