@@ -1,10 +1,12 @@
 import tarfile
+import tkSimpleDialog
 from Tkinter import *
 import ttk
 import collections
 import tempfile
 import boto3
 import matplotlib
+import requests
 matplotlib.use("TkAgg")
 import pandastable
 import pandas
@@ -282,12 +284,10 @@ class PRNU_Uploader(Frame):
                 else:
                     msg = 'There are no images in: ' + path
 
-        if passed_root == False:
-            msg = 'Device local ID does not match reference. If this is a new camera, please register it with the Google form by clicking below.'
-            link = 'http://bit.ly/2ogxwWu'
-            bt = 'Take me to the form! (Opens your default web browser).'
-            w = WeblinkMessageBox(self, msg=msg, link=link, buttonText=bt)
-            w.show_message()
+        if passed_root == False or not local_id_used(self):
+            msg = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
+            if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msg):
+                HP_Device_Form(self, prefs=self.prefs)
             msg = 'hide'
 
         if msg == 'hide':
@@ -295,7 +295,7 @@ class PRNU_Uploader(Frame):
         elif msg:
             tkMessageBox.showerror(title='Error', message=msg)
         else:
-            tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click ok to begin upload.')
+            tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
             self.localCamEntry.config(state=DISABLED)
@@ -372,25 +372,148 @@ class PRNU_Uploader(Frame):
         os.remove(archive)
         print 'done'
 
-class WeblinkMessageBox(Toplevel):
-    def __init__(self, master, msg, link, buttonText='Ok'):
+class HP_Device_Form(Toplevel):
+    def __init__(self, master, prefs):
         Toplevel.__init__(self, master)
-        self.msg = msg
-        self.link = link
-        self.bt = buttonText
+        #self.geometry("%dx%d%+d%+d" % (300, 300, 250, 125))
+        self.master = master
+        self.prefs = prefs
+        self.set_list_options()
+        self.create_widgets()
 
-    def show_message(self):
-        label = Label(self, text=self.msg).grid(row=0,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=11)
-        ok = Button(self, text=self.bt, command=self.open_link)
-        ok.grid(row=1,column=5, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
-        cl = Button(self, text='Cancel', command=self.cancel)
-        cl.grid(row=1, column=6, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+    def set_list_options(self):
+        df = pd.read_csv(os.path.join('data', 'db.csv'))
+        self.manufacturers = [str(x).strip() for x in df['Manufacturer'] if str(x).strip() != 'nan']
+        self.lens_mounts = [str(y).strip() for y in df['LensMount'] if str(y).strip() != 'nan']
+        self.device_types = [str(z).strip() for z in df['DeviceType'] if str(z).strip() != 'nan']
 
-    def open_link(self):
-        webbrowser.open_new(self.link)
+    def create_widgets(self):
+        self.f = VerticalScrolledFrame(self)
+        self.f.pack(fill=BOTH, expand=TRUE)
 
-    def cancel(self):
+        Label(self.f.interior, text='Add a new HP Device', font=("Courier", 20)).pack()
+        Label(self.f.interior, text='Once complete, post the resulting text file to the \"New Devices to be Added\" list on the \"High Provenance\" trello board.').pack()
+
+        self.email = StringVar()
+        self.affiliation = StringVar()
+        self.localID = StringVar()
+        self.serial = StringVar()
+        self.manufacturer = StringVar()
+        self.series_model = StringVar()
+        self.camera_model = StringVar()
+        self.edition = StringVar()
+        self.device_type = StringVar()
+        self.sensor = StringVar()
+        self.general = StringVar()
+        self.lens_mount = StringVar()
+        self.os = StringVar()
+        self.osver = StringVar()
+
+        head = [('Email Address*', {'description':'','type':'text', 'var':self.email}),
+                       ('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
+                                                 'type': 'radiobutton', 'values': ['RIT', 'PAR', 'Other (please specify):'], 'var':self.affiliation}),
+                       ('Define the Local ID*',{'description':'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MAKE, such as'
+                                                             'ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
+                       ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
+                                                'type':'text', 'var':self.serial}),
+                       ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
+                       ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
+                                         'var':self.series_model}),
+                       ('Camera Model*',{'description':'If Camera Model appears in Exif data, please enter it here (ex. SM-009', 'type':'text',
+                                         'var':self.camera_model}),
+                       ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
+                       ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
+                       ('Sensor Information',{'description':'', 'type':'text', 'var':self.sensor}),
+                       ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
+                       ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
+                                       'var':self.lens_mount}),
+                       ('Firmware/OS',{'description':'Firmware/OS', 'type':'text', 'var':self.os}),
+                       ('Firmware/OS Version',{'description':'Firmware/OS Version', 'type':'text', 'var':self.osver})
+        ]
+        self.headers = collections.OrderedDict(head)
+
+        r=0
+        for h in self.headers:
+            Label(self.f.interior, text=h, font=("Courier", 20)).pack()
+            r+=1
+            if 'description' in self.headers[h]:
+                Label(self.f.interior, text=self.headers[h]['description']).pack()
+                r+=1
+            if self.headers[h]['type'] == 'text':
+                e = Entry(self.f.interior, textvar=self.headers[h]['var'])
+                e.pack()
+            elif self.headers[h]['type'] == 'radiobutton':
+                for v in self.headers[h]['values']:
+                    if v.lower().startswith('other'):
+                        Label(self.f.interior, text='Other - Please specify below: ').pack()
+                        e = Entry(self.f.interior, textvar=self.headers[h]['var'])
+                        e.pack()
+                    else:
+                        Radiobutton(self.f.interior, text=v, variable=self.headers[h]['var'], value=v).pack()
+                    r+=1
+
+            elif self.headers[h]['type'] == 'list':
+                ttk.Combobox(self.f.interior, values=self.headers[h]['values'], textvariable=self.headers[h]['var']).pack()
+
+            r+=1
+
+        self.headers['Device Affiliation*']['var'].set('RIT')
+
+        self.okbutton = Button(self.f.interior, text='Export', command=self.export_results)
+        self.okbutton.pack()
+        self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
+        self.cancelbutton.pack()
+
+    def export_results(self):
+        msg = None
+        for h in self.headers:
+            if h.endswith('*') and self.headers[h]['var'].get() == '':
+                msg = 'Field ' + h[:-1] + ' is a required field.'
+                break
+
+        if local_id_used(self):
+            msg = 'Local ID ' + self.localID.get() + ' already in use.'
+
+        if msg:
+            tkMessageBox.showerror(title='Error', message=msg)
+            return
+
+        with tkFileDialog.asksaveasfile('w', initialfile=self.localID.get()+'.txt') as t:
+            for h in self.headers:
+                if h.endswith('*'):
+                    h = h[:-1]
+                t.write(h + ' = ' + self.headers[h]['var'].get() + '\n')
+        tkMessageBox.showinfo(title='Information', message='Export Complete!')
         self.destroy()
+
+
+def local_id_used(self):
+    try:
+        headers = {'Authorization': 'Token ' + self.prefs['apitoken'], 'Content-Type': 'application/json'}
+        url = self.prefs['apiurl'] + '/api/cameras/?fields=hp_device_local_id/'
+        print 'Checking external service APIs for device local ID...'
+        localIDs = []
+        while True:
+            response = requests.get(url, headers=headers)
+            if response.status_code == requests.codes.ok:
+                r = json.loads(response.content)
+                for item in r['results']:
+                    localIDs.append(item['hp_device_local_id'])
+                url = r['next']
+                if url is None:
+                    break
+            else:
+                print 'HTTP Error ' + str(response.status_code) + '. Attempting to check with local device list....'
+                raise requests.HTTPError()
+    except (KeyError, requests.HTTPError, requests.ConnectionError):
+        df = pd.read_csv(os.path.join('data', 'Devices.csv'))
+        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
+
+    if self.localID.get().lower() in [id.lower() for id in localIDs]:
+        return True
+    else:
+        return False
+
 
 class HPGUI(Frame):
     def __init__(self, master=None, **kwargs):
@@ -408,6 +531,9 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Open HP Data Spreadsheet for Editing', command=self.open_old_rit_csv, accelerator='ctrl-o')
         self.fileMenu.add_command(label='Open Keywords Spreadsheet for Editing', command=self.open_old_keywords_csv)
         self.fileMenu.add_command(label='Settings...', command=self.open_prefs)
+        self.fileMenu.add_command(label='API Token...', command=self.setapitoken)
+        self.fileMenu.add_command(label='API URL...', command=self.setapiurl)
+        self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.master.config(menu=self.menubar)
 
         self.nb = ttk.Notebook(self)
@@ -416,6 +542,10 @@ class HPGUI(Frame):
         f2 = PRNU_Uploader(master=self.nb, prefs=self.prefs)
         self.nb.add(f1, text='Process HP Data')
         self.nb.add(f2, text='Export PRNU Data')
+
+    def open_form(self):
+        h = HP_Device_Form(self, self.prefs)
+
 
     def load_defaults(self):
         self.prefs = parse_prefs(os.path.join('data', 'preferences.txt'))
@@ -440,6 +570,81 @@ class HPGUI(Frame):
 
     def open_prefs(self):
         Preferences(master=self.master)
+
+    def save_prefs(self):
+        with open(os.path.join('data', 'preferences.txt'), 'w') as f:
+            for key in self.prefs:
+                f.write(key + '=' + self.prefs[key] + '\n')
+
+
+    def setapiurl(self):
+        url = self.prefs['apiurl'] if 'apiurl' in self.prefs else None
+        newUrlStr = tkSimpleDialog.askstring("Set API URL", "URL", initialvalue=url)
+
+        if newUrlStr is not None:
+            self.prefs['apiurl'] = newUrlStr
+            self.save_prefs()
+
+    def setapitoken(self):
+        token = self.prefs['apitoken'] if 'apitoken' in self.prefs else None
+
+        newTokenStr = tkSimpleDialog.askstring("Set API Token", "Token", initialvalue=token)
+
+        if newTokenStr is not None:
+            self.prefs['apitoken'] = newTokenStr
+            self.save_prefs()
+
+class VerticalScrolledFrame(Frame):
+    """A pure Tkinter scrollable frame that actually works!
+    http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+
+    """
+    def __init__(self, parent, *args, **kw):
+        Frame.__init__(self, parent, *args, **kw)
+
+        # create a canvas object and a vertical scrollbar for scrolling it
+        vscrollbar = Scrollbar(self, orient=VERTICAL)
+        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+        self.canvas = Canvas(self, bd=0, highlightthickness=0,
+                        yscrollcommand=vscrollbar.set)
+        self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        vscrollbar.config(command=self.canvas.yview)
+        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+
+        # reset the view
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = Frame(self.canvas)
+        interior_id = self.canvas.create_window(0, 0, window=interior,
+                                           anchor=NW)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            self.canvas.config(scrollregion="0 0 %s %s" % size)
+            if interior.winfo_reqwidth() != self.canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                self.canvas.config(width=interior.winfo_reqwidth())
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            if interior.winfo_reqwidth() != self.canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                self.canvas.itemconfigure(interior_id, width=self.canvas.winfo_width())
+        self.canvas.bind('<Configure>', _configure_canvas)
+
+    def on_mousewheel(self, event):
+        if sys.platform.startswith('win'):
+            self.canvas.yview_scroll(-1*(event.delta/120), "units")
+        else:
+            self.canvas.yview_scroll(-1*(event.delta), "units")
 
 
 def main():
