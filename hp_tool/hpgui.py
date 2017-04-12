@@ -408,7 +408,7 @@ class PRNU_Uploader(Frame):
 class HP_Device_Form(Toplevel):
     def __init__(self, master, prefs):
         Toplevel.__init__(self, master)
-        #self.geometry("%dx%d%+d%+d" % (300, 300, 250, 125))
+        self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
         self.master = master
         self.prefs = prefs
         self.set_list_options()
@@ -470,7 +470,7 @@ class HP_Device_Form(Toplevel):
             Label(self.f.interior, text=h, font=("Courier", 20)).pack()
             r+=1
             if 'description' in self.headers[h]:
-                Label(self.f.interior, text=self.headers[h]['description']).pack()
+                Label(self.f.interior, text=self.headers[h]['description'], wraplength=600).pack()
                 r+=1
             if self.headers[h]['type'] == 'text':
                 e = Entry(self.f.interior, textvar=self.headers[h]['var'])
@@ -513,8 +513,6 @@ class HP_Device_Form(Toplevel):
 
         with tkFileDialog.asksaveasfile('w', initialfile=self.localID.get()+'.txt') as t:
             for h in self.headers:
-                if h.endswith('*'):
-                    h = h[:-1]
                 t.write(h + ' = ' + self.headers[h]['var'].get() + '\n')
         tkMessageBox.showinfo(title='Information', message='Export Complete!')
         self.destroy()
