@@ -26,6 +26,7 @@
     "HP-LensFilter":"",
     "Type":"",
     "CameraModel":"-Model",
+    "HP-CameraModel":"",
     "LensModel":"-LensModel",
     "HP-WeakReflection":"",
     "HP-StrongReflection":"",

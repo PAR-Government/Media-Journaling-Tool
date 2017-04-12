@@ -111,13 +111,61 @@ def check_errors(edge, op, graph, frm, to):
     if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
         return [('Link has mask processing errors')]
 
-def check_graph_rules(graph,node):
+def get_journal(url, apitoken):
+    import requests
+    import json
+    headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+    url = url + '?fields=name'
+    try:
+        response = requests.get(url,  headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'name' in r:
+                return r['name']
+    except Exception as e:
+        print e
+        print "Cannot reach external service"
+    return url
+
+def get_fields(filename, apitoken, url):
+    import requests
+    import json
+    if url is None:
+        print 'Missing external service URL.  Check settings'
+        return []
+    try:
+        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
+        url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
+        data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
+        print 'checking external service APIs for ' + filename
+        response = requests.post(url, data=data,headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'count' in r and r['count'] > 0:
+                result = []
+                for item in r['results']:
+                    info = {}
+                    result.append(info)
+                    if item['manipulation_journal'] is not None and \
+                        len(item['manipulation_journal']) > 0:
+                        info['manipulation_journal']  = get_journal(item['manipulation_journal'],apitoken)
+                    info['high_provenance'] = item['high_provenance']
+                return result
+    except Exception as e:
+        print e
+        print "Cannot reach external service"
+    return []
+
+def check_graph_rules(graph,node,external=False, prefLoader=None):
     import re
+    import hashlib
     """
 
     :param graph: ImageGraph
     :param node:
+    :param prefLoader:
     :return:
+    @type prefLoader: MaskGenLoader
     """
     errors = []
     nodeData = graph.get_node(node)
@@ -131,6 +179,28 @@ def check_graph_rules(graph,node):
         foundItems = pattern.findall(nodeData['file'])
         if foundItems:
             errors.append("Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file']))
+
+    if nodeData['nodetype'] == 'final':
+        fname = os.path.join(graph.dir, nodeData['file'])
+        if os.path.exists(fname):
+            with open(fname) as rp:
+                hashname = hashlib.md5(rp.read()).hexdigest()
+                if hashname not in nodeData['file']:
+                    errors.append("[Warning] Final image {} is not composed of its MD5.".format( nodeData['file']))
+
+    if nodeData['nodetype'] == 'base' and external and \
+            prefLoader.get_key('apitoken') is not None:
+                fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
+                if len(fields)  == 0:
+                    errors.append("Cannot find base media file {} in the remote system".format(nodeData['file']))
+                elif not fields[0]['high_provenance']:
+                    errors.append("{} media is not HP".format(nodeData['file']))
+
+    if nodeData['nodetype'] == 'final' and external and \
+            prefLoader.get_key('apitoken') is not None:
+            for journal in get_fields(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')):
+                if journal['manipulation_journal'] is not None and journal['manipulation_journal']  != graph.G.name:
+                    errors.append("Final media node {} used in journal {}".format(nodeData['file'], journal['manipulation_journal']))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
@@ -364,6 +434,16 @@ def check_eight_bit(graph, frm, to):
         return '(Warning) JPEG image size is not aligned to 8x8 pixels'
     return None
 
+def getDonor(graph,node):
+    predecessors = graph.predecessors(node)
+    if len(predecessors) < 2:
+        return 'donor image missing'
+    for pred in predecessors:
+        edge = graph.get_edge(pred, node)
+        if edge['op'] == 'Donor':
+            return (pred, edge)
+    return None
+
 
 def checkForDonorWithRegion(graph, frm, to):
     pred = graph.predecessors(to)
@@ -403,8 +483,36 @@ def checkLengthSmaller(graph, frm, to):
         return "Length of video is not shorter"
 
 
+def checkPasteFrameLength(graph,frm,to):
+    edge = graph.get_edge(frm, to)
+    addType = getValue(edge, 'arguments.add type')
+    from_node = graph.get_node(frm)
+    to_node = graph.get_node(to)
+    diff = 0
+    duration = 0
+    if 'duration' in from_node and 'duration' in to_node:
+        from_duration = getMilliSecondsAndFrameCount(from_node['duration'])[0]
+        to_duration = getMilliSecondsAndFrameCount(to_node['duration'])[0]
+        donor_tuple = getDonor(graph, to)
+        if donor_tuple is None:
+            return "Missing donor"
+        else:
+            donor_node = graph.get_node(donor_tuple[0])
+            if donor_node is not None and 'duration' in donor_node:
+                duration = getMilliSecondsAndFrameCount(donor_node['duration'])[0]
+                diff = (to_duration - from_duration) - duration
+            else:
+                return "Missing duration in donor node's meta-data"
+    #if addType == 'replace' and  diff < 0:
+    #    return "Replacement should maintain or increase the size"
+    if addType == 'replace' and  diff > duration:
+       return "Replacement contain not increase the size of video beyond the size of the donor"
+    if addType != 'replace':
+        return checkLengthBigger(graph,frm,to)
+
 def checkLengthBigger(graph, frm, to):
     edge = graph.get_edge(frm, to)
+
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \

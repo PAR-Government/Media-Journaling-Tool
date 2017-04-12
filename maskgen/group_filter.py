@@ -1,6 +1,6 @@
 from maskgen_loader import MaskGenLoader
 import plugins
-from software_loader import getOperations, Operation, getOperation, getOperationsByCategory
+from software_loader import getOperations, Operation, getOperation, getOperationsByCategory,insertCustomRule,getRule
 
 maskgenloader= MaskGenLoader()
 
@@ -11,6 +11,20 @@ class GroupFilter:
     def __init__(self, name, filters):
       self.name = name
       self.filters = filters
+
+def callRule(functions,*args,**kwargs):
+    import copy
+    for func in functions:
+        edge = args[0]
+        edgeMask = args[1]
+        res = getRule(func)(edge,edgeMask,**kwargs)
+        kwargs = copy.copy(kwargs)
+        if 'donorMask' in kwargs and 'donorMask' is not None:
+            kwargs['donorMask'] = res
+        else:
+            kwargs['compositeMask'] = res
+    return res
+
 
 class GroupFilterLoader:
 
@@ -120,6 +134,7 @@ class GroupOperationsLoader(GroupFilterLoader):
         GroupFilterLoader.load(self)
 
     def getOperation(self, name):
+        from functools import partial
         grp = self.getGroup(name)
         if grp is not None:
             includeInMask = False
@@ -130,6 +145,7 @@ class GroupOperationsLoader(GroupFilterLoader):
             transitions = get_transitions(grp)
             generateMask = False
             grp_categories = set()
+            customFunctions= []
             for op in grp.filters:
                 operation = getOperation(op)
                 grp_categories.add(operation.category)
@@ -139,7 +155,16 @@ class GroupOperationsLoader(GroupFilterLoader):
                 addToMap(mandatory_params,operation.mandatoryparameters)
                 addToMap(opt_params, operation.optionalparameters)
                 addToSet(analysisOperations, operation.analysisOperations)
+                if operation.maskTransformFunction is not None:
+                    customFunctions.append(operation.maskTransformFunction)
+                else:
+                    customFunctions.append("maskgen.mask_rules.defaultMaskTransform")
             opt_params = dict([(k, v) for (k, v) in opt_params.iteritems() if k is not mandatory_params])
+
+            maskTransformFunction = None
+            if len(customFunctions)>0:
+                maskTransformFunction =name+'_mtf'
+                insertCustomRule(maskTransformFunction,partial(callRule,customFunctions))
             return Operation(name=name, category='Groups',
                              includeInMask=includeInMask,
                              generateMask=generateMask,
@@ -150,7 +175,8 @@ class GroupOperationsLoader(GroupFilterLoader):
                              transitions=transitions,
                              groupedOperations=grp.filters,
                              groupedCategories=grp_categories,
-                             analysisOperations=analysisOperations)
+                             analysisOperations=analysisOperations,
+                             maskTransformFunction=maskTransformFunction)
 
         return None
 
@@ -201,7 +227,7 @@ def getCategoryForOperation(name):
 
 def getOperationWithGroups(name, fake=False,warning=True):
     global groupOpLoader
-    op = getOperation(name,fake=False, warning=warning)
+    op = getOperation(name,fake=False, warning=False)
     if op is None:
         op = groupOpLoader.getOperation(name)
     if op is None and fake:

@@ -1,6 +1,8 @@
 {
   "Device": [
     "ImageFilename",
+    "CameraModel",
+    "HP-CameraModel",
     "DeviceSN",
     "HP-DeviceLocalID",
     "LensModel",

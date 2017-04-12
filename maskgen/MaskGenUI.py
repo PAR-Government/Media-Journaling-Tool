@@ -207,7 +207,7 @@ class MakeGenUI(Frame):
         self.img3c.config(image=self.img3)
 
     def _preexport(self):
-        errorList = self.scModel.validate()
+        errorList = self.scModel.validate(external=True)
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
             errorlistDialog.wait(self)
@@ -303,6 +303,18 @@ class MakeGenUI(Frame):
             self.scModel.setProjectData('username', newName)
             if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
                 self.scModel.getGraph().replace_attribute_value('username', oldName, newName)
+
+    def setapiurl(self):
+        token = self.prefLoader.get_key('apiurl')
+        newTokenStr = tkSimpleDialog.askstring("Set API URL", "URL", initialvalue=token)
+        if newTokenStr is not None:
+            self.prefLoader.save('apiurl', newTokenStr)
+
+    def setapitoken(self):
+        token = self.prefLoader.get_key('apitoken')
+        newTokenStr = tkSimpleDialog.askstring("Set API Token", "Token", initialvalue=token)
+        if newTokenStr is not None:
+            self.prefLoader.save('apitoken', newTokenStr)
 
     def setPreferredFileTypes(self):
         filetypes = self.getPreferredFileTypes()
@@ -541,7 +553,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
     def validate(self):
-        errorList = self.scModel.validate()
+        errorList = self.scModel.validate(external=True)
         if (self.errorlistDialog is None):
             self.errorlistDialog = ListDialog(self, errorList, "Validation Errors")
         else:
@@ -613,6 +625,14 @@ class MakeGenUI(Frame):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
+
+    def compress(self):
+        newnode = self.scModel.compress()
+        if newnode is not None:
+            tkMessageBox.showinfo("Compress","Compressed as file " + newnode  + ".")
+            self.canvas.redrawNode(self.scModel.start)
+        else:
+            tkMessageBox.showinfo("Compress", "Node not eligble for compression or error occurred.")
 
     def connectto(self):
         self.drawState()
@@ -731,6 +751,8 @@ class MakeGenUI(Frame):
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
         settingsmenu.add_command(label="Autosave", command=self.setautosave)
+        settingsmenu.add_command(label="API Token", command=self.setapitoken)
+        settingsmenu.add_command(label="API URL", command=self.setapiurl)
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)
@@ -845,6 +867,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
         self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
+        self.nodemenu.add_command(label="Compress", command=self.compress)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)

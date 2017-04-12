@@ -1293,10 +1293,12 @@
         },
         "mode": {
            "type":"list",
-           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
-             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
-             "Pin Light","Hard Mix","Linear Light",
-             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+           "values" : ["Color Dodge","Color","Darken","Difference",
+              "Dissolve","Divide","Exclusion","Hard Light",
+             "Hard Mix","Hue","IntensityBurn","Lighten",
+              "Lighter Dodge","Linear Burn","Linear Dodge (add)","Linear Light",
+              "Luminosity","Multiply","Multiply","Pin Light","Saturation",
+              "Screen","Smudge","Soft Light","Subtract","Vivid Light"],
            "description":"Blend Mode"
          }
       },
@@ -2665,7 +2667,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "video.video"
       ]
@@ -2758,10 +2760,8 @@
         },
         "mode": {
            "type":"list",
-           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
-             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
-             "Pin Light","Hard Mix","Linear Light",
-             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
+           "values" : ["Color Dodge","Color","Darken","Difference","Dissolve","Divide","Exclusion","Hard Light","Hard Mix","Hue","IntensityBurn","Lighten","Lighter Dodge","Linear Burn",
+             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Multiply","Opacity","Overlay","Pin Light","Saturation","Screen","Soft Light","Subtract","Vivid Light" ],
            "description":"Blend Mode",
            "rule" : {"purpose": "blend"}
          }
@@ -2778,6 +2778,11 @@
       "category": "Paste",
       "name": "PasteFrames",
       "mandatoryparameters": {
+        "add type": {
+          "type" : "list",
+          "values" :["insert","replace"],
+          "description": "Replacement does not have to be the same size."
+        },
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2789,7 +2794,7 @@
       },
       "rules": [
         "checkForDonor",
-        "checkLengthBigger",
+        "checkPasteFrameLength",
         "checkFrameTimes"
       ],
       "optionalparameters": {},
@@ -2936,7 +2941,7 @@
         }
       },
       "rules": [
-        "checkLengthBigger"
+        "checkLengthSame"
       ],
       "optionalparameters": {},
       "description": "Cut & Paste a series of frames within the same video",
@@ -3548,6 +3553,7 @@
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
       "includeInMask": false,
       "generateMask" : false,
+      "maskTransformFunction": "maskgen.mask_rules.crop_transform",
       "transitions": [
         "image.image",
         "video.video"
