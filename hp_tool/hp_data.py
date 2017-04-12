@@ -369,6 +369,9 @@ def set_other_data(data, imfile):
     elif 'front' in data['LensModel']:
         data['HP-PrimarySecondary'] = 'secondary'
 
+    if data['CameraModel'] == '':
+        data['CameraModel'] = data['HP-CameraModel']
+
     return data
 
 def parse_image_info(imageList, **kwargs):

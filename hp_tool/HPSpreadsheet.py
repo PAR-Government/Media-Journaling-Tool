@@ -246,6 +246,9 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
         elif currentCol == 'HP-NumberOfSpeakers':
             validValues = {'instructions':'Number of people speaking in recording. Do not count background noise.'}
+        elif currentCol == 'HP-CameraModel':
+            validValues = {'instructions':'Human-recognizable camera model. \"Samsung Galaxy S7\" for example, '
+                                          'instead of SM-G930x found in Exif data.'}
         else:
             validValues = {'instructions':'Any string of text'}
 
@@ -292,7 +295,7 @@ class HPSpreadsheet(Toplevel):
 
         self.mandatoryImage = []
         image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                 'HP-Shadows', 'CameraModel', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
+                 'HP-Shadows', 'HP-CameraModel', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
         for i in image:
             self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
 
@@ -301,7 +304,7 @@ class HPSpreadsheet(Toplevel):
         for v in video:
             self.mandatoryVideo.append(self.pt.model.df.columns.get_loc(v))
 
-        audio = ['CameraModel', 'HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
+        audio = ['HP-CameraModel', 'HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
                  'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation',
                  'HP-Inside', 'HP-Outside']
         self.mandatoryAudio = []
@@ -543,10 +546,10 @@ class HPSpreadsheet(Toplevel):
             dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Devices.csv')
             df = pd.read_csv(dataFile)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'Camera model reference not found!')
+            tkMessageBox.showwarning('Error', 'Camera model reference (data/Devices.csv) not found!')
             return
         manufacturers = [w.strip() for w in df['Manufacturer']]
-        models = [x.strip() for x in df['SeriesModel']]
+        models = [x.strip() for x in df['HP-CameraModel']]
         localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
         return sorted(list(set(models))), localIDs
 

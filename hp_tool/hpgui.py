@@ -31,6 +31,7 @@ class HP_Starter(Frame):
         self.metadatafilename = StringVar()
         self.metadatafilename.set(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
         self.grid()
+        self.load_ids()
         self.oldImageNames = []
         self.newImageNames = []
         self.createWidgets()
@@ -99,7 +100,10 @@ class HP_Starter(Frame):
 
 
     def go(self):
-        globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-LensLocalID', 'HP-HDLocation']
+        if self.camModel.get() == '':
+            tkMessageBox.showerror(title='Error', message='Invalid Device Local ID. This field is case sensitive.')
+            return
+        globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
         kwargs = {'preferences':self.prefsfilename,
                   'metadata':self.metadatafilename.get(),
                   'imgdir':self.inputdir.get(),
@@ -158,10 +162,13 @@ class HP_Starter(Frame):
         self.changeprefsbutton.grid(row=1, column=6)
 
         self.sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=2, columnspan=8, sticky='EW')
-        self.descriptionFields = ['Coll. Request ID', 'Local Camera ID', 'Local Lens ID', 'Hard Drive Location']
+        self.descriptionFields = ['Coll. Request ID', 'Local Camera ID', 'Camera Model', 'Local Lens ID', ]
 
         self.descriptionlabel = Label(self, text='Enter global camera information. This information cannot be pulled '
                                                  'from exif data.')
+        self.localID = StringVar()
+        self.localID.trace('w', self.update_model)
+        self.camModel = StringVar()
         self.descriptionlabel.grid(row=3,columnspan=8, sticky='W')
         row = 4
         col = 0
@@ -170,12 +177,17 @@ class HP_Starter(Frame):
             self.attrlabel = Label(self, text=field).grid(row=row, column=col, ipadx=5, ipady=5, padx=5, pady=5)
             self.attributes[field] = Entry(self, width=10)
             self.attributes[field].grid(row=row, column=col+1, ipadx=0, ipady=5, padx=5, pady=5)
+
+            if field == 'Local Camera ID':
+                self.attributes[field].config(textvar=self.localID)
+            elif field == 'Camera Model':
+                self.attributes[field].config(textvar=self.camModel, state=DISABLED)
             col += 2
             if col == 8:
                 row += 1
                 col = 0
 
-        lastLoc = self.attributes['Hard Drive Location'].grid_info()
+        lastLoc = self.attributes['Local Lens ID'].grid_info()
         lastRow = int(lastLoc['row'])
 
         self.sep2 = ttk.Separator(self, orient=HORIZONTAL).grid(row=lastRow+1, columnspan=8, sticky='EW')
@@ -187,6 +199,27 @@ class HP_Starter(Frame):
 
         self.keywordsbutton = Button(self, text='Enter Keywords', command=self.open_keywords_sheet, state=DISABLED, width=20)
         self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
+
+    def update_model(self, *args):
+        if self.localID.get() in self.localID_ref:
+            self.attributes['Camera Model'].config(state=NORMAL)
+            self.camModel.set(self.localID_ref[self.localID.get()])
+            self.attributes['Camera Model'].config(state=DISABLED)
+        else:
+            self.attributes['Camera Model'].config(state=NORMAL)
+            self.camModel.set('')
+            self.attributes['Camera Model'].config(state=DISABLED)
+
+    def load_ids(self):
+        df = pd.read_csv(os.path.join('data', 'Devices.csv'))
+        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
+        models = [y.strip() for y in df['HP-CameraModel']]
+        self.localID_ref = {}
+
+        # create a dictionary of local IDs : hp camera models
+        for id in range(0, len(localIDs)):
+            self.localID_ref[localIDs[id]] = models[id]
+
 
 class PRNU_Uploader(Frame):
     def __init__(self, master=None, prefs=None):
