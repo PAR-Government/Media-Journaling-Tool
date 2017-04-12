@@ -424,7 +424,7 @@ class HPSpreadsheet(Toplevel):
 
 
     def create_hp_archive(self):
-        val = str(self.pt.model.getValueAt(0, 7))
+        val = self.pt.model.df['HP-DeviceLocalID'][0]
         dt = datetime.datetime.now().strftime('%Y%m%d')[2:]
         fname = os.path.join(self.dir, val + '-' + dt + '.tgz')
         DIRNAME = self.dir
