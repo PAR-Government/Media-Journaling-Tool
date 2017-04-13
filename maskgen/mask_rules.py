@@ -263,13 +263,18 @@ def donor(edge, edgeMask,
         # pred_edges would contain the paste splice mask
         # (edgeMask = edge['maskname']) to which can be use to zero out the
         # unchanged pixels and then apply a transform.
-        donorMask = ImageWrapper(edgeMask).invert().to_array()
-        #tm = edge['transform matrix'] if 'transform matrix' in edge  else None
-        #targetSize = edgeMask.shape
-        #if tm is not None:
-         #   donorMask = cv2.warpPerspective(donorMask, tool_set.deserializeMatrix(tm), (targetSize[1], targetSize[0]),
-          #                            flags=cv2.WARP_INVERSE_MAP,
-           #                           borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
+        if len([edge for edge in pred_edges if edge['recordMaskInComposite'] == 'yes']) > 0:
+            tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+            targetSize = edgeMask.shape
+            if tm is not None:
+                donorMask = cv2.warpPerspective(donorMask, tool_set.deserializeMatrix(tm), (targetSize[1], targetSize[0]),
+                                          flags=cv2.WARP_INVERSE_MAP,
+                                          borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
+            else:
+                donorMask = ImageWrapper(edgeMask).invert().to_array()
+        else:
+            #donorMask = ImageWrapper(edgeMask).invert().to_array()
+            donorMask = np.zeros(donorMask.shape)
     return donorMask
 
 def _getOrientation(edge):

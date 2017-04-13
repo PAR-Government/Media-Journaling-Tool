@@ -127,7 +127,7 @@ def get_journal(url, apitoken):
         print "Cannot reach external service"
     return url
 
-def get_fields(filename, apitoken, url, type):
+def get_fields(filename, apitoken, url):
     import requests
     import json
     if url is None:

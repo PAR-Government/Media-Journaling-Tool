@@ -84,7 +84,7 @@ def copyexif(source, target):
         return 'exiftool not installed'
 
 
-def runexif(args):
+def runexif(args, fix=True):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     command = [exifcommand]
     command.extend(args)
@@ -94,11 +94,17 @@ def runexif(args):
             for line in stdout.splitlines():
                 print line
         if stderr is not None:
+            newsetofargs = args
             for line in stderr.splitlines():
+                newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
                 print line
+            #try stripping off the offenders
+            if len(newsetofargs) < len(args) and fix:
+                runexif(newsetofargs, fix=False)
     except OSError as e:
         print "Exiftool not installed"
         raise e
+
 
 def getexif(source, args=None, separator=': '):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')

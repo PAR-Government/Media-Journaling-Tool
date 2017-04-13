@@ -18,7 +18,7 @@ def update_modifytime(imageFile):
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
-    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
+    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all>all:all', '-unsafe', target])
     if target.lower().endswith(('.jpg', '.jpeg')):
         emc_update_size(img.size, target)
     update_modifytime(target)
