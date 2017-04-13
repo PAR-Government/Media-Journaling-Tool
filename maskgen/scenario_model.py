@@ -2138,7 +2138,8 @@ class ImageProjectModel:
         for node in self.getNodeNames():
             self.labelNodes(node)
             nodeData = self.G.get_node(node)
-            if nodeData['nodetype'] == 'final':
+            if nodeData['nodetype'] in ['final']:
+                print 'Inspecting ' + nodeData['file'] + ' for rename'
                 suffix_pos = nodeData['file'].rfind('.')
                 suffix = nodeData['file'][suffix_pos:].lower()
                 try:

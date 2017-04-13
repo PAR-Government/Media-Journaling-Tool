@@ -69,7 +69,7 @@
   "rankone": [
     "MD5",
     "CameraModel",
-    "HP-CameraModel"
+    "HP-CameraModel",
     "DeviceSerialNumber",
     "LensModel",
     "LensSN",

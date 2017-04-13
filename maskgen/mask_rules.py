@@ -274,7 +274,7 @@ def donor(edge, edgeMask,
                 donorMask = ImageWrapper(edgeMask).invert().to_array()
         else:
             #donorMask = ImageWrapper(edgeMask).invert().to_array()
-            donorMask = np.zeros(donorMask.shape)
+            donorMask = np.zeros(donorMask.shape,dtype=np.uint8)
     return donorMask
 
 def _getOrientation(edge):
