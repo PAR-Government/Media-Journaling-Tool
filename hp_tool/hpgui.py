@@ -4,6 +4,7 @@ from Tkinter import *
 import ttk
 import collections
 import tempfile
+import hashlib
 import boto3
 import matplotlib
 import requests
@@ -358,14 +359,18 @@ class PRNU_Uploader(Frame):
 
         print 'Creating archive...'
         archive = self.archive_prnu()
+        md5file = self.write_md5(archive)
 
-        print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val,
+        print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val
         s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
+        print 'Uploading ' + md5file.replace('\\', '/') + ' to s3://' + val
+        s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1])
 
         os.remove(archive)
+        os.remove(md5file)
 
-        tkMessageBox.showinfo(title='PRNU Upload', message='Complete!')
         print '... done'
+        tkMessageBox.showinfo(title='PRNU Upload', message='Complete!')
 
         # reset state of buttons and boxes
         self.cancel_upload()
@@ -381,6 +386,15 @@ class PRNU_Uploader(Frame):
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
         return ftar
+
+    def write_md5(self, path):
+        # write md5 of archive to file
+        md5filename = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.md5')
+        with open(md5filename, 'w') as m:
+            with open(path, 'rb') as f:
+                m.write(hashlib.md5(f.read()).hexdigest())
+
+        return md5filename
 
     def capitalize_dirs(self):
         # http://stackoverflow.com/questions/3075443/python-recursively-remove-capitalisation-from-directory-structure
