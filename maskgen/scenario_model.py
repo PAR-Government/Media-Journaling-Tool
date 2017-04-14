@@ -1550,6 +1550,7 @@ class ImageProjectModel:
                         continue
                     key =  donor_mask_tuple[0]
                     if key in donorsToNodes:
+                        # same donor image, multiple paths to the image.
                         donorsToNodes[key][donor_mask > 1] = 255
                     else:
                        donorsToNodes[key] = donor_mask.astype('uint8')
@@ -2138,6 +2139,7 @@ class ImageProjectModel:
             self.labelNodes(node)
             nodeData = self.G.get_node(node)
             if nodeData['nodetype'] in ['final']:
+                print 'Inspecting ' + nodeData['file'] + ' for rename'
                 suffix_pos = nodeData['file'].rfind('.')
                 suffix = nodeData['file'][suffix_pos:].lower()
                 try:
@@ -2145,8 +2147,9 @@ class ImageProjectModel:
                         new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
                 except:
                     print 'Missing file or invalid permission: ' + nodeData['file']
+                    new_file_name = nodeData['file']
                     continue
-                fullname = os.path.join(self.G.dir ,new_file_name)
+                fullname = os.path.join(self.G.dir,new_file_name)
                 file_path_name = os.path.join(self.G.dir ,nodeData['file'])
                 if not os.path.exists(fullname):
                     try:
