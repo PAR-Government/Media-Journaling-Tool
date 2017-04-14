@@ -997,7 +997,8 @@
       "description": "Apply artificial lens distortion",
       "includeInMask": false,
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {

@@ -231,7 +231,7 @@ class PRNU_Uploader(Frame):
         self.s3path = StringVar()
         self.parse_vocab(os.path.join('data', 'prnu_vocab.csv'))
         self.create_prnu_widgets()
-        if 's3prnu' in prefs:
+        if prefs is not None and 's3prnu' in prefs:
             self.s3path.set(prefs['s3prnu'])
 
     def create_prnu_widgets(self):
