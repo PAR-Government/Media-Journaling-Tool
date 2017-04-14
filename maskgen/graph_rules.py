@@ -188,19 +188,27 @@ def check_graph_rules(graph,node,external=False, prefLoader=None):
                 if hashname not in nodeData['file']:
                     errors.append("[Warning] Final image {} is not composed of its MD5.".format( nodeData['file']))
 
-    if nodeData['nodetype'] == 'base' and external and \
-            prefLoader.get_key('apitoken') is not None:
-                fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
-                if len(fields)  == 0:
-                    errors.append("Cannot find base media file {} in the remote system".format(nodeData['file']))
-                elif not fields[0]['high_provenance']:
-                    errors.append("{} media is not HP".format(nodeData['file']))
+    checked_nodes = graph.getDataItem('api_validated_node',[])
+    if nodeData['file'] not in checked_nodes:
+        if nodeData['nodetype'] == 'base' and external and \
+                prefLoader.get_key('apitoken') is not None:
+                    fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
+                    if len(fields)  == 0:
+                        errors.append("Cannot find base media file {} in the remote system".format(nodeData['file']))
+                    elif not fields[0]['high_provenance']:
+                        errors.append("{} media is not HP".format(nodeData['file']))
+                    else:
+                        checked_nodes.append(nodeData['file'])
+                        graph.setDataItem('api_validated_node', checked_nodes, excludeUpdate=True)
 
-    if nodeData['nodetype'] == 'final' and external and \
-            prefLoader.get_key('apitoken') is not None:
-            for journal in get_fields(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')):
-                if journal['manipulation_journal'] is not None and journal['manipulation_journal']  != graph.G.name:
-                    errors.append("Final media node {} used in journal {}".format(nodeData['file'], journal['manipulation_journal']))
+        if nodeData['nodetype'] == 'final' and external and \
+                prefLoader.get_key('apitoken') is not None:
+                for journal in get_fields(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')):
+                    if journal['manipulation_journal'] is not None and journal['manipulation_journal']  != graph.G.name:
+                        errors.append("Final media node {} used in journal {}".format(nodeData['file'], journal['manipulation_journal']))
+                    else:
+                        checked_nodes.append(nodeData['file'])
+                        graph.setDataItem('api_validated_node',checked_nodes,excludeUpdate=True)
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
