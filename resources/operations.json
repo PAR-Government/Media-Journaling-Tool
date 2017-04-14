@@ -977,6 +977,32 @@
     },
     {
       "category": "AntiForensic",
+      "name": "LensDistortion",
+      "mandatoryparameters": {
+        "Distortion Type": {
+          "type": "list",
+          "values": [
+            "Pincushion",
+            "Barrel",
+            "Mustache"
+          ],
+          "description": "Type of distortion being applied to image."
+        }
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {},
+      "description": "Apply artificial lens distortion",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "AntiForensic",
       "name": "AddCamFingerprintPRNU",
       "mandatoryparameters": {},
       "rules": [
