@@ -229,35 +229,66 @@ class PRNU_Uploader(Frame):
         self.prefs=prefs
         self.root_dir = StringVar()
         self.localID = StringVar()
+        self.localIDfile = StringVar()
         self.s3path = StringVar()
+        self.newCam = BooleanVar()
+        self.newCam.set(0)
         self.parse_vocab(os.path.join('data', 'prnu_vocab.csv'))
         self.create_prnu_widgets()
         if prefs is not None and 's3prnu' in prefs:
             self.s3path.set(prefs['s3prnu'])
 
     def create_prnu_widgets(self):
+        r = 0
         dirbutton = Button(self, text='Root PRNU Directory:', command=self.open_dir, width=20)
-        dirbutton.grid(row=0,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        dirbutton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
         self.rootEntry = Entry(self, width=100, textvar=self.root_dir)
-        self.rootEntry.grid(row=0, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=4)
+        self.rootEntry.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=4)
+        r+=1
 
-        localcamlabel = Label(self, text='Local Camera ID:', width=20).grid(row=1,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
-        self.localCamEntry = Entry(self, width=40, textvar=self.localID)
-        self.localCamEntry.grid(row=1, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=2, sticky=W)
+        self.newCamEntry = Entry(self, width=40, textvar=self.localIDfile, state=DISABLED)
+        self.newCamEntry.grid(row=r, column=1, columnspan=2, sticky=W)
+        self.newCamCheckbox = Checkbutton(self, text='I\'m using a new camera:', variable=self.newCam, command=self.set_new_cam_file)
+        self.newCamCheckbox.grid(row=r, column=0, )
+        r+=1
 
         verifyButton = Button(self, text='Verify Directory Structure', command=self.examine_dir, width=20)
-        verifyButton.grid(row=3,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        verifyButton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
 
-        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=3,column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=r,column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
 
         self.s3Entry = Entry(self, width=40, textvar=self.s3path)
-        self.s3Entry.grid(row=3, column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        self.s3Entry.grid(row=r, column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        r+=1
 
         self.uploadButton = Button(self, text='Start Upload', command=self.upload, width=20, state=DISABLED, bg='green')
-        self.uploadButton.grid(row=4,column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        self.uploadButton.grid(row=r,column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
 
         self.cancelButton = Button(self, text='Cancel', command=self.cancel_upload, width=20, bg='red')
-        self.cancelButton.grid(row=4, column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+        self.cancelButton.grid(row=r, column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+
+    def set_new_cam_file(self):
+        if self.newCam.get():
+            if self.localIDfile:
+                ync = tkMessageBox.askyesnocancel(message='Have you already completed the New Camera Registration Form?', title='New Camera Data')
+                self.newCamEntry.config(state=NORMAL)
+                if ync:
+                    f = tkFileDialog.askopenfilename(filetypes=[('text files', '.txt')], title='Select data file')
+                    self.localIDfile.set(f)
+                elif ync is None:
+                    self.newCam.set(0)
+                    self.newCamEntry.config(state=DISABLED)
+                else:
+                    self.open_new_insert_id()
+                    #d = HP_Device_Form(self, prefs=self.prefs, pathvar=self.localIDfile)
+        else:
+            self.newCamEntry.config(state=DISABLED)
+
+    def open_new_insert_id(self):
+        self.newCam.set(1)
+        d = HP_Device_Form(self, prefs=self.prefs, pathvar=self.localIDfile)
+        if self.localIDfile.get():
+            self.newCamEntry.config(state=NORMAL)
 
     def parse_vocab(self, path):
         self.vocab = []
@@ -272,13 +303,12 @@ class PRNU_Uploader(Frame):
         self.root_dir.set(tkFileDialog.askdirectory())
 
     def examine_dir(self):
-        passed_root = False
+        self.localID.set(os.path.basename(os.path.normpath(self.root_dir.get())))
         msg = None
 
         for path, dirs, files in os.walk(self.root_dir.get()):
             p, last = os.path.split(path)
             if last == self.localID.get():
-                passed_root = True
                 if not self.has_same_contents(dirs, ['images', 'video']):
                     msg = 'Root PRNU directory must have \"Images\" and \"Video\" folers.'
                     break
@@ -318,10 +348,11 @@ class PRNU_Uploader(Frame):
                 else:
                     msg = 'There are no images in: ' + path
 
-        if passed_root == False or not local_id_used(self):
+        if not self.newCam.get() and not local_id_used(self):
             msg = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
             if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msg):
-                HP_Device_Form(self, prefs=self.prefs)
+                self.open_new_insert_id()
+                #HP_Device_Form(self, prefs=self.prefs)
             msg = 'hide'
 
         if msg == 'hide':
@@ -332,7 +363,9 @@ class PRNU_Uploader(Frame):
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
-            self.localCamEntry.config(state=DISABLED)
+            self.newCamCheckbox.config(state=DISABLED)
+            if self.newCam:
+                self.newCamEntry.config(state=DISABLED)
 
     def has_same_contents(self, list1, list2):
         # set both lists to lowercase strings and checks if they have the same items, in any order
@@ -378,12 +411,16 @@ class PRNU_Uploader(Frame):
     def cancel_upload(self):
         self.uploadButton.config(state=DISABLED)
         self.rootEntry.config(state=NORMAL)
-        self.localCamEntry.config(state=NORMAL)
+        if self.newCam:
+            self.newCamEntry.config(state=NORMAL)
+        self.newCamCheckbox.config(state=NORMAL)
 
     def archive_prnu(self):
         ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
         archive = tarfile.open(ftar, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
+        if self.newCam.get():
+            archive.add(self.localIDfile.get(), arcname=os.path.split(self.localIDfile.get())[1])
         archive.close()
         return ftar
 
@@ -420,10 +457,11 @@ class PRNU_Uploader(Frame):
         print 'done'
 
 class HP_Device_Form(Toplevel):
-    def __init__(self, master, prefs):
+    def __init__(self, master, prefs, pathvar=None):
         Toplevel.__init__(self, master)
         self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
         self.master = master
+        self.pathvar = pathvar # use this to set a tk variable to the path of the output txt file
         self.prefs = prefs
         self.set_list_options()
         self.create_widgets()
@@ -506,7 +544,7 @@ class HP_Device_Form(Toplevel):
 
         self.headers['Device Affiliation*']['var'].set('RIT')
 
-        self.okbutton = Button(self.f.interior, text='Export', command=self.export_results)
+        self.okbutton = Button(self.f.interior, text='Complete', command=self.export_results)
         self.okbutton.pack()
         self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
         self.cancelbutton.pack()
@@ -525,10 +563,15 @@ class HP_Device_Form(Toplevel):
             tkMessageBox.showerror(title='Error', message=msg)
             return
 
-        with tkFileDialog.asksaveasfile('w', initialfile=self.localID.get()+'.txt') as t:
+        path = tkFileDialog.asksaveasfilename(initialfile=self.localID.get()+'.txt')
+        with open(path, 'w') as t:
             for h in self.headers:
                 t.write(h + ' = ' + self.headers[h]['var'].get() + '\n')
-        tkMessageBox.showinfo(title='Information', message='Export Complete!')
+
+        if self.pathvar:
+            self.pathvar.set(path)
+        tkMessageBox.showinfo(title='Information', message='Complete!')
+
         self.destroy()
 
 
