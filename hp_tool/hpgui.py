@@ -20,6 +20,7 @@ import webbrowser
 from hp_data import *
 from HPSpreadsheet import HPSpreadsheet
 from KeywordsSheet import KeywordsSheet
+from ErrorWindow import ErrorWindow
 from prefs import Preferences
 
 class HP_Starter(Frame):
@@ -91,7 +92,7 @@ class HP_Starter(Frame):
 
     def preview_filename(self):
         testNameStr = 'Please update preferences with username and organization'
-        prefs = parse_prefs(self.prefsfilename)
+        prefs = parse_prefs(self, self.prefsfilename)
         if prefs and prefs.has_key('seq'):
             testNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
                         prefs['organization'] + prefs['username'] + '-' + prefs['seq']
@@ -117,7 +118,7 @@ class HP_Starter(Frame):
 
         self.update_defaults()
 
-        (self.oldImageNames, self.newImageNames) = process(**kwargs)
+        (self.oldImageNames, self.newImageNames) = process(self, **kwargs)
         if self.oldImageNames == None:
             return
         aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
@@ -303,62 +304,60 @@ class PRNU_Uploader(Frame):
         self.root_dir.set(tkFileDialog.askdirectory())
 
     def examine_dir(self):
+        self.master.statusBox.println('Verifying...')
         self.localID.set(os.path.basename(os.path.normpath(self.root_dir.get())))
-        msg = None
+        msgs = []
 
         for path, dirs, files in os.walk(self.root_dir.get()):
             p, last = os.path.split(path)
             if last == self.localID.get():
                 if not self.has_same_contents(dirs, ['images', 'video']):
-                    msg = 'Root PRNU directory must have \"Images\" and \"Video\" folers.'
-                    break
+                    msgs.append('Root PRNU directory must have \"Images\" and \"Video\" folders.')
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
-                    msg = 'There should be no files in the root directory. Only \"Images\" and \"Video\" folders.'
-                    break
+                    msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
-                    msg = 'Images and Video folders must each contain Primary and Secondary folders.'
+                    msgs.append('Images and Video folders must each contain Primary and Secondary folders.')
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
-                    msg = 'There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".'
+                    msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
-                        msg = 'Invalid reference type: ' + sub
-                        break
+                        msgs.append('Invalid reference type: ' + sub)
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
                         else:
-                            msg = 'There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).'
-                            break
+                            msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
             elif last.lower() in self.vocab:
                 if dirs:
-                    msg = 'There should be no additional subfolders in folder ' + path
+                    msgs.append('There should be no additional subfolders in folder ' + path)
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
                 else:
-                    msg = 'There are no images in: ' + path
+                    msgs.append('There are no images in: ' + path)
 
         if not self.newCam.get() and not local_id_used(self):
-            msg = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
-            if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msg):
+            msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
+            if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msgs):
                 self.open_new_insert_id()
                 #HP_Device_Form(self, prefs=self.prefs)
-            msg = 'hide'
+            msgs = 'hide'
 
-        if msg == 'hide':
+        if msgs == 'hide':
             pass
-        elif msg:
-            tkMessageBox.showerror(title='Error', message=msg)
+        elif msgs:
+            ErrorWindow(self, errors=msgs)
+            #tkMessageBox.showerror(title='Error', message=msgs)
         else:
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
@@ -390,19 +389,19 @@ class PRNU_Uploader(Frame):
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        print 'Creating archive...'
+        self.master.statusBox.println('Creating archive...')
         archive = self.archive_prnu()
         md5file = self.write_md5(archive)
 
-        print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val
+        self.master.statusBox.println('Uploading ' + archive.replace('\\', '/') + ' to s3://' + val)
         s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
-        print 'Uploading ' + md5file.replace('\\', '/') + ' to s3://' + val
+        self.master.statusBox.println('Uploading ' + md5file.replace('\\', '/') + ' to s3://' + val)
         s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1])
 
         os.remove(archive)
         os.remove(md5file)
 
-        print '... done'
+        self.master.statusBox.println('... done')
         tkMessageBox.showinfo(title='PRNU Upload', message='Complete!')
 
         # reset state of buttons and boxes
@@ -454,7 +453,7 @@ class PRNU_Uploader(Frame):
         archive = self.archive_prnu()
         shutil.copy(archive, os.getcwd())
         os.remove(archive)
-        print 'done'
+        self.master.statusBox.println('done')
 
 class HP_Device_Form(Toplevel):
     def __init__(self, master, prefs, pathvar=None):
@@ -479,6 +478,12 @@ class HP_Device_Form(Toplevel):
         Label(self.f.interior, text='Add a new HP Device', font=("Courier", 20)).pack()
         Label(self.f.interior, text='Once complete, post the resulting text file to the \"New Devices to be Added\" list on the \"High Provenance\" trello board.').pack()
 
+        Label(self.f.interior, text='Example Image', font=("Courier", 20)).pack()
+        Label(self.f.interior, text='Some data on this form may be auto-populated using metadata from a sample image.').pack()
+        self.imageButton = Button(self.f.interior, text='Select Image', command=self.populate_from_image)
+        self.imageButton.pack()
+
+
         self.email = StringVar()
         self.affiliation = StringVar()
         self.localID = StringVar()
@@ -498,7 +503,7 @@ class HP_Device_Form(Toplevel):
                        ('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
                                                  'type': 'radiobutton', 'values': ['RIT', 'PAR', 'Other (please specify):'], 'var':self.affiliation}),
                        ('Define the Local ID*',{'description':'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MAKE, such as'
-                                                             'ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
+                                                             ' ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
                        ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
                                                 'type':'text', 'var':self.serial}),
                        ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
@@ -549,6 +554,23 @@ class HP_Device_Form(Toplevel):
         self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
         self.cancelbutton.pack()
 
+    def populate_from_image(self):
+        self.imfile = tkFileDialog.askopenfilename(title='Select Image File')
+        self.imageButton.config(text=os.path.basename(self.imfile))
+        args = ['exiftool', '-f', '-j', '-Model', '-Make', '-SerialNumber', self.imfile]
+        try:
+            p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+            exifData = json.loads(p)[0]
+        except:
+            print 'An error ocurred attempting to pull exif data from image.'
+            return
+        if exifData['Make'] != '-':
+            self.manufacturer.set(exifData['Make'])
+        if exifData['Model']:
+            self.camera_model.set(exifData['Model'])
+        if exifData['SerialNumber'] != '-':
+            self.serial.set(exifData['SerialNUmber'])
+
     def export_results(self):
         msg = None
         for h in self.headers:
@@ -579,7 +601,7 @@ def local_id_used(self):
     try:
         headers = {'Authorization': 'Token ' + self.prefs['apitoken'], 'Content-Type': 'application/json'}
         url = self.prefs['apiurl'] + '/api/cameras/?fields=hp_device_local_id/'
-        print 'Checking external service APIs for device local ID...'
+        self.master.statusBox.println('Checking external service APIs for device local ID...')
         localIDs = []
         while True:
             response = requests.get(url, headers=headers)
@@ -591,7 +613,7 @@ def local_id_used(self):
                 if url is None:
                     break
             else:
-                print 'HTTP Error ' + str(response.status_code) + '. Attempting to check with local device list....'
+                self.master.statusBox.println('HTTP Error ' + str(response.status_code) + '. Attempting to check with local device list....')
                 raise requests.HTTPError()
     except (KeyError, requests.HTTPError, requests.ConnectionError):
         df = pd.read_csv(os.path.join('data', 'Devices.csv'))
@@ -626,17 +648,23 @@ class HPGUI(Frame):
 
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill=BOTH, expand=1)
-        f1 = HP_Starter(master=self.nb, prefs=self.prefs)
-        f2 = PRNU_Uploader(master=self.nb, prefs=self.prefs)
+        f1 = HP_Starter(self, prefs=self.prefs)
+        f2 = PRNU_Uploader(self, prefs=self.prefs)
         self.nb.add(f1, text='Process HP Data')
         self.nb.add(f2, text='Export PRNU Data')
+
+        self.statusFrame = Frame(self)
+        self.statusFrame.pack(fill=BOTH, expand=1)
+        Label(self.statusFrame, text='Status').pack()
+        self.statusBox = ReadOnlyText(self.statusFrame, height=10)
+        self.statusBox.pack(fill=BOTH, expand=1)
 
     def open_form(self):
         h = HP_Device_Form(self, self.prefs)
 
 
     def load_defaults(self):
-        self.prefs = parse_prefs(os.path.join('data', 'preferences.txt'))
+        self.prefs = parse_prefs(self, os.path.join('data', 'preferences.txt'))
         if self.prefs:
             if 'inputdir' in self.prefs:
                 self.inputdir = self.prefs['inputdir']
@@ -734,6 +762,17 @@ class VerticalScrolledFrame(Frame):
         else:
             self.canvas.yview_scroll(-1*(event.delta), "units")
 
+class ReadOnlyText(Text):
+    def __init__(self, master, **kwargs):
+        Text.__init__(self, master, **kwargs)
+        self.master=master
+        self.config(state='disabled')
+
+    def println(self, text):
+        self.config(state='normal')
+        self.insert(CURRENT, text + '\n')
+        self.see('end')
+        self.config(state='disabled')
 
 def main():
     root = Tk()

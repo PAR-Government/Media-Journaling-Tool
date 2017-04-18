@@ -5,7 +5,7 @@ class ErrorWindow(Dialog):
     def __init__(self, master, errors):
         self.errors = errors
         self.cancelPressed = True
-        Dialog.__init__(self, master, title='Spreadsheet Validation')
+        Dialog.__init__(self, master, title='Validation')
 
 
     def body(self, master):

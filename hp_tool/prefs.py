@@ -240,5 +240,3 @@ class Preferences(Toplevel):
             for key in self.metadata:
                 f.write(key + '=' + self.metadata[key] + '\n')
         self.destroy()
-
-
