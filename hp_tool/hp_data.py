@@ -417,7 +417,28 @@ def parse_image_info(self, imageList, **kwargs):
 
     return data
 
-def process(self, preferences='', metadata='', imgdir='', outputdir='', recursive=False,
+def check_for_errors(data, cameraData, images):
+    """
+    Check processed data with database information
+    :param data: processed HP data
+    :param cameraData: ground truth database information
+    :param images: list of image names
+    :return: list of errors
+    """
+    errors = {}
+    for image in data:
+        dbData = cameraData[data[image]['HP-DeviceLocalID']]
+        errors[os.path.basename(images[image])] = e = []
+        if (data[image]['CameraModel'] != dbData['exif_camera_model']):
+            e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database.'))
+        if (data[image]['CameraMake'] != dbData['exif_camera_make']):
+            e.append(('CameraMake','Camera make found in exif for image ' + images[image] + ' (' + data[image]['CameraMake'] + ') does not match database.'))
+        if (data[image]['DeviceSerialNumber'] != dbData['exif_device_serial_number']):
+            e.append(('DeviceSN','Camera serial number found in exif for image ' + images[image] + ' (' + data[image]['DeviceSerialNumber'] + ') does not match database.'))
+
+    return errors
+
+def process(self, cameraData, preferences='', metadata='', imgdir='', outputdir='', recursive=False,
             keywords='', additionalInfo='', **kwargs):
     """
     The main process workflow for the hp tool.
@@ -449,13 +470,15 @@ def process(self, preferences='', metadata='', imgdir='', outputdir='', recursiv
     if not imageList:
         self.master.statusBox.println('No new images found')
         remove_temp_subs(outputdir)
-        return imageList, []
+        return imageList, [], None
 
     # build information list. This is the bulk of the processing, and what runs exiftool
     self.master.statusBox.println('Building image info...')
     imageInfo = parse_image_info(self, imageList, path=imgdir, rec=recursive, **kwargs)
     if imageInfo is None:
-        return None, None
+        return None, None, None
+    else:
+        errors = check_for_errors(imageInfo, cameraData, imageList)
     self.master.statusBox.println(' done')
 
     # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories
@@ -513,4 +536,4 @@ def process(self, preferences='', metadata='', imgdir='', outputdir='', recursiv
 
     self.master.statusBox.println('\nComplete!')
 
-    return imageList, newNameList
+    return imageList, newNameList, errors

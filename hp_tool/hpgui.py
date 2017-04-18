@@ -15,6 +15,7 @@ import shutil
 import ttk
 import tkFileDialog
 import tkMessageBox
+import time
 import numpy as np
 import webbrowser
 from hp_data import *
@@ -118,11 +119,13 @@ class HP_Starter(Frame):
 
         self.update_defaults()
 
-        (self.oldImageNames, self.newImageNames) = process(self, **kwargs)
+        (self.oldImageNames, self.newImageNames, errors) = process(self, self.cameras, **kwargs)
         if self.oldImageNames == None:
             return
         aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
-        aSheet.open_spreadsheet()
+        aSheet.open_spreadsheet(errors)
+        if errors is not None:
+            ErrorWindow(aSheet, errors)
         self.keywordsbutton.config(state=NORMAL)
         keySheet = self.open_keywords_sheet()
         keySheet.close()
@@ -134,7 +137,7 @@ class HP_Starter(Frame):
 
     def open_prefs(self):
         Preferences(master=self.master)
-        if parse_prefs(self.prefsfilename):
+        if parse_prefs(self, self.prefsfilename):
             self.okbutton.config(state='normal')
 
     def createWidgets(self):
@@ -203,9 +206,9 @@ class HP_Starter(Frame):
         self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
 
     def update_model(self, *args):
-        if self.localID.get() in self.localID_ref:
+        if self.localID.get() in self.cameras:
             self.attributes['Camera Model'].config(state=NORMAL)
-            self.camModel.set(self.localID_ref[self.localID.get()])
+            self.camModel.set(self.cameras[self.localID.get()]['hp_camera_model'])
             self.attributes['Camera Model'].config(state=DISABLED)
         else:
             self.attributes['Camera Model'].config(state=NORMAL)
@@ -213,15 +216,25 @@ class HP_Starter(Frame):
             self.attributes['Camera Model'].config(state=DISABLED)
 
     def load_ids(self):
-        df = pd.read_csv(os.path.join('data', 'Devices.csv'))
-        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
-        models = [y.strip() for y in df['HP-CameraModel']]
-        self.localID_ref = {}
-
-        # create a dictionary of local IDs : hp camera models
-        for id in range(0, len(localIDs)):
-            self.localID_ref[localIDs[id]] = models[id]
-
+        try:
+            cams = API_Camera_Handler(self, self.prefs['apiurl'], self.prefs['apitoken'])
+            self.cameras = cams.get_all()
+            if not self.cameras:
+                raise
+            self.master.statusBox.println('Camera data successfully loaded from API.')
+        except:
+            self.cameras = {}
+            data = pd.read_csv(os.path.join('data', 'Devices.csv')).to_dict()
+            for num in range(0, len(data['HP-LocalDeviceID'])):
+                self.cameras[data['HP-LocalDeviceID'][num]] = {
+                    'hp_device_local_id':str(data['HP-LocalDeviceID'][num]),
+                    'hp_camera_model':str(data['HP-CameraModel'][num]),
+                    'exif_camera_model': str(data['CameraModel'][num]),
+                    'exif_camera_make': str(data['Manufacturer'][num]),
+                    'exif_device_serial_number': str(data['DeviceSN'][num]),
+                }
+            self.master.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
+            self.master.statusBox.println('It is recommended to enter your browser credentials in preferences and restart to get the most updated information.')
 
 class PRNU_Uploader(Frame):
     def __init__(self, master=None, prefs=None):
@@ -562,7 +575,7 @@ class HP_Device_Form(Toplevel):
             p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
             exifData = json.loads(p)[0]
         except:
-            print 'An error ocurred attempting to pull exif data from image.'
+            self.master.statusBox.println('An error ocurred attempting to pull exif data from image.')
             return
         if exifData['Make'] != '-':
             self.manufacturer.set(exifData['Make'])
@@ -646,6 +659,12 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.master.config(menu=self.menubar)
 
+        self.statusFrame = Frame(self)
+        self.statusFrame.pack(side=BOTTOM, fill=BOTH, expand=1)
+        Label(self.statusFrame, text='Status').pack()
+        self.statusBox = ReadOnlyText(self.statusFrame, height=10)
+        self.statusBox.pack(fill=BOTH, expand=1)
+
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill=BOTH, expand=1)
         f1 = HP_Starter(self, prefs=self.prefs)
@@ -653,15 +672,8 @@ class HPGUI(Frame):
         self.nb.add(f1, text='Process HP Data')
         self.nb.add(f2, text='Export PRNU Data')
 
-        self.statusFrame = Frame(self)
-        self.statusFrame.pack(fill=BOTH, expand=1)
-        Label(self.statusFrame, text='Status').pack()
-        self.statusBox = ReadOnlyText(self.statusFrame, height=10)
-        self.statusBox.pack(fill=BOTH, expand=1)
-
     def open_form(self):
         h = HP_Device_Form(self, self.prefs)
-
 
     def load_defaults(self):
         self.prefs = parse_prefs(self, os.path.join('data', 'preferences.txt'))
@@ -773,6 +785,65 @@ class ReadOnlyText(Text):
         self.insert(CURRENT, text + '\n')
         self.see('end')
         self.config(state='disabled')
+
+class API_Camera_Handler:
+    def __init__(self, master, url, token):
+        self.master = master
+        self.url = url
+        self.token = token
+        self.localIDs = []
+        self.models_hp = []
+        self.models_exif = []
+        self.makes_exif = []
+        self.sn_exif = []
+        self.all = {}
+        self.load_data()
+
+    def get_local_ids(self):
+        return self.localIDs
+
+    def get_model_hp(self):
+        return self.models_hp
+
+    def get_model_exif(self):
+        return self.models_exif
+
+    def get_makes_exif(self):
+        return self.makes_exif
+
+    def get_sn(self):
+        return self.sn_exif
+
+    def get_all(self):
+        return self.all
+
+    def load_data(self):
+        try:
+            headers = {'Authorization': 'Token ' + self.token, 'Content-Type': 'application/json'}
+            url = self.url + '/api/cameras/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
+            print 'Checking external service APIs for device local ID...'
+
+            while True:
+                response = requests.get(url, headers=headers)
+                if response.status_code == requests.codes.ok:
+                    r = json.loads(response.content)
+                    for item in r['results']:
+                        self.all[item['hp_device_local_id']] = item
+                        self.localIDs.append(item['hp_device_local_id'])
+                        self.models_hp.append(item['hp_camera_model'])
+                        self.models_exif.append(item['exif_camera_model'])
+                        self.makes_exif.append(item['exif_camera_make'])
+                        self.sn_exif.append(item['exif_device_serial_number'])
+                    url = r['next']
+                    if url is None:
+                        break
+                else:
+                    raise requests.HTTPError()
+        except (requests.HTTPError, requests.ConnectionError):
+            print 'An error ocurred connecting to API (' + str(response.status_code) + ').\n Devices will be loaded from hp_tool/data.'
+        except KeyError:
+            tkMessageBox.showerror(title='Information', message='Could not find API credentials in preferences. Please '
+                                                               'add them via preferences or the File menu.')
 
 def main():
     root = Tk()

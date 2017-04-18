@@ -277,7 +277,7 @@ class HPSpreadsheet(Toplevel):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
         self.focus_set()
 
-    def open_spreadsheet(self):
+    def open_spreadsheet(self, errors):
         if self.dir and not self.ritCSV:
             self.csvdir = os.path.join(self.dir, 'csv')
             for f in os.listdir(self.csvdir):
@@ -311,9 +311,9 @@ class HPSpreadsheet(Toplevel):
         for c in audio:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        self.color_code_cells()
+        self.color_code_cells(errors)
 
-    def color_code_cells(self):
+    def color_code_cells(self, errors):
         notnans = self.pt.model.df.notnull()
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
@@ -323,7 +323,7 @@ class HPSpreadsheet(Toplevel):
                         (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
                         (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
                     rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#ff5b5b',
+                                                    fill='#fffacd',
                                                     outline='#084B8A',
                                                     tag='cellrect')
                 else:
@@ -331,6 +331,16 @@ class HPSpreadsheet(Toplevel):
                     if notnans.iloc[row, col]:
                         rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                         fill='#c1c1c1',
+                                                        outline='#084B8A',
+                                                        tag='cellrect')
+            image = self.pt.model.df['OriginalImageName'][row]
+            if errors is not None and image in errors and errors[image]:
+                for error in errors[image]:
+                    errCol = error[0]
+                    if errCol != 'CameraMake':
+                        x1, y1, x2, y2 = self.pt.getCellCoords(row, self.pt.model.df.columns.get_loc(errCol))
+                        rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                                                        fill='#ff5b5b',
                                                         outline='#084B8A',
                                                         tag='cellrect')
 
@@ -437,7 +447,7 @@ class HPSpreadsheet(Toplevel):
 
     def load_prefs(self):
         self.prefsFile = os.path.join('data', 'preferences.txt')
-        self.prefs = hp_data.parse_prefs(self.prefsFile)
+        self.prefs = hp_data.parse_prefs(self.master, self.prefsFile)
 
     def fill_down(self, event=None):
         if self.on_main_tab:

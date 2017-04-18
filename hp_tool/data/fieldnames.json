@@ -28,6 +28,7 @@
     "CameraModel":"-Model",
     "HP-CameraModel":"",
     "LensModel":"-LensModel",
+    "CameraMake":"-Make",
     "HP-WeakReflection":"",
     "HP-StrongReflection":"",
     "HP-TransparentReflection":"",

@@ -20,7 +20,7 @@ class Preferences(Toplevel):
         self.metaFrame.pack(side=BOTTOM)
         self.prefsFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'preferences.txt')
         self.metaFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt')
-        p = hp_data.parse_prefs(self.prefsFile)
+        p = hp_data.parse_prefs(self, self.prefsFile)
         if p:
             self.prefs = p
         else:
@@ -52,7 +52,10 @@ class Preferences(Toplevel):
         self.usrVar.trace('w', self.limit_length)
         self.seqVar.trace('w', self.update_preview)
 
-        self.s3var = StringVar()
+        self.s3Var = StringVar()
+        self.urlVar = StringVar()
+        self.tokenVar = StringVar()
+
         self.imageVar = StringVar()
         self.videoVar = StringVar()
         self.audioVar = StringVar()
@@ -79,7 +82,7 @@ class Preferences(Toplevel):
                 self.prefs['seq'] = '00000'
 
             if self.prefs.has_key('aws'):
-                self.s3var.set(self.prefs['aws'])
+                self.s3Var.set(self.prefs['aws'])
 
             if self.prefs.has_key('imagetypes'):
                 self.imageVar.set(self.prefs['imagetypes'])
@@ -89,6 +92,12 @@ class Preferences(Toplevel):
 
             if self.prefs.has_key('audiotypes'):
                 self.audioVar.set(self.prefs['audiotypes'])
+
+            if self.prefs.has_key('apiurl'):
+                self.urlVar.set(self.prefs['apiurl'])
+
+            if self.prefs.has_key('apitoken'):
+                self.tokenVar.set(self.prefs['apitoken'])
 
         if self.metadata:
             self.copyrightVar.set(self.metadata['copyrightnotice'])
@@ -118,8 +127,23 @@ class Preferences(Toplevel):
         self.s3Label = Label(self.prefsFrame, text='S3 bucket/path: ')
         self.s3Label.grid(row=r, column=0, columnspan=4)
 
-        self.s3Box = Entry(self.prefsFrame, textvar=self.s3var)
+        self.s3Box = Entry(self.prefsFrame, textvar=self.s3Var)
         self.s3Box.grid(row=r, column=4)
+
+        r+=1
+        self.urlLabel = Label(self.prefsFrame, text='API URL: ')
+        self.urlLabel.grid(row=r, column=0, columnspan=4)
+
+        self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar)
+        self.urlBox.grid(row=r, column=4)
+
+        r+=1
+        self.tokenLabel = Label(self.prefsFrame, text='API Token: ')
+        self.tokenLabel.grid(row=r, column=0, columnspan=4)
+
+        self.tokenBox = Entry(self.prefsFrame, textvar=self.tokenVar)
+        self.tokenBox.grid(row=r, column=4)
+
 
         types = {'Image':self.imageVar, 'Video':self.videoVar, 'Audio':self.audioVar}
         self.extensions = {}
@@ -220,7 +244,11 @@ class Preferences(Toplevel):
         update = self.orgVar.get()
         self.prefs['seq'] = self.seqVar.get()
 
-        self.prefs['aws'] = self.s3var.get()
+        self.prefs['aws'] = self.s3Var.get()
+        if self.urlVar.get():
+            self.prefs['apiurl'] = self.urlVar.get()
+        if self.tokenVar.get():
+            self.prefs['apitoken'] = self.tokenVar.get()
         self.prefs['imagetypes'] = self.imageVar.get()
         self.prefs['videotypes'] = self.videoVar.get()
         self.prefs['audiotypes'] = self.audioVar.get()
