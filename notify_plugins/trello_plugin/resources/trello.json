@@ -1,0 +1,13 @@
+{
+   "enabled":true,
+   "url":"https://api.trello.com",
+   "boards" : "/1/members/{trelloapiusername}/boards",
+   "lists" : "/1/boards/{boardid}/lists",
+   "cards" : "/1/lists/{listid}/cards",
+   "closed" : "/1/cards/{cardid}/closed",
+   "comment" : "/1/cards/{cardid}/actions/comments",
+   "labels" : "/1/boards/{boardid}/labels",
+   "label" : "/1/cards/{cardid}/idLabels",
+   "label.reviewname":"To Review",
+   "board.name":"JournalQA"
+}
