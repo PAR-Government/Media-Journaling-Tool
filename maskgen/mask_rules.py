@@ -190,7 +190,9 @@ def move_pixels(frommask, tomask, image):
 
 def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     import os
+    returnRaw = False
     try:
+        returnRaw = True
         inputmask =  \
             tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
             if 'inputmaskname' in edge and edge['inputmaskname'] is not None else edgeMask
@@ -205,7 +207,7 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
         if inputmask.shape != res.shape:
             inputmask = cv2.resize(inputmask,(res.shape[1],res.shape[0]))
         if tm is not None:
-            res = tool_set.applyTransformToComposite(res, inputmask, tool_set.deserializeMatrix(tm))
+            res = tool_set.applyTransformToComposite(res, inputmask, tool_set.deserializeMatrix(tm), returnRaw=returnRaw)
         else:
             inputmask = 255-inputmask
             differencemask = (255-edgeMask) - inputmask

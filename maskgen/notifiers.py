@@ -3,8 +3,11 @@ from maskgen.maskgen_loader import MaskGenLoader
 
 class MaskgenNotifer:
 
-    def update_journal_status(self, journalid, comment):
+    def update_journal_status(self, journalid, comment,typeofjournal):
         pass
+
+    def get_properties(self):
+        return {}
 
 class CompositeMaskgenNotifer(MaskgenNotifer):
 
@@ -12,9 +15,16 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
     def __init__(self,notifiers):
         self.notifiers = notifiers
 
-    def update_journal_status(self, journalid, comment):
+    def update_journal_status(self, journalid, comment, typeofjournal):
         for notifier in self.notifiers:
-            notifier.update_journal_status(journalid,comment)
+            notifier.update_journal_status(journalid,comment,typeofjournal)
+
+    def get_properties(self):
+        r = {}
+        for notifier in self.notifiers:
+            for k,v, in notifier.get_properties().iteritems():
+                r[k] = v
+        return r
 
 def loadNotifier(loader):
     """

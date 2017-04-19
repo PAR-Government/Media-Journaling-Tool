@@ -436,7 +436,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return openImage('./icons/RedX.png')
 
 
-def interpolateMask(mask, img1, img2, invert=False, sourceMask=None, arguments=dict()):
+def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     """
 
     :param mask:
@@ -452,11 +452,8 @@ def interpolateMask(mask, img1, img2, invert=False, sourceMask=None, arguments=d
     maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
     mask = mask.astype('uint8')
-    mask2 = maskInverted if sourceMask is None else sourceMask.to_array().astype('uint8')
-    if sourceMask is not None:
-        mask[mask2>0] = 0
     try:
-        mask1 = convertToMask(img1).invert().to_array() if img1.has_alpha() else None
+        mask1 = convertToMask(img1).to_array() if img1.has_alpha() else None
         TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted, arguments=arguments)
     except:
         TM = None

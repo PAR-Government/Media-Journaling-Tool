@@ -1675,7 +1675,7 @@ class ImageProjectModel:
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
         mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
-                                                               arguments=edge['arguments'] if 'arguments' in edge else dict(),
+                                                               arguments=arguments,
                                                                skipDonorAnalysis=skipDonorAnalysis,
                                                                analysis_params=analysis_params,
                                                                force=True)
@@ -2156,8 +2156,15 @@ class ImageProjectModel:
                         renamed.append(node)
                         logging.getLogger('maskgen').info('Renamed {} to {} '.format( nodeData['file'], new_file_name))
                         self.G.update_node(node,file=new_file_name)
-                    except:
-                        continue
+                    except Exception as e:
+                        try:
+                            logging.getLogger('maskgen').error(('Failure to rename file {} : {}.  Trying copy').format(file_path_name,str(e)))
+                            shutil.copy2(file_path_name,fullname)
+                            logging.getLogger('maskgen').info(
+                                'Renamed {} to {} '.format(nodeData['file'], new_file_name))
+                            self.G.update_node(node, file=new_file_name)
+                        except:
+                            continue
                 else:
                    logging.getLogger('maskgen').error(nodeData['file'] + ' is missing')
         self.save()
