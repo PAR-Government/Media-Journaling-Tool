@@ -12,6 +12,8 @@ import tkMessageBox
 import tkSimpleDialog
 import pandastable
 import csv
+import webbrowser
+import requests
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
 from CameraForm import HP_Device_Form
@@ -32,7 +34,7 @@ class HPSpreadsheet(Toplevel):
             self.errorpath = os.path.join(self.dir, 'csv', 'errors.json')
         self.master = master
         self.ritCSV=ritCSV
-
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.saveState = True
         self.kinematics = self.load_kinematics()
         self.devices = devices
@@ -415,14 +417,14 @@ class HPSpreadsheet(Toplevel):
             with open(self.prefsFile, 'w') as f:
                 for key in self.prefs:
                     f.write(key + '=' + self.prefs[key] + '\n')
-            print 'Creating archive...'
+            self.master.statusBox.println('Creating archive...')
             archive = self.create_hp_archive()
             s3 = boto3.client('s3', 'us-east-1')
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-            print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val
+            self.master.statusBox.println('Uploading ' + archive.replace('\\', '/') + ' to s3://' + val)
             s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
 
             # print 'Uploading CSV...'
@@ -441,13 +443,60 @@ class HPSpreadsheet(Toplevel):
             #     s3.upload_file(os.path.join(self.audioDir, audio), BUCKET, DIR + 'audio/' + audio)
 
             os.remove(archive)
-            print 'Complete.'
-            d = tkMessageBox.showinfo(title='Status', message='Complete!')
+
+            err = self.notify_trello()
+            if err is not None:
+                msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nPlease post a new card on the \"S3 Uploads\" list on the \"High Provenance\" board.'
+            else:
+                msg = 'Complete!'
+            d = tkMessageBox.showinfo(title='Status', message=msg)
+
+    def notify_trello(self):
+        if 'trello' not in self.prefs:
+            token = self.get_trello_token()
+            self.prefs['trello'] = token
+            with open(self.prefsFile, 'w') as f:
+                for key in self.prefs:
+                    f.write(key + '=' + self.prefs[key] + '\n')
+        else:
+            token = self.prefs['trello']
+
+        # list ID for "New Devices" list
+        list_id = '58f4e07b1d52493b1910598f'
+
+        # post the new card
+        new = str(datetime.datetime.now())
+        stats = self.collect_stats()
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
+                             data=dict(name=new, idList=list_id, desc=stats))
+
+        # attach the file, if the card was successfully posted
+        if resp.status_code == requests.codes.ok:
+            return None
+        else:
+            return resp.status_code
+
+    def get_trello_token(self):
+        t = TrelloSignInPrompt(self, self.trello_key)
+        return t.token.get()
 
     def prompt_for_new_camera(self, invalids):
         h = NewCameraPrompt(self, invalids, valids=self.devices.keys())
         return h.pathVars
 
+    def collect_stats(self):
+        images = 0
+        videos = 0
+        audio = 0
+        for data in self.pt.model.df['Type']:
+            if data == 'video':
+                videos+=1
+            elif data == 'audio':
+                audio+=1
+            else:
+                images+=1
+
+        return 'Image Files: ' + str(images) + '\nVideo Files: ' + str(videos) + '\nAudio Files: ' + str(audio)
 
     def create_hp_archive(self):
         val = self.pt.model.df['HP-DeviceLocalID'][0]
@@ -626,6 +675,24 @@ class NewCameraPrompt(tkSimpleDialog.Dialog):
 
     def open_form(self, pathVar):
         h = HP_Device_Form(self, self.valids, pathvar=pathVar)
+
+
+class TrelloSignInPrompt(tkSimpleDialog.Dialog):
+    def __init__(self, master, key):
+        self.master=master
+        self.token = StringVar()
+        self.trello_key = key
+        tkSimpleDialog.Dialog.__init__(self, master)
+
+    def body(self, master):
+        Label(self, text='Please enter your Trello API token. If you do not know it, access it here: ').pack()
+        b = Button(self, text='Get Token', command=self.open_trello_token)
+        b.pack()
+        e = Entry(self, textvar=self.token)
+        e.pack()
+
+    def open_trello_token(self):
+        webbrowser.open('https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
 
 
 class CustomTable(pandastable.Table):

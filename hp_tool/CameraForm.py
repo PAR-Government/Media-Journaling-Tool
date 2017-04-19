@@ -1,3 +1,4 @@
+import webbrowser
 from Tkinter import *
 import ttk
 import pandas as pd
@@ -7,9 +8,11 @@ import subprocess
 import tkFileDialog, tkMessageBox
 import json
 
+import requests
+
 
 class HP_Device_Form(Toplevel):
-    def __init__(self, master, validIDs=None, pathvar=None):
+    def __init__(self, master, validIDs=None, pathvar=None, prefs=None):
         Toplevel.__init__(self, master)
         self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
         self.master = master
@@ -17,6 +20,7 @@ class HP_Device_Form(Toplevel):
         self.validIDs = validIDs if validIDs is not None else []
         self.set_list_options()
         self.create_widgets()
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
 
     def set_list_options(self):
         df = pd.read_csv(os.path.join('data', 'db.csv'))
@@ -102,6 +106,14 @@ class HP_Device_Form(Toplevel):
 
         self.headers['Device Affiliation*']['var'].set('RIT')
 
+        Label(self.f.interior, text='Trello Login Token', font=("Courier", 20)).pack()
+        Label(self.f.interior, text='If not supplied, you will need to manually post the output text file from this form onto the proper Trello board.').pack()
+        apiTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
+        apiTokenButton.pack()
+        self.token = StringVar()
+        tokenEntry = Entry(self.f.interior, textvar=self.token)
+        tokenEntry.pack()
+
         self.okbutton = Button(self.f.interior, text='Complete', command=self.export_results)
         self.okbutton.pack()
         self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
@@ -145,6 +157,12 @@ class HP_Device_Form(Toplevel):
 
         if self.pathvar:
             self.pathvar.set(path)
+
+        if self.token.get():
+            code = self.post_to_trello(path)
+            if code is not None:
+                tkMessageBox.showerror('Trello Error', message='An error ocurred connecting to trello (' + str(code) + ').')
+
         tkMessageBox.showinfo(title='Information', message='Complete!')
 
         self.destroy()
@@ -152,8 +170,32 @@ class HP_Device_Form(Toplevel):
     def local_id_used(self):
         return self.localID.get().lower() in [i.lower() for i in self.validIDs]
 
-    def post_to_trello(self):
-        pass
+    def open_trello_token(self):
+        webbrowser.open('https://trello.com/1/authorize?key='+self.trello_key+'&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
+
+
+    def post_to_trello(self, filepath):
+        """create a new card in trello and attach a file to it"""
+
+        token = self.token.get()
+
+        # list ID for "New Devices" list
+        list_id = '58ecda84d8cfce408d93dd34'
+
+        # post the new card
+        new = self.localID.get()
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
+                             data=dict(name=new, idList=list_id))
+
+        # attach the file, if the card was successfully posted
+        if resp.status_code == requests.codes.ok:
+            j = json.loads(resp.content)
+            files = {'file': open(filepath, 'rb')}
+            requests.post("https://trello.com/1/cards/%s/attachments" % (j['id']),
+                          params=dict(key=self.trello_key, token=token), files=files)
+            return None
+        else:
+            return resp.status_code
 
 
 class VerticalScrolledFrame(Frame):
