@@ -1,3 +1,4 @@
+import csv
 import webbrowser
 from Tkinter import *
 import ttk
@@ -12,13 +13,30 @@ import requests
 
 
 class HP_Device_Form(Toplevel):
-    def __init__(self, master, validIDs=None, pathvar=None, prefs=None):
+    def __init__(self, master, validIDs=None, pathvar=None, token=None):
         Toplevel.__init__(self, master)
         self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
         self.master = master
         self.pathvar = pathvar # use this to set a tk variable to the path of the output txt file
         self.validIDs = validIDs if validIDs is not None else []
         self.set_list_options()
+
+        self.affiliation = StringVar()
+        self.localID = StringVar()
+        self.serial = StringVar()
+        self.manufacturer = StringVar()
+        self.series_model = StringVar()
+        self.camera_model = StringVar()
+        self.edition = StringVar()
+        self.device_type = StringVar()
+        self.sensor = StringVar()
+        self.general = StringVar()
+        self.lens_mount = StringVar()
+        self.os = StringVar()
+        self.osver = StringVar()
+        self.token = StringVar()
+        self.token.set(token) if token is not None else ''
+
         self.create_widgets()
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
 
@@ -40,42 +58,25 @@ class HP_Device_Form(Toplevel):
         self.imageButton = Button(self.f.interior, text='Select Image', command=self.populate_from_image)
         self.imageButton.pack()
 
-
-        self.email = StringVar()
-        self.affiliation = StringVar()
-        self.localID = StringVar()
-        self.serial = StringVar()
-        self.manufacturer = StringVar()
-        self.series_model = StringVar()
-        self.camera_model = StringVar()
-        self.edition = StringVar()
-        self.device_type = StringVar()
-        self.sensor = StringVar()
-        self.general = StringVar()
-        self.lens_mount = StringVar()
-        self.os = StringVar()
-        self.osver = StringVar()
-
-        head = [('Email Address*', {'description':'','type':'text', 'var':self.email}),
-                       ('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
-                                                 'type': 'radiobutton', 'values': ['RIT', 'PAR', 'Other (please specify):'], 'var':self.affiliation}),
-                       ('Define the Local ID*',{'description':'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MAKE, such as'
-                                                             ' ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
-                       ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
-                                                'type':'text', 'var':self.serial}),
-                       ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
-                       ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
-                                         'var':self.series_model}),
-                       ('Camera Model*',{'description':'If Camera Model appears in Exif data, please enter it here (ex. SM-009', 'type':'text',
-                                         'var':self.camera_model}),
-                       ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
-                       ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
-                       ('Sensor Information',{'description':'', 'type':'text', 'var':self.sensor}),
-                       ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
-                       ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
-                                       'var':self.lens_mount}),
-                       ('Firmware/OS',{'description':'Firmware/OS', 'type':'text', 'var':self.os}),
-                       ('Firmware/OS Version',{'description':'Firmware/OS Version', 'type':'text', 'var':self.osver})
+        head = [('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
+                                 'type': 'radiobutton', 'values': ['RIT', 'PAR', 'Other (please specify):'], 'var':self.affiliation}),
+               ('Define the Local ID*',{'description':'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MAKE, such as'
+                                 ' ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
+               ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
+                                 'type':'text', 'var':self.serial}),
+               ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
+               ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
+                                 'var':self.series_model}),
+               ('Camera Model*',{'description':'If Camera Model appears in Exif data, please enter it here (ex. SM-009', 'type':'text',
+                                 'var':self.camera_model}),
+               ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
+               ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
+               ('Sensor Information',{'description':'', 'type':'text', 'var':self.sensor}),
+               ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
+               ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
+                                 'var':self.lens_mount}),
+               ('Firmware/OS',{'description':'Firmware/OS', 'type':'text', 'var':self.os}),
+               ('Firmware/OS Version',{'description':'Firmware/OS Version', 'type':'text', 'var':self.osver})
         ]
         self.headers = collections.OrderedDict(head)
 
@@ -106,11 +107,10 @@ class HP_Device_Form(Toplevel):
 
         self.headers['Device Affiliation*']['var'].set('RIT')
 
-        Label(self.f.interior, text='Trello Login Token', font=("Courier", 20)).pack()
+        Label(self.f.interior, text='Trello Login Token*', font=("Courier", 20)).pack()
         Label(self.f.interior, text='If not supplied, you will need to manually post the output text file from this form onto the proper Trello board.').pack()
         apiTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
         apiTokenButton.pack()
-        self.token = StringVar()
         tokenEntry = Entry(self.f.interior, textvar=self.token)
         tokenEntry.pack()
 
@@ -142,7 +142,8 @@ class HP_Device_Form(Toplevel):
             if h.endswith('*') and self.headers[h]['var'].get() == '':
                 msg = 'Field ' + h[:-1] + ' is a required field.'
                 break
-
+        if self.token.get() == '':
+            msg = 'Trello Token is a required field.'
         if self.local_id_used():
             msg = 'Local ID ' + self.localID.get() + ' already in use.'
 
@@ -150,20 +151,22 @@ class HP_Device_Form(Toplevel):
             tkMessageBox.showerror(title='Error', message=msg)
             return
 
-        path = tkFileDialog.asksaveasfilename(initialfile=self.localID.get()+'.txt')
-        with open(path, 'w') as t:
-            for h in self.headers:
-                t.write(h + ' = ' + self.headers[h]['var'].get() + '\n')
-
+        path = tkFileDialog.asksaveasfilename(initialfile=self.localID.get()+'.csv')
+        with open(path, 'wb') as csvFile:
+            wtr = csv.writer(csvFile)
+            wtr.writerow(['Affiliation', 'HP-LocalDeviceID', 'DeviceSN', 'Manufacturer', 'CameraModel', 'HP-CameraModel', 'Edition',
+                          'DeviceType', 'Sensor', 'Description', 'LensMount', 'Firmware', 'version', 'HasPRNUData'])
+            wtr.writerow([self.affiliation.get(), self.localID.get(), self.serial.get(), self.manufacturer.get(), self.camera_model.get(),
+                          self.series_model.get(), self.edition.get(), self.device_type.get(), self.sensor.get(), self.general.get(),
+                          self.lens_mount.get(), self.os.get(), self.osver.get(), '0'])
         if self.pathvar:
             self.pathvar.set(path)
 
-        if self.token.get():
-            code = self.post_to_trello(path)
-            if code is not None:
-                tkMessageBox.showerror('Trello Error', message='An error ocurred connecting to trello (' + str(code) + ').')
-
-        tkMessageBox.showinfo(title='Information', message='Complete!')
+        code = self.post_to_trello(path)
+        if code is not None:
+            tkMessageBox.showerror('Trello Error', message='An error ocurred connecting to trello (' + str(code) + ').\nIf you\'re not sure what is causing this error, email medifor_manipulators@partech.com.')
+        else:
+            tkMessageBox.showinfo(title='Information', message='Complete!')
 
         self.destroy()
 

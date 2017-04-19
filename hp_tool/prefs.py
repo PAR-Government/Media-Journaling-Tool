@@ -1,3 +1,4 @@
+import webbrowser
 from Tkinter import *
 import ttk
 import os
@@ -11,6 +12,7 @@ class Preferences(Toplevel):
         Toplevel.__init__(self, master=master)
         self.master=master
         self.title('Preferences')
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.set_text_vars()
         self.prefsFrame = Frame(self, width=300, height=300)
         self.prefsFrame.pack(side=TOP)
@@ -55,6 +57,7 @@ class Preferences(Toplevel):
         self.s3Var = StringVar()
         self.urlVar = StringVar()
         self.tokenVar = StringVar()
+        self.trelloVar = StringVar()
 
         self.imageVar = StringVar()
         self.videoVar = StringVar()
@@ -99,6 +102,9 @@ class Preferences(Toplevel):
             if self.prefs.has_key('apitoken'):
                 self.tokenVar.set(self.prefs['apitoken'])
 
+            if self.prefs.has_key('trello'):
+                self.trelloVar.set(self.prefs['trello'])
+
         if self.metadata:
             self.copyrightVar.set(self.metadata['copyrightnotice'])
             self.bylineVar.set(self.metadata['by-line'])
@@ -131,19 +137,25 @@ class Preferences(Toplevel):
         self.s3Box.grid(row=r, column=4)
 
         r+=1
-        self.urlLabel = Label(self.prefsFrame, text='API URL: ')
+        self.urlLabel = Label(self.prefsFrame, text='Browser API URL: ')
         self.urlLabel.grid(row=r, column=0, columnspan=4)
 
         self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar)
         self.urlBox.grid(row=r, column=4)
 
         r+=1
-        self.tokenLabel = Label(self.prefsFrame, text='API Token: ')
+        self.tokenLabel = Label(self.prefsFrame, text='Browser API Token: ')
         self.tokenLabel.grid(row=r, column=0, columnspan=4)
 
         self.tokenBox = Entry(self.prefsFrame, textvar=self.tokenVar)
         self.tokenBox.grid(row=r, column=4)
 
+        r+=1
+        self.trelloButton = Button(self.prefsFrame, text='Trello Token: ', command=self.get_trello_token)
+        self.trelloButton.grid(row=r, column=0, columnspan=4)
+
+        self.trelloBox = Entry(self.prefsFrame, textvar=self.trelloVar)
+        self.trelloBox.grid(row=r, column=4)
 
         types = {'Image':self.imageVar, 'Video':self.videoVar, 'Audio':self.audioVar}
         self.extensions = {}
@@ -186,6 +198,9 @@ class Preferences(Toplevel):
         self.applyButton.grid(padx=5)
         self.cancelButton = Button(self.buttonFrame, text='Cancel', command=self.destroy)
         self.cancelButton.grid(row=0, column=1, padx=5)
+
+    def get_trello_token(self):
+        webbrowser.open('https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
 
     def show_default_types(self):
         imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
@@ -249,6 +264,8 @@ class Preferences(Toplevel):
             self.prefs['apiurl'] = self.urlVar.get()
         if self.tokenVar.get():
             self.prefs['apitoken'] = self.tokenVar.get()
+        if self.trelloVar.get():
+            self.prefs['trello'] = self.trelloVar.get()
         self.prefs['imagetypes'] = self.imageVar.get()
         self.prefs['videotypes'] = self.videoVar.get()
         self.prefs['audiotypes'] = self.audioVar.get()

@@ -107,7 +107,8 @@ class HP_Starter(Frame):
             yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
             if yes:
                 v = StringVar()
-                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v)
+                token = self.prefs['trello'] if 'trello' in self.prefs else None
+                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=token)
                 h.wait_window()
                 if v.get():
                     r = self.add_device(v.get())
@@ -166,6 +167,7 @@ class HP_Starter(Frame):
                 'exif_device_serial_number': exif_sn
             }
             self.master.statusBox.println('Added ' + local_id + ' to camera list. This will be valid for this instance only.')
+            self.update_model()
             return 1
         else:
             return None
@@ -315,13 +317,13 @@ class PRNU_Uploader(Frame):
                     self.newCamEntry.config(state=DISABLED)
                 else:
                     self.open_new_insert_id()
-                    #d = HP_Device_Form(self, prefs=self.prefs, pathvar=self.localIDfile)
         else:
             self.newCamEntry.config(state=DISABLED)
 
     def open_new_insert_id(self):
         self.newCam.set(1)
-        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile)
+        token = self.prefs['trello'] if 'trello' in self.prefs else None
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=token)
         if self.localIDfile.get():
             self.newCamEntry.config(state=NORMAL)
 
@@ -532,7 +534,8 @@ class HPGUI(Frame):
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        h = HP_Device_Form(self, validIDs=self.cameras.keys())
+        token = self.prefs['trello'] if 'trello' in self.prefs else None
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), token=token)
 
     def load_defaults(self):
         self.prefs = parse_prefs(self, os.path.join('data', 'preferences.txt'))
@@ -603,57 +606,6 @@ class HPGUI(Frame):
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in preferences and restart to get the most updated information.')
 
-# class VerticalScrolledFrame(Frame):
-#     """A pure Tkinter scrollable frame that actually works!
-#     http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
-#     * Use the 'interior' attribute to place widgets inside the scrollable frame
-#     * Construct and pack/place/grid normally
-#     * This frame only allows vertical scrolling
-#
-#     """
-#     def __init__(self, parent, *args, **kw):
-#         Frame.__init__(self, parent, *args, **kw)
-#
-#         # create a canvas object and a vertical scrollbar for scrolling it
-#         vscrollbar = Scrollbar(self, orient=VERTICAL)
-#         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-#         self.canvas = Canvas(self, bd=0, highlightthickness=0,
-#                         yscrollcommand=vscrollbar.set)
-#         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
-#         vscrollbar.config(command=self.canvas.yview)
-#         self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
-#
-#         # reset the view
-#         self.canvas.xview_moveto(0)
-#         self.canvas.yview_moveto(0)
-#
-#         # create a frame inside the canvas which will be scrolled with it
-#         self.interior = interior = Frame(self.canvas)
-#         interior_id = self.canvas.create_window(0, 0, window=interior,
-#                                            anchor=NW)
-#
-#         # track changes to the canvas and frame width and sync them,
-#         # also updating the scrollbar
-#         def _configure_interior(event):
-#             # update the scrollbars to match the size of the inner frame
-#             size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
-#             self.canvas.config(scrollregion="0 0 %s %s" % size)
-#             if interior.winfo_reqwidth() != self.canvas.winfo_width():
-#                 # update the canvas's width to fit the inner frame
-#                 self.canvas.config(width=interior.winfo_reqwidth())
-#         interior.bind('<Configure>', _configure_interior)
-#
-#         def _configure_canvas(event):
-#             if interior.winfo_reqwidth() != self.canvas.winfo_width():
-#                 # update the inner frame's width to fill the canvas
-#                 self.canvas.itemconfigure(interior_id, width=self.canvas.winfo_width())
-#         self.canvas.bind('<Configure>', _configure_canvas)
-#
-#     def on_mousewheel(self, event):
-#         if sys.platform.startswith('win'):
-#             self.canvas.yview_scroll(-1*(event.delta/120), "units")
-#         else:
-#             self.canvas.yview_scroll(-1*(event.delta), "units")
 
 class ReadOnlyText(Text):
     def __init__(self, master, **kwargs):

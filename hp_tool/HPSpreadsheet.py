@@ -444,14 +444,14 @@ class HPSpreadsheet(Toplevel):
 
             os.remove(archive)
 
-            err = self.notify_trello()
+            err = self.notify_trello(os.path.basename(archive))
             if err is not None:
-                msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nPlease post a new card on the \"S3 Uploads\" list on the \"High Provenance\" board.'
+                msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
             else:
                 msg = 'Complete!'
             d = tkMessageBox.showinfo(title='Status', message=msg)
 
-    def notify_trello(self):
+    def notify_trello(self, archive):
         if 'trello' not in self.prefs:
             token = self.get_trello_token()
             self.prefs['trello'] = token
@@ -466,7 +466,7 @@ class HPSpreadsheet(Toplevel):
 
         # post the new card
         new = str(datetime.datetime.now())
-        stats = self.collect_stats()
+        stats = archive + '\n' + self.collect_stats()
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
                              data=dict(name=new, idList=list_id, desc=stats))
 
@@ -481,7 +481,7 @@ class HPSpreadsheet(Toplevel):
         return t.token.get()
 
     def prompt_for_new_camera(self, invalids):
-        h = NewCameraPrompt(self, invalids, valids=self.devices.keys())
+        h = NewCameraPrompt(self, invalids, valids=self.devices.keys(), token=self.prefs['trello'])
         return h.pathVars
 
     def collect_stats(self):
@@ -500,7 +500,7 @@ class HPSpreadsheet(Toplevel):
 
     def create_hp_archive(self):
         val = self.pt.model.df['HP-DeviceLocalID'][0]
-        dt = datetime.datetime.now().strftime('%Y%m%d')[2:]
+        dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fname = os.path.join(self.dir, val + '-' + dt + '.tgz')
         DIRNAME = self.dir
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
@@ -653,12 +653,13 @@ class HPSpreadsheet(Toplevel):
         return errors
 
 class NewCameraPrompt(tkSimpleDialog.Dialog):
-    def __init__(self, master, invalids, valids=None):
+    def __init__(self, master, invalids, valids=None, token=None):
         self.invalids = invalids
         self.master = master
         self.valids = valids if valids is not None else []
         self.pathVars = {}
         tkSimpleDialog.Dialog.__init__(self, master)
+        self.token = token
         self.title('New Devices')
 
     def body(self, master):
@@ -674,7 +675,7 @@ class NewCameraPrompt(tkSimpleDialog.Dialog):
             # b.grid(row=r, column=2)
 
     def open_form(self, pathVar):
-        h = HP_Device_Form(self, self.valids, pathvar=pathVar)
+        h = HP_Device_Form(self, self.valids, pathvar=pathVar, token=self.token)
 
 
 class TrelloSignInPrompt(tkSimpleDialog.Dialog):
