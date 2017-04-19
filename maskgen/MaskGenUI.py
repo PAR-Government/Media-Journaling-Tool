@@ -16,7 +16,8 @@ from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
 from CompositeViewer import CompositeViewDialog
-
+from notifiers import  loadNotifier
+import logging
 
 """
   Main UI Driver for MaskGen
@@ -91,6 +92,7 @@ class MakeGenUI(Frame):
     errorlistDialog = None
     exportErrorlistDialog = None
     uiProfile = UIProfile()
+    notifiers = loadNotifier(prefLoader)
     menuindices = {}
     scModel = None
     """
@@ -247,7 +249,11 @@ class MakeGenUI(Frame):
                 else:
                     tkMessageBox.showinfo("Export to S3", "Complete")
                     self.prefLoader.save('s3info', val)
-            except IOError:
+            except IOError as e:
+                logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
+                tkMessageBox.showinfo("Error", "Failed to upload export")
+            except ClientError as e:
+                logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
 
     def _promptRotate(self,donor_im,rotated_im, orientation):
@@ -683,6 +689,9 @@ class MakeGenUI(Frame):
     def changeEvent(self, recipient, eventType):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
+        if eventType == 'export':
+            self.notifiers.update_journal_status(self.scModel.getName(),
+                                                 'Exported by ' + self.prefLoader.get_key('username'))
         #        elif eventType == 'connect':
         #           self.canvas.showEdge(recipient[0],recipient[1])
 
@@ -958,7 +967,7 @@ class MakeGenUI(Frame):
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:
-            print 'Invalid project director ' + dir
+            logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
@@ -989,6 +998,8 @@ def do_every (interval, worker_func, iterations = 0):
       do_every, [interval, worker_func, 0 if iterations == 0 else iterations-1]
     ).start ()
 
+
+
 def main(argv=None):
     if (argv is None):
         argv = sys.argv
@@ -998,10 +1009,12 @@ def main(argv=None):
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
+
     imgdir = None
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
+    set_logging()
     if args.imagedir is not None:
         imgdir = args.imagedir
     if args.http is not None:
@@ -1020,6 +1033,7 @@ def main(argv=None):
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':
         execute_every(float(interval),saveme, saver=gui)
+
     gui.mainloop()
 
 

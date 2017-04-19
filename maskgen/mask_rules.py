@@ -7,7 +7,7 @@ from software_loader import Operation
 import tool_set
 import numpy as np
 import cv2
-
+import logging
 
 def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None,pred_edges=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
@@ -34,7 +34,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
                 res = clippedMask
             res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
             if right_box[3] > newMask.shape[0] and right_box[2] > newMask.shape[1]:
-                print 'The mask for recapture edge with file {} has an incorrect size'.format(edge['maskname'])
+                logging.getLogger('maskgen').warning('The mask for recapture edge with file {} has an incorrect size'.format(edge['maskname']))
                 newMask = np.resize(newMask, (right_box[3] + 1, right_box[2] + 1))
             newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
             if angle!=0:

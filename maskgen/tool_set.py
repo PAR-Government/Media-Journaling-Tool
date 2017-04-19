@@ -12,6 +12,8 @@ from image_wrap import *
 from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
+import logging
+
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf"),('cr2','*.cr2'),('raf','*.raf')]
@@ -25,6 +27,29 @@ suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".w
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
+
+def set_logging():
+    logger = logging.getLogger('maskgen')
+    logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+
+    fh = logging.FileHandler('maskgen.log', mode='a', encoding=None, delay=False)
+
+    fh.setLevel(logging.WARNING)
+    # add formatter to ch
+    fh.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(fh)
 
 def getMaskFileTypes():
     return maskfiletypes
@@ -352,7 +377,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
 
     snapshotFileName = filename
     if not os.path.exists(filename):
-        print filename + ' is missing.'
+        logging.getLogger('maskgen').warning(filename + ' is missing.')
         if filename != './icons/RedX.png':
             return openImage('./icons/RedX.png')
         return None
@@ -396,7 +421,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         finally:
             cap.release()
         if bestSoFar is None:
-            print 'invalid or corrupted file ' + filename
+            logging.getLogger('maskgen').warning( 'invalid or corrupted file ' + filename)
             return openImage('./icons/RedX.png')
         img = ImageWrapper(bestSoFar, to_mask=isMask)
         if preserveSnapshot and snapshotFileName != filename:
@@ -407,7 +432,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             img = openImageFile(snapshotFileName, isMask=isMask)
             return img if img is not None else openImage('./icons/RedX.png')
         except Exception as e:
-            print e
+            logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
             return openImage('./icons/RedX.png')
 
 
@@ -684,7 +709,7 @@ def boundingRegion (mask):
                 if y + h > maxregion[1]:
                     maxregion[1] = y + h
             except Exception as e:
-                print e
+                logging.getLogger('maskgen').warning('Failed to find bounded region: ' + str(e))
                 continue
         return tuple(minregion), tuple(maxregion)
 
@@ -871,7 +896,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
             try:
                 RANSAC_THRESHOLD = float(arguments['RANSAC'])
             except:
-                print 'invalid RANSAC ' + arguments['RANSAC']
+                logging.getLogger('maskgen').error('invalid RANSAC ' + arguments['RANSAC'])
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
         if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
             return None, None
@@ -1065,7 +1090,7 @@ def __composeMask(img1, img2, invert, arguments=dict(), crop=False, seam=False):
         if img1.shape == img2.shape:
             return __diffMask(img1, img2, invert, args=arguments)
     except ValueError as e:
-        print 'Mask generation failure ' + str(e)
+        logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
     mask = np.ones(img1.shape) * 255
     return abs(255 - mask).astype('uint8'), {}
 
@@ -1226,7 +1251,7 @@ def composeCloneMask(changemask, startimage, finalimage):
             if tuple is not None:
                 newmask[tuple[0]:tuple[2], tuple[1]:tuple[3]] = 255
         except Exception as e:
-            print e
+            logging.getLogger('maskgen').warning('Failed to compose clone mask: ' + str(e))
             continue
     return newmask
 
@@ -1902,7 +1927,7 @@ class GrayFrameWriter:
     def write(self, mask, mask_time):
         if self.capOut is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
-            print self.fourcc
+            logging.getLogger('maskgen').info('writing using fourcc ' + str(self.fourcc))
             self.capOut = cv2.VideoWriter(unicode(os.path.abspath(self.filename)),
                                           self.fourcc,
                                           self.fps,
