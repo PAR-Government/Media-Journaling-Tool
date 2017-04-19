@@ -14,6 +14,7 @@ import pandastable
 import csv
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
+from CameraForm import HP_Device_Form
 import hp_data
 import datetime
 
@@ -404,6 +405,9 @@ class HPSpreadsheet(Toplevel):
         if cancelled:
             return
 
+        # localIDs = set(self.pt.model.df['HP-DeviceLocalID'])
+        # if not localIDs.issubset(set(self.devices.keys())):
+        #     self.prompt_for_new_camera(invalids=localIDs - set(self.devices.keys()))
         initial = self.prefs['aws'] if 'aws' in self.prefs else ''
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
         if (val is not None and len(val) > 0):
@@ -439,6 +443,10 @@ class HPSpreadsheet(Toplevel):
             os.remove(archive)
             print 'Complete.'
             d = tkMessageBox.showinfo(title='Status', message='Complete!')
+
+    def prompt_for_new_camera(self, invalids):
+        h = NewCameraPrompt(self, invalids, valids=self.devices.keys())
+        return h.pathVars
 
 
     def create_hp_archive(self):
@@ -594,6 +602,30 @@ class HPSpreadsheet(Toplevel):
         if len(uniques) > 1:
             errors.append('Multiple Local IDs are identified. Each process should only contain one unique Local ID.')
         return errors
+
+class NewCameraPrompt(tkSimpleDialog.Dialog):
+    def __init__(self, master, invalids, valids=None):
+        self.invalids = invalids
+        self.master = master
+        self.valids = valids if valids is not None else []
+        self.pathVars = {}
+        tkSimpleDialog.Dialog.__init__(self, master)
+        self.title('New Devices')
+
+    def body(self, master):
+        r=0
+        Label(self, text='The following device local IDs are invalid. Please provide a text file with the completed "New Camera" form.').grid(row=r, columnspan=3)
+        for newDevice in self.invalids:
+            r+=1
+            self.pathVars[newDevice] = StringVar()
+            Label(self, text=newDevice).grid(row=r, column=0)
+            e = Entry(self, textvar=self.pathVars[newDevice])
+            e.grid(row=r, column=1)
+            # b = Button(self, text='Complete form', command=lambda: self.open_form(self.pathVars[newDevice]))
+            # b.grid(row=r, column=2)
+
+    def open_form(self, pathVar):
+        h = HP_Device_Form(self, self.valids, pathvar=pathVar)
 
 
 class CustomTable(pandastable.Table):

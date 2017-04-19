@@ -23,6 +23,7 @@ from HPSpreadsheet import HPSpreadsheet
 from KeywordsSheet import KeywordsSheet
 from ErrorWindow import ErrorWindow
 from prefs import Preferences
+from CameraForm import HP_Device_Form
 
 class HP_Starter(Frame):
 
@@ -34,7 +35,6 @@ class HP_Starter(Frame):
         self.metadatafilename = StringVar()
         self.metadatafilename.set(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
         self.grid()
-        self.load_ids()
         self.oldImageNames = []
         self.newImageNames = []
         self.createWidgets()
@@ -104,8 +104,17 @@ class HP_Starter(Frame):
 
     def go(self):
         if self.camModel.get() == '':
-            tkMessageBox.showerror(title='Error', message='Invalid Device Local ID. This field is case sensitive.')
+            yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
+            if yes:
+                v = StringVar()
+                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v)
+                h.wait_window()
+                if v.get():
+                    r = self.add_device(v.get())
+                    if r is None:
+                        tkMessageBox.showerror(title='Error', message='An error ocurred. Could not add device.')
             return
+
         globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
         kwargs = {'preferences':self.prefsfilename,
                   'metadata':self.metadatafilename.get(),
@@ -119,16 +128,48 @@ class HP_Starter(Frame):
 
         self.update_defaults()
 
-        (self.oldImageNames, self.newImageNames, errors) = process(self, self.cameras, **kwargs)
+        (self.oldImageNames, self.newImageNames, errors) = process(self, self.master.cameras, **kwargs)
         if self.oldImageNames == None:
             return
-        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master, devices=self.cameras)
+        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master, devices=self.master.cameras)
         aSheet.open_spreadsheet()
         if errors is not None:
             ErrorWindow(aSheet, errors)
         self.keywordsbutton.config(state=NORMAL)
         keySheet = self.open_keywords_sheet()
         keySheet.close()
+
+    def add_device(self, path):
+        local_id = None
+        hp_model = None
+        exif_model = None
+        exif_sn = None
+        make = None
+        with open(path) as p:
+            for line in p:
+                if 'Local ID' in line:
+                    local_id = line.split('=')[1].strip()
+                elif 'Series Model' in line:
+                    hp_model = line.split('=')[1].strip()
+                elif 'Camera Model' in line:
+                    exif_model = line.split('=')[1].strip()
+                elif 'Serial Number' in line:
+                    exif_sn = line.split('=')[1].strip()
+                elif 'Manufacturer' in line:
+                    make = line.split('=')[1].strip()
+        if local_id and hp_model and exif_model and exif_sn:
+            self.master.cameras[local_id] = {
+                'hp_device_local_id': local_id,
+                'hp_camera_model': hp_model,
+                'exif_camera_model': exif_model,
+                'exif_camera_make': make,
+                'exif_device_serial_number': exif_sn
+            }
+            self.master.statusBox.println('Added ' + local_id + ' to camera list. This will be valid for this instance only.')
+            return 1
+        else:
+            return None
+
 
     def open_keywords_sheet(self):
         keywords = KeywordsSheet(dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
@@ -206,35 +247,15 @@ class HP_Starter(Frame):
         self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
 
     def update_model(self, *args):
-        if self.localID.get() in self.cameras:
+        if self.localID.get() in self.master.cameras:
             self.attributes['Camera Model'].config(state=NORMAL)
-            self.camModel.set(self.cameras[self.localID.get()]['hp_camera_model'])
+            self.camModel.set(self.master.cameras[self.localID.get()]['hp_camera_model'])
             self.attributes['Camera Model'].config(state=DISABLED)
         else:
             self.attributes['Camera Model'].config(state=NORMAL)
             self.camModel.set('')
             self.attributes['Camera Model'].config(state=DISABLED)
 
-    def load_ids(self):
-        try:
-            cams = API_Camera_Handler(self, self.prefs['apiurl'], self.prefs['apitoken'])
-            self.cameras = cams.get_all()
-            if not self.cameras:
-                raise
-            self.master.statusBox.println('Camera data successfully loaded from API.')
-        except:
-            self.cameras = {}
-            data = pd.read_csv(os.path.join('data', 'Devices.csv')).to_dict()
-            for num in range(0, len(data['HP-LocalDeviceID'])):
-                self.cameras[data['HP-LocalDeviceID'][num]] = {
-                    'hp_device_local_id':str(data['HP-LocalDeviceID'][num]),
-                    'hp_camera_model':str(data['HP-CameraModel'][num]),
-                    'exif_camera_model': str(data['CameraModel'][num]),
-                    'exif_camera_make': str(data['Manufacturer'][num]),
-                    'exif_device_serial_number': str(data['DeviceSN'][num]),
-                }
-            self.master.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
-            self.master.statusBox.println('It is recommended to enter your browser credentials in preferences and restart to get the most updated information.')
 
 class PRNU_Uploader(Frame):
     def __init__(self, master=None, prefs=None):
@@ -300,7 +321,7 @@ class PRNU_Uploader(Frame):
 
     def open_new_insert_id(self):
         self.newCam.set(1)
-        d = HP_Device_Form(self, prefs=self.prefs, pathvar=self.localIDfile)
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile)
         if self.localIDfile.get():
             self.newCamEntry.config(state=NORMAL)
 
@@ -359,7 +380,7 @@ class PRNU_Uploader(Frame):
                 else:
                     msgs.append('There are no images in: ' + path)
 
-        if not self.newCam.get() and not local_id_used(self):
+        if not self.newCam.get() and not self.local_id_used():
             msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
             if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msgs):
                 self.open_new_insert_id()
@@ -468,174 +489,11 @@ class PRNU_Uploader(Frame):
         os.remove(archive)
         self.master.statusBox.println('done')
 
-class HP_Device_Form(Toplevel):
-    def __init__(self, master, prefs, pathvar=None):
-        Toplevel.__init__(self, master)
-        self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
-        self.master = master
-        self.pathvar = pathvar # use this to set a tk variable to the path of the output txt file
-        self.prefs = prefs
-        self.set_list_options()
-        self.create_widgets()
-
-    def set_list_options(self):
-        df = pd.read_csv(os.path.join('data', 'db.csv'))
-        self.manufacturers = [str(x).strip() for x in df['Manufacturer'] if str(x).strip() != 'nan']
-        self.lens_mounts = [str(y).strip() for y in df['LensMount'] if str(y).strip() != 'nan']
-        self.device_types = [str(z).strip() for z in df['DeviceType'] if str(z).strip() != 'nan']
-
-    def create_widgets(self):
-        self.f = VerticalScrolledFrame(self)
-        self.f.pack(fill=BOTH, expand=TRUE)
-
-        Label(self.f.interior, text='Add a new HP Device', font=("Courier", 20)).pack()
-        Label(self.f.interior, text='Once complete, post the resulting text file to the \"New Devices to be Added\" list on the \"High Provenance\" trello board.').pack()
-
-        Label(self.f.interior, text='Example Image', font=("Courier", 20)).pack()
-        Label(self.f.interior, text='Some data on this form may be auto-populated using metadata from a sample image.').pack()
-        self.imageButton = Button(self.f.interior, text='Select Image', command=self.populate_from_image)
-        self.imageButton.pack()
-
-
-        self.email = StringVar()
-        self.affiliation = StringVar()
-        self.localID = StringVar()
-        self.serial = StringVar()
-        self.manufacturer = StringVar()
-        self.series_model = StringVar()
-        self.camera_model = StringVar()
-        self.edition = StringVar()
-        self.device_type = StringVar()
-        self.sensor = StringVar()
-        self.general = StringVar()
-        self.lens_mount = StringVar()
-        self.os = StringVar()
-        self.osver = StringVar()
-
-        head = [('Email Address*', {'description':'','type':'text', 'var':self.email}),
-                       ('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
-                                                 'type': 'radiobutton', 'values': ['RIT', 'PAR', 'Other (please specify):'], 'var':self.affiliation}),
-                       ('Define the Local ID*',{'description':'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MAKE, such as'
-                                                             ' ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
-                       ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
-                                                'type':'text', 'var':self.serial}),
-                       ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
-                       ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
-                                         'var':self.series_model}),
-                       ('Camera Model*',{'description':'If Camera Model appears in Exif data, please enter it here (ex. SM-009', 'type':'text',
-                                         'var':self.camera_model}),
-                       ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
-                       ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
-                       ('Sensor Information',{'description':'', 'type':'text', 'var':self.sensor}),
-                       ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
-                       ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
-                                       'var':self.lens_mount}),
-                       ('Firmware/OS',{'description':'Firmware/OS', 'type':'text', 'var':self.os}),
-                       ('Firmware/OS Version',{'description':'Firmware/OS Version', 'type':'text', 'var':self.osver})
-        ]
-        self.headers = collections.OrderedDict(head)
-
-        r=0
-        for h in self.headers:
-            Label(self.f.interior, text=h, font=("Courier", 20)).pack()
-            r+=1
-            if 'description' in self.headers[h]:
-                Label(self.f.interior, text=self.headers[h]['description'], wraplength=600).pack()
-                r+=1
-            if self.headers[h]['type'] == 'text':
-                e = Entry(self.f.interior, textvar=self.headers[h]['var'])
-                e.pack()
-            elif self.headers[h]['type'] == 'radiobutton':
-                for v in self.headers[h]['values']:
-                    if v.lower().startswith('other'):
-                        Label(self.f.interior, text='Other - Please specify below: ').pack()
-                        e = Entry(self.f.interior, textvar=self.headers[h]['var'])
-                        e.pack()
-                    else:
-                        Radiobutton(self.f.interior, text=v, variable=self.headers[h]['var'], value=v).pack()
-                    r+=1
-
-            elif self.headers[h]['type'] == 'list':
-                ttk.Combobox(self.f.interior, values=self.headers[h]['values'], textvariable=self.headers[h]['var']).pack()
-
-            r+=1
-
-        self.headers['Device Affiliation*']['var'].set('RIT')
-
-        self.okbutton = Button(self.f.interior, text='Complete', command=self.export_results)
-        self.okbutton.pack()
-        self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
-        self.cancelbutton.pack()
-
-    def populate_from_image(self):
-        self.imfile = tkFileDialog.askopenfilename(title='Select Image File')
-        self.imageButton.config(text=os.path.basename(self.imfile))
-        args = ['exiftool', '-f', '-j', '-Model', '-Make', '-SerialNumber', self.imfile]
-        try:
-            p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
-            exifData = json.loads(p)[0]
-        except:
-            self.master.statusBox.println('An error ocurred attempting to pull exif data from image.')
-            return
-        if exifData['Make'] != '-':
-            self.manufacturer.set(exifData['Make'])
-        if exifData['Model']:
-            self.camera_model.set(exifData['Model'])
-        if exifData['SerialNumber'] != '-':
-            self.serial.set(exifData['SerialNUmber'])
-
-    def export_results(self):
-        msg = None
-        for h in self.headers:
-            if h.endswith('*') and self.headers[h]['var'].get() == '':
-                msg = 'Field ' + h[:-1] + ' is a required field.'
-                break
-
-        if local_id_used(self):
-            msg = 'Local ID ' + self.localID.get() + ' already in use.'
-
-        if msg:
-            tkMessageBox.showerror(title='Error', message=msg)
-            return
-
-        path = tkFileDialog.asksaveasfilename(initialfile=self.localID.get()+'.txt')
-        with open(path, 'w') as t:
-            for h in self.headers:
-                t.write(h + ' = ' + self.headers[h]['var'].get() + '\n')
-
-        if self.pathvar:
-            self.pathvar.set(path)
-        tkMessageBox.showinfo(title='Information', message='Complete!')
-
-        self.destroy()
-
-
-def local_id_used(self):
-    try:
-        headers = {'Authorization': 'Token ' + self.prefs['apitoken'], 'Content-Type': 'application/json'}
-        url = self.prefs['apiurl'] + '/api/cameras/?fields=hp_device_local_id/'
-        self.master.statusBox.println('Checking external service APIs for device local ID...')
-        localIDs = []
-        while True:
-            response = requests.get(url, headers=headers)
-            if response.status_code == requests.codes.ok:
-                r = json.loads(response.content)
-                for item in r['results']:
-                    localIDs.append(item['hp_device_local_id'])
-                url = r['next']
-                if url is None:
-                    break
-            else:
-                self.master.statusBox.println('HTTP Error ' + str(response.status_code) + '. Attempting to check with local device list....')
-                raise requests.HTTPError()
-    except (KeyError, requests.HTTPError, requests.ConnectionError):
-        df = pd.read_csv(os.path.join('data', 'Devices.csv'))
-        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
-
-    if self.localID.get().lower() in [id.lower() for id in localIDs]:
-        return True
-    else:
-        return False
+    def local_id_used(self):
+        if self.localID.get().lower() in [i.lower() for i in self.master.cameras.keys()]:
+            return True
+        else:
+            return False
 
 
 class HPGUI(Frame):
@@ -646,6 +504,7 @@ class HPGUI(Frame):
         self.prefsfilename.set(os.path.join('data', 'preferences.txt'))
         self.load_defaults()
         self.create_widgets()
+        self.load_ids()
 
     def create_widgets(self):
         self.menubar = Menu(self)
@@ -673,7 +532,7 @@ class HPGUI(Frame):
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        h = HP_Device_Form(self, self.prefs)
+        h = HP_Device_Form(self, validIDs=self.cameras.keys())
 
     def load_defaults(self):
         self.prefs = parse_prefs(self, os.path.join('data', 'preferences.txt'))
@@ -722,57 +581,79 @@ class HPGUI(Frame):
             self.prefs['apitoken'] = newTokenStr
             self.save_prefs()
 
-class VerticalScrolledFrame(Frame):
-    """A pure Tkinter scrollable frame that actually works!
-    http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
-    * Use the 'interior' attribute to place widgets inside the scrollable frame
-    * Construct and pack/place/grid normally
-    * This frame only allows vertical scrolling
+    def load_ids(self):
+        try:
+            cams = API_Camera_Handler(self, self.prefs['apiurl'], self.prefs['apitoken'])
+            self.cameras = cams.get_all()
+            if not self.cameras:
+                raise
+            self.statusBox.println('Camera data successfully loaded from API.')
+        except:
+            self.cameras = {}
+            data = pd.read_csv(os.path.join('data', 'Devices.csv')).to_dict()
+            for num in range(0, len(data['HP-LocalDeviceID'])):
+                self.cameras[data['HP-LocalDeviceID'][num]] = {
+                    'hp_device_local_id': str(data['HP-LocalDeviceID'][num]),
+                    'hp_camera_model': str(data['HP-CameraModel'][num]),
+                    'exif_camera_model': str(data['CameraModel'][num]),
+                    'exif_camera_make': str(data['Manufacturer'][num]),
+                    'exif_device_serial_number': str(data['DeviceSN'][num])
+                }
+            self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
+            self.statusBox.println(
+                'It is recommended to enter your browser credentials in preferences and restart to get the most updated information.')
 
-    """
-    def __init__(self, parent, *args, **kw):
-        Frame.__init__(self, parent, *args, **kw)
-
-        # create a canvas object and a vertical scrollbar for scrolling it
-        vscrollbar = Scrollbar(self, orient=VERTICAL)
-        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        self.canvas = Canvas(self, bd=0, highlightthickness=0,
-                        yscrollcommand=vscrollbar.set)
-        self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
-        vscrollbar.config(command=self.canvas.yview)
-        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
-
-        # reset the view
-        self.canvas.xview_moveto(0)
-        self.canvas.yview_moveto(0)
-
-        # create a frame inside the canvas which will be scrolled with it
-        self.interior = interior = Frame(self.canvas)
-        interior_id = self.canvas.create_window(0, 0, window=interior,
-                                           anchor=NW)
-
-        # track changes to the canvas and frame width and sync them,
-        # also updating the scrollbar
-        def _configure_interior(event):
-            # update the scrollbars to match the size of the inner frame
-            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
-            self.canvas.config(scrollregion="0 0 %s %s" % size)
-            if interior.winfo_reqwidth() != self.canvas.winfo_width():
-                # update the canvas's width to fit the inner frame
-                self.canvas.config(width=interior.winfo_reqwidth())
-        interior.bind('<Configure>', _configure_interior)
-
-        def _configure_canvas(event):
-            if interior.winfo_reqwidth() != self.canvas.winfo_width():
-                # update the inner frame's width to fill the canvas
-                self.canvas.itemconfigure(interior_id, width=self.canvas.winfo_width())
-        self.canvas.bind('<Configure>', _configure_canvas)
-
-    def on_mousewheel(self, event):
-        if sys.platform.startswith('win'):
-            self.canvas.yview_scroll(-1*(event.delta/120), "units")
-        else:
-            self.canvas.yview_scroll(-1*(event.delta), "units")
+# class VerticalScrolledFrame(Frame):
+#     """A pure Tkinter scrollable frame that actually works!
+#     http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
+#     * Use the 'interior' attribute to place widgets inside the scrollable frame
+#     * Construct and pack/place/grid normally
+#     * This frame only allows vertical scrolling
+#
+#     """
+#     def __init__(self, parent, *args, **kw):
+#         Frame.__init__(self, parent, *args, **kw)
+#
+#         # create a canvas object and a vertical scrollbar for scrolling it
+#         vscrollbar = Scrollbar(self, orient=VERTICAL)
+#         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+#         self.canvas = Canvas(self, bd=0, highlightthickness=0,
+#                         yscrollcommand=vscrollbar.set)
+#         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+#         vscrollbar.config(command=self.canvas.yview)
+#         self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+#
+#         # reset the view
+#         self.canvas.xview_moveto(0)
+#         self.canvas.yview_moveto(0)
+#
+#         # create a frame inside the canvas which will be scrolled with it
+#         self.interior = interior = Frame(self.canvas)
+#         interior_id = self.canvas.create_window(0, 0, window=interior,
+#                                            anchor=NW)
+#
+#         # track changes to the canvas and frame width and sync them,
+#         # also updating the scrollbar
+#         def _configure_interior(event):
+#             # update the scrollbars to match the size of the inner frame
+#             size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+#             self.canvas.config(scrollregion="0 0 %s %s" % size)
+#             if interior.winfo_reqwidth() != self.canvas.winfo_width():
+#                 # update the canvas's width to fit the inner frame
+#                 self.canvas.config(width=interior.winfo_reqwidth())
+#         interior.bind('<Configure>', _configure_interior)
+#
+#         def _configure_canvas(event):
+#             if interior.winfo_reqwidth() != self.canvas.winfo_width():
+#                 # update the inner frame's width to fill the canvas
+#                 self.canvas.itemconfigure(interior_id, width=self.canvas.winfo_width())
+#         self.canvas.bind('<Configure>', _configure_canvas)
+#
+#     def on_mousewheel(self, event):
+#         if sys.platform.startswith('win'):
+#             self.canvas.yview_scroll(-1*(event.delta/120), "units")
+#         else:
+#             self.canvas.yview_scroll(-1*(event.delta), "units")
 
 class ReadOnlyText(Text):
     def __init__(self, master, **kwargs):
