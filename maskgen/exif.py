@@ -2,6 +2,7 @@ from subprocess import call, Popen, PIPE
 import os
 import numpy as np
 import tool_set
+import logging
 
 
 def getOrientationFromExif(source):
@@ -92,17 +93,17 @@ def runexif(args, fix=True):
         stdout,stderr = Popen(command,stdout=PIPE,stderr=PIPE).communicate()
         if stdout is not None:
             for line in stdout.splitlines():
-                print line
+                logging.getLogger('maskgen').info("exif output for command " + str(command) + " = "+ line)
         if stderr is not None:
             newsetofargs = args
             for line in stderr.splitlines():
                 newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
-                print line
+                logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
             #try stripping off the offenders
             if len(newsetofargs) < len(args) and fix:
                 runexif(newsetofargs, fix=False)
     except OSError as e:
-        print "Exiftool not installed"
+        logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
         raise e
 
 
@@ -128,7 +129,7 @@ def getexif(source, args=None, separator=': '):
                 if pos > 0:
                     meta[line.split(separator)[0].strip()] = separator.join(line.split(separator)[1:]).strip()
     except OSError:
-        print "Exiftool not installed"
+        logging.getLogger('maskgen').error("Exiftool failure. Is it installed? ")
     return meta
 
 

@@ -7,6 +7,7 @@ from pkg_resources import iter_entry_points
 from cachetools import LRUCache
 from cachetools import cached
 from threading import RLock
+import logging
 
 image_lock = RLock()
 image_cache = LRUCache(maxsize=24)
@@ -145,8 +146,8 @@ def openFromRegistry(filename,isMask=False):
                     if result is not None and result.size != (0,0):
                         return result
                 except Exception as e:
-                    print 'Cannot to open image file ' + filename + ' with ' + str(func) + '...trying another opener.'
-                    print e
+                    logging.getLogger('maskgen').info( 'Cannot to open image file ' + filename + ' with ' + str(func) + '...trying another opener.')
+                    logging.getLogger('maskgen').info(str(e))
     return None
 
 def filehashkey(*args, **kwargs):

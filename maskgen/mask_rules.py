@@ -7,7 +7,7 @@ from software_loader import Operation
 import tool_set
 import numpy as np
 import cv2
-
+import logging
 
 def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None,pred_edges=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
@@ -34,7 +34,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
                 res = clippedMask
             res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
             if right_box[3] > newMask.shape[0] and right_box[2] > newMask.shape[1]:
-                print 'The mask for recapture edge with file {} has an incorrect size'.format(edge['maskname'])
+                logging.getLogger('maskgen').warning('The mask for recapture edge with file {} has an incorrect size'.format(edge['maskname']))
                 newMask = np.resize(newMask, (right_box[3] + 1, right_box[2] + 1))
             newMask[right_box[1]:right_box[3],right_box[0]:right_box[2]] = res
             if angle!=0:
@@ -190,7 +190,9 @@ def move_pixels(frommask, tomask, image):
 
 def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     import os
+    returnRaw = False
     try:
+        returnRaw = True
         inputmask =  \
             tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
             if 'inputmaskname' in edge and edge['inputmaskname'] is not None else edgeMask
@@ -205,7 +207,7 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
         if inputmask.shape != res.shape:
             inputmask = cv2.resize(inputmask,(res.shape[1],res.shape[0]))
         if tm is not None:
-            res = tool_set.applyTransformToComposite(res, inputmask, tool_set.deserializeMatrix(tm))
+            res = tool_set.applyTransformToComposite(res, inputmask, tool_set.deserializeMatrix(tm), returnRaw=returnRaw)
         else:
             inputmask = 255-inputmask
             differencemask = (255-edgeMask) - inputmask

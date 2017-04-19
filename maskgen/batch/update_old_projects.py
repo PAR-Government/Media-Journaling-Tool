@@ -505,6 +505,7 @@ def main():
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
     parser.add_argument('-a', '--all', help='Perform all updates', action='store_true')
     args = parser.parse_args()
+    maskgen.tool_set.set_logging()
 
     names = {}
     if args.names is not None and os.path.exists(args.names):

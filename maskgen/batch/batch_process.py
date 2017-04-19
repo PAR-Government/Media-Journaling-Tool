@@ -353,6 +353,7 @@ def main():
 
     args = parser.parse_args()
 
+    maskgen.tool_set.set_logging()
     ops = loadOperations("operations.json")
     soft = loadSoftware("software.csv")
     loadProjectProperties("project_properties.json")

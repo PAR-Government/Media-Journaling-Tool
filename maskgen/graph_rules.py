@@ -8,6 +8,7 @@ from image_wrap import ImageWrapper
 from image_graph import ImageGraph
 import os
 import exif
+import logging
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -123,21 +124,21 @@ def get_journal(url, apitoken):
             if 'name' in r:
                 return r['name']
     except Exception as e:
-        print e
-        print "Cannot reach external service"
+       logging.getLogger('maskgen').critical("Cannot reach external service " + url)
+       logging.getLogger('maskgen').error(str(e))
     return url
 
 def get_fields(filename, apitoken, url):
     import requests
     import json
     if url is None:
-        print 'Missing external service URL.  Check settings'
+        logging.getLogger('maskgen').critical( 'Missing external service URL.  Check settings')
         return []
     try:
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
         data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
-        print 'checking external service APIs for ' + filename
+        logging.getLogger('maskgen').info( 'checking external service APIs for ' + filename)
         response = requests.post(url, data=data,headers=headers)
         if response.status_code == requests.codes.ok:
             r = json.loads(response.content)
@@ -152,8 +153,8 @@ def get_fields(filename, apitoken, url):
                     info['high_provenance'] = item['high_provenance']
                 return result
     except Exception as e:
-        print e
-        print "Cannot reach external service"
+        logging.getLogger('maskgen').error("Error calling external service: " + str(e))
+        logging.getLogger('maskgen').critical("Cannot reach external service")
     return []
 
 def check_graph_rules(graph,node,external=False, prefLoader=None):

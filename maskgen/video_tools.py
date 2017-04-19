@@ -8,6 +8,7 @@ import tool_set
 import time
 from image_wrap import ImageWrapper
 from maskgen_loader import  MaskGenLoader
+import logging
 
 def otsu(hist):
     total = sum(hist)
@@ -345,7 +346,8 @@ def runffmpeg(args):
     try:
         p = Popen(command, stdout=PIPE, stderr=PIPE).communicate()
     except OSError as e:
-        print "FFmpeg not installed"
+        logging.getLogger('maskgen').error( "FFmpeg not installed")
+        logging.getLogger('maskgen').error(str(e))
         raise e
 
 # str(ffmpeg.compareMeta({'f':1,'e':2,'g':3},{'f':1,'y':3,'g':4}))=="{'y': ('a', 3), 'e': ('d', 2), 'g': ('c', 4)}"
@@ -375,7 +377,7 @@ def _getOrder(packet, orderAttr, lasttime, pkt_duration_time='pkt_duration_time'
         try:
            return float(packet['pkt_dts_time'])
         except:
-            print packet
+            logging.getLogger('maskgen').warning("Error get order packet " + str(packet))
             raise e
 
 def getIntFromPacket(key, packet):
@@ -570,10 +572,10 @@ def vid_md5(filename):
     try:
         if stderr is not None:
             for line in stderr.splitlines():
-                print line
+                logging.getLogger('maskgen').warning("FFMPEG error for {} is {}".format(filename, line))
         return stdout.strip() if p.returncode == 0 else None
     except OSError as e:
-        print str(e)
+        logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
 def _vid_compress(filename, expressions, criteria,outputname=None):
     #md5 = vid_md5(filename)
@@ -596,10 +598,10 @@ def _vid_compress(filename, expressions, criteria,outputname=None):
     try:
         if stderr is not None:
             for line in stderr.splitlines():
-                print line
+                logging.getLogger('maskgen').warning("FFMPEG error for {} is {}".format(filename, line))
         return outFileName if p.returncode == 0 else None
     except OSError as e:
-        print str(e)
+        logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')

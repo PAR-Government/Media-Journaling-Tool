@@ -1,10 +1,11 @@
+import logging
 
 # tools for assisting with S3 and HTTP functionality
 
 def loadS3(values):
   import boto3
   import os
-  print 'Download operations and software via S3'
+  logging.getLogger('maskgen').info( 'Download operations and software via S3')
   s3 = boto3.client('s3','us-east-1')
   BUCKET = values[0][0:values[0].find('/')]
   DIR=values[0][values[0].find('/')+1:]
@@ -15,7 +16,7 @@ def loadS3(values):
 
 def loadHTTP(values):
     import requests
-    print 'Download operations and software via HTTP'
+    logging.getLogger('maskgen').info( 'Download operations and software via HTTP')
     head = {}
     for p in range(1, len(values)):
         name = values[p].split(':')[0].strip()
