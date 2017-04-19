@@ -688,7 +688,7 @@ class MakeGenUI(Frame):
             comment = 'Exported by ' + self.prefLoader.get_key('username')
             comment = comment + '\n QA:' + qacomment if qacomment is not None else comment
             self.notifiers.update_journal_status(self.scModel.getName(),
-                                                 self.scModel.getGraph().getCreator(),
+                                                 self.scModel.getGraph().getCreator().lower(),
                                                  comment,
                                                  self.scModel.getGraph().get_project_type())
         #        elif eventType == 'connect':
