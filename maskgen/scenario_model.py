@@ -2166,7 +2166,7 @@ class ImageProjectModel:
                         except:
                             continue
                 else:
-                   logging.getLogger('maskgen').error(nodeData['file'] + ' is missing')
+                   logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
         self.save()
         return renamed
 

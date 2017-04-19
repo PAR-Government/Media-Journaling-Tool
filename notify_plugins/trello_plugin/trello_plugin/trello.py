@@ -154,9 +154,9 @@ class TrelloAPI(MaskgenNotifer):
             for label in labels:
                 self.add_label_to_card(board,cardinfo[0],label)
 
-    def update_journal_status(self,journalid,comment, typeofjournal):
+    def update_journal_status(self,journalid,user,comment, typeofjournal):
         self.update_status_to_card(self.loaded_config['board.name'],
-                                           self.loader.get_key('username'),
+                                           user,
                                            journalid, # card name
                                            comment,   # comment
                                            [self.loaded_config['label.reviewname'],typeofjournal],
