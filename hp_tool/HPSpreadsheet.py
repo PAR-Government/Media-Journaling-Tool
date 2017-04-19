@@ -20,7 +20,7 @@ import datetime
 RVERSION = hp_data.RVERSION
 
 class HPSpreadsheet(Toplevel):
-    def __init__(self, dir=None, ritCSV=None, master=None):
+    def __init__(self, dir=None, ritCSV=None, master=None, devices=None):
         Toplevel.__init__(self, master=master)
         self.create_widgets()
         self.dir = dir
@@ -28,12 +28,13 @@ class HPSpreadsheet(Toplevel):
             self.imageDir = os.path.join(self.dir, 'image')
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
+            self.errorpath = os.path.join(self.dir, 'csv', 'errors.json')
         self.master = master
         self.ritCSV=ritCSV
 
         self.saveState = True
         self.kinematics = self.load_kinematics()
-        self.devices, self.localIDs = self.load_devices()
+        self.devices = devices
         self.apps = self.load_apps()
         self.lensFilters = self.load_lens_filters()
         self.load_prefs()
@@ -200,13 +201,17 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
-            validValues = self.devices
+            validValues = sorted([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None])
+        elif currentCol == 'HP-CameraModel':
+            validValues = sorted([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None])
+        elif currentCol == 'DeviceSN':
+            validValues = sorted([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None])
         elif currentCol == 'HP-App':
             validValues = self.apps
         elif currentCol == 'HP-LensFilter':
             validValues = self.lensFilters
         elif currentCol == 'HP-DeviceLocalID':
-            validValues = self.localIDs
+            validValues = sorted(self.devices.keys())
         elif currentCol == 'HP-ProximitytoSource':
             validValues = ['close', 'medium', 'far']
         elif currentCol == 'HP-AudioChannels':
@@ -246,9 +251,7 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
         elif currentCol == 'HP-NumberOfSpeakers':
             validValues = {'instructions':'Number of people speaking in recording. Do not count background noise.'}
-        elif currentCol == 'HP-CameraModel':
-            validValues = {'instructions':'Human-recognizable camera model. \"Samsung Galaxy S7\" for example, '
-                                          'instead of SM-G930x found in Exif data.'}
+
         else:
             validValues = {'instructions':'Any string of text'}
 
@@ -277,7 +280,7 @@ class HPSpreadsheet(Toplevel):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
         self.focus_set()
 
-    def open_spreadsheet(self, errors):
+    def open_spreadsheet(self):
         if self.dir and not self.ritCSV:
             self.csvdir = os.path.join(self.dir, 'csv')
             for f in os.listdir(self.csvdir):
@@ -311,9 +314,14 @@ class HPSpreadsheet(Toplevel):
         for c in audio:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        self.color_code_cells(errors)
+        self.color_code_cells()
 
-    def color_code_cells(self, errors):
+    def color_code_cells(self):
+        if os.path.exists(self.errorpath):
+            with open(self.errorpath) as j:
+                errors = json.load(j)
+        else:
+            errors = None
         notnans = self.pt.model.df.notnull()
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
@@ -323,7 +331,7 @@ class HPSpreadsheet(Toplevel):
                         (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
                         (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
                     rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#fffacd',
+                                                    fill='#f3f315',
                                                     outline='#084B8A',
                                                     tag='cellrect')
                 else:
@@ -552,20 +560,13 @@ class HPSpreadsheet(Toplevel):
         return sorted(list(set(filters)))
 
     def load_devices(self):
-        try:
-            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Devices.csv')
-            df = pd.read_csv(dataFile)
-        except IOError:
-            tkMessageBox.showwarning('Error', 'Camera model reference (data/Devices.csv) not found!')
-            return
-        manufacturers = [w.strip() for w in df['Manufacturer']]
-        models = [x.strip() for x in df['HP-CameraModel']]
-        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
+        models = [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]
+        localIDs = self.devices.items()
         return sorted(list(set(models))), localIDs
 
     def check_model(self):
         errors = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('CameraModel')]
+        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraModel')]
         for col in range(0, self.pt.cols):
             if col in cols_to_check:
                 for row in range(0, self.pt.rows):
@@ -573,7 +574,7 @@ class HPSpreadsheet(Toplevel):
                     if val.lower() == 'nan' or val == '':
                         imageName = self.pt.model.getValueAt(row, 0)
                         errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val not in self.devices:
+                    elif val not in [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]:
                         errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 

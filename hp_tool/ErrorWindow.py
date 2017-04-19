@@ -1,5 +1,6 @@
 from Tkinter import *
 from tkSimpleDialog import Dialog
+import json
 
 class ErrorWindow(Dialog):
     def __init__(self, master, errors):
@@ -17,11 +18,14 @@ class ErrorWindow(Dialog):
         listbox = Listbox(self, width=80, height=15)
         listbox.pack(fill=BOTH, expand=1)
 
+        if type(self.errors) == str:
+            with open(self.errors) as j:
+                self.errors = json.load(j)
+
         if type(self.errors) == dict:
             for i in self.errors:
                 for message in self.errors[i]:
                     listbox.insert(END, message[1])
-
         else:
             for i in self.errors:
                 listbox.insert(END, i)

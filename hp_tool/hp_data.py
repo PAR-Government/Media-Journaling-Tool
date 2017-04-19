@@ -417,7 +417,7 @@ def parse_image_info(self, imageList, **kwargs):
 
     return data
 
-def check_for_errors(data, cameraData, images):
+def check_for_errors(data, cameraData, images, path):
     """
     Check processed data with database information
     :param data: processed HP data
@@ -433,10 +433,13 @@ def check_for_errors(data, cameraData, images):
             e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database.'))
         if (data[image]['CameraMake'] != dbData['exif_camera_make']):
             e.append(('CameraMake','Camera make found in exif for image ' + images[image] + ' (' + data[image]['CameraMake'] + ') does not match database.'))
-        if (data[image]['DeviceSerialNumber'] != dbData['exif_device_serial_number']):
+        if (data[image]['DeviceSerialNumber'] != dbData['exif_device_serial_number']) and (data[image]['DeviceSerialNumber'] != ''):
             e.append(('DeviceSN','Camera serial number found in exif for image ' + images[image] + ' (' + data[image]['DeviceSerialNumber'] + ') does not match database.'))
 
-    return errors
+    fullpath = os.path.join(path, 'errors.json')
+    with open(fullpath, 'w') as j:
+        json.dump(errors, j)
+    return fullpath
 
 def process(self, cameraData, preferences='', metadata='', imgdir='', outputdir='', recursive=False,
             keywords='', additionalInfo='', **kwargs):
@@ -478,7 +481,7 @@ def process(self, cameraData, preferences='', metadata='', imgdir='', outputdir=
     if imageInfo is None:
         return None, None, None
     else:
-        errors = check_for_errors(imageInfo, cameraData, imageList)
+        errors = check_for_errors(imageInfo, cameraData, imageList, os.path.join(outputdir, 'csv'))
     self.master.statusBox.println(' done')
 
     # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories

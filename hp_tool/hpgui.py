@@ -122,8 +122,8 @@ class HP_Starter(Frame):
         (self.oldImageNames, self.newImageNames, errors) = process(self, self.cameras, **kwargs)
         if self.oldImageNames == None:
             return
-        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
-        aSheet.open_spreadsheet(errors)
+        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master, devices=self.cameras)
+        aSheet.open_spreadsheet()
         if errors is not None:
             ErrorWindow(aSheet, errors)
         self.keywordsbutton.config(state=NORMAL)
