@@ -686,6 +686,9 @@ class ImageGraph:
     def getVersion(self):
         return self.G.graph['igversion']  if 'igversion' in self.G.graph else igversion
 
+    def getCreator(self):
+        return self.G.graph['creator'] if 'creator' in self.G.graph else get_username()
+
     def _setup(self, pathname, projecttype,nodeFilePaths,edgeFilePaths):
         global igversion
         if 'igversion' not in self.G.graph:

@@ -3,7 +3,7 @@ from maskgen.maskgen_loader import MaskGenLoader
 
 class MaskgenNotifer:
 
-    def update_journal_status(self, journalid, comment,typeofjournal):
+    def update_journal_status(self, journalid, user, comment,typeofjournal):
         pass
 
     def get_properties(self):
@@ -15,9 +15,9 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
     def __init__(self,notifiers):
         self.notifiers = notifiers
 
-    def update_journal_status(self, journalid, comment, typeofjournal):
+    def update_journal_status(self, journalid, user, comment, typeofjournal):
         for notifier in self.notifiers:
-            notifier.update_journal_status(journalid,comment,typeofjournal)
+            notifier.update_journal_status(journalid,user, comment,typeofjournal)
 
     def get_properties(self):
         r = {}
