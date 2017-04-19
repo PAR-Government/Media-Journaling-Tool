@@ -46,7 +46,9 @@ class TrelloAPI(MaskgenNotifer):
         return None
 
     def get_properties(self):
-        return {"trelloapikey" : "Trello API Key", "trelloapitoken" : "Trello API Token"}
+        return {"trelloapikey" : "Trello API Key",
+                "trelloapitoken" : "Trello API Token",
+                "trelloapiusername": "Trello API Username"}
 
     def put_to_trello(self,url,**data):
         """
