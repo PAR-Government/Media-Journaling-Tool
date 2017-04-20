@@ -12,15 +12,18 @@ import tkMessageBox
 import tkSimpleDialog
 import pandastable
 import csv
+import webbrowser
+import requests
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
+from CameraForm import HP_Device_Form
 import hp_data
 import datetime
 
 RVERSION = hp_data.RVERSION
 
 class HPSpreadsheet(Toplevel):
-    def __init__(self, dir=None, ritCSV=None, master=None):
+    def __init__(self, dir=None, ritCSV=None, master=None, devices=None):
         Toplevel.__init__(self, master=master)
         self.create_widgets()
         self.dir = dir
@@ -28,12 +31,13 @@ class HPSpreadsheet(Toplevel):
             self.imageDir = os.path.join(self.dir, 'image')
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
+            self.errorpath = os.path.join(self.dir, 'csv', 'errors.json')
         self.master = master
         self.ritCSV=ritCSV
-
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.saveState = True
         self.kinematics = self.load_kinematics()
-        self.devices, self.localIDs = self.load_devices()
+        self.devices = devices
         self.apps = self.load_apps()
         self.lensFilters = self.load_lens_filters()
         self.load_prefs()
@@ -200,13 +204,17 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
-            validValues = self.devices
+            validValues = sorted([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None])
+        elif currentCol == 'HP-CameraModel':
+            validValues = sorted([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None])
+        elif currentCol == 'DeviceSN':
+            validValues = sorted([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None])
         elif currentCol == 'HP-App':
             validValues = self.apps
         elif currentCol == 'HP-LensFilter':
             validValues = self.lensFilters
         elif currentCol == 'HP-DeviceLocalID':
-            validValues = self.localIDs
+            validValues = sorted(self.devices.keys())
         elif currentCol == 'HP-ProximitytoSource':
             validValues = ['close', 'medium', 'far']
         elif currentCol == 'HP-AudioChannels':
@@ -246,9 +254,7 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
         elif currentCol == 'HP-NumberOfSpeakers':
             validValues = {'instructions':'Number of people speaking in recording. Do not count background noise.'}
-        elif currentCol == 'HP-CameraModel':
-            validValues = {'instructions':'Human-recognizable camera model. \"Samsung Galaxy S7\" for example, '
-                                          'instead of SM-G930x found in Exif data.'}
+
         else:
             validValues = {'instructions':'Any string of text'}
 
@@ -314,6 +320,11 @@ class HPSpreadsheet(Toplevel):
         self.color_code_cells()
 
     def color_code_cells(self):
+        if os.path.exists(self.errorpath):
+            with open(self.errorpath) as j:
+                errors = json.load(j)
+        else:
+            errors = None
         notnans = self.pt.model.df.notnull()
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
@@ -323,7 +334,7 @@ class HPSpreadsheet(Toplevel):
                         (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
                         (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
                     rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#ff5b5b',
+                                                    fill='#f3f315',
                                                     outline='#084B8A',
                                                     tag='cellrect')
                 else:
@@ -331,6 +342,16 @@ class HPSpreadsheet(Toplevel):
                     if notnans.iloc[row, col]:
                         rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                         fill='#c1c1c1',
+                                                        outline='#084B8A',
+                                                        tag='cellrect')
+            image = self.pt.model.df['OriginalImageName'][row]
+            if errors is not None and image in errors and errors[image]:
+                for error in errors[image]:
+                    errCol = error[0]
+                    if errCol != 'CameraMake':
+                        x1, y1, x2, y2 = self.pt.getCellCoords(row, self.pt.model.df.columns.get_loc(errCol))
+                        rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                                                        fill='#ff5b5b',
                                                         outline='#084B8A',
                                                         tag='cellrect')
 
@@ -386,6 +407,9 @@ class HPSpreadsheet(Toplevel):
         if cancelled:
             return
 
+        # localIDs = set(self.pt.model.df['HP-DeviceLocalID'])
+        # if not localIDs.issubset(set(self.devices.keys())):
+        #     self.prompt_for_new_camera(invalids=localIDs - set(self.devices.keys()))
         initial = self.prefs['aws'] if 'aws' in self.prefs else ''
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
         if (val is not None and len(val) > 0):
@@ -393,14 +417,14 @@ class HPSpreadsheet(Toplevel):
             with open(self.prefsFile, 'w') as f:
                 for key in self.prefs:
                     f.write(key + '=' + self.prefs[key] + '\n')
-            print 'Creating archive...'
+            self.master.statusBox.println('Creating archive...')
             archive = self.create_hp_archive()
             s3 = boto3.client('s3', 'us-east-1')
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-            print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val
+            self.master.statusBox.println('Uploading ' + archive.replace('\\', '/') + ' to s3://' + val)
             s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
 
             # print 'Uploading CSV...'
@@ -419,13 +443,70 @@ class HPSpreadsheet(Toplevel):
             #     s3.upload_file(os.path.join(self.audioDir, audio), BUCKET, DIR + 'audio/' + audio)
 
             os.remove(archive)
-            print 'Complete.'
-            d = tkMessageBox.showinfo(title='Status', message='Complete!')
 
+            err = self.notify_trello(os.path.basename(archive))
+            if err is not None:
+                msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+            else:
+                msg = 'Complete!'
+            d = tkMessageBox.showinfo(title='Status', message=msg)
+
+    def notify_trello(self, archive):
+        if 'trello' not in self.prefs:
+            token = self.get_trello_token()
+            self.prefs['trello'] = token
+            with open(self.prefsFile, 'w') as f:
+                for key in self.prefs:
+                    f.write(key + '=' + self.prefs[key] + '\n')
+        else:
+            token = self.prefs['trello']
+
+        # list ID for "New Devices" list
+        list_id = '58f4e07b1d52493b1910598f'
+
+        # post the new card
+        new = str(datetime.datetime.now())
+        stats = archive + '\n' + self.collect_stats()
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
+                             data=dict(name=new, idList=list_id, desc=stats))
+
+        # attach the file, if the card was successfully posted
+        if resp.status_code == requests.codes.ok:
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.trello_key, token=token))
+            member_id = json.loads(me.content)['id']
+            new_card_id = json.loads(resp.content)['id']
+            resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
+                                  params=dict(key=self.trello_key, token=token),
+                                  data=dict(value=member_id))
+            return None
+        else:
+            return resp.status_code
+
+    def get_trello_token(self):
+        t = TrelloSignInPrompt(self, self.trello_key)
+        return t.token.get()
+
+    def prompt_for_new_camera(self, invalids):
+        h = NewCameraPrompt(self, invalids, valids=self.devices.keys(), token=self.prefs['trello'])
+        return h.pathVars
+
+    def collect_stats(self):
+        images = 0
+        videos = 0
+        audio = 0
+        for data in self.pt.model.df['Type']:
+            if data == 'video':
+                videos+=1
+            elif data == 'audio':
+                audio+=1
+            else:
+                images+=1
+
+        return 'Image Files: ' + str(images) + '\nVideo Files: ' + str(videos) + '\nAudio Files: ' + str(audio)
 
     def create_hp_archive(self):
         val = self.pt.model.df['HP-DeviceLocalID'][0]
-        dt = datetime.datetime.now().strftime('%Y%m%d')[2:]
+        dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fname = os.path.join(self.dir, val + '-' + dt + '.tgz')
         DIRNAME = self.dir
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
@@ -437,7 +518,7 @@ class HPSpreadsheet(Toplevel):
 
     def load_prefs(self):
         self.prefsFile = os.path.join('data', 'preferences.txt')
-        self.prefs = hp_data.parse_prefs(self.prefsFile)
+        self.prefs = hp_data.parse_prefs(self.master, self.prefsFile)
 
     def fill_down(self, event=None):
         if self.on_main_tab:
@@ -542,20 +623,13 @@ class HPSpreadsheet(Toplevel):
         return sorted(list(set(filters)))
 
     def load_devices(self):
-        try:
-            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Devices.csv')
-            df = pd.read_csv(dataFile)
-        except IOError:
-            tkMessageBox.showwarning('Error', 'Camera model reference (data/Devices.csv) not found!')
-            return
-        manufacturers = [w.strip() for w in df['Manufacturer']]
-        models = [x.strip() for x in df['HP-CameraModel']]
-        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
+        models = [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]
+        localIDs = self.devices.items()
         return sorted(list(set(models))), localIDs
 
     def check_model(self):
         errors = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('CameraModel')]
+        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraModel')]
         for col in range(0, self.pt.cols):
             if col in cols_to_check:
                 for row in range(0, self.pt.rows):
@@ -563,7 +637,7 @@ class HPSpreadsheet(Toplevel):
                     if val.lower() == 'nan' or val == '':
                         imageName = self.pt.model.getValueAt(row, 0)
                         errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val not in self.devices:
+                    elif val not in [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]:
                         errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
         return errors
 
@@ -583,6 +657,49 @@ class HPSpreadsheet(Toplevel):
         if len(uniques) > 1:
             errors.append('Multiple Local IDs are identified. Each process should only contain one unique Local ID.')
         return errors
+
+class NewCameraPrompt(tkSimpleDialog.Dialog):
+    def __init__(self, master, invalids, valids=None, token=None):
+        self.invalids = invalids
+        self.master = master
+        self.valids = valids if valids is not None else []
+        self.pathVars = {}
+        tkSimpleDialog.Dialog.__init__(self, master)
+        self.token = token
+        self.title('New Devices')
+
+    def body(self, master):
+        r=0
+        Label(self, text='The following device local IDs are invalid. Please provide a text file with the completed "New Camera" form.').grid(row=r, columnspan=3)
+        for newDevice in self.invalids:
+            r+=1
+            self.pathVars[newDevice] = StringVar()
+            Label(self, text=newDevice).grid(row=r, column=0)
+            e = Entry(self, textvar=self.pathVars[newDevice])
+            e.grid(row=r, column=1)
+            # b = Button(self, text='Complete form', command=lambda: self.open_form(self.pathVars[newDevice]))
+            # b.grid(row=r, column=2)
+
+    def open_form(self, pathVar):
+        h = HP_Device_Form(self, self.valids, pathvar=pathVar, token=self.token)
+
+
+class TrelloSignInPrompt(tkSimpleDialog.Dialog):
+    def __init__(self, master, key='dcb97514b94a98223e16af6e18f9f99e'):
+        self.master=master
+        self.token = StringVar()
+        self.trello_key = key
+        tkSimpleDialog.Dialog.__init__(self, master)
+
+    def body(self, master):
+        Label(self, text='Please enter your Trello API token. If you do not know it, access it here: ').pack()
+        b = Button(self, text='Get Token', command=self.open_trello_token)
+        b.pack()
+        e = Entry(self, textvar=self.token)
+        e.pack()
+
+    def open_trello_token(self):
+        webbrowser.open('https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
 
 
 class CustomTable(pandastable.Table):

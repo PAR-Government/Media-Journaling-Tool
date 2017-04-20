@@ -15,12 +15,15 @@ import shutil
 import ttk
 import tkFileDialog
 import tkMessageBox
+import time
 import numpy as np
 import webbrowser
 from hp_data import *
-from HPSpreadsheet import HPSpreadsheet
+from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt
 from KeywordsSheet import KeywordsSheet
+from ErrorWindow import ErrorWindow
 from prefs import Preferences
+from CameraForm import HP_Device_Form
 
 class HP_Starter(Frame):
 
@@ -32,7 +35,6 @@ class HP_Starter(Frame):
         self.metadatafilename = StringVar()
         self.metadatafilename.set(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
         self.grid()
-        self.load_ids()
         self.oldImageNames = []
         self.newImageNames = []
         self.createWidgets()
@@ -91,7 +93,7 @@ class HP_Starter(Frame):
 
     def preview_filename(self):
         testNameStr = 'Please update preferences with username and organization'
-        prefs = parse_prefs(self.prefsfilename)
+        prefs = parse_prefs(self, self.prefsfilename)
         if prefs and prefs.has_key('seq'):
             testNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
                         prefs['organization'] + prefs['username'] + '-' + prefs['seq']
@@ -102,8 +104,18 @@ class HP_Starter(Frame):
 
     def go(self):
         if self.camModel.get() == '':
-            tkMessageBox.showerror(title='Error', message='Invalid Device Local ID. This field is case sensitive.')
+            yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
+            if yes:
+                v = StringVar()
+                token = self.prefs['trello'] if 'trello' in self.prefs else None
+                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=token)
+                h.wait_window()
+                if v.get():
+                    r = self.add_device(v.get())
+                    if r is None:
+                        tkMessageBox.showerror(title='Error', message='An error ocurred. Could not add device.')
             return
+
         globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
         kwargs = {'preferences':self.prefsfilename,
                   'metadata':self.metadatafilename.get(),
@@ -117,14 +129,49 @@ class HP_Starter(Frame):
 
         self.update_defaults()
 
-        (self.oldImageNames, self.newImageNames) = process(**kwargs)
+        (self.oldImageNames, self.newImageNames, errors) = process(self, self.master.cameras, **kwargs)
         if self.oldImageNames == None:
             return
-        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master)
+        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master, devices=self.master.cameras)
         aSheet.open_spreadsheet()
+        if errors is not None:
+            ErrorWindow(aSheet, errors)
         self.keywordsbutton.config(state=NORMAL)
         keySheet = self.open_keywords_sheet()
         keySheet.close()
+
+    def add_device(self, path):
+        local_id = None
+        hp_model = None
+        exif_model = None
+        exif_sn = None
+        make = None
+        with open(path) as p:
+            for line in p:
+                if 'Local ID' in line:
+                    local_id = line.split('=')[1].strip()
+                elif 'Series Model' in line:
+                    hp_model = line.split('=')[1].strip()
+                elif 'Camera Model' in line:
+                    exif_model = line.split('=')[1].strip()
+                elif 'Serial Number' in line:
+                    exif_sn = line.split('=')[1].strip()
+                elif 'Manufacturer' in line:
+                    make = line.split('=')[1].strip()
+        if local_id and hp_model and exif_model and exif_sn:
+            self.master.cameras[local_id] = {
+                'hp_device_local_id': local_id,
+                'hp_camera_model': hp_model,
+                'exif_camera_model': exif_model,
+                'exif_camera_make': make,
+                'exif_device_serial_number': exif_sn
+            }
+            self.master.statusBox.println('Added ' + local_id + ' to camera list. This will be valid for this instance only.')
+            self.update_model()
+            return 1
+        else:
+            return None
+
 
     def open_keywords_sheet(self):
         keywords = KeywordsSheet(dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
@@ -133,7 +180,7 @@ class HP_Starter(Frame):
 
     def open_prefs(self):
         Preferences(master=self.master)
-        if parse_prefs(self.prefsfilename):
+        if parse_prefs(self, self.prefsfilename):
             self.okbutton.config(state='normal')
 
     def createWidgets(self):
@@ -202,24 +249,14 @@ class HP_Starter(Frame):
         self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
 
     def update_model(self, *args):
-        if self.localID.get() in self.localID_ref:
+        if self.localID.get() in self.master.cameras:
             self.attributes['Camera Model'].config(state=NORMAL)
-            self.camModel.set(self.localID_ref[self.localID.get()])
+            self.camModel.set(self.master.cameras[self.localID.get()]['hp_camera_model'])
             self.attributes['Camera Model'].config(state=DISABLED)
         else:
             self.attributes['Camera Model'].config(state=NORMAL)
             self.camModel.set('')
             self.attributes['Camera Model'].config(state=DISABLED)
-
-    def load_ids(self):
-        df = pd.read_csv(os.path.join('data', 'Devices.csv'))
-        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
-        models = [y.strip() for y in df['HP-CameraModel']]
-        self.localID_ref = {}
-
-        # create a dictionary of local IDs : hp camera models
-        for id in range(0, len(localIDs)):
-            self.localID_ref[localIDs[id]] = models[id]
 
 
 class PRNU_Uploader(Frame):
@@ -229,35 +266,66 @@ class PRNU_Uploader(Frame):
         self.prefs=prefs
         self.root_dir = StringVar()
         self.localID = StringVar()
+        self.localIDfile = StringVar()
         self.s3path = StringVar()
+        self.newCam = BooleanVar()
+        self.newCam.set(0)
         self.parse_vocab(os.path.join('data', 'prnu_vocab.csv'))
         self.create_prnu_widgets()
         if prefs is not None and 's3prnu' in prefs:
             self.s3path.set(prefs['s3prnu'])
 
     def create_prnu_widgets(self):
+        r = 0
         dirbutton = Button(self, text='Root PRNU Directory:', command=self.open_dir, width=20)
-        dirbutton.grid(row=0,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        dirbutton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
         self.rootEntry = Entry(self, width=100, textvar=self.root_dir)
-        self.rootEntry.grid(row=0, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=4)
+        self.rootEntry.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=4)
+        r+=1
 
-        localcamlabel = Label(self, text='Local Camera ID:', width=20).grid(row=1,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
-        self.localCamEntry = Entry(self, width=40, textvar=self.localID)
-        self.localCamEntry.grid(row=1, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=2, sticky=W)
+        self.newCamEntry = Entry(self, width=40, textvar=self.localIDfile, state=DISABLED)
+        self.newCamEntry.grid(row=r, column=1, columnspan=2, sticky=W)
+        self.newCamCheckbox = Checkbutton(self, text='I\'m using a new camera:', variable=self.newCam, command=self.set_new_cam_file)
+        self.newCamCheckbox.grid(row=r, column=0, )
+        r+=1
 
         verifyButton = Button(self, text='Verify Directory Structure', command=self.examine_dir, width=20)
-        verifyButton.grid(row=3,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        verifyButton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
 
-        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=3,column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=r,column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
 
         self.s3Entry = Entry(self, width=40, textvar=self.s3path)
-        self.s3Entry.grid(row=3, column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        self.s3Entry.grid(row=r, column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        r+=1
 
         self.uploadButton = Button(self, text='Start Upload', command=self.upload, width=20, state=DISABLED, bg='green')
-        self.uploadButton.grid(row=4,column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        self.uploadButton.grid(row=r,column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
 
         self.cancelButton = Button(self, text='Cancel', command=self.cancel_upload, width=20, bg='red')
-        self.cancelButton.grid(row=4, column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+        self.cancelButton.grid(row=r, column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+
+    def set_new_cam_file(self):
+        if self.newCam.get():
+            if self.localIDfile:
+                ync = tkMessageBox.askyesnocancel(message='Have you already completed the New Camera Registration Form?', title='New Camera Data')
+                self.newCamEntry.config(state=NORMAL)
+                if ync:
+                    f = tkFileDialog.askopenfilename(filetypes=[('text files', '.txt')], title='Select data file')
+                    self.localIDfile.set(f)
+                elif ync is None:
+                    self.newCam.set(0)
+                    self.newCamEntry.config(state=DISABLED)
+                else:
+                    self.open_new_insert_id()
+        else:
+            self.newCamEntry.config(state=DISABLED)
+
+    def open_new_insert_id(self):
+        self.newCam.set(1)
+        token = self.prefs['trello'] if 'trello' in self.prefs else None
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=token)
+        if self.localIDfile.get():
+            self.newCamEntry.config(state=NORMAL)
 
     def parse_vocab(self, path):
         self.vocab = []
@@ -272,67 +340,67 @@ class PRNU_Uploader(Frame):
         self.root_dir.set(tkFileDialog.askdirectory())
 
     def examine_dir(self):
-        passed_root = False
-        msg = None
+        self.master.statusBox.println('Verifying...')
+        self.localID.set(os.path.basename(os.path.normpath(self.root_dir.get())))
+        msgs = []
 
         for path, dirs, files in os.walk(self.root_dir.get()):
             p, last = os.path.split(path)
             if last == self.localID.get():
-                passed_root = True
                 if not self.has_same_contents(dirs, ['images', 'video']):
-                    msg = 'Root PRNU directory must have \"Images\" and \"Video\" folers.'
-                    break
+                    msgs.append('Root PRNU directory must have \"Images\" and \"Video\" folders.')
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
-                    msg = 'There should be no files in the root directory. Only \"Images\" and \"Video\" folders.'
-                    break
+                    msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
-                    msg = 'Images and Video folders must each contain Primary and Secondary folders.'
+                    msgs.append('Images and Video folders must each contain Primary and Secondary folders.')
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
-                    msg = 'There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".'
+                    msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
-                        msg = 'Invalid reference type: ' + sub
-                        break
+                        msgs.append('Invalid reference type: ' + sub)
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
                         else:
-                            msg = 'There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).'
-                            break
+                            msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
             elif last.lower() in self.vocab:
                 if dirs:
-                    msg = 'There should be no additional subfolders in folder ' + path
+                    msgs.append('There should be no additional subfolders in folder ' + path)
                 if files:
                     for f in files:
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
                 else:
-                    msg = 'There are no images in: ' + path
+                    msgs.append('There are no images in: ' + path)
 
-        if passed_root == False or not local_id_used(self):
-            msg = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
-            if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msg):
-                HP_Device_Form(self, prefs=self.prefs)
-            msg = 'hide'
+        if not self.newCam.get() and not self.local_id_used():
+            msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
+            if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msgs):
+                self.open_new_insert_id()
+                #HP_Device_Form(self, prefs=self.prefs)
+            msgs = 'hide'
 
-        if msg == 'hide':
+        if msgs == 'hide':
             pass
-        elif msg:
-            tkMessageBox.showerror(title='Error', message=msg)
+        elif msgs:
+            ErrorWindow(self, errors=msgs)
+            #tkMessageBox.showerror(title='Error', message=msgs)
         else:
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
-            self.localCamEntry.config(state=DISABLED)
+            self.newCamCheckbox.config(state=DISABLED)
+            if self.newCam:
+                self.newCamEntry.config(state=DISABLED)
 
     def has_same_contents(self, list1, list2):
         # set both lists to lowercase strings and checks if they have the same items, in any order
@@ -357,33 +425,67 @@ class PRNU_Uploader(Frame):
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        print 'Creating archive...'
+        self.master.statusBox.println('Creating archive...')
         archive = self.archive_prnu()
         md5file = self.write_md5(archive)
 
-        print 'Uploading ' + archive.replace('\\', '/') + ' to s3://' + val
+        self.master.statusBox.println('Uploading ' + archive.replace('\\', '/') + ' to s3://' + val)
         s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
-        print 'Uploading ' + md5file.replace('\\', '/') + ' to s3://' + val
+        self.master.statusBox.println('Uploading ' + md5file.replace('\\', '/') + ' to s3://' + val)
         s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1])
 
         os.remove(archive)
         os.remove(md5file)
 
-        print '... done'
-        tkMessageBox.showinfo(title='PRNU Upload', message='Complete!')
+        err = self.notify_trello(os.path.basename(archive))
+        if err is not None:
+            msg = 'S3 upload completed, but failed to notify Trello (' + str(
+                err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+        else:
+            msg = 'Complete!'
+        d = tkMessageBox.showinfo(title='Status', message=msg)
 
         # reset state of buttons and boxes
         self.cancel_upload()
 
+    def notify_trello(self, path):
+        if 'trello' not in self.prefs:
+            t = TrelloSignInPrompt(self)
+            token = t.token.get()
+            self.prefs['trello'] = token
+            with open(self.master.prefsfilename.get(), 'w') as f:
+                for key in self.prefs:
+                    f.write(key + '=' + self.prefs[key] + '\n')
+
+        # post the new card
+        list_id = '58dd916dee8fc7d4da953571'
+        new = str(datetime.datetime.now())
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.prefs['trello']),
+                             data=dict(name=new, idList=list_id, desc=path))
+        if resp.status_code == requests.codes.ok:
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.prefs['trello']))
+            member_id = json.loads(me.content)['id']
+            new_card_id = json.loads(resp.content)['id']
+            resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
+                                  params=dict(key=self.master.trello_key, token=self.prefs['trello']),
+                                  data=dict(value=member_id))
+            return None
+        else:
+            return resp.status_code
+
     def cancel_upload(self):
         self.uploadButton.config(state=DISABLED)
         self.rootEntry.config(state=NORMAL)
-        self.localCamEntry.config(state=NORMAL)
+        if self.newCam:
+            self.newCamEntry.config(state=NORMAL)
+        self.newCamCheckbox.config(state=NORMAL)
 
     def archive_prnu(self):
         ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
         archive = tarfile.open(ftar, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
+        if self.newCam.get():
+            archive.add(self.localIDfile.get(), arcname=os.path.split(self.localIDfile.get())[1])
         archive.close()
         return ftar
 
@@ -417,147 +519,13 @@ class PRNU_Uploader(Frame):
         archive = self.archive_prnu()
         shutil.copy(archive, os.getcwd())
         os.remove(archive)
-        print 'done'
+        self.master.statusBox.println('done')
 
-class HP_Device_Form(Toplevel):
-    def __init__(self, master, prefs):
-        Toplevel.__init__(self, master)
-        self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
-        self.master = master
-        self.prefs = prefs
-        self.set_list_options()
-        self.create_widgets()
-
-    def set_list_options(self):
-        df = pd.read_csv(os.path.join('data', 'db.csv'))
-        self.manufacturers = [str(x).strip() for x in df['Manufacturer'] if str(x).strip() != 'nan']
-        self.lens_mounts = [str(y).strip() for y in df['LensMount'] if str(y).strip() != 'nan']
-        self.device_types = [str(z).strip() for z in df['DeviceType'] if str(z).strip() != 'nan']
-
-    def create_widgets(self):
-        self.f = VerticalScrolledFrame(self)
-        self.f.pack(fill=BOTH, expand=TRUE)
-
-        Label(self.f.interior, text='Add a new HP Device', font=("Courier", 20)).pack()
-        Label(self.f.interior, text='Once complete, post the resulting text file to the \"New Devices to be Added\" list on the \"High Provenance\" trello board.').pack()
-
-        self.email = StringVar()
-        self.affiliation = StringVar()
-        self.localID = StringVar()
-        self.serial = StringVar()
-        self.manufacturer = StringVar()
-        self.series_model = StringVar()
-        self.camera_model = StringVar()
-        self.edition = StringVar()
-        self.device_type = StringVar()
-        self.sensor = StringVar()
-        self.general = StringVar()
-        self.lens_mount = StringVar()
-        self.os = StringVar()
-        self.osver = StringVar()
-
-        head = [('Email Address*', {'description':'','type':'text', 'var':self.email}),
-                       ('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
-                                                 'type': 'radiobutton', 'values': ['RIT', 'PAR', 'Other (please specify):'], 'var':self.affiliation}),
-                       ('Define the Local ID*',{'description':'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MAKE, such as'
-                                                             'ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
-                       ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
-                                                'type':'text', 'var':self.serial}),
-                       ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
-                       ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
-                                         'var':self.series_model}),
-                       ('Camera Model*',{'description':'If Camera Model appears in Exif data, please enter it here (ex. SM-009', 'type':'text',
-                                         'var':self.camera_model}),
-                       ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
-                       ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
-                       ('Sensor Information',{'description':'', 'type':'text', 'var':self.sensor}),
-                       ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
-                       ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
-                                       'var':self.lens_mount}),
-                       ('Firmware/OS',{'description':'Firmware/OS', 'type':'text', 'var':self.os}),
-                       ('Firmware/OS Version',{'description':'Firmware/OS Version', 'type':'text', 'var':self.osver})
-        ]
-        self.headers = collections.OrderedDict(head)
-
-        r=0
-        for h in self.headers:
-            Label(self.f.interior, text=h, font=("Courier", 20)).pack()
-            r+=1
-            if 'description' in self.headers[h]:
-                Label(self.f.interior, text=self.headers[h]['description'], wraplength=600).pack()
-                r+=1
-            if self.headers[h]['type'] == 'text':
-                e = Entry(self.f.interior, textvar=self.headers[h]['var'])
-                e.pack()
-            elif self.headers[h]['type'] == 'radiobutton':
-                for v in self.headers[h]['values']:
-                    if v.lower().startswith('other'):
-                        Label(self.f.interior, text='Other - Please specify below: ').pack()
-                        e = Entry(self.f.interior, textvar=self.headers[h]['var'])
-                        e.pack()
-                    else:
-                        Radiobutton(self.f.interior, text=v, variable=self.headers[h]['var'], value=v).pack()
-                    r+=1
-
-            elif self.headers[h]['type'] == 'list':
-                ttk.Combobox(self.f.interior, values=self.headers[h]['values'], textvariable=self.headers[h]['var']).pack()
-
-            r+=1
-
-        self.headers['Device Affiliation*']['var'].set('RIT')
-
-        self.okbutton = Button(self.f.interior, text='Export', command=self.export_results)
-        self.okbutton.pack()
-        self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
-        self.cancelbutton.pack()
-
-    def export_results(self):
-        msg = None
-        for h in self.headers:
-            if h.endswith('*') and self.headers[h]['var'].get() == '':
-                msg = 'Field ' + h[:-1] + ' is a required field.'
-                break
-
-        if local_id_used(self):
-            msg = 'Local ID ' + self.localID.get() + ' already in use.'
-
-        if msg:
-            tkMessageBox.showerror(title='Error', message=msg)
-            return
-
-        with tkFileDialog.asksaveasfile('w', initialfile=self.localID.get()+'.txt') as t:
-            for h in self.headers:
-                t.write(h + ' = ' + self.headers[h]['var'].get() + '\n')
-        tkMessageBox.showinfo(title='Information', message='Export Complete!')
-        self.destroy()
-
-
-def local_id_used(self):
-    try:
-        headers = {'Authorization': 'Token ' + self.prefs['apitoken'], 'Content-Type': 'application/json'}
-        url = self.prefs['apiurl'] + '/api/cameras/?fields=hp_device_local_id/'
-        print 'Checking external service APIs for device local ID...'
-        localIDs = []
-        while True:
-            response = requests.get(url, headers=headers)
-            if response.status_code == requests.codes.ok:
-                r = json.loads(response.content)
-                for item in r['results']:
-                    localIDs.append(item['hp_device_local_id'])
-                url = r['next']
-                if url is None:
-                    break
-            else:
-                print 'HTTP Error ' + str(response.status_code) + '. Attempting to check with local device list....'
-                raise requests.HTTPError()
-    except (KeyError, requests.HTTPError, requests.ConnectionError):
-        df = pd.read_csv(os.path.join('data', 'Devices.csv'))
-        localIDs = [y.strip() for y in df['HP-LocalDeviceID']]
-
-    if self.localID.get().lower() in [id.lower() for id in localIDs]:
-        return True
-    else:
-        return False
+    def local_id_used(self):
+        if self.localID.get().lower() in [i.lower() for i in self.master.cameras.keys()]:
+            return True
+        else:
+            return False
 
 
 class HPGUI(Frame):
@@ -566,8 +534,10 @@ class HPGUI(Frame):
         self.master = master
         self.prefsfilename = StringVar()
         self.prefsfilename.set(os.path.join('data', 'preferences.txt'))
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.load_defaults()
         self.create_widgets()
+        self.load_ids()
 
     def create_widgets(self):
         self.menubar = Menu(self)
@@ -581,19 +551,25 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.master.config(menu=self.menubar)
 
+        self.statusFrame = Frame(self)
+        self.statusFrame.pack(side=BOTTOM, fill=BOTH, expand=1)
+        Label(self.statusFrame, text='Status').pack()
+        self.statusBox = ReadOnlyText(self.statusFrame, height=10)
+        self.statusBox.pack(fill=BOTH, expand=1)
+
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill=BOTH, expand=1)
-        f1 = HP_Starter(master=self.nb, prefs=self.prefs)
-        f2 = PRNU_Uploader(master=self.nb, prefs=self.prefs)
+        f1 = HP_Starter(self, prefs=self.prefs)
+        f2 = PRNU_Uploader(self, prefs=self.prefs)
         self.nb.add(f1, text='Process HP Data')
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        h = HP_Device_Form(self, self.prefs)
-
+        token = self.prefs['trello'] if 'trello' in self.prefs else None
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), token=token)
 
     def load_defaults(self):
-        self.prefs = parse_prefs(os.path.join('data', 'preferences.txt'))
+        self.prefs = parse_prefs(self, os.path.join('data', 'preferences.txt'))
         if self.prefs:
             if 'inputdir' in self.prefs:
                 self.inputdir = self.prefs['inputdir']
@@ -639,58 +615,99 @@ class HPGUI(Frame):
             self.prefs['apitoken'] = newTokenStr
             self.save_prefs()
 
-class VerticalScrolledFrame(Frame):
-    """A pure Tkinter scrollable frame that actually works!
-    http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
-    * Use the 'interior' attribute to place widgets inside the scrollable frame
-    * Construct and pack/place/grid normally
-    * This frame only allows vertical scrolling
+    def load_ids(self):
+        try:
+            cams = API_Camera_Handler(self, self.prefs['apiurl'], self.prefs['apitoken'])
+            self.cameras = cams.get_all()
+            if not self.cameras:
+                raise
+            self.statusBox.println('Camera data successfully loaded from API.')
+        except:
+            self.cameras = {}
+            data = pd.read_csv(os.path.join('data', 'Devices.csv')).to_dict()
+            for num in range(0, len(data['HP-LocalDeviceID'])):
+                self.cameras[data['HP-LocalDeviceID'][num]] = {
+                    'hp_device_local_id': str(data['HP-LocalDeviceID'][num]),
+                    'hp_camera_model': str(data['HP-CameraModel'][num]),
+                    'exif_camera_model': str(data['CameraModel'][num]),
+                    'exif_camera_make': str(data['Manufacturer'][num]),
+                    'exif_device_serial_number': str(data['DeviceSN'][num])
+                }
+            self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
+            self.statusBox.println(
+                'It is recommended to enter your browser credentials in preferences and restart to get the most updated information.')
 
-    """
-    def __init__(self, parent, *args, **kw):
-        Frame.__init__(self, parent, *args, **kw)
 
-        # create a canvas object and a vertical scrollbar for scrolling it
-        vscrollbar = Scrollbar(self, orient=VERTICAL)
-        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        self.canvas = Canvas(self, bd=0, highlightthickness=0,
-                        yscrollcommand=vscrollbar.set)
-        self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
-        vscrollbar.config(command=self.canvas.yview)
-        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+class ReadOnlyText(Text):
+    def __init__(self, master, **kwargs):
+        Text.__init__(self, master, **kwargs)
+        self.master=master
+        self.config(state='disabled')
 
-        # reset the view
-        self.canvas.xview_moveto(0)
-        self.canvas.yview_moveto(0)
+    def println(self, text):
+        self.config(state='normal')
+        self.insert(END, text + '\n')
+        self.see('end')
+        self.config(state='disabled')
 
-        # create a frame inside the canvas which will be scrolled with it
-        self.interior = interior = Frame(self.canvas)
-        interior_id = self.canvas.create_window(0, 0, window=interior,
-                                           anchor=NW)
+class API_Camera_Handler:
+    def __init__(self, master, url, token):
+        self.master = master
+        self.url = url
+        self.token = token
+        self.localIDs = []
+        self.models_hp = []
+        self.models_exif = []
+        self.makes_exif = []
+        self.sn_exif = []
+        self.all = {}
+        self.load_data()
 
-        # track changes to the canvas and frame width and sync them,
-        # also updating the scrollbar
-        def _configure_interior(event):
-            # update the scrollbars to match the size of the inner frame
-            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
-            self.canvas.config(scrollregion="0 0 %s %s" % size)
-            if interior.winfo_reqwidth() != self.canvas.winfo_width():
-                # update the canvas's width to fit the inner frame
-                self.canvas.config(width=interior.winfo_reqwidth())
-        interior.bind('<Configure>', _configure_interior)
+    def get_local_ids(self):
+        return self.localIDs
 
-        def _configure_canvas(event):
-            if interior.winfo_reqwidth() != self.canvas.winfo_width():
-                # update the inner frame's width to fill the canvas
-                self.canvas.itemconfigure(interior_id, width=self.canvas.winfo_width())
-        self.canvas.bind('<Configure>', _configure_canvas)
+    def get_model_hp(self):
+        return self.models_hp
 
-    def on_mousewheel(self, event):
-        if sys.platform.startswith('win'):
-            self.canvas.yview_scroll(-1*(event.delta/120), "units")
-        else:
-            self.canvas.yview_scroll(-1*(event.delta), "units")
+    def get_model_exif(self):
+        return self.models_exif
 
+    def get_makes_exif(self):
+        return self.makes_exif
+
+    def get_sn(self):
+        return self.sn_exif
+
+    def get_all(self):
+        return self.all
+
+    def load_data(self):
+        try:
+            headers = {'Authorization': 'Token ' + self.token, 'Content-Type': 'application/json'}
+            url = self.url + '/api/cameras/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
+            print 'Checking external service APIs for device local ID...'
+
+            while True:
+                response = requests.get(url, headers=headers)
+                if response.status_code == requests.codes.ok:
+                    r = json.loads(response.content)
+                    for item in r['results']:
+                        self.all[item['hp_device_local_id']] = item
+                        self.localIDs.append(item['hp_device_local_id'])
+                        self.models_hp.append(item['hp_camera_model'])
+                        self.models_exif.append(item['exif_camera_model'])
+                        self.makes_exif.append(item['exif_camera_make'])
+                        self.sn_exif.append(item['exif_device_serial_number'])
+                    url = r['next']
+                    if url is None:
+                        break
+                else:
+                    raise requests.HTTPError()
+        except (requests.HTTPError, requests.ConnectionError):
+            print 'An error ocurred connecting to API (' + str(response.status_code) + ').\n Devices will be loaded from hp_tool/data.'
+        except KeyError:
+            tkMessageBox.showerror(title='Information', message='Could not find API credentials in preferences. Please '
+                                                               'add them via preferences or the File menu.')
 
 def main():
     root = Tk()
