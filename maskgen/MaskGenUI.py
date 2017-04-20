@@ -685,8 +685,11 @@ class MakeGenUI(Frame):
             self.canvas.redrawNode(recipient)
         if eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
+            validation_person = self.scModel.getProjectData('validatedby')
             comment = 'Exported by ' + self.prefLoader.get_key('username')
-            comment = comment + '\n QA:' + qacomment if qacomment is not None else comment
+            comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
+            if validation_person is not None:
+                comment = comment + '\n Validated By: ' + validation_person
             self.notifiers.update_journal_status(self.scModel.getName(),
                                                  self.scModel.getGraph().getCreator().lower(),
                                                  comment,
