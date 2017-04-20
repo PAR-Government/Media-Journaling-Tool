@@ -70,13 +70,13 @@ def parse_prefs(self, data):
                 except ValueError:
                     continue
     except IOError:
-        self.master.statusbox.println('Input file: ' + data + ' not found. ')
+        self.master.statusBox.println('Input file: ' + data + ' not found. ')
         return
 
     try:
         (newData['organization'] and newData['username'])
     except KeyError:
-        self.master.statusbox.println('Must specify ''username'' and ''organization'' in preferences file')
+        self.master.statusBox.println('Must specify ''username'' and ''organization'' in preferences file')
         return
 
     # convert to single-char organization code
@@ -88,11 +88,11 @@ def parse_prefs(self, data):
                 newData['fullorgname'] = newData['organization']
                 newData['organization'] = newData['organization'][-2]
             else:
-                self.master.statusbox.println('Error: organization: ' + newData['organization'] + ' not recognized')
+                self.master.statusBox.println('Error: organization: ' + newData['organization'] + ' not recognized')
                 return
     elif len(newData['organization']) == 1:
         if newData['organization'] not in orgs.values():
-            self.master.statusbox.println('Error: organization code: ' + newData['organization'] + ' not recognized')
+            self.master.statusBox.println('Error: organization code: ' + newData['organization'] + ' not recognized')
             return
 
     # reset sequence if date is new
@@ -288,7 +288,7 @@ def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
                     try:
                         row.append(info[imNo][h])
                     except KeyError:
-                        self.master.statusbox.println('Could not find column ' + h)
+                        self.master.statusBox.println('Could not find column ' + h)
                         row.append('ERROR')
             wtr.writerow(row)
 
@@ -401,7 +401,7 @@ def parse_image_info(self, imageList, **kwargs):
     try:
         exifDataResult = json.loads(exifDataResult)
     except:
-        self.master.statusbox.println('Exiftool could not return data for all input. Process cancelled.')
+        self.master.statusBox.println('Exiftool could not return data for all input. Process cancelled.')
         return None
 
     # further organize exif data into a dictionary based on source filename
