@@ -116,6 +116,7 @@ def get_journal(url, apitoken):
     import requests
     import json
     headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+    url = url[:-1] if url.endswith('/') else url
     url = url + '?fields=name'
     try:
         response = requests.get(url,  headers=headers)
@@ -123,6 +124,8 @@ def get_journal(url, apitoken):
             r = json.loads(response.content)
             if 'name' in r:
                 return r['name']
+        else:
+            logging.getLogger('maskgen').error("Unable to connect to service: {}".format(response.text))
     except Exception as e:
        logging.getLogger('maskgen').critical("Cannot reach external service " + url)
        logging.getLogger('maskgen').error(str(e))
@@ -135,6 +138,7 @@ def get_fields(filename, apitoken, url):
         logging.getLogger('maskgen').critical( 'Missing external service URL.  Check settings')
         return []
     try:
+        url = url[:-1] if url.endswith('/') else url
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
         data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
@@ -152,6 +156,8 @@ def get_fields(filename, apitoken, url):
                         info['manipulation_journal']  = get_journal(item['manipulation_journal'],apitoken)
                     info['high_provenance'] = item['high_provenance']
                 return result
+        else:
+            logging.getLogger('maskgen').error("Unable to connect to service: {}".format(response.text))
     except Exception as e:
         logging.getLogger('maskgen').error("Error calling external service: " + str(e))
         logging.getLogger('maskgen').critical("Cannot reach external service")
