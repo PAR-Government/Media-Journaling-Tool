@@ -108,7 +108,7 @@ class HP_Device_Form(Toplevel):
         self.headers['Device Affiliation*']['var'].set('RIT')
 
         Label(self.f.interior, text='Trello Login Token*', font=("Courier", 20)).pack()
-        Label(self.f.interior, text='If not supplied, you will need to manually post the output text file from this form onto the proper Trello board.').pack()
+        Label(self.f.interior, text='This will be a different login token than for MaskGen.').pack()
         apiTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
         apiTokenButton.pack()
         tokenEntry = Entry(self.f.interior, textvar=self.token)
@@ -190,12 +190,19 @@ class HP_Device_Form(Toplevel):
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
                              data=dict(name=new, idList=list_id))
 
-        # attach the file, if the card was successfully posted
+        # attach the file and user, if the card was successfully posted
         if resp.status_code == requests.codes.ok:
             j = json.loads(resp.content)
             files = {'file': open(filepath, 'rb')}
             requests.post("https://trello.com/1/cards/%s/attachments" % (j['id']),
                           params=dict(key=self.trello_key, token=token), files=files)
+
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.trello_key, token=token))
+            member_id = json.loads(me.content)['id']
+            new_card_id = j['id']
+            resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
+                                  params=dict(key=self.trello_key, token=token),
+                                  data=dict(value=member_id))
             return None
         else:
             return resp.status_code

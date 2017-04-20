@@ -472,6 +472,12 @@ class HPSpreadsheet(Toplevel):
 
         # attach the file, if the card was successfully posted
         if resp.status_code == requests.codes.ok:
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.trello_key, token=token))
+            member_id = json.loads(me.content)['id']
+            new_card_id = json.loads(resp.content)['id']
+            resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
+                                  params=dict(key=self.trello_key, token=token),
+                                  data=dict(value=member_id))
             return None
         else:
             return resp.status_code
@@ -679,7 +685,7 @@ class NewCameraPrompt(tkSimpleDialog.Dialog):
 
 
 class TrelloSignInPrompt(tkSimpleDialog.Dialog):
-    def __init__(self, master, key):
+    def __init__(self, master, key='dcb97514b94a98223e16af6e18f9f99e'):
         self.master=master
         self.token = StringVar()
         self.trello_key = key

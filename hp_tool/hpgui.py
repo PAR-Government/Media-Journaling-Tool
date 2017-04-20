@@ -19,7 +19,7 @@ import time
 import numpy as np
 import webbrowser
 from hp_data import *
-from HPSpreadsheet import HPSpreadsheet
+from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt
 from KeywordsSheet import KeywordsSheet
 from ErrorWindow import ErrorWindow
 from prefs import Preferences
@@ -437,11 +437,41 @@ class PRNU_Uploader(Frame):
         os.remove(archive)
         os.remove(md5file)
 
-        self.master.statusBox.println('... done')
-        tkMessageBox.showinfo(title='PRNU Upload', message='Complete!')
+        err = self.notify_trello(os.path.basename(archive))
+        if err is not None:
+            msg = 'S3 upload completed, but failed to notify Trello (' + str(
+                err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+        else:
+            msg = 'Complete!'
+        d = tkMessageBox.showinfo(title='Status', message=msg)
 
         # reset state of buttons and boxes
         self.cancel_upload()
+
+    def notify_trello(self, path):
+        if 'trello' not in self.prefs:
+            t = TrelloSignInPrompt(self)
+            token = t.token.get()
+            self.prefs['trello'] = token
+            with open(self.master.prefsfilename.get(), 'w') as f:
+                for key in self.prefs:
+                    f.write(key + '=' + self.prefs[key] + '\n')
+
+        # post the new card
+        list_id = '58dd916dee8fc7d4da953571'
+        new = str(datetime.datetime.now())
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.prefs['trello']),
+                             data=dict(name=new, idList=list_id, desc=path))
+        if resp.status_code == requests.codes.ok:
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.prefs['trello']))
+            member_id = json.loads(me.content)['id']
+            new_card_id = json.loads(resp.content)['id']
+            resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
+                                  params=dict(key=self.master.trello_key, token=self.prefs['trello']),
+                                  data=dict(value=member_id))
+            return None
+        else:
+            return resp.status_code
 
     def cancel_upload(self):
         self.uploadButton.config(state=DISABLED)
@@ -504,6 +534,7 @@ class HPGUI(Frame):
         self.master = master
         self.prefsfilename = StringVar()
         self.prefsfilename.set(os.path.join('data', 'preferences.txt'))
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.load_defaults()
         self.create_widgets()
         self.load_ids()
@@ -615,7 +646,7 @@ class ReadOnlyText(Text):
 
     def println(self, text):
         self.config(state='normal')
-        self.insert(CURRENT, text + '\n')
+        self.insert(END, text + '\n')
         self.see('end')
         self.config(state='disabled')
 
