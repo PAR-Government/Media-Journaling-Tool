@@ -70,13 +70,13 @@ def parse_prefs(self, data):
                 except ValueError:
                     continue
     except IOError:
-        self.master.statusBox.println('Input file: ' + data + ' not found. ')
+        print 'Input file: ' + data + ' not found. '
         return
 
     try:
         (newData['organization'] and newData['username'])
     except KeyError:
-        self.master.statusBox.println('Must specify ''username'' and ''organization'' in preferences file')
+        print 'Must specify ''username'' and ''organization'' in preferences file'
         return
 
     # convert to single-char organization code
@@ -88,11 +88,11 @@ def parse_prefs(self, data):
                 newData['fullorgname'] = newData['organization']
                 newData['organization'] = newData['organization'][-2]
             else:
-                self.master.statusBox.println('Error: organization: ' + newData['organization'] + ' not recognized')
+                print 'Error: organization: ' + newData['organization'] + ' not recognized'
                 return
     elif len(newData['organization']) == 1:
         if newData['organization'] not in orgs.values():
-            self.master.statusBox.println('Error: organization code: ' + newData['organization'] + ' not recognized')
+            print 'Error: organization code: ' + newData['organization'] + ' not recognized'
             return
 
     # reset sequence if date is new
