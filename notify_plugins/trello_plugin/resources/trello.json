@@ -4,10 +4,12 @@
    "boards" : "/1/members/{trelloapiusername}/boards",
    "lists" : "/1/boards/{boardid}/lists",
    "cards" : "/1/lists/{listid}/cards",
+   "user" : "/1/members/me",
    "closed" : "/1/cards/{cardid}/closed",
    "comment" : "/1/cards/{cardid}/actions/comments",
    "labels" : "/1/boards/{boardid}/labels",
    "label" : "/1/cards/{cardid}/idLabels",
    "label.reviewname":"To Review",
-   "board.name":"JournalQA"
+   "board.name":"JournalQA",
+   "trelloapikey":"bc091d60a823e3ccc9ccf9768ce4dfc8"
 }

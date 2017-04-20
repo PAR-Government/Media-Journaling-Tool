@@ -86,8 +86,8 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
         expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
         if tm is not None:
             res = tool_set.applyTransform(res,
-                                          edgeMask,
-                                          tool_set.deserializeMatrix(tm),
+                                          mask=edgeMask,
+                                          transform_matrix=tool_set.deserializeMatrix(tm),
                                           invert=True,
                                           shape=expectedSize,
                                           returnRaw=True)
@@ -105,6 +105,7 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
 
 
 def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,donorMask=None,pred_edges=None):
+    import os
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
@@ -122,9 +123,15 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
-        elif sizeChange == (0, 0) and tm is not None:
-            # local resize
-            res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm))
+        elif sizeChange == (0, 0):
+            if tm is not None:
+                # local resize
+                res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm))
+            elif 'inputmaskname' in edge:
+                inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
+                if inputmask is not None:
+                    mask = inputmask.to_mask().to_array()
+                    res = move_pixels(mask,255-edgeMask, res,isComposite=True)
         if expectedSize != res.shape:
             res = tool_set.applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
         return res
@@ -136,8 +143,14 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
             upperBound = (
                 min(expectedSize[0] + location[0], res.shape[0]), min(expectedSize[1] + location[1], res.shape[1]))
             res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
-        elif sizeChange == (0, 0) and tm is not None:
-            res = tool_set.applyTransform(res, edgeMask, tool_set.deserializeMatrix(tm), invert=True, returnRaw=False)
+        elif sizeChange == (0, 0):
+            if tm is not None:
+                res = tool_set.applyTransform(res, mask=edgeMask, transform_matrix=tool_set.deserializeMatrix(tm), invert=True, returnRaw=False)
+            elif 'inputmaskname' in edge:
+                inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
+                if inputmask is not None:
+                    mask = inputmask.to_mask().to_array()
+                    res = move_pixels(255-edgeMask, mask, res)
         if targetSize != res.shape:
             res = cv2.resize(res, (targetSize[1], targetSize[0]))
         return res
@@ -169,7 +182,8 @@ def crop_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,
         return res
     return edgeMask
 
-def move_pixels(frommask, tomask, image):
+
+def move_pixels(frommask, tomask, image, isComposite=False):
     lowerm, upperm = tool_set.boundingRegion(frommask)
     lowerd, upperd = tool_set.boundingRegion(tomask)
     M = cv2.getPerspectiveTransform(np.asarray([[lowerm[0], lowerm[1]],
@@ -183,9 +197,13 @@ def move_pixels(frommask, tomask, image):
                                                 [upperd[0], upperd[1]],
                                                 [lowerd[0], upperd[1]]]).astype(
                                         'float32'))
-    newimage = image*50
-    transformedImage = cv2.warpPerspective(newimage, M, (tomask.shape[1], tomask.shape[0]))
-    transformedImage = (transformedImage/50).astype('uint8')
+
+    if isComposite:
+        transformedImage = tool_set.applyPerspectiveToComposite(image, M, tomask.shape)
+        transformedImage = transformedImage.astype('uint8')
+    else:
+        transformedImage = cv2.warpPerspective(image, M, (tomask.shape[1], tomask.shape[0]))
+        transformedImage = transformedImage.astype('uint8')
     return transformedImage
 
 def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
@@ -212,7 +230,7 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
             inputmask = 255-inputmask
             differencemask = (255-edgeMask) - inputmask
             differencemask[differencemask<0] = 0
-            res =move_pixels(inputmask,differencemask,res)
+            res =move_pixels(inputmask,differencemask,res,isComposite=True)
         if expectedSize != res.shape:
             res = tool_set.applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
         return res
@@ -221,7 +239,11 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
         expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
         targetSize = edgeMask.shape if edgeMask is not None else expectedSize
         if tm is not None:
-            res = tool_set.applyTransform(res, inputmask, tool_set.deserializeMatrix(tm),invert=True, returnRaw=False)
+            res = tool_set.applyTransform(res,
+                                          mask=inputmask,
+                                          transform_matrix=tool_set.deserializeMatrix(tm),
+                                          invert=True,
+                                          returnRaw=False)
         else:
             if inputmask.shape != edgeMask.shape:
                 inputmask = cv2.resize(inputmask, (res.shape[1], res.shape[0]))
