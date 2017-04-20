@@ -109,6 +109,7 @@ class Preferences(Toplevel):
             self.copyrightVar.set(self.metadata['copyrightnotice'])
             self.bylineVar.set(self.metadata['by-line'])
             self.creditVar.set(self.metadata['credit'])
+            self.update_metadata()
 
         self.usageVar.set('CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/')
 
@@ -247,8 +248,8 @@ class Preferences(Toplevel):
             org = 'Drexel University'
         elif org == 'CU Denver (C)':
             org = 'University of Colorado, Denver'
-
-        self.copyrightVar.set('(c) 2016 ' + org + ' - Under contract of MediFor')
+        year = datetime.datetime.today().strftime('%Y')
+        self.copyrightVar.set('(c) ' + year + ' ' + org + ' - Under contract of MediFor')
         self.bylineVar.set(initials)
         self.creditVar.set(org)
 
