@@ -204,12 +204,14 @@ def check_graph_rules(graph,node,external=False, prefLoader=None):
 
         if nodeData['nodetype'] == 'final' and external and \
                 prefLoader.get_key('apitoken') is not None:
-                for journal in get_fields(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl')):
-                    if journal['manipulation_journal'] is not None and journal['manipulation_journal']  != graph.G.name:
-                        errors.append("Final media node {} used in journal {}".format(nodeData['file'], journal['manipulation_journal']))
-                    else:
-                        checked_nodes.append(nodeData['file'])
-                        graph.setDataItem('api_validated_node',checked_nodes,excludeUpdate=True)
+                fields = get_fields(nodeData['file'],prefLoader.get_key('apitoken'),prefLoader.get_key('apiurl'))
+                if len(fields) > 0:
+                    for journal in fields:
+                      if journal['manipulation_journal'] is not None and journal['manipulation_journal']  != graph.G.name:
+                           errors.append("Final media node {} used in journal {}".format(nodeData['file'], journal['manipulation_journal']))
+                else:
+                    checked_nodes.append(nodeData['file'])
+                    graph.setDataItem('api_validated_node',checked_nodes,excludeUpdate=True)
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
