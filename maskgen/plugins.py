@@ -3,6 +3,7 @@ import imp
 import os
 import json
 import subprocess
+import logging
 
 MainModule = "__init__"
 
@@ -42,7 +43,7 @@ def loadCustom(plugin, path):
     loads a custom plugin
     """
     global loaded
-    print("Loading plugin " + plugin)
+    logging.getLogger('maskgen').info("Loading plugin " + plugin)
     with open(path) as jfile:
         data = json.load(jfile)
     loaded[plugin] = {}
@@ -65,7 +66,7 @@ def loadPlugins():
           path = ps[i]['custom']
           loadCustom(i, path)
       else:
-          print("Loading plugin " + i)
+          logging.getLogger('maskgen').info("Loading plugin " + i)
           plugin = imp.load_module(MainModule, *ps[i]["info"])
           loaded[i] = {}
           loaded[i]['function'] = plugin.transform
@@ -105,7 +106,7 @@ def getOperationNames(noArgs=False):
 def getOperation(name):
     global loaded
     if name not in loaded:
-        print 'Request plugined not found: ' + str(name)
+        logging.getLogger('maskgen').warning('Request plugined not found: ' + str(name))
         return None
     return loaded[name]['operation']
 

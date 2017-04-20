@@ -3,6 +3,7 @@ import sys
 import exif
 import numpy as np
 import tool_set
+import logging
 
 
 class BaseOperation:
@@ -39,7 +40,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
         for pair in pairs:
             pred = self.scModel.getDescriptionForPredecessor(pair[0])
             if str(pred.operationName) .startswith('AntiForensicExif'):
-                print 'Error: Last operation is ExifMetaCopy. Use CompressAs plugin with base image as donor.'
+                logging.getLogger('maskgen').warning(" Last operation is ExifMetaCopy. Use CompressAs plugin with base image as donor.")
             else:
                 result.append(pair)
         return result

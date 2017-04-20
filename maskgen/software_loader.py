@@ -5,7 +5,7 @@ import os
 from maskgen_loader import MaskGenLoader
 from json import JSONEncoder
 import json
-
+import logging
 
 class OperationEncoder(JSONEncoder):
     def default(self, o):
@@ -18,17 +18,18 @@ operationsByCategory = {}
 projectProperties = {}
 
 
-def getFileName(fileName):
+def getFileName(fileName, path=None):
     import sys
     if (os.path.exists(fileName)):
-        print 'Loading ' + fileName
+        logging.getLogger('maskgen').info( 'Loading ' + fileName)
         return fileName
     places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
-    places.extend([os.path.join(x,'resources') for x in sys.path if 'maskgen' in x])
+    places.extend([os.path.join(x,'resources') for x in sys.path if 'maskgen' in x or
+                   (path is not None and path in x)])
     for place in places:
         newNanme = os.path.abspath(os.path.join(place, fileName))
         if os.path.exists(newNanme):
-            print 'Loading ' + newNanme
+            logging.getLogger('maskgen').info( 'Loading ' + newNanme)
             return newNanme
 
 class ProjectProperty:
@@ -121,7 +122,7 @@ def getOperation(name, fake = False, warning=True):
     if name == 'Donor':
         return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
     if name not in operations and warning:
-        print 'Requested missing operation ' + str(name)
+        logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
     return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)
 
 
@@ -202,7 +203,7 @@ def loadCustomRules():
     global customRuleFunc
     import pkg_resources
     for p in  pkg_resources.iter_entry_points("maskgen_rules"):
-        print 'load rule ' + p.name
+        logging.getLogger('maskgen').info( 'load rule ' + p.name)
         customRuleFunc[p.name] = p.load()
 
 def insertCustomRule(name,func):
@@ -275,12 +276,12 @@ def loadSoftware(fileName):
                 continue
             columns = l.split(',')
             if len(columns) < 3:
-                print 'Invalid software description on line ' + str(line_no) + ': ' + l
+                logging.getLogger('maskgen').error( 'Invalid software description on line ' + str(line_no) + ': ' + l)
             software_type = columns[0].strip()
             software_name = columns[1].strip()
             versions = [x.strip() for x in columns[2:] if len(x) > 0]
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
-                print 'Invalid software type on line ' + str(line_no) + ': ' + l
+                logging.getLogger('maskgen').error( 'Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
                 types = ['image', 'video'] if software_type == 'both' else [software_type]
                 types = ['image', 'video', 'audio'] if software_type == 'all' else types
@@ -369,7 +370,7 @@ class SoftwareLoader:
             if version is not None and version not in versions:
                 versions = list(versions)
                 versions.append(version)
-                print version + ' not in approved set for software ' + name
+                logging.getLogger('maskgen').warning( version + ' not in approved set for software ' + name)
             return versions
         return []
 

@@ -1,8 +1,8 @@
 from image_graph import createGraph, current_version, getPathValues
-import shutil
 import exif
 import os
 import numpy as np
+import logging
 from tool_set import *
 import video_tools
 from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader,getRule
@@ -85,10 +85,10 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
          return projectModelFactory(os.path.abspath(path), notify=notify), False
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if  len(selectionSet) != 0 and base is not None:
-        print 'Cannot add base image/video to an existing project'
+        logging.getLogger('maskgen').warning('Cannot add base image/video to an existing project')
         return None
     if len(selectionSet) == 0 and base is None:
-        print 'No project found and base image/video not provided; Searching for a base image/video'
+        logging.getLogger('maskgen').info( 'No project found and base image/video not provided; Searching for a base image/video')
         suffixPos = 0
         while len(selectionSet) == 0 and suffixPos < len(suffixes):
             suffix = suffixes[suffixPos]
@@ -97,7 +97,7 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
             suffixPos += 1
         projectFile = selectionSet[0] if len(selectionSet) > 0 else None
         if projectFile is None:
-            print 'Could not find a base image/video'
+            logging.getLogger('maskgen').warning( 'Could not find a base image/video')
             return None
     # add base is not None
     elif len(selectionSet) == 0:
@@ -106,7 +106,7 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
         projectFile = selectionSet[0]
     projectFile = os.path.abspath(os.path.join(path, projectFile))
     if not os.path.exists(projectFile):
-        print 'Base project file ' + projectFile + ' not found'
+        logging.getLogger('maskgen').warning( 'Base project file ' + projectFile + ' not found')
         return None
     image = None
     existingProject = projectFile.endswith(".json")
@@ -421,7 +421,7 @@ class LinkTool:
                      arguments=arguments,
                      directory=directory)
             except Exception as e:
-                print 'Failed to run analysis ' + analysisOp + ': ' + str(e)
+                logging.getLogger('maskgen').error('Failed to run analysis {}: {} '.format(analysisOp, str(e)))
 
 
 class ImageImageLinkTool(LinkTool):
@@ -1091,7 +1091,7 @@ class ImageProjectModel:
                            tm = openImageFile(os.path.join(self.get_dir(),selectMasks[finalNodeId]),isMask=True)
                            target_mask = tm
                         except Exception as e:
-                           print 'bad replacement file ' + selectMasks[finalNodeId]
+                           logging.getLogger('maskgen').error( 'bad replacement file ' + selectMasks[finalNodeId])
                     target_mask_filename = os.path.join(self.get_dir(),
                                                         edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
                     target_mask.save(target_mask_filename, format='PNG')
@@ -1675,7 +1675,7 @@ class ImageProjectModel:
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
         mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
-                                                               arguments=edge['arguments'] if 'arguments' in edge else dict(),
+                                                               arguments=arguments,
                                                                skipDonorAnalysis=skipDonorAnalysis,
                                                                analysis_params=analysis_params,
                                                                force=True)
@@ -2131,7 +2131,6 @@ class ImageProjectModel:
 
     def renameFileImages(self):
         """
-
         :return: list of node ids renamed
         """
         renamed = []
@@ -2139,14 +2138,14 @@ class ImageProjectModel:
             self.labelNodes(node)
             nodeData = self.G.get_node(node)
             if nodeData['nodetype'] in ['final']:
-                print 'Inspecting ' + nodeData['file'] + ' for rename'
+                logging.getLogger('maskgen').info( 'Inspecting {}  for rename'.format(nodeData['file']))
                 suffix_pos = nodeData['file'].rfind('.')
                 suffix = nodeData['file'][suffix_pos:].lower()
                 try:
                     with open(os.path.join(self.G.dir, nodeData['file'])) as rp:
                         new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
                 except:
-                    print 'Missing file or invalid permission: ' + nodeData['file']
+                    logging.getLogger('maskgen').error( 'Missing file or invalid permission: {} '.format( nodeData['file']))
                     new_file_name = nodeData['file']
                     continue
                 fullname = os.path.join(self.G.dir,new_file_name)
@@ -2155,10 +2154,19 @@ class ImageProjectModel:
                     try:
                         os.rename(file_path_name, fullname)
                         renamed.append(node)
-                        print 'Renamed ' + nodeData['file'] + ' to ' + new_file_name
+                        logging.getLogger('maskgen').info('Renamed {} to {} '.format( nodeData['file'], new_file_name))
                         self.G.update_node(node,file=new_file_name)
-                    except:
-                        continue
+                    except Exception as e:
+                        try:
+                            logging.getLogger('maskgen').error(('Failure to rename file {} : {}.  Trying copy').format(file_path_name,str(e)))
+                            shutil.copy2(file_path_name,fullname)
+                            logging.getLogger('maskgen').info(
+                                'Renamed {} to {} '.format(nodeData['file'], new_file_name))
+                            self.G.update_node(node, file=new_file_name)
+                        except:
+                            continue
+                else:
+                   logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
         self.save()
         return renamed
 
@@ -2429,25 +2437,28 @@ class ImageProjectModel:
             if edge['op'] == opName]
 
     def export(self, location,include=[]):
-        self.clear_validation_properties()
-        self.compress(all=True)
-        path, errors = self.G.create_archive(location,include=include)
-        return errors
+        with self.lock:
+            self.clear_validation_properties()
+            self.compress(all=True)
+            path, errors = self.G.create_archive(location,include=include)
+            return errors
 
     def exporttos3(self, location, tempdir=None):
         import boto3
-        self.clear_validation_properties()
-        self.compress(all=True)
-        path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
-        if len(errors) == 0:
-            s3 = boto3.client('s3', 'us-east-1')
-            BUCKET = location.split('/')[0].strip()
-            DIR = location[location.find('/') + 1:].strip()
-            print 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1]
-            DIR = DIR if DIR.endswith('/') else DIR + '/'
-            s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1])
-            os.remove(path)
-        return errors
+        with self.lock:
+            self.clear_validation_properties()
+            self.compress(all=True)
+            path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
+            if len(errors) == 0:
+                s3 = boto3.client('s3', 'us-east-1')
+                BUCKET = location.split('/')[0].strip()
+                DIR = location[location.find('/') + 1:].strip()
+                logging.getLogger('maskgen').info( 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
+                DIR = DIR if DIR.endswith('/') else DIR + '/'
+                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1])
+                os.remove(path)
+                self.notify(self.getName(),'export')
+            return errors
 
     def export_path(self, location):
         if self.end is None and self.start is not None:

@@ -16,7 +16,8 @@ from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
 from CompositeViewer import CompositeViewDialog
-
+from notifiers import  loadNotifier
+import logging
 
 """
   Main UI Driver for MaskGen
@@ -91,6 +92,7 @@ class MakeGenUI(Frame):
     errorlistDialog = None
     exportErrorlistDialog = None
     uiProfile = UIProfile()
+    notifiers = loadNotifier(prefLoader)
     menuindices = {}
     scModel = None
     """
@@ -247,7 +249,11 @@ class MakeGenUI(Frame):
                 else:
                     tkMessageBox.showinfo("Export to S3", "Complete")
                     self.prefLoader.save('s3info', val)
-            except IOError:
+            except IOError as e:
+                logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
+                tkMessageBox.showinfo("Error", "Failed to upload export")
+            except ClientError as e:
+                logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
 
     def _promptRotate(self,donor_im,rotated_im, orientation):
@@ -304,17 +310,11 @@ class MakeGenUI(Frame):
             if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
                 self.scModel.getGraph().replace_attribute_value('username', oldName, newName)
 
-    def setapiurl(self):
-        token = self.prefLoader.get_key('apiurl')
-        newTokenStr = tkSimpleDialog.askstring("Set API URL", "URL", initialvalue=token)
+    def setproperty(self, key, value):
+        token = self.prefLoader.get_key(key)
+        newTokenStr = tkSimpleDialog.askstring(value, value, initialvalue=token)
         if newTokenStr is not None:
-            self.prefLoader.save('apiurl', newTokenStr)
-
-    def setapitoken(self):
-        token = self.prefLoader.get_key('apitoken')
-        newTokenStr = tkSimpleDialog.askstring("Set API Token", "Token", initialvalue=token)
-        if newTokenStr is not None:
-            self.prefLoader.save('apitoken', newTokenStr)
+            self.prefLoader.save(key, newTokenStr)
 
     def setPreferredFileTypes(self):
         filetypes = self.getPreferredFileTypes()
@@ -683,6 +683,14 @@ class MakeGenUI(Frame):
     def changeEvent(self, recipient, eventType):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
+        if eventType == 'export':
+            qacomment = self.scModel.getProjectData('qacomment')
+            comment = 'Exported by ' + self.prefLoader.get_key('username')
+            comment = comment + '\n QA:' + qacomment if qacomment is not None else comment
+            self.notifiers.update_journal_status(self.scModel.getName(),
+                                                 self.scModel.getGraph().getCreator().lower(),
+                                                 comment,
+                                                 self.scModel.getGraph().get_project_type())
         #        elif eventType == 'connect':
         #           self.canvas.showEdge(recipient[0],recipient[1])
 
@@ -737,6 +745,7 @@ class MakeGenUI(Frame):
         self.master.title(os.path.join(self.scModel.get_dir(), self.scModel.getName()))
 
     def createWidgets(self):
+        from functools import partial
         self._setTitle()
 
         menubar = Menu(self)
@@ -751,8 +760,10 @@ class MakeGenUI(Frame):
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
         settingsmenu.add_command(label="Autosave", command=self.setautosave)
-        settingsmenu.add_command(label="API Token", command=self.setapitoken)
-        settingsmenu.add_command(label="API URL", command=self.setapiurl)
+        settingsmenu.add_command(label="API Token", command=partial(self.setproperty,'apitoken','API Token'))
+        settingsmenu.add_command(label="API URL", command=partial(self.setproperty,'apiurl','API URL'))
+        for k,v in self.notifiers.get_properties().iteritems():
+            settingsmenu.add_command(label=v, command=partial(self.setproperty,k,v))
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)
@@ -958,7 +969,7 @@ class MakeGenUI(Frame):
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:
-            print 'Invalid project director ' + dir
+            logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
@@ -989,6 +1000,8 @@ def do_every (interval, worker_func, iterations = 0):
       do_every, [interval, worker_func, 0 if iterations == 0 else iterations-1]
     ).start ()
 
+
+
 def main(argv=None):
     if (argv is None):
         argv = sys.argv
@@ -998,10 +1011,12 @@ def main(argv=None):
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
+
     imgdir = None
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
+    set_logging()
     if args.imagedir is not None:
         imgdir = args.imagedir
     if args.http is not None:
@@ -1020,6 +1035,7 @@ def main(argv=None):
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':
         execute_every(float(interval),saveme, saver=gui)
+
     gui.mainloop()
 
 

@@ -2,6 +2,7 @@ from image_graph import current_version
 import tool_set
 import os
 from group_filter import getOperationWithGroups
+import logging
 
 def updateJournal(scModel):
     """
@@ -211,8 +212,8 @@ def _fixTransforms(scModel):
                tool_set.forcedSiftAnalysis(edge,scModel.getImage(frm),scModel.getImage(to),scModel.maskImage(),
                                         linktype=scModel.getLinkType(frm,to))
             except Exception as e:
-                print e
-                print frm + ' to ' + to
+                logging.warning("Cannot fix SIFT transforms during upgrade: " + str(e))
+                logging.warning("Transform not composed for link {} to {}".format( frm, to))
 
 def _fixRecordMasInComposite(scModel):
     """

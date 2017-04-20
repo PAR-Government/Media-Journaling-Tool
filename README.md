@@ -1,10 +1,18 @@
-﻿# Dependencies
+﻿# WHAT IS THIS?
+
+This tool is used to journal image, video and audio manipulations applied to high provenance media to produce manipulated media.  The intent is to capture all the steps for the purpose of evaluating effectiveness and accuracy of manipulation detection algorithms, training detectors and evaluating manipulation software for their effectiveness and correctness.  The tool has numerous pluggable components including validation rules, mask generation rules, summarization rules, image readers, and image manipulation plugins.
+
+# INSTALLATION
 
 Install exiftool
 
 Install ffmpeg and ffmprobe for video processing.
 
-## Install commands
+Install graphviz
+
+## Installation Details
+
+The tool has one installation command.  However, many dependent packages have installation dependencies that are not directly handled by python's installer.  Thus, additional steps are needed.
 
 ### Open CV
 ```
@@ -14,7 +22,7 @@ brew install opencv
 ```
 ### Tool
 ```
-python setup.py develop
+python setup.py install
 ```
 
 ## For Anaconda
@@ -47,25 +55,84 @@ Test :
 
 ## Other Packages
 
-HDF5:
+## HDF5:
 ```
 brew install homebrew/science/hdf5
 ```
 
-FFMPEG (not Anaconda): 
+## FFMPEG (not Anaconda): 
+
+ffmpeg should installed with x265 and x265 codecs prior to installing python package.
+For example, a Mac user can use the following command.
+```
+brew install ffmpeg --with-fdk-aac --with-ffplay --with-freetype --with-libass --with-libquvi --with-libvorbis --with-libvpx --with-opus --with-x265
+```
+
 ```
 pip install ffmpeg
 ```
+
+
+## GRAPHVIZ:
+### (MAC)
+```
+brew install graphviz
+pip install pygraphviz
+```
+See http://www.graphviz.org/Download..php for other options.
+
+### (WINDOWS)
+1.	Download the current stable release from http://www.graphviz.org/Download_windows.php. Get the .msi, not the .zip.
+2.	Run the graphviz msi installer, and walk through the steps to install.
+3.	Add the graphviz “bin” directory to PATH variable. Most likely will be C:\Program Files (x86)\Graphviz2.38\bin
+4.	Restart computer to complete the install
+5.	Pull down the correct wheel fro http://www.lfd.uci.edu/~gohlke/pythonlibs/#pygraphviz and perform:
+```
+pip install pygraphviz-1.3.1-cp27-none-win_amd64.whl 
+```
+
+## tiffile:
+
+For use with using plugins that write TIFF files, install tifffile. For Mac users, XCode needs to be installed.  For Windows users, Microsoft Visual C++ 9.x for python needs to be installed.   An alternative is to find a prebuilt libtiff library for Mac or Windows.  Download at your own risk.
+```
+pip install tifffile
+```
+
+## RAWPY:
+
+The installation may fail on installing rawpy.  Here other some other options, before restarting the install.
+
+1. pip install rawpy (may still give the same error)
+2. Pick and install the appropriate WHL from https://pypi.python.org/pypi/rawpy
+3. Install git and rerun the setup.
+
+## PDF:
+
+```
+pip install PyPDF2
+```
+
+# RESOURCES
+
+The tool uses three key resource files: 
+*	software.csv lists the permitted software and versions to select.  This enables consistent naming.
+*	operations.json provides the description of all journaled operations and require parameters, along with defining validation rules, analysis requirements, and parameters.
+*	project_properties.json defines all final image node and project properties.  Final image node properties are summarizations of activities that contributed to a final image node of a project.
+Resource files are stored in one of the following locations, searched in the order given:
+	*	Directory as indicated by the MASKGEN_RESOURCES environment variable
+	*	current working directory
+	*	resources subdirectory
+	*	The resource installation as determined by Python’s sys path.
+
+
 
 # Usage
 
 ## Starting the UI
 
-Assumes operations.json and software.csv are located in the same directory as the tool.  The backup files in the resources are used when the local versions are not found.
-
 
 ```
-% python -m maskgen.MaskGenUI --imagedir images
+% jtui --imagedir images
 ```
 
 The imagedir argument is a project directory with a project JSON file in the project directory.
@@ -74,7 +141,7 @@ The imagedir argument is a project directory with a project JSON file in the pro
 If the project JSON is not found and the imagedir contains is a set of images, then the images are sorted by time stamp, oldest to newest.  The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
 
 ```
-% python -m maskgen.MaskGenUI  --imagedir images --base images/baseimage.jpg
+% jtui  --imagedir images --base images/baseimage.jpg
 ```
 
 If the operations.csv and software.csv are to be downloaded from a S3 bucket, then
@@ -110,92 +177,3 @@ Links record a single action taken on one image to produce another.  An image no
 # Detailed Document
 
 For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.docx. This README is a summary. 
-
-## Using the Tool
-
-File > Open [Control-o] opens an existing project.
-
-File > Save [Control-s] saves a project (JSON file).  All project artifacts are saved in the to the project directory.
- 
-File > Save As saves entire project to a new project directory and changes the name of the project.
-
-File > New [Control-n] creates a new project.  Select a base image or video file.  The directory containing that file becomes the project directory.  The name of project is based on the name of the file, removing the file type suffix. All images or videos in the directory are automatically imported into the project.
-
-File > Export > To File [Control-e] creates a compressed archive file of the project including referenced artifacts.
-
-File > Export > To S3 creates a compressed archive file of the project and uploads to a S3 bucket and folder.  The user is prompted for the bucket/folderpath, separated by '/'.
-
-File > Fetch Meta-Data(S3) prompts the user for the bucket and path to pull down operations.csv and software.csv from an S3 bucket. The user is prompted for the bucket/folderpath, separated by '/\'.
-
-File > Validate Runs a validation rules on the project.  Erros are displayed in a list box. Clicking on each error high-lights the link or node in the graph, as if selected in the graph.
-
-File > Group Manager opens a separate dialog to manage groups of plugin filters.
-
-File > Settings > Username allows a user to change their name associated with the project. This setting will be saved for future projects. Changing this will not change the username associated with links that have already been created in the project.
-
-File > Quit [Control-q] Save and Quit
-
-Process > Add Images adds selected images to the project. Each image can be linked to other images within the graph.
-
-Process > Add Video adds selected video to the project. Each video can be linked to other videos within the graph.
-
-Process > Next w/Auto Pick [Control-p] picks a node without neighbors.  The chosen node is the next node in found in lexicographic order. Preference is given to those nodes that share the same prefix as the currently selected node. A dialog appears to capture the manipulation information including the type and additional description (optional).  The dialog displays the next selected node name as confirmation. A link is then formed from the current node to the selected node.
-
-Process > Next w/Auto Pick from File finds a modified version of current file from the project directory.  The modified version of the file contains the same name as the initial file, minus the file type suffix, with some additional characters.  If there is more than one modified version, they are processed in lexicographic order.  A dialog appears for each modification, capturing the type of modification and additional description (optional).  The dialog displays the next selected image or video snapshot as confirmation. A link is formed to the current image to the next selected image file.
-
-Process > Next w/Add [Control-l] prompts with file finding window to select an file whose contents differ from the current selected node's artifact by ONE modifications.  A dialog appears to capture the modification, including the type of modification and additional description (optional). The dialog dispays the next selected artifact as confirmation. A link is formed between the current selected node to the newly loaded artifact.
-
-Process > Next w/Filter [Control-f] prompts with modification to the current selected node.  The tool then applies a filter to the selected node's artifact to create a new artifact.  Unlike the other two 'next' functions, the set of operation is limited to those avaiable from the tool's plugins.  Furthermore, the image shown in the dialog window is the snapshot of current selected artifact to which the selected modification is applied.
-
-Process > Next w/Filter Group runs a group of plugin transforms against the selected node, creating a node for each transform and a link to the new node from the selected node.
-
-Process > Next w/Filter Sequence runs a group of plugin transforms in a sequence starting with the selected node.  Each transform results in a new node.  The result from one transform is the input into the next transform.  Links are formed between each node, in the same sequence.
-
-Process > Create JPEG is a convenience operation that runs two plugin filters, JPEG compression using the base image QT and EXIF copy from the base image, on the final manipulation nodes.  The end result is two additional nodes per each final manipulation node, sequenced from the manipulation node.  Included is the Donor links from the base image.  This operation only applies to JPEG base images.
-
-Process > Undo [Control-z] Undo the last operation performed.  The tool does not support undo of an undo.
-
-# Graph Operations
-
-Nodes may be selected, changing image display.  The image associated with selected node is shown in the left most image box. For videos, the image shown is a select frame from the video.  The right two boxes are left blank.  
-
-Nodes can be removed.  All input and output links are removed.  Nodes can be connected to another node via a link.  When 'connect to' is selected, the cursor changes to a cross. Select on the another node that is either an node without any links (input or output) links OR a node with one input link with operation PasteSplice (see Paste Splice below).  Nodes may be exported.  Exporting an node results the creation of compressed archive file with the node and all links and nodes leading up to the node.  The name of the compressed file and the enclosed project is the node's name (replacing '.' with '_').
-
-Links may be selected, change the image display to show the output node, input node and associated different mask.  Removing link results in removeing the link and all downstream nodes and links.  Editing a link permits the user to change the operation and description.  Caution: do not change the operation name and description when using a plugin operation ([Process Next w/Filter [Ctrl-f]).
-
-
-## Link Descriptions
-
-Link descriptions include a category of operations, an operation name, a free-text description (optional), and software with version that performed the manipulation. The category and operation are either derived from the operations.csv file provided at the start of the tool or the plugins. Plugin-based manipulations prepopulate descriptions.  The software information is saved, per user, in a local user file. This allows the user to select from software that they currently use.  Adding a new software name or version results in extending the possible choices for that user.  Since each user may use different versions of software to manipulate artficats, the user can override the version set, as the versions associated with each software may be incomplete.  It is important to reach out the management team for the software.csv to add the appropriate version.
-
-Link descriptions include parameters.   These parameters must be set.  Parameter guidance is provided in the operation description, obtained with the parameter name button.  Many operations include an optional input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output artifact.  For example, some seam carving tools request a mask describing areas to removal and areas for retention.  
-
-
-# Mask Generation
-
-   It most cases, mask generation is a comparison between before and after manipulations of an artfiact.  Full artifact operations like equlization, blur, color enhance, and anti-aliasing often effect all pixels resulting in a full mask.  Since there operations can target specific pixels(e.g. anti-aliasing), the mask represents the scope of change.
-
-   The mask generation algorithm gives special treatment to manipulations that alter the image size.  The mask is the same size as the source node artifact.  The algorithm finds most common pixels in the smaller image to match the larger.  This is useful in cropping OR framing.  When cropping in image, the mask should inlude the frame around the cropped image.  When expanding image, the mask represents the comparison of the most closely related area.  If the expansion is due adding a frame, rather than some interpolation, then the mask will not reflect any change since the original pixels have not changed.
-
-   The mask generation algorithm also is sensitive to rotations, generating mask reflecting the image after rotation.  A pure rotation with interpolation should have an empty change ask.  Rotations are counter-clockwise in degrees.  Consider a 90 degree rotation: interpolation is not needed and the mask is empty.  When rotating 45 degrees, the size of the resulting image must increase to accomodate entire image.   Since the mask size is the size of the initial image, the mask only indicates some distortion that occurred during the rotation.  The mask is created by first reversing the rotation back to the original image orientation and size.
-
-## Video Masks
-
-   Video masks are organized by video clips per section of the video affected by the change.  The masks are labeled with the start time in the source video where the change is deteced.  There may be more than one video clip.
-
-## Composite Mask
-
-The tool support creation of an aggregate summary mask, composed of masks from a leaf manipulated node to a base node.  By default, all masks that involve marking or pasting specific regions of the node are included in the composite mask.  Those links are colored blue and the link operation name is appended with an asterisk.  The status of the link can changed with the Composite Mask menu option.  Furthermore, the mask used for the composite can override the link mask, as a substitute.  
-
-## Donor mask
-
-The tool support creation of a donor mask, transforming a donor mask onto the original donor image. 
-
-The image manipulator must insure the composite mask accurrately reflects ALL localize changes to a manipulated node from the base node. 
-## EXIF Comparison
-
-The tool has a dependency on the [exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool).  By default, the tool is expected to be accessible via the name 'exiftool'.  This can be overwritten by the environmen variable MASKGEN_EXIFTOOL.  EXIF Comparison results are visible by inspecting the contents of a link.
-
-## Frame Comparison
-
-Video frames contain several types of meta-data including expected display time and frame type.  The tool performs a frame-by-frame comparison between source and destination video nodes for each link.  Packet position and size are excluded from the analysis, as these frequently change and tell very little about the actual change.  The presentation time stamp is used to compare the frames, as frames do not have their own identifiers.  The comparison includes changes in the meta-data per fram, and the detection of added or deleted frames.

@@ -7,7 +7,7 @@ from software_loader import getOS
 import tarfile
 from tool_set import *
 from time import gmtime, strftime,strptime
-
+import logging
 
 snapshot='.db2133eadc'
 igversion='0.4.0308' + snapshot
@@ -31,7 +31,8 @@ def extract_archive(fname, dir):
         except Exception as e:
             if archive is not None:
                 archive.close()
-            print e
+            logging.getLogger('maskgen').critical("Cannot open archive {}; it may be corrupted ".format(fname))
+            logging.getLogger('maskgen').error(str(e))
             return False
 
     if not os.path.exists(dir):
@@ -71,7 +72,8 @@ def extract_and_list_archive(fname, dir):
         try:
             archive = tarfile.open(fname, "r", errorlevel=2)
         except Exception as e:
-            print e
+            logging.getLogger('maskgen').critical("Cannot open archive {}; it may be corrupted ".format(fname))
+            logging.getLogger('maskgen').error(str(e))
             return None
 
     if not os.path.exists(dir):
@@ -167,7 +169,8 @@ def loadJSONGraph(pathname):
         try:
             return json_graph.node_link_graph(json.load(f, encoding='utf-8'), multigraph=False, directed=True)
         except  ValueError as ve:
-            print ve
+            logging.getLogger('maskgen').critical("Cannot open project {}; it may be corrupted ".format(pathname))
+            logging.getLogger('maskgen').error(str(ve))
             return json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
 
 
@@ -683,13 +686,16 @@ class ImageGraph:
     def getVersion(self):
         return self.G.graph['igversion']  if 'igversion' in self.G.graph else igversion
 
+    def getCreator(self):
+        return self.G.graph['creator'] if 'creator' in self.G.graph else get_username()
+
     def _setup(self, pathname, projecttype,nodeFilePaths,edgeFilePaths):
         global igversion
         if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
         versionlen = min(8,len(self.G.graph['igversion']))
         if  self.G.graph['igversion'][0:versionlen] > igversion[0:versionlen]:
-            print 'UPGRADE JOURNALING TOOL!'
+            logging.getLogger('maskgen').error( 'UPGRADE JOURNALING TOOL!')
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']
         elif self.G.has_node('idcount'):
@@ -819,7 +825,6 @@ class ImageGraph:
         return fname, (["Failed to create archive"] if (tries == 3 and len(errors) == 0) else errors)
 
     def _check_archive_integrity(self, fname, names_added):
-        #print 'archive integrity check for ' + fname
         try:
             archive = tarfile.open(fname, "r:gz", errorlevel=2)
             #         archive = ZipFile(fname,"r")
@@ -831,7 +836,8 @@ class ImageGraph:
             if len(names_added) > 0:
                 return False
         except Exception as e:
-            print e
+            logging.getLogger('maskgen').critical("Integrity checked failed fo archive {} ".format(fname))
+            logging.getLogger('maskgen').error(str(e))
             return False
         return True
 
@@ -871,8 +877,7 @@ class ImageGraph:
             archive.add(summary_file,
                     arcname=os.path.join(self.G.name, '_overview_.png'))
         except Exception as e:
-            print 'Unable to create image graph'
-            print e
+            logging.getLogger('maskgen').error( "Unable to create image graph: " + str(e))
 
     def _create_archive(self, location,include=[]):
         self.save()
