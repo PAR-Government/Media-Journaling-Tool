@@ -3692,6 +3692,10 @@
         "checkResizeInterpolation"
       ],
       "optionalparameters": {
+         "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask of the component that was moved"
+        },
         "RANSAC": {
           "type": "list",
           "source": "image",

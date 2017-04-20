@@ -34,7 +34,7 @@ class TrelloAPI(MaskgenNotifer):
         :return:
         """
         url = self.loaded_config['url'] + url
-        params = dict(key=self.loader.get_key('trelloapikey',''),
+        params = dict(key=self.loaded_config['trelloapikey'],
                       token=self.loader.get_key('trelloapitoken',''))
         for k, v in data.iteritems():
             params[k] = v
@@ -46,9 +46,7 @@ class TrelloAPI(MaskgenNotifer):
         return None
 
     def get_properties(self):
-        return {"trelloapikey" : "Trello API Key",
-                "trelloapitoken" : "Trello API Token",
-                "trelloapiusername": "Trello API Username"}
+        return {"trelloapitoken" : "Trello API Token"}
 
     def put_to_trello(self,url,**data):
         """
@@ -56,7 +54,7 @@ class TrelloAPI(MaskgenNotifer):
         :return:
         """
         url = self.loaded_config['url'] + url
-        params = dict(key=self.loader.get_key('trelloapikey',''),
+        params = dict(key=self.loaded_config['trelloapikey'],
                       token=self.loader.get_key('trelloapitoken',''))
         for k, v in data.iteritems():
             params[k] = v
@@ -72,7 +70,7 @@ class TrelloAPI(MaskgenNotifer):
         :return:
         """
         url = self.loaded_config['url'] + url
-        params = dict(key=self.loader.get_key('trelloapikey',''),
+        params = dict(key=self.loaded_config['trelloapikey'],
                       token=self.loader.get_key('trelloapitoken',''))
         for k,v in data.iteritems():
             params[k] = v
@@ -82,8 +80,14 @@ class TrelloAPI(MaskgenNotifer):
         logging.error('failed to contact trello service: {}'.format(resp.text))
         return None
 
+    def get_user_name(self):
+        r = self.get_from_trello(
+            self.loaded_config['user'],
+            fields='username')
+        return r['username'] if r is not None else 'unknown_user'
+
     def get_board_id_by_name(self, name):
-        r = self.get_from_trello(self.loaded_config['boards'].format(trelloapiusername=self.loader.get_key('trelloapiusername')),fields='name')
+        r = self.get_from_trello(self.loaded_config['boards'].format(trelloapiusername=self.get_user_name()),fields='name')
         for item in r:
             if name == item['name']:
                 return item['id']
@@ -134,7 +138,6 @@ class TrelloAPI(MaskgenNotifer):
 
     def add_label_to_card(self,board,cardid, label):
         labelid = self.get_or_create_label(board, label)
-        #self.get_from_trello()
         self.post_to_trello(
             self.loaded_config['label'].format(cardid=cardid),
             quiet=True,

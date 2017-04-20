@@ -35,6 +35,7 @@ class TestToolSet(unittest.TestCase):
                 m[x,y] = random.choice(unuseditems)
         return m
 
+
     def createVertical(self, basis,dimx,dimy):
         import random
         m = np.zeros((dimx,dimy))
@@ -103,7 +104,13 @@ class TestToolSet(unittest.TestCase):
         new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
         self.assertTrue(np.all(new==new_rebuilt))
 
-
+    def test_rotate(self):
+        img1 = np.zeros((100,100),dtype=np.uint8)
+        img1[20:50,40:50] = 1
+        img = tool_set.applyRotateToCompositeImage(img1, 90, (50,50))
+        self.assertTrue(sum(sum(img))>40)
+        img = tool_set.applyRotateToComposite(-90,img,img.shape)
+        self.assertTrue(sum(sum(img1-img)) <2)
 
     def test_fileMask(self):
         pre = tool_set.openImageFile('tests/images/prefill.png')

@@ -988,9 +988,9 @@ def applyFlipComposite(compositeMask, mask, flip):
     return (flipCompositeMask * maskInverted + compositeMask * maskAltered).astype('uint8')
 
 
-def applyTransformToComposite(compositeMask, mask, transform_matrix, shape=None, returnRaw=False):
+def applyToComposite(compositeMask, func, shape=None):
     """
-    Loop through each level add apply the transform.
+    Loop through each level add apply the function.
     Need to convert levels to 0 and unmapped levels to 255
     :param compositeMask:
     :param mask:
@@ -1003,12 +1003,11 @@ def applyTransformToComposite(compositeMask, mask, transform_matrix, shape=None,
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
-        newLevelMask = applyTransform(levelMask, mask, transform_matrix,shape=shape,returnRaw=returnRaw)
+        newLevelMask = func(levelMask)
         newMask[newLevelMask > 100] = level
     return newMask
 
-
-def __applyRotateToComposite(rotation, compositeMask, expectedDims):
+def applyRotateToCompositeImage(img,angle, pivot):
     """
        Loop through each level add apply the rotation.
        Need to convert levels to 0 and unmapped levels to 255
@@ -1017,18 +1016,46 @@ def __applyRotateToComposite(rotation, compositeMask, expectedDims):
        :param transform_matrix:
        :return:
        """
-    newMask = np.zeros(expectedDims).astype('uint8')
-    for level in list(np.unique(compositeMask)):
-        if level == 0:
-            continue
-        levelMask = np.ones(compositeMask.shape) * 255
-        levelMask[compositeMask == level] = 0
-        newLevelMask = __rotateImage(rotation, levelMask, expectedDims, cval=255)
-        newMask[newLevelMask < 150] = level
-    return newMask
+    from functools import partial
+    func = partial(rotateImage, angle, pivot)
+    return applyToComposite(img, func, shape=img.shape)
+
+def applyTransformToComposite(compositeMask, mask, transform_matrix, shape=None, returnRaw=False):
+    """
+    Loop through each level add apply the transform.
+    Need to convert levels to 0 and unmapped levels to 255
+    :param compositeMask:
+    :param mask:
+    :param transform_matrix:
+    :return:
+    """
+    from functools import partial
+    func = partial(applyTransform,mask=mask,transform_matrix=transform_matrix,shape=shape,returnRaw=returnRaw)
+    return applyToComposite(compositeMask, func, shape=shape)
+
+def applyPerspectiveToComposite(compositeMask, transform_matrix, shape):
+    def perspectiveChange(compositeMask, M=None,shape=None):
+        return cv2.warpPerspective(compositeMask, M, (shape[1],shape[0]))
+    from functools import partial
+    func = partial(perspectiveChange, M=transform_matrix,shape=shape)
+    return applyToComposite(compositeMask, func, shape=shape)
 
 
-def applyTransform(compositeMask, mask, transform_matrix, invert=False, returnRaw=False,shape=None):
+def applyRotateToComposite(rotation, compositeMask, expectedDims):
+    """
+       Loop through each level add apply the rotation.
+       Need to convert levels to 0 and unmapped levels to 255
+       :param compositeMask:
+       :param mask:
+       :param transform_matrix:
+       :return:
+       """
+    from functools import partial
+    func = partial(__rotateImage, rotation, expectedDims=expectedDims, cval=255)
+    return applyToComposite(compositeMask, func, shape=expectedDims)
+
+
+def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False, returnRaw=False,shape=None):
     """
     Ceate a new mask applying the transform to only those parts of the
     compositeMask that overlay with the provided mask.
@@ -1113,11 +1140,12 @@ def __resize(img, dimensions):
     return img
 
 
-def __rotateImage(rotation, img, expectedDims, cval=0):
+def __rotateImage(rotation, img, expectedDims=None, cval=0):
     #   (h, w) = image.shape[:2]
     #   center = (w / 2, h / 2) if rotationPoint=='center' else (0,0)
     #   M = cv2.getRotationMatrix2D(center, rotation, 1.0)
     #   rotated = cv2.warpAffine(image, M, (w, h))
+    expectedDims = expectedDims if expectedDims is not None else (img.shape[0],img.shape[1])
     rotNorm = int(rotation / 90) if (rotation % 90) == 0 else None
     rotNorm = rotNorm if rotNorm is None or rotNorm >= 0 else (4 + rotNorm)
     npRotation = rotNorm is not None and img.shape == (expectedDims[1], expectedDims[0])
@@ -1129,10 +1157,10 @@ def __rotateImage(rotation, img, expectedDims, cval=0):
 
 
 def __compareRotatedImage(rotation, img1, img2, invert, arguments):
-    res = __rotateImage(rotation, img1, img2.shape, cval=img2[0, 0])
+    res = __rotateImage(rotation, img1, expectedDims=img2.shape, cval=img2[0, 0])
     mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,
                                                                                                     args=arguments)
-    res = __rotateImage(-rotation, mask, img1.shape, cval=255)
+    res = __rotateImage(-rotation, mask, expectedDims=img1.shape, cval=255)
     return res, analysis
 
 
@@ -1369,10 +1397,10 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     elif abs(rotation) > 0.001:
         if sizeChange[0] != 0 or abs(rotation) % 90 < 0.001:
             res = __rotateImage(rotation, compositeMask,
-                                (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]),
+                                expectedDims=(compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]),
                                 cval=0)
         else:
-            res = __applyRotateToComposite(rotation, res,
+            res = applyRotateToComposite(rotation, res,
                                            (compositeMask.shape[0] + sizeChange[0],
                                             compositeMask.shape[1] + sizeChange[1]))
     # if transform matrix provided and alternate path is taken above
@@ -1409,9 +1437,9 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
                                                                                0:(upperBound[1] - location[1])]
             res = newRes
     if transformMatrix is not None and not cut and flip is None:
-        res = applyTransform(res, edgeMask, deserializeMatrix(transformMatrix), invert=True, returnRaw=False)
+        res = applyTransform(res, mask=edgeMask, transform_matrix=deserializeMatrix(transformMatrix), invert=True, returnRaw=False)
     elif abs(rotation) > 0.001:
-        res = __rotateImage(-rotation, res, expectedSize, cval=0)
+        res = __rotateImage(-rotation, res, expectedDims=expectedSize, cval=0)
     elif flip is not None:
         res = applyFlipComposite(res, edgeMask, flip)
 
@@ -1464,26 +1492,8 @@ def mergeMask(compositeMask, newMask, level=0):
     compositeMask[newMask == 0] = level
     return compositeMask
 
-def applyRotateToCompositeImage(img,angle, pivot):
-    """
-       Loop through each level add apply the rotation.
-       Need to convert levels to 0 and unmapped levels to 255
-       :param compositeMask:
-       :param mask:
-       :param transform_matrix:
-       :return:
-       """
-    newMask = np.zeros(img.shape).astype('uint8')
-    for level in list(np.unique(img)):
-        if level == 0:
-            continue
-        levelMask = np.zeros(img.shape).astype('uint8')
-        levelMask[img == level] = 255
-        newLevelMask = rotateImage(levelMask,angle, pivot)
-        newMask[newLevelMask > 0] = level
-    return newMask
 
-def rotateImage(img, angle, pivot):
+def rotateImage(angle, pivot,img):
     padX = [img.shape[1] - pivot[1], pivot[1]]
     padY = [img.shape[0] - pivot[0], pivot[0]]
     imgP = np.pad(img, [padY, padX], 'constant')
