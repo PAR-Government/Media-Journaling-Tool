@@ -303,7 +303,7 @@ class HPSpreadsheet(Toplevel):
 
         self.mandatoryImage = []
         image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                 'HP-Shadows', 'HP-CameraModel', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
+                 'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
         for i in image:
             self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
 
@@ -312,12 +312,17 @@ class HPSpreadsheet(Toplevel):
         for v in video:
             self.mandatoryVideo.append(self.pt.model.df.columns.get_loc(v))
 
-        audio = ['HP-CameraModel', 'HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
+        audio = ['HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
                  'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation',
                  'HP-Inside', 'HP-Outside']
         self.mandatoryAudio = []
         for c in audio:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
+
+        disabled = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN']
+        self.disabledCols = []
+        for d in disabled:
+            self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
 
         self.color_code_cells()
 
@@ -332,6 +337,11 @@ class HPSpreadsheet(Toplevel):
             for col in range(0, self.pt.cols):
                 currentExt = os.path.splitext(self.pt.model.getValueAt(row,0))[1].lower()
                 x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
+                if notnans.iloc[row, col]:
+                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                                                    fill='#c1c1c1',
+                                                    outline='#084B8A',
+                                                    tag='cellrect')
                 if (col in self.mandatoryImage and currentExt in hp_data.exts['IMAGE']) or \
                         (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
                         (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
@@ -339,13 +349,11 @@ class HPSpreadsheet(Toplevel):
                                                     fill='#f3f315',
                                                     outline='#084B8A',
                                                     tag='cellrect')
-                else:
-                    x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
-                    if notnans.iloc[row, col]:
-                        rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                        fill='#c1c1c1',
-                                                        outline='#084B8A',
-                                                        tag='cellrect')
+                if col in self.disabledCols:
+                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                                                    fill='#c1c1c1',
+                                                    outline='#084B8A',
+                                                    tag='cellrect')
             image = self.pt.model.df['OriginalImageName'][row]
             if errors is not None and image in errors and errors[image]:
                 for error in errors[image]:
@@ -357,7 +365,7 @@ class HPSpreadsheet(Toplevel):
                                                         outline='#084B8A',
                                                         tag='cellrect')
 
-                self.pt.lift('cellrect')
+        self.pt.lift('cellrect')
         self.pt.redraw()
 
     def exportCSV(self, showErrors=True, quiet=False):
