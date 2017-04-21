@@ -206,11 +206,11 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
-            validValues = sorted([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None])
+            validValues = sorted(set([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'HP-CameraModel':
-            validValues = sorted([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None])
+            validValues = sorted(set([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'DeviceSN':
-            validValues = sorted([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None])
+            validValues = sorted(set([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'HP-App':
             validValues = self.apps
         elif currentCol == 'HP-LensFilter':
