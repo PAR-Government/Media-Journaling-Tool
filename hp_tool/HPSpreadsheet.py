@@ -102,7 +102,10 @@ class HPSpreadsheet(Toplevel):
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
-        self.editMenu.add_command(label='Fill Down', command=self.fill_down, accelerator='ctrl-d')
+        self.editMenu.add_command(label='Copy', command=self.pt.copy_value, accelerator='ctrl-c')
+        self.editMenu.add_command(label='Paste', command=self.pt.paste_value, accelerator='ctrl-v')
+        self.editMenu.add_command(label='Fill Selection', command=self.pt.fill_selection, accelerator='ctrl-d')
+        self.editMenu.add_command(label='Fill Column', command=self.pt.fill_selection, accelerator='ctrl-g')
         self.editMenu.add_command(label='Fill True', command=self.pt.enter_true, accelerator='ctrl-t')
         self.editMenu.add_command(label='Fill False', command=self.pt.enter_false, accelerator='ctr-f')
         self.config(menu=self.menubar)
@@ -115,7 +118,6 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Return>', self.update_current_image)
         self.bind('<Up>', self.update_current_image)
         self.bind('<Down>', self.update_current_image)
-        self.bind('<Control-d>', self.fill_down)
         self.bind('<Control-s>', self.exportCSV)
 
     def keypress(self, event):
@@ -520,23 +522,7 @@ class HPSpreadsheet(Toplevel):
         self.prefsFile = os.path.join('data', 'preferences.txt')
         self.prefs = hp_data.parse_prefs(self.master, self.prefsFile)
 
-    def fill_down(self, event=None):
-        if self.on_main_tab:
-            currentTable = self.pt
-        else:
-            currentTable = self.tabpt
 
-        selection = currentTable.getSelectionValues()
-        cells = currentTable.getSelectedColumn
-        rowList = range(cells.im_self.startrow, cells.im_self.endrow + 1)
-        colList = range(cells.im_self.startcol, cells.im_self.endcol + 1)
-        for row in rowList:
-            for col in colList:
-                try:
-                    currentTable.model.setValueAt(selection[0][0], row, col)
-                except IndexError:
-                    pass
-        currentTable.redraw()
 
     def validate(self):
         errors = []
@@ -705,6 +691,7 @@ class TrelloSignInPrompt(tkSimpleDialog.Dialog):
 class CustomTable(pandastable.Table):
     def __init__(self, master, **kwargs):
         pandastable.Table.__init__(self, parent=master, **kwargs)
+        self.copied_val = None
 
     def doBindings(self):
         """Bind keys and mouse clicks, this can be overriden"""
@@ -747,24 +734,66 @@ class CustomTable(pandastable.Table):
         #######################################
         self.bind('<Control-Key-t>', self.enter_true)
         self.bind('<Control-Key-f>', self.enter_false)
+        self.bind('<Control-Key-d>', self.fill_selection)
+        self.bind('<Control-Key-g>', self.fill_column)
+        self.bind('<Control-Key-c>', self.copy_value)
+        self.bind('<Control-Key-v>', self.paste_value)
         #self.bind('<Return>', self.handle_double_click)
         ########################################
 
         self.focus_set()
         return
 
-    def enter_true(self, event):
+    def enter_true(self, event=None):
+        self.focus_set()
         for row in range(self.startrow,self.endrow+1):
             for col in range(self.startcol, self.endcol+1):
                 self.model.setValueAt('True', row, col)
         self.redraw()
 
-    def enter_false(self, event):
+    def enter_false(self, event=None):
+        self.focus_set()
         # row = self.get_row_clicked(event)
         # col = self.get_col_clicked(event)
         for row in range(self.startrow,self.endrow+1):
             for col in range(self.startcol, self.endcol+1):
                 self.model.setValueAt('False', row, col)
+        self.redraw()
+
+    def fill_selection(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        val = self.model.getValueAt(row, col)
+        # tfw rows are 1-indexed, but columns are 0-indexed
+        for row in range(self.startrow,self.endrow):
+            for col in range(self.startcol, self.endcol):
+                self.model.setValueAt(val, row, col)
+        self.redraw()
+
+    def fill_column(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        val = self.model.getValueAt(row, col)
+        rowList = range(0, self.rows)
+        for row in rowList:
+            self.model.setValueAt(val, row, col)
+        self.redraw()
+
+    def copy_value(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        self.copied_val = self.model.getValueAt(row, col)
+        self.redraw()
+
+    def paste_value(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        if self.copied_val is not None:
+            self.model.setValueAt(self.copied_val, row, col)
         self.redraw()
 
     def move_selection(self, event, direction='down', entry=False):
@@ -870,3 +899,95 @@ class CustomTable(pandastable.Table):
         self.redraw()
         self.importpath = os.path.dirname(filename)
         return
+
+
+    # right click menu!
+    def popupMenu(self, event, rows=None, cols=None, outside=None):
+        """Add left and right click behaviour for canvas, should not have to override
+            this function, it will take its values from defined dicts in constructor"""
+
+        defaultactions = {
+                        "Copy" : self.copy_value,
+                        "Paste" : self.paste_value,
+                        "Fill Selection" : self.fill_selection,
+                        "Fill True" : self.enter_true,
+                        "Fill False" : self.enter_false,
+                        #"Fill Down" : lambda: self.fillDown(rows, cols),
+                        #"Fill Right" : lambda: self.fillAcross(cols, rows),
+                        #"Add Row(s)" : lambda: self.addRows(),
+                        #"Delete Row(s)" : lambda: self.deleteRow(),
+                        #"Add Column(s)" : lambda: self.addColumn(),
+                        #"Delete Column(s)" : lambda: self.deleteColumn(),
+                        "Clear Data" : lambda: self.deleteCells(rows, cols),
+                        "Select All" : self.selectAll,
+                        #"Auto Fit Columns" : self.autoResizeColumns,
+                        #"Table Info" : self.showInfo,
+                        #"Show as Text" : self.showasText,
+                        #"Filter Rows" : self.queryBar,
+                        #"New": self.new,
+                        #"Load": self.load,
+                        # "Save": self.save,
+                        # "Save as": self.saveAs,
+                        # "Import csv": lambda: self.importCSV(dialog=True),
+                        # "Export": self.doExport,
+                        # "Plot Selected" : self.plotSelected,
+                        # "Hide plot" : self.hidePlot,
+                        # "Show plot" : self.showPlot,
+                        # "Preferences" : self.showPrefs
+            }
+
+        main = ["Copy", "Paste", "Fill Selection", "Fill True", "Fill False", "Clear Data", "Select All"]
+        general = []
+
+        filecommands = []
+        plotcommands = []
+
+        def createSubMenu(parent, label, commands):
+            menu = Menu(parent, tearoff = 0)
+            popupmenu.add_cascade(label=label,menu=menu)
+            for action in commands:
+                menu.add_command(label=action, command=defaultactions[action])
+            return menu
+
+        def add_commands(fieldtype):
+            """Add commands to popup menu for column type and specific cell"""
+            functions = self.columnactions[fieldtype]
+            for f in list(functions.keys()):
+                func = getattr(self, functions[f])
+                popupmenu.add_command(label=f, command= lambda : func(row,col))
+            return
+
+        popupmenu = Menu(self, tearoff = 0)
+        def popupFocusOut(event):
+            popupmenu.unpost()
+
+        if outside == None:
+            #if outside table, just show general items
+            row = self.get_row_clicked(event)
+            col = self.get_col_clicked(event)
+            coltype = self.model.getColumnType(col)
+            def add_defaultcommands():
+                """now add general actions for all cells"""
+                for action in main:
+                    if action == 'Fill Down' and (rows == None or len(rows) <= 1):
+                        continue
+                    if action == 'Fill Right' and (cols == None or len(cols) <= 1):
+                        continue
+                    else:
+                        popupmenu.add_command(label=action, command=defaultactions[action])
+                return
+
+            if coltype in self.columnactions:
+                add_commands(coltype)
+            add_defaultcommands()
+
+        for action in general:
+            popupmenu.add_command(label=action, command=defaultactions[action])
+
+        #popupmenu.add_separator()
+        # createSubMenu(popupmenu, 'File', filecommands)
+        # createSubMenu(popupmenu, 'Plot', plotcommands)
+        popupmenu.bind("<FocusOut>", popupFocusOut)
+        popupmenu.focus_set()
+        popupmenu.post(event.x_root, event.y_root)
+        return popupmenu

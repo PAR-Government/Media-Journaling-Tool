@@ -75,7 +75,7 @@ class KeywordsSheet(HPSpreadsheet):
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
-        self.editMenu.add_command(label='Fill Down', command=self.fill_down, accelerator='ctrl-d')
+        self.editMenu.add_command(label='Fill Down', command=self.pt.fill_selection, accelerator='ctrl-d')
         self.editMenu.add_command(label='Fill True', command=self.pt.enter_true, accelerator='ctrl-t')
         self.editMenu.add_command(label='Fill False', command=self.pt.enter_false, accelerator='ctr-f')
 
