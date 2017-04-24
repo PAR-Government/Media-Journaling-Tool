@@ -36,6 +36,8 @@ class HPSpreadsheet(Toplevel):
         self.ritCSV=ritCSV
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.saveState = True
+        self.highlighted_cells = []
+        self.error_cells = []
         self.kinematics = self.load_kinematics()
         self.devices = devices
         self.apps = self.load_apps()
@@ -324,14 +326,16 @@ class HPSpreadsheet(Toplevel):
         for d in disabled:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
 
+        self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
+
         self.color_code_cells()
 
     def color_code_cells(self):
         if os.path.exists(self.errorpath):
             with open(self.errorpath) as j:
-                errors = json.load(j)
+                self.processErrors = json.load(j)
         else:
-            errors = None
+            self.processErrors = None
         notnans = self.pt.model.df.notnull()
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
@@ -349,21 +353,24 @@ class HPSpreadsheet(Toplevel):
                                                     fill='#f3f315',
                                                     outline='#084B8A',
                                                     tag='cellrect')
+                    self.highlighted_cells.append((row, col))
                 if col in self.disabledCols:
                     rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                     fill='#c1c1c1',
                                                     outline='#084B8A',
                                                     tag='cellrect')
             image = self.pt.model.df['OriginalImageName'][row]
-            if errors is not None and image in errors and errors[image]:
-                for error in errors[image]:
+            if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
+                for error in self.processErrors[image]:
                     errCol = error[0]
                     if errCol != 'CameraMake':
-                        x1, y1, x2, y2 = self.pt.getCellCoords(row, self.pt.model.df.columns.get_loc(errCol))
+                        col = self.pt.model.df.columns.get_loc(errCol)
+                        x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
                         rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                         fill='#ff5b5b',
                                                         outline='#084B8A',
                                                         tag='cellrect')
+                        self.error_cells.append((row, col))
 
         self.pt.lift('cellrect')
         self.pt.redraw()
@@ -530,24 +537,43 @@ class HPSpreadsheet(Toplevel):
         self.prefsFile = os.path.join('data', 'preferences.txt')
         self.prefs = hp_data.parse_prefs(self.master, self.prefsFile)
 
-
-
     def validate(self):
         errors = []
-        for col in range(0, self.pt.cols):
-            if col in self.booleanColNums:
-                for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
+        types = self.pt.model.df['Type']
+        uniqueIDs = []
+        for row in range(0, self.pt.rows):
+            for col in range(0, self.pt.cols):
+                currentColName = self.pt.model.df.columns[col]
+                type = types[row]
+                val = str(self.pt.model.getValueAt(row, col))
+                if currentColName in self.booleanColNames:
                     if val.title() == 'True' or val.title() == 'False':
                         self.pt.model.setValueAt(val.title(), row, col)
-                    else:
-                        currentColName = list(self.pt.model.df.columns.values)[col]
+                    elif type == 'image' and col in self.mandatoryImage:
                         errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
                             row + 1) + '. Value must be True or False')
+                    elif type == 'video' and col in self.mandatoryVideo:
+                        errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
+                            row + 1) + '. Value must be True or False')
+                    elif type == 'audio' and col in self.mandatoryAudio:
+                        errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
+                            row + 1) + '. Value must be True or False')
+            errors.extend(self.parse_process_errors(row))
+            errors.extend(self.check_model(row))
+            errors.extend(self.check_kinematics(row))
+            errors.extend(self.check_localID(row))
+            if self.pt.model.df['HP-DeviceLocalID'][row] not in uniqueIDs:
+                uniqueIDs.append(self.pt.model.df['HP-DeviceLocalID'][row])
 
-        errors.extend(self.check_model())
-        errors.extend(self.check_kinematics())
-        errors.extend(self.check_localID())
+        for coord in self.highlighted_cells:
+            val = str(self.pt.model.getValueAt(coord[0], coord[1]))
+            if val == '':
+                currentColName = list(self.pt.model.df.columns.values)[coord[1]]
+                errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
+                            coord[0] + 1) + '. This cell is mandatory.')
+
+        if len(uniqueIDs) > 1:
+            errors.append('Multiple cameras identified. Each processed dataset should contain data from only one camera.')
 
         cancelPressed = None
         if errors:
@@ -555,6 +581,14 @@ class HPSpreadsheet(Toplevel):
             cancelPressed = d.cancelPressed
 
         return errors, cancelPressed
+
+    def parse_process_errors(self, row):
+        errors = []
+        imageName = self.pt.model.df['OriginalImageName'][row]
+        if imageName in self.processErrors:
+            for err in self.processErrors[imageName]:
+                errors.append(err[1] + ' (row ' + str(row) + ')')
+        return errors
 
     def check_save(self):
         if self.saveState == False:
@@ -580,20 +614,16 @@ class HPSpreadsheet(Toplevel):
             return []
         return [x.strip() for x in df['Camera Kinematics']]
 
-    def check_kinematics(self):
+    def check_kinematics(self, row):
         errors = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraKinematics')]
-        for col in range(0, self.pt.cols):
-            if col in cols_to_check:
-                for row in range(0, self.pt.rows):
-                    currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
-                    if currentExt in hp_data.exts['VIDEO']:
-                        val = str(self.pt.model.getValueAt(row, col))
-                        if val.lower() == 'nan' or val == '':
-                            imageName = self.pt.model.getValueAt(row, 0)
-                            errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                        elif val.lower() not in [x.lower() for x in self.kinematics]:
-                            errors.append('Invalid camera kinematic ' + val + ' (row ' + str(row + 1) + ')')
+        kinematic = self.pt.model.df['HP-CameraKinematics'][row]
+        type = self.pt.model.df['Type'][row]
+        if type.lower() == 'video':
+            if kinematic.lower() == 'nan' or kinematic == '':
+                imageName = self.pt.model.getValueAt(row, 0)
+                errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+            elif kinematic.lower() not in [x.lower() for x in self.kinematics]:
+                errors.append('Invalid camera kinematic ' + kinematic + ' (row ' + str(row + 1) + ')')
         return errors
 
     def load_apps(self):
@@ -621,35 +651,27 @@ class HPSpreadsheet(Toplevel):
         localIDs = self.devices.items()
         return sorted(list(set(models))), localIDs
 
-    def check_model(self):
+    def check_model(self, row):
         errors = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraModel')]
-        for col in range(0, self.pt.cols):
-            if col in cols_to_check:
-                for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
-                    if val.lower() == 'nan' or val == '':
-                        imageName = self.pt.model.getValueAt(row, 0)
-                        errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val not in [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]:
-                        errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
+        model = self.pt.model.df['HP-CameraModel'][row]
+        if model.lower() == 'nan' or model == '':
+            imageName = self.pt.model.getValueAt(row, 0)
+            errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+        elif model not in [self.devices[data]['hp_camera_model'] for data in self.devices if
+                         self.devices[data]['hp_camera_model'] is not None]:
+            errors.append('Invalid camera model ' + model + ' (row ' + str(row + 1) + ')')
         return errors
 
-    def check_localID(self):
+    def check_localID(self, row):
         errors = []
         uniques = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('HP-DeviceLocalID')]
-        for col in range(0, self.pt.cols):
-            if col in cols_to_check:
-                for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
-                    if val.lower() == 'nan' or val == '':
-                        imageName = self.pt.model.getValueAt(row, 0)
-                        errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row+ 1 ) + ')')
-                    if val not in uniques:
-                        uniques.append(val)
-        if len(uniques) > 1:
-            errors.append('Multiple Local IDs are identified. Each process should only contain one unique Local ID.')
+        localID = self.pt.model.df['HP-DeviceLocalID'][row]
+        if localID.lower() == 'nan' or localID == '':
+            imageName = self.pt.model.getValueAt(row, 0)
+            errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row + 1) + ')')
+        elif localID not in [self.devices[data]['hp_device_local_id'] for data in self.devices if
+                         self.devices[data]['hp_device_local_id'] is not None]:
+            errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
         return errors
 
 class NewCameraPrompt(tkSimpleDialog.Dialog):
