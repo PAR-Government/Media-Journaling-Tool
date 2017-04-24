@@ -81,15 +81,15 @@ class TrelloAPI(MaskgenNotifer):
         return None
 
     def get_user_name(self):
+        regid = self.loader.get_key('trelloapiusername')
+        if regid is not None:
+            return regid
         r = self.get_from_trello(
             self.loaded_config['user'],
             fields='username')
         return r['username'] if r is not None else 'unknown_user'
 
     def get_board_id_by_name(self, name):
-        regid = self.loader.get_key('trelloapiusername')
-        if regid is not None:
-            return regid
         r = self.get_from_trello(self.loaded_config['boards'].format(trelloapiusername=self.get_user_name()),fields='name')
         for item in r:
             if name == item['name']:
