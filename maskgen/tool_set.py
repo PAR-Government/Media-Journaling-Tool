@@ -1164,6 +1164,17 @@ def __compareRotatedImage(rotation, img1, img2, invert, arguments):
     return res, analysis
 
 
+def __findRotation(img1, img2, range):
+    best = img1.shape[0] * img1.shape[1]
+    r = None
+    for rotation in range:
+        res, analysis  = __compareRotatedImage(rotation, img1,img2,False, {})
+        c = sum(sum(res))
+        if c < best:
+            best = c
+            r = rotation
+    return r
+
 #      res = __resize(mask,(max(img2.shape[0],img1.shape[0]), max(img2.shape[1],img1.shape[1])))
 #      res[res<0.00001] = 0
 #      res[res>0] = 255

@@ -15,13 +15,6 @@
       "information":  "This property cannot be changed"
     },
     {
-      "description" : "Paste Clone Auto Input Mask",
-      "name": "autopastecloneinputmask",
-      "type":"yesno",
-      "readonly":"true",
-      "information": "if the input mask was guessed"
-    },
-    {
       "description": "Organization",
       "name": "organization",
       "type": "string",
@@ -50,6 +43,11 @@
         "7+Unit"
       ],
        "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
+    },
+     {
+      "description": "QA Comments",
+      "name": "qacomment",
+      "type": "text"
     },
     {
       "description": "Validation",
@@ -87,6 +85,13 @@
       "type": "yesno",
       "information": "A large scale activity that requires an entire volume of manipulated or generated imagery to provide to simulate a full event. This could include imagery that appears to be from many individuals, cameras, and social media accounts"
 
+    },
+    {
+      "description" : "Paste Clone Auto Input Mask",
+      "name": "autopastecloneinputmask",
+      "type":"yesno",
+      "readonly":"true",
+      "information": "if the input mask was guessed"
     },
     {
       "description": "Audio Activity",
