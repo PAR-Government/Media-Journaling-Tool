@@ -1,6 +1,6 @@
-copyright=
-artist=
-by-line=[YOURINITIALSHERE]
-credit=[YOURORGHERE]
+copyright=1997
+artist=eric
+by-line=er
+credit=PAR
 usageterms=CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/
-copyrightnotice=(c) 2016 [YOURORGHERE] - Under contract of MediFor
+copyrightnotice=(c) 2016 [eric] - Under contract of MediFor

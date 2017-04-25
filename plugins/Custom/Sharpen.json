@@ -1,0 +1,54 @@
+{
+    "name": "Sharpen",
+    "operation": {
+      "name": "AdditionalEffectFilterSharpening",
+      "category": "AdditionalEffect",
+      "description": "Automatically apply a sharpen kernel with the given radius and sigma value. (https://www.imagemagick.org/script/command-line-options.php#sharpen)",
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments":{
+        "RADIUS":{
+          "type": "string",
+          "defaultvalue": null,
+          "description": "Radius, must be entered with an x in between (e.g. 25x2)."
+        },
+        "SIGMA":{
+          "type": "string",
+          "defaultvalue": null,
+          "description": "Sigma, must be entered with an x in between (e.g. 25x2)."
+        }
+      },
+      "transitions": ["image.image"]
+    },
+    "command": {
+      "default":[
+        "convert",
+        "-sharpen",
+        "{RADIUS}x{SIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "-sharpen",
+        "{RADIUS}x{SIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "darwin":[
+        "convert",
+        "-sharpen",
+        "{RADIUS}x{SIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "linux":[
+        "convert",
+        "-sharpen",
+        "{RADIUS}x{SIGMA}",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
+}

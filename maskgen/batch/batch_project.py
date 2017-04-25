@@ -12,30 +12,54 @@ import shutil
 from maskgen  import plugins
 from maskgen import group_operations
 import logging
+from threading import Lock, Thread
+
+
+class IntObject:
+    value = 0
+    lock = Lock()
+
+    def __init__(self, value=0):
+        self.value = value
+        pass
+
+    def decrement(self):
+        with self.lock:
+            current_value = self.value
+            self.value -= 1
+            return current_value
+
+    def increment(self):
+        with self.lock:
+            self.value += 1
+            return self.value
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
+        json_data = {}
         try:
-            G =  json_graph.node_link_graph(json.load(f, encoding='utf-8'), multigraph=False, directed=True)
+            json_data = json.load(f, encoding='utf-8')
+            G =  json_graph.node_link_graph(json_data, multigraph=False, directed=True)
         except  ValueError:
-            G = json_graph.node_link_graph(json.load(f), multigraph=False, directed=True)
-        return BatchProject(G)
+            json_data = json.load(f)
+            G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
+        return BatchProject(G,json_data)
     return None
 
 def pickArg(param, local_state):
     if param['type'] == 'list':
         return random.choice(param['values'])
-    elif param['type'] == 'int':
+    elif 'int' in param['type']  :
         v = param['type']
         vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len (vals) > 0 else 0
-        end = vals[1] if len(vals) > 2 else 0
+        end = vals[1] if len(vals) > 1 else beg+1
         return random.randint(beg, end)
-    elif param['type'] == 'float':
+    elif 'float' in param['type'] :
         v = param['type']
         vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 2 else 0
+        end = vals[1] if len(vals) > 1 else beg+1.0
         diff = end - beg
         return beg+ random.random()* diff
     elif param['type'] == 'yesno':
@@ -76,6 +100,8 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
         return specification['value']
     if specification['type'] == 'list':
         return random.choice(specification['values'])
+    if specification['type'] == 'variable':
+        return getNodeState(specification['source'], local_state)[specification['name']]
     if specification['type'] == 'donor':
         if 'source' in specification:
             return getNodeState(specification['source'], local_state)['node']
@@ -83,9 +109,11 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
     if specification['type'] == 'imagefile':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
+    if specification['type'] == 'input':
+        return getNodeState(specification['source'], local_state)['output']
     if specification['type'] == 'plugin':
         return  callPluginSpec(specification)
-    return None
+    return pickArg(specification,local_state)
 
 def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
     """
@@ -138,26 +166,30 @@ def getNodeState(node_name,local_state):
 
 
 def pickImage(node, global_state={}):
-    if node['picklist'] not in global_state:
-        if not os.path.exists(node['image_directory']):
-            raise ValueError("ImageSelection missing valid image_directory")
-        listing = os.listdir(node['image_directory'])
-        global_state[node['picklist']] = listing
-        if os.path.exists(node['picklist'] + '.txt'):
-           with open(node['picklist'] + '.txt', 'r') as fp:
-              for line in fp.readlines():
-                  line = line.strip()
-                  if line in listing:
-                      listing.remove(line)
-    else:
-        listing = global_state[node['picklist']]
-    if len(listing) == 0:
-        raise ValueError("Picklist of Image Files Empty")
-    pick = random.choice(listing)
-    listing.remove(pick)
-    with open(node['picklist'] + '.txt', 'a') as fp:
-        fp.write(pick + '\n')
-    return os.path.join(node['image_directory'], pick)
+    with global_state['picklistlock']:
+        if node['picklist'] not in global_state:
+            if not os.path.exists(node['image_directory']):
+                raise ValueError("ImageSelection missing valid image_directory: " + node['image_directory'])
+            listing = os.listdir(node['image_directory'])
+            global_state[node['picklist']] = listing
+            if os.path.exists(node['picklist'] + '.txt'):
+               with open(node['picklist'] + '.txt', 'r') as fp:
+                  for line in fp.readlines():
+                      line = line.strip()
+                      if line in listing:
+                          listing.remove(line)
+        else:
+            listing = global_state[node['picklist']]
+        if len(listing) == 0:
+            raise ValueError("Picklist of Image Files Empty")
+        pick = random.choice(listing)
+        listing.remove(pick)
+        if node['picklist'] not in global_state['picklists_files']:
+            global_state['picklists_files'][node['picklist']] = \
+               open(node['picklist'] + '.txt', 'a')
+        global_state['picklists_files'][node['picklist']].write(pick + '\n')
+        global_state['picklists_files'][node['picklist']].flush()
+        return os.path.join(node['image_directory'], pick)
 
 class BatchOperation:
 
@@ -260,7 +292,10 @@ class PluginOperation(BatchOperation):
         """
         my_state = getNodeState(node_name,local_state)
 
-        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) if predecessor != connect_to_node_name]
+        predecessors = [getNodeState(predecessor, local_state)['node'] \
+                        for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+
         predecessor_state=getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
@@ -270,6 +305,10 @@ class PluginOperation(BatchOperation):
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
         args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        if 'experiment_id' in node:
+            args['experiment_id'] = node['experiment_id']
+        args['skipRules'] = True
+        args['sendNotifications'] = False
         self.logger.debug('Execute plugin ' + plugin_name + ' on ' + filename  + ' with ' + str(args))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
         if errors is not None or  (type(errors) is list and len (errors) > 0 ):
@@ -281,8 +320,76 @@ class PluginOperation(BatchOperation):
             local_state['model'].selectImage(my_state['node'])
         return local_state['model']
 
+class InputMaskPluginOperation(PluginOperation):
+    logger = logging.getLogger('InputMaskPluginOperation')
+
+    def execute(self, graph, node_name, node,connect_to_node_name, local_state={},global_state={}):
+        """
+        Add a node through an operation.
+        :param graph:
+        :param node_name:
+        :param node:
+        :param connect_to_node_name:
+        :param local_state:
+        :param global_state:
+        :return:
+        @type graph: nx.DiGraph
+        @type node_name : str
+        @type node: Dict
+        @type connect_to_node_name : str
+        @type global_state: Dict
+        @type global_state: Dict
+        @rtype: scenario_model.ImageProjectModel
+        """
+        my_state = getNodeState(node_name,local_state)
+
+        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+        predecessor_state=getNodeState(connect_to_node_name, local_state)
+        local_state['model'].selectImage(predecessor_state['node'])
+        im, filename = local_state['model'].currentImage()
+        plugin_name = node['plugin']
+        plugin_op = plugins.getOperation(plugin_name)
+        if plugin_op is None:
+            raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
+        op = software_loader.getOperation(plugin_op['name'],fake=True)
+        args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        args['skipRules'] = True
+        args['sendNotifications'] = False
+        targetfile,params = self.imageFromPlugin(plugin_name, im, filename, **args)
+        my_state['output'] = targetfile
+        if params is not None and type(params) == type({}):
+            for k, v in params.iteritems():
+                my_state[k] = v
+        return local_state['model']
+
+    def imageFromPlugin(self, filter, im, filename, **kwargs):
+        import tempfile
+        """
+          @type filter: str
+          @type im: ImageWrapper
+          @type filename: str
+          @rtype: list of (str, list (str,str))
+        """
+        file = os.path.split(filename)[1]
+        file = file[0:file.rfind('.')]
+        target = os.path.join(tempfile.gettempdir(),  file+ '_' + filter + '.png')
+        shutil.copy2(filename, target)
+        params = {}
+        try:
+            extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
+            if extra_args is not None and type(extra_args) == type({}):
+                for k, v in extra_args.iteritems():
+                    if k not in kwargs:
+                        params[k] = v
+        except Exception as e:
+            msg = str(e)
+            raise ValueError("Plugin " + filter + " failed:" + msg)
+        return target,params
+
+
 batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
-                    'PluginOperation' : PluginOperation()}
+                    'PluginOperation' : PluginOperation(),'InputMaskPluginOperation' : InputMaskPluginOperation()}
 
 def getOperationGivenDescriptor(descriptor):
     """
@@ -298,12 +405,13 @@ class BatchProject:
 
     G = nx.DiGraph(name="Empty")
 
-    def __init__(self,G):
+    def __init__(self,G,json_data):
         """
         :param G:
         @type G: nx.DiGraph
         """
         self.G = G
+        self.json_data = json_data
         tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
 
     def _buildLocalState(self):
@@ -329,21 +437,25 @@ class BatchProject:
             completed = [base_node]
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
+                if op_node_name in completed:
+                    continue
                 predecessors = list(self.G.predecessors(op_node_name))
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
                     continue
-                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)]
+                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
+                            if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
                 #if not self.G.edge[predecessor][op_node_name]['donor']]
                 connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                 completed.append(op_node_name)
+                self.logger.debug('Completed: ' + op_node_name)
                 queue.extend(self.G.successors(op_node_name))
             if recompress:
                 self.logger.debug("Run Save As")
                 op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
                 op.performOp()
-            local_state['model'].save()
+            local_state['model'].renameFileImages()
             if 'archives' in global_state:
                 local_state['model'].export(global_state['archives'])
         except Exception as e:
@@ -357,7 +469,14 @@ class BatchProject:
     def dump(self):
         filename = self.getName() + '.png'
         self._draw().write_png(filename)
+        filename = self.getName() + '.csv'
+        position = 0
+        with open(filename,'w') as f:
+            for node in self.json_data['nodes']:
+                f.write(node['id']  + ',' + str(position) + '\n')
+                position += 1
 
+    colors_bytype ={ 'InputMaskPluginOperation' : 'blue'}
     def _draw(self):
         import pydot
         pydot_nodes = {}
@@ -365,14 +484,17 @@ class BatchProject:
         for node_id in self.G.nodes():
             node = self.G.node[node_id]
             name = op_type = node['op_type']
-            if op_type == 'PluginOperation':
+            if op_type in ['PluginOperation','InputMaskPluginOperation']:
                 name = node['plugin']
+            color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
-                                              shape='plain')
+                                              shape='plain',
+                                              color=color)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.G.edges():
-            edge = self.G.edge[edge_id[0]][edge_id[1]]
-            color = 'black'
+            node = self.G.node[edge_id[0]]
+            op_type = node['op_type']
+            color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pygraph.add_edge(
                 pydot.Edge(pydot_nodes[edge_id[0]], pydot_nodes[edge_id[1]],  color=color))
         return pygraph
@@ -445,10 +567,25 @@ def getBatch(jsonFile,loglevel=50):
     logging.basicConfig(format=FORMAT,level=50 if loglevel is None else int(loglevel))
     return  loadJSONGraph(jsonFile)
 
+def thread_worker(projects,picklists_files,project,counter,picklistlock):
+    globalState = {'projects' : projects,
+                    'picklists_files':picklists_files,
+                    'project':project,
+                    'count': counter,
+                    'picklistlock': picklistlock}
+    while (globalState['count'].decrement() > 0):
+        project_directory = globalState['project'].executeOnce(globalState)
+        if project_directory is not None:
+            print 'Completed' + project_directory
+        else:
+            print 'Exiting thread due to failure'
+            break
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--json',             required=True,         help='JSON File')
     parser.add_argument('--count', required=False, help='number of projects to build')
+    parser.add_argument('--threads', required=False, help='number of projects to build')
     parser.add_argument('--results', required=True, help='project results directory')
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--graph', required=False, action='store_true',help='create graph PNG file')
@@ -456,18 +593,28 @@ def main():
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
         return
+    tool_set.set_logging()
     loadCustomFunctions()
     batchProject =getBatch(args.json, loglevel=args.loglevel)
-    globalState =  {'projects' : args.results}
-    count = int(args.count) if args.count is not None else 1
+    picklists_files = {}
+    globalState =  (args.results,
+                    picklists_files,
+                    batchProject,
+                    IntObject(int(args.count)),
+                    Lock())
     if args.graph is not None:
         batchProject.dump()
-    for i in range(count):
-        project_directory =  batchProject.executeOnce(globalState)
-        if project_directory is not None:
-            print  'completed' + project_directory
-        else:
-            break
+    threads_count = args.threads if args.threads else 1
+    threads = []
+    for i in range(int(threads_count)):
+        t = Thread(target=thread_worker,args=globalState)
+        threads.append(t)
+        t.start()
+    for thread in threads:
+        thread.join()
+    for k, fp in picklists_files.iteritems():
+        fp.close()
+
 
 if __name__ == '__main__':
     main()

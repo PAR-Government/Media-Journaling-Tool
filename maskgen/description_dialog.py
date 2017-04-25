@@ -3,11 +3,11 @@ import ttk
 import tkMessageBox
 from maskgen import image_wrap
 from group_filter import GroupFilter, GroupFilterLoader
-import Tkconstants, tkFileDialog, tkSimpleDialog
+import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getFileTypes, get_username
+    validateCoordinates, getMaskFileTypes, getFileTypes, get_username, coordsFromString, IntObject
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -19,6 +19,8 @@ from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroup
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import  Chord, Accordion
+from PictureEditor import PictureEditor
+from CompositeViewer import  ScrollCompositeViewer
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -145,6 +147,37 @@ def promptForFolderAndFillButtonText(obj, dir, id, row):
     obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else ' ' * 30)
 
 
+def promptForBoxPairAndFillButtonText(obj, id, row):
+    """
+    Prompt for a donor and place the name in the button text
+    Set the variable to the  selected image node name
+    :param obj:
+    :param id:
+    :param var:
+    @type obj: PropertyFrame
+    @type row: int
+    :return:
+    """
+    extra_args = obj.extra_args
+    var = obj.values[row]
+    initial_value  = var.get()
+    full_value_left = '(0,0,{},{})'.format(extra_args['start_im'].size[0],extra_args['start_im'].size[1])
+    full_value_right = '(0,0,{},{})'.format(extra_args['end_im'].size[0], extra_args['end_im'].size[1])
+    parts =  initial_value.split(':') if initial_value is not None and len(initial_value) > 0 \
+        else [full_value_left,full_value_right,'0']
+    left_box = coordsFromString(parts[0])
+    right_box = coordsFromString(parts[1])
+    angle = int(float(parts[2]))
+    d = PointsViewDialog (obj,left_box, right_box,angle,
+                          extra_args['start_im'], extra_args['end_im'],
+                          extra_args['model'],
+                          op=extra_args['op'],
+                          argument_name=id)
+    if not d.cancelled:
+        res = d.getStringConfiguration()
+        var.set(res if (res is not None and len(res) > 0) else None)
+        obj.buttons[id].configure(text=res if (res is not None and len(res) > 0) else '')
+
 def promptForDonorandFillButtonText(obj, id, row):
     """
     Prompt for a donor and place the name in the button text
@@ -169,13 +202,16 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
       
     """
     res = None
-    if argumentTuple[1]['type'] == 'imagefile':
+    if argumentTuple[1]['type'] == 'file:image':
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0], filetypes=filetypes)
         if (val != None and len(val) > 0):
             res = val
-    elif argumentTuple[1]['type'] == 'xmpfile':
+    elif argumentTuple[1]['type'] == 'file:':
+        prop = argumentTuple[1]['type']
+        typematch = '*.' + prop[prop.find(':') + 1:]
+        typename = prop[prop.find(':') + 1:].upper()
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0],
-                                           filetypes=[('XMP', '*.xmp')])
+                                           filetypes=[(typename, typematch)])
         if (val != None and len(val) > 0):
             res = val
     elif argumentTuple[1]['type'].startswith('fileset:'):
@@ -301,7 +337,7 @@ class DescriptionCaptureDialog(Toplevel):
     arginfo = []
     argBox = None
 
-    def __init__(self, parent, uiProfile, scModel, targetfiletype, im, name, description=None):
+    def __init__(self, parent, uiProfile, scModel, targetfiletype, end_im, name, description=None):
         """
 
         :param parent:
@@ -315,7 +351,8 @@ class DescriptionCaptureDialog(Toplevel):
         """
         self.dir = scModel.get_dir()
         self.uiProfile = uiProfile
-        self.im = im
+        self.end_im = end_im
+        self.start_im = scModel.startImage()
         self.parent = parent
         self.scModel = scModel
         self.sourcefiletype = scModel.getStartType()
@@ -371,7 +408,7 @@ class DescriptionCaptureDialog(Toplevel):
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
 
-    def buildArgBox(self):
+    def buildArgBox(self, opname):
         if self.argBox is not None:
             self.argBox.destroy()
         properties = [ProjectProperty(name=argumentTuple[0],
@@ -386,6 +423,10 @@ class DescriptionCaptureDialog(Toplevel):
                                 scModel=self.scModel,
                                 propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
+                                extra_args={'end_im': self.end_im,
+                                            'start_im':self.start_im,
+                                            'model': self.scModel,
+                                            'op': opname},
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
         self.argBox.grid_propagate(1)
@@ -406,7 +447,7 @@ class DescriptionCaptureDialog(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 self.arginfo.append((k, v))
-        self.buildArgBox()
+        self.buildArgBox(self.e2.get())
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -449,7 +490,7 @@ class DescriptionCaptureDialog(Toplevel):
     def body(self, master):
         self.okButton = None
 
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.end_im, (250, 250))).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.c.create_image(125, 125, image=self.photo, tag='imgd')
         self.c.grid(row=0, column=0, columnspan=2)
@@ -483,7 +524,7 @@ class DescriptionCaptureDialog(Toplevel):
         row += 1
         self.argBoxRow = row
         self.argBoxMaster = master
-        self.argBox = self.buildArgBox()
+        self.argBox = self.buildArgBox(None)
         row += 1
 
         cats = self.organizeOperationsByCategory()
@@ -507,7 +548,6 @@ class DescriptionCaptureDialog(Toplevel):
         self.e3.grid(row=3, column=1, sticky=EW)
         self.e4.grid(row=4, column=1, sticky=EW)
         self.e5.grid(row=5, column=1)
-
 
         if self.description is not None:
             if self.description.semanticGroups is not None:
@@ -617,15 +657,22 @@ class DescriptionCaptureDialog(Toplevel):
 
 class DescriptionViewDialog(tkSimpleDialog.Dialog):
     description = None
-    im = None
-    photo = None
-    c = None
     metadiff = None
     metaBox = None
 
-    def __init__(self, parent, dir, im, name, description=None, metadiff=None):
-        self.im = im
-        self.dir = dir
+
+    def __init__(self, parent, scModel, name, description=None, metadiff=None):
+        """
+
+        :param parent:
+        :param scModel:
+        :param im:  end image
+        :param name:
+        :param description:
+        :param metadiff:
+        @type scModel: ImageProjectModel
+        """
+        self.dir = scModel.get_dir()
         self.parent = parent
         self.description = description if description is not None else Modification('', '')
         self.metadiff = metadiff
@@ -820,6 +867,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     optocall = None
     argvalues = {}
     cancelled = True
+    okButton = None
 
     def __init__(self, parent, dir, im, pluginOps, name, scModel):
         self.pluginOps = pluginOps
@@ -895,9 +943,22 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         if self.argBox is not None:
             self.argBox.destroy()
         if arginfo is None:
-            arginfo = []
+            arginfo = {}
         operation = getOperationWithGroups(operationName)
         argumentTuples = [self.__buildTuple(arg, arginfo[arg], operation) for arg in arginfo]
+        for k, v in operation.mandatoryparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+                continue
+            if k in arginfo:
+                continue
+            argumentTuples.append((k, v))
+        for k, v in operation.optionalparameters.iteritems():
+            if 'source' in v and v['source'] != self.sourcefiletype:
+                continue
+            if k in arginfo:
+                continue
+            argumentTuples.append((k, v))
+
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
@@ -950,6 +1011,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.versionvar.set('')
             self.optocall = None
             self.buildArgBox(None, [])
+        if self.okButton is not None:
+            self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def cancel(self):
         if self.cancelled:
@@ -1250,124 +1313,105 @@ class DecisionListDialog(ListDialog):
 
 class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     im = None
-    selectMaskName = None
     cancelled = True
     modification = None
     start_type = None
     end_type = None
+    selectMasks = None
 
-    def __init__(self, parent, start_type, end_type,  dir, im, name, modification):
-        self.dir = dir
-        self.im = im
-        self.start_type = start_type
-        self.end_type = end_type
+
+    def __init__(self, parent,   scModel ):
+        """
+        :param parent:
+        :param scModel:
+        @type scModel : ImageProjectModel
+        """
+        self.dir = scModel.get_dir()
+        self.start_type = scModel.getStartType()
+        self.end_type = scModel.getEndType()
         self.parent = parent
-        self.name = name
-        self.modification = modification
-        self.selectMaskName = self.modification.selectMaskName
+        self.scModel = scModel
+        name = scModel.start + ' to ' + scModel.end
+        self.modification = scModel.getDescription()
+        self.selectMasks = self.scModel.getSelectMasks()
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
+    def load_overlay(self, event, initialize=False, master=None):
+        option = self.item.get()
+        if option in self.selectMasks.keys():
+            finalNode = option
+        else:
+            finalNode = self.selectMasks.keys()[0]
+        value = os.path.split(self.selectMasks[finalNode][0])[1] if self.selectMasks[finalNode] is not None else ''
+        self.filename.set(value)
+        finalImage = self.scModel.getImageAndName(finalNode)[0]
+        imTuple  = self.selectMasks[finalNode]
+        color = [0,198,0]
+        if imTuple is None:
+            red = openImage('./icons/RedX.png').to_mask()
+            color = [198,0,0]
+            im = red.resize(finalImage.size,1)
+        else:
+            im = imTuple[1]
+        imResized = imageResizeRelative(im, (250, 250), im.size)
+        finalResized = imageResizeRelative(finalImage, (250, 250), finalImage.size)
+        finalResized = finalResized.overlay(imResized,color=color)
+        self.photo = ImageTk.PhotoImage(finalResized.toPIL())
+        if initialize:
+            self.c = Canvas(master, width=260, height=260)
+            self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW)
+        else:
+            self.c.itemconfig(self.image_on_canvas, image=self.photo)
+
     def body(self, master):
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c = Canvas(master, width=250, height=250)
-        self.image_on_canvas = self.c.create_image(125, 125, image=self.photo, tag='imgd')
-        self.c.grid(row=0, column=0, columnspan=2)
+        self.item = StringVar()
+        row = 0
+        if len(self.selectMasks.keys()) > 0:
+            self.item.set(self.selectMasks.keys()[0] if len(self.selectMasks.keys()) > 0 else '')
+            self.filename = StringVar()
+            self.load_overlay(None, initialize=True, master=master)
+            self.c.grid(row=row, column=0, columnspan=2)
+            row += 1
+            self.label = Label(master, textvariable=self.filename, justify=LEFT)
+            self.label.grid(row=row, column=0, columnspan=2,sticky='EW',padx=10)
+            row += 1
+            self.optionsBox = ttk.Combobox(master,
+                                       values=list(self.selectMasks.keys()),
+                                       textvariable=self.item)
+            row += 1
+            self.optionsBox.grid(row=row, column=0, columnspan=2, sticky='EW')
+            self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
+            row += 1
+            self.bc = Button(master, text="Change Mask", command=self.changemask, relief=FLAT)
+            self.bc.grid(row=row, column=0)
+            self.bd = Button(master, text="Delete Mask", command=self.deletemask, relief=FLAT)
+            self.bd.grid(row=row, column=1)
+            row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
         self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
                                                 onvalue="yes", offvalue="no")
-        self.useInputMaskVar = StringVar()
-        self.useInputMaskVar.set('yes' if self.modification.usesInputMaskForSelectMask() else 'no')
-        row = 1
         self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
-        row += 1
-        if self.modification.inputMaskName is not None:
-            self.cbUseInputMask = Checkbutton(master, text="Use Input Mask", variable=self.useInputMaskVar,
-                                              onvalue="yes", offvalue="no", command=self.useinputmask)
-            self.cbUseInputMask.grid(row=row, column=0, columnspan=2, sticky=W)
-            row += 1
-        self.b = Button(master, text="Change Mask", command=self.changemask, borderwidth=0, relief=FLAT)
-        self.b.grid(row=row, column=0)
         return self.cbIncludeInComposite
 
-    def useinputmask(self):
-        if self.useInputMaskVar.get() == 'yes':
-            self.im = openImage(os.path.join(self.dir, self.modification.inputMaskName), isMask=True,
-                                preserveSnapshot=True)
-            self.selectMaskName = self.modification.inputMaskName
-        elif self.modification.changeMaskName is not None:
-            self.im = openImage(os.path.join(self.dir, self.modification.changeMaskName), isMask=True,
-                                preserveSnapshot=True)
-            self.selectMaskName = self.modification.changeMaskName
-        else:
-            self.im = ImageWrapper(np.zeros((250, 250, 3)))
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c.itemconfig(self.image_on_canvas, image=self.photo)
+    def deletemask(self):
+        self.selectMasks[self.optionsBox.get()] = None
+        self.load_overlay(None)
 
     def changemask(self):
         val = tkFileDialog.askopenfilename(initialdir=self.dir, title="Select Input Mask",
                                            filetypes=getMaskFileTypes())
         if (val != None and len(val) > 0):
-            self.selectMaskName = val
-            self.im = openImage(val, isMask=True, preserveSnapshot=os.path.split(os.path.abspath(val))[0] == dir)
-            self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-            self.c.itemconfig(self.image_on_canvas, image=self.photo)
+            self.selectMasks[self.optionsBox.get()]  = (val,openImage(val, isMask=True, preserveSnapshot=os.path.split(os.path.abspath(val))[0] == dir))
+            self.load_overlay(None)
 
     def cancel(self):
         tkSimpleDialog.Dialog.cancel(self)
 
     def apply(self):
         self.cancelled = False
-        self.modification.setSelectMaskName(self.selectMaskName)
         self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
 
-
-class CompositeViewDialog(tkSimpleDialog.Dialog):
-    im = None
-    composite = None
-    """
-    @type im: ImageWrapper
-    @type composite: ImageWrapper
-    """
-
-    def __init__(self, parent, name, composite, im):
-        self.composite = composite
-        self.im= im
-        self.parent = parent
-        self.name = name
-        tkSimpleDialog.Dialog.__init__(self, parent, name)
-
-    def body(self, master):
-        compositeResized = imageResizeRelative(self.composite, (500, 500),self.composite.size)
-        if self.im is not None:
-            imResized = imageResizeRelative(self.im, (500, 500),self.im.size)
-            imResized = imResized.overlay(compositeResized)
-        else:
-            imResized = compositeResized
-        self.photo = ImageTk.PhotoImage(imResized.toPIL())
-        self.c = Canvas(master, width=compositeResized.size[0]+10, height=compositeResized.size[1]+10)
-        self.image_on_canvas = self.c.create_image(0,0, image=self.photo,anchor=NW, tag='imgd')
-        self.c.grid(row=0, column=0, columnspan=2)
-
-    def buttonbox(self):
-        box = Frame(self)
-        w1 = Button(box, text="Close", width=10, command=self.ok, default=ACTIVE)
-        w2 = Button(box, text="Export", width=10, command=self.saveThenOk, default=ACTIVE)
-        w1.pack(side=LEFT, padx=5, pady=5)
-        w2.pack(side=RIGHT, padx=5, pady=5)
-        self.bind("<Return>", self.cancel)
-        self.bind("<Escape>", self.cancel)
-        box.pack()
-
-    def saveThenOk(self):
-        val = tkFileDialog.asksaveasfilename(initialdir='.', initialfile=self.name + '_composite.png',
-                                             filetypes=[("png files", "*.png")], defaultextension='.png')
-        if (val is not None and len(val) > 0):
-            # to cover a bug in some platforms
-            if not val.endswith('.png'):
-                val = val + '.png'
-            self.im.save(val)
-            self.ok()
 
 class QAViewDialog(Toplevel):
     def __init__(self, parent):
@@ -1411,7 +1455,10 @@ class QAViewDialog(Toplevel):
         self.cImgFrame = Frame(self)
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionLabel = Label(self)
-        self.load_overlay(initialize=True)
+
+        # only load the overlay if there are blue links
+        if self.crit_links:
+            self.load_overlay(initialize=True)
 
         col=1
 
@@ -1421,7 +1468,9 @@ class QAViewDialog(Toplevel):
         qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
                    'PasteSplice operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
                    'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.']
+                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.',
+                   'All relevant semantic groups are identified.',
+                   'End nodes are renamed to their MD5 value (Process->Rename Final Images).']
         checkboxes = []
         self.checkboxvars = []
         for q in qa_list:
@@ -1468,6 +1517,13 @@ class QAViewDialog(Toplevel):
 
         self.check_ok()
 
+    def _compose_label(self,edge):
+        op  = edge['op']
+        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
+            groups = edge['semanticGroups']
+            op += ' [' + ', '.join(groups) + ']'
+        return op
+
     def load_overlay(self, initialize=False):
         edgeTuple = tuple(self.optionsBox.get().split('->'))
         if len(edgeTuple) > 1:
@@ -1485,7 +1541,7 @@ class QAViewDialog(Toplevel):
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
-        self.operationVar.set(edge['op'])
+        self.operationVar.set(self._compose_label(edge))
         final = image_wrap.openImageFile(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
@@ -1510,6 +1566,162 @@ class QAViewDialog(Toplevel):
             self.acceptButton.config(state=NORMAL)
         else:
             self.acceptButton.config(state=DISABLED)
+
+class PointsViewDialog(tkSimpleDialog.Dialog):
+    """
+    View mapping bounding boxes between to images.
+    The second image's bounding box can be rotated to align with the first
+    """
+    cancelled= True
+    angle = 0
+    level = IntObject()
+    colorMap = dict()
+    ws = None
+
+    def __init__(self, parent, start_box, end_box, angle, start_im, end_im,model,op=None,argument_name=None):
+        """
+        :param parent: MakeGenUI
+        @type parent: MakeGenUI
+        """
+        self.parent = parent
+        self.startIM = start_im
+        self.nextIM = end_im
+        self.left_box  = start_box
+        self.right_box = end_box
+        self.angle = angle
+        self.scModel = model
+        self.op = op
+        self.prior_composite = None
+        self.argument_name = argument_name
+        tkSimpleDialog.Dialog.__init__(self, parent)
+
+    def notify(self,event):
+        if self.nb.tab(event.widget.select(), "text") == 'Composite':
+            self.composite_view.update(self._newComposite())
+
+    def getStringConfiguration(self):
+        return str(self.left_box) + ':' + str(self.right_box) + ':' + str(self.angle)
+
+    def _newComposite(self):
+        from PIL import Image
+        if self.prior_composite is None:
+            self.prior_composite = \
+                self.scModel.constructCompositeForNode(self.scModel.start,
+                                                       level=self.level,
+                                                       colorMap=self.colorMap)
+        override_args={
+            'op' : self.op,
+            'shape change': str((int(self.nextIM.size[1]-self.startIM.size[1]),
+                             int(self.nextIM.size[0]-self.startIM.size[0]))).replace('L','')
+        }
+        if self.argument_name is not None and self.ws is not None:
+            self.updateBox()
+            override_args['arguments'] = {self.argument_name :
+                                    self.getStringConfiguration()}
+        composite = self.scModel.extendCompositeByOne(self.prior_composite,
+                                                  level=self.level,
+                                                  colorMap=self.colorMap,
+                                                  override_args=override_args)
+        if composite.size != self.nextIM.size:
+            composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
+        return composite
+
+    def instructionsFrame(self,master):
+        f = Frame(master)
+        w1 = Label(f, text="The left image is the image prior to recapture. " + \
+                           "The right image is the recaptured image. " + \
+                           "The idea is to draw rectangles around the corresponding areas in each. " + \
+                           "If a portion of the left image is recaptured, cropping parts of the image, " + \
+                           "then draw a rectangle around the portion of the left image that is " + \
+                           "captured in the right image. If the recapture image is framed " + \
+                           "containing 100% of the left image with additional framing (background), " + \
+                           "draw a rectange around the portion of the right image that represents 100% of the " + \
+                           "left image.  The rectangle can be adjusted by clicking and dragging the corners."
+                   , font=("Helvetica", 14), wraplength=400, justify=LEFT)
+        w1.grid(row=0)
+        w2 = Label(f, text="Once the rectangles are complete, rotate the right rectangle to indicate the amount of rotation applied to " + \
+                           "the image, if any.  In most cases, the amount of rotation is -90,0,90 or 180.",
+                   font=("Helvetica", 14), wraplength=400, justify=LEFT)
+        w2.grid(row=1)
+        w3 = Label(f, text=
+        "The composite image tab is for review only.  The refresh button reapplies the changes to the composite, as does " + \
+        "switching between the composite tab and the other tabs. The scale is only for aiding the edit process; it is " + \
+        "not applied to the final images.",
+                   font=("Helvetica", 14), wraplength=400, justify=LEFT)
+        w3.grid(row=2)
+        return f
+
+    def body(self,master):
+        self.nb = ttk.Notebook(master)
+        self.left = PictureEditor(master,self.startIM.toPIL(), self.left_box)
+        f = self.instructionsFrame(self.nb)
+
+        self.right = PictureEditor(self.nb, self.nextIM.toPIL(),self.right_box,angle=self.angle)
+        self.composite_view = ScrollCompositeViewer(self.nb, self.nextIM,self._newComposite())
+        self.nb.add(self.right, text='Image')
+        self.nb.add(self.composite_view, text='Composite')
+        self.nb.add(f, text='Instructions')
+        self.nb.select(self.right)
+        self.nb.bind('<<NotebookTabChanged>>', self.notify)
+
+        self.left.grid(row=0, column=0, columnspan=2)
+        self.nb.grid(row=0, column=2,columnspan=2)
+
+        label1 = Label(master,text='Scale:',justify=RIGHT,anchor=S)
+        label1.grid(row=1, column=0,sticky=E)
+        self.ls = Scale(master, from_=15, to=100, orient=HORIZONTAL, command=self.rescale)
+        self.ls.grid(row=1, column=1,sticky=W)
+        self.ls.set(100)
+        label2 = Label(master, text='Rotation:',justify=RIGHT,anchor=S)
+        label2.grid(row=1, column=2,sticky=E)
+        self.ws = Scale(master, from_=-180, to=180,length=360,resolution=1,orient=HORIZONTAL,command=self.rotate)
+        self.ws.grid(row=1,column=3,sticky=W)
+        self.ws.set(self.angle)
+
+    def rescale(self,event):
+        self.right.set_scale(float(self.ls.get())/100.0)
+        self.left.set_scale(float(self.ls.get()) / 100.0)
+        self.composite_view.set_scale(float(self.ls.get()) / 100.0)
+
+    def rotate(self,event):
+        self.right.rotate(self.ws.get())
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def refresh_composite(self):
+        self.composite_view.update(self._newComposite())
+
+    def updateBox(self):
+        if self.ws is not None:
+            self.angle = self.ws.get()
+            self.left_box = (min(self.left.box[0], self.left.box[2]),
+                             min(self.left.box[1], self.left.box[3]),
+                             max(self.left.box[0], self.left.box[2]),
+                             max(self.left.box[1], self.left.box[3]))
+            self.right_box = (min(self.right.box[0], self.right.box[2]),
+                              min(self.right.box[1], self.right.box[3]),
+                              max(self.right.box[0], self.right.box[2]),
+                              max(self.right.box[1], self.right.box[3]))
+
+    def apply(self):
+        self.cancelled = False
+        self.updateBox()
+
+    def buttonbox(self):
+        box = Frame(self)
+
+        w = Button(box, text="OK", width=10, command=self.ok)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=15, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Refresh Composite", width=15, command=self.refresh_composite)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
 
 
 class CommentViewer(tkSimpleDialog.Dialog):
@@ -1752,19 +1964,25 @@ class PropertyFrame(VerticalScrolledFrame):
    buttons = {}
    scModel = None
    propertyFunction = PropertyFunction()
+   extra_args = {}
    """
    @type scModel: ImageProjectModel
    """
 
-   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None, dir='.',changeParameterCB=None, **kwargs):
+   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None,
+                dir='.',
+                changeParameterCB=None,
+                extra_args ={},
+                **kwargs):
      self.parent = parent
-     self.properties = [prop for prop in properties if not prop.node]
+     self.properties = [prop for prop in properties if not prop.node and not prop.semanticgroup]
      self.values =   [None for prop in properties]
      self.widgets =[None for prop in properties]
      self.changeParameterCB = changeParameterCB
      self.dir = dir
      self.propertyFunction = propertyFunction
      self.scModel = scModel
+     self.extra_args = extra_args
      VerticalScrolledFrame.__init__(self, parent, **kwargs)
      self.body()
 
@@ -1801,13 +2019,15 @@ class PropertyFrame(VerticalScrolledFrame):
                widget[1] =  Radiobutton(master, text='No', takefocus=(row == 0), variable=self.values[row], value='no')
                widget[1].grid(row=row, column=2, sticky=E)
                #widget[1].select()
-           elif prop.type == 'imagefile':
+           elif prop.type == 'file:image':
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, getFileTypes())
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
-           elif prop.type == 'xmpfile':
-               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [('XMP', '*.xmp')])
+           elif prop.type.startswith == 'file:':
+               typematch = '*.' + prop[prop.find(':')+1:]
+               typename =  prop[prop.find(':') + 1:].upper()
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
@@ -1839,6 +2059,13 @@ class PropertyFrame(VerticalScrolledFrame):
                widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
                v = prop.type
+           elif prop.type.startswith('boxpair'):
+               partialf = partial(promptForBoxPairAndFillButtonText, self, prop.name, row)
+               self.buttons[prop.name] = widget = Button(master,
+                                                         text=v if v is not None else '',
+                                                         takefocus=False,
+                                                         command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)

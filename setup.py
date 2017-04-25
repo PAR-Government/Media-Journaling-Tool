@@ -8,13 +8,13 @@ setup(name='maskgen',
       author_email='eric_robertson@partech.com',
       license='APL',
 
-      packages=find_packages(exclude=["images", "plugins", "resources", "tests"]),
+      packages=find_packages(exclude=["images", "plugins", "resources", "tests","wrapper_plugins"]),
       data_files=[('resources',['resources/operations.json','resources/software.csv','resources/project_properties.json']),
                   ('plugins/Custom',
                    ['plugins/Custom/GammaCorrection.json', 'plugins/Custom/GaussianBlur.json', 'plugins/Custom/LevelCorrection.json',
-                    'plugins/Custom/Resize.json'
+                    'plugins/Custom/Resize.json','plugins/Custom/OutputJpg.json','plugins/Custom/Sharpen.json','plugins/Custom/WaveletDenoise.json'
                     ])],
-      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy'],
+      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy','cachetools','requests'],
       entry_points=
        {'gui_scripts': [
             'jtuiw = maskgen.MaskGenUI:main',

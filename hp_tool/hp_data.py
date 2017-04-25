@@ -4,21 +4,24 @@ hp_data
 tool for bulk renaming of files to standard
 """
 
-import argparse
 import shutil
 import os
+import sys
+from PIL import Image
 import change_all_metadata
 import datetime
-import sys
 import csv
 import hashlib
 import pandas as pd
-import itertools
 import subprocess
+import json
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.cr2'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf' ],
+exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
+FIELDSPATH = os.path.join('data', 'fieldnames.json')
+HEADERSPATH = os.path.join('data', 'headers.json')
+RVERSION = '#@version=01.07'
 
 def copyrename(image, path, usrname, org, seq, other):
     """
@@ -49,9 +52,10 @@ def copyrename(image, path, usrname, org, seq, other):
     return newPathName
 
 
-def parse_prefs(data):
+def parse_prefs(self, data):
     """
     Parse preferences file
+    :param self: reference to HP GUI
     :param data: string containing path to preferences file
     :return: dictionary containing preference option and setting (e.g. {username:AS...})
     """
@@ -66,7 +70,7 @@ def parse_prefs(data):
                 except ValueError:
                     continue
     except IOError:
-        print('Input file: ' + data + ' not found. ')
+        print 'Input file: ' + data + ' not found. '
         return
 
     try:
@@ -99,27 +103,42 @@ def parse_prefs(data):
         newData['date'] = datetime.datetime.now().strftime('%Y%m%d')[2:]
         add_date(data)
 
+    if 'imagetypes' in newData:
+        add_types(newData['imagetypes'], 'image')
+    if 'videotypes' in newData:
+        add_types(newData['videotypes'], 'video')
+    if 'audiotypes' in newData:
+        add_types(newData['audiotypes'], 'audio')
+
     return newData
 
-def convert_GPS(coordinate):
-    """
-    Converts lat/long output from exiftool (DMS) to decimal degrees
-    :param coordinate: string of coordinate in the form 'X degrees Y' Z' N/S/W/E'
-    :return: (string) input coordinate in decimal degrees, rounded to 6 decimal places
-    """
-    coord = coordinate.split(' ')
-    whole = float(coord[0])
-    direction = coord[-1]
-    min = float(coord[2][:-1])
-    sec = float(coord[3][:-1])
+def add_types(data, mformat):
+    global exts
+    mformat = mformat.upper()
+    data = data.replace(',', ' ').split(' ')
+    for i in data:
+        if i not in exts[mformat] and len(i) > 0:
+            exts[mformat].append(i)
 
-    dec = min + (sec/60)
-    dd = round(whole + dec/60, 6)
-
-    if direction == 'S' or direction == 'W':
-        dd *= -1
-
-    return str(dd)
+# def convert_GPS(coordinate):
+#     """
+#     Converts lat/long output from exiftool (DMS) to decimal degrees
+#     :param coordinate: string of coordinate in the form 'X degrees Y' Z' N/S/W/E'
+#     :return: (string) input coordinate in decimal degrees, rounded to 6 decimal places
+#     """
+#     if coordinate:
+#         coord = coordinate.split(' ')
+#         whole = float(coord[0])
+#         direction = coord[-1]
+#         min = float(coord[2][:-1])
+#         sec = float(coord[3][:-1])
+#         dec = min + (sec/60)
+#         coordinate = round(whole + dec/60, 6)
+#
+#         if direction == 'S' or direction == 'W':
+#             coordinate *= -1
+#
+#     return str(coordinate)
 
 def pad_to_5_str(num):
     """
@@ -129,38 +148,6 @@ def pad_to_5_str(num):
     """
 
     return '{:=05d}'.format(num)
-
-
-def grab_individuals(files):
-    """
-    Grab individual files. Probably unnecessary,
-    but it's nice to have things consistent
-    :param files: filenames
-    :return: list of filenames
-    """
-    imageList = []
-    for f in files:
-        imageList.append(f)
-    return imageList
-
-
-def grab_range(files):
-    """
-    Grabs a range of filenames
-    :param files: list of two filenames
-    :return: list of all files between them, inclusive
-    """
-    if os.path.isabs(files[0]):
-        path = os.path.dirname(files[0])
-    else:
-        path = os.getcwd()
-
-    allFiles = sorted(grab_dir(path))
-    start = allFiles.index(files[0])
-    end = allFiles.index(files[1])
-
-    return allFiles[start:end+1]
-
 
 def grab_dir(inpath, outdir=None, r=False):
     """
@@ -176,11 +163,11 @@ def grab_dir(inpath, outdir=None, r=False):
     if r:
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
-                if filename.lower().endswith(valid_exts):
+                if filename.lower().endswith(valid_exts) and not filename.startswith('.'):
                     imageList.append(os.path.join(dirname, filename))
     else:
         for f in names:
-            if f.lower().endswith(valid_exts):
+            if f.lower().endswith(valid_exts) and not f.startswith('.'):
                 imageList.append(os.path.join(inpath, f))
 
     imageList = sorted(imageList, key=str.lower)
@@ -262,211 +249,49 @@ def build_keyword_file(image, keywords, csvFile):
         else:
             keywordWriter.writerow([image])
 
-def build_xmetadata_file(image, data, csvFile):
+def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
     """
-    Adds external metadata to specified file.
-    Assumes headers (keys) are already written - use parse_extra for this
-    :param image: image filename that x metadata applies to
-    :param data: list of list of values
-    :param csvFile: csv file to store information
-    :return: None
-    """
-    fullData = [image] + data
-    with open(csvFile, 'a') as csv_metadata:
-        xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
-        xmetadataWriter.writerow(fullData)
-
-
-def build_rit_file(imageList, info, csvFile, newNameList=None):
-    """
-    Records detailed image info
-    oldImageFile --> newImageFile
-    :param imageList: list of old image names
-    :param newNameList: list of new image names
-    :param info: list of information fitting the headings described below
-    :param csvFile: csv file to store information
-    :return: None
-    """
-    newFile = not os.path.isfile(csvFile)
-    with open(csvFile, 'a') as csv_rit:
-        ritWriter = csv.writer(csv_rit, lineterminator='\n', quoting=csv.QUOTE_ALL)
-        if newFile:
-            ritWriter.writerow(['ImageFilename', 'HP-CollectionRequestID', 'HP-HDLocation', 'OriginalImageName', 'MD5',
-                                    'CameraModel', 'DeviceSN', 'HP-DeviceLocalID', 'LensModel','LensSN', 'HP-LensLocalId', 'FileType', 'HP-JpgQuality',
-                                    'ShutterSpeed', 'Aperture', 'ExpCompensation', 'ISO', 'NoiseReduction', 'WhiteBalance',
-                                    'HP-DegreesKelvin', 'ExposureMode', 'FlashFired', 'FocusMode', 'CreationDate', 'HP-Location',
-                                    'GPSLatitude', 'GPSLongitude', 'CustomRendered', 'HP-OnboardFilter', 'HP-OBFilterType', 'BitDepth', 'ImageWidth', 'ImageHeight',
-                                    'HP-LensFilter', 'Type', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                                    'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics', 'HP-App', 'HP-Inside', 'HP-Outside',
-                                    'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels', 'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier',
-                                    'HP-AngleofRecording', 'HP-MicLocation', 'HP-PrimarySecondary', 'HP-ZoomLevel', 'HP-Recapture', 'HP-RecaptureSubject'])
-        if newNameList:
-            for imNo in xrange(len(imageList)):
-                md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
-                ritWriter.writerow([os.path.basename(newNameList[imNo]), info[imNo][0], os.path.dirname(imageList[imNo]), os.path.basename(imageList[imNo]), md5, info[imNo][30]] +
-                                   info[imNo][2:4] + [info[imNo][31]] + info[imNo][4:30] + info[imNo][32:])
-        else:
-            for imNo in xrange(len(imageList)):
-                md5 = hashlib.md5(open(imageList[imNo], 'rb').read()).hexdigest()
-                ritWriter.writerow(['', info[imNo][0], info[imNo][1], os.path.basename(imageList[imNo]), md5] + info[imNo][2:])
-
-
-def build_history_file(imageList, newNameList, data, csvFile):
-    """
-    Creates an easy-to-follow history for keeping record of image names
-    oldImageFile --> newImageFile
-    :param image: old image file
-    :param newName: new image file
-    :param data: image information list
-    :param csvFile: csv file to store information
-    :return: None
-    """
-    newFile = not os.path.isfile(csvFile)
-    with open(csvFile, 'a') as csv_history:
-        historyWriter = csv.writer(csv_history, lineterminator='\n', quoting=csv.QUOTE_ALL)
-        if newFile:
-            historyWriter.writerow(['Original Name', 'New Name', 'MD5', 'Type'])
-        for imNo in range(len(imageList)):
-            md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
-            historyWriter.writerow([os.path.basename(imageList[imNo]), os.path.basename(newNameList[imNo]), md5, data[imNo][29]])
-
-
-def rankone_camera_update_csv(imageList, newNameList, data, csvFile):
-    newFile = not os.path.isfile(csvFile)
-    with open(csvFile, 'w') as csv_ro:
-        wtr_quotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
-        wtr_noquotes = csv.writer(csv_ro, lineterminator='\n', quoting=csv.QUOTE_NONE)
-        if newFile:
-            wtr_noquotes.writerow(['#@version=01.03'])
-            wtr_quotes.writerow(['MD5', 'CameraModel', 'DeviceSerialNumber', 'LensModel', 'LensSN', 'ImageFilename', 'Collector', 'HP-CollectionRequestID', 'HP-DeviceLocalID',
-                               'HP-LensLocalID', 'NoiseReduction', 'HP-Location', 'HP-OnboardFilter', 'HP-OBFilterType', 'HP-LensFilter',
-                               'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-CameraKinematics',
-                               'HP-App', 'HP-Inside', 'HP-Outside', 'ImportDate'])
-        for imNo in range(len(imageList)):
-            md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
-            now = datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p')
-            wtr_quotes.writerow([md5, data[imNo][30], data[imNo][2], data[imNo][31], data[imNo][4], os.path.basename(newNameList[imNo]), data[imNo][0], data[imNo][0],
-                               data[imNo][3], data[imNo][5], data[imNo][12], data[imNo][19], data[imNo][23], data[imNo][24], data[imNo][28],
-                               data[imNo][32], data[imNo][33], data[imNo][34], data[imNo][35], data[imNo][36], data[imNo][37], data[imNo][38],
-                               data[imNo][39], data[imNo][40], data[imNo][41], now])
-
-
-def parse_extra(data, csvFile):
-    """
-    Parse key-value pairs of extra/external metadata, and initializes
-    csv file with keys as headers.
-    :param data:
-    :param csvFile:
+    Write out desired csv file, using headers from data/headers.json
+    :param self: reference to HP GUI
+    :param imageList: original image names
+    :param newNameList: new image names, in same order as imageList
+    :param info: ordered list of dictionaries of image info. should be in same order as image lists
+    :param csvFile: csv file name
+    :param type: name of list of headers to take, labeled in headers.json (rit, rankone, history)
     :return:
     """
-    keys = ['Filename'] + data[::2]
-    values = data[1::2]
-    #if valid_keys(keys):
-    with open(csvFile, 'w') as csv_metadata:
-        xmetadataWriter = csv.writer(csv_metadata, lineterminator='\n')
-        xmetadataWriter.writerow(keys)
-    return values
+    newFile = not os.path.isfile(csvFile)
+    headers = load_json_dictionary(HEADERSPATH)
+    with open(csvFile, 'a') as c:
+        wtr = csv.writer(c, lineterminator='\n', quoting=csv.QUOTE_ALL)
+        if newFile:
+            if type == 'rankone':
+                wtr.writerow([RVERSION])
+            wtr.writerow(headers[type])
+        for imNo in xrange(len(oldNameList)):
+            row = []
+            for h in headers[type]:
+                if h == 'MD5':
+                    md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
+                    row.append(md5)
+                elif h == 'ImportDate':
+                    row.append(datetime.datetime.today().strftime('%m/%d/%Y %I:%M:%S %p'))
+                elif h == 'DeviceSN':
+                    row.append(info[imNo]['DeviceSerialNumber'])
+                elif h == 'OriginalImageName' or h == 'Original Name':
+                    row.append(os.path.basename(oldNameList[imNo]))
+                elif h == 'ImageFilename' or h == 'New Name':
+                    row.append(os.path.basename(newNameList[imNo]))
+                elif h == 'HP-HDLocation' and not info[imNo]['HP-HDLocation']:
+                    row.append(os.path.dirname(oldNameList[imNo]))
+                else:
+                    try:
+                        row.append(info[imNo][h])
+                    except KeyError:
+                        self.master.statusBox.println('Could not find column ' + h)
+                        row.append('ERROR')
+            wtr.writerow(row)
 
-
-def load_keys():
-    """
-    load keyword validation file
-    :return: list valid keys
-    """
-    keys = []
-    try:
-        with open('extra.csv') as csvFile:
-            keyReader = csv.reader(csvFile)
-            for row in keyReader:
-                keys.append(row[0])
-    except IOError:
-        print 'No key validation file found'
-        sys.exit()
-    return keys
-
-
-def valid_keys(testKeys):
-    """
-    check if user keys are in the master list
-    :param testKeys: keys to check
-    :return: Boolean describing whether keys are valid
-    """
-    trueKeys = load_keys()
-    if set(testKeys).issubset(trueKeys):
-        return True
-    else:
-        return False
-
-
-def get_id(image):
-    """
-    Check exif data for camera serial number
-    :param image: image filename to check
-    :return: string with serial number ID
-    """
-    exiftoolOutput = subprocess.Popen(['exiftool', '-SerialNumber', image],
-                                        stdout=subprocess.PIPE).communicate()[0]
-    if exiftoolOutput:
-        return exiftoolOutput.split(':',1)[1].strip()
-    else:
-        return 'N/A'
-
-
-def get_lens_id(image):
-    """
-    Check exif data for camera lens serial number
-    :param image: image filename to check
-    :return: string with serial number ID
-    """
-    exiftoolOutput = subprocess.Popen(['exiftool', '-LensSerialNumber', image],
-                                      stdout=subprocess.PIPE).communicate()[0]
-    if exiftoolOutput:
-        return exiftoolOutput.split(':', 1)[1].strip()
-    else:
-        return 'N/A'
-
-def tally_images(data, csvFile):
-    final = []
-    try:
-        with open(csvFile, 'rb+') as csv_tally:
-            tallyReader = csv.reader(csv_tally, lineterminator='\n')
-            next(tallyReader, None) # skip header
-            for row in tallyReader:
-                final.append(row[:-1])
-                final.append(int(row[-1]))
-    except IOError:
-        print 'No tally file found. Creating...'
-
-    with open(csvFile, 'wb') as csv_tally:
-        tallyWriter = csv.writer(csv_tally, lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
-        tallyWriter.writerow(['DeviceSN', 'DeviceLocalID', 'LensSN', 'LocalLensID', 'Extension',
-                                'ShutterSpeed', 'Aperture', 'ISO', 'BitDepth', 'Tally'])
-        for line in data:
-            trueLine = line[2:6] + [line[6]] + [line[8]] + [line[9]] + [line[11]] + [line[23]]
-            if trueLine not in final:
-                final.append(trueLine)
-                final.append(1)
-            else:
-                lineIdx = final.index(trueLine)
-                final[lineIdx + 1] += 1
-        i = 0
-        while i < len(final):
-            tallyWriter.writerow(final[i] + [final[i+1]])
-            i += 2
-
-def frac2dec(fracStr):
-    return fracStr
-    # try:
-    #     return float(fracStr)
-    # except ValueError:
-    #     if '\\' in fracStr:
-    #         (num, denom) = fracStr.split('\\')
-    #     elif '/' in fracStr:
-    #         (num, denom) = fracStr.split('/')
-    #     else:
-    #         print 'Could not convert fraction to decimal: ' + fracStr
-    #         return fracStr
-    #     return str(float(num)/float(denom))
 
 def check_create_subdirectories(path):
     subs = ['image', 'video', 'audio', 'csv']
@@ -488,265 +313,180 @@ def remove_temp_subs(path):
         if not os.listdir(os.path.join(path,sub)):
             os.rmdir(os.path.join(path,sub))
 
-def parse_image_info(imageList, path='', rec=False, collReq='', camera='', localcam='', lens='', locallens='', hd='',
-                     sspeed='', fnum='', expcomp='', iso='', noisered='', whitebal='', expmode='', flash='',
-                     focusmode='', kvalue='', location='', obfilter='', obfiltertype='', lensfilter='',
-                     cameramodel='', lensmodel='', jq='', reflections='', shadows='', hdr='', app='', camerakinematics='',
-                     inside='', outside='', proximity='', multiinput='', audiochannels='', echo='', bgnoise='',
-                     description='', modifier='', recordangle='', miclocation='', primarysecondary='', zoomlvl='',
-                     recapture='', recapturesubject=''):
+def load_json_dictionary(path):
+    with open(path) as j:
+        data = json.load(j)
+    return data
+
+def remove_dash(item):
     """
-    Prepare list of values about the specified image.
-    If an argument is entered as an empty string, will check image's exif data for it.
-    :param imageList: list of images to examine
-    :param path: base image directory
-    ...
-    :return: list containing only values of each argument. The value will be N/A if empty string
-    is supplied and no exif data can be found.
-
-    GUIDE of INDICES: (We'll make this a dictionary eventually)
-    0: HP-CollectionRequestID
-    1: HP-HDLocation
-    2. DeviceSN
-    3. HP-DeviceLocalID
-    4. LensSN
-    5. HP-LensLocalID
-    6. FileType
-    7. HP-JPGQuality
-    8. ShutterSpeed
-    9. Aperture
-    10. ExpCompensation
-    11. ISO
-    12. NoiseReduction
-    13. WhiteBalance
-    14. HP-DegreesKelvin
-    15. ExposureMode
-    16. FlashFired
-    17. FocusMode
-    18. CreationDate
-    19. HP-Location
-    20. GPSLatitude
-    21. GPSLongitude
-    22. CustomRendered
-    23. HP-OnboardFilter (T/F)
-    24. HP-OBFilterType
-    25. BitDepth
-    26. ImageWidth
-    27. ImageHeight
-    28. HP-LensFilter
-    29. Type (IMAGE or VIDEO)
-    30. CameraModel
-    31. LensModel
-    32. HP-WeakReflection
-    33. HP-StrongReflection
-    34. HP-TransparentReflection
-    35. HP-ReflectedObject
-    36. HP-Shadows
-    37. HP-HDR
-    38. HP-CameraKinematics
-    39. HP-App
-    40. HP-Inside
-    41. HP-Outside
-    42. HP-ProximitytoSource
-    43. HP-MultiInput
-    44. HP-AudioChannels
-    45. HP-Echo
-    46. HP-BackgroundNoise
-    47. HP-Description
-    48. HP-Modifier
-    49. HP-AngleofRecording
-    50. HP-MicLocation
-    51. HP-PrimarySecondary
-    52. HP-ZoomLevel
-    53. HP-Recapture
-    54. HP-RecaptureSubject
+    Remove the first character in a string.
+    :param item: String
+    :return: input string, with first character removed
     """
-    exiftoolargs = []
-    data = []
-    if not hd:
-        hd = path
-    master = [collReq, hd, '', localcam, '', locallens, '', jq] + [''] * 6 + [kvalue] + [''] * 4 + [location, '', '', '', obfilter, obfiltertype] + \
-             [''] * 3 + [lensfilter, '', '', '', reflections, shadows, hdr, camerakinematics, app, inside, outside, proximity, multiinput, audiochannels, echo, bgnoise,
-                     description, modifier, recordangle, miclocation, primarysecondary, zoomlvl, recapture, recapturesubject]
-    missingIdx = []
+    return item[1:]
 
-    if camera:
-        master[2] = camera
+def combine_exif(exif_data, lut, d):
+    """
+    Add extracted exif information to master list of HP data
+    :param exif_data: dictionary of data extracted from an image
+    :param lut: LUT to translate exiftool output to fields
+    :param fields: master dictionary of HP data
+    :return: fields - a dictionary with updated exif information
+    """
+    for k in lut:
+        if k in exif_data and exif_data[k] != '-':
+            d[lut[k]] = exif_data[k]
+    return d
+
+def set_other_data(data, imfile):
+    """
+    Set implicit metadata to data.
+    :param data: Dictionary of field data from one image
+    :param imfile: name of corresponding image file
+    :return: data with more information completed
+    """
+    imext = os.path.splitext(imfile)[1]
+    data['FileType'] = imext[1:]
+    if imext.lower() in exts['AUDIO']:
+        data['Type'] = 'audio'
+    elif imext.lower() in exts['VIDEO']:
+        data['Type'] = 'video'
     else:
-        exiftoolargs.append('-SerialNumber')
-        missingIdx.append(2)
+        data['Type'] = 'image'
+    # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
+    # data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
 
-    if lens:
-        master[4] = lens
-    else:
-        exiftoolargs.append('-LensSerialNumber')
-        missingIdx.append(4)
-
-    if sspeed:
-        master[8] = sspeed
-    else:
-        exiftoolargs.append('-ShutterSpeed')
-        missingIdx.append(8)
-
-    if fnum:
-        master[9] = fnum
-    else:
-        exiftoolargs.append('-FNumber')
-        missingIdx.append(9)
-
-    if expcomp:
-        master[10] = expcomp
-    else:
-        exiftoolargs.append('-ExposureCompensation')
-        missingIdx.append(10)
-
-    if iso:
-        master[11] = iso
-    else:
-        exiftoolargs.append('-ISO')
-        missingIdx.append(11)
-
-    if noisered:
-        master[12] = noisered
-    else:
-        exiftoolargs.append('-NoiseReduction')
-        missingIdx.append(12)
-
-    if whitebal:
-        master[13] = whitebal
-    else:
-        exiftoolargs.append('-WhiteBalance')
-        missingIdx.append(13)
-
-    if expmode:
-        master[15] = expmode
-    else:
-        exiftoolargs.append('-ExposureMode')
-        missingIdx.append(15)
-
-    if flash:
-        master[16] = flash
-    else:
-        exiftoolargs.append('-Flash')
-        missingIdx.append(16)
-
-    if focusmode:
-        master[17] = focusmode
-    else:
-        exiftoolargs.append('-Focusmode')
-        missingIdx.append(17)
-
-    if cameramodel:
-        master[30] = cameramodel
-    else:
-        exiftoolargs.append('-Model')
-        missingIdx.append(30)
-
-    if lensmodel:
-        master[31] = lensmodel
-    else:
-        exiftoolargs.append('-LensModel')
-        missingIdx.append(31)
-
-
-    exiftoolargs.extend(['-BitsPerSample','-GPSLatitude', '-GPSLongitude', '-CustomRendered', '-CreateDate','-ImageWidth','-ImageHeight'])
-    missingIdx.extend([25, 20, 21, 22, 18, 26, 27])
-
-    if len(exiftoolargs) > 0:
-        counter = 0
-        exifDataStr = ''
-        exifData = []
-        if path:
-            if rec:
-                exifDataStr += subprocess.Popen(['exiftool', '-f', '-r'] + exiftoolargs + [path], stdout=subprocess.PIPE).communicate()[0]
-            else:
-                exifDataStr += subprocess.Popen(['exiftool','-f'] + exiftoolargs + [path], stdout=subprocess.PIPE).communicate()[0]
-            exifData = exifDataStr.split(os.linesep)[:-3]
+    try:
+        if int(data['ImageWidth']) < int(data['ImageHeight']):
+            data['HP-Orientation'] = 'portrait'
         else:
-            while counter < len(imageList):
-                if len(imageList) - counter > 500:
-                    exifDataStr += subprocess.Popen(['exiftool', '-f'] + exiftoolargs + imageList[counter:counter+500],
-                                                stdout=subprocess.PIPE).communicate()[0]
-                elif len(imageList) - counter <= 500:
-                    exifDataStr += subprocess.Popen(['exiftool','-f'] + exiftoolargs + imageList[counter:],
-                                                stdout=subprocess.PIPE).communicate()[0]
-                exifDataList = exifDataStr.split(os.linesep)[:-2]
-                exifData.extend(exifDataList[:])
-                counter += 500
-        sub = '====='
-        imageIndices = []
-        newExifData = []
-        for idx, item in enumerate(exifData):
-            if sub in item:
-                imageIndices.append(idx)
-            else:
-                val = item.split(':', 1)[1].strip()
-                if val == '-':
-                    val = ''
-                newExifData.append(val)
-        data = []
-        if len(imageIndices) > 1:
-            diff = imageIndices[1] - imageIndices[0] - 1
-        else:
-            diff = len(newExifData) +1
-        j = 0
-        for i in xrange(len(imageList)):
-            data.append(master[:])
-            ex = os.path.splitext(imageList[i])[1]
-            data[i][6] = os.path.splitext(imageList[i])[1][1:]
-            if ex.lower() in exts['AUDIO']:
-                data[i][29] = 'audio'
-            elif ex.lower() in exts['VIDEO']:
-                data[i][29] = 'video'
-            else:
-                data[i][29] = 'image'
-            newExifSubset = newExifData[j:j + diff]
-            k = 0
-            for dataIdx in missingIdx:
-                data[i][dataIdx] = newExifSubset[k]
-                k += 1
-            j += diff
-            data[i][8] = frac2dec(data[i][8])
-            if data[i][20] and data[i][21]:
-                data[i][20] = convert_GPS(data[i][20])
-                data[i][21] = convert_GPS(data[i][21])
-            if 'hdr' in imageList[i].lower():
-                data[i][34] = 'True'
+            data['HP-Orientation'] = 'landscape'
+    except ValueError:
+        # no/invalid image width or height in metadata
+        pass
+
+    if 'back' in data['LensModel']:
+        data['HP-PrimarySecondary'] = 'primary'
+    elif 'front' in data['LensModel']:
+        data['HP-PrimarySecondary'] = 'secondary'
 
     return data
 
-def process(preferences='', metadata='', files='', range='', imgdir='', outputdir='', recursive=False, xdata='',
-            keywords='', additionalInfo='', tally=False, **kwargs):
+def parse_image_info(self, imageList, **kwargs):
+    """
+    Extract image information from imageList
+    :param self: reference to HP GUI
+    :param imageList: list of image filepaths
+    :param kwargs: additional settings or metadata, including: rec (recursion T/F, path (input directory
+    :return:
+    """
+    fields = load_json_dictionary(FIELDSPATH)
+    master = {}
 
+    exiftoolargs = []
+    for fkey in fields:
+        master[fkey] = ''
+        if fields[fkey].startswith('-'):
+            exiftoolargs.append(fields[fkey])
+
+    for kkey in kwargs:
+        if kkey in fields:
+            master[kkey] = kwargs[kkey]
+
+    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software']
+    exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
+
+    # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
+    try:
+        exifDataResult = json.loads(exifDataResult)
+    except:
+        self.master.statusBox.println('Exiftool could not return data for all input. Process cancelled.')
+        return None
+
+    # further organize exif data into a dictionary based on source filename
+    exifDict = {}
+    for item in exifDataResult:
+        exifDict[os.path.normpath(item['SourceFile'])] = item
+
+    data = {}
+    reverseLUT = dict((remove_dash(v),k) for k,v in fields.iteritems() if v)
+    for i in xrange(0, len(imageList)):
+        data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+        data[i] = set_other_data(data[i], imageList[i])
+
+    return data
+
+def check_for_errors(data, cameraData, images, path):
+    """
+    Check processed data with database information
+    :param data: processed HP data
+    :param cameraData: ground truth database information
+    :param images: list of image names
+    :return: list of errors
+    """
+    errors = {}
+    for image in data:
+        dbData = cameraData[data[image]['HP-DeviceLocalID']]
+        errors[os.path.basename(images[image])] = e = []
+        # replace None with empty string
+        for item in dbData:
+            if dbData[item] is None:
+                dbData[item] = ''
+        if (data[image]['CameraModel'] != dbData['exif_camera_model']):
+            e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database.'))
+        if (data[image]['CameraMake'] != dbData['exif_camera_make']):
+            e.append(('CameraMake','Camera make found in exif for image ' + images[image] + ' (' + data[image]['CameraMake'] + ') does not match database.'))
+        if (data[image]['DeviceSerialNumber'] != dbData['exif_device_serial_number']) and (data[image]['DeviceSerialNumber'] != ''):
+            e.append(('DeviceSN','Camera serial number found in exif for image ' + images[image] + ' (' + data[image]['DeviceSerialNumber'] + ') does not match database.'))
+
+    fullpath = os.path.join(path, 'errors.json')
+    with open(fullpath, 'w') as j:
+        json.dump(errors, j)
+    return fullpath
+
+def process(self, cameraData, preferences='', metadata='', imgdir='', outputdir='', recursive=False,
+            keywords='', additionalInfo='', **kwargs):
+    """
+    The main process workflow for the hp tool.
+    :param self: reference to HP GUI
+    :param preferences: preferences filename
+    :param metadata: metadata-to-be-set filename
+    :param imgdir: directory of raw images/video/audio files to be processed
+    :param outputdir: output directory (csv, image, video, and audio files will be made here)
+    :param recursive: boolean, whether or not to search subdirectories as well
+    :param keywords:
+    :param additionalInfo: additional bit to be added onto filenames
+    :param kwargs: hp data to be set
+    :return: list of paths of original images and new images
+    """
     # parse preferences
-    userInfo = parse_prefs(preferences)
-    print 'Successfully pulled preferences'
+    userInfo = parse_prefs(self, preferences)
+    self.master.statusBox.println('Successfully pulled preferences')
 
     # collect image list
-    print 'Collecting images...',
+    self.master.statusBox.println('Collecting images...')
     imageList = []
 
     # set up the output subdirectories
     check_create_subdirectories(outputdir)
 
-    if files:
-        imageList.extend(grab_individuals(files))
-    elif range:
-        fRange = range.split(' ')
-        imageList.extend(grab_range(fRange))
-    else:
-        imageList.extend(grab_dir(imgdir, os.path.join(outputdir, 'csv'), recursive))
-    print ' done'
+    imageList.extend(grab_dir(imgdir, os.path.join(outputdir, 'csv'), recursive))
+    self.master.statusBox.println('done')
 
     if not imageList:
-        print 'No new images found'
+        self.master.statusBox.println('No new images found')
         remove_temp_subs(outputdir)
-        return imageList, []
+        return imageList, [], None
 
     # build information list. This is the bulk of the processing, and what runs exiftool
-    print 'Building image info...',
-    imageInfo = parse_image_info(imageList, path=imgdir, rec=recursive, **kwargs)
-    print ' done'
+    self.master.statusBox.println('Building image info...')
+    imageInfo = parse_image_info(self, imageList, path=imgdir, rec=recursive, **kwargs)
+    if imageInfo is None:
+        return None, None, None
+    else:
+        errors = check_for_errors(imageInfo, cameraData, imageList, os.path.join(outputdir, 'csv'))
+    self.master.statusBox.println(' done')
 
     # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories
     check_create_subdirectories(outputdir)
@@ -761,33 +501,21 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
     csv_keywords = os.path.join(outputdir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
                                 userInfo['organization'] + userInfo['username'] + '-' + 'keywords.csv')
 
-
-    csv_metadata = os.path.join(outputdir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
-                                userInfo['organization'] + userInfo['username'] + '-' + 'xdata.csv')
-
-    try:
-        extraValues = parse_extra(xdata, csv_metadata)
-    except TypeError:
-        extraValues = None
-
-
     # copy with renaming
-    print 'Copying files...',
+    self.master.statusBox.println('Copying files...')
     newNameList = []
     for image in imageList:
         newName = copyrename(image, outputdir, userInfo['username'], userInfo['organization'], pad_to_5_str(count), additionalInfo)
         if keywords:
             build_keyword_file(newName, keywords, csv_keywords)
-        if extraValues:
-            build_xmetadata_file(newName, extraValues, csv_metadata)
         newNameList += [newName]
         count += 1
-    print ' done'
+    self.master.statusBox.println(' done')
 
     update_prefs(preferences, inputdir=imgdir, outputdir=outputdir, newSeq=pad_to_5_str(count))
-    print 'Prefs updated with new sequence number'
+    self.master.statusBox.println('Prefs updated with new sequence number')
 
-    print 'Updating metadata...'
+    self.master.statusBox.println('Updating metadata...')
     newData = change_all_metadata.parse_file(metadata)
     if imgdir:
         change_all_metadata.process(os.path.join(outputdir, 'image', '.hptemp'), newData, quiet=True)
@@ -796,94 +524,23 @@ def process(preferences='', metadata='', files='', range='', imgdir='', outputdi
     else:
         change_all_metadata.process(newNameList, newData, quiet=True)
 
-    print 'Building RIT file'
-    csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'rit.csv')
-    build_rit_file(imageList, imageInfo, csv_rit, newNameList=newNameList)
-    'Success'
+    self.master.statusBox.println('Building RIT file')
+    csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rit.csv')
+    build_csv_file(self, imageList, newNameList, imageInfo, csv_rit, 'rit')
 
     # history file:
-    print 'Building history file'
-    csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'history.csv')
-    build_history_file(imageList, newNameList, imageInfo, csv_history)
+    self.master.statusBox.println('Building history file')
+    csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'history.csv')
+    build_csv_file(self, imageList, newNameList, imageInfo, csv_history, 'history')
 
-    print 'Building RankOne file'
-    csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:11] + 'rankone.csv')
-    rankone_camera_update_csv(imageList, newNameList, imageInfo, csv_ro)
-
-    if tally:
-        # write final csv
-        print 'Building tally file'
-        csv_tally = os.path.join(outputdir, os.path.basename(newNameList[0])[0:11] + 'tally.csv')
-        tally_images(imageInfo, csv_tally)
-        print 'Successfully tallied image data'
+    self.master.statusBox.println('Building RankOne file')
+    csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rankone.csv')
+    build_csv_file(self, imageList, newNameList, imageInfo, csv_ro, 'rankone')
 
     # move out of tempfolder
-    print 'Cleaning up...'
+    self.master.statusBox.println('Cleaning up...')
     remove_temp_subs(outputdir)
 
-    print '\nComplete!'
+    self.master.statusBox.println('\nComplete!')
 
-    return imageList, newNameList
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-D', '--dir',              default='',                     help='Specify directory')
-    parser.add_argument('-R', '--recursive',        action='store_true',            help='Operate on subdirectories')
-    parser.add_argument('-f', '--files',                                            help='Specify certain files')
-    parser.add_argument('-r', '--range',                                            help='Specify range of files')
-    parser.add_argument('-m', '--metadata',         default='metadata.txt',         help='Specify metadata txt file')
-    parser.add_argument('-X', '--extraMetadata',    nargs='+',                      help='Additional non-standard metadata')
-    parser.add_argument('-K', '--keywords',         nargs='+',                      help='Keywords for later searching')
-    parser.add_argument('-S', '--secondary',        default=os.getcwd(),            help='Secondary storage location for copies')
-    parser.add_argument('-P', '--preferences',      default='preferences.txt',      help='User preferences file')
-    parser.add_argument('-A', '--additionalInfo',   default='',                     help='User preferences file')
-
-    parser.add_argument('-T', '--tally',            action='store_true',            help='Produce tally output')
-    parser.add_argument('-z', '--cameramodel',      default='',                     help='Camera model')
-    parser.add_argument('-i', '--id',               default='',                     help='Camera serial #')
-    parser.add_argument('-o', '--localid',          default='',                     help='Local ID no. (cage #, etc.)')
-    parser.add_argument('-Z', '--lensmodel',        default='',                     help='Lens model')
-    parser.add_argument('-L', '--lens',             default='',                     help='Lens serial #')
-    parser.add_argument('-O', '--locallens',        default='',                     help='Lens local ID')
-    parser.add_argument('-j', '--jpegquality',      default='',                     help='Approx. JPEG quality')
-    parser.add_argument('-H', '--hd',               default='',                     help='Hard drive location letter')
-    parser.add_argument('-s', '--sspeed',           default='',                     help='Shutter Speed')
-    parser.add_argument('-N', '--fnum',             default='',                     help='f-number')
-    parser.add_argument('-e', '--expcomp',          default='',                     help='Exposure Compensation')
-    parser.add_argument('-I', '--iso',              default='',                     help='ISO')
-    parser.add_argument('-n', '--noisered',         default='',                     help='Noise Reduction')
-    parser.add_argument('-w', '--whitebal',         default='',                     help='White Balance')
-    parser.add_argument('-k', '--kvalue',           default='',                     help='KValue')
-    parser.add_argument('-E', '--expmode',          default='',                     help='Exposure Mode')
-    parser.add_argument('-F', '--flash',            default='',                     help='Flash Fired')
-    parser.add_argument('-a', '--focusmode',        default='',                     help='Focus Mode')
-    parser.add_argument('-l', '--location',         default='',                     help='location')
-    parser.add_argument('-b', '--filter',           required=True,                  help='On-board filter (T/F)')
-    parser.add_argument('-B', '--filtertype',       default='',                     help='What type of ob filter')
-    parser.add_argument('-c', '--lensfilter',       default='',                     help='Lens filter type')
-    parser.add_argument('-C', '--collection',       default='',                     help='Collection Request ID')
-    parser.add_argument('--reflections',            action='store_true',            help='Include to specify reflections in these images')
-    parser.add_argument('--shadows',                action='store_true',            help='Include to specify shadows in these images')
-
-    args = parser.parse_args()
-
-    # parse filter arg
-    if args.filter.lower().startswith('t'):
-        boolfilter = True
-    elif args.filter.lower().startswith('f'):
-        boolfilter = False
-    else:
-        'Error: Please specify whether or not an on-board filter was used with "true" or "false"'
-        sys.exit(0)
-
-
-    kwargs = {'collReq':args.collection, 'camera':args.id, 'localcam':args.localid, 'lens':args.lens, 'locallens':args.locallens,
-              'hd':args.hd, 'sspeed':args.sspeed, 'fnum':args.fnum, 'expcomp':args.expcomp, 'iso':args.iso, 'noisered':args.noisered,
-              'whitebal':args.whitebal, 'expmode':args.expmode, 'flash':args.flash, 'focusmode':args.focusmode, 'kvalue':args.kvalue,
-              'location':args.location, 'obfilter':boolfilter, 'obfiltertype':args.filtertype, 'lensfilter':args.lensfilter, 'reflections':args.reflections,
-              'shadows':args.shadows}
-    process(preferences=args.preferences, metadata=args.metadata, files=args.files, range=args.range,
-            imgdir=args.dir, outputdir=args.secondary, recursive=args.recursive, keywords=args.keywords, xdata=args.extraMetadata, **kwargs)
-
-if __name__ == '__main__':
-    main()
+    return imageList, newNameList, errors

@@ -3,6 +3,7 @@ import imp
 import os
 import json
 import subprocess
+import logging
 
 MainModule = "__init__"
 
@@ -42,13 +43,14 @@ def loadCustom(plugin, path):
     loads a custom plugin
     """
     global loaded
-    print("Loading plugin " + plugin)
+    logging.getLogger('maskgen').info("Loading plugin " + plugin)
     with open(path) as jfile:
         data = json.load(jfile)
     loaded[plugin] = {}
     loaded[plugin]['function'] = 'custom'
     loaded[plugin]['operation'] = data['operation']
     loaded[plugin]['command'] = data['command']
+    loaded[plugin]['mapping'] = data['mapping'] if 'mapping' in data else None
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
 
 
@@ -64,7 +66,7 @@ def loadPlugins():
           path = ps[i]['custom']
           loadCustom(i, path)
       else:
-          print("Loading plugin " + i)
+          logging.getLogger('maskgen').info("Loading plugin " + i)
           plugin = imp.load_module(MainModule, *ps[i]["info"])
           loaded[i] = {}
           loaded[i]['function'] = plugin.transform
@@ -104,7 +106,7 @@ def getOperationNames(noArgs=False):
 def getOperation(name):
     global loaded
     if name not in loaded:
-        print 'Request plugined not found: ' + str(name)
+        logging.getLogger('maskgen').warning('Request plugined not found: ' + str(name))
         return None
     return loaded[name]['operation']
 
@@ -123,21 +125,23 @@ def runCustomPlugin(name, im, source, target, **kwargs):
     if name not in loaded:
         raise ValueError('Request plugined not found: ' + str(name))
     commands = copy.deepcopy(loaded[name]['command'])
+    mapping = copy.deepcopy(loaded[name]['mapping'])
     executeOk = False
     for k, command in commands.items():
         if sys.platform.startswith(k):
-            executeWith(command, im, source, target, **kwargs)
+            executeWith(command, im, source, target, mapping, **kwargs)
             executeOk = True
             break
     if not executeOk:
-        executeWith(commands['default'], im, source, target, **kwargs)
+        executeWith(commands['default'], im, source, target, mapping, **kwargs)
     return None, None
 
-def executeWith(executionCommand, im, source, target, **kwargs):
+def executeWith(executionCommand, im, source, target, mapping, **kwargs):
     shell=False
     if executionCommand[0].startswith('s/'):
         executionCommand[0] = executionCommand[0][2:]
         shell = True
+    kwargs = mapCmdArgs(kwargs, mapping)
     for i in range(len(executionCommand)):
         if executionCommand[i] == '{inputimage}':
             executionCommand[i] = source
@@ -148,3 +152,12 @@ def executeWith(executionCommand, im, source, target, **kwargs):
         else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
     subprocess.call(executionCommand,shell=shell)
+
+def mapCmdArgs(args, mapping):
+    if mapping is not None:
+        for key, val in args.iteritems():
+            if key in mapping:
+                if val not in mapping[key] or mapping[key][val] is None:
+                    raise ValueError('Option \"' + str(val) + '\" is not permitted for this plugin.')
+                args[key] = mapping[key][val]
+    return args

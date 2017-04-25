@@ -7,10 +7,15 @@
       "software": "ImageMagick",
       "version": "7.0",
       "arguments":{
-        "RADIUSxSIGMA":{
+        "RADIUS":{
           "type": "string",
           "defaultvalue": null,
-          "description": "Blur specifications, must be entered with an x in between (e.g. 25x2)."
+          "description": "Blur specifications."
+        },
+        "SIGMA":{
+          "type": "string",
+          "defaultvalue": null,
+          "description": "Blur specifications."
         }
       },
       "transitions": ["image.image"]
@@ -19,7 +24,7 @@
       "default":[
         "convert",
         "-blur",
-        "{RADIUSxSIGMA}",
+        "{RADIUS}x{SIGMA}",
         "{inputimage}",
         "{outputimage}"
       ],
@@ -27,21 +32,21 @@
         "magick",
         "convert",
         "-blur",
-        "{RADIUSxSIGMA}",
+        "{RADIUS}x{SIGMA}",
         "{inputimage}",
         "{outputimage}"
       ],
       "darwin":[
         "convert",
         "-blur",
-        "{RADIUSxSIGMA}",
+        "{RADIUS}x{SIGMA}",
         "{inputimage}",
         "{outputimage}"
       ],
       "linux":[
         "convert",
         "-blur",
-        "{RADIUSxSIGMA}",
+        "{RADIUS}x{SIGMA}",
         "{inputimage}",
         "{outputimage}"
       ]

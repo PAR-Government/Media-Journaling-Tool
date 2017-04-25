@@ -1,18 +1,18 @@
 {
   "properties": [
     {
-      "description": "User Name",
+      "description": "Last Update User Name",
       "name": "username",
       "type": "string",
       "readonly": "true",
       "information":  "This property may be changed under File->Settings->Username"
     },
-    {
-      "description" : "Paste Clone Auto Input Mask",
-      "name": "autopastecloneinputmask",
-      "type":"yesno",
-      "readonly":"true",
-      "information": "if the input mask was guessed"
+     {
+      "description": "Creator",
+      "name": "creator",
+      "type": "string",
+      "readonly": "true",
+      "information":  "This property cannot be changed"
     },
     {
       "description": "Organization",
@@ -43,6 +43,11 @@
         "7+Unit"
       ],
        "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
+    },
+     {
+      "description": "QA Comments",
+      "name": "qacomment",
+      "type": "text"
     },
     {
       "description": "Validation",
@@ -80,6 +85,13 @@
       "type": "yesno",
       "information": "A large scale activity that requires an entire volume of manipulated or generated imagery to provide to simulate a full event. This could include imagery that appears to be from many individuals, cameras, and social media accounts"
 
+    },
+    {
+      "description" : "Paste Clone Auto Input Mask",
+      "name": "autopastecloneinputmask",
+      "type":"yesno",
+      "readonly":"true",
+      "information": "if the input mask was guessed"
     },
     {
       "description": "Audio Activity",

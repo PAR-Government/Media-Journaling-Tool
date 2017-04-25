@@ -10,7 +10,7 @@
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
     "manipulationcategory":"2-Unit",
-    "recompress": true
+    "recompress": false
   },
   "nodes": [
     {
@@ -27,19 +27,23 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "SaveAsPNG",
+      "plugin": "OutputPNG",
+      "plugin": "OutputPNG",
       "picklist": "imageset",
       "id": "2",
       "arguments": {
         "Image Rotated" : {
           "type" : "value",
           "value" :"yes"
+        },
+        "foo" : {
+          "type" : "int[10:100]"
         }
       }
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "SaveAsPNG",
+      "plugin": "OutputPNG",
       "id": "3",
       "arguments": {
         "Image Rotated" : {
@@ -80,6 +84,22 @@
           "value":true
         }
       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "7",
+      "experiment_id":"1a",
+      "arguments": {
+         "donor" : {
+           "type": "donor",
+           "source": "0"
+         },
+        "rotate" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
     }
   ],
   "links": [
@@ -106,6 +126,10 @@
      {
       "source": 5,
       "target": 6
+    },
+     {
+      "source": 6,
+      "target": 7
     }
   ],
   "multigraph": false

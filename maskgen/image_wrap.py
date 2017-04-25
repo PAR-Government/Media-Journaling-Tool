@@ -4,6 +4,13 @@ import numpy as np
 import os
 import subprocess
 from pkg_resources import iter_entry_points
+from cachetools import LRUCache
+from cachetools import cached
+from threading import RLock
+import logging
+
+image_lock = RLock()
+image_cache = LRUCache(maxsize=24)
 
 try:
     from tifffile import TiffFile,imsave
@@ -126,7 +133,7 @@ def proxyOpen(filename, isMask=False):
 file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):
-    file_registry.append((entry_point.name,[entry_point.load()]))
+    file_registry.insert(0,(entry_point.name,[entry_point.load()]))
 
 def openFromRegistry(filename,isMask=False):
     for suffixList in file_registry:
@@ -134,13 +141,21 @@ def openFromRegistry(filename,isMask=False):
             for func in suffixList[1]:
                 try:
                     result = func(filename,isMask=isMask)
+                    if result is not None and result.__class__ is not ImageWrapper:
+                        result  = ImageWrapper(result[0],mode=result[1])
                     if result is not None and result.size != (0,0):
                         return result
                 except Exception as e:
-                    print 'Cannot to open image file ' + filename + ' with ' + str(func) + '...trying another opener.'
-                    print e
+                    logging.getLogger('maskgen').info( 'Cannot to open image file ' + filename + ' with ' + str(func) + '...trying another opener.')
+                    logging.getLogger('maskgen').info(str(e))
     return None
 
+def filehashkey(*args, **kwargs):
+    """Return a cache key for the specified hashable arguments."""
+    return args[0]
+
+
+@cached(image_cache, lock=image_lock,key=filehashkey)
 def openImageFile(filename,isMask=False):
     """
     :param filename:
@@ -150,6 +165,7 @@ def openImageFile(filename,isMask=False):
     @rtype: ImageWrapper
     """
     import os
+
 
     if not os.path.exists(filename):
         pos = filename.rfind('.')
@@ -253,7 +269,20 @@ class ImageWrapper:
              return ImageWrapper(cv2.cvtColor(totype(self.image_array,type),cv2.COLOR_GRAY2RGB),mode='RGB')
         return ImageWrapper(totype(np.copy(img.image_array),type))
 
+    def touint8(self):
+        if self.image_array.dtype == 'uint16':
+            img_array = (self.image_array.astype('float')/65536.0)*256.0
+            img_array = img_array.astype('uint8')
+            self.image_array = img_array
+        elif self.image_array.dtype == 'float':
+            img_array = self.image_array * 256
+            self.image_array = img_array.astype('uint8')
+
     def save(self, filename, **kwargs):
+        #global image_cache
+        #global image_lock
+        with image_lock:
+            image_cache[filename] = self
         format = kwargs['format'] if 'format' in kwargs else 'PNG'
         format = 'TIFF' if self.image_array.dtype == 'uint16' else format
         newargs = dict(kwargs)
@@ -339,7 +368,6 @@ class ImageWrapper:
 
     def to_mask(self):
         """
-        Produce a mask where all black areas are white
         white = selected, black = unselected
         @rtype : ImageWrapper
         """
@@ -350,7 +378,7 @@ class ImageWrapper:
             gray_image[self.image_array[:, :, self.image_array.shape[2]-1] == 0] = 0
         else:
             gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
-            gray_image[gray_image_temp.image_array < np.iinfo(gray_image_temp.image_array.dtype).max] = 0
+            gray_image[gray_image_temp.image_array == 0] = 0
         return ImageWrapper(gray_image)
 
     def to_16BitGray(self, equalize_colors=False):
@@ -422,7 +450,7 @@ class ImageWrapper:
         xx[:, :, self.image_array.shape[2]-1] = np.ones((xx.shape[0], xx.shape[1])) * float(np.iinfo(self.image_array.dtype).max)
         return ImageWrapper(xx)
 
-    def overlay(self, image):
+    def overlay(self, image, color=[0,198,0]):
         """
         :param image:
         :return:new image with give n image overlayed
@@ -433,7 +461,7 @@ class ImageWrapper:
         if len(image_to_use.shape) != len(image.image_array.shape):
             image_array =  np.zeros(image_to_use.shape)
             image_array = image_array.astype('uint8')
-            image_array[image.image_array<150,:] = [0, 198, 0]
+            image_array[image.image_array<150,:] = color
             image_array[image.image_array >= 150, :] = [0, 0, 0]
         else:
             image_array = np.copy(np.asarray(image.image_array))
@@ -444,6 +472,8 @@ class ImageWrapper:
              image_array*=256
         TUNE1 = 0.75
         TUNE2 = 0.75
+        if (self_array.shape[0],self_array.shape[1]) != (image_array.shape[0],image_array.shape[1]):
+            self_array = np.resize(self_array[:,:,0:3],image_array.shape)
         return ImageWrapper(cv2.addWeighted(image_array, TUNE1, self_array[:,:,0:3],  TUNE2,
                         0, self_array))
 

@@ -1,21 +1,39 @@
 from Tkinter import *
+from tkSimpleDialog import Dialog
+import json
 
-class ErrorWindow(Toplevel):
-    def __init__(self, errors, master=None):
-        Toplevel.__init__(self, master)
-        self.wm_title('Spreadsheet Validation')
+class ErrorWindow(Dialog):
+    def __init__(self, master, errors):
         self.errors = errors
+        self.cancelPressed = True
+        Dialog.__init__(self, master, title='Validation')
 
-    def show_errors(self):
-        scrollbar = Scrollbar(self)
-        scrollbar.pack(side=RIGHT, fill=Y)
+
+    def body(self, master):
+        yscrollbar = Scrollbar(self)
+        yscrollbar.pack(side=RIGHT, fill=Y)
+        xscrollbar = Scrollbar(self, orient=HORIZONTAL)
+        xscrollbar.pack(side=BOTTOM, fill=X)
 
         listbox = Listbox(self, width=80, height=15)
-        listbox.pack()
+        listbox.pack(fill=BOTH, expand=1)
 
-        for i in self.errors:
-            listbox.insert(END, i)
+        if type(self.errors) == str:
+            with open(self.errors) as j:
+                self.errors = json.load(j)
+
+        if type(self.errors) == dict:
+            for i in self.errors:
+                for message in self.errors[i]:
+                    listbox.insert(END, message[1])
+        else:
+            for i in self.errors:
+                listbox.insert(END, i)
 
         # attach listbox to scrollbar
-        listbox.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=listbox.yview)
+        listbox.config(yscrollcommand=yscrollbar.set, xscrollcommand=xscrollbar.set)
+        yscrollbar.config(command=listbox.yview)
+        xscrollbar.config(command=listbox.xview)
+
+    def apply(self):
+        self.cancelPressed = False

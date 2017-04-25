@@ -1,322 +1,459 @@
-"Affiliation","OrganizationSerialNumber","ManufacturerSerialNumber","Manufacturer","SeriesModel","Edition","DeviceType","Sensor","Description","LensMount","Firmware","version","HasPRNUData"
-"RIT","1019035A","1019035A","Casio","QV-8000SX",,"Point&Shoot","CCD","1.3 megapixel CCD delivering up to 1280 x 960 pixel images. Rotating Lens design","builtin",,,1
-"PAR","102510CM6C71",,"Seek Thermal","Thermal Imaging Camera (PIR-206, 0.0.0.5)",,"MultiSpectral","True Thermal","Vanadium Oxide Micro Bolometer, Chalcogenide lens, 36 degree field of view, Magnesium housing, long wave infared 7.2-13 microns, -40C to 330C detection","builtin","default",,0
-"RIT","13A41E07","13A41E07","GoPro","Hero 3 Plus",,"Action Camera",,,"builtin",,,1
-"RIT","202533","212563","Nikon","8000 ED",,"film scanner",,,"builtin",,,0
-"RIT","202610","FX01011020","Hasselblad","Flextight 848","ESP27","film scanner",,,"builtin",,,0
-"RIT","202611","FX01011018","Hasselblad","Flextight 848","ESP26","film scanner",,,"builtin",,,0
-"RIT","202612","FX01021018","Hasselblad","Flextight 848","ESP28","film scanner",,,"builtin",,,0
-"RIT","271020","FVS0011334","Epson","XL10000","ESP19","Flatbed Scanner",,,"builtin",,,0
-"RIT","271028","FX08150004","Hasselblad","Flextight X1","ESP29","film scanner",,,"builtin",,,0
-"RIT","278076","FX10210029","Hasselblad","Flextight X1","ESP23","film scanner",,,"builtin",,,0
-"RIT","30214439","30214439","Nikon","Cool Pix",,"Point&Shoot",,,"builtin",,,1
-"RIT","3056391","3056391","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,1
-"RIT","33005885","33005885","Nikon","Cool Pix L20",,"Point&Shoot",,,"builtin",,,1
-"RIT","3382444","3382444","Sony","Alpha 7SII",,"Mirrorless",,,"E-Mount",,,1
-"RIT","3393151","3393151","Sony","alpha 7RII",,"Mirrorless",,,"E-Mount",,,1
-"PAR","36134561","36134561","Nikon","Cool Pix",,"Point&Shoot",,,"builtin",,,1
-"RIT","50008939","12186","Epson","XL1640","ESP18","Flatbed Scanner",,,"builtin",,,0
-"RIT","50020736","677W002541","Epson","V750","ESP20","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022568","677W009932","Epson","V750","KL2/2","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022569","677W009971","Epson","V750","KL2/1","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022570","677W009973","Epson","V750","KL2/3","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022571","677W009929","Epson","V750","KL2/5","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022572","677W009966","Epson","V750","KL2/4","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022573","62YW019174","Epson","V700","KL2/6","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022574","62YW019190","Epson","V700","KL2/7","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022576","62YW019178","Epson","V700","KL2/11","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022577","62YW019263","Epson","V700","KL2/12","flatbed scanner",," Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022578","62YW019286","Epson","V700","KL2/13","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022579","62YW019287","Epson","V700","KL2/14","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022580","62YW019288","Epson","V700","KL2/16","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022581","62YW019294","Epson","V700","KL2/17","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022582","62YW019279","Epson","V700","KL2/18","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022583","62YW019280","Epson","V700","KL2/19","flatbed scanner",," Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022584","62YW019293","Epson","V700","KL2/20","flatbed scanner",," Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022585","62YW019275","Epson","V700","KL/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022600","62YW018796","Epson","V700","KL2/15","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022644","62YW018893","Epson","V700","KL2/8","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022646","62YW018887","Epson","V700","KL2/9","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50022647","62YW019270","Epson","V700","KL2/10","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50034944","50034944","GoPro","Hero 2",,"Action Camera",,,"builtin",,,1
-"RIT","50035314","A3W8CN0C70000KX","Samsung","Nx20",,"DSLR",,,"K-Mount",,,0
-"RIT","50045251","62YW025874","Epson","V700","KL1/1","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045252","62YW025864","Epson","V700","KL1/2","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045253","62YW025873","Epson","V700","KL1/3","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045254","62YW025869","Epson","V700","KL1/4","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045255","62YW025868","Epson","V700","KL1/5","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045256","62YW025859","Epson","V700","KL1/6","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045257","62YW025871","Epson","V700","KL1/7","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045258","62YW025865","Epson","V700","KL1/8","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045259","62YW025857","Epson","V700","KL1/9","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045260","62YW025872","Epson","V700","KL1/10","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045261","62YW025858","Epson","V700","KL1/11","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045262","62YW025867","Epson","V700","KL1/12","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045263","62YW025861","Epson","V700","KL1/13","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045264","62YW025867","Epson","V700","KL1/14","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045265","62YW025867","Epson","V700","KL1/15","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045266","62YW025867","Epson","V700","KL1/16","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045267","62YW025854","Epson","V700","KL1/17","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045268","62YW025877","Epson","V700","KL1/18","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045269","62YW025856","Epson","V700","KL1/19","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045270","62YW25870","Epson","V700","KL1/20","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","5004527s1","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","5004527ss1","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","500452ss71","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50045z271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50049571",,"Samsung","Galaxy Note 5 (SM-N90A)",,"CellPhone",,,"builtin",,,1
-"RIT","50049581","50049581","Samsung","Galaxy 4",,"CellPhone",,,"builtin",,,1
-"RIT","50049586","50049586","Samsung","Galaxy 4",,"CellPhone",,,"builtin",,,1
-"RIT","5004s5271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","5004ssss5271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","50160412","50160412","FujiFilm","X-e2",,"Mirrorless",,,"X-Mount",,,1
-"RIT","50zz045271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","5s0045271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT","61A00185","61A00185","FujiFilm","XT-1",,"Mirrorless",,,"X-Mount",,,1
-"PAR","62A00970","62A00970","FujiFilm","X-Pro2",,"Mirrorless",,,"X-Mount",,,1
-"RIT","99000012","10600","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000031","4687133","Leica Camera","S Typ 006",,"Mirrorless","Medium Format","37.5 MP Pixel Dimensions: 7500x5000 CCD  GPS No Optical Low-Pass Filter Maestro I Image Processor","Leica S",,,0
-"RIT","99000050","10601","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000052","10602","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000077","LU010190","Mamiya","Leaf Credo",,"Digital Back","Medium Format Sensor size 44x 33 mm","50 MP Pixel Dimensions: 8280 x 6208 CMOS","NA",,,0
-"RIT","99000079","10599","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000094","10598","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000097","10605","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000110","10612","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,1
-"RIT","99000133","3036606","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99000134","3055661","Nikon","D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016 CMOS optional GPS","F-Mount",,,0
-"RIT","99000149","IP001110","Phase One","IQ3",,"Digital Back","Medium Format sensor size"" 53.7 x40.4 mm","80 MP Pixel Dimensions: 10328x7760 CCD","XF System",,,0
-"RIT","99000150","3038418","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99000175","10615","Nikon","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000216","51A03424","FujiFilm","X-Pro 1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000229","3055678","Nikon","D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000236","51A03757","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000239","3038419","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99000264","51A00603","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000265","3055679","Nikon","D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000282","51A03428","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000286","3055561","Nikon","D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000291","3055680","Nikon","D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99000299","3038207","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99000304","3038206","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99000322","51A02299","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000323","51A03005","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000335","52A00246","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000336","51A03826","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000343","SQ35000583","Hasselblad","H5D-5c",,"DSLR","Medium Format 32.9 x 43.mm sensor size","50 MP Pixel Dimensions: 6200x8272 CMOS","H System",,,0
-"RIT","99000363","3125185","Sony","Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,1
-"RIT","99000395","51A01523","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000407","51A01549","FujiFilm","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99000431","3393152","Sony","Alpha a7R II (ILCE-7RM2)",,"Mirrorless",,,"E-Mount",,,0
-"RIT","99000440","42A09664","FujiFilm","X-T1","IR","MultiSpectral","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS optional GPS  Video","F-Mount",,,0
-"RIT","99000447","LU010194","Mamiya","Leaf Credo",,"Digital Back","Medium Format Sensor size 44x 33 mm","50 MP Pixel Dimensions: 8280 x 6208 CMOS","NA",,,0
-"RIT","99000450","S013374620B","Sony","Alpha  A6300",,"DSLR","APSC",,"E-Mount",,,0
-"RIT","99000459","3126125","Sony","Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,1
-"RIT","99000484","3127007","Sony","Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,0
-"RIT","99000489","3125186","Sony","Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,1
-"RIT","99001030","1338","Betterlight","6K 4x5 scan back",,"Digital Back","Medium Format Sensor size","48 MP Pixel Dimensions: 6000x8000 CCD","4x5 camera",,,0
-"RIT","99001749","920500204","Canon","60D IR","IR","DSLR","APS-C","6 MP Pixel Dimensions: 3072x2048 CMOS no GPS  Digic 5 processor No video IR Filter Removed","EF","default",,0
-"RIT","99001750","920500173","Canon","60D IR","IR","DSLR","APS-C","6 MP Pixel Dimensions: 3072x2048 CMOS no GPS  Digic 5 processor No video IR Filter Removed","EF","default",,0
-"RIT","99001889","1313","Betterlight","6K 4x5 scan back",,"Digital Back","Medium Format Sensor size","48 MP Pixel Dimensions: 6000x8000 CCD","4x5 camera",,,0
-"RIT","99002867","63A90148","FujiFilm","IRUV (S3)",,"MultiSpectral","APS-C","6 MP Pixel Dimensions: 4256x2848 CCD no GPS  No video no IR filter","F-Mount",,,0
-"RIT","99003077","1051","Betterlight","6K 4x5 scan back",,"Digital Back","Medium Format Sensor size","48 MP Pixel Dimensions: 6000x8000 CCD","4x5 camera",,,0
-"RIT","99004051","220102608","Canon","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
-"RIT","99004059","220100245","Canon","1D Mk IV",,"DSLR","APS-H","16 MP Pixel Dimensions: 4896x3264 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004068","520308523","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,1
-"RIT","99004120","220100028","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004127","520501018","Canon","1D Mk IV",,"DSLR","APS-H","16 MP Pixel Dimensions: 4896x3264 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004182","IP001314","Phase One","IQ3",,"Digital Back","Medium Format sensor size"" 53.7 x40.4 mm","80 MP Pixel Dimensions: 10328x7760 CCD","XF System",,,0
-"RIT","99004217","220103429","Canon","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
-"RIT","99004224","320310089","Canon","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
-"RIT","99004230","220104163","Canon","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
-"RIT","99004231","520305010","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,1
-"RIT","99004240","S65001069","Hasselblad","CFV-50c",,"Digital Back","Medium Format 32.9 x 43.mm sensor size","50 MP Pixel Dimensions: 6200x8272 CMOS","V System",,,0
-"RIT","99004285","220106797","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004288","220105337","Canon","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
-"RIT","99004300","220104853","Canon","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
-"RIT","99004301","1020600210","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004319","320100363","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004333","2421404270","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99004809","720304145","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99009923","620303469","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99009944","2014611120","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99009981","320211733","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99009999","52024007901","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99010000","52024003346","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99010001","22021001690","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99010002","22021011657","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99043742","220103997","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99044105","320108864","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99093429","3221601721","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99093739","4141489","Pentax","Q",,"Mirrorless","1/2.3 inch","12 MP Pixel Dimensions: 4000x3000 CMOS","Q-Mount",,,0
-"RIT","99093990","99093990","Leica Camera","M9",,"Mirrorless","FullFrame","18 MP Pixel Dimensions: 5212x3472 CCD no GPS","Leica M",,,0
-"RIT","99094114","3751705892","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99094528","132063075895","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094543","132063090519","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094557","132063067949","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094567","132063017207","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094577","132063067947","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094587","132063068640","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094597","132063017205","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094611","132063067950","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094673","132063068635","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99094683","132063068617","Canon","T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
-"RIT","99095224","50034944","GoPro","Hero 2",,"Action Camera","10.2 mm","11 MP Pixel Dimensions: 1920x1080 CMOS","builtin",,,1
-"RIT","99095225","50034954","GoPro","Hero 2",,"Action Camera","10.2 mm","11 MP Pixel Dimensions: 1920x1080 CMOS","builtin",,,0
-"RIT","99095343","3038178","Nikon","D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99095492",,"Samsung","NX20",,"Mirrorless","APS-C","20 MP Pixel Dimensions: 5472x3648 CMOS optional GPS","NX-Mount",,,0
-"RIT","99095636","4281979","Pentax","645D",,"DSLR","Medium Format Sensor size 44x 33 mm","40 MP Pixel Dimensions: 7264x5440 CCD","builtin",,,0
-"RIT","99096259","4203307417","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99096274","22021006925","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99096284","62024009182","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,1
-"RIT","99096294","22031006522","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99096317","52024009905","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99096328","22021001633","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
-"RIT","99096365","21A08150","FujiFilm","X-Pro 1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99096380","24A54144","FujiFilm","X-E1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99096399","24A54142","FujiFilm","X-E1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
-"RIT","99097294","50112404","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99097296","570113469","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097310","570114313","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097332","570113465","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097343","5700114316","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097354","50113470","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097365","5070113494","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097376","5070113466","Canon","T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
-"RIT","99097589","1921107539","Canon","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
-"RIT","99097681","3072654","Nikon","D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99097682","3072658","Nikon","D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99097683","3072653","Nikon","D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99097685","3072650","Nikon","D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99097688","3072697","Nikon","D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99097693","2062557","Nikon","D4",,"DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99098008","GK001256","Phase One","IQ260",,"Digital Back","Medium Format sensor size: 53.9 x 40.4 mm","60 MP Pixel Dimesnions: 8984x6732 CCD","IQ system",,,0
-"RIT","99098607","102031012981","Canon","T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
-"RIT","99098617","102031010930","Canon","T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
-"RIT","99098627","102031012979","Canon","T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
-"RIT","99098637","102031010932","Canon","T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,1
-"RIT","99098648","102031012982","Canon","T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
-"RIT","99098920","50045857","GoPro","Hero 3",,"Action Camera",,"12 MP Pixel Dimensions: 4096x2160 CMOS","builtin",,,0
-"RIT","99098922","50045875","GoPro","Hero 3",,"Action Camera",,"12 MP Pixel Dimensions: 4096x2160 CMOS","builtin",,,0
-"RIT","99098937","106583","Ricoh","Theta",,"360 cam","1/2.3 inch","14 MP Pixel Dimensions: 5376x2688 CMOS","builtin",,,0
-"RIT","99099243","172020000479","Canon","6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
-"RIT","99099255","172020000480","Canon","6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
-"RIT","99099262","172029000187","Canon","6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
-"RIT","99099269","172020000481","Canon","6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
-"RIT","99099276","172020000484","Canon","6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
-"RIT","99099283","172020000483","Canon","6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
-"RIT","99099948","3011684","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99099956","3011878","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99099965","3011879","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99099976","3011685","Nikon","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
-"RIT","99099981","3030134","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100048","3031438","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100060","3030034","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100069","3031439","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100081","3030844","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100092","3030133","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100102","3030035","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100113","3030722","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100123","3031351","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100133","3031350","Nikon","D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
-"RIT","99100168","2024843","Nikon","D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99100176","2024885","Nikon","D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99100184","2024837","Nikon","D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99100192","2024841","Nikon","D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99100200","2019192","Nikon","D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99100208","2019196","Nikon","D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
-"RIT","99100299","182029015999","Canon","5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,1
-"PAR","AFSOC-10863",,"Samsung","Note 2 (GT-N7105)",,"CellPhone",,,"builtin","Android",,0
-"PAR-AS","AS-ONE",,"OnePlus","One",,"CellPhone",,,"builtin",,,0
-"PAR","BF-GalaxyS3",,"Samsung","Galaxy S3 (SPH-L710T)",,"CellPhone",,,"builtin",,,0
-"PAR","BF-GalaxyS5",,"Samsung","Galaxy S5",,"CellPhone",,,"builtin","Android",,0
-"Denver-James","Denver-3100","6294715","Nikon","D3100",,"DSLR",,,"f-mount",,,0
-"Denver-James","Denver-D3100","7402937","Nikon","D3100",,"DSLR","14.2-megapixel DX format cropped sensor",,"F-Mount","default",,0
-"Denver-Megan","Denver-D3300","3868316","Nikon","D3300",,"DSLR","cropped",,"F-Mount","default",,0
-"Denver-Megan","Denver-GalaxyNote5","R38GB0SM8CL","Samsung","Galaxy Note 5",,"CellPhone",,,"builtin","Android",,0
-"Denver-Cole","Denver-GalaxyS6","990000578787586","Samsung","Galaxy S6 (SM-G920P)",,"CellPhone",,,"builtin","Android",,0
-"Denver","Denver-HTCONE",,"HTC","ONE",,"CellPhone",,,"builtin","Android",,0
-"Denver","Denver-iPhone4",,"Apple","iPhone 4",,"CellPhone",,,"builtin",,,0
-"Denver-Andrew","Denver-iPhone5s","DNVGPBJXDTD2","Apple","iPhone 5s","A1533","CellPhone",,,"builtin","iOS","9.0.2",0
-"Denver-Andrew","Denver-iPhone6s","C6KRM1T5GRYG","Apple","iPhone 6s","A1688","CellPhone",,,"builtin","iOS","9.3.4",0
-"Denver-Karlee","Denver-RebelT3i","142066088836","Canon","EOS Rebel T3i",,"DSLR","cropped",,"EF","default",,0
-"Denver-Karlee","Denver-SONY","36220475","Sony","Cyber Shot (DSC-H70)",,"Point&Shoot",,,"builtin","defualt",,0
-"Denver-Karlee","Denver-Turbo","ZX1F24H6BK","Motorola","Droid Turbo XT1254 Android 5.1 (XT1254)",,"CellPhone","21 Megapixel",,"builtin","Android",,0
-"PAR-ER","ER-Exilim",,"Casio","Exilim EX-FH100",,"Point&Shoot",,,"builtin",,,0
-"PAR-ES","ES-D5100","3437663","Nikon","d5100",,"DSLR","cropped",,"AF-S","Nikon","1.01",0
-"PAR-ES","ES-GalaxyS5",,"Samsung","Galaxy S5",,"CellPhone",,,"builtin",,,0
-"PAR-ES","ES-GalaxyS7","R38H40VQEJB","Samsung","SMG930V Galaxy S7",,"CellPhone",,,"builtin","Android",,0
-"PAR-ES","ES-Iphone4",,"Apple","iPhone 4",,"CellPhone",,,"builtin",,,0
-"PAR-ES","ES-LG",,"LG","LG-VS985",,"CellPhone",,,"builtin",,,0
-"PAR-ES","ES-MotoX","TA9911ZJHP","Motorola","XT (XT1049)","2","CellPhone","Sony IMX135 CMOS","Sony IMX135 CMOSDual-LED flash, 4K-video 2MP front Camera ISO 50-1000 F2.25 aperature","builtin","Android","5.1",0
-"PAR-ES","ES-PowerShotA85",,"Canon","Power Shot A86",,"Point&Shoot",,,"builtin",,,0
-"PAR-ES","ES-RebelXT","0820516202","Canon","Rebel XT",,"DSLR",,,"EF",,,0
-"PAR-JK","JK-AIPTEK",,"AIPTEK","DV 4500 (DV 3500)",,"Camcorder",,,"builtin",,,0
-"PAR-JK","JK-Hero3Black",,"GoPro","Hero 3 Black",,"Action Camera",,,"builtin",,,0
-"PAR-JK","JK-Lumix","WP4LB001494","Panasonic","DMC-ZS40",,"Point&Shoot",,,"builtin",,,0
-"PAR-JK","JK-MOTOE",,"Motorola","Moto E (XT1019)",,"CellPhone",,,"builtin","Android",,0
-"PAR-JK","JK-Nexus5X",,"Google","Nexus 5X",,"CellPhone",,,"builtin",,,0
-"PAR-JK","JK-SLTA58K",,"Sony","SLT-A58K",,"DSLR",,,"Sony alpha",,,0
-"PAR-JK","JK-ST65",,"Samsung","ST65",,"Point&Shoot",,,"builtin",,,0
-"Denver-James","JZD-iphone4",,"Apple","iPhone","4S","CellPhone",,,"builtin",,,0
-"RIT","KCGLE91616894","KCGLE91616894","Kodak","Kodak EasyShare","C140","Point&Shoot",,,"builtin",,,1
-"RIT","KJSAT14232659","KJSAT14232659","Kodak","Kodak DX 3700",,"Point&Shoot",,,"builtin",,,1
-"PAR-MK","MK-CameraA",,"default","A",,"Point&Shoot",,,"builtin",,,0
-"PAR-MK","MK-CyberShot",,"Sony","Cyber Shot (DSC-W55)",,"Point&Shoot",,,"builtin",,,0
-"PAR-MK","MK-HandyCam",,"Sony","HandyCam (DCR-SR42)",,"Camcorder",,,"builtin",,,0
-"PAR-MK","MK-MotoX",,"Motorola","X (XT1049)",,"CellPhone",,,"builtin",,,0
-"PAR-MK","MK-NEX5T","27ff740d","Sony","NEX-5T",,"Mirrorless",,,"E-Mount","NEX 5-T","1.00",0
-"PAR-MK","MK-Pearl8130",,"Blackberry","Pearl 8310",,"CellPhone",,,"builtin",,,0
-"PAR-MK","MK-Powershot",,"Canon","PowerShot ELPH 300 HS",,"Point&Shoot",,,"builtin",,,0
-"PAR-MK","MK-S860",,"Samsung","Kenox S860 (<KENOX S860  / Samsung S860>)",,"Trail Cam",,,"builtin",,,0
-"PAR-MK","MK-SamsungGTP3113",,"Samsung","Tablet GT3113 (GT-P3113)",,"Tablet",,,"builtin",,,0
-"PAR-MK","MK-TrailCam",,"Wild Game","M68",,"Trail Cam",,"game/feild camera","builtin","default","20130116_4",0
-"PAR","PAR-0000848",,"Vie Vu","VieVu Body Camera",,"Body Camera",,"Wfif connection : SQ-c65716 password p@eg0v421 http://www.vievu.com/support/vievu2-camera-support/","builtin",,,0
-"PAR","PAR-1043","R31C10D7AVK","Samsung","Galaxy Note (Samsung-SGH-1717)",,"CellPhone",,,"builtin","Android","4.0.4",0
-"PAR","PAR-1187","CC0KBC388082__12","Google","Nexus 7",,"CellPhone",,,"builtin","Android",,0
-"PAR","PAR-1216","R32C708FMFA","Samsung","Tablet (GT P5113)",,"Tablet",,,"builtin","Android","4.2.2",0
-"PAR","PAR-1233",,"Samsung","Galaxy Note 3 (SM-N900V)",,"CellPhone",,,"builtin","Android",,0
-"PAR","PAR-1301",,"Samsung","Galaxy S3",,"CellPhone",,,"builtin",,,0
-"PAR","PAR-1475",,"Samsung","Galaxy S5",,"CellPhone",,,"builtin","Android",,0
-"PAR","PAR-1476",,"Samsung","Galaxy S5 (SM-G900T)",,"CellPhone",,,"builtin",,,0
-"PAR","PAR-1477","RV8F40G04SF","Samsung","Galaxy S5 (SM-G900T)",,"CellPhone",,,"builtin","Android","4.4.4",0
-"PAR","PAR-1585","R38FB0HDGNL","Samsung","Galaxy S5 (SM-G930V)",,"CellPhone",,,"builtin",,,0
-"PAR","PAR-1596",,"Panasonic","DVX200",,"Camcorder",,,"builtin",,,0
-"PAR","PAR-1742",,"Samsung","Galaxy Note Tablet (SM-P905V)",,"Tablet",,,"builtin",,,0
-"PAR","PAR-2279",,"AUBBC","Intelligent Vehicle DVR 1080P Car Camera",,"DashCam","FHD","140 degree high resolution wide angle lens, Video Format AVI Photo Format JPG","builtin","CHG02_DRHDA","V1.6",0
-"PAR","PAR-2568","RF8FGK585U","Samsung","Galaxy S5 (SM G900T)","5","CellPhone","16mp","16 MP, f/2.2, 31mm, phase detection autofocus, LED flash,1/2.6"" sensor size, 1.12 ï¿½m pixel size, geo-tagging, touch focus, face/smile detection, panorama, HDR, 2160p@30fps, 1080p@60fps, 720p@120fps, HDR, dual-video rec.2 MP, f/2.4, 22mm, 1080p@30fps,","builtin","Android","4.4.4",0
-"PAR","PAR-2632","N910HGSMG","Samsung","Galaxy Note 4 (SM-N910H)",,"CellPhone",,,"builtin","Android","6.0.1",0
-"PAR","PAR-2668",,"Samsung","Galaxy S5 (SM-G900F)",,"CellPhone",,,"builtin","Android",,0
-"PAR","PAR-2694","WP5GA001206","Panasonic","Lumix DMC-ZS50","S","Point&Shoot","1/2.3-inch Large Pixel Sized High Sensitivity MOS Sensor","Point&Shoot Super-long LEICA lens with 30X zoom [24-720mm] brings the scene in close
+"Affiliation","HP-LocalDeviceID","DeviceSN","Manufacturer","CameraModel","HP-CameraModel","Edition","DeviceType","Sensor","Description","LensMount","Firmware","version","HasPRNUData"
+"RIT","1019035A","1019035A","Casio","QV-8000SX","QV-8000SX",,"Point&Shoot","CCD","1.3 megapixel CCD delivering up to 1280 x 960 pixel images. Rotating Lens design","builtin",,,1
+"PAR","102510CM6C71",,"Seek Thermal","PIR-206","Thermal Imaging Camera",,"MultiSpectral","True Thermal","Vanadium Oxide Micro Bolometer, Chalcogenide lens, 36 degree field of view, Magnesium housing, long wave infared 7.2-13 microns, -40C to 330C detection","builtin","default",,0
+"RIT","13A41E07","13A41E07","GoPro",,"Hero 3 Plus",,"Action Camera",,,"builtin",,,1
+"RIT","202533","212563","Nikon",,"8000 ED",,"film scanner",,,"builtin",,,0
+"RIT","202553","920500204","Canon","Canon EOS D60","60D IR","IR","DSLR","APS-C","6 MP Pixel Dimensions: 3072x2048 CMOS no GPS  Digic 5 processor No video IR Filter Removed","EF","default",,0
+"RIT","202554","920500173","Canon",,"60D IR","IR","DSLR","APS-C","6 MP Pixel Dimensions: 3072x2048 CMOS no GPS  Digic 5 processor No video IR Filter Removed","EF","default",,0
+"RIT","202607","1313","Betterlight",,"6K 4x5 scan back",,"Digital Back","Medium Format Sensor size","48 MP Pixel Dimensions: 6000x8000 CCD","4x5 camera",,,0
+"RIT","202610","FX01011020","Hasselblad",,"Flextight 848","ESP27","film scanner",,,"builtin",,,0
+"RIT","202611","FX01011018","Hasselblad",,"Flextight 848","ESP26","film scanner",,,"builtin",,,0
+"RIT","202612","FX01021018","Hasselblad",,"Flextight 848","ESP28","film scanner",,,"builtin",,,0
+"RIT","236025","63A90148","FujiFilm",,"IRUV (S3)",,"MultiSpectral","APS-C","6 MP Pixel Dimensions: 4256x2848 CCD no GPS  No video no IR filter","F-Mount",,,0
+"RIT","237567","720304145","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","271010","1051","Betterlight",,"6K 4x5 scan back",,"Digital Back","Medium Format Sensor size","48 MP Pixel Dimensions: 6000x8000 CCD","4x5 camera",,,0
+"RIT","271020","FVS0011334","Epson",,"XL10000","ESP19","Flatbed Scanner",,,"builtin",,,0
+"RIT","271021","1338","Betterlight",,"6K 4x5 scan back",,"Digital Back","Medium Format Sensor size","48 MP Pixel Dimensions: 6000x8000 CCD","4x5 camera",,,0
+"RIT","271028","FX08150004","Hasselblad",,"Flextight X1","ESP29","film scanner",,,"builtin",,,0
+"RIT","271084","220103997","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","271169","2421404270","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","271409","320108864","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","278001","220102608","Canon",,"7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
+"RIT","278002","220100245","Canon",,"1D Mk IV",,"DSLR","APS-H","16 MP Pixel Dimensions: 4896x3264 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","278012","520501018","Canon",,"1D Mk IV",,"DSLR","APS-H","16 MP Pixel Dimensions: 4896x3264 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","278076","FX10210029","Hasselblad",,"Flextight X1","ESP23","film scanner",,,"builtin",,,0
+"RIT","278290","3221601721","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","278296","3980029","Leica Camera",,"M9",,"Mirrorless","FullFrame","18 MP Pixel Dimensions: 5212x3472 CCD no GPS","Leica M",,,0
+"RIT","278297","3751705892","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","285540","182029015999","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,1
+"RIT","285599","892040000407","Canon",,"C100 MkII",,"camcorder",,,"EF-Mount",,,0
+"RIT","30214439","30214439","Nikon","COOLPIX S210","Cool Pix",,"Point&Shoot",,,"builtin",,,1
+"RIT","3056391","3056391","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,1
+"RIT","33005885","33005885","Nikon",,"Cool Pix L20",,"Point&Shoot",,,"builtin",,,1
+"RIT","36134561","36134561","Nikon","COOLPIX L20","Cool Pix",,"Point&Shoot",,,"builtin",,,1
+"RIT","50005124","220106797","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","50005176","620303469","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","50005186","2014611120","Canon","Canon EOS 5D Mark II","5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","50005225","320211733","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","5000755","520308523","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,1
+"RIT","5000779","220100028","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","5000792","220103429","Canon",,"7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
+"RIT","5000798","320310089","Canon","Canon EOS 7D","7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
+"RIT","5000804","220104163","Canon",,"7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
+"RIT","5000810","220105337","Canon",,"7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
+"RIT","5000816","220104853","Canon",,"7D",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS Dual Digic 4 processor","EF","default",,0
+"RIT","5000828","520305010","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,1
+"RIT","5000834","1020600210","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","5000840","320100363","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","50008939","12186","Epson",,"XL1640","ESP18","Flatbed Scanner",,,"builtin",,,0
+"RIT","50020736","677W002541","Epson",,"V750","ESP20","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022568","677W009932","Epson",,"V750","KL2/2","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022569","677W009971","Epson",,"V750","KL2/1","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022570","677W009973","Epson",,"V750","KL2/3","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022571","677W009929","Epson",,"V750","KL2/5","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022572","677W009966","Epson",,"V750","KL2/4","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022573","62YW019174","Epson",,"V700","KL2/6","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022574","62YW019190","Epson",,"V700","KL2/7","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022576","62YW019178","Epson",,"V700","KL2/11","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022577","62YW019263","Epson",,"V700","KL2/12","flatbed scanner",," Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022578","62YW019286","Epson",,"V700","KL2/13","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022579","62YW019287","Epson",,"V700","KL2/14","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022580","62YW019288","Epson",,"V700","KL2/16","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022581","62YW019294","Epson",,"V700","KL2/17","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022582","62YW019279","Epson",,"V700","KL2/18","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022583","62YW019280","Epson",,"V700","KL2/19","flatbed scanner",," Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022584","62YW019293","Epson",,"V700","KL2/20","flatbed scanner",," Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022585","62YW019275","Epson",,"V700","KL/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022600","62YW018796","Epson",,"V700","KL2/15","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022644","62YW018893","Epson",,"V700","KL2/8","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022646","62YW018887","Epson",,"V700","KL2/9","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50022647","62YW019270","Epson",,"V700","KL2/10","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50032842","4141489","Pentax",,"Q",,"Mirrorless","1/2.3 inch","12 MP Pixel Dimensions: 4000x3000 CMOS","Q-Mount",,,0
+"RIT","50033936","132063075895","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50033953","132063090519","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50033965","132063067949","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50033975","132063017207","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50033985","132063067947","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50033995","132063068640","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50034020","132063067950","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50034024","132063017205","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50034081","132063068635","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50034091","132063068617","Canon",,"T3i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS No GPS  Digic 4processor","EF","default",,0
+"RIT","50034944",,"GoPro",,"Hero 2",,"Action Camera","10.2 mm","11 MP Pixel Dimensions: 1920x1080 CMOS","builtin",,,1
+"RIT","50034954",,"GoPro",,"Hero 2",,"Action Camera","10.2 mm","11 MP Pixel Dimensions: 1920x1080 CMOS","builtin",,,0
+"RIT","50035131","3038178","Nikon",,"D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50035314","A3W8CN0C70000KX","Samsung","NX20","Nx20",,"DSLR",,,"K-Mount",,,0
+"RIT","50035535","4281979","Pentax",,"645D",,"DSLR","Medium Format Sensor size 44x 33 mm","40 MP Pixel Dimensions: 7264x5440 CCD","builtin",,,0
+"RIT","50040379","42033007417","Canon",,"5D MK III",,"DSLR",,,"EF-S",,,0
+"RIT","50040394","22021006925","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040406","62024009182","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,1
+"RIT","50040414","22031006522","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040446","52024007901","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040452","52024003346","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040458","22021001690","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040464","22021011657","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040471","52024009905","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040482","22021001633","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","50040572","21A08150","FujiFilm",,"X-Pro 1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50040579","24A54144","FujiFilm",,"X-E1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50042405","50112404","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","50042571","570113469","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50042587","570114313","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50042610","570113465","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50042621","5700114316","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50042632","50113470","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50042643","5070113494","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50042655","5070113466","Canon",,"T1i",,"DSLR","APS-C","15 MP Pixel Dimensions: 4752x3168 CMOS No GPS  Digic 4 processor","EF","default",,0
+"RIT","50043059","1921107539","Canon",,"5D Mk II",,"DSLR","Full Frame","21 MP Pixel Dimensions: 5616x3744 CMOS No GPS Digic 4 processor","EF","default",,0
+"RIT","50043255","3072654","Nikon",,"D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50043262","3072658","Nikon",,"D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50043269","3072653","Nikon",,"D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50043277","3072650","Nikon",,"D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50043292","3072697","Nikon",,"D800",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50043323","2062557","Nikon",,"D4",,"DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50045251","62YW025874","Epson",,"V700","KL1/1","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045252","62YW025864","Epson",,"V700","KL1/2","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045253","62YW025873","Epson",,"V700","KL1/3","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045254","62YW025869","Epson",,"V700","KL1/4","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045255","62YW025868","Epson",,"V700","KL1/5","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045256","62YW025859","Epson",,"V700","KL1/6","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045257","62YW025871","Epson",,"V700","KL1/7","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045258","62YW025865","Epson",,"V700","KL1/8","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045259","62YW025857","Epson",,"V700","KL1/9","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045260","62YW025872","Epson",,"V700","KL1/10","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045261","62YW025858","Epson",,"V700","KL1/11","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045262","62YW025867","Epson",,"V700","KL1/12","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045263","62YW025861","Epson",,"V700","KL1/13","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045264","62YW025867","Epson",,"V700","KL1/14","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045265","62YW025867","Epson",,"V700","KL1/15","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045266","62YW025867","Epson",,"V700","KL1/16","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045267","62YW025854","Epson",,"V700","KL1/17","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045268","62YW025877","Epson",,"V700","KL1/18","Flatbed Scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045269","62YW025856","Epson",,"V700","KL1/19","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045270","62YW25870","Epson",,"V700","KL1/20","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045271","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045271-2","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","5004527s1","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","5004527ss1","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","500452ss71","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50045450","102031012981","Canon","Canon EOS REBEL T5i","T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
+"RIT","50045460","102031010930","Canon",,"T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
+"RIT","50045470","102031012979","Canon",,"T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
+"RIT","50045480","102031010932","Canon",,"T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,1
+"RIT","50045491","102031012982","Canon",,"T5i",,"DSLR","APS-C","18 MP Pixel Dimensions: 5184x3456 CMOS optional GPS  Digic 5 processor","EF","default",,0
+"RIT","50045857","H3B B101301DAC7","GoPro",,"Hero 3",,"Action Camera",,"12 MP Pixel Dimensions: 4096x2160 CMOS","builtin",,,0
+"RIT","50045875",,"GoPro",,"Hero 3",,"Action Camera",,"12 MP Pixel Dimensions: 4096x2160 CMOS","builtin",,,0
+"RIT","50045z271","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50046039","106583","Ricoh",,"Theta",,"360 cam","1/2.3 inch","14 MP Pixel Dimensions: 5376x2688 CMOS","builtin",,,0
+"RIT","50046437","172020000479","Canon",,"6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
+"RIT","50046448","172020000480","Canon",,"6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
+"RIT","50046455","172029000187","Canon",,"6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
+"RIT","50046462","172020000481","Canon",,"6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
+"RIT","50046469","172020000484","Canon",,"6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
+"RIT","50046476","172020000483","Canon",,"6D",,"DSLR","Full Frame","20 MP Pixel Dimensions: 5472x3648 CMOS built in GPS  Digic 5+ processor","EF","default",,0
+"RIT","50047579","3011684","Nikon","NIKON D810","D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50047588","3011878","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50047596","3011879","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50047607","3011685","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50047613","3030134","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047679","3031438","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047691","3030034","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047700","3031439","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047712","3030844","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047724","3030133","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047733","3030035","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047745","3030722","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047755","3031351","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047765","3031350","Nikon",,"D610",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50047800","2024843","Nikon",,"D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50047817","2024885","Nikon",,"D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50047828","2024837","Nikon",,"D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50047836","2024841","Nikon",,"D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50047844","2019192","Nikon",,"D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50047852","2019196","Nikon",,"D4","s","DSLR","Full Frame","16 MP Pixel Dimensions: 4923x2380 CMOS optional GPS","F-Mount",,,0
+"RIT","50049571",,"Samsung","SAMSUNG-SM-N910A","Galaxy Note 5",,"CellPhone",,,"builtin",,,1
+"RIT","50049581","50049581","Samsung","SAMSUNG-SM-N910A","Galaxy 4",,"CellPhone",,,"builtin",,,1
+"RIT","50049586","50049586","Samsung","SAMSUNG-SM-N910A","Galaxy 4",,"CellPhone",,,"builtin",,,1
+"RIT","50049591",,"Samsung","SAMSUNG-SM-N910A","Galaxy Note 4",,"CellPhone",,,"builtin",,,1
+"RIT","50049688","LU010190","Mamiya",,"Leaf Credo",,"Digital Back","Medium Format Sensor size 44x 33 mm","50 MP Pixel Dimensions: 8280 x 6208 CMOS","NA",,,0
+"RIT","50049765","4687133","Leica Camera",,"S Typ 006",,"Mirrorless","Medium Format","37.5 MP Pixel Dimensions: 7500x5000 CCD  GPS No Optical Low-Pass Filter Maestro I Image Processor","Leica S",,,0
+"RIT","5004s5271","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","5004ssss5271","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","50050071","24A54142","FujiFilm",,"X-E1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50050129","10601","Nikon","NIKON D600","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050137","10600","Nikon",,"D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050142","10602","Nikon",,"D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050147","10599","Nikon",,"D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050157","10598","Nikon",,"D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050162","10605","Nikon",,"D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050172","10612","Nikon",,"D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,1
+"RIT","50050177","10615","Nikon","NIKON D600","D600",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,1
+"RIT","50050808","3036606","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50050828","3055661","Nikon","NIKON D750","D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016 CMOS optional GPS","F-Mount",,,0
+"RIT","50050832","3055678","Nikon",,"D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050836","3055679","Nikon",,"D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050840","3055561","Nikon",,"D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50050844","3055680","Nikon",,"D750",,"DSLR","Full Frame","24 MP Pixel Dimensions: 6016x4016CMOS optional GPS","F-Mount",,,0
+"RIT","50051119","51A03424","FujiFilm",,"X-Pro 1",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051123","51A03757","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051127","51A00603","FujiFilm","X100T","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,1
+"RIT","50051131","51A03428","FujiFilm","X100T","X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051135","51A02299","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051139","52A00246","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051144","51A03005","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051148","51A03826","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051152","51A01523","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051156","51A01549","FujiFilm",,"X100T",,"DSLR","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS no GPS","F-Mount",,,0
+"RIT","50051422","3038418","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50051426","3038419","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50051430","3038207","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50051434","3038206","Nikon",,"D810",,"DSLR","Full Frame","36 MP Pixel Dimensions: 7360x4912 CMOS optional GPS","F-Mount",,,0
+"RIT","50052012","LU010194","Mamiya",,"Leaf Credo",,"Digital Back","Medium Format Sensor size 44x 33 mm","50 MP Pixel Dimensions: 8280 x 6208 CMOS","NA",,,0
+"RIT","50052071","42A09664","FujiFilm",,"X-T1","IR","MultiSpectral","APS-C","16 MP Pixel Dimensions: 4896x3264 CMOS optional GPS  Video","F-Mount",,,0
+"RIT","50052211","S65001069","Hasselblad",,"CFV-50c",,"Digital Back","Medium Format 32.9 x 43.mm sensor size","50 MP Pixel Dimensions: 6200x8272 CMOS","V System",,,0
+"RIT","50052231","SQ35000583","Hasselblad",,"H5D-5c",,"DSLR","Medium Format 32.9 x 43.mm sensor size","50 MP Pixel Dimensions: 6200x8272 CMOS","H System",,,0
+"RIT","50052327","IP001110","Phase One",,"IQ3",,"Digital Back","Medium Format sensor size"" 53.7 x40.4 mm","80 MP Pixel Dimensions: 10328x7760 CCD","XF System",,,0
+"RIT","50052388","IP001314","Phase One",,"IQ3",,"Digital Back","Medium Format sensor size"" 53.7 x40.4 mm","80 MP Pixel Dimensions: 10328x7760 CCD","XF System",,,0
+"RIT","50052682","6310782","Sony","DSC-RX1RM2","RX1R II",,"Point&Shoot",,,"builtin",,,0
+"RIT","50052684","3374619","Sony",,"Alpha  A6300",,"DSLR","APSC",,"E-Mount",,,0
+"RIT","50052690","3382477","Sony",,"Alpha 7SII",,"Mirrorless",,,"E-Mount",,,1
+"RIT","50052709","3392704","Sony","ILCE-7RM2","Alpha a7R II",,"Mirrorless",,,"E-Mount",,,0
+"RIT","50052721","3393151","Sony",,"alpha 7RII",,"Mirrorless",,,"E-Mount",,,1
+"RIT","50052728","3382444","Sony",,"Alpha 7SII",,"Mirrorless",,,"E-Mount",,,1
+"RIT","50052733","3125185","Sony",,"Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,1
+"RIT","50052766","3382324","Sony",,"Alpha 7SII",,"Mirrorless",,,"E-Mount",,,1
+"RIT","50052805","3382323","Sony",,"Alpha 7SII",,"Mirrorless",,,"E-Mount",,,1
+"RIT","50052808","3382478","Sony",,"Alpha 7SII",,"Mirrorless",,,"E-Mount",,,1
+"RIT","50052821","6310781","Sony","DSC-RX1RM2","RX1R II",,"Point&Shoot",,,"builtin",,,0
+"RIT","50052855","3393152","Sony","ILCE-7RM2","Alpha a7R II",,"Mirrorless",,,"E-Mount",,,0
+"RIT","50052868","3393163","Sony","ILCE-7RM2","Alpha a7R II",,"Mirrorless",,,"E-Mount",,,0
+"RIT","50052883","3393164","Sony","ILCE-7RM2","Alpha a7R II",,"Mirrorless",,,"E-Mount",,,0
+"RIT","50052916","3374618","Sony",,"Alpha  A6300",,"DSLR","APSC",,"E-Mount",,,0
+"RIT","50052932","3374617","Sony",,"Alpha  A6300",,"DSLR","APSC",,"E-Mount",,,0
+"RIT","50052939","3126125","Sony",,"Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,1
+"RIT","50052950","3374620","Sony",,"Alpha  A6300",,"DSLR","APSC",,"E-Mount",,,0
+"RIT","50052958","3127007","Sony",,"Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,0
+"RIT","50052974","4148529","Sony",,"Alpha  A6300",,"DSLR","APSC",,"E-Mount",,,0
+"RIT","50052991","3125186","Sony",,"Action Cam",,"Action Camera",,"8.8 MP Pixel Dimensions: 3952x2224 CMOS builtin GPS","builtin",,,1
+"RIT","50160412","50160412","FujiFilm",,"X-e2",,"Mirrorless",,,"X-Mount",,,1
+"RIT","50zz045271","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","5s0045271","62YW025860","Epson",,"V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
+"RIT","61A00185","61A00185","FujiFilm",,"XT-1",,"Mirrorless",,,"X-Mount",,,1
+"RIT","62A00970","62A00970","FujiFilm",,"X-Pro2",,"Mirrorless",,,"X-Mount",,,1
+"RIT","99095492","2050035314","Samsung",,"NX20",,"Mirrorless","APS-C","20 MP Pixel Dimensions: 5472x3648 CMOS optional GPS","NX-Mount",,,1
+"RIT","99096259","4203307417","Canon",,"5D Mk III",,"DSLR","Full Frame","22 MP Pixel Dimensions: 5760x3840 CMOS GPS optional Digic 5+ processor","EF","default",,0
+"RIT","99098008","GK001256","Phase One",,"IQ260",,"Digital Back","Medium Format sensor size: 53.9 x 40.4 mm","60 MP Pixel Dimesnions: 8984x6732 CCD","IQ system",,,0
+"PAR","AFSOC-10863",,"Samsung","GT-N7105","Note 2",,"CellPhone",,,"builtin","Android",,0
+"PAR-AS","AS-ONE",,"OnePlus",,"One",,"CellPhone",,,"builtin",,,1
+"PAR","BF-GalaxyS3",,"Samsung","SPH-L710T","Galaxy S3",,"CellPhone",,,"builtin",,,0
+"PAR","BF-GalaxyS5",,"Samsung",,"Galaxy S5",,"CellPhone",,,"builtin","Android",,0
+"Denver-Andrew","Denver-A-iPhone5s",,"Apple",,"iPhone 5s","A1533","CellPhone",,,"builtin","iOS","9.0.2",0
+"Denver-James","Denver-D3100","7402937","Nikon",,"D3100",,"DSLR",,,"F-mount",,,0
+"Denver-Megan","Denver-D3300","3868316","Nikon",,"D3300",,"DSLR","cropped",,"F-Mount","default",,0
+"Denver-Megan","Denver-GalaxyNote5","R38GB0SM8CL","Samsung",,"Galaxy Note 5",,"CellPhone",,,"builtin","Android",,0
+"Denver-Cole","Denver-GalaxyS6","990000578787586","Samsung","SM-G920P","Galaxy s6",,"CellPhone",,,"builtin",,,0
+"PAR","Denver-HTCONE",,"HTC",,"ONE",,"CellPhone",,,"builtin","Android",,0
+"Denver-James","Denver-iPhone4s","DNVGPBJXDTD2","Apple",,"iPhone 4s",,"CellPhone",,,"builtin","iOS",,0
+"Denver-James","Denver-iPhone5s","C39LJ7VLFFGD","Apple",,"iPhone 5s",,"CellPhone",,,"builtin","iOS",,0
+"Denver-Karlee","Denver-K-RebelT3i","142066088836","Canon",,"Rebel T3i",,"DSLR","cropped",,"EF","default",,0
+"Denver-Karlee","Denver-SONY","36220475","Sony","DSC-H70","Cyber Shot",,"Point&Shoot",,,"builtin","defualt",,0
+"Denver-Karlee","Denver-Turbo","ZX1F24H6BK","Motorola","XT1254","Turbo",,"CellPhone",,"21 MP","builtin","Android","5.1",0
+"PAR-ER","ER-Exilim",,"Casio","EX-FH100","Exilim EX-FH100",,"Point&Shoot",,,"builtin",,,0
+"PAR-ES","ES-D5100","3437663","Nikon","NIKON D5100","d5100",,"DSLR","cropped",,"AF-S","Nikon","1.01",1
+"PAR-ES","ES-GalaxyS5",,"Samsung","SM-G900V","Galaxy S5",,"CellPhone",,,"builtin",,,0
+"PAR-ES","ES-GalaxyS7","R38H40VQEJB","Samsung","SM-G930V","SMG930V Galaxy S7",,"CellPhone",,,"builtin","Android",,0
+"PAR-ES","ES-Iphone4",,"Apple",,"iPhone 4",,"CellPhone",,,"builtin",,,0
+"PAR-ES","ES-LGVS985",,"LG","LG-VS985","LG-VS985",,"CellPhone",,,"builtin",,,0
+"PAR-ES","ES-MotoX","TA9911ZJHP","Motorola","XT1049","XT","2","CellPhone","Sony IMX135 CMOS","Sony IMX135 CMOSDual-LED flash, 4K-video 2MP front Camera ISO 50-1000 F2.25 aperature","builtin","Android","5.1",0
+"PAR-ES","ES-Nexus6P","8XV7N16821000230","Huawei","Nexus 6P","Nexus 6P",,"CellPhone",,,"builtin","Android","7.1.1",0
+"PAR-ES","ES-PowerShotA85",,"Canon","Canon PowerShot A85","Power Shot A85",,"Point&Shoot",,,"builtin",,,0
+"PAR-ES","ES-RebelXT","0820516202","Canon",,"Rebel XT",,"DSLR",,,"EF",,,0
+"PAR-JK","JK-AIPTEK",,"AIPTEK",,"DV 4500 (DV 3500)",,"Camcorder",,,"builtin",,,0
+"PAR-JK","JK-Hero3Black",,"GoPro","Hero3-Black Edition","Hero 3 Black",,"Action Camera",,,"builtin",,,0
+"PAR-JK","JK-Lumix","WP4LB001494","Panasonic","DMC-ZS40","DMC-ZS40",,"Point&Shoot",,,"builtin",,,0
+"PAR-JK","JK-MOTOE",,"Motorola","XT1019","Moto E",,"CellPhone",,,"builtin","Android",,0
+"PAR-JK","JK-Nexus5X",,"Google","Nexus 5X","Nexus 5X",,"CellPhone",,,"builtin",,,0
+"PAR-JK","JK-SLTA58K",,"Sony","SLT-A58","SLT-A58K",,"DSLR",,,"Sony alpha",,,0
+"PAR-JK","JK-SonyHandycam","514774","Sony",,"DCR-SR42",,"Camcorder",,,"builtin",,,0
+"PAR-JK","JK-ST65",,"Samsung","SAMSUNG ST65","ST65",,"Point&Shoot",,,"builtin",,,0
+"RIT","KCGLE91616894","KCGLE91616894","Kodak","KODAK EASYSHARE C140 DIGITAL CAMERA","Kodak EasyShare","C140","Point&Shoot",,,"builtin",,,1
+"RIT","KJSAT14232659","KJSAT14232659","Kodak","KODAK EASYSHARE DX3700 Digital Camera","Kodak DX 3700",,"Point&Shoot",,,"builtin",,,1
+"PAR-MK","MK-CameraA",,"default",,"A",,"Point&Shoot",,,"builtin",,,0
+"PAR-MK","MK-CyberShot",,"Sony","DSC-W55","Cyber Shot",,"Point&Shoot",,,"builtin",,,0
+"PAR-MK","MK-HandyCam",,"Sony","DCR-SR42","HandyCam",,"Camcorder",,,"builtin",,,0
+"PAR-MK","MK-MotoX",,"Motorola","XT1049","X (XT1049)",,"CellPhone",,,"builtin",,,0
+"PAR-MK","MK-NEX5T","27ff740d","Sony","NEX-5T","NEX-5T",,"Mirrorless",,,"E-Mount","NEX 5-T","1.00",1
+"PAR-MK","MK-Pearl8130",,"Blackberry","BlackBerry 8130","Pearl 8310",,"CellPhone",,,"builtin",,,0
+"PAR-MK","MK-Powershot",,"Canon","ELPH 300 HS","PowerShot ELPH 300 HS",,"Point&Shoot",,,"builtin",,,1
+"PAR-MK","MK-S860",,"Samsung",,"Kenox S860 (<KENOX S860  / Samsung S860>)",,"Trail Cam",,,"builtin",,,1
+"PAR-MK","MK-SamsungGTP3113",,"Samsung","GT-P3113","Tablet GT3113 (GT-P3113)",,"Tablet",,,"builtin",,,0
+"PAR-MK","MK-TrailCam",,"Wild Game",,"M68",,"Trail Cam",,"game/feild camera","builtin","default","20130116_4",0
+"PAR","MM-iPhone","FFMS40XKGRY5","Apple",,"iPhone  6","s","CellPhone",,,"builtin","iOS","10.2",0
+"PAR-MM","MM-ZoomRecorder","00675605","ZOOM Corporation",,"Handy Recorder","H4n","AudioRecorder",,,"none",,,0
+"PAR","PAR-0000848",,"Vie Vu",,"VieVu Body Camera",,"Body Camera",,"Wfif connection : SQ-c65716 password p@eg0v421 http://www.vievu.com/support/vievu2-camera-support/","builtin",,,0
+"PAR","PAR-0A66","TTC33700581","Logitech",,"Clicksmart 820",,"Webcam","2.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-1043","R31C10D7AVK","Samsung","SGH-I717","Galaxy Note (Samsung-SGH-1717)",,"CellPhone",,,"builtin","Android","4.0.4",0
+"PAR","PAR-1187","CC0KBC388082__12","Google",,"Nexus 7",,"CellPhone",,,"builtin","Android",,0
+"PAR","PAR-1216","R32C708FMFA","Samsung","GT P5113","Tablet",,"Tablet",,,"builtin","Android","4.2.2",0
+"PAR","PAR-1233",,"Samsung","SM-N900V","Galaxy Note 3",,"CellPhone",,,"builtin","Android",,1
+"PAR","PAR-1301",,"Samsung",,"Galaxy S3",,"CellPhone",,,"builtin",,,0
+"PAR","PAR-1475",,"Samsung","SM-G900T","Galaxy S5",,"CellPhone",,,"builtin","Android",,0
+"PAR","PAR-1476",,"Samsung","SM-G900T","Galaxy S5",,"CellPhone",,,"builtin",,,1
+"PAR","PAR-1477","RV8F40G04SF","Samsung","SM-G900T","Galaxy S5",,"CellPhone",,,"builtin","Android","4.4.4",1
+"PAR","PAR-1577","0738-8498-6341","BlackBerry","BlackBerry Classic","Classic",,"CellPhone",,,"builtin",,,0
+"PAR","PAR-1578","355519050431501","NOKIA",,"Lumia 925",,"CellPhone",,,"builtin",,,0
+"PAR","PAR-1579","512KPWQ890329","LG",,"G4",,"CellPhone",,,"builtin","Android","5.1",0
+"PAR","PAR-1580","FDNQR107G5MC","Apple","iPhone 6","iPhone 6",,"CellPhone",,,"builtin","iOS","10.2.1",0
+"PAR","PAR-1581","4720300005653","Canon",,"PowerShot S110",,"Point&Shoot","12MP 1/1.7"" Canon CMOS sensor.",,"builtin",,,0
+"PAR","PAR-1582","TA9890DV9K","Motorola",,"Moto X",,"CellPhone",,,"builtin","Android","6",0
+"PAR","PAR-1583","RF8GB2Y8JTH","Samsung",,"Galaxy S6",,"CellPhone",,,"builtin","Android","6.0.1",0
+"PAR","PAR-1584","R38F506TMZF","Samsung",,"Galaxy S5",,"CellPhone",,,"builtin","Android","5.0",0
+"PAR","PAR-1589","022DJN7N35033516","Huawei",,"Ascend Mate 1",,"CellPhone",,,"builtin","Android","4.1.2",0
+"PAR","PAR-1592","DNPJV1BNDTTN","Apple",,"iPhone 5",,"CellPhone",,,"builtin",,"10.2.1",1
+"PAR","PAR-1593",,"Samsung","SM-G900T","Galaxy S5",,"CellPhone",,,"builtin","Android",,0
+"PAR","PAR-1596",,"Panasonic","AG-DVX200","AG-DVX200PJ Ultra HD",,"Camcorder",,"4k","builtin",,,0
+"PAR","PAR-1742",,"Samsung","SM-P905V","Galaxy Note Tablet",,"Tablet",,,"builtin",,,0
+"PAR","PAR-2568","RF8FGK585U","Samsung","SM G900T","Galaxy S5","5","CellPhone","16mp","16 MP, f/2.2, 31mm, phase detection autofocus, LED flash,1/2.6"" sensor size, 1.12 µm pixel size, geo-tagging, touch focus, face/smile detection, panorama, HDR, 2160p@30fps, 1080p@60fps, 720p@120fps, HDR, dual-video rec.2 MP, f/2.4, 22mm, 1080p@30fps,","builtin","Android","4.4.4",0
+"PAR","PAR-2629","-N910HGSMH","Samsung","SM-N910H","Galaxy Note 4",,"CellPhone",,,"builtin",,,1
+"PAR","PAR-2631","RR1G80AXCXP","Samsung","SM-N910H","Galaxy Note","4","CellPhone",,,"builtin","Android","6.0.1",0
+"PAR","PAR-2632","N910HGSMG","Samsung","SM-N910H","Galaxy Note 4",,"CellPhone",,,"builtin","Android","6.0.1",0
+"PAR","PAR-2668",,"Samsung","SM-G900F","Galaxy S5",,"CellPhone",,,"builtin","Android",,0
+"PAR","PAR-2694","WP5GA001206","Panasonic"," DMC-ZS50","Lumix DMC-ZS50","S","Point&Shoot","1/2.3-inch Large Pixel Sized High Sensitivity MOS Sensor","Point&Shoot Super-long LEICA lens with 30X zoom [24-720mm] brings the scene in close
 Enhanced low-light sensitivity for improved sharpness even without a flash
 Built-in eye viewfinder eliminates outdoor glare on sunny days","builtin","default",,0
-"PAR","PAR-2701","42f72b13c0179f4f","Samsung","Galaxy Note GT-N7100 (""GT-N7100"")",,"CellPhone",,,"builtin","Android","4.2.2",0
-"PAR","PAR-2702","FFPQG4ZZG5MR","Apple","iPhone 6 (MG4F2LL/A)",,"CellPhone",,,"builtin","iOS","10.0.20(14A456)",0
-"PAR","PAR-2775",,"Rexing","Rexing V1",,"DashCam",,,"builtin",,,0
-"PAR","PAR-2814","RF8H90SP6TL","Samsung","Galaxy S  7",,"CellPhone",,,"builtin","Android",,0
-"PAR","PAR-2852","E2281USBKBEA1147","Hisense","Sero 8 E2281",,"Tablet",,,"builtin","Android","4.4.2",0
-"PAR","PAR-2853","YFG0514056759","EFun","Next Book NX785QC8G",,"Tablet",,,"builtin",,,0
-"PAR","PAR-2931","3041658","Sony","QX1 Compact System Camera","alpha","Mirrorless","ASP-C","Lens type camera Examor CMOS Sensor 20.1 Megapixels Attaches to Cell Phones for display","E Mount",,,0
-"PAR","PAR-2932","0886542001","HTC","RE",,"Action Camera","16 MP DSC Optical Sensor","1080p FHD Video 146 degrees wide angle lens waterproof construction bluetooth and wifi connection cinematic features such as timelapse and slowmotion ios and android compatible also shoots with a microsSD","builtin",,,0
-"PAR","PAR-AG-DVX200",,"Panasonic","AG-DVX200PJ Ultra HD (AG-DVX200)",,"Camcorder",,"4k","builtin",,,0
-"PAR","PAR-FC350",,"DJI","Inspire (FC350)",,"Drone Camera",,,"builtin",,,0
-"PAR","PAR-SN1-43","R31C10D7AVK","Samsung","Galaxy Note SGH-1717",,"CellPhone",,,"builtin","Android","4.0.4",0
-"PAR","PAR-TBD1","RF2G10403KN","Samsung","Galaxy Tablet SMT700",,"Tablet",,,"builtin",,,0
-"PAR","PMH-CoolPix",,"Nikon","CoolPix S3600",,"Point&Shoot",,,"builitin",,,0
-"PAR","PMH-EasyShare","KCGLX23703714","Kodak","Kodak EasyShare","C1505","Point&Shoot",,,"builtin",,,0
-"RIT","RGC-Canon6D",,"Canon","EOS 6D",,"DSLR",,,"EF-Mount",,,0
-"RIT","RIT-TBD5",,"Hasselblad","Flextight 848",,"Film Scanner",,"Hardware Resolution: 3x8000px optical resolution 80-800 dpi  CCD color bit depth 16 8000dpi (35mm), 3200 (60mm), 2040 (4x5)","builtin",,,0
-"RIT","RIT-TBD6",,"Hasselblad","Flextight X-1",,"Film Scanner",,"Hardware Resolution: 3x8000px Max resolution 6300 CCD color bit depth 16 6300dpi (35mm), 3200 (60mm), 2040 (4x5)","builtin",,,0
-"RIT","RIT-TBD7",,"Samsung","NX30",,"Mirrorless","APS-C","20 MP Pixel Dimensions: 5472x3648 CMOS no GPS","NX-Mount",,,0
-"RIT","RIT-TBD8",,"Samsung","NX210",,"Mirrorless","APS-C","20 MP Pixel Dimensions: 5472x3648 CMOS optional GPS","NX-Mount",,,0
-"RIT","ssss50045271","62YW025860","Epson","V700","KL1/21","flatbed scanner",,"Hardware Resolution: 4800x9600 optical resolution 4800x6400  max resolution 12800 color bit depth 48 CCD line scan area 8.5"" x 11.7, (transparency adapter 8 x 10)","builtin",,,0
-"RIT-TK","TK-CyberShot",,"Sony","Cyber Shot (DSC-RX1RM2)",,"Mirrorless",,,"builtin",,,0
-"RIT-TK","TK-GalaxyNote4",,"Samsung","Galaxy Note 4 (SAMSUNG-SM-N910A)",,"CellPhone",,,"builtin",,,0
-"RIT-TK","TK-HD2",,"HTC","HD2",,"CellPhone",,,"builtin",,,0
-"RIT-TK","TK-iPhone6",,"Apple","iPhone 6",,"CellPhone",,,"builtin","default",,0
-"RIT-TK","TK-MarkII",,"Canon","5D Mark II",,"DSLR",,,"EF-Mount",,,0
-"RIT-TK","TK-Nikon1J1","32049176","Nikon","1 J1",,"Mirrorless",,,"Nikon 1",,,0
-"PAR","W-GarminVRB","3875215811","Garmin","VIRB",,"Action Camera",,,"builtin",,,0
-"PAR","W-SM-T320",,"Samsung","Tab Pro",,"Tablet",,"Samsung Galaxy Tab Pro 8.4 - Wi-Fi - 16 GB - Black - 8.4""","builtin",,,0
-"PAR","W-SM-T700",,"Samsung","Tab S",,"Tablet",,"Samsung Galaxy Tab S 8.4 - Wi-Fi - 16 GB - Titanium Bronze - 8.4""","builtin",,,0
+"PAR","PAR-2701","42f72b13c0179f4f","Samsung","GT-N7100","Galaxy Note",,"CellPhone",,,"builtin","Android","4.2.2",0
+"PAR","PAR-2702","FFPQG4ZZG5MR","Apple","iPhone 6","iPhone 6 (MG4F2LL/A)",,"CellPhone",,,"builtin","iOS","10.0.20(14A456)",0
+"PAR","PAR-2775",,"Rexing","96650","Rexing V1",,"DashCam",,,"builtin",,,0
+"PAR","PAR-2779",,"AUBBC",,"Intelligent Vehicle DVR 1080P Car Camera",,"DashCam","FHD","140 degree high resolution wide angle lens, Video Format AVI Photo Format JPG","builtin","CHG02_DRHDA","V1.6",0
+"PAR","PAR-2814","RF8H90SP6TL","Samsung","SM-G935U","Galaxy S  7",,"CellPhone",,,"builtin","Android",,0
+"PAR","PAR-2852","E2281USBKBEA1147","Hisense",,"Sero 8 E2281",,"Tablet",,,"builtin","Android","4.4.2",0
+"PAR","PAR-2853","YFG0514056759","EFun","NX785QC8G","Next Book",,"Tablet",,,"builtin",,,0
+"PAR","PAR-2931","3041658","Sony",,"QX1 Compact System Camera","alpha","Mirrorless","ASP-C","Lens type camera Examor CMOS Sensor 20.1 Megapixels Attaches to Cell Phones for display","E Mount",,,0
+"PAR","PAR-2932","0886542001","HTC","RE","RE",,"Action Camera","16 MP DSC Optical Sensor","1080p FHD Video 146 degrees wide angle lens waterproof construction bluetooth and wifi connection cinematic features such as timelapse and slowmotion ios and android compatible also shoots with a microsSD","builtin",,,0
+"PAR","PAR-2936","RS8HB3FD08J","Samsung","SM-G930U","Galaxy S7",,"CellPhone",,,"builtin","Android","6.0.1",1
+"PAR","PAR-3136","sx-0308-01-V2 G","FREDI",,"HD Mini Super Small Portable Hidden Spy Camera","P2P Wireless WiFi Digital Video Recorder for IOS iPhone Android Phone APP Remote View","Remote","1/3"" colour CMOS, 4:3","WiFi IP Camera, Motion Detection:You open this function in APP first, when a motion is detected, it will take a picture and push a message on your phone. Loop Recording","builtin",,,0
+"PAR","PAR-3164","C161020010","Uokoo",,"Portable mini IP Camera,","motion detection","Security",,"web enabled security camera","builtin",,,0
+"PAR","PAR-A001","ADF20106744","AIPTEK",,"Unknown",,"Unknown",,,"Unknown",,,0
+"PAR","PAR-A002","ABJ20019900","AIPTEK",,"VGA Pencam II",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A003","03025J01970","Argus",,"DC3500",,"Point&Shoot","2.1 Megapixel",,"builtin",,,1
+"PAR","PAR-A004","03025J02305","Argus",,"DC3500",,"Point&Shoot","2.1 pixel CCD",,"builtin",,,0
+"PAR","PAR-A005","9T5ARGC4VA00073","Argus",,"QC5340",,"Point&Shoot","5.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A006","050100119320001270","Audiovox",,"DC400",,"Camcorder","CMOS",,"builtin",,,0
+"PAR","PAR-A007","50100119813637570","Audiovox",,"DC400",,"Camcorder",,"CMOS","builtin",,,0
+"PAR","PAR-A008","03271145","Bell & Howell",,"BH41",,"Point&Shoot","CMOS",,"builtin",,,0
+"PAR","PAR-A009","6422010144","Canon",,"Powershot A60",,"Point&Shoot","2.0 megapixel CCD",,"builtin",,,0
+"PAR","PAR-A010","6422010147","Canon",,"Powershot A60",,"Point&Shoot","2 megapixel",,"builtin",,,1
+"PAR","PAR-A011","8722139794","Canon",,"Powershot A85",,"Point&Shoot","4.0 megapixel",,"builtin",,,0
+"PAR","PAR-A012","8722139798","Canon",,"Powershot A85",,"Point&Shoot","4.0 megapixel CCD",,"builtin",,,0
+"PAR","PAR-A013","4628523427","Canon",,"Powershot S3IS",,"Compact Digital","6.0 megapixel CCD",,"builtin",,,0
+"PAR","PAR-A014","272800810","Canon",,"Powershot SD630",,"Point&Shoot","6.0 megapixel CCD",,"builtin",,,0
+"PAR","PAR-A015","1304464A","Casio",,"QVR40","4.0 megapixels","Point&Shoot",,,"builtin",,,1
+"PAR","PAR-A016","P1036854","Concord Camera Corp",,"Q Eye Go LCD",,"Compact Digital","1.3 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A017","3016A3061105A","Spectra Merchandising International",,"Cool iCam CIC-300",,"Point&Shoot","0.48 Megapixel",,"builtin",,,0
+"PAR","PAR-A018","TBPD1210438002102Z","Creative",,"3200Z DC-CAM",,"Point&Shoot","1.34 megapixel CCD",,"builtin",,,0
+"PAR","PAR-A019","TBPD121643800208B","Creative",,"DC-CAM 3200Z",,"Point&Shoot","3.34 Megapixel",,"builtin",,,0
+"PAR","PAR-A020","DF040305903","Digital Concepts",,"Digital",,"Unknown",,,"Unknown",,,0
+"PAR","PAR-A021","A4A129098","DXG Technology",,"DXG-321",,"Compact Digital","3.0 Megapixel (6.6. Megapixel interpolated) CMOS",,"builtin",,,0
+"PAR","PAR-A022","A4A129103","DXG Technology",,"DXG-321",,"Compact Digital","3.0 Megapixel (6.6. Megapixel interpolated) CMOS",,"builtin",,,0
+"PAR","PAR-A023","GAMZ000747","Epson",,"L-500V",,"Point&Shoot","5.0 Megapixel CCD",,"buitin",,,0
+"PAR","PAR-A024","GAMZ000749","Epson",,"L-500V",,"Point&Shoot","5.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A025","GAMZ000869","Epson",,"L-500V",,"Point&Shoot","5.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A026","GAMZ001008","Epson",,"L-500V",,"Point&Shoot","5.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A027","C110208010001249","Ezonics",,"EZ801",,"Webcam","0.1 MP CMOS",,"buitlin",,,0
+"PAR","PAR-A028","C110208010001250","Ezonics",,"EZ801",,"Webcam","0.1 MP CMOS",,"builtin",,,0
+"PAR","PAR-A029","14A04206","FujiFilm",,"FinePix 30i",,"Point&Shoot","CCD 2.0 Megapixel",,"builtin",,,1
+"PAR","PAR-A030","14A05737","FujiFilm",,"FinePix 30i",,"Compact Digital","2.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A031","44A20525","FujiFilm",,"FinePix E500",,"Point&Shoot","4.1 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A032","44a20529","FujiFilm",,"FinePix E500",,"Point&Shoot","4.1 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A033","42A20529","FujiFilm",,"FinePix S2 Pro",,"DSLR","6.2 Megapixel  (12.1 Megapixel interpolated) CCD",,"X-Mount",,,0
+"PAR","PAR-A034","61A60693","FujiFilm",,"FinePix S9000",,"DSLR","9.0 Megapixel CCD",,"X-Mount",,,0
+"PAR","PAR-A035",,"Gadget Universe",,"HE509",,"Pen Camera",,,"builtin",,,0
+"PAR","PAR-A036","1098031962","Gateway",,"DCm50",,"Point&Shoot",,,"builtin",,,0
+"PAR","PAR-A037","1098037003","Gateway",,"DCm50",,"Point&Shoot",,,"builtin",,,0
+"PAR","PAR-A038","5B390741","GrandVision",,"EZ Shot S8",,"Unknown",,,"Unknown",,,0
+"PAR","PAR-A039","5B390750","GrandVision",,"EZ Shot S8",,"Unknown",,,"Unknown",,,0
+"PAR","PAR-A040","BDL20026349","Hawking Technology",,"PD300 Pocket DV",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A041","BDL20026350","Hawking Technology",,"PD300 Pocket DV",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A042","CN29Y410MW","HP (Hewlett -Packard)",,"Photosmart 120",,"Compact Digital","1.0 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A043","CNY29Y4100NH","HP (Hewlett -Packard)",,"Photosmart 120",,"Compact Digital","1.0 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A044","04126012","iClick",,"DV 2100",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A045","4125863","iClick",,"DV 2100",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A046","63QE1AAZVGS0546","iSonic",,"Snapbox AV80",,"Camcorder","CMOS",,"builtin",,,0
+"PAR","PAR-A047","216J062C000379","Jazz",,"DV165",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A048",,"Jazz",,"JDC26",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A049","145N3151","JVC",,"GC-QX5HD",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A050","11102047","KBGear",,"JamCam 3.0",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A051","4181241","Kobian",,"CyberPix E560M",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A052","4181242","Kobian",,"CyberPix E560M",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A053","KCGCX5145332","Kodak",,"Easyshare CX7300",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A054","KCGCX5413533","Kodak",,"Easyshare CX7300",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A055","5078510","Konaki",,"DV6 Plus",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A056","6885558","Konica Minolta",,"Revio KD-400Z",,"Point&Shoot","4.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A057","6885562","Konica Minolta",,"Revio KD-400Z",,"Point&Shoot","4.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A058","CJ005881","Kyocera",,"Finecam S3L",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A059","CJ007505","Kyocera",,"Finecam S3L",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A060","CJ009967","Kyocera",,"Finecam S3L",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A061","PFC34317912","Labtec",,"DC505",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A062","B189980","Largan",,"Chameleon Mega",,"Compact Digital","1.3 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A063","B39615","Labtec",,"Chameleon Mega",,"Compact Digital","1.3 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A064",,"Leica Camera",,"Digilux 1",,"Compact Digital","4.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A065","2813073","Leica Camera",,"Digilux 1",,"Compact Digital","4.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A067","EUR050300376","Matsonic",,"DC6330",,"Point&Shoot","6.0 Megapixel",,"builtin",,,0
+"PAR","PAR-A068","EURO050300375","Matsonic",,"DC6330",,"Point&Shoot","6.0 Megapixel",,"builtin",,,0
+"PAR","PAR-A069","3179","Mattel",,"Barbie Digital",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A070","3319","Mattel",,"Barbie Digital",,"Compact Digital",,,"builtin",,,0
+"PAR","PAR-A071","203042699","Micro Innovations",,"TravelCam",,"Webcam",,,"builtin",,,0
+"PAR","PAR-A072","40413330","Konica Minolta",,"DImage X31",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A073","41433100","Konica Minolta",,"DImage X31",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A074","DD000380","Minox",,"DC-5222",,"Point&Shoot","5.2 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A075","3655959","Nikon",,"CoolPix 2100",,"Point&Shoot","2 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A076","7235533","Nikon",,"CoolPix 775",,"Point&Shoot","2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A077","7253060","Nikon",,"CoolPix 775",,"Point&Shoot","2 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A078","BFK30076399","NISIS",,"DV4",,"Camcorder","2 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A079","BFK30078312","NISIS",,"DV4",,"Camcorder","2.0 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A080","9W7NORBCFA00157","Norcent",,"DC-520",,"Point&Shoot","5 Megapixel CCD",,"builtin",,,1
+"PAR","PAR-A081","012NA31200032","Norcent",,"DC1920",,"Point&Shoot","1.3 Megapixel (1.92 Megapixel interpolated) CMOS",,"builtin",,,0
+"PAR","PAR-A082","623505483","Olympus",,"Evolt E-300",,"DSLR","8 Megapixel CCD",,"Four Thirds",,,0
+"PAR","PAR-A083","J92101376","Olympus",,"SP-510UZ",,"Point&Shoot","7 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A084","133543921","Olympus",,"Stylus 400",,"Point&Shoot","4.1 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A085","A93584946","Olympus",,"Stylus 720 Sw",,"Point&Shoot","7.1 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A086",,"Oregon Scientific",,"DS6618",,"Compact Digital","0.31 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A087","6255","Oregon Scientific",,"DS6638",,"Point&Shoot","2.0 Megapixel/3.0 Megapixel (interpolated) CMOS",,"builtin",,,0
+"PAR","PAR-A088","14HMO2688","Panasonic",,"D-Snap SV-AS10",,"Point&Shoot","2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A089","I4HM02687","Panasonic",,"D-Snap SV-AS10",,"Point&Shoot","2.0 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A090","UA32600800","Panasonic",,"DMC-LC33",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A091","G6SC01004","Panasonic",,"Lumix FZ50",,"Point&Shoot","10 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A092",,"Panasonic",,"Lumix LC33",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A093","G7HW52144R","Panasonic",,"PV-GS320",,"Camcorder",,,"builtin",,,0
+"PAR","PAR-A094","5808561","Pentax",,"istDS",,"DSLR","6.1 Megapixel CCD",,"K",,,0
+"PAR","PAR-A095","5814689","Pentax",,"istDS",,"DSLR","6.1 Megapixel CCD. 15.7 x 23.5mm",,"K",,,0
+"PAR","PAR-A096","6166121","Pentax",,"Optio 33L",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A097","6166435","Pentax",,"Optio 33L",,"Point&Shoot","3.2 Megapixel CCD",,"builtin",,,0
+"PAR","PAR-A098","KM000332007530","Philips",,"KEY0079-17B",,"Wearable Camera",,,"builtin",,,0
+"PAR","PAR-A099","JA005A505JH423","RCA",,"CDS1005",,"Compact Digital","0.35 Megapixel",,"builtin",,,0
+"PAR","PAR-A100","M21095","Rollei",,"Rolleiflex MiniDigi",,"Compact Digital","3 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A101","M21883","Rollei",,"Rolleiflex MiniDigi",,"Compact Digital","3.0 Megapixel CMOS",,"builtin",,,0
+"PAR","PAR-A102",,"Sakar",,"27290",,"Compact Digital","CMOS",,"builtin",,,0
+"PAR","PAR-A103",,"Sakar",,"84379",,"Unknown","100K pixel CMOS",,"Unknown",,,0
+"PAR","PAR-A106","62950389","Sanyo",,"AZ3",,"Point&Shoot",,,"builtin",,,1
+"PAR","PAR-B001",,"Axis",,"Q6035 Network Camera",,"Security",,,"Builtin",,,0
+"PAR","PAR-FC350",,"DJI",,"Inspire (FC350)",,"Drone Camera",,,"builtin",,,0
+"PAR","PAR-SN1-43","R31C10D7AVK","Samsung",,"Galaxy Note SGH-1717",,"CellPhone",,,"builtin","Android","4.0.4",0
+"PAR","PAR-TBD1","RF2G10403KN","Samsung",,"Galaxy Tablet SMT700",,"Tablet",,,"builtin",,,0
+"PAR","PB-GalaxyS7","R58HB3FD78M","Samsung","SM-G930U","Galaxy S7",,"CellPhone",,,"builtin","Android",,0
+"RIT","PMH-CoolPix",,"Nikon","COOLPIX S3600","CoolPix S3600",,"Point&Shoot",,,"builitin",,,0
+"PAR","PMH-EasyShare","KCGLX23703714","Kodak","KODAK EASYSHARE Camera, C1505","Kodak EasyShare","C1505","Point&Shoot",,,"builtin",,,0
+"RIT","RGC-Canon6D",,"Canon","Canon EOS 6D","EOS 6D",,"DSLR",,,"EF-Mount",,,0
+"RIT","RITB004","32049176","Nikon","1 J1","1 J1",,"Mirrorless",,,"Nikon 1",,,0
+"RIT","RIT-TBD5",,"Hasselblad",,"Flextight 848",,"Film Scanner",,"Hardware Resolution: 3x8000px optical resolution 80-800 dpi  CCD color bit depth 16 8000dpi (35mm), 3200 (60mm), 2040 (4x5)","builtin",,,0
+"RIT","RIT-TBD6",,"Hasselblad",,"Flextight X-1",,"Film Scanner",,"Hardware Resolution: 3x8000px Max resolution 6300 CCD color bit depth 16 6300dpi (35mm), 3200 (60mm), 2040 (4x5)","builtin",,,0
+"RIT","RIT-TBD7",,"Samsung",,"NX30",,"Mirrorless","APS-C","20 MP Pixel Dimensions: 5472x3648 CMOS no GPS","NX-Mount",,,0
+"RIT","RIT-TBD8",,"Samsung",,"NX210",,"Mirrorless","APS-C","20 MP Pixel Dimensions: 5472x3648 CMOS optional GPS","NX-Mount",,,0
+"RIT-TK","TK-CyberShot",,"Sony","DSC-RX1RM2","Cyber Shot",,"Mirrorless",,,"builtin",,,0
+"RIT-TK","TK-HD2",,"GoPro","HD2","Hero 2",,"Action Camera",,,"builtin",,,0
+"RIT-TK","TK-iPhone6",,"Apple","iPhone 6","iPhone 6",,"CellPhone",,,"builtin","default",,0
+"RIT-TK","TK-MarkII",,"Canon","Canon EOS 5D Mark II","5D Mark II",,"DSLR",,,"EF-Mount",,,0
+"RIT","tk-samsung",,"Samsung","SAMSUNG-SM-N910A","Galaxy Note 4",,"CellPhone",,,"builtin",,,0
+"PAR","W-GarminVRB","3875215811","Garmin",,"VIRB",,"Action Camera",,,"builtin",,,0
+"PAR","W-SM-T320",,"Samsung","SM-T320","Tab Pro",,"Tablet",,"Samsung Galaxy Tab Pro 8.4 - Wi-Fi - 16 GB - Black - 8.4""","builtin",,,0
+"PAR","W-SM-T700",,"Samsung","SM-T700","Tab S",,"Tablet",,"Samsung Galaxy Tab S 8.4 - Wi-Fi - 16 GB - Titanium Bronze - 8.4""","builtin",,,0

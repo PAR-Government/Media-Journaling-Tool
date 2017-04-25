@@ -9,11 +9,13 @@ pandastable
 pandas
 numpy
 pillow
+boto3 (for s3 export)
+botocore (for s3 export)
 
 --------------------------------------------
 Usage: Navigate to hp_tool directory and run with:
 
-python hpgui.py
+        python hpgui.py
 --------------------------------------------
 
 On the main GUI, there are a number of boxes and fields:
@@ -42,26 +44,36 @@ Red fields are mandatory. These must be entered.
 Grey fields already have data. Only change these if you have a very good reason.
 White fields should be entered if you have that information available.
 
+There are several tabs set with groups of related fields that are commonly edited together. More tabs can be added by editing the "hptabs.json" file in hp_tool/data. Tabbed items do not have to be mutually 
+exclusive (multiple tabs can have the same fields).
 
 If the user chooses to enter keywords (click the Enter Keywords button on the main gui window), another spreadsheet will open, with only a few columns: the first being the image name, 
 followed by 3 columns for keywords. The keywords are validated against a list, which can be found in hp_tool/data. This list should not be edited - contact an administrator to add a word.
 Not every image needs all three keywords. More keyword columns can be added by clicking the "Add Column" button under "Edit" in the menu. 
 
+Built-in S3 export is available from File-> Export to S3. It will first save and validate the spreadsheet, then confirm the desired S3 bucket/path (can be set here or in Preferences). If this feature is used,
+it will archive the output folder into a tar.gz and upload to the specified location.
 
 OUTPUTS
 --------------------------------------------
 RIT CSV:
-The RIT CSV includes the following information for each image:
-"ImageFilename", "HP-CollectionRequestID", "HP-HDLocation", "OriginalImageName", "MD5","CameraModel", "DeviceSN","HP-DeviceLocalID" ,"LensModel",
-"LensSN", "HP-LensLocalId" ,"FileType" ,"HP-JpgQuality" ,"ShutterSpeed" ,"Aperture" ,"ExpCompensation" ,"ISO", "NoiseReduction", "WhiteBalance",
-"HP-DegreesKelvin", "ExposureMode", "FlashFired", "FocusMode", "CreationDate", "HP-Location", "GPSLatitude", "GPSLongitude", "CustomRendered",
-"HP-OnboardFilter", "HP-OBFilterType", "BitDepth", "ImageWidth", "ImageHeight", "HP-LensFilter", "Type", "HP-Reflections", "HP-Shadows",
-"HP-HDR", "HP-CameraKinematics", "HP-App", "HP-Inside", "HP-Outside"
+The RIT CSV includes the following information for each image. This is for local records:
+"ImageFilename","HP-CollectionRequestID","HP-HDLocation","OriginalImageName","MD5","CameraModel","DeviceSN","HP-DeviceLocalID","LensModel","LensSN","HP-LensLocalID","FileType","ShutterSpeed","Aperture",
+"ExpCompensation","ISO","NoiseReduction","WhiteBalance","ExposureMode","FlashFired","FocusMode","CreationDate","HP-Location","CustomRendered","HP-OnboardFilter","HP-OBFilterType","BitDepth","ImageWidth",
+"ImageHeight","HP-LensFilter","Type","HP-WeakReflection","HP-StrongReflection","HP-TransparentReflection","HP-ReflectedObject","HP-Shadows","HP-HDR","HP-CameraKinematics","HP-App","HP-Inside","HP-Outside",
+"HP-ProximitytoSource","HP-MultiInput","HP-AudioChannels","HP-Echo","HP-BackgroundNoise","HP-Description","HP-Modifier","HP-AngleofRecording","HP-MicLocation","HP-PrimarySecondary","HP-ZoomLevel","HP-Recapture",
+"HP-RecaptureSubject","HP-LightSource","HP-Orientation","HP-DynamicStatic","HP-NumberOfSpeakers"
 
 History CSV:
 The history CSV includes the following information:
 "Original Name", "New Name", "MD5", "Type"
 
+RankOne CSV:
+This CSV should be uploaded with the data.
+MD5,CameraModel,DeviceSerialNumber,LensModel,LensSN,ImageFilename,HP-CollectionRequestID,HP-DeviceLocalID,HP-LensLocalID,NoiseReduction,HP-Location,HP-OnboardFilter,HP-OBFilterType,HP-LensFilter,
+HP-WeakReflection,HP-StrongReflection,HP-TransparentReflection,HP-ReflectedObject,HP-Shadows,HP-HDR,HP-CameraKinematics,HP-App,HP-Inside,HP-Outside,HP-ProximitytoSource,HP-MultiInput,HP-AudioChannels,
+HP-Echo,HP-BackgroundNoise,HP-Description,HP-Modifier,HP-AngleofRecording,HP-MicLocation,HP-PrimarySecondary,HP-ZoomLevel,HP-Recapture,HP-RecaptureSubject,HP-LightSource,HP-Orientation,HP-DynamicStatic,
+HP-NumberOfSpeakers,ImportDate
 
 EXAMPLE USE
 --------------------------------------------

@@ -419,7 +419,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -455,7 +455,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -532,7 +532,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -566,7 +566,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -602,7 +602,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -689,7 +689,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -725,7 +725,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -761,7 +761,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -796,7 +796,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -832,7 +832,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -876,6 +876,22 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {},
+      "description": "Copy metadata information from a source.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+        {
+      "category": "AntiForensic",
+      "name": "AntiForensicEditExif",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+      "optionalparameters": {},
       "description": "Alter image metadata.",
       "includeInMask": false,
       "transitions": [
@@ -897,6 +913,21 @@
       ],
       "optionalparameters": {},
       "description": "Use quantization tables and exif data from a particular camera to save an image as JPG.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "AntiForensicDither",
+      "mandatoryparameters": {},
+      "rules": [
+        "check_eight_bit",
+        "checkSize"
+      ],
+      "optionalparameters": {},
+      "description": "Disguise quantization artifacts by adding noise.",
       "includeInMask": false,
       "transitions": [
         "image.image"
@@ -946,11 +977,16 @@
     },
     {
       "category": "AntiForensic",
-      "name": "AddCamFingerprintPRNU",
+      "name": "LensDistortion",
       "mandatoryparameters": {
-         "Capture Camera ID": {
-          "type": "text",
-          "description": "ID of camera used to capture image if not screen shot"
+        "Distortion Type": {
+          "type": "list",
+          "values": [
+            "Pincushion",
+            "Barrel",
+            "Mustache"
+          ],
+          "description": "Type of distortion being applied to image."
         }
       },
       "rules": [
@@ -958,7 +994,89 @@
         "check_eight_bit"
       ],
       "optionalparameters": {},
-      "description": "PRNU Correction",
+      "description": "Apply artificial lens distortion",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "AddCamFingerprintPRNU",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        }
+      },
+      "description": "Add PRNU fingerprint trace from an image.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "RemoveCamFingerprintPRNU",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "ID of camera used to capture image if not screen shot"
+        }
+      },
+      "description": "Remove PRNU fingerprint from image.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "AddCamFingerprintAveragePRNUFromSet",
+      "mandatoryparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "Local ID of camera used to capture images"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Add PRNU fingerprint trace, generated from a set of images.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "AntiForensic",
+      "name": "RemoveCamFingerprintAveragePRNUFromSet",
+      "mandatoryparameters": {
+        "Capture Camera ID": {
+          "type": "text",
+          "description": "Local ID of camera used to capture images"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit"
+      ],
+      "optionalparameters": {},
+      "description": "Remove PRNU fingerprint trace, generated from a set of images from a camera.",
       "includeInMask": false,
       "transitions": [
         "image.image"
@@ -992,7 +1110,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1016,7 +1134,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1040,7 +1158,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1056,8 +1174,8 @@
       "category": "ArtifactsCGI",
       "name": "ArtifactsCGIObjectCGI",
       "mandatoryparameters": {
-         "imagefile": {
-          "type": "imagefile",
+         "file:image": {
+          "type": "file:image",
           "description": "An image file containing the image used.  The unused portion of the image should be transparent with an alpha-channel"
         }
       },
@@ -1069,7 +1187,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1108,7 +1226,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1148,7 +1266,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1164,14 +1282,6 @@
       "category": "Layer",
       "name": "Blend",
       "mandatoryparameters": {
-         "mode": {
-           "type":"list",
-           "values" : ["Dissolve","Multiply","IntensityBurn","Soft Light","Hard Light","Darken","Multiply","Linear Burn","Lighten",
-             "Linear Dodge (add)", "Color Dodge", "Lighter Dodge","Screen", "Vivid Light", "Difference",
-             "Pin Light","Hard Mix","Linear Light",
-             "Exclusion","Subtract","Divide", "Hue","Saturation","Color","Luminosity","Smudge"],
-           "description":"Blend Mode"
-         },
          "Start Time": {
           "type": "time",
           "source": "video",
@@ -1181,7 +1291,17 @@
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
+        },
+        "mode": {
+           "type":"list",
+           "values" : ["Color Dodge","Color","Darken","Difference",
+              "Dissolve","Divide","Exclusion","Hard Light",
+             "Hard Mix","Hue","IntensityBurn","Lighten",
+              "Lighter Dodge","Linear Burn","Linear Dodge (add)","Linear Light",
+              "Luminosity","Multiply","Multiply","Pin Light","Saturation",
+              "Screen","Smudge","Soft Light","Subtract","Vivid Light"],
+           "description":"Blend Mode"
+         }
       },
       "rules": [
         "checkLengthSame",
@@ -1192,15 +1312,15 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": true,
+      "hidden" : false,
       "transitions": [
-        "image.image",
         "video.video"
       ]
     },
@@ -1250,7 +1370,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1274,7 +1394,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1298,7 +1418,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1322,7 +1442,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1339,7 +1459,7 @@
       "name": "ColorMatch",
       "mandatoryparameters": {
          "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1372,7 +1492,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1396,7 +1516,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1420,7 +1540,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1444,7 +1564,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1467,7 +1587,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1503,7 +1623,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1549,7 +1669,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1588,7 +1708,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1624,7 +1744,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1648,7 +1768,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1673,7 +1793,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1697,7 +1817,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1721,7 +1841,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1767,7 +1887,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "source": "image",
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule" : {"purpose": "clone"}
@@ -1776,6 +1896,36 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
       "includeInMask": true,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "Filter",
+      "name": "FilterConvolutionKernel",
+      "mandatoryparameters": {
+        "convolutionkernel":{
+          "type": "fileset:",
+          "description": "Text file containing 3x3 or 5x5 convolution kernel, separated by spaces and/or newlines."
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkLengthSame",
+        "checkFileTypeChange",
+        "check_local_warn"
+      ],
+      "optionalparameters": {
+        "type":{
+          "type": "list",
+          "values": ["edge detection", "anti-alias", "sharpen", "unsharp masking", "blur", "gaussian blur", "other"],
+          "description": "Description of the desired effect of the kernel (e.g. anti-aliasing, blurring, etc.)"
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Convolve an image with a custom convolution kernel.",
+      "includeInMask": false,
       "transitions": [
         "image.image",
         "video.video"
@@ -1793,7 +1943,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1817,7 +1967,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1840,7 +1990,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2038,7 +2188,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2062,36 +2212,12 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift all luminance values on a histogram to higher or lower values.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Layer",
-      "name": "BlendHardlight",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Increase the contrast of high values in a luminance histogram.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -2110,7 +2236,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2134,7 +2260,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2158,7 +2284,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -2182,36 +2308,12 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the values of a luminance histogram.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Layer",
-      "name": "BlendSoftlight",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "imagefile",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Decrease the contrast in high value areas of the luminance histogram.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -2342,16 +2444,38 @@
         "video.video"
       ]
     },
+     {
+      "category": "Output",
+      "name": "OutputCopy",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Export the image in the in the same format. Used to branch off a final image  node",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
     {
       "category": "Output",
       "name": "OutputBmp",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
       "rules": [
         "checkSize"
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2384,7 +2508,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2409,7 +2533,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2434,7 +2558,7 @@
       ],
       "optionalparameters": {
         "XMP File Name": {
-          "type": "xmpfile",
+          "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
@@ -2544,7 +2668,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "video.video"
       ]
@@ -2604,7 +2728,8 @@
           "type": "list",
           "values": [
             "remove",
-            "add"
+            "add",
+            "blend"
           ],
           "description": "Purpose: remove an object, add an object."
         },
@@ -2629,7 +2754,20 @@
         "checkFileTypeChange",
         "check_local"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+         "pastemask": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the area pasted into."
+        },
+        "mode": {
+           "type":"list",
+           "values" : ["Color Dodge","Color","Darken","Difference","Dissolve","Divide","Exclusion","Hard Light","Hard Mix","Hue","IntensityBurn","Lighten","Lighter Dodge","Linear Burn",
+             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Multiply","Opacity","Overlay","Pin Light","Saturation","Screen","Soft Light","Subtract","Vivid Light" ],
+           "description":"Blend Mode",
+           "rule" : {"purpose": "blend"}
+         }
+      },
+      "maskTransformFunction": "maskgen.mask_rules.pastesplice",
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,
@@ -2641,6 +2779,11 @@
       "category": "Paste",
       "name": "PasteFrames",
       "mandatoryparameters": {
+        "add type": {
+          "type" : "list",
+          "values" :["insert","replace"],
+          "description": "Replacement does not have to be the same size."
+        },
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2652,7 +2795,7 @@
       },
       "rules": [
         "checkForDonor",
-        "checkLengthBigger",
+        "checkPasteFrameLength",
         "checkFrameTimes"
       ],
       "optionalparameters": {},
@@ -2799,7 +2942,7 @@
         }
       },
       "rules": [
-        "checkLengthBigger"
+        "checkLengthSame"
       ],
       "optionalparameters": {},
       "description": "Cut & Paste a series of frames within the same video",
@@ -2853,6 +2996,9 @@
           "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
         }
       },
+      "analysisOperations": [
+        "maskgen.tool_set.siftAnalysis"
+      ],
       "rules": [
       ],
       "optionalparameters": {
@@ -2873,8 +3019,13 @@
             "Other"
           ],
           "description": "Base type of printer used to compose the image"
+        },
+        "Position Mapping": {
+          "type": "boxpair",
+          "description": "Maps the bounding regions of each image"
         }
       },
+      "maskTransformFunction": "maskgen.mask_rules.recapture_transform",
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
       "includeInMask": false,
       "transitions": [
@@ -2912,7 +3063,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3029,7 +3180,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3311,7 +3462,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3403,6 +3554,7 @@
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
       "includeInMask": false,
       "generateMask" : false,
+      "maskTransformFunction": "maskgen.mask_rules.crop_transform",
       "transitions": [
         "image.image",
         "video.video"
@@ -3418,7 +3570,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {
@@ -3462,7 +3614,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -3482,19 +3634,21 @@
       "name": "TransformMove",
       "mandatoryparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the component that was moved"
         }
       },
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkInputMask"
       ],
       "optionalparameters": {
         "RANSAC": {
           "type": "list",
           "source": "image",
            "values": [
+             "None",
              "3",
              "4",
              "5"
@@ -3503,8 +3657,9 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.forcedSiftAnalysis"
+        "maskgen.tool_set.forcedSiftWithInputAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.move_transform",
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false,
       "transitions": [
@@ -3524,6 +3679,7 @@
              "bicubic",
              "bilinear",
              "cubic",
+             "mesh",
              "lanczos",
              "nearest",
              "other"
@@ -3536,6 +3692,10 @@
         "checkResizeInterpolation"
       ],
       "optionalparameters": {
+         "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask of the component that was moved"
+        },
         "RANSAC": {
           "type": "list",
           "source": "image",
@@ -3551,6 +3711,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.resize_transform",
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
       "generateMask" : false,
@@ -3624,7 +3785,7 @@
       "name": "TransformSeamCarving",
       "mandatoryparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing preserved and sliced areas"
         }
       },
@@ -3664,7 +3825,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {
@@ -3698,7 +3859,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {
@@ -3732,7 +3893,7 @@
       ],
       "optionalparameters": {
         "inputmaskname": {
-          "type": "imagefile",
+          "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
         "RANSAC": {

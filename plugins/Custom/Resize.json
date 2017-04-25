@@ -2,15 +2,15 @@
   "operation": {
     "category": "Transform",
     "name": "TransformResize",
-    "description": "Resize using ImageMagick. Ignore aspect ratio and using custom interpolation method.",
+    "description": "Resize using ImageMagick.",
     "version": "7.0",
     "arguments": {
       "WIDTHxHEIGHT": {
         "type": "string",
         "defaultvalue": null,
-        "description": "Desired size, with an x in between (e.g. 1024x768)"
+        "description": "Desired size, with an x in between (e.g. 1024x768). Add ! to ignore aspect ratio on Windows, \\! on unix (e.g. 1024x768!)"
       },
-      "METHOD": {
+      "interpolation": {
         "type": "list",
         "values": ["Bilinear", "Nearest", "Mesh", "Catrom", "Spline"],
         "defaultvalue": "bilinear",
@@ -20,6 +20,14 @@
     },
     "transitions": ["image.image"],
     "software": "ImageMagick"
+},"mapping": {
+    "interpolation":{
+      "bicubic": "Catrom",
+      "bilinear": "Bilinear",
+      "cubic": "Spline",
+      "nearest": "Nearest",
+      "mesh": "Mesh"
+  }
 },
   "command": {
     "default":[
@@ -28,7 +36,7 @@
       "-resize",
       "{WIDTHxHEIGHT}!",
       "-interpolate",
-      "{METHOD}",
+      "{interpolation}",
       "{outputimage}"
     ],
     "win": [
@@ -38,7 +46,7 @@
       "-resize",
       "{WIDTHxHEIGHT}!",
       "-interpolate",
-      "{METHOD}",
+      "{interpolation}",
       "{outputimage}"
     ],
     "darwin":[
@@ -47,7 +55,7 @@
       "-resize",
       "{WIDTHxHEIGHT}!",
       "-interpolate",
-      "{METHOD}",
+      "{interpolation}",
       "{outputimage}"
     ],
     "linux":[
@@ -56,7 +64,7 @@
       "-resize",
       "{WIDTHxHEIGHT}!",
       "-interpolate",
-      "{METHOD}",
+      "{interpolation}",
       "{outputimage}"
     ]
   },

@@ -1,15 +1,18 @@
+import webbrowser
 from Tkinter import *
 import ttk
 import os
 import datetime
 import hp_data
 import change_all_metadata
+import tkMessageBox
 
 class Preferences(Toplevel):
     def __init__(self, master=None):
         Toplevel.__init__(self, master=master)
         self.master=master
         self.title('Preferences')
+        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.set_text_vars()
         self.prefsFrame = Frame(self, width=300, height=300)
         self.prefsFrame.pack(side=TOP)
@@ -19,7 +22,7 @@ class Preferences(Toplevel):
         self.metaFrame.pack(side=BOTTOM)
         self.prefsFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'preferences.txt')
         self.metaFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt')
-        p = hp_data.parse_prefs(self.prefsFile)
+        p = hp_data.parse_prefs(self, self.prefsFile)
         if p:
             self.prefs = p
         else:
@@ -48,7 +51,17 @@ class Preferences(Toplevel):
         self.orgVar.trace('w', self.update_org)
         self.usrVar.trace('w', self.update_preview)
         self.usrVar.trace('w', self.update_metadata)
+        self.usrVar.trace('w', self.limit_length)
         self.seqVar.trace('w', self.update_preview)
+
+        self.s3Var = StringVar()
+        self.urlVar = StringVar()
+        self.tokenVar = StringVar()
+        self.trelloVar = StringVar()
+
+        self.imageVar = StringVar()
+        self.videoVar = StringVar()
+        self.audioVar = StringVar()
 
         self.copyrightVar = StringVar()
         self.bylineVar = StringVar()
@@ -71,56 +84,138 @@ class Preferences(Toplevel):
             else:
                 self.prefs['seq'] = '00000'
 
+            if self.prefs.has_key('aws'):
+                self.s3Var.set(self.prefs['aws'])
+
+            if self.prefs.has_key('imagetypes'):
+                self.imageVar.set(self.prefs['imagetypes'])
+
+            if self.prefs.has_key('videotypes'):
+                self.videoVar.set(self.prefs['videotypes'])
+
+            if self.prefs.has_key('audiotypes'):
+                self.audioVar.set(self.prefs['audiotypes'])
+
+            if self.prefs.has_key('apiurl'):
+                self.urlVar.set(self.prefs['apiurl'])
+
+            if self.prefs.has_key('apitoken'):
+                self.tokenVar.set(self.prefs['apitoken'])
+
+            if self.prefs.has_key('trello'):
+                self.trelloVar.set(self.prefs['trello'])
+
         if self.metadata:
             self.copyrightVar.set(self.metadata['copyrightnotice'])
             self.bylineVar.set(self.metadata['by-line'])
             self.creditVar.set(self.metadata['credit'])
+            self.update_metadata()
 
         self.usageVar.set('CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/')
 
     def create_widgets(self):
+        r = 0
         self.usrLabel = Label(self.prefsFrame, text='Initials: ')
-        self.usrLabel.grid(row=0, column=0)
+        self.usrLabel.grid(row=r, column=0)
         self.usrEntry = Entry(self.prefsFrame, textvar=self.usrVar, width=5)
-        self.usrEntry.grid(row=0, column=1)
+        self.usrEntry.grid(row=r, column=1)
         self.orgLabel = Label(self.prefsFrame, text='Organization: ')
-        self.orgLabel.grid(row=0, column=2)
+        self.orgLabel.grid(row=r, column=2)
         self.boxItems = [key + ' (' + hp_data.orgs[key] + ')' for key in hp_data.orgs]
 
         self.orgBox = ttk.Combobox(self.prefsFrame, values=self.boxItems, textvariable=self.orgVar, state='readonly')
         self.orgBox.grid(row=0, column=3, columnspan=4)
 
-        self.descrLabel1 = Label(self.prefsFrame,
-                                 textvar=self.prevVar)
-        self.descrLabel1.grid(row=3, column=0, columnspan=8)
+        r+=3
+        self.descrLabel1 = Label(self.prefsFrame, textvar=self.prevVar)
+        self.descrLabel1.grid(row=r, column=0, columnspan=8)
 
+        r+=1
+        self.s3Label = Label(self.prefsFrame, text='S3 bucket/path: ')
+        self.s3Label.grid(row=r, column=0, columnspan=4)
+
+        self.s3Box = Entry(self.prefsFrame, textvar=self.s3Var)
+        self.s3Box.grid(row=r, column=4)
+
+        r+=1
+        self.urlLabel = Label(self.prefsFrame, text='Browser API URL: ')
+        self.urlLabel.grid(row=r, column=0, columnspan=4)
+
+        self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar)
+        self.urlBox.grid(row=r, column=4)
+
+        r+=1
+        self.tokenLabel = Label(self.prefsFrame, text='Browser API Token: ')
+        self.tokenLabel.grid(row=r, column=0, columnspan=4)
+
+        self.tokenBox = Entry(self.prefsFrame, textvar=self.tokenVar)
+        self.tokenBox.grid(row=r, column=4)
+
+        r+=1
+        self.trelloButton = Button(self.prefsFrame, text='Trello Token: ', command=self.get_trello_token)
+        self.trelloButton.grid(row=r, column=0, columnspan=4)
+
+        self.trelloBox = Entry(self.prefsFrame, textvar=self.trelloVar)
+        self.trelloBox.grid(row=r, column=4)
+
+        types = {'Image':self.imageVar, 'Video':self.videoVar, 'Audio':self.audioVar}
+        self.extensions = {}
+        for t in types.keys():
+            r+=1
+            but = Button(self.prefsFrame, text='Additional ' + t + ' Filetypes: ', command=self.show_default_types)
+            but.grid(row=r, column=0, columnspan=4)
+            self.extensions[t] = Entry(self.prefsFrame, textvar=types[t])
+            self.extensions[t].grid(row=r, column=4)
+
+        r+=1
         self.metalabel1 = Label(self.metaFrame, text='Metadata tags:\n(to be applied to copies only. Original images are unaffected.)')
-        self.metalabel1.grid(row=4, column=0, columnspan=8)
+        self.metalabel1.grid(row=r, column=0, columnspan=8)
 
+        r+=1
         self.copyrightLabel = Label(self.metaFrame, text='CopyrightNotice: ')
-        self.copyrightLabel.grid(row=5)
-        self.copyrightEntry = Entry(self.metaFrame, textvar=self.copyrightVar)
-        self.copyrightEntry.grid(row=5, column=1)
+        self.copyrightLabel.grid(row=r)
+        self.copyrightEntry = Entry(self.metaFrame, textvar=self.copyrightVar, state='readonly')
+        self.copyrightEntry.grid(row=r, column=1)
 
+        r+=1
         self.bylineLabel = Label(self.metaFrame, text='By-Line: ')
-        self.bylineLabel.grid(row=6)
-        self.bylineEntry = Entry(self.metaFrame, textvar=self.bylineVar)
-        self.bylineEntry.grid(row=6, column=1)
+        self.bylineLabel.grid(row=r)
+        self.bylineEntry = Entry(self.metaFrame, textvar=self.bylineVar, state='readonly')
+        self.bylineEntry.grid(row=r, column=1)
 
+        r+=1
         self.creditLabel = Label(self.metaFrame, text='Credit: ')
-        self.creditLabel.grid(row=7)
-        self.creditEntry = Entry(self.metaFrame, textvar=self.creditVar)
-        self.creditEntry.grid(row=7, column=1)
+        self.creditLabel.grid(row=r)
+        self.creditEntry = Entry(self.metaFrame, textvar=self.creditVar, state='readonly')
+        self.creditEntry.grid(row=r, column=1)
 
+        r+=1
         self.usageLabel = Label(self.metaFrame, text='UsageTerms: ')
-        self.usageLabel.grid(row=8)
-        self.usageEntry = Entry(self.metaFrame, textvar=self.usageVar)
-        self.usageEntry.grid(row=8, column=1)
+        self.usageLabel.grid(row=r)
+        self.usageEntry = Entry(self.metaFrame, textvar=self.usageVar, state='readonly')
+        self.usageEntry.grid(row=r, column=1)
 
         self.applyButton = Button(self.buttonFrame, text='Save & Close', command=self.save_prefs)
         self.applyButton.grid(padx=5)
         self.cancelButton = Button(self.buttonFrame, text='Cancel', command=self.destroy)
         self.cancelButton.grid(row=0, column=1, padx=5)
+
+    def get_trello_token(self):
+        webbrowser.open('https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
+
+    def show_default_types(self):
+        imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
+        vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf']
+        audExts = ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']
+        tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
+                                                    'Image: ' + ', '.join(imExts) + '\n' +
+                                                    'Video: ' + ', '.join(vidExts) + '\n' +
+                                                    'Audio: ' + ', '.join(audExts))
+
+    def limit_length(self, *args):
+        s = self.usrVar.get()
+        if len(s) > 3:
+            self.usrVar.set(s[0:3])
 
     def update_preview(self, *args):
         try:
@@ -139,9 +234,9 @@ class Preferences(Toplevel):
     def update_metadata(self, *args):
         initials = self.usrVar.get()
         org = self.orgVar.get()
-        self.copyrightEntry.delete(0, END)
-        self.bylineEntry.delete(0, END)
-        self.creditEntry.delete(0, END)
+        # self.copyrightEntry.delete(0, END)
+        # self.bylineEntry.delete(0, END)
+        # self.creditEntry.delete(0, END)
 
         if org == 'U of M (M)':
             org = 'University of Michigan'
@@ -153,10 +248,10 @@ class Preferences(Toplevel):
             org = 'Drexel University'
         elif org == 'CU Denver (C)':
             org = 'University of Colorado, Denver'
-
-        self.copyrightEntry.insert(0, '(c) 2016 ' + org + ' - Under contract of MediFor')
-        self.bylineEntry.insert(0, initials)
-        self.creditEntry.insert(0, org)
+        year = datetime.datetime.today().strftime('%Y')
+        self.copyrightVar.set('(c) ' + year + ' ' + org + ' - Under contract of MediFor')
+        self.bylineVar.set(initials)
+        self.creditVar.set(org)
 
     def save_prefs(self):
         if self.usrEntry.get():
@@ -164,6 +259,17 @@ class Preferences(Toplevel):
 
         update = self.orgVar.get()
         self.prefs['seq'] = self.seqVar.get()
+
+        self.prefs['aws'] = self.s3Var.get()
+        if self.urlVar.get():
+            self.prefs['apiurl'] = self.urlVar.get()
+        if self.tokenVar.get():
+            self.prefs['apitoken'] = self.tokenVar.get()
+        if self.trelloVar.get():
+            self.prefs['trello'] = self.trelloVar.get()
+        self.prefs['imagetypes'] = self.imageVar.get()
+        self.prefs['videotypes'] = self.videoVar.get()
+        self.prefs['audiotypes'] = self.audioVar.get()
 
         with open(self.prefsFile, 'w') as f:
             for key in self.prefs:
@@ -180,5 +286,3 @@ class Preferences(Toplevel):
             for key in self.metadata:
                 f.write(key + '=' + self.metadata[key] + '\n')
         self.destroy()
-
-

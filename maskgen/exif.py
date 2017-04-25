@@ -2,6 +2,7 @@ from subprocess import call, Popen, PIPE
 import os
 import numpy as np
 import tool_set
+import logging
 
 
 def getOrientationFromExif(source):
@@ -84,26 +85,27 @@ def copyexif(source, target):
         return 'exiftool not installed'
 
 
-def runexif(args):
+def runexif(args, fix=True):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     command = [exifcommand]
     command.extend(args)
     try:
-        p = Popen(command, stdout=PIPE, stderr=PIPE)
-        try:
-            while True:
-                line = p.stdout.readline()
-                if line is None or len(line) == 0:
-                    line = p.stderr.readline()
-                    if line is None or len(line) == 0:
-                        break
-                print line
-        finally:
-            p.stdout.close()
-            p.stderr.close()
+        stdout,stderr = Popen(command,stdout=PIPE,stderr=PIPE).communicate()
+        if stdout is not None:
+            for line in stdout.splitlines():
+                logging.getLogger('maskgen').info("exif output for command " + str(command) + " = "+ line)
+        if stderr is not None:
+            newsetofargs = args
+            for line in stderr.splitlines():
+                newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
+                logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
+            #try stripping off the offenders
+            if len(newsetofargs) < len(args) and fix:
+                runexif(newsetofargs, fix=False)
     except OSError as e:
-        print "Exiftool not installed"
+        logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
         raise e
+
 
 def getexif(source, args=None, separator=': '):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
@@ -113,10 +115,9 @@ def getexif(source, args=None, separator=': '):
     command.append(source)
     meta = {}
     try:
-        p = Popen(command, stdout=PIPE, stderr=PIPE)
-        try:
-            while True:
-                line = p.stdout.readline()
+        stdout, stderr = Popen(command,stdout=PIPE,stderr=PIPE).communicate()
+        if stdout is not None:
+            for line in stdout.splitlines():
                 try:
                     line = unicode(line, 'utf-8')
                 except:
@@ -124,16 +125,11 @@ def getexif(source, args=None, separator=': '):
                         line = unicode(line, 'latin').encode('ascii', errors='xmlcharrefreplace')
                     except:
                         continue
-                if line is None or len(line) == 0:
-                    break
                 pos = line.find(separator)
                 if pos > 0:
                     meta[line.split(separator)[0].strip()] = separator.join(line.split(separator)[1:]).strip()
-        finally:
-            p.stdout.close()
-            p.stderr.close()
     except OSError:
-        print "Exiftool not installed"
+        logging.getLogger('maskgen').error("Exiftool failure. Is it installed? ")
     return meta
 
 

@@ -15,7 +15,9 @@ from graph_rules import processProjectProperties
 from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
-
+from CompositeViewer import CompositeViewDialog
+from notifiers import  loadNotifier
+import logging
 
 """
   Main UI Driver for MaskGen
@@ -90,6 +92,7 @@ class MakeGenUI(Frame):
     errorlistDialog = None
     exportErrorlistDialog = None
     uiProfile = UIProfile()
+    notifiers = loadNotifier(prefLoader)
     menuindices = {}
     scModel = None
     """
@@ -169,7 +172,10 @@ class MakeGenUI(Frame):
         val = tkFileDialog.asksaveasfile(initialdir=self.scModel.get_dir(), title="Output Project Image Name",
                                          filetypes=[("png", "*.png")])
         if (val is not None and len(val.name) > 0):
-            openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val))
+            option = self.prefLoader.get_key('graph_plugin_name')
+            openFile(ImageGraphPainter(self.scModel.getGraph()).outputToFile(val,
+                                                                    options={'use_plugin_name':option}
+                                                                    ))
 
     def saveas(self):
         val = tkFileDialog.askdirectory(initialdir=self.scModel.get_dir(), title="Save As")
@@ -203,7 +209,7 @@ class MakeGenUI(Frame):
         self.img3c.config(image=self.img3)
 
     def _preexport(self):
-        errorList = self.scModel.validate()
+        errorList = self.scModel.validate(external=True)
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
             errorlistDialog.wait(self)
@@ -243,7 +249,11 @@ class MakeGenUI(Frame):
                 else:
                     tkMessageBox.showinfo("Export to S3", "Complete")
                     self.prefLoader.save('s3info', val)
-            except IOError:
+            except IOError as e:
+                logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
+                tkMessageBox.showinfo("Error", "Failed to upload export")
+            except ClientError as e:
+                logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
 
     def _promptRotate(self,donor_im,rotated_im, orientation):
@@ -299,6 +309,12 @@ class MakeGenUI(Frame):
             self.scModel.setProjectData('username', newName)
             if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
                 self.scModel.getGraph().replace_attribute_value('username', oldName, newName)
+
+    def setproperty(self, key, value):
+        token = self.prefLoader.get_key(key)
+        newTokenStr = tkSimpleDialog.askstring(value, value, initialvalue=token)
+        if newTokenStr is not None:
+            self.prefLoader.save(key, newTokenStr)
 
     def setPreferredFileTypes(self):
         filetypes = self.getPreferredFileTypes()
@@ -537,7 +553,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
     def validate(self):
-        errorList = self.scModel.validate()
+        errorList = self.scModel.validate(external=True)
         if (self.errorlistDialog is None):
             self.errorlistDialog = ListDialog(self, errorList, "Validation Errors")
         else:
@@ -610,6 +626,14 @@ class MakeGenUI(Frame):
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
+    def compress(self):
+        newnode = self.scModel.compress()
+        if newnode is not None:
+            tkMessageBox.showinfo("Compress","Compressed as file " + newnode  + ".")
+            self.canvas.redrawNode(self.scModel.start)
+        else:
+            tkMessageBox.showinfo("Compress", "Node not eligble for compression or error occurred.")
+
     def connectto(self):
         self.drawState()
         self.canvas.connectto()
@@ -642,9 +666,16 @@ class MakeGenUI(Frame):
                     edge = self.scModel.getGraph().get_edge(start,end)
                     if edge is not None:
                         grps = self.scModel.getSemanticGroups(start,end)
-                        if res  not in grps:
+                        if res not in grps:
                             grps.append(res)
                             self.scModel.setSemanticGroups(start,end,grps)
+
+    def removegroup(self):
+        if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
+            for name in self.groupselection:
+                self.scModel.selectImage(name)
+                self.remove()
+
     def select(self):
         self.drawState()
         self.setSelectState('normal')
@@ -652,6 +683,17 @@ class MakeGenUI(Frame):
     def changeEvent(self, recipient, eventType):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
+        if eventType == 'export':
+            qacomment = self.scModel.getProjectData('qacomment')
+            validation_person = self.scModel.getProjectData('validatedby')
+            comment = 'Exported by ' + self.prefLoader.get_key('username')
+            comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
+            if validation_person is not None:
+                comment = comment + '\n Validated By: ' + validation_person
+            self.notifiers.update_journal_status(self.scModel.getName(),
+                                                 self.scModel.getGraph().getCreator().lower(),
+                                                 comment,
+                                                 self.scModel.getGraph().get_project_type())
         #        elif eventType == 'connect':
         #           self.canvas.showEdge(recipient[0],recipient[1])
 
@@ -680,17 +722,14 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        d = DescriptionViewDialog(self, self.scModel.get_dir(), im, os.path.split(filename)[1],
+        d = DescriptionViewDialog(self, self.scModel, os.path.split(filename)[1],
                                   description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
 
+
     def viewselectmask(self):
-        im, filename = self.scModel.getSelectMask()
-        if (im is None):
-            return
-        name = self.scModel.start + ' to ' + self.scModel.end
-        d = CompositeCaptureDialog(self, self.scModel.getStartType(), self.scModel.getEndType(), self.scModel.get_dir(),
-                                   im, name, self.scModel.getDescription())
+        d = CompositeCaptureDialog(self,self.scModel)
         if not d.cancelled:
+            self.scModel.updateSelectMask(d.selectMasks)
             self.scModel.update_edge(d.modification)
 
     def startQA(self):
@@ -709,6 +748,7 @@ class MakeGenUI(Frame):
         self.master.title(os.path.join(self.scModel.get_dir(), self.scModel.getName()))
 
     def createWidgets(self):
+        from functools import partial
         self._setTitle()
 
         menubar = Menu(self)
@@ -723,6 +763,10 @@ class MakeGenUI(Frame):
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
         settingsmenu.add_command(label="Autosave", command=self.setautosave)
+        settingsmenu.add_command(label="API Token", command=partial(self.setproperty,'apitoken','API Token'))
+        settingsmenu.add_command(label="API URL", command=partial(self.setproperty,'apiurl','API URL'))
+        for k,v in self.notifiers.get_properties().iteritems():
+            settingsmenu.add_command(label=v, command=partial(self.setproperty,k,v))
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)
@@ -837,6 +881,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
         self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
+        self.nodemenu.add_command(label="Compress", command=self.compress)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
@@ -857,6 +902,7 @@ class MakeGenUI(Frame):
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
+        self.groupmenu.add_command(label="Remove", command=self.removegroup)
 
         iframe = Frame(self.master, bd=2, relief=SUNKEN)
         iframe.grid_rowconfigure(0, weight=1)
@@ -867,8 +913,8 @@ class MakeGenUI(Frame):
         #iframe.grid_propagate(False)
 
         mframe = Frame(self.master, bd=2, relief=SUNKEN)
-        mframe.grid_rowconfigure(0, weight=1)
-        mframe.grid_columnconfigure(0, weight=1)
+        mframe.grid_rowconfigure(0, weight=5)
+        mframe.grid_columnconfigure(0, weight=5)
         self.vscrollbar = Scrollbar(mframe, orient=VERTICAL)
         self.hscrollbar = Scrollbar(mframe, orient=HORIZONTAL)
         self.vscrollbar.grid(row=0, column=1, sticky=N + S)
@@ -926,7 +972,7 @@ class MakeGenUI(Frame):
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:
-            print 'Invalid project director ' + dir
+            logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)
         self.scModel = tuple[0]
         if self.scModel.getProjectData('typespref') is None:
@@ -957,19 +1003,23 @@ def do_every (interval, worker_func, iterations = 0):
       do_every, [interval, worker_func, 0 if iterations == 0 else iterations-1]
     ).start ()
 
+
+
 def main(argv=None):
     if (argv is None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--imagedir', help='image directory', nargs=1)
-    parser.add_argument('--base', help='base image or video', nargs=1)
+    parser.add_argument('--imagedir', help='image directory', required=False)
+    parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
-    imgdir = ['.']
+
+    imgdir = None
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
+    set_logging()
     if args.imagedir is not None:
         imgdir = args.imagedir
     if args.http is not None:
@@ -982,12 +1032,13 @@ def main(argv=None):
     root = Tk()
 
     prefLoader = MaskGenLoader()
-    gui = MakeGenUI(imgdir[0], master=root, pluginops=plugins.loadPlugins(),
-                    base=args.base[0] if args.base is not None else None, uiProfile=uiProfile)
+    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
     root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':
         execute_every(float(interval),saveme, saver=gui)
+
     gui.mainloop()
 
 

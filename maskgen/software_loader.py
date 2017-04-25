@@ -5,7 +5,7 @@ import os
 from maskgen_loader import MaskGenLoader
 from json import JSONEncoder
 import json
-
+import logging
 
 class OperationEncoder(JSONEncoder):
     def default(self, o):
@@ -18,18 +18,19 @@ operationsByCategory = {}
 projectProperties = {}
 
 
-def getFileName(fileName):
+def getFileName(fileName, path=None):
     import sys
     if (os.path.exists(fileName)):
-        print 'Loading ' + fileName
+        logging.getLogger('maskgen').info( 'Loading ' + fileName)
         return fileName
     places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
-    places.extend([x for x in sys.path if 'maskgen' in x])
+    places.extend([os.path.join(x,'resources') for x in sys.path if 'maskgen' in x or
+                   (path is not None and path in x)])
     for place in places:
-        fileName = os.path.join(place, fileName)
-        if os.path.exists(fileName):
-            print 'Loading ' + fileName
-            return fileName
+        newNanme = os.path.abspath(os.path.join(place, fileName))
+        if os.path.exists(newNanme):
+            logging.getLogger('maskgen').info( 'Loading ' + newNanme)
+            return newNanme
 
 class ProjectProperty:
     description = None
@@ -75,8 +76,8 @@ class Operation:
     category = None
     includeInMask = False
     description = None
-    optionalparameters = []
-    mandatoryparameters = []
+    optionalparameters = {}
+    mandatoryparameters = {}
     rules = []
     analysisOperations = []
     transitions = []
@@ -84,16 +85,18 @@ class Operation:
     generateMask  = True
     groupedOperations = None
     groupedCategories = None
+    maskTransformFunction = None
 
-    def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=list(),
-                 mandatoryparameters=list(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None):
+    def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
+                 mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
+                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
+                 maskTransformFunction=maskTransformFunction):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
         self.rules = rules
-        self.mandatoryparameters = mandatoryparameters
-        self.optionalparameters = optionalparameters
+        self.mandatoryparameters = mandatoryparameters if mandatoryparameters is not None else {}
+        self.optionalparameters = optionalparameters if optionalparameters is not None else {}
         self.description = description
         self.analysisOperations = analysisOperations
         self.transitions = transitions
@@ -101,13 +104,14 @@ class Operation:
         self.generateMask  = generateMask
         self.groupedOperations = groupedOperations
         self.groupedCategories = groupedCategories
+        self.maskTransformFunction = maskTransformFunction
 
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           sort_keys=True, indent=4)
 
 
-def getOperation(name, fake = False):
+def getOperation(name, fake = False, warning=True):
     """
 
     :param name: name of the operation
@@ -116,7 +120,9 @@ def getOperation(name, fake = False):
     """
     global operations
     if name == 'Donor':
-        return Operation(name='Donor', category='Donor')
+        return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
+    if name not in operations and warning:
+        logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
     return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)
 
 
@@ -188,7 +194,8 @@ def loadOperationJSON(fileName):
                                             'analysisOperations'] if 'analysisOperations' in op else [],
                                         transitions=op['transitions'] if 'transitions' in op else [],
                                         compareparameters=op[
-                                            'compareparameters'] if 'compareparameters' in op else dict())
+                                            'compareparameters'] if 'compareparameters' in op else dict(),
+                                        maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
     return res
 
 customRuleFunc = {}
@@ -196,15 +203,28 @@ def loadCustomRules():
     global customRuleFunc
     import pkg_resources
     for p in  pkg_resources.iter_entry_points("maskgen_rules"):
-        print 'load rule ' + p.name
+        logging.getLogger('maskgen').info( 'load rule ' + p.name)
         customRuleFunc[p.name] = p.load()
 
+def insertCustomRule(name,func):
+    global customRuleFunc
+    customRuleFunc[name] = func
+
 def getRule(name, globals={}):
+    if name is None:
+        return None
+    import importlib
     global customRuleFunc
     if name in customRuleFunc:
         return customRuleFunc[name]
     else:
-        return globals.get(name)
+        if '.' not in name:
+            return globals.get(name)
+        mod_name, func_name = name.rsplit('.', 1)
+        mod = importlib.import_module(mod_name)
+        func = getattr(mod, func_name)
+        customRuleFunc[name] = func
+        return func#globals.get(name)
 
 def loadProjectProperties(fileName):
     global projectProperties
@@ -256,12 +276,12 @@ def loadSoftware(fileName):
                 continue
             columns = l.split(',')
             if len(columns) < 3:
-                print 'Invalid software description on line ' + str(line_no) + ': ' + l
+                logging.getLogger('maskgen').error( 'Invalid software description on line ' + str(line_no) + ': ' + l)
             software_type = columns[0].strip()
             software_name = columns[1].strip()
             versions = [x.strip() for x in columns[2:] if len(x) > 0]
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
-                print 'Invalid software type on line ' + str(line_no) + ': ' + l
+                logging.getLogger('maskgen').error( 'Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
                 types = ['image', 'video'] if software_type == 'both' else [software_type]
                 types = ['image', 'video', 'audio'] if software_type == 'all' else types
@@ -350,7 +370,7 @@ class SoftwareLoader:
             if version is not None and version not in versions:
                 versions = list(versions)
                 versions.append(version)
-                print version + ' not in approved set for software ' + name
+                logging.getLogger('maskgen').warning( version + ' not in approved set for software ' + name)
             return versions
         return []
 

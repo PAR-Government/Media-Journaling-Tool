@@ -1,1 +1,8 @@
-username=XX
+username=eric
+organization=PAR
+
+date=170413
+
+inputdir=/Users/ericrobertson/Documents/maskgen/hp_tool/image
+outputdir=/Users/ericrobertson/Documents/maskgen/foo
+seq=00012
