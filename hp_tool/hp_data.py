@@ -21,7 +21,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 FIELDSPATH = os.path.join('data', 'fieldnames.json')
 HEADERSPATH = os.path.join('data', 'headers.json')
-RVERSION = '#@version=01.07'
+RVERSION = '#@version=01.08'
 
 def copyrename(image, path, usrname, org, seq, other):
     """
@@ -431,7 +431,7 @@ def check_for_errors(data, cameraData, images, path):
         errors[os.path.basename(images[image])] = e = []
         # replace None with empty string
         for item in dbData:
-            if dbData[item] is None:
+            if dbData[item] is None or dbData[item] == 'nan':
                 dbData[item] = ''
         if (data[image]['CameraModel'] != dbData['exif_camera_model']):
             e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database.'))

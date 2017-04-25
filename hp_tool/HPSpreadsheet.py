@@ -36,6 +36,8 @@ class HPSpreadsheet(Toplevel):
         self.ritCSV=ritCSV
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.saveState = True
+        self.highlighted_cells = []
+        self.error_cells = []
         self.kinematics = self.load_kinematics()
         self.devices = devices
         self.apps = self.load_apps()
@@ -102,7 +104,10 @@ class HPSpreadsheet(Toplevel):
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
-        self.editMenu.add_command(label='Fill Down', command=self.fill_down, accelerator='ctrl-d')
+        self.editMenu.add_command(label='Copy', command=self.pt.copy_value, accelerator='ctrl-c')
+        self.editMenu.add_command(label='Paste', command=self.pt.paste_value, accelerator='ctrl-v')
+        self.editMenu.add_command(label='Fill Selection', command=self.pt.fill_selection, accelerator='ctrl-d')
+        self.editMenu.add_command(label='Fill Column', command=self.pt.fill_selection, accelerator='ctrl-g')
         self.editMenu.add_command(label='Fill True', command=self.pt.enter_true, accelerator='ctrl-t')
         self.editMenu.add_command(label='Fill False', command=self.pt.enter_false, accelerator='ctr-f')
         self.config(menu=self.menubar)
@@ -115,7 +120,6 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Return>', self.update_current_image)
         self.bind('<Up>', self.update_current_image)
         self.bind('<Down>', self.update_current_image)
-        self.bind('<Control-d>', self.fill_down)
         self.bind('<Control-s>', self.exportCSV)
 
     def keypress(self, event):
@@ -204,11 +208,11 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
-            validValues = sorted([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None])
+            validValues = sorted(set([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'HP-CameraModel':
-            validValues = sorted([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None])
+            validValues = sorted(set([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'DeviceSN':
-            validValues = sorted([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None])
+            validValues = sorted(set([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'HP-App':
             validValues = self.apps
         elif currentCol == 'HP-LensFilter':
@@ -301,7 +305,7 @@ class HPSpreadsheet(Toplevel):
 
         self.mandatoryImage = []
         image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                 'HP-Shadows', 'HP-CameraModel', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
+                 'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
         for i in image:
             self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
 
@@ -310,26 +314,38 @@ class HPSpreadsheet(Toplevel):
         for v in video:
             self.mandatoryVideo.append(self.pt.model.df.columns.get_loc(v))
 
-        audio = ['HP-CameraModel', 'HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
+        audio = ['HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
                  'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation',
                  'HP-Inside', 'HP-Outside']
         self.mandatoryAudio = []
         for c in audio:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
+        disabled = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN']
+        self.disabledCols = []
+        for d in disabled:
+            self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
+
+        self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
+
         self.color_code_cells()
 
     def color_code_cells(self):
         if os.path.exists(self.errorpath):
             with open(self.errorpath) as j:
-                errors = json.load(j)
+                self.processErrors = json.load(j)
         else:
-            errors = None
+            self.processErrors = None
         notnans = self.pt.model.df.notnull()
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
                 currentExt = os.path.splitext(self.pt.model.getValueAt(row,0))[1].lower()
                 x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
+                if notnans.iloc[row, col]:
+                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                                                    fill='#c1c1c1',
+                                                    outline='#084B8A',
+                                                    tag='cellrect')
                 if (col in self.mandatoryImage and currentExt in hp_data.exts['IMAGE']) or \
                         (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
                         (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
@@ -337,25 +353,26 @@ class HPSpreadsheet(Toplevel):
                                                     fill='#f3f315',
                                                     outline='#084B8A',
                                                     tag='cellrect')
-                else:
-                    x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
-                    if notnans.iloc[row, col]:
-                        rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                        fill='#c1c1c1',
-                                                        outline='#084B8A',
-                                                        tag='cellrect')
+                    self.highlighted_cells.append((row, col))
+                if col in self.disabledCols:
+                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                                                    fill='#c1c1c1',
+                                                    outline='#084B8A',
+                                                    tag='cellrect')
             image = self.pt.model.df['OriginalImageName'][row]
-            if errors is not None and image in errors and errors[image]:
-                for error in errors[image]:
+            if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
+                for error in self.processErrors[image]:
                     errCol = error[0]
                     if errCol != 'CameraMake':
-                        x1, y1, x2, y2 = self.pt.getCellCoords(row, self.pt.model.df.columns.get_loc(errCol))
+                        col = self.pt.model.df.columns.get_loc(errCol)
+                        x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
                         rect = self.pt.create_rectangle(x1, y1, x2, y2,
                                                         fill='#ff5b5b',
                                                         outline='#084B8A',
                                                         tag='cellrect')
+                        self.error_cells.append((row, col))
 
-                self.pt.lift('cellrect')
+        self.pt.lift('cellrect')
         self.pt.redraw()
 
     def exportCSV(self, showErrors=True, quiet=False):
@@ -520,40 +537,43 @@ class HPSpreadsheet(Toplevel):
         self.prefsFile = os.path.join('data', 'preferences.txt')
         self.prefs = hp_data.parse_prefs(self.master, self.prefsFile)
 
-    def fill_down(self, event=None):
-        if self.on_main_tab:
-            currentTable = self.pt
-        else:
-            currentTable = self.tabpt
-
-        selection = currentTable.getSelectionValues()
-        cells = currentTable.getSelectedColumn
-        rowList = range(cells.im_self.startrow, cells.im_self.endrow + 1)
-        colList = range(cells.im_self.startcol, cells.im_self.endcol + 1)
-        for row in rowList:
-            for col in colList:
-                try:
-                    currentTable.model.setValueAt(selection[0][0], row, col)
-                except IndexError:
-                    pass
-        currentTable.redraw()
-
     def validate(self):
         errors = []
-        for col in range(0, self.pt.cols):
-            if col in self.booleanColNums:
-                for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
+        types = self.pt.model.df['Type']
+        uniqueIDs = []
+        for row in range(0, self.pt.rows):
+            for col in range(0, self.pt.cols):
+                currentColName = self.pt.model.df.columns[col]
+                type = types[row]
+                val = str(self.pt.model.getValueAt(row, col))
+                if currentColName in self.booleanColNames:
                     if val.title() == 'True' or val.title() == 'False':
                         self.pt.model.setValueAt(val.title(), row, col)
-                    else:
-                        currentColName = list(self.pt.model.df.columns.values)[col]
+                    elif type == 'image' and col in self.mandatoryImage:
                         errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
                             row + 1) + '. Value must be True or False')
+                    elif type == 'video' and col in self.mandatoryVideo:
+                        errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
+                            row + 1) + '. Value must be True or False')
+                    elif type == 'audio' and col in self.mandatoryAudio:
+                        errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
+                            row + 1) + '. Value must be True or False')
+            errors.extend(self.parse_process_errors(row))
+            errors.extend(self.check_model(row))
+            errors.extend(self.check_kinematics(row))
+            errors.extend(self.check_localID(row))
+            if self.pt.model.df['HP-DeviceLocalID'][row] not in uniqueIDs:
+                uniqueIDs.append(self.pt.model.df['HP-DeviceLocalID'][row])
 
-        errors.extend(self.check_model())
-        errors.extend(self.check_kinematics())
-        errors.extend(self.check_localID())
+        for coord in self.highlighted_cells:
+            val = str(self.pt.model.getValueAt(coord[0], coord[1]))
+            if val == '':
+                currentColName = list(self.pt.model.df.columns.values)[coord[1]]
+                errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
+                            coord[0] + 1) + '. This cell is mandatory.')
+
+        if len(uniqueIDs) > 1:
+            errors.append('Multiple cameras identified. Each processed dataset should contain data from only one camera.')
 
         cancelPressed = None
         if errors:
@@ -561,6 +581,14 @@ class HPSpreadsheet(Toplevel):
             cancelPressed = d.cancelPressed
 
         return errors, cancelPressed
+
+    def parse_process_errors(self, row):
+        errors = []
+        imageName = self.pt.model.df['OriginalImageName'][row]
+        if imageName in self.processErrors:
+            for err in self.processErrors[imageName]:
+                errors.append(err[1] + ' (row ' + str(row) + ')')
+        return errors
 
     def check_save(self):
         if self.saveState == False:
@@ -586,20 +614,16 @@ class HPSpreadsheet(Toplevel):
             return []
         return [x.strip() for x in df['Camera Kinematics']]
 
-    def check_kinematics(self):
+    def check_kinematics(self, row):
         errors = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraKinematics')]
-        for col in range(0, self.pt.cols):
-            if col in cols_to_check:
-                for row in range(0, self.pt.rows):
-                    currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
-                    if currentExt in hp_data.exts['VIDEO']:
-                        val = str(self.pt.model.getValueAt(row, col))
-                        if val.lower() == 'nan' or val == '':
-                            imageName = self.pt.model.getValueAt(row, 0)
-                            errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                        elif val.lower() not in [x.lower() for x in self.kinematics]:
-                            errors.append('Invalid camera kinematic ' + val + ' (row ' + str(row + 1) + ')')
+        kinematic = self.pt.model.df['HP-CameraKinematics'][row]
+        type = self.pt.model.df['Type'][row]
+        if type.lower() == 'video':
+            if kinematic.lower() == 'nan' or kinematic == '':
+                imageName = self.pt.model.getValueAt(row, 0)
+                errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+            elif kinematic.lower() not in [x.lower() for x in self.kinematics]:
+                errors.append('Invalid camera kinematic ' + kinematic + ' (row ' + str(row + 1) + ')')
         return errors
 
     def load_apps(self):
@@ -627,35 +651,27 @@ class HPSpreadsheet(Toplevel):
         localIDs = self.devices.items()
         return sorted(list(set(models))), localIDs
 
-    def check_model(self):
+    def check_model(self, row):
         errors = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('HP-CameraModel')]
-        for col in range(0, self.pt.cols):
-            if col in cols_to_check:
-                for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
-                    if val.lower() == 'nan' or val == '':
-                        imageName = self.pt.model.getValueAt(row, 0)
-                        errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
-                    elif val not in [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]:
-                        errors.append('Invalid camera model ' + val + ' (row ' + str(row + 1) + ')')
+        model = self.pt.model.df['HP-CameraModel'][row]
+        if model.lower() == 'nan' or model == '':
+            imageName = self.pt.model.getValueAt(row, 0)
+            errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+        elif model not in [self.devices[data]['hp_camera_model'] for data in self.devices if
+                         self.devices[data]['hp_camera_model'] is not None]:
+            errors.append('Invalid camera model ' + model + ' (row ' + str(row + 1) + ')')
         return errors
 
-    def check_localID(self):
+    def check_localID(self, row):
         errors = []
         uniques = []
-        cols_to_check = [self.pt.model.df.columns.get_loc('HP-DeviceLocalID')]
-        for col in range(0, self.pt.cols):
-            if col in cols_to_check:
-                for row in range(0, self.pt.rows):
-                    val = str(self.pt.model.getValueAt(row, col))
-                    if val.lower() == 'nan' or val == '':
-                        imageName = self.pt.model.getValueAt(row, 0)
-                        errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row+ 1 ) + ')')
-                    if val not in uniques:
-                        uniques.append(val)
-        if len(uniques) > 1:
-            errors.append('Multiple Local IDs are identified. Each process should only contain one unique Local ID.')
+        localID = self.pt.model.df['HP-DeviceLocalID'][row]
+        if localID.lower() == 'nan' or localID == '':
+            imageName = self.pt.model.getValueAt(row, 0)
+            errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row + 1) + ')')
+        elif localID not in [self.devices[data]['hp_device_local_id'] for data in self.devices if
+                         self.devices[data]['hp_device_local_id'] is not None]:
+            errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
         return errors
 
 class NewCameraPrompt(tkSimpleDialog.Dialog):
@@ -705,6 +721,7 @@ class TrelloSignInPrompt(tkSimpleDialog.Dialog):
 class CustomTable(pandastable.Table):
     def __init__(self, master, **kwargs):
         pandastable.Table.__init__(self, parent=master, **kwargs)
+        self.copied_val = None
 
     def doBindings(self):
         """Bind keys and mouse clicks, this can be overriden"""
@@ -747,24 +764,66 @@ class CustomTable(pandastable.Table):
         #######################################
         self.bind('<Control-Key-t>', self.enter_true)
         self.bind('<Control-Key-f>', self.enter_false)
+        self.bind('<Control-Key-d>', self.fill_selection)
+        self.bind('<Control-Key-g>', self.fill_column)
+        self.bind('<Control-Key-c>', self.copy_value)
+        self.bind('<Control-Key-v>', self.paste_value)
         #self.bind('<Return>', self.handle_double_click)
         ########################################
 
         self.focus_set()
         return
 
-    def enter_true(self, event):
+    def enter_true(self, event=None):
+        self.focus_set()
         for row in range(self.startrow,self.endrow+1):
             for col in range(self.startcol, self.endcol+1):
                 self.model.setValueAt('True', row, col)
         self.redraw()
 
-    def enter_false(self, event):
+    def enter_false(self, event=None):
+        self.focus_set()
         # row = self.get_row_clicked(event)
         # col = self.get_col_clicked(event)
         for row in range(self.startrow,self.endrow+1):
             for col in range(self.startcol, self.endcol+1):
                 self.model.setValueAt('False', row, col)
+        self.redraw()
+
+    def fill_selection(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        val = self.model.getValueAt(row, col)
+        # tfw rows are 1-indexed, but columns are 0-indexed
+        for row in range(self.startrow,self.endrow):
+            for col in range(self.startcol, self.endcol):
+                self.model.setValueAt(val, row, col)
+        self.redraw()
+
+    def fill_column(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        val = self.model.getValueAt(row, col)
+        rowList = range(0, self.rows)
+        for row in rowList:
+            self.model.setValueAt(val, row, col)
+        self.redraw()
+
+    def copy_value(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        self.copied_val = self.model.getValueAt(row, col)
+        self.redraw()
+
+    def paste_value(self, event=None):
+        self.focus_set()
+        col = self.getSelectedColumn()
+        row = self.getSelectedRow()
+        if self.copied_val is not None:
+            self.model.setValueAt(self.copied_val, row, col)
         self.redraw()
 
     def move_selection(self, event, direction='down', entry=False):
@@ -870,3 +929,95 @@ class CustomTable(pandastable.Table):
         self.redraw()
         self.importpath = os.path.dirname(filename)
         return
+
+
+    # right click menu!
+    def popupMenu(self, event, rows=None, cols=None, outside=None):
+        """Add left and right click behaviour for canvas, should not have to override
+            this function, it will take its values from defined dicts in constructor"""
+
+        defaultactions = {
+                        "Copy" : self.copy_value,
+                        "Paste" : self.paste_value,
+                        "Fill Selection" : self.fill_selection,
+                        "Fill True" : self.enter_true,
+                        "Fill False" : self.enter_false,
+                        #"Fill Down" : lambda: self.fillDown(rows, cols),
+                        #"Fill Right" : lambda: self.fillAcross(cols, rows),
+                        #"Add Row(s)" : lambda: self.addRows(),
+                        #"Delete Row(s)" : lambda: self.deleteRow(),
+                        #"Add Column(s)" : lambda: self.addColumn(),
+                        #"Delete Column(s)" : lambda: self.deleteColumn(),
+                        "Clear Data" : lambda: self.deleteCells(rows, cols),
+                        "Select All" : self.selectAll,
+                        #"Auto Fit Columns" : self.autoResizeColumns,
+                        #"Table Info" : self.showInfo,
+                        #"Show as Text" : self.showasText,
+                        #"Filter Rows" : self.queryBar,
+                        #"New": self.new,
+                        #"Load": self.load,
+                        # "Save": self.save,
+                        # "Save as": self.saveAs,
+                        # "Import csv": lambda: self.importCSV(dialog=True),
+                        # "Export": self.doExport,
+                        # "Plot Selected" : self.plotSelected,
+                        # "Hide plot" : self.hidePlot,
+                        # "Show plot" : self.showPlot,
+                        # "Preferences" : self.showPrefs
+            }
+
+        main = ["Copy", "Paste", "Fill Selection", "Fill True", "Fill False", "Clear Data", "Select All"]
+        general = []
+
+        filecommands = []
+        plotcommands = []
+
+        def createSubMenu(parent, label, commands):
+            menu = Menu(parent, tearoff = 0)
+            popupmenu.add_cascade(label=label,menu=menu)
+            for action in commands:
+                menu.add_command(label=action, command=defaultactions[action])
+            return menu
+
+        def add_commands(fieldtype):
+            """Add commands to popup menu for column type and specific cell"""
+            functions = self.columnactions[fieldtype]
+            for f in list(functions.keys()):
+                func = getattr(self, functions[f])
+                popupmenu.add_command(label=f, command= lambda : func(row,col))
+            return
+
+        popupmenu = Menu(self, tearoff = 0)
+        def popupFocusOut(event):
+            popupmenu.unpost()
+
+        if outside == None:
+            #if outside table, just show general items
+            row = self.get_row_clicked(event)
+            col = self.get_col_clicked(event)
+            coltype = self.model.getColumnType(col)
+            def add_defaultcommands():
+                """now add general actions for all cells"""
+                for action in main:
+                    if action == 'Fill Down' and (rows == None or len(rows) <= 1):
+                        continue
+                    if action == 'Fill Right' and (cols == None or len(cols) <= 1):
+                        continue
+                    else:
+                        popupmenu.add_command(label=action, command=defaultactions[action])
+                return
+
+            if coltype in self.columnactions:
+                add_commands(coltype)
+            add_defaultcommands()
+
+        for action in general:
+            popupmenu.add_command(label=action, command=defaultactions[action])
+
+        #popupmenu.add_separator()
+        # createSubMenu(popupmenu, 'File', filecommands)
+        # createSubMenu(popupmenu, 'Plot', plotcommands)
+        popupmenu.bind("<FocusOut>", popupFocusOut)
+        popupmenu.focus_set()
+        popupmenu.post(event.x_root, event.y_root)
+        return popupmenu

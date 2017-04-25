@@ -380,7 +380,7 @@ class PRNU_Uploader(Frame):
                         if f.startswith('.'):
                             os.remove(os.path.join(path, f))
                 else:
-                    msgs.append('There are no images in: ' + path)
+                    msgs.append('There are no images or videos in: ' + path + '. If this is intentional, delete the folder.')
 
         if not self.newCam.get() and not self.local_id_used():
             msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
