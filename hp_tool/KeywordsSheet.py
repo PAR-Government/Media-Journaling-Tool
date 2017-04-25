@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 import tkMessageBox
-import pandastable
 import csv
 import datetime
 from ErrorWindow import ErrorWindow

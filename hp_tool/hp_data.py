@@ -6,9 +6,6 @@ tool for bulk renaming of files to standard
 
 import shutil
 import os
-import sys
-from PIL import Image
-import change_all_metadata
 import datetime
 import csv
 import hashlib
@@ -54,49 +51,9 @@ def copyrename(image, path, usrname, org, seq, other):
 
 def check_settings(self):
     """
-    Parse preferences file
+    Check settings for new seq and additional filetypes
     :param self: reference to HP GUI
-    :param data: string containing path to preferences file
-    :return: dictionary containing preference option and setting (e.g. {username:AS...})
     """
-    #newData = {}
-    # open text file
-    # if not os.path.isfile(data):
-    #     return None
-    # try:
-    #     with open(data) as f:
-    #         for line in f:
-    #             try:
-    #                 (tag, descr) = line.split('=')
-    #                 newData[tag.lower().strip()] = descr.strip()
-    #             except ValueError:
-    #                 continue
-    # except IOError:
-    #     print 'Input file: ' + data + ' not found. '
-    #     return
-
-    # try:
-    #     (newData['organization'] and newData['username'])
-    # except KeyError:
-    #     print 'Must specify username and organization in preferences file'
-    #     return
-
-    # convert to single-char organization code
-    # if len(newData['organization']) > 1:
-    #     try:
-    #         newData['organization'] = orgs[newData['organization']]
-    #     except KeyError:
-    #         if newData['organization'][-2] in orgs.values():
-    #             newData['fullorgname'] = newData['organization']
-    #             newData['organization'] = newData['organization'][-2]
-    #         else:
-    #             print 'Error: organization: ' + newData['organization'] + ' not recognized'
-    #             return
-    # elif len(newData['organization']) == 1:
-    #     if newData['organization'] not in orgs.values():
-    #         print 'Error: organization code: ' + newData['organization'] + ' not recognized'
-    #         return
-
     # reset sequence if date is new
     if self.settings.get('date') != datetime.datetime.now().strftime('%Y%m%d')[2:]:
         self.settings.set('seq', '00000')
@@ -188,41 +145,6 @@ def grab_dir(inpath, outdir=None, r=False):
         for imageName in removeList:
             imageList.remove(imageName)
     return imageList
-
-
-# def update_prefs(prefs, inputdir, outputdir, newSeq):
-#     """
-#     Updates the sequence value in a file
-#     :param prefs: the file to be updated
-#     :param newSeq: string containing the new 5-digit sequence value (e.g. '00001'
-#     :return: None
-#     """
-#
-#     originalFileName = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'preferences.txt')
-#     tmpFileName = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tmp.txt')
-#     with open(tmpFileName, 'wb') as new:
-#         with open(originalFileName, 'rb') as original:
-#             for line in original:
-#                 if line.startswith('seq='):
-#                     new.write('seq=' + newSeq + '\n')
-#                 elif line.startswith('date='):
-#                     new.write('date=' + datetime.datetime.now().strftime('%Y%m%d')[2:] + '\n')
-#                 else:
-#                     new.write(line)
-#                     if not line.endswith('\n'):
-#                         new.write('\n')
-#     os.remove(originalFileName)
-#     shutil.move(tmpFileName, originalFileName)
-
-# def add_seq(filename):
-#     """
-#     Appends a sequence field and an initial sequence to a file
-#     (Specifically, adds '\nseq=00000'
-#     :param filename: file to be edited
-#     :return: None
-#     """
-#     with open(filename, 'ab') as f:
-#         f.write('\nseq=00000\n')
 
 def build_keyword_file(image, keywords, csvFile):
     """
@@ -519,17 +441,12 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     self.settings.set('seq', pad_to_5_str(count))
     self.settings.set('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
-    #update_prefs(self, newSeq=pad_to_5_str(count))
     print('Settings updated with new sequence number')
 
     print('Updating metadata...')
-    #newData = change_all_metadata.parse_file(metadata)
 
     for folder in ['image', 'video', 'audio']:
         process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get('metadata'), quiet=True)
-    # process_metadata(os.path.join(outputdir, 'image', '.hptemp'), newData, quiet=True)
-    # process_metadata(os.path.join(outputdir, 'video', '.hptemp'), newData, quiet=True)
-    # process_metadata(os.path.join(outputdir, 'audio', '.hptemp'), newData, quiet=True)
 
 
     print('Building RIT file')

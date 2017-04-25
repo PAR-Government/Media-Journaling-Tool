@@ -1,23 +1,13 @@
 import tarfile
-import tkSimpleDialog
 from Tkinter import *
-import ttk
 import collections
-import tempfile
-import hashlib
 import boto3
 import matplotlib
 import requests
 matplotlib.use("TkAgg")
-import pandastable
-import pandas
-import shutil
 import ttk
 import tkFileDialog
 import tkMessageBox
-import time
-import numpy as np
-import webbrowser
 from hp_data import *
 from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt
 from KeywordsSheet import KeywordsSheet
@@ -31,9 +21,6 @@ class HP_Starter(Frame):
         Frame.__init__(self, master)
         self.master=master
         self.settings = settings
-        #self.prefsfilename = (os.path.join('data', 'preferences.txt'))
-        #self.metadatafilename = StringVar()
-        #self.metadatafilename.set(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
         self.grid()
         self.oldImageNames = []
         self.newImageNames = []

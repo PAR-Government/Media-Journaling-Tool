@@ -302,7 +302,6 @@ class HPSpreadsheet(Toplevel):
         for b in self.booleanColNames:
             self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 
-
         self.mandatoryImage = []
         image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
                  'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
@@ -400,7 +399,6 @@ class HPSpreadsheet(Toplevel):
         self.saveState = True
         if not quiet:
             msg = tkMessageBox.showinfo('Status', 'Saved!')
-
         return None
 
     def export_rankOne(self):
