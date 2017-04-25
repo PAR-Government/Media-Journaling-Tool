@@ -22,18 +22,18 @@ from hp_data import *
 from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt
 from KeywordsSheet import KeywordsSheet
 from ErrorWindow import ErrorWindow
-from prefs import Preferences
+from prefs import SettingsWindow, SettingsManager
 from CameraForm import HP_Device_Form
 
 class HP_Starter(Frame):
 
-    def __init__(self, master=None, prefs=None):
+    def __init__(self, settings, master=None):
         Frame.__init__(self, master)
         self.master=master
-        self.prefs = prefs
-        self.prefsfilename = (os.path.join('data', 'preferences.txt'))
-        self.metadatafilename = StringVar()
-        self.metadatafilename.set(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
+        self.settings = settings
+        #self.prefsfilename = (os.path.join('data', 'preferences.txt'))
+        #self.metadatafilename = StringVar()
+        #self.metadatafilename.set(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt'))
         self.grid()
         self.oldImageNames = []
         self.newImageNames = []
@@ -41,74 +41,55 @@ class HP_Starter(Frame):
         self.load_defaults()
 
     def update_defaults(self):
-        tmpFileName = os.path.join('data', 'tmp.txt')
-        insertInputDir = True
-        insertOutputDir = True
-        with open(tmpFileName, 'wb') as new:
-            with open(self.prefsfilename, 'rb') as original:
-                for line in original:
-                    if line.startswith('inputdir'):
-                        new.write('inputdir=' + self.inputdir.get() + '\n')
-                        insertInputDir = False
-                    elif line.startswith('outputdir'):
-                        new.write('outputdir=' + self.outputdir.get() + '\n')
-                        insertOutputDir = False
-                    else:
-                        new.write(line)
-                        if not line.endswith('\n'):
-                            new.write('\n')
-            if insertInputDir:
-                new.write('\ninputdir=' + self.inputdir.get())
-            if insertOutputDir:
-                new.write('\noutputdir=' + self.outputdir.get())
-        os.remove(self.prefsfilename)
-        shutil.move(tmpFileName, self.prefsfilename)
+        self.settings.set('inputdir', self.inputdir.get())
+        self.settings.set('outputdir', self.outputdir.get())
 
     def load_defaults(self):
-        if self.prefs:
-            if 'inputdir' in self.prefs:
-                self.inputdir.insert(END, self.prefs['inputdir'])
-            else:
-                self.inputdir.insert(END, os.getcwd())
+        if self.settings.get('inputdir') is not None:
+            self.inputdir.insert(END, self.settings.get('inputdir'))
 
-            if 'outputdir' in self.prefs:
-                self.outputdir.insert(END, self.prefs['outputdir'])
-            else:
-                self.outputdir.insert(END, os.getcwd())
-        else:
-            self.okbutton.config(state='disabled')
-
+        if self.settings.get('outputdir') is not None:
+            self.outputdir.insert(END, self.settings.get('outputdir'))
 
     def load_input(self):
-        d = tkFileDialog.askdirectory(initialdir=self.inputdir.get())
+        initial = self.inputdir.get() if self.inputdir.get() else os.getcwd()
+        d = tkFileDialog.askdirectory(initialdir=initial)
         if d:
             self.inputdir.delete(0, 'end')
             self.inputdir.insert(0, d)
 
     def load_output(self):
-        d = tkFileDialog.askdirectory(initialdir=self.outputdir.get())
+        initial = self.inputdir.get() if self.inputdir.get() else os.getcwd()
+        d = tkFileDialog.askdirectory(initialdir=initial)
         if d:
             self.outputdir.delete(0, 'end')
             self.outputdir.insert(0, d)
 
     def preview_filename(self):
-        testNameStr = 'Please update preferences with username and organization'
-        prefs = parse_prefs(self, self.prefsfilename)
-        if prefs and prefs.has_key('seq'):
+        testNameStr = 'Please update settings with username and organization.'
+        if self.settings.get('seq') is not None:
             testNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
-                        prefs['organization'] + prefs['username'] + '-' + prefs['seq']
+                          self.settings.get('organization') + self.settings.get('username') + '-' + self.settings.get('seq')
             if self.additionalinfo.get():
                 testNameStr += '-' + self.additionalinfo.get()
         tkMessageBox.showinfo('Filename Preview', testNameStr)
 
-
     def go(self):
+        if not self.settings.get('username') or not self.settings.get('organization'):
+            tkMessageBox.showerror(title='Error', message='Please enter initials and organization in settings before running.')
+            return
+
+        if self.inputdir.get() == '':
+            tkMessageBox.showerror(title='Error', message='Please specify an input directory. This should contain data from only one camera.')
+            return
+        elif self.outputdir.get() == '':
+                self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
+
         if self.camModel.get() == '':
             yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
             if yes:
                 v = StringVar()
-                token = self.prefs['trello'] if 'trello' in self.prefs else None
-                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=token)
+                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=self.settings.get('trello'))
                 h.wait_window()
                 if v.get():
                     r = self.add_device(v.get())
@@ -117,8 +98,7 @@ class HP_Starter(Frame):
             return
 
         globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
-        kwargs = {'preferences':self.prefsfilename,
-                  'metadata':self.metadatafilename.get(),
+        kwargs = {'settings':self.settings,
                   'imgdir':self.inputdir.get(),
                   'outputdir':self.outputdir.get(),
                   'recursive':self.recBool.get(),
@@ -132,7 +112,7 @@ class HP_Starter(Frame):
         (self.oldImageNames, self.newImageNames, errors) = process(self, self.master.cameras, **kwargs)
         if self.oldImageNames == None:
             return
-        aSheet = HPSpreadsheet(dir=self.outputdir.get(), master=self.master, devices=self.master.cameras)
+        aSheet = HPSpreadsheet(self.settings, dir=self.outputdir.get(), master=self.master, devices=self.master.cameras)
         aSheet.open_spreadsheet()
         if errors is not None:
             ErrorWindow(aSheet, errors)
@@ -172,59 +152,65 @@ class HP_Starter(Frame):
         else:
             return None
 
-
     def open_keywords_sheet(self):
-        keywords = KeywordsSheet(dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
+        keywords = KeywordsSheet(self.settings, dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
         keywords.open_spreadsheet()
         return keywords
 
-    def open_prefs(self):
-        Preferences(master=self.master)
-        if parse_prefs(self, self.prefsfilename):
-            self.okbutton.config(state='normal')
+    def open_settings(self):
+        SettingsWindow(self.settings, master=self.master)
 
     def createWidgets(self):
+        r=0
+        Label(self, text='***ONLY PROCESS DATA FROM ONE DEVICE PER RUN***', font=("Courier", 16)).grid(row=r, columnspan=8, pady=2)
+        r+=1
+        Label(self, text='Specify a different output directory for each different device.').grid(row=r, columnspan=8, pady=2)
+        r += 1
         self.recBool = BooleanVar()
         self.recBool.set(False)
         self.inputSelector = Button(self, text='Input directory: ', command=self.load_input, width=20)
-        self.inputSelector.grid(row=0,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        self.inputSelector.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
         self.recbox = Checkbutton(self, text='Include subdirectories', variable=self.recBool)
-        self.recbox.grid(row=0, column=3, ipadx=5, ipady=5, padx=5, pady=5)
+        self.recbox.grid(row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5)
         self.inputdir = Entry(self)
-        self.inputdir.grid(row=0, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=2)
+        self.inputdir.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=2)
 
         self.outputSelector = Button(self, text='Output directory: ', command=self.load_output, width=20)
-        self.outputSelector.grid(row=0, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        self.outputSelector.grid(row=r, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
         self.outputdir = Entry(self, width=20)
-        self.outputdir.grid(row=0, column=6, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        self.outputdir.grid(row=r, column=6, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        r+=1
 
         self.additionallabel = Label(self, text='Additional Text to add at end of new filenames: ')
-        self.additionallabel.grid(row=1, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=3)
+        self.additionallabel.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=3)
         self.additionalinfo = Entry(self, width=10)
-        self.additionalinfo.grid(row=1, column=3, ipadx=5, ipady=5, padx=5, pady=5, sticky='W')
+        self.additionalinfo.grid(row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5, sticky='W')
 
         self.previewbutton = Button(self, text='Preview filename', command=self.preview_filename, bg='cyan')
-        self.previewbutton.grid(row=1, column=4)
+        self.previewbutton.grid(row=r, column=4)
 
-        self.changeprefsbutton = Button(self, text='Edit Preferences', command=self.open_prefs)
-        self.changeprefsbutton.grid(row=1, column=6)
+        self.changeprefsbutton = Button(self, text='Edit Settings', command=self.open_settings)
+        self.changeprefsbutton.grid(row=r, column=6)
+        r+=1
 
-        self.sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=2, columnspan=8, sticky='EW')
-        self.descriptionFields = ['Coll. Request ID', 'Local Camera ID', 'Camera Model', 'Local Lens ID', ]
+        self.sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=r, columnspan=8, sticky='EW')
+        self.descriptionFields = ['Coll. Request ID', 'Local Camera ID', 'Camera Model', 'Local Lens ID']
+        r+=1
 
-        self.descriptionlabel = Label(self, text='Enter global camera information. This information cannot be pulled '
-                                                 'from exif data.')
+        Label(self, text='Enter collection information. Local Camera ID is REQUIRED. If you enter a valid ID (case sensitive), the corresponding '
+                         'model will appear in the camera model box.\nIf you enter an invalid ID and Run, it is assumed '
+                         'that this is a new device, and you will be prompted to enter the new device\'s information').grid(row=r,columnspan=8)
+        r+=1
+
         self.localID = StringVar()
         self.localID.trace('w', self.update_model)
         self.camModel = StringVar()
-        self.descriptionlabel.grid(row=3,columnspan=8, sticky='W')
-        row = 4
         col = 0
         self.attributes = {}
         for field in self.descriptionFields:
-            self.attrlabel = Label(self, text=field).grid(row=row, column=col, ipadx=5, ipady=5, padx=5, pady=5)
+            self.attrlabel = Label(self, text=field).grid(row=r, column=col, ipadx=5, ipady=5, padx=5, pady=5)
             self.attributes[field] = Entry(self, width=10)
-            self.attributes[field].grid(row=row, column=col+1, ipadx=0, ipady=5, padx=5, pady=5)
+            self.attributes[field].grid(row=r, column=col+1, ipadx=0, ipady=5, padx=5, pady=5)
 
             if field == 'Local Camera ID':
                 self.attributes[field].config(textvar=self.localID)
@@ -232,7 +218,7 @@ class HP_Starter(Frame):
                 self.attributes[field].config(textvar=self.camModel, state=DISABLED)
             col += 2
             if col == 8:
-                row += 1
+                r += 1
                 col = 0
 
         lastLoc = self.attributes['Local Lens ID'].grid_info()
@@ -260,10 +246,10 @@ class HP_Starter(Frame):
 
 
 class PRNU_Uploader(Frame):
-    def __init__(self, master=None, prefs=None):
+    def __init__(self, settings, master=None):
         Frame.__init__(self, master)
         self.master = master
-        self.prefs=prefs
+        self.settings = settings
         self.root_dir = StringVar()
         self.localID = StringVar()
         self.localIDfile = StringVar()
@@ -272,8 +258,8 @@ class PRNU_Uploader(Frame):
         self.newCam.set(0)
         self.parse_vocab(os.path.join('data', 'prnu_vocab.csv'))
         self.create_prnu_widgets()
-        if prefs is not None and 's3prnu' in prefs:
-            self.s3path.set(prefs['s3prnu'])
+        if self.settings.get('s3prnu') is not None:
+            self.s3path.set(self.settings.get('s3prnu'))
 
     def create_prnu_widgets(self):
         r = 0
@@ -322,8 +308,7 @@ class PRNU_Uploader(Frame):
 
     def open_new_insert_id(self):
         self.newCam.set(1)
-        token = self.prefs['trello'] if 'trello' in self.prefs else None
-        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=token)
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=self.settings.get('trello'))
         if self.localIDfile.get():
             self.newCamEntry.config(state=NORMAL)
 
@@ -386,14 +371,12 @@ class PRNU_Uploader(Frame):
             msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
             if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msgs):
                 self.open_new_insert_id()
-                #HP_Device_Form(self, prefs=self.prefs)
             msgs = 'hide'
 
         if msgs == 'hide':
             pass
         elif msgs:
             ErrorWindow(self, errors=msgs)
-            #tkMessageBox.showerror(title='Error', message=msgs)
         else:
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
@@ -412,10 +395,7 @@ class PRNU_Uploader(Frame):
         self.capitalize_dirs()
         val = self.s3path.get()
         if (val is not None and len(val) > 0):
-            self.prefs['s3prnu'] = val
-            with open(os.path.join('data', 'preferences.txt'), 'w') as f:
-                for key in self.prefs:
-                    f.write(key + '=' + self.prefs[key] + '\n')
+            self.settings.set('s3prnu', val)
 
         # parse path
         s3 = boto3.client('s3', 'us-east-1')
@@ -449,25 +429,22 @@ class PRNU_Uploader(Frame):
         self.cancel_upload()
 
     def notify_trello(self, path):
-        if 'trello' not in self.prefs:
+        if self.settings.get('trello') is None:
             t = TrelloSignInPrompt(self)
             token = t.token.get()
-            self.prefs['trello'] = token
-            with open(self.master.prefsfilename.get(), 'w') as f:
-                for key in self.prefs:
-                    f.write(key + '=' + self.prefs[key] + '\n')
+            self.settings.set('trello', token)
 
         # post the new card
         list_id = '58dd916dee8fc7d4da953571'
         new = str(datetime.datetime.now())
-        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.prefs['trello']),
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
                              data=dict(name=new, idList=list_id, desc=path))
         if resp.status_code == requests.codes.ok:
-            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.prefs['trello']))
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.settings.get('trello')))
             member_id = json.loads(me.content)['id']
             new_card_id = json.loads(resp.content)['id']
             resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
-                                  params=dict(key=self.master.trello_key, token=self.prefs['trello']),
+                                  params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
                                   data=dict(value=member_id))
             return None
         else:
@@ -532,10 +509,8 @@ class HPGUI(Frame):
     def __init__(self, master=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
-        self.prefsfilename = StringVar()
-        self.prefsfilename.set(os.path.join('data', 'preferences.txt'))
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
-        self.load_defaults()
+        self.settings = SettingsManager()
         self.create_widgets()
         self.load_ids()
 
@@ -545,9 +520,7 @@ class HPGUI(Frame):
         self.menubar.add_cascade(label='File', menu=self.fileMenu)
         self.fileMenu.add_command(label='Open HP Data Spreadsheet for Editing', command=self.open_old_rit_csv, accelerator='ctrl-o')
         self.fileMenu.add_command(label='Open Keywords Spreadsheet for Editing', command=self.open_old_keywords_csv)
-        self.fileMenu.add_command(label='Settings...', command=self.open_prefs)
-        self.fileMenu.add_command(label='API Token...', command=self.setapitoken)
-        self.fileMenu.add_command(label='API URL...', command=self.setapiurl)
+        self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.master.config(menu=self.menubar)
 
@@ -559,65 +532,31 @@ class HPGUI(Frame):
 
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill=BOTH, expand=1)
-        f1 = HP_Starter(self, prefs=self.prefs)
-        f2 = PRNU_Uploader(self, prefs=self.prefs)
+        f1 = HP_Starter(self.settings, master=self)
+        f2 = PRNU_Uploader(self.settings, master=self)
         self.nb.add(f1, text='Process HP Data')
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        token = self.prefs['trello'] if 'trello' in self.prefs else None
+        token = self.settings.get('trello')
         h = HP_Device_Form(self, validIDs=self.cameras.keys(), token=token)
 
-    def load_defaults(self):
-        self.prefs = parse_prefs(self, os.path.join('data', 'preferences.txt'))
-        if self.prefs:
-            if 'inputdir' in self.prefs:
-                self.inputdir = self.prefs['inputdir']
-            else:
-                self.inputdir = os.getcwd()
-
-            if 'outputdir' in self.prefs:
-                self.outputdir = self.prefs['outputdir']
-            else:
-                self.outputdir = os.getcwd()
-
     def open_old_rit_csv(self):
-        csv = tkFileDialog.askopenfilename(initialdir=self.outputdir)
-        HPSpreadsheet(dir=self.outputdir, ritCSV=csv, master=self.master).open_spreadsheet()
+        outputdir = self.settings.get('outputdir')
+        csv = tkFileDialog.askopenfilename(initialdir=outputdir)
+        HPSpreadsheet(self.settings, dir=outputdir, ritCSV=csv, master=self.master).open_spreadsheet()
 
     def open_old_keywords_csv(self):
-        csv = tkFileDialog.askopenfilename(initialdir=self.outputdir)
-        KeywordsSheet(dir=self.outputdir, keyCSV=csv, master=self.master).open_spreadsheet()
+        outputdir = self.settings.get('outputdir')
+        csv = tkFileDialog.askopenfilename(initialdir=outputdir)
+        KeywordsSheet(self.settings, dir=outputdir, keyCSV=csv, master=self.master).open_spreadsheet()
 
-    def open_prefs(self):
-        Preferences(master=self.master)
-
-    def save_prefs(self):
-        with open(os.path.join('data', 'preferences.txt'), 'w') as f:
-            for key in self.prefs:
-                f.write(key + '=' + self.prefs[key] + '\n')
-
-
-    def setapiurl(self):
-        url = self.prefs['apiurl'] if 'apiurl' in self.prefs else None
-        newUrlStr = tkSimpleDialog.askstring("Set API URL", "URL", initialvalue=url)
-
-        if newUrlStr is not None:
-            self.prefs['apiurl'] = newUrlStr
-            self.save_prefs()
-
-    def setapitoken(self):
-        token = self.prefs['apitoken'] if 'apitoken' in self.prefs else None
-
-        newTokenStr = tkSimpleDialog.askstring("Set API Token", "Token", initialvalue=token)
-
-        if newTokenStr is not None:
-            self.prefs['apitoken'] = newTokenStr
-            self.save_prefs()
+    def open_settings(self):
+        SettingsWindow(master=self.master, settings=self.settings)
 
     def load_ids(self):
         try:
-            cams = API_Camera_Handler(self, self.prefs['apiurl'], self.prefs['apitoken'])
+            cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
             self.cameras = cams.get_all()
             if not self.cameras:
                 raise
@@ -635,7 +574,7 @@ class HPGUI(Frame):
                 }
             self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
             self.statusBox.println(
-                'It is recommended to enter your browser credentials in preferences and restart to get the most updated information.')
+                'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
 
 
 class ReadOnlyText(Text):
@@ -706,8 +645,8 @@ class API_Camera_Handler:
         except (requests.HTTPError, requests.ConnectionError):
             print 'An error ocurred connecting to API (' + str(response.status_code) + ').\n Devices will be loaded from hp_tool/data.'
         except KeyError:
-            tkMessageBox.showerror(title='Information', message='Could not find API credentials in preferences. Please '
-                                                               'add them via preferences or the File menu.')
+            tkMessageBox.showerror(title='Information', message='Could not find API credentials in settings. Please '
+                                                               'add them via Settings in the File menu.')
 
 def main():
     root = Tk()
