@@ -23,9 +23,9 @@ import datetime
 RVERSION = hp_data.RVERSION
 
 class HPSpreadsheet(Toplevel):
-    def __init__(self, dir=None, ritCSV=None, master=None, devices=None):
+    def __init__(self, settings, dir=None, ritCSV=None, master=None, devices=None):
         Toplevel.__init__(self, master=master)
-        self.create_widgets()
+        self.settings = settings
         self.dir = dir
         if self.dir:
             self.imageDir = os.path.join(self.dir, 'image')
@@ -38,11 +38,11 @@ class HPSpreadsheet(Toplevel):
         self.saveState = True
         self.highlighted_cells = []
         self.error_cells = []
+        self.create_widgets()
         self.kinematics = self.load_kinematics()
         self.devices = devices
         self.apps = self.load_apps()
         self.lensFilters = self.load_lens_filters()
-        self.load_prefs()
         self.protocol('WM_DELETE_WINDOW', self.check_save)
         w, h = self.winfo_screenwidth()-100, self.winfo_screenheight()-100
         self.geometry("%dx%d+0+0" % (w, h))
@@ -302,7 +302,6 @@ class HPSpreadsheet(Toplevel):
         for b in self.booleanColNames:
             self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 
-
         self.mandatoryImage = []
         image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
                  'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
@@ -400,7 +399,6 @@ class HPSpreadsheet(Toplevel):
         self.saveState = True
         if not quiet:
             msg = tkMessageBox.showinfo('Status', 'Saved!')
-
         return None
 
     def export_rankOne(self):
@@ -427,13 +425,10 @@ class HPSpreadsheet(Toplevel):
         # localIDs = set(self.pt.model.df['HP-DeviceLocalID'])
         # if not localIDs.issubset(set(self.devices.keys())):
         #     self.prompt_for_new_camera(invalids=localIDs - set(self.devices.keys()))
-        initial = self.prefs['aws'] if 'aws' in self.prefs else ''
+        initial = self.settings.get('aws', notFound='')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
         if (val is not None and len(val) > 0):
-            self.prefs['aws'] = val
-            with open(self.prefsFile, 'w') as f:
-                for key in self.prefs:
-                    f.write(key + '=' + self.prefs[key] + '\n')
+            self.settings.set('aws', val)
             self.master.statusBox.println('Creating archive...')
             archive = self.create_hp_archive()
             s3 = boto3.client('s3', 'us-east-1')
@@ -469,14 +464,11 @@ class HPSpreadsheet(Toplevel):
             d = tkMessageBox.showinfo(title='Status', message=msg)
 
     def notify_trello(self, archive):
-        if 'trello' not in self.prefs:
+        if self.settings.get('trello') is None:
             token = self.get_trello_token()
-            self.prefs['trello'] = token
-            with open(self.prefsFile, 'w') as f:
-                for key in self.prefs:
-                    f.write(key + '=' + self.prefs[key] + '\n')
+            self.settings.set('trello', token)
         else:
-            token = self.prefs['trello']
+            token = self.settings.get('trello')
 
         # list ID for "New Devices" list
         list_id = '58f4e07b1d52493b1910598f'
@@ -504,7 +496,7 @@ class HPSpreadsheet(Toplevel):
         return t.token.get()
 
     def prompt_for_new_camera(self, invalids):
-        h = NewCameraPrompt(self, invalids, valids=self.devices.keys(), token=self.prefs['trello'])
+        h = NewCameraPrompt(self, invalids, valids=self.devices.keys(), token=self.settings.get('trello'))
         return h.pathVars
 
     def collect_stats(self):
@@ -532,10 +524,6 @@ class HPSpreadsheet(Toplevel):
                 archive.add(os.path.join(DIRNAME, item), arcname=item)
         archive.close()
         return fname
-
-    def load_prefs(self):
-        self.prefsFile = os.path.join('data', 'preferences.txt')
-        self.prefs = hp_data.parse_prefs(self.master, self.prefsFile)
 
     def validate(self):
         errors = []
@@ -619,8 +607,8 @@ class HPSpreadsheet(Toplevel):
         kinematic = self.pt.model.df['HP-CameraKinematics'][row]
         type = self.pt.model.df['Type'][row]
         if type.lower() == 'video':
-            if kinematic.lower() == 'nan' or kinematic == '':
-                imageName = self.pt.model.getValueAt(row, 0)
+            if str(kinematic).lower() == 'nan' or str(kinematic) == '':
+                imageName = self.pt.model.df['ImageFilename'][row]
                 errors.append('No camera kinematic entered for ' + imageName + ' (row ' + str(row + 1) + ')')
             elif kinematic.lower() not in [x.lower() for x in self.kinematics]:
                 errors.append('Invalid camera kinematic ' + kinematic + ' (row ' + str(row + 1) + ')')
@@ -664,7 +652,6 @@ class HPSpreadsheet(Toplevel):
 
     def check_localID(self, row):
         errors = []
-        uniques = []
         localID = self.pt.model.df['HP-DeviceLocalID'][row]
         if localID.lower() == 'nan' or localID == '':
             imageName = self.pt.model.getValueAt(row, 0)

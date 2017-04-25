@@ -134,7 +134,7 @@ class HP_Device_Form(Toplevel):
         if exifData['Model']:
             self.camera_model.set(exifData['Model'])
         if exifData['SerialNumber'] != '-':
-            self.serial.set(exifData['SerialNUmber'])
+            self.serial.set(exifData['SerialNumber'])
 
     def export_results(self):
         msg = None

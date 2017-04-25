@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 import tkMessageBox
-import pandastable
 import csv
 import datetime
 from ErrorWindow import ErrorWindow
@@ -11,9 +10,10 @@ from HPSpreadsheet import HPSpreadsheet, CustomTable
 from PIL import Image, ImageTk
 
 class KeywordsSheet(HPSpreadsheet):
-    def __init__(self, dir=None, keyCSV=None, master=None, oldImageNames=[], newImageNames=[]):
+    def __init__(self, settings, dir=None, keyCSV=None, master=None, oldImageNames=[], newImageNames=[]):
         self.keywords = self.load_keywords()
-        HPSpreadsheet.__init__(self, dir=dir, master=master)
+        self.settings = settings
+        HPSpreadsheet.__init__(self, settings, dir=dir, master=master)
         self.oldImageNames = oldImageNames
         self.newImageNames = newImageNames
         self.dir = dir
@@ -167,7 +167,7 @@ class KeywordsSheet(HPSpreadsheet):
                     errors.append('Invalid keyword for ' + str(self.pt.model.getValueAt(row, 0)) + ' (Row ' + str(row+1) + ', Keyword ' + str(col-1) + ', Value: ' + val + ')')
 
         if errors:
-            ErrorWindow(errors).show_errors()
+            ErrorWindow(self, errors)
         else:
             tkMessageBox.showinfo('Spreadsheet Validation', 'Nice work! All entries are valid.')
 
