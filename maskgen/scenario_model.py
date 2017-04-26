@@ -2445,17 +2445,19 @@ class ImageProjectModel:
 
     def exporttos3(self, location, tempdir=None):
         import boto3
+        from boto3.s3.transfer import S3Transfer,TransferConfig
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
             path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
             if len(errors) == 0:
-                s3 = boto3.client('s3', 'us-east-1')
+                config = TransferConfig()
+                s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
                 BUCKET = location.split('/')[0].strip()
                 DIR = location[location.find('/') + 1:].strip()
                 logging.getLogger('maskgen').info( 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1])
+                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1],callback=S3ProgressPercentage(path))
                 os.remove(path)
                 self.notify(self.getName(),'export')
             return errors

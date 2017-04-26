@@ -9,8 +9,8 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 import logging
 
-snapshot='.db2133eadc'
-igversion='0.4.0308' + snapshot
+snapshot='.f33da14295'
+igversion='0.4.0326' + snapshot
 
 
 def current_version():

@@ -7,7 +7,7 @@ from scipy import ndimage
 import getpass
 import re
 import imghdr
-import os
+import os,sys
 from image_wrap import *
 from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
@@ -28,6 +28,28 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
+
+
+class S3ProgressPercentage(object):
+    def __init__(self, filename):
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self.percentage_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify we'll assume this is hooked up
+        # to a single filename.
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            if (percentage - self._percentage_so_far) > 5:
+                logging.getLogger('maskgen').info(
+                    "%s  %s / %s  (%.2f%%)" % (
+                        self._filename, self._seen_so_far, self._size,
+                        percentage))
+                self._percentage_so_far = percentage
 
 def exportlogsto3(location,lastuploaded):
     import boto3
