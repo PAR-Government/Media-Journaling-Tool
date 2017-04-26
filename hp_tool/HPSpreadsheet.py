@@ -122,6 +122,7 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Return>', self.update_current_image)
         self.bind('<Up>', self.update_current_image)
         self.bind('<Down>', self.update_current_image)
+        self.bind('<Tab>', self.update_current_image)
         self.bind('<Control-s>', self.exportCSV)
 
     def keypress(self, event):
