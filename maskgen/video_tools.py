@@ -521,33 +521,6 @@ def toMilliSeconds(st):
     return (stdt.hour * 3600 + stdt.minute * 60 + stdt.second) * 1000 + stdt.microsecond / 1000
 
 
-def getDuration(st, et):
-    """
-     calculation duration
-    """
-    stdt = None
-    try:
-        stdt = datetime.strptime(st, '%H:%M:%S.%f')
-    except ValueError:
-        stdt = datetime.strptime(st, '%H:%M:%S')
-
-    etdt = None
-    try:
-        etdt = datetime.strptime(et, '%H:%M:%S.%f')
-    except ValueError:
-        etdt = datetime.strptime(et, '%H:%M:%S')
-
-    delta = etdt - stdt
-    if delta.days < 0:
-        return None
-
-    sec = delta.seconds
-    sec += (1 if delta.microseconds > 0 else 0)
-    hr = sec / 3600
-    mi = sec / 60 - (hr * 60)
-    ss = sec - (hr * 3600) - mi * 60
-    return '{:=02d}:{:=02d}:{:=02d}'.format(hr, mi, ss)
-
 def x265(filename ,outputname=None, crf=0):
     return _vid_compress(filename,
                          ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
