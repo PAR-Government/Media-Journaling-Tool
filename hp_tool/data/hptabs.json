@@ -56,23 +56,34 @@
     "HP-HDR",
     "HP-App"
   ],
-  "Video": [
+  "Mandatory Image Fields":[
     "ImageFilename",
-    "HP-CameraKinematics",
-    "HP-NumberOfSpeakers",
+    "HP-OnboardFilter",
+    "HP-WeakReflection",
+    "HP-StrongReflection",
+    "HP-TransparentReflection",
+    "HP-ReflectedObject",
+    "HP-Shadows",
+    "HP-HDR",
     "HP-Inside",
     "HP-Outside",
-    "HP-ProximitytoSource",
-    "HP-MultiInput",
-    "HP-AudioChannels",
-    "HP-Echo",
-    "HP-BackgroundNoise",
-    "HP-Description",
-    "HP-Modifier",
-    "HP-AngleofRecording",
-    "HP-MicLocation"
+    "HP-PrimarySecondary"
   ],
-  "Audio": [
+  "Mandatory Video Fields": [
+    "ImageFilename",
+    "HP-OnboardFilter",
+    "HP-WeakReflection",
+    "HP-StrongReflection",
+    "HP-TransparentReflection",
+    "HP-ReflectedObject",
+    "HP-Shadows",
+    "HP-HDR",
+    "HP-CameraKinematics",
+    "HP-Inside",
+    "HP-Outside",
+    "HP-PrimarySecondary"
+  ],
+  "Mandatory Audio Fields": [
     "ImageFilename",
     "HP-NumberOfSpeakers",
     "HP-Inside",

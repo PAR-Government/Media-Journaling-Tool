@@ -12,12 +12,14 @@ class ErrorWindow(Dialog):
 
 
     def body(self, master):
-        yscrollbar = Scrollbar(self)
+        frame = Frame(self, bd=2, relief=SUNKEN)
+        frame.pack(fill=BOTH, expand=TRUE)
+        yscrollbar = Scrollbar(frame)
         yscrollbar.pack(side=RIGHT, fill=Y)
-        xscrollbar = Scrollbar(self, orient=HORIZONTAL)
+        xscrollbar = Scrollbar(frame, orient=HORIZONTAL)
         xscrollbar.pack(side=BOTTOM, fill=X)
 
-        self.listbox = Listbox(self, width=80, height=15)
+        self.listbox = Listbox(frame, width=80, height=15)
         self.listbox.pack(fill=BOTH, expand=1)
 
         if type(self.errors) == str:

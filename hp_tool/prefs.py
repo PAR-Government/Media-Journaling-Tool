@@ -119,6 +119,7 @@ class SettingsWindow(Toplevel):
         self.seqVar.trace('w', self.update_preview)
 
         self.s3Var = StringVar()
+        self.s3VarPRNU = StringVar()
         self.urlVar = StringVar()
         self.tokenVar = StringVar()
         self.trelloVar = StringVar()
@@ -144,8 +145,8 @@ class SettingsWindow(Toplevel):
         else:
             self.settings.set('seq', '00000')
 
-        defaults = {'aws':self.s3Var, 'imagetypes':self.imageVar, 'videotypes':self.videoVar, 'audiotypes':self.audioVar,
-                    'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar}
+        defaults = {'aws':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
+                    'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar}
         for s in defaults:
             if self.settings.get(s):
                 defaults[s].set(self.settings.get(s))
@@ -177,11 +178,18 @@ class SettingsWindow(Toplevel):
         self.descrLabel1.grid(row=r, column=0, columnspan=8)
 
         r+=1
-        self.s3Label = Label(self.prefsFrame, text='S3 bucket/path: ')
+        self.s3Label = Label(self.prefsFrame, text='S3 bucket/path (HP Data): ')
         self.s3Label.grid(row=r, column=0, columnspan=4)
 
         self.s3Box = Entry(self.prefsFrame, textvar=self.s3Var)
         self.s3Box.grid(row=r, column=4)
+
+        r+=1
+        self.s3PRNULabel = Label(self.prefsFrame, text='S3 bucket/path (PRNU Data): ')
+        self.s3PRNULabel.grid(row=r, column=0, columnspan=4)
+
+        self.s3PRNUBox = Entry(self.prefsFrame, textvar=self.s3VarPRNU)
+        self.s3PRNUBox.grid(row=r, column=4)
 
         r+=1
         self.urlLabel = Label(self.prefsFrame, text='Browser API URL: ')
@@ -306,6 +314,7 @@ class SettingsWindow(Toplevel):
         update = self.orgVar.get()
         self.settings.set('seq', self.seqVar.get())
         self.settings.set('aws', self.s3Var.get())
+        self.settings.set('aws-prnu', self.s3VarPRNU.get())
         self.settings.set('apiurl', self.urlVar.get())
         self.settings.set('apitoken', self.tokenVar.get())
         self.settings.set('trello', self.trelloVar.get())

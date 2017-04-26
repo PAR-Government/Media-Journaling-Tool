@@ -132,14 +132,13 @@ def grab_dir(inpath, outdir=None, r=False):
                 ritCSV = os.path.join(outdir, f)
                 rit = pd.read_csv(ritCSV, dtype=str)
                 repeated = rit['OriginalImageName'].tolist()
+                break
         removeList = []
         for name in imageList:
             for repeatedName in repeated:
                 if repeatedName:
-                    if repeatedName in name:
+                    if os.path.basename(repeatedName) == os.path.basename(name):
                         removeList.append(name)
-                        # imageList.remove(name)
-                        # repeated.remove(repeatedName)
                         break
 
         for imageName in removeList:

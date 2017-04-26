@@ -6,6 +6,7 @@ import tkFileDialog
 import os
 import sys
 import boto3
+from boto3.s3.transfer import S3Transfer
 import collections
 import pandas as pd
 import tkMessageBox
@@ -19,6 +20,7 @@ from ErrorWindow import ErrorWindow
 from CameraForm import HP_Device_Form
 import hp_data
 import datetime
+import threading
 
 RVERSION = hp_data.RVERSION
 
@@ -107,7 +109,7 @@ class HPSpreadsheet(Toplevel):
         self.editMenu.add_command(label='Copy', command=self.pt.copy_value, accelerator='ctrl-c')
         self.editMenu.add_command(label='Paste', command=self.pt.paste_value, accelerator='ctrl-v')
         self.editMenu.add_command(label='Fill Selection', command=self.pt.fill_selection, accelerator='ctrl-d')
-        self.editMenu.add_command(label='Fill Column', command=self.pt.fill_selection, accelerator='ctrl-g')
+        self.editMenu.add_command(label='Fill Column', command=self.pt.fill_column, accelerator='ctrl-g')
         self.editMenu.add_command(label='Fill True', command=self.pt.enter_true, accelerator='ctrl-t')
         self.editMenu.add_command(label='Fill False', command=self.pt.enter_false, accelerator='ctr-f')
         self.config(menu=self.menubar)
@@ -178,6 +180,7 @@ class HPSpreadsheet(Toplevel):
             self.tabpt.show()
             self.tabpt.redraw()
             self.on_main_tab = False
+            self.color_code_cells(self.tabpt)
 
     def update_main(self):
         if self.on_main_tab:
@@ -303,76 +306,87 @@ class HPSpreadsheet(Toplevel):
             self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 
         self.mandatoryImage = []
-        image = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                 'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside']
-        for i in image:
+        self.mandatoryImageNames = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
+                 'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside', 'HP-PrimarySecondary']
+        for i in self.mandatoryImageNames:
             self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
 
         self.mandatoryVideo = []
-        video = image + ['HP-CameraKinematics']
-        for v in video:
+        self.mandatoryVideoNames = self.mandatoryImageNames + ['HP-CameraKinematics']
+        for v in self.mandatoryVideoNames:
             self.mandatoryVideo.append(self.pt.model.df.columns.get_loc(v))
 
-        audio = ['HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
+        self.mandatoryAudioNames = ['HP-DeviceLocalID', 'HP-OnboardFilter', 'HP-ProximitytoSource', 'HP-MultiInput', 'HP-AudioChannels',
                  'HP-Echo', 'HP-BackgroundNoise', 'HP-Description', 'HP-Modifier','HP-AngleofRecording', 'HP-MicLocation',
-                 'HP-Inside', 'HP-Outside']
+                 'HP-Inside', 'HP-Outside', 'HP-NumberOfSpeakers']
         self.mandatoryAudio = []
-        for c in audio:
+        for c in self.mandatoryAudioNames:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        disabled = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN']
         self.disabledCols = []
-        for d in disabled:
+        for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
 
-        self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
+        #self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
 
         self.color_code_cells()
+        self.master.statusBox.println('Loaded data from ' + self.ritCSV)
 
-    def color_code_cells(self):
+    def color_code_cells(self, tab=None):
+        if tab is None:
+            tab = self.pt
+            track_highlights = True
+        else:
+            track_highlights = False
         if os.path.exists(self.errorpath):
             with open(self.errorpath) as j:
                 self.processErrors = json.load(j)
         else:
             self.processErrors = None
-        notnans = self.pt.model.df.notnull()
-        for row in range(0, self.pt.rows):
-            for col in range(0, self.pt.cols):
-                currentExt = os.path.splitext(self.pt.model.getValueAt(row,0))[1].lower()
-                x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
+        notnans = tab.model.df.notnull()
+        for row in range(0, tab.rows):
+            for col in range(0, tab.cols):
+                colName = list(tab.model.df)[col]
+                currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
+                x1, y1, x2, y2 = tab.getCellCoords(row, col)
                 if notnans.iloc[row, col]:
-                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#c1c1c1',
-                                                    outline='#084B8A',
-                                                    tag='cellrect')
-                if (col in self.mandatoryImage and currentExt in hp_data.exts['IMAGE']) or \
-                        (col in self.mandatoryVideo and currentExt in hp_data.exts['VIDEO']) or \
-                        (col in self.mandatoryAudio and currentExt in hp_data.exts['AUDIO']):
-                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#f3f315',
-                                                    outline='#084B8A',
-                                                    tag='cellrect')
-                    self.highlighted_cells.append((row, col))
-                if col in self.disabledCols:
-                    rect = self.pt.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#c1c1c1',
-                                                    outline='#084B8A',
-                                                    tag='cellrect')
+                    rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                fill='#c1c1c1',
+                                                outline='#084B8A',
+                                                tag='cellrect')
+                if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
+                        (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
+                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']):
+                    rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                fill='#f3f315',
+                                                outline='#084B8A',
+                                                tag='cellrect')
+                    if track_highlights:
+                        self.highlighted_cells.append((row, col))
+                if colName in self.disabledColNames:
+                    rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                fill='#c1c1c1',
+                                                outline='#084B8A',
+                                                tag='cellrect')
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for error in self.processErrors[image]:
                     errCol = error[0]
                     if errCol != 'CameraMake':
-                        col = self.pt.model.df.columns.get_loc(errCol)
-                        x1, y1, x2, y2 = self.pt.getCellCoords(row, col)
-                        rect = self.pt.create_rectangle(x1, y1, x2, y2,
+                        try:
+                            col = tab.model.df.columns.get_loc(errCol)
+                            x1, y1, x2, y2 = tab.getCellCoords(row, col)
+                            rect = tab.create_rectangle(x1, y1, x2, y2,
                                                         fill='#ff5b5b',
                                                         outline='#084B8A',
                                                         tag='cellrect')
-                        self.error_cells.append((row, col))
+                            self.error_cells.append((row, col))
+                        except KeyError:
+                            pass
 
-        self.pt.lift('cellrect')
-        self.pt.redraw()
+        tab.lift('cellrect')
+        tab.redraw()
 
     def exportCSV(self, showErrors=True, quiet=False):
         if not self.on_main_tab:
@@ -427,17 +441,27 @@ class HPSpreadsheet(Toplevel):
         #     self.prompt_for_new_camera(invalids=localIDs - set(self.devices.keys()))
         initial = self.settings.get('aws', notFound='')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
+
         if (val is not None and len(val) > 0):
+            comment = self.check_trello_login()
+            if comment is None:
+                tkMessageBox.showinfo(title='Information', message='Upload canceled.')
+                return
             self.settings.set('aws', val)
-            self.master.statusBox.println('Creating archive...')
+            print('Creating archive...')
             archive = self.create_hp_archive()
-            s3 = boto3.client('s3', 'us-east-1')
+            s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-            self.master.statusBox.println('Uploading ' + archive.replace('\\', '/') + ' to s3://' + val)
-            s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
+            print('Uploading...')
+            try:
+                s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1], callback=ProgressPercentage(archive))
+                upload_error = False
+            except:
+                upload_error = True
+
 
             # print 'Uploading CSV...'
             # s3.upload_file(self.rankOnecsv, BUCKET, DIR + 'csv/' + os.path.split(self.rankOnecsv)[1])
@@ -456,14 +480,32 @@ class HPSpreadsheet(Toplevel):
 
             os.remove(archive)
 
-            err = self.notify_trello(os.path.basename(archive))
-            if err is not None:
-                msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+            if upload_error:
+                msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+                self.master.statusBox.println(msg)
             else:
-                msg = 'Complete!'
+                err = self.notify_trello(os.path.basename(archive), comment)
+                if err is not None:
+                    msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+                    self.master.statusBox.println(msg)
+                else:
+                    msg = 'Complete!'
+                    self.master.statusBox.println(
+                        'Successfully uploaded HP data to S3://' + val + '.')
             d = tkMessageBox.showinfo(title='Status', message=msg)
+        else:
+            tkMessageBox.showinfo(title='Information', message='Upload canceled.')
 
-    def notify_trello(self, archive):
+    def check_trello_login(self):
+        if self.settings.get('trello', notFound='') == '':
+            token = self.get_trello_token()
+            if token == '':
+                return None
+            self.settings.set('trello', token)
+        comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.')
+        return comment
+
+    def notify_trello(self, archive, comment):
         if self.settings.get('trello') is None:
             token = self.get_trello_token()
             self.settings.set('trello', token)
@@ -475,7 +517,7 @@ class HPSpreadsheet(Toplevel):
 
         # post the new card
         new = str(datetime.datetime.now())
-        stats = archive + '\n' + self.collect_stats()
+        stats = archive + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
                              data=dict(name=new, idList=list_id, desc=stats))
 
@@ -705,6 +747,29 @@ class TrelloSignInPrompt(tkSimpleDialog.Dialog):
         webbrowser.open('https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
 
 
+class ProgressPercentage(object):
+    """
+    http://boto3.readthedocs.io/en/latest/_modules/boto3/s3/transfer.html
+    """
+    def __init__(self, filename):
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify we'll assume this is hooked up
+        # to a single filename.
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            sys.stdout.write(
+                "\r%s  %s / %s  (%.2f%%)" % (
+                    self._filename, self._seen_so_far, self._size,
+                    percentage))
+            sys.stdout.flush()
+
+
 class CustomTable(pandastable.Table):
     def __init__(self, master, **kwargs):
         pandastable.Table.__init__(self, parent=master, **kwargs)
@@ -782,9 +847,8 @@ class CustomTable(pandastable.Table):
         col = self.getSelectedColumn()
         row = self.getSelectedRow()
         val = self.model.getValueAt(row, col)
-        # tfw rows are 1-indexed, but columns are 0-indexed
-        for row in range(self.startrow,self.endrow):
-            for col in range(self.startcol, self.endcol):
+        for row in range(self.startrow,self.endrow+1):
+            for col in range(self.startcol, self.endcol+1):
                 self.model.setValueAt(val, row, col)
         self.redraw()
 

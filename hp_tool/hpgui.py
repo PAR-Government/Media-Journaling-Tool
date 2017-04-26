@@ -1,7 +1,9 @@
 import tarfile
+import threading
 from Tkinter import *
 import collections
 import boto3
+from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
 matplotlib.use("TkAgg")
@@ -9,7 +11,7 @@ import ttk
 import tkFileDialog
 import tkMessageBox
 from hp_data import *
-from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt
+from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt, ProgressPercentage
 from KeywordsSheet import KeywordsSheet
 from ErrorWindow import ErrorWindow
 from prefs import SettingsWindow, SettingsManager
@@ -245,11 +247,15 @@ class PRNU_Uploader(Frame):
         self.newCam.set(0)
         self.parse_vocab(os.path.join('data', 'prnu_vocab.csv'))
         self.create_prnu_widgets()
-        if self.settings.get('s3prnu') is not None:
-            self.s3path.set(self.settings.get('s3prnu'))
+        self.s3path.set(self.settings.get('aws-prnu', notFound=''))
 
     def create_prnu_widgets(self):
         r = 0
+        Label(self, text='Enter the absolute path of the main PRNU directory here. You can click the button to open a file select dialog.\n'
+                         'If you are using a new camera that does not yet have a local ID, check the respective box and follow the prompts.').grid(
+            row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=8)
+        r+=1
+
         dirbutton = Button(self, text='Root PRNU Directory:', command=self.open_dir, width=20)
         dirbutton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
         self.rootEntry = Entry(self, width=100, textvar=self.root_dir)
@@ -262,20 +268,39 @@ class PRNU_Uploader(Frame):
         self.newCamCheckbox.grid(row=r, column=0, )
         r+=1
 
-        verifyButton = Button(self, text='Verify Directory Structure', command=self.examine_dir, width=20)
-        verifyButton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
-
-        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=r,column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
-
-        self.s3Entry = Entry(self, width=40, textvar=self.s3path)
-        self.s3Entry.grid(row=r, column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=r, columnspan=6, sticky='EW', pady=5)
         r+=1
 
+        sep2 = ttk.Separator(self, orient=VERTICAL).grid(row=r, column=2, sticky='NS', padx=5, rowspan=3)
+
+        Label(self, text='You must successfully verify the directory structure by clicking below before you can upload.\n'
+                         'If any errors are found, they must be corrected.').grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+
+        Label(self, text='After successful verification, specify the upload location and click Start Upload.\n'
+                         'Make sure you have specified your Trello token in Settings as well.').grid(
+            row=r,column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        r+=1
+
+        verifyButton = Button(self, text='Verify Directory Structure', command=self.examine_dir, width=20)
+        verifyButton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+
+        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=r,column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        self.s3Entry = Entry(self, width=40, textvar=self.s3path)
+        self.s3Entry.grid(row=r, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2, sticky=W)
+        r+=1
+
+        self.changeprefsbutton = Button(self, text='Edit Settings', command=self.open_settings)
+        self.changeprefsbutton.grid(row=r, column=0, columnspan=2)
+
         self.uploadButton = Button(self, text='Start Upload', command=self.upload, width=20, state=DISABLED, bg='green')
-        self.uploadButton.grid(row=r,column=2, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        self.uploadButton.grid(row=r,column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
 
         self.cancelButton = Button(self, text='Cancel', command=self.cancel_upload, width=20, bg='red')
-        self.cancelButton.grid(row=r, column=1, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+        self.cancelButton.grid(row=r, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
+
+    def open_settings(self):
+        SettingsWindow(self.settings, master=self.master)
+        self.s3path.set(self.settings.get('aws-prnu', notFound=''))
 
     def set_new_cam_file(self):
         if self.newCam.get():
@@ -309,10 +334,12 @@ class PRNU_Uploader(Frame):
                     self.vocab.append(row[0] + '_' + str(x))
 
     def open_dir(self):
-        self.root_dir.set(tkFileDialog.askdirectory())
+        d = tkFileDialog.askdirectory()
+        if d is not None:
+            self.root_dir.set(d)
 
     def examine_dir(self):
-        self.master.statusBox.println('Verifying...')
+        print('Verifying PRNU directory')
         self.localID.set(os.path.basename(os.path.normpath(self.root_dir.get())))
         msgs = []
 
@@ -323,16 +350,22 @@ class PRNU_Uploader(Frame):
                     msgs.append('Root PRNU directory must have \"Images\" and \"Video\" folders.')
                 if files:
                     for f in files:
-                        if f.startswith('.'):
-                            os.remove(os.path.join(path, f))
+                        if f.startswith('.') or f.lower() == 'thumbs.db':
+                            try:
+                                os.remove(os.path.join(path, f))
+                            except OSError:
+                                pass
                     msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
                     msgs.append('Images and Video folders must each contain Primary and Secondary folders.')
                 if files:
                     for f in files:
-                        if f.startswith('.'):
-                            os.remove(os.path.join(path, f))
+                        if f.startswith('.') or f.lower() == 'thumbs.db':
+                            try:
+                                os.remove(os.path.join(path, f))
+                            except OSError:
+                                pass
                     msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
@@ -340,8 +373,11 @@ class PRNU_Uploader(Frame):
                         msgs.append('Invalid reference type: ' + sub)
                 if files:
                     for f in files:
-                        if f.startswith('.'):
-                            os.remove(os.path.join(path, f))
+                        if f.startswith('.') or f.lower() == 'thumbs.db':
+                            try:
+                                os.remove(os.path.join(path, f))
+                            except OSError:
+                                pass
                         else:
                             msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
             elif last.lower() in self.vocab:
@@ -349,8 +385,11 @@ class PRNU_Uploader(Frame):
                     msgs.append('There should be no additional subfolders in folder ' + path)
                 if files:
                     for f in files:
-                        if f.startswith('.'):
-                            os.remove(os.path.join(path, f))
+                        if f.startswith('.') or f.lower() == 'thumbs.db':
+                            try:
+                                os.remove(os.path.join(path, f))
+                            except OSError:
+                                pass
                 else:
                     msgs.append('There are no images or videos in: ' + path + '. If this is intentional, delete the folder.')
 
@@ -364,6 +403,7 @@ class PRNU_Uploader(Frame):
             pass
         elif msgs:
             ErrorWindow(self, errors=msgs)
+            self.master.statusBox.println('PRNU directory validation failed for ' + self.root_dir.get())
         else:
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
@@ -371,6 +411,7 @@ class PRNU_Uploader(Frame):
             self.newCamCheckbox.config(state=DISABLED)
             if self.newCam:
                 self.newCamEntry.config(state=DISABLED)
+            self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
 
     def has_same_contents(self, list1, list2):
         # set both lists to lowercase strings and checks if they have the same items, in any order
@@ -382,34 +423,42 @@ class PRNU_Uploader(Frame):
         self.capitalize_dirs()
         val = self.s3path.get()
         if (val is not None and len(val) > 0):
-            self.settings.set('s3prnu', val)
+            self.settings.set('aws-prnu', val)
 
         # parse path
-        s3 = boto3.client('s3', 'us-east-1')
+        s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
         if val.startswith('s3://'):
             val = val[5:]
         BUCKET = val.split('/')[0].strip()
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        self.master.statusBox.println('Creating archive...')
+        print('Creating archive...')
         archive = self.archive_prnu()
         md5file = self.write_md5(archive)
 
-        self.master.statusBox.println('Uploading ' + archive.replace('\\', '/') + ' to s3://' + val)
-        s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1])
-        self.master.statusBox.println('Uploading ' + md5file.replace('\\', '/') + ' to s3://' + val)
-        s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1])
+        print('Uploading...')
+        try:
+            s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1], callback=ProgressPercentage(archive))
+            s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1], callback=ProgressPercentage(md5file))
+            upload_error = False
+        except:
+            upload_error = True
 
         os.remove(archive)
         os.remove(md5file)
 
-        err = self.notify_trello(os.path.basename(archive))
-        if err is not None:
-            msg = 'S3 upload completed, but failed to notify Trello (' + str(
-                err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+        if upload_error:
+            msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
         else:
-            msg = 'Complete!'
+            err = self.notify_trello(os.path.basename(archive))
+            if err is not None:
+                msg = 'S3 upload completed, but failed to notify Trello (' + str(
+                    err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+                self.master.statusBox.println(msg)
+            else:
+                msg = 'Complete!'
+                self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
         d = tkMessageBox.showinfo(title='Status', message=msg)
 
         # reset state of buttons and boxes
@@ -500,6 +549,7 @@ class HPGUI(Frame):
         self.settings = SettingsManager()
         self.create_widgets()
         self.load_ids()
+        self.statusBox.println('See terminal/command prompt window for progress while processing.')
 
     def create_widgets(self):
         self.menubar = Menu(self)
@@ -513,7 +563,7 @@ class HPGUI(Frame):
 
         self.statusFrame = Frame(self)
         self.statusFrame.pack(side=BOTTOM, fill=BOTH, expand=1)
-        Label(self.statusFrame, text='Status').pack()
+        Label(self.statusFrame, text='Notifications').pack()
         self.statusBox = ReadOnlyText(self.statusFrame, height=10)
         self.statusBox.pack(fill=BOTH, expand=1)
 
@@ -611,7 +661,7 @@ class API_Camera_Handler:
         try:
             headers = {'Authorization': 'Token ' + self.token, 'Content-Type': 'application/json'}
             url = self.url + '/api/cameras/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
-            print 'Checking external service APIs for device local ID...'
+            print 'Checking browser API for list of devices...'
 
             while True:
                 response = requests.get(url, headers=headers)
