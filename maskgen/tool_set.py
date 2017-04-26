@@ -44,8 +44,7 @@ class S3ProgressPercentage(object):
         with self._lock:
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
-            print percentage
-            if (percentage - self._percentage_so_far) > 0.05:
+            if (percentage - self._percentage_so_far) > 5:
                 logging.getLogger('maskgen').info(
                     "%s  %s / %s  (%.2f%%)" % (
                         self._filename, self._seen_so_far, self._size,
