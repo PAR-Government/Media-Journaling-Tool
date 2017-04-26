@@ -2358,14 +2358,18 @@ class ImageProjectModel:
         result = {}
         donors = []
         for k, v in args.iteritems():
-            if ('arguments' in operation and \
-                            operation['arguments'] is not None and \
-                        k in operation['arguments'] and \
-                            operation['arguments'][k]['type'] == 'donor'):
-                result[k] = self.getImageAndName(v)[1]
-                donors.append(k)
-            else:
-                result[k] = v
+            result[k] = v
+        if ('arguments' in operation and \
+                        operation['arguments'] is not None):
+            for k, v in args.iteritems():
+                if k in operation['arguments'] and \
+                            operation['arguments'][k]['type'] == 'donor':
+                    result[k] = self.getImageAndName(v)[1]
+                    donors.append(k)
+            for arg, info in operation['arguments'].iteritems():
+                if arg not in result and 'defaultvalue' in info and \
+                        info['defaultvalue'] is not None:
+                    result[arg] = info['defaultvalue']
         return result, donors
 
     def _pluginError(self, filter, msg):
