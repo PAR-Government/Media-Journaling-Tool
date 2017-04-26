@@ -9,8 +9,8 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 import logging
 
-snapshot='.db2133eadc'
-igversion='0.4.0308' + snapshot
+snapshot='.f33da14295'
+igversion='0.4.0326' + snapshot
 
 
 def current_version():
@@ -691,6 +691,9 @@ class ImageGraph:
 
     def _setup(self, pathname, projecttype,nodeFilePaths,edgeFilePaths):
         global igversion
+        import logging
+        logging.getLogger('maskgen').info("Opening Journal {} with JT version {}".format(
+            os.path.split(pathname)[1], igversion))
         if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
         versionlen = min(8,len(self.G.graph['igversion']))
