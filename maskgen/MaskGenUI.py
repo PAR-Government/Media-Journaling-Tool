@@ -36,6 +36,7 @@ def toFileTypeString(types):
     return str
 
 
+
 def fromFileTypeString(types, profileTypes):
     typelist = types.split(' ')
     result = []
@@ -241,6 +242,11 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             try:
                 errorList = self.scModel.exporttos3(val)
+                uploaded = self.prefLoader.get_key('lastlogupload')
+                uploaded = exportlogsto3(val,uploaded)
+                # preserve the file uploaded
+                if uploaded is not None:
+                    self.prefLoader.save('lastlogupload',uploaded)
                 if len(errorList) > 0:
                     if self.exportErrorlistDialog is None:
                         self.exportErrorlistDialog = ListDialog(self, errorList, "Export Errors")

@@ -12,7 +12,9 @@ from image_wrap import *
 from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
+import time
 import logging
+from logging import handlers
 
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
@@ -27,6 +29,61 @@ suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".w
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
+def exportlogsto3(location,lastuploaded):
+    import boto3
+    flush_logging()
+    logging_file = get_logging_file()
+    if logging_file is not None and lastuploaded != logging_file:
+        logging_file_name = os.path.split(logging_file)[1]
+        s3 = boto3.client('s3', 'us-east-1')
+        BUCKET = location.split('/')[0].strip()
+        DIR = location[location.find('/') + 1:].strip()
+        DIR = DIR[:-1] if DIR.endswith('/') else DIR
+        DIR = DIR[:DIR.rfind('/')+1:].strip() + "logs/"
+        try:
+            s3.upload_file(logging_file, BUCKET, DIR + get_username() + '_' + logging_file_name)
+        except:
+            logging.getLogger('maskgen').error("Could not upload prior log file to " + DIR)
+    return logging_file
+
+def get_logging_file():
+    """
+    :return: The last roll over log file
+    """
+    newest = None
+    newesttime = None
+    filename = 'maskgen.log.'
+    for item in os.listdir('.'):
+        if item.startswith(filename):
+            t = os.stat(item).st_ctime
+            if newesttime is None or newesttime < t:
+                newest = item
+                newesttime = t
+    return newest
+
+class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
+    """
+    Always roll-over if it is a new day, not just when the process is active
+    """
+
+    def __init__(self, filename):
+        yesterday = time.strftime("%Y-%m-%d", time.gmtime(int(os.stat(filename).st_ctime)))
+        today = time.strftime("%Y-%m-%d", time.gmtime(time.time()))
+        self.forceRotate = (yesterday != today)
+        handlers.TimedRotatingFileHandler.__init__(self,filename, when='D', interval=1, utc=True)
+
+    def shouldRollover(self, record):
+        """
+                Determine if rollover should occur
+
+                record is not used, as we are just comparing times, but it is needed so
+                the method siguratures are the same
+                """
+        t = int(time.time())
+        if t >= self.rolloverAt or self.forceRotate:
+            self.forceRotate = False
+            return 1
+        return 0
 
 def set_logging():
     logger = logging.getLogger('maskgen')
@@ -42,14 +99,19 @@ def set_logging():
     # add ch to logger
     logger.addHandler(ch)
 
-    fh = logging.FileHandler('maskgen.log', mode='a', encoding=None, delay=False)
+    fh = MaskGenTimedRotatingFileHandler('maskgen.log')
 
-    fh.setLevel(logging.WARNING)
+    fh.setLevel(logging.INFO)
     # add formatter to ch
     fh.setFormatter(formatter)
 
     # add ch to logger
     logger.addHandler(fh)
+
+def flush_logging():
+    logger = logging.getLogger('maskgen')
+    for handler in logger.handlers:
+        handler.flush()
 
 def getMaskFileTypes():
     return maskfiletypes
