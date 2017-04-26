@@ -35,7 +35,7 @@ class S3ProgressPercentage(object):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
-        self.percentage_so_far = 0
+        self._percentage_so_far = 0
         self._lock = threading.Lock()
 
     def __call__(self, bytes_amount):
@@ -44,7 +44,8 @@ class S3ProgressPercentage(object):
         with self._lock:
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
-            if (percentage - self._percentage_so_far) > 5:
+            print percentage
+            if (percentage - self._percentage_so_far) > 0.05:
                 logging.getLogger('maskgen').info(
                     "%s  %s / %s  (%.2f%%)" % (
                         self._filename, self._seen_so_far, self._size,
