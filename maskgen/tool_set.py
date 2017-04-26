@@ -339,6 +339,32 @@ class VidTimeManager:
     def isBeforeTime(self):
         return self.beforeStartTime
 
+def getFrameDurationString(st, et):
+        """
+         calculation duration
+        """
+        stdt = None
+        try:
+            stdt = datetime.strptime(st, '%H:%M:%S.%f')
+        except ValueError:
+            stdt = datetime.strptime(st, '%H:%M:%S')
+
+        etdt = None
+        try:
+            etdt = datetime.strptime(et, '%H:%M:%S.%f')
+        except ValueError:
+            etdt = datetime.strptime(et, '%H:%M:%S')
+
+        delta = etdt - stdt
+        if delta.days < 0:
+            return None
+
+        sec = delta.seconds
+        sec += (1 if delta.microseconds > 0 else 0)
+        hr = sec / 3600
+        mi = sec / 60 - (hr * 60)
+        ss = sec - (hr * 3600) - mi * 60
+        return '{:=02d}:{:=02d}:{:=02d}'.format(hr, mi, ss)
 
 def getMilliSecondsAndFrameCount(v):
     dt = None
@@ -449,6 +475,75 @@ def getFileMeta(file):
         meta.extend(_processFileMeta(stdout))
     return meta
 
+def millisec2time(millisec):
+    ''' Convert milliseconds to 'HH:MM:SS.FFF' '''
+    s, ms = divmod(millisec, 1000)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    if ms > 0:
+        pattern = r'%02d:%02d:%02d.%03d'
+        return pattern % (h, m, s, ms)
+    else:
+        pattern = r'%02d:%02d:%02d'
+        return pattern % (h, m, s)
+
+def outputVideoFrame(filename,outputName=None,videoFrameTime=None,isMask=False):
+    import os
+    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
+    if outputName is not None:
+        outfilename  = outputName
+    else:
+        outfilename = filename[0:filename.rfind('.')] + '.png'
+    command = [ffcommand,'-i',filename]
+    if videoFrameTime is not None:
+        st = videoFrameTime[0] + 30*videoFrameTime[1]
+        command.extend(['-ss',millisec2time(st)])
+    command.extend(['-vframes', '1',  outfilename])
+    try:
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        p.communicate()
+        p.wait()
+    except OSError as e:
+        logging.getLogger('maskgen').error( "FFmpeg not installed")
+        logging.getLogger('maskgen').error(str(e))
+        raise e
+    return openImage(outfilename,isMask=isMask)
+
+def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileName=None):
+    cap = cv2.VideoCapture(filename)
+    bestSoFar = None
+    bestVariance = -1
+    maxTry = 20
+    time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = np.roll(frame, 1, axis=-1)
+            elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            time_manager.updateToNow(elapsed_time)
+            if time_manager.isPastTime():
+                bestSoFar = frame
+                break
+            varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
+            if frame is not None and bestVariance < varianceOfImage:
+                bestSoFar = frame
+                bestVariance = varianceOfImage
+            maxTry -= 1
+            if not videoFrameTime and maxTry <= 0:
+                break
+    finally:
+        cap.release()
+    if bestSoFar is None:
+        logging.getLogger('maskgen').error("{} cannot be read by OpenCV/ffmpeg.  Mask generation will not function properly.".format(filename))
+        return outputVideoFrame(filename, outputName = snapshotFileName,videoFrameTime=videoFrameTime,isMask=isMask)
+    else:
+        img = ImageWrapper(bestSoFar, to_mask=isMask)
+        if snapshotFileName is not None and snapshotFileName != filename:
+            img.save(snapshotFileName)
+        return img
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
@@ -479,38 +574,12 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                                   os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
         if not ('video' in getFileMeta(filename)):
             return openImage('./icons/audio.png')
-        cap = cv2.VideoCapture(filename)
-        bestSoFar = None
-        bestVariance = -1
-        maxTry = 20
-        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
-        try:
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                frame = np.roll(frame, 1, axis=-1)
-                elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-                time_manager.updateToNow(elapsed_time)
-                if time_manager.isPastTime():
-                    bestSoFar = frame
-                    break
-                varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
-                if frame is not None and bestVariance < varianceOfImage:
-                    bestSoFar = frame
-                    bestVariance = varianceOfImage
-                maxTry -= 1
-                if not videoFrameTime and maxTry <= 0:
-                    break
-        finally:
-            cap.release()
-        if bestSoFar is None:
+        videoFrameImg = readImageFromVideo(filename,videoFrameTime=videoFrameTime,isMask=isMask,
+                                           snapshotFileName=snapshotFileName if preserveSnapshot else None)
+        if videoFrameImg is None:
             logging.getLogger('maskgen').warning( 'invalid or corrupted file ' + filename)
             return openImage('./icons/RedX.png')
-        img = ImageWrapper(bestSoFar, to_mask=isMask)
-        if preserveSnapshot and snapshotFileName != filename:
-            img.save(snapshotFileName)
-        return img
+        return videoFrameImg
     else:
         try:
             img = openImageFile(snapshotFileName, isMask=isMask)
