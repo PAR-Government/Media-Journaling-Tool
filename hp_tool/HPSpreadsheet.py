@@ -318,8 +318,9 @@ class HPSpreadsheet(Toplevel):
         currentTable.undo = [(currentTable.model.getValueAt(row, col), row, col)]
         currentTable.model.setValueAt(val, row, col)
         currentTable.redraw()
-        if hasattr(self.pt, 'cellentry'):
-            self.pt.cellentry.destroy()
+        if hasattr(currentTable, 'cellentry'):
+            currentTable.cellentry.destroy()
+        currentTable.parentframe.focus_set()
 
     def load_images(self):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
@@ -370,12 +371,12 @@ class HPSpreadsheet(Toplevel):
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
 
     def color_code_cells(self, tab=None):
-        self.pt.disabled_cells = []
         if tab is None:
             tab = self.pt
             track_highlights = True
         else:
             track_highlights = False
+        tab.disabled_cells = []
         if os.path.exists(self.errorpath):
             with open(self.errorpath) as j:
                 self.processErrors = json.load(j)
@@ -392,7 +393,7 @@ class HPSpreadsheet(Toplevel):
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
                                                 tag='cellrect')
-                    self.pt.disabled_cells.append((row, col))
+                    tab.disabled_cells.append((row, col))
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
                         (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
                         (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']):
@@ -402,15 +403,15 @@ class HPSpreadsheet(Toplevel):
                                                 tag='cellrect')
                     if track_highlights:
                         self.highlighted_cells.append((row, col))
-                    if (row, col) in self.pt.disabled_cells:
-                        self.pt.disabled_cells.remove((row, col))
+                    if (row, col) in tab.disabled_cells:
+                        tab.disabled_cells.remove((row, col))
                 if colName in self.disabledColNames:
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
                                                 tag='cellrect')
-                    if (row, col) not in self.pt.disabled_cells:
-                        self.pt.disabled_cells.append((row, col))
+                    if (row, col) not in tab.disabled_cells:
+                        tab.disabled_cells.append((row, col))
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for error in self.processErrors[image]:
@@ -847,9 +848,9 @@ class CustomTable(pandastable.Table):
         self.bind("<Left>", self.handle_arrow_keys)
         self.bind("<Up>", self.handle_arrow_keys)
         self.bind("<Down>", self.handle_arrow_keys)
-        self.parentframe.master.bind_all("<KP_8>", self.handle_arrow_keys)
+        self.bind("<Tab>", self.handle_tab)
         self.parentframe.master.bind_all("<Return>", self.handle_arrow_keys)
-        self.parentframe.master.bind_all("<Tab>", self.handle_arrow_keys)
+        self.parentframe.master.bind_all("<KP_8>", self.handle_arrow_keys)
         # if 'windows' in self.platform:
         self.bind("<MouseWheel>", self.mouse_wheel)
         self.bind('<Button-4>', self.mouse_wheel)
@@ -871,33 +872,8 @@ class CustomTable(pandastable.Table):
     def enter_true(self, event=None):
         self.fill_selection(val='True')
 
-        # if hasattr(self, 'disabled_cells'):
-        #     if not self.check_disabled_cells(range(self.startrow, self.endrow + 1),
-        #                                      range(self.startcol, self.endcol + 1))
-        #     return
-        # self.undo = []
-        # self.focus_set()
-        # for row in range(self.startrow,self.endrow+1):
-        #     for col in range(self.startcol, self.endcol+1):
-        #         self.undo.append((self.model.getValueAt(row, col), row, col))
-        #         self.model.setValueAt('True', row, col)
-        # self.redraw()
-        # if hasattr(self, 'cellentry'):
-        #     self.cellentry.destroy()
-
     def enter_false(self, event=None):
         self.fill_selection(val='False')
-        # if hasattr(self, 'disabled_cells'):
-        #     return
-        # self.undo = []
-        # self.focus_set()
-        # for row in range(self.startrow,self.endrow+1):
-        #     for col in range(self.startcol, self.endcol+1):
-        #         self.undo.append((self.model.getValueAt(row, col), row, col))
-        #         self.model.setValueAt('False', row, col)
-        # self.redraw()
-        # if hasattr(self, 'cellentry'):
-        #     self.cellentry.destroy()
 
     def fill_selection(self, event=None, val=None):
         if hasattr(self, 'disabled_cells'):
@@ -979,6 +955,9 @@ class CustomTable(pandastable.Table):
         if entry:
             self.drawCellEntry(self.currentrow, self.currentcol)
 
+    def handle_tab(self, event=None):
+        self.handle_arrow_keys(direction='Right')
+
     def handle_arrow_keys(self, event=None, direction=None):
         """Handle arrow keys press"""
         # print event.keysym
@@ -1023,11 +1002,7 @@ class CustomTable(pandastable.Table):
                     return
             else:
                 self.currentcol = self.currentcol - 1
-        if direction != 'Return':
-            self.drawSelectedRect(self.currentrow, self.currentcol)
-        # coltype = self.model.getColumnType(self.currentcol)
-        # self.delete('entry')
-        # self.drawCellEntry(self.currentrow, self.currentcol)
+        self.drawSelectedRect(self.currentrow, self.currentcol)
         self.startrow = self.currentrow
         self.endrow = self.currentrow
         self.startcol = self.currentcol
