@@ -87,11 +87,12 @@ class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """
     Always roll-over if it is a new day, not just when the process is active
     """
-
+    forceRotate = False
     def __init__(self, filename):
-        yesterday = time.strftime("%Y-%m-%d", time.gmtime(int(os.stat(filename).st_ctime)))
-        today = time.strftime("%Y-%m-%d", time.gmtime(time.time()))
-        self.forceRotate = (yesterday != today)
+        if os.path.exists(filename):
+            yesterday = time.strftime("%Y-%m-%d", time.gmtime(int(os.stat(filename).st_ctime)))
+            today = time.strftime("%Y-%m-%d", time.gmtime(time.time()))
+            self.forceRotate = (yesterday != today)
         handlers.TimedRotatingFileHandler.__init__(self,filename, when='D', interval=1, utc=True)
 
     def shouldRollover(self, record):
