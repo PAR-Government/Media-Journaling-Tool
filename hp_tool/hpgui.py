@@ -28,6 +28,10 @@ class HP_Starter(Frame):
         self.newImageNames = []
         self.createWidgets()
         self.load_defaults()
+        self.bindings()
+
+    def bindings(self):
+        self.bind_all('<Return>', self.go)
 
     def update_defaults(self):
         self.settings.set('inputdir', self.inputdir.get())
@@ -63,7 +67,7 @@ class HP_Starter(Frame):
                 testNameStr += '-' + self.additionalinfo.get()
         tkMessageBox.showinfo('Filename Preview', testNameStr)
 
-    def go(self):
+    def go(self, event=None):
         if not self.settings.get('username') or not self.settings.get('organization'):
             tkMessageBox.showerror(title='Error', message='Please enter initials and organization in settings before running.')
             return

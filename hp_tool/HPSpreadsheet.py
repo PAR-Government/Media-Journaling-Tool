@@ -112,6 +112,8 @@ class HPSpreadsheet(Toplevel):
         self.editMenu.add_command(label='Fill Column', command=self.pt.fill_column, accelerator='ctrl-g')
         self.editMenu.add_command(label='Fill True', command=self.pt.enter_true, accelerator='ctrl-t')
         self.editMenu.add_command(label='Fill False', command=self.pt.enter_false, accelerator='ctr-f')
+        self.editMenu.add_command(label='Undo', command=self.undo, accelerator='ctrl-z')
+        self.editMenu.add_command(label='Redo', command=self.redo, accelerator='ctrl-y')
         self.config(menu=self.menubar)
 
     def set_bindings(self):
@@ -124,6 +126,33 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Down>', self.update_current_image)
         self.bind('<Tab>', self.update_current_image)
         self.bind('<Control-s>', self.exportCSV)
+        self.bind('<Control-z>', self.undo)
+        self.bind('<Control-y>', self.redo)
+
+    def undo(self, event=None):
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+        if hasattr(currentTable, 'undo') and currentTable.undo:
+            currentTable.redo = []
+            # cell: tuple (value, row, column)
+            for cell in currentTable.undo:
+                currentTable.redo.append((currentTable.model.getValueAt(cell[1], cell[2]), cell[1], cell[2]))
+                currentTable.model.setValueAt(*cell)
+            currentTable.redraw()
+
+    def redo(self, event=None):
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+        if hasattr(currentTable, 'redo') and currentTable.redo:
+            currentTable.undo = []
+            for cell in currentTable.redo:
+                currentTable.undo.append((currentTable.model.getValueAt(cell[1], cell[2]), cell[1], cell[2]))
+                currentTable.model.setValueAt(cell[0], cell[1], cell[2])
+            currentTable.redraw()
 
     def keypress(self, event):
         self.saveState = False
@@ -139,7 +168,7 @@ class HPSpreadsheet(Toplevel):
         else:
             os.system('open "' + image + '"')
 
-    def update_current_image(self, event):
+    def update_current_image(self, event=None):
         if self.on_main_tab:
             row = self.pt.getSelectedRow()
         else:
@@ -284,8 +313,13 @@ class HPSpreadsheet(Toplevel):
             currentTable = self.tabpt
         row = currentTable.getSelectedRow()
         col = currentTable.getSelectedColumn()
+        if hasattr(currentTable, 'disabled_cells') and (row, col) in currentTable.disabled_cells:
+            return
+        currentTable.undo = [(currentTable.model.getValueAt(row, col), row, col)]
         currentTable.model.setValueAt(val, row, col)
         currentTable.redraw()
+        if hasattr(self.pt, 'cellentry'):
+            self.pt.cellentry.destroy()
 
     def load_images(self):
         self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
@@ -332,9 +366,11 @@ class HPSpreadsheet(Toplevel):
         #self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
 
         self.color_code_cells()
+        self.update_current_image()
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
 
     def color_code_cells(self, tab=None):
+        self.pt.disabled_cells = []
         if tab is None:
             tab = self.pt
             track_highlights = True
@@ -356,6 +392,7 @@ class HPSpreadsheet(Toplevel):
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
                                                 tag='cellrect')
+                    self.pt.disabled_cells.append((row, col))
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
                         (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
                         (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']):
@@ -365,11 +402,15 @@ class HPSpreadsheet(Toplevel):
                                                 tag='cellrect')
                     if track_highlights:
                         self.highlighted_cells.append((row, col))
+                    if (row, col) in self.pt.disabled_cells:
+                        self.pt.disabled_cells.remove((row, col))
                 if colName in self.disabledColNames:
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
                                                 tag='cellrect')
+                    if (row, col) not in self.pt.disabled_cells:
+                        self.pt.disabled_cells.append((row, col))
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for error in self.processErrors[image]:
@@ -828,40 +869,82 @@ class CustomTable(pandastable.Table):
         return
 
     def enter_true(self, event=None):
-        self.focus_set()
-        for row in range(self.startrow,self.endrow+1):
-            for col in range(self.startcol, self.endcol+1):
-                self.model.setValueAt('True', row, col)
-        self.redraw()
+        self.fill_selection(val='True')
+
+        # if hasattr(self, 'disabled_cells'):
+        #     if not self.check_disabled_cells(range(self.startrow, self.endrow + 1),
+        #                                      range(self.startcol, self.endcol + 1))
+        #     return
+        # self.undo = []
+        # self.focus_set()
+        # for row in range(self.startrow,self.endrow+1):
+        #     for col in range(self.startcol, self.endcol+1):
+        #         self.undo.append((self.model.getValueAt(row, col), row, col))
+        #         self.model.setValueAt('True', row, col)
+        # self.redraw()
+        # if hasattr(self, 'cellentry'):
+        #     self.cellentry.destroy()
 
     def enter_false(self, event=None):
-        self.focus_set()
-        # row = self.get_row_clicked(event)
-        # col = self.get_col_clicked(event)
-        for row in range(self.startrow,self.endrow+1):
-            for col in range(self.startcol, self.endcol+1):
-                self.model.setValueAt('False', row, col)
-        self.redraw()
+        self.fill_selection(val='False')
+        # if hasattr(self, 'disabled_cells'):
+        #     return
+        # self.undo = []
+        # self.focus_set()
+        # for row in range(self.startrow,self.endrow+1):
+        #     for col in range(self.startcol, self.endcol+1):
+        #         self.undo.append((self.model.getValueAt(row, col), row, col))
+        #         self.model.setValueAt('False', row, col)
+        # self.redraw()
+        # if hasattr(self, 'cellentry'):
+        #     self.cellentry.destroy()
 
-    def fill_selection(self, event=None):
+    def fill_selection(self, event=None, val=None):
+        if hasattr(self, 'disabled_cells'):
+            if not self.check_disabled_cells(range(self.startrow,self.endrow+1),
+                                             range(self.startcol, self.endcol+1)):
+                return
+        self.undo = []
         self.focus_set()
         col = self.getSelectedColumn()
         row = self.getSelectedRow()
-        val = self.model.getValueAt(row, col)
+        val = val if val is not None else self.model.getValueAt(row, col)
         for row in range(self.startrow,self.endrow+1):
             for col in range(self.startcol, self.endcol+1):
+                if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
+                    continue
+                self.undo.append((self.model.getValueAt(row, col), row, col))
                 self.model.setValueAt(val, row, col)
         self.redraw()
+        if hasattr(self, 'cellentry'):
+            self.cellentry.destroy()
 
     def fill_column(self, event=None):
-        self.focus_set()
         col = self.getSelectedColumn()
+        rowList = range(0, self.rows)
+        if hasattr(self, 'disabled_cells'):
+            if not self.check_disabled_cells(rowList, [col]):
+                return
+        self.focus_set()
+        self.undo = []
         row = self.getSelectedRow()
         val = self.model.getValueAt(row, col)
-        rowList = range(0, self.rows)
         for row in rowList:
+            if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
+                continue
+            self.undo.append((self.model.getValueAt(row, col), row, col))
             self.model.setValueAt(val, row, col)
         self.redraw()
+        if hasattr(self, 'cellentry'):
+            self.cellentry.destroy()
+
+    def check_disabled_cells(self, rows, columns):
+        for row in rows:
+            for col in columns:
+                if (row, col) in self.disabled_cells:
+                    return tkMessageBox.askyesno(title='Error',
+                                          message='Some cells in column are disabled. Would you like to fill the valid ones?')
+        return True
 
     def copy_value(self, event=None):
         self.focus_set()
@@ -874,7 +957,10 @@ class CustomTable(pandastable.Table):
         self.focus_set()
         col = self.getSelectedColumn()
         row = self.getSelectedRow()
+        if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
+            return
         if self.copied_val is not None:
+            self.undo = [(self.model.getValueAt(row, col), row, col)]
             self.model.setValueAt(self.copied_val, row, col)
         self.redraw()
 
@@ -893,7 +979,7 @@ class CustomTable(pandastable.Table):
         if entry:
             self.drawCellEntry(self.currentrow, self.currentcol)
 
-    def handle_arrow_keys(self, event, entry=False):
+    def handle_arrow_keys(self, event=None, direction=None):
         """Handle arrow keys press"""
         # print event.keysym
 
@@ -902,22 +988,24 @@ class CustomTable(pandastable.Table):
         x, y = self.getCanvasPos(self.currentrow, 0)
         if x == None:
             return
+        if event is not None:
+            direction = event.keysym
 
-        if event.keysym == 'Up':
+        if direction == 'Up':
             if self.currentrow == 0:
                 return
             else:
                 # self.yview('moveto', y)
                 # self.rowheader.yview('moveto', y)
                 self.currentrow = self.currentrow - 1
-        elif event.keysym == 'Down' or event.keysym == 'Return':
+        elif direction == 'Down':
             if self.currentrow >= self.rows - 1:
                 return
             else:
                 # self.yview('moveto', y)
                 # self.rowheader.yview('moveto', y)
                 self.currentrow = self.currentrow + 1
-        elif event.keysym == 'Right' or event.keysym == 'Tab':
+        elif direction == 'Right' or direction == 'Tab':
             if self.currentcol >= self.cols - 1:
                 if self.currentrow < self.rows - 1:
                     self.currentcol = 0
@@ -926,7 +1014,7 @@ class CustomTable(pandastable.Table):
                     return
             else:
                 self.currentcol = self.currentcol + 1
-        elif event.keysym == 'Left':
+        elif direction == 'Left':
             if self.currentcol == 0:
                 if self.currentrow > 0:
                     self.currentcol = self.cols - 1
@@ -935,26 +1023,158 @@ class CustomTable(pandastable.Table):
                     return
             else:
                 self.currentcol = self.currentcol - 1
-        self.drawSelectedRect(self.currentrow, self.currentcol)
-        coltype = self.model.getColumnType(self.currentcol)
-        # if coltype == 'text' or coltype == 'number':
-        #    self.delete('entry')
-        #    self.drawCellEntry(self.currentrow, self.currentcol)
+        if direction != 'Return':
+            self.drawSelectedRect(self.currentrow, self.currentcol)
+        # coltype = self.model.getColumnType(self.currentcol)
+        # self.delete('entry')
+        # self.drawCellEntry(self.currentrow, self.currentcol)
         self.startrow = self.currentrow
         self.endrow = self.currentrow
         self.startcol = self.currentcol
         self.endcol = self.currentcol
+        self.handle_left_click()
+        self.handle_double_click()
         return
 
-    def gotonextCell(self):
-        """Move highlighted cell to next cell in row or a new col"""
+    def drawCellEntry(self, row, col, text=None):
+        """When the user single/double clicks on a text/number cell,
+          bring up entry window and allow edits."""
+
+        if self.editable == False:
+            return
+        if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
+            return
+
+        h = self.rowheight
+        model = self.model
+        text = self.model.getValueAt(row, col)
+        x1,y1,x2,y2 = self.getCellCoords(row,col)
+        w=x2-x1
+        self.cellentryvar = txtvar = StringVar()
+        txtvar.set(text)
+
+        self.cellentry = Entry(self.parentframe,width=20,
+                        textvariable=txtvar,
+                        takefocus=1,
+                        font=self.thefont)
+        self.cellentry.icursor(END)
+        self.cellentry.bind('<Return>', lambda x: self.cellentryCallback(row,col, direction='Down'))
+        self.cellentry.bind("<Right>", lambda x: self.cellentryCallback(row,col, direction='Right'))
+        self.cellentry.bind("<Left>", lambda x: self.cellentryCallback(row,col, direction='Left'))
+        self.cellentry.bind("<Up>", lambda x: self.cellentryCallback(row,col, direction='Up'))
+        self.cellentry.bind("<Down>", lambda x: self.cellentryCallback(row,col, direction='Down'))
+        self.cellentry.bind("<Tab>", lambda x: self.cellentryCallback(row,col, direction='Right'))
+
+        self.cellentry.bind('<Control-Key-t>', self.enter_true)
+        self.cellentry.bind('<Control-Key-f>', self.enter_false)
+        self.cellentry.bind('<Control-Key-d>', self.fill_selection)
+        self.cellentry.bind('<Control-Key-g>', self.fill_column)
+        self.cellentry.bind('<Control-Key-c>', self.copy_value)
+        self.cellentry.bind('<Control-Key-v>', self.paste_value)
+        self.cellentry.focus_set()
+        self.entrywin = self.create_window(x1,y1,
+                                width=w,height=h,
+                                window=self.cellentry,anchor='nw',
+                                tag='entry')
+        return
+
+    def cellentryCallback(self, row, col, direction=None):
+        """Callback for cell entry"""
+
+        value = self.cellentryvar.get()
+        self.model.setValueAt(value,row,col)
+        self.redraw()
+        #self.drawText(row, col, value, align=self.align)
+        #self.delete('entry')
+        self.gotonextCell(direction)
+        return
+
+    def handle_left_click(self, event=None):
+        """Respond to a single press"""
+
+        self.clearSelected()
+        self.allrows = False
+        #which row and column is the click inside?
+        if event is not None:
+            rowclicked = self.get_row_clicked(event)
+            colclicked = self.get_col_clicked(event)
+        else:
+            rowclicked = self.startrow
+            colclicked = self.startcol
+        if colclicked == None:
+            return
+        try:
+            self.focus_set()
+        except:
+            pass
 
         if hasattr(self, 'cellentry'):
+            #self.cellentryCallback()
             self.cellentry.destroy()
-        self.currentrow = self.currentrow+1
+        #ensure popup menus are removed if present
+        if hasattr(self, 'rightmenu'):
+            self.rightmenu.destroy()
+        if hasattr(self.tablecolheader, 'rightmenu'):
+            self.tablecolheader.rightmenu.destroy()
+
+        self.startrow = rowclicked
+        self.endrow = rowclicked
+        self.startcol = colclicked
+        self.endcol = colclicked
+        #reset multiple selection list
+        self.multiplerowlist=[]
+        self.multiplerowlist.append(rowclicked)
+        if 0 <= rowclicked < self.rows and 0 <= colclicked < self.cols:
+            self.setSelectedRow(rowclicked)
+            self.setSelectedCol(colclicked)
+            self.drawSelectedRect(self.currentrow, self.currentcol)
+            self.drawSelectedRow()
+            self.rowheader.drawSelectedRows(rowclicked)
+            self.tablecolheader.delete('rect')
+        if hasattr(self, 'cellentry'):
+            self.cellentry.destroy()
+        return
+
+    def handle_double_click(self, event=None):
+        """Do double click stuff. Selected row/cols will already have
+           been set with single click binding"""
+
+        if event is not None:
+            rowclicked = self.get_row_clicked(event)
+            colclicked = self.get_col_clicked(event)
+        else:
+            rowclicked = self.startrow
+            colclicked = self.startcol
+        self.drawCellEntry(self.currentrow, self.currentcol)
+        return
+
+    def gotonextCell(self, direction=None):
+        """Move highlighted cell to next cell in row or a new col"""
+        if direction is None:
+            direction = 'right'
+        if hasattr(self, 'cellentry'):
+            self.cellentry.destroy()
+
+        self.handle_arrow_keys(direction=direction)
+        # self.currentrow = self.currentrow+1
         # if self.currentcol >= self.cols-1:
         #     self.currentcol = self.currentcol+1
-        self.drawSelectedRect(self.currentrow, self.currentcol)
+        #self.drawSelectedRect(self.currentrow, self.currentcol)
+        # self.handle_left_click()
+        # self.handle_double_click()
+        return
+
+    def clearSelected(self):
+        """Clear selections"""
+        try:
+            self.delete('rect')
+            self.delete('entry')
+            self.delete('tooltip')
+            self.delete('searchrect')
+            self.delete('colrect')
+            self.delete('multicellrect')
+        except TclError:
+            pass
         return
 
     def importCSV(self, filename=None, dialog=False):
