@@ -85,9 +85,8 @@ class HP_Starter(Frame):
                 h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=self.settings.get('trello'))
                 h.wait_window()
                 if v.get():
-                    r = self.add_device(v.get())
-                    if r is None:
-                        tkMessageBox.showerror(title='Error', message='An error ocurred. Could not add device.')
+                    r = self.master.add_device(v.get())
+                    self.update_model()
             return
 
         globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
@@ -113,38 +112,6 @@ class HP_Starter(Frame):
         keySheet = self.open_keywords_sheet()
         keySheet.close()
 
-    def add_device(self, path):
-        local_id = None
-        hp_model = None
-        exif_model = None
-        exif_sn = None
-        make = None
-        with open(path) as p:
-            for line in p:
-                if 'Local ID' in line:
-                    local_id = line.split('=')[1].strip()
-                elif 'Series Model' in line:
-                    hp_model = line.split('=')[1].strip()
-                elif 'Camera Model' in line:
-                    exif_model = line.split('=')[1].strip()
-                elif 'Serial Number' in line:
-                    exif_sn = line.split('=')[1].strip()
-                elif 'Manufacturer' in line:
-                    make = line.split('=')[1].strip()
-        if local_id and hp_model and exif_model and exif_sn:
-            self.master.cameras[local_id] = {
-                'hp_device_local_id': local_id,
-                'hp_camera_model': hp_model,
-                'exif_camera_model': exif_model,
-                'exif_camera_make': make,
-                'exif_device_serial_number': exif_sn
-            }
-            self.master.statusBox.println('Added ' + local_id + ' to camera list. This will be valid for this instance only.')
-            self.update_model()
-            return 1
-        else:
-            return None
-
     def open_keywords_sheet(self):
         keywords = KeywordsSheet(self.settings, dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
         keywords.open_spreadsheet()
@@ -155,7 +122,7 @@ class HP_Starter(Frame):
 
     def createWidgets(self):
         r=0
-        Label(self, text='***ONLY PROCESS DATA FROM ONE DEVICE PER RUN***', font=("Courier", 16)).grid(row=r, columnspan=8, pady=2)
+        Label(self, text='***ONLY PROCESS DATA FROM ONE DEVICE PER RUN***', font=('bold', 16)).grid(row=r, columnspan=8, pady=2)
         r+=1
         Label(self, text='Specify a different output directory for each different device.').grid(row=r, columnspan=8, pady=2)
         r += 1
@@ -580,7 +547,11 @@ class HPGUI(Frame):
 
     def open_form(self):
         token = self.settings.get('trello')
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), token=token)
+        new_device = StringVar()
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=token)
+        h.wait_window()
+        if new_device.get():
+            r = self.add_device(new_device.get())
 
     def open_old_rit_csv(self):
         outputdir = self.settings.get('outputdir')
@@ -616,6 +587,21 @@ class HPGUI(Frame):
             self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
+
+    def add_device(self, path):
+        df = pd.read_csv(path)
+        fields = {}
+        for heading in ['HP-LocalDeviceID', 'DeviceSN', 'CameraModel', 'Manufacturer', 'HP-CameraModel']:
+            fields[heading] = df[heading][0] if str(df[heading][0]) != 'nan' else ''
+
+        self.cameras[fields['HP-LocalDeviceID']] = {
+            'hp_device_local_id': fields['HP-LocalDeviceID'],
+            'hp_camera_model': fields['HP-CameraModel'],
+            'exif_camera_model': fields['CameraModel'],
+            'exif_camera_make': fields['Manufacturer'],
+            'exif_device_serial_number': fields['DeviceSN']
+        }
+        self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list. This will be valid for this instance only.')
 
 
 class ReadOnlyText(Text):

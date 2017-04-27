@@ -50,10 +50,10 @@ class HP_Device_Form(Toplevel):
         self.f = VerticalScrolledFrame(self)
         self.f.pack(fill=BOTH, expand=TRUE)
 
-        Label(self.f.interior, text='Add a new HP Device', font=("Courier", 20)).pack()
+        Label(self.f.interior, text='Add a new HP Device', font=('bold', 20)).pack()
         Label(self.f.interior, text='Once complete, post the resulting text file to the \"New Devices to be Added\" list on the \"High Provenance\" trello board.').pack()
 
-        Label(self.f.interior, text='Example Image', font=("Courier", 20)).pack()
+        Label(self.f.interior, text='Example Image', font=(20)).pack()
         Label(self.f.interior, text='Some data on this form may be auto-populated using metadata from a sample image.').pack()
         self.imageButton = Button(self.f.interior, text='Select Image', command=self.populate_from_image)
         self.imageButton.pack()
@@ -64,14 +64,14 @@ class HP_Device_Form(Toplevel):
                                  ' ES-iPhone4. Please check that the local ID is not already in use.', 'type':'text', 'var':self.localID}),
                ('Device Serial Number',{'description':'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
                                  'type':'text', 'var':self.serial}),
-               ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
-               ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
+               ('Manufacturer*',{'description':'Device make.', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
+               ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6.', 'type':'text',
                                  'var':self.series_model}),
                ('Camera Model',{'description':'If Camera Model appears in image/video exif data from this camera, please enter it here (ex. SM-009). If there is no model listed in exif data, leave blank.', 'type':'text',
                                  'var':self.camera_model}),
                ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
                ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
-               ('Sensor Information',{'description':'', 'type':'text', 'var':self.sensor}),
+               ('Sensor Information',{'description':'Sensor size/dimensions/other sensor info.', 'type':'text', 'var':self.sensor}),
                ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
                ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
                                  'var':self.lens_mount}),
@@ -82,7 +82,7 @@ class HP_Device_Form(Toplevel):
 
         r=0
         for h in self.headers:
-            Label(self.f.interior, text=h, font=("Courier", 20)).pack()
+            Label(self.f.interior, text=h, font=(20)).pack()
             r+=1
             if 'description' in self.headers[h]:
                 Label(self.f.interior, text=self.headers[h]['description'], wraplength=600).pack()
