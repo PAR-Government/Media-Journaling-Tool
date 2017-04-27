@@ -67,7 +67,7 @@ class HP_Device_Form(Toplevel):
                ('Manufacturer*',{'description':'', 'type':'list', 'values':self.manufacturers, 'var':self.manufacturer}),
                ('Series Model*',{'description':'Please write the series or model such as it would be easily identifiable, such as Galaxy S6', 'type':'text',
                                  'var':self.series_model}),
-               ('Camera Model*',{'description':'If Camera Model appears in Exif data, please enter it here (ex. SM-009', 'type':'text',
+               ('Camera Model',{'description':'If Camera Model appears in image/video exif data from this camera, please enter it here (ex. SM-009). If there is no model listed in exif data, leave blank.', 'type':'text',
                                  'var':self.camera_model}),
                ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
                ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
