@@ -509,7 +509,6 @@ class ImageGraph:
                 edge.pop(k)
             edge[k] = v
 
-
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         import copy
         self._setUpdate((start, end), update_type='edge')
@@ -524,6 +523,7 @@ class ImageGraph:
         # do not remove old version of mask if not saved previously
         if newmaskpathname in self.filesToRemove:
             self.filesToRemove.remove(newmaskpathname)
+        kwargs = { k:v for k,v in kwargs.iteritems() if v is not None }
         self.G.add_edge(start,
                         end,
                         maskname=maskname,

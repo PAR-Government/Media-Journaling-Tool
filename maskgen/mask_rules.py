@@ -127,7 +127,7 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
             if tm is not None:
                 # local resize
                 res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm))
-            elif 'inputmaskname' in edge:
+            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
                 inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
@@ -146,7 +146,7 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
         elif sizeChange == (0, 0):
             if tm is not None:
                 res = tool_set.applyTransform(res, mask=edgeMask, transform_matrix=tool_set.deserializeMatrix(tm), invert=True, returnRaw=False)
-            elif 'inputmaskname' in edge:
+            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
                 inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
