@@ -662,7 +662,7 @@ class HPSpreadsheet(Toplevel):
     def parse_process_errors(self, row):
         errors = []
         imageName = self.pt.model.df['OriginalImageName'][row]
-        if hasattr(self, 'processErrors:') and imageName in self.processErrors:
+        if hasattr(self, 'processErrors') and imageName in self.processErrors:
             for err in self.processErrors[imageName]:
                 errors.append(err[1] + ' (row ' + str(row) + ')')
         return errors
