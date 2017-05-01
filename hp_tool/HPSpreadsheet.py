@@ -161,6 +161,8 @@ class HPSpreadsheet(Toplevel):
         image = os.path.join(self.imageDir, self.imName)
         if not os.path.exists(image):
             image = os.path.join(self.videoDir, self.imName)
+            if not os.path.exists(image):
+                image = os.path.join(self.audioDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
@@ -377,7 +379,7 @@ class HPSpreadsheet(Toplevel):
         else:
             track_highlights = False
         tab.disabled_cells = []
-        if os.path.exists(self.errorpath):
+        if hasattr(self, 'errorpath') and os.path.exists(self.errorpath):
             with open(self.errorpath) as j:
                 self.processErrors = json.load(j)
         else:
@@ -436,12 +438,7 @@ class HPSpreadsheet(Toplevel):
             self.nb.select(self.nbtabs['main'])
             self.update_main()
             self.on_main_tab = True
-
         self.pt.redraw()
-        if showErrors:
-            (errors, cancelled) = self.validate()
-            if cancelled == True:
-                return cancelled
         self.pt.doExport(self.ritCSV)
         tmp = self.ritCSV + '-tmp.csv'
         with open(self.ritCSV, 'r') as source:
@@ -455,7 +452,14 @@ class HPSpreadsheet(Toplevel):
         self.export_rankOne()
         self.saveState = True
         if not quiet:
-            msg = tkMessageBox.showinfo('Status', 'Saved!')
+            msg = tkMessageBox.showinfo('Status', 'Saved! The spreadsheet will now be validated.')
+        if showErrors:
+            try:
+                (errors, cancelled) = self.validate()
+                if cancelled == True:
+                    return cancelled
+            except (AttributeError, IOError):
+                print 'Spreadsheet could not be validated, but will still be saved. Ensure all fields have proper data.'
         return None
 
     def export_rankOne(self):
@@ -658,7 +662,7 @@ class HPSpreadsheet(Toplevel):
     def parse_process_errors(self, row):
         errors = []
         imageName = self.pt.model.df['OriginalImageName'][row]
-        if imageName in self.processErrors:
+        if hasattr(self, 'processErrors') and imageName in self.processErrors:
             for err in self.processErrors[imageName]:
                 errors.append(err[1] + ' (row ' + str(row) + ')')
         return errors
