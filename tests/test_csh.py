@@ -642,7 +642,18 @@ class TestToolSet(unittest.TestCase):
         ax.set_title('After')
         plt.show()
 
-    def test_two_images(self):
+    def test_mask_gen(self):
+        from maskgen import tool_set
+        from maskgen.image_wrap import ImageWrapper
+        aorig = image_wrap.openImageFile('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-17-CLONE.png')
+        a = aorig.convert('YCbCr')
+        borig = image_wrap.openImageFile('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-18-CARVE.png')
+        b = borig.convert('YCbCr')
+        mask = tool_set._tallySeam((a.to_array()[:, :, 0]),
+                                    (b.to_array()[20:, :, 0]))
+        ImageWrapper(mask).save('seam_mask.png')
+
+    def xtest_two_images(self):
         from maskgen import tool_set
         from maskgen.image_wrap import ImageWrapper
         aorig = image_wrap.openImageFile ('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-17-CLONE.png')
@@ -657,7 +668,8 @@ class TestToolSet(unittest.TestCase):
                                                     ImageWrapper(b.to_array()[:, :, 0]))
         data_set,labels = find_lines(src_dst_pts[0],src_dst_pts[1])
 
-        label_set = np.unique(labels)
+        label_set = set(np.unique(labels))
+        label_set = set(label_set).difference(set([0,1]))
         dist = 125 / len(label_set)
         label_map = {}
         i=0
@@ -665,14 +677,18 @@ class TestToolSet(unittest.TestCase):
             if label >= 0:
                 label_map[label] = 124 + i*dist
                 i+=1
-        amask = np.zeros(a.shape,dtype=np.uint8)
-        bmask = np.zeros(b.shape, dtype=np.uint8)
+        amask = np.zeros(a.to_array().shape,dtype=np.uint8)
+        bmask = np.zeros(b.to_array().shape, dtype=np.uint8)
 
         for i in range(len(data_set)):
             result  = data_set[i]
             if labels[i] >= 0:
-                amask[result[2][0]-5:result[2][0]+5,result[2][1]-5:result[2][1]+5] = label_map[labels[i]]
-                bmask[result[3][0] - 5:result[3][0] + 5, result[3][1] - 5:result[3][1] + 5] = label_map[labels[i]]
+                amask[max(int(result[2][0][0])-5,0):min(int(result[2][0][0])+5,amask.shape[0]),
+                      max(int(result[2][0][1])-5,0):min(int(result[2][0][1])+5,amask.shape[1]),:] = label_map[labels[i]]
+                bmask[max(int(result[3][0][0]) - 5,0):min(int(result[3][0][0]) + 5,amask.shape[0]),
+                      max(int(result[3][0][1]) - 5,0):min(int(result[3][0][1]) + 5,amask.shape[1]),:] = label_map[labels[i]]
+        ImageWrapper(amask).save('amask.png')
+        ImageWrapper(bmask).save('bmask.png')
 
 
         #index.hash_images(a.to_array()[:, :, 0], b.to_array()[:, :, 0], collector)

@@ -1311,43 +1311,145 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     return newMask
 
 
-def cropCompare(img1, img2, invert, arguments=dict()):
+def cropCompare(img1, img2, arguments=dict()):
     if (sum(img1.shape) > sum(img2.shape)):
         return __composeCropImageMask(img1, img2)
     return None, {}
 
-def seamCompare(img1, img2, invert, arguments=dict()):
-    if (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
+def _composeLCS(img1, img2):
+    from scipy import sparse
+    m = img1.shape[0] * img1.shape[1]
+    n = img2.shape[0] * img2.shape[1]
+    LCS = sparse.lil_matrix((m+1,n+1), dtype=np.int8)
+    # that L[i][j] contains length of LCS of X[0..i-1] and Y[0..j-1]
+    for i in xrange(1,m + 1,1):
+        for j in xrange(1,n + 1,1):
+            x1 = (i-1) % img1.shape[0]
+            y1 = (i-1) / img1.shape[0]
+            x2 = (j-1) % img2.shape[0]
+            y2 = (j-1) / img2.shape[0]
+            if img1[x1,y1] == img2[x2,y2]:
+                LCS[i,j] = LCS[i - 1,j - 1] + 1
+            else:
+                m = max(LCS[i - 1,j], LCS[i,j - 1])
+                if m > 0:
+                    LCS[i,j] = m
+                # Start from the right-most-bottom-most corner and
+        # one by one store characters in lcs[]
+    i = m-1
+    j = n-1
+    mask = np.zeros(img1.shape, type=np.uint8)
+    while i >= 0 and j >= 0:
+        x1 = i % img1.shape[0]
+        y1 = i / img1.shape[0]
+        x2 = j % img2.shape[0]
+        y2 = j / img2.shape[0]
+        if img1[x1, y1] == img2[x2, y2]:
+            mask[x1, y1] = 255
+            i -= 1
+            j -= 1
+        # If not same, then find the larger of two and
+        # go in the direction of larger value
+        elif LCS[i - 1, j] > LCS[i, j - 1]:
+            i -= 1
+        else:
+            j -= 1
+
+
+
+
+def __search1(pixel, img2, tally,endx,endy,x,y):
+    from collections import deque
+    def __addToQueue(x, y, endx, endy, queue):
+        if x > endx:
+            queue.append((x - 1, y))
+        if y > endy:
+            queue.append((x, y - 1))
+            if x > endx:
+                queue.append((x - 1, y - 1))
+    pixel2 = img2[x, y]
+    if pixel == pixel2:
+        return (x,y)
+    queue = deque()
+    __addToQueue(x,y,endx,endy,queue)
+    while len(queue) > 0:
+        x,y = queue.popleft()
+        pixel2 = img2[x, y]
+        if pixel == pixel2:
+            return (x, y)
+        if tally[x, y] == 0:
+            __addToQueue(x, y, endx, endy, queue)
+    return None
+
+def __search(pixel, img2, tally, position, depth):
+    startx = min(max(0, position[0] - depth[0]),img2.shape[0])
+    starty = min(max(0, position[1] - depth[1]),img2.shape[1])
+    endx   = min(position[0] + depth[0], img2.shape[0]) + 1
+    endy   = min(position[1] + depth[1], img2.shape[1]) + 1
+    imgbox = img2[startx:endx, starty:endy]
+    imgpositions = zip(*np.where(imgbox==pixel))
+    if len(imgpositions) > 0:
+        tallybox = tally[startx:endx, starty:endy]
+        tallypostions = zip(*np.where(tallybox>0))
+        if len(tallypostions) > 0:
+            maxtally = max(tallypostions)
+            imgpositions = [p for p in imgpositions if p >  maxtally]
+    else:
+        return None
+    if len(imgpositions) > 0:
+        best =  min(imgpositions)
+        return (startx + best[0],starty + best[1])
+    return None
+
+def _tallySeam(img1, img2, minDepth=50):
+
+    tally1 = np.zeros(img1.shape)
+    tally2 = np.zeros(img2.shape)
+    depthx = max(img2.shape[0] - img1.shape[0],minDepth)
+    depthy = max(img2.shape[1] - img1.shape[1],minDepth)
+    for x1 in range (img1.shape[0]):
+        for y1 in range (img1.shape[1]):
+            pos = __search(img1[x1, y1], img2, tally2, (x1,y1), (depthx,depthy))
+            if pos is not None:
+                tally1[x1, y1] = 1
+                tally2[pos[0], pos[1]] = 1
+    return tally1.astype('uint8')*255
+
+def seamCompare(img1, img2,  arguments=dict()):
+    if (sum(img1.shape) != sum(img2.shape) and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1])):
         # seams can only be calculated in one dimension--only one dimension can change in size
         return __composeSeamMask(img1, img2)
-    elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
-        return __composeCropImageMask(img1, img2)
-    return None,{}
+    return _composeLCS(img1,img2),{}
+    #elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
+    #    return __composeCropImageMask(img1, img2)
+    #return None,{}
 
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
 
     if alternativeFunction is not None:
-        mask,analysis = alternativeFunction(img1, img2, invert,arguments=arguments)
+        mask,analysis = alternativeFunction(img1, img2, arguments=arguments)
         if mask is not None:
-            return mask,analysis
+            return mask if not invert else 255-mask,analysis
 
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
+    mask = None
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
     if abs(rotation) > 0.0001 and img1.shape != img2.shape:
-        return __compareRotatedImage(rotation, img1, img2, invert, arguments)
+        mask = __compareRotatedImage(rotation, img1, img2,  arguments)
     if (sum(img1.shape) > sum(img2.shape)):
-        return __composeCropImageMask(img1, img2)
+        mask =  __composeCropImageMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
-        return __composeExpandImageMask(img1, img2)
-    try:
-        if img1.shape == img2.shape:
-            return __diffMask(img1, img2, invert, args=arguments)
-    except ValueError as e:
-        logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
-    mask = np.ones(img1.shape) * 255
-    return abs(255 - mask).astype('uint8'), {}
+        mask = __composeExpandImageMask(img1, img2)
+    if mask is None:
+        try:
+            if img1.shape == img2.shape:
+                return __diffMask(img1, img2, invert, args=arguments)
+        except ValueError as e:
+            logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
+    mask = np.ones(img1.shape,type=np.uint8) * 255
+    return abs(255 - mask).astype('uint8') if not invert else mask, {}
 
 
 def __alignShape(im, shape):
@@ -1387,9 +1489,9 @@ def __rotateImage(rotation, img, expectedDims=None, cval=0):
     return res
 
 
-def __compareRotatedImage(rotation, img1, img2, invert, arguments):
+def __compareRotatedImage(rotation, img1, img2,  arguments):
     res = __rotateImage(rotation, img1, expectedDims=img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2,
                                                                                                     args=arguments)
     res = __rotateImage(-rotation, mask, expectedDims=img1.shape, cval=255)
     return res, analysis
@@ -1399,7 +1501,7 @@ def __findRotation(img1, img2, range):
     best = img1.shape[0] * img1.shape[1]
     r = None
     for rotation in range:
-        res, analysis  = __compareRotatedImage(rotation, img1,img2,False, {})
+        res, analysis  = __compareRotatedImage(rotation, img1,img2, {})
         c = sum(sum(res))
         if c < best:
             best = c
