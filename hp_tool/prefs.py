@@ -4,13 +4,87 @@ import ttk
 import os
 import datetime
 import hp_data
-import change_all_metadata
 import tkMessageBox
+import json
 
-class Preferences(Toplevel):
-    def __init__(self, master=None):
+class SettingsManager():
+    def __init__(self, settingsFile=None):
+        if settingsFile is None:
+            self.settingsFile = os.path.join('data', 'hpsettings.json')
+            if os.path.exists(os.path.join('data', 'preferences.txt')) and os.path.exists(os.path.join('data', 'preferences.txt')):
+                self.convert_prefs_to_settings()
+        else:
+            self.settingsFile = settingsFile
+        self.load_settings()
+
+    def load_settings(self):
+        try:
+            with open(self.settingsFile) as j:
+                self.settings = json.load(j)
+        except IOError:
+            self.settings = {}
+            self.settings['metadata'] = {}
+
+    def get(self, key, notFound=None):
+        try:
+            return self.settings[key]
+        except KeyError:
+            return notFound
+
+    def get_m(self, key, notFound=None):
+        """get metadata item"""
+        try:
+            return self.settings['metadata'][key]
+        except KeyError:
+            return notFound
+
+    def set(self, setting, val):
+        self.settings[setting] = val
+        with open(self.settingsFile, 'w') as j:
+            json.dump(self.settings, j, indent=4)
+
+    def set_m(self, setting, val):
+        """set metadata item"""
+        self.settings['metadata'][setting] = val
+        with open(self.settingsFile, 'w') as j:
+            json.dump(self.settings, j, indent=4)
+
+    def convert_prefs_to_settings(self):
+        """
+        Support transition from legacy prefs to settings
+        Will delete preferences.txt and metadata.txt.
+        """
+        prefsFile = os.path.join('data', 'preferences.txt')
+        metadataFile = os.path.join('data', 'metadata.txt')
+        try:
+            with open(prefsFile) as f:
+                for line in f:
+                    try:
+                        (tag, descr) = line.split('=')
+                        self.settings[tag.lower().strip()] = descr.strip()
+                    except ValueError:
+                        continue
+            with open(metadataFile) as g:
+                for line in g:
+                    try:
+                        (tag, descr) = line.split('=')
+                        self.settings['metadata'][tag.lower().strip()] = descr.strip()
+                    except ValueError:
+                        continue
+        except IOError:
+            pass
+
+        with open(self.settingsFile, 'w') as j:
+            json.dump(self.settings, j, indent=4)
+        os.remove(prefsFile)
+        os.remove(metadataFile)
+
+
+class SettingsWindow(Toplevel):
+    def __init__(self, settings, master=None):
         Toplevel.__init__(self, master=master)
         self.master=master
+        self.settings = settings
         self.title('Preferences')
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.set_text_vars()
@@ -20,23 +94,13 @@ class Preferences(Toplevel):
         self.buttonFrame.pack(side=BOTTOM)
         self.metaFrame = Frame(self, width=300, height=300)
         self.metaFrame.pack(side=BOTTOM)
-        self.prefsFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'preferences.txt')
-        self.metaFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'metadata.txt')
-        p = hp_data.parse_prefs(self, self.prefsFile)
-        if p:
-            self.prefs = p
-        else:
-            self.prefs = {}
-
-        m = change_all_metadata.parse_file(self.metaFile)
-        if m:
-            self.metadata = m
-        else:
-            self.metadata = {}
 
         self.create_widgets()
         self.set_defaults()
         self.orgVar.trace('r', self.update_org)
+        self.wait_visibility()
+        self.grab_set()
+        self.wait_window(self)
 
     def set_text_vars(self):
         self.prevVar = StringVar()
@@ -55,6 +119,7 @@ class Preferences(Toplevel):
         self.seqVar.trace('w', self.update_preview)
 
         self.s3Var = StringVar()
+        self.s3VarPRNU = StringVar()
         self.urlVar = StringVar()
         self.tokenVar = StringVar()
         self.trelloVar = StringVar()
@@ -69,57 +134,39 @@ class Preferences(Toplevel):
         self.usageVar = StringVar()
 
     def set_defaults(self):
+        self.usrVar.set(self.settings.get('username', notFound=''))
+        try:
+            self.orgVar.set(self.settings.get('fullorgname', notFound=''))
+        except KeyError:
+            self.orgVar.set(self.settings.get('organization'))
 
-        if self.prefs:
-            if self.prefs.has_key('prefsFile'):
-                self.prefs = hp_data.parse_prefs(self.prefs['prefsFile'])
-            self.usrVar.set(self.prefs['username'])
-            try:
-                self.orgVar.set(self.prefs['fullorgname'])
-            except KeyError:
-                self.orgVar.set(self.prefs['organization'])
+        if self.settings.get('seq'):
+            self.seqVar.set(self.settings.get('seq'))
+        else:
+            self.settings.set('seq', '00000')
 
-            if self.prefs.has_key('seq'):
-                self.seqVar.set(self.prefs['seq'])
-            else:
-                self.prefs['seq'] = '00000'
+        defaults = {'aws':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
+                    'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar}
+        for s in defaults:
+            if self.settings.get(s):
+                defaults[s].set(self.settings.get(s))
 
-            if self.prefs.has_key('aws'):
-                self.s3Var.set(self.prefs['aws'])
-
-            if self.prefs.has_key('imagetypes'):
-                self.imageVar.set(self.prefs['imagetypes'])
-
-            if self.prefs.has_key('videotypes'):
-                self.videoVar.set(self.prefs['videotypes'])
-
-            if self.prefs.has_key('audiotypes'):
-                self.audioVar.set(self.prefs['audiotypes'])
-
-            if self.prefs.has_key('apiurl'):
-                self.urlVar.set(self.prefs['apiurl'])
-
-            if self.prefs.has_key('apitoken'):
-                self.tokenVar.set(self.prefs['apitoken'])
-
-            if self.prefs.has_key('trello'):
-                self.trelloVar.set(self.prefs['trello'])
-
-        if self.metadata:
-            self.copyrightVar.set(self.metadata['copyrightnotice'])
-            self.bylineVar.set(self.metadata['by-line'])
-            self.creditVar.set(self.metadata['credit'])
-            self.update_metadata()
+        metadata = {'copyrightnotice':self.copyrightVar, 'by-line':self.bylineVar, 'credit':self.creditVar}
+        for m in metadata:
+            if self.settings.get_m(m):
+                metadata[m].set(self.settings.get_m(m))
+        self.update_metadata()
 
         self.usageVar.set('CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/')
 
     def create_widgets(self):
         r = 0
-        self.usrLabel = Label(self.prefsFrame, text='Initials: ')
+        Label(self.prefsFrame, text='* indicates a required field.')
+        self.usrLabel = Label(self.prefsFrame, text='Initials*: ')
         self.usrLabel.grid(row=r, column=0)
         self.usrEntry = Entry(self.prefsFrame, textvar=self.usrVar, width=5)
         self.usrEntry.grid(row=r, column=1)
-        self.orgLabel = Label(self.prefsFrame, text='Organization: ')
+        self.orgLabel = Label(self.prefsFrame, text='Organization*: ')
         self.orgLabel.grid(row=r, column=2)
         self.boxItems = [key + ' (' + hp_data.orgs[key] + ')' for key in hp_data.orgs]
 
@@ -131,11 +178,18 @@ class Preferences(Toplevel):
         self.descrLabel1.grid(row=r, column=0, columnspan=8)
 
         r+=1
-        self.s3Label = Label(self.prefsFrame, text='S3 bucket/path: ')
+        self.s3Label = Label(self.prefsFrame, text='S3 bucket/path (HP Data): ')
         self.s3Label.grid(row=r, column=0, columnspan=4)
 
         self.s3Box = Entry(self.prefsFrame, textvar=self.s3Var)
         self.s3Box.grid(row=r, column=4)
+
+        r+=1
+        self.s3PRNULabel = Label(self.prefsFrame, text='S3 bucket/path (PRNU Data): ')
+        self.s3PRNULabel.grid(row=r, column=0, columnspan=4)
+
+        self.s3PRNUBox = Entry(self.prefsFrame, textvar=self.s3VarPRNU)
+        self.s3PRNUBox.grid(row=r, column=4)
 
         r+=1
         self.urlLabel = Label(self.prefsFrame, text='Browser API URL: ')
@@ -225,18 +279,15 @@ class Preferences(Toplevel):
         self.prevVar.set('*New filenames will appear as:\n' + datetime.datetime.now().strftime('%Y%m%d')[
                                                               2:] + '-' + org + self.usrVar.get() + '-' + self.seqVar.get())
     def update_org(self, *args):
-        self.prefs['fullorgname'] = self.orgVar.get()
+        self.settings.set('fullorgname', self.orgVar.get())
         try:
-            self.prefs['organization'] = self.orgVar.get()[-2]
+            self.settings.set('organization', self.orgVar.get()[-2])
         except IndexError:
-            self.prefs['organization'] = self.orgVar.get()
+            self.settings.set('organization', self.orgVar.get())
 
     def update_metadata(self, *args):
         initials = self.usrVar.get()
         org = self.orgVar.get()
-        # self.copyrightEntry.delete(0, END)
-        # self.bylineEntry.delete(0, END)
-        # self.creditEntry.delete(0, END)
 
         if org == 'U of M (M)':
             org = 'University of Michigan'
@@ -255,34 +306,27 @@ class Preferences(Toplevel):
 
     def save_prefs(self):
         if self.usrEntry.get():
-            self.prefs['username'] = self.usrVar.get()
+            self.settings.set('username', self.usrVar.get().upper())
+        else:
+            tkMessageBox.showerror(title='Error', message='Initials must be specified.')
+            return
 
         update = self.orgVar.get()
-        self.prefs['seq'] = self.seqVar.get()
+        self.settings.set('seq', self.seqVar.get())
+        self.settings.set('aws', self.s3Var.get())
+        self.settings.set('aws-prnu', self.s3VarPRNU.get())
+        self.settings.set('apiurl', self.urlVar.get())
+        self.settings.set('apitoken', self.tokenVar.get())
+        self.settings.set('trello', self.trelloVar.get())
+        self.settings.set('imagetypes', self.imageVar.get())
+        self.settings.set('videotypes', self.videoVar.get())
+        self.settings.set('audiotypes', self.audioVar.get())
 
-        self.prefs['aws'] = self.s3Var.get()
-        if self.urlVar.get():
-            self.prefs['apiurl'] = self.urlVar.get()
-        if self.tokenVar.get():
-            self.prefs['apitoken'] = self.tokenVar.get()
-        if self.trelloVar.get():
-            self.prefs['trello'] = self.trelloVar.get()
-        self.prefs['imagetypes'] = self.imageVar.get()
-        self.prefs['videotypes'] = self.videoVar.get()
-        self.prefs['audiotypes'] = self.audioVar.get()
+        self.settings.set_m('copyrightnotice', self.copyrightVar.get())
+        self.settings.set_m('by-line', self.bylineVar.get())
+        self.settings.set_m('credit', self.creditVar.get())
+        self.settings.set_m('usageterms', self.usageVar.get())
+        self.settings.set_m('copyright', '')
+        self.settings.set_m('artist', '')
 
-        with open(self.prefsFile, 'w') as f:
-            for key in self.prefs:
-                f.write(key + '=' + self.prefs[key] + '\n')
-
-        self.metadata['copyrightnotice'] = self.copyrightVar.get()
-        self.metadata['by-line'] = self.bylineVar.get()
-        self.metadata['credit'] = self.creditVar.get()
-        self.metadata['usageterms'] = self.usageVar.get()
-        self.metadata['copyright'] = ''
-        self.metadata['artist'] = ''
-
-        with open(self.metaFile, 'w') as f:
-            for key in self.metadata:
-                f.write(key + '=' + self.metadata[key] + '\n')
         self.destroy()

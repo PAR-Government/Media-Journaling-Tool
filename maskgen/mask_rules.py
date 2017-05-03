@@ -9,7 +9,13 @@ import numpy as np
 import cv2
 import logging
 
-def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=None,donorMask=None,pred_edges=None):
+def recapture_transform(edge, source, target, edgeMask,
+                        compositeMask=None,
+                        directory='.',
+                        level=None,
+                        donorMask=None,
+                        pred_edges=None,
+                        graph=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     position_str = edge['arguments']['Position Mapping'] if 'arguments' in edge and \
@@ -104,7 +110,13 @@ def recapture_transform(edge, edgeMask, compositeMask=None, directory='.',level=
     return edgeMask
 
 
-def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,donorMask=None,pred_edges=None):
+def resize_transform(edge, source, target,edgeMask,
+                     compositeMask=None,
+                     directory='.',
+                     level=None,
+                     donorMask=None,
+                     pred_edges=None,
+                     graph=None):
     import os
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
@@ -127,7 +139,7 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
             if tm is not None:
                 # local resize
                 res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm))
-            elif 'inputmaskname' in edge:
+            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
                 inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
@@ -146,7 +158,7 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
         elif sizeChange == (0, 0):
             if tm is not None:
                 res = tool_set.applyTransform(res, mask=edgeMask, transform_matrix=tool_set.deserializeMatrix(tm), invert=True, returnRaw=False)
-            elif 'inputmaskname' in edge:
+            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
                 inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
@@ -157,7 +169,13 @@ def resize_transform(edge, edgeMask, compositeMask=None,directory='.', level=Non
     return edgeMask
 
 
-def crop_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,donorMask=None,pred_edges=None):
+def crop_transform(edge, source, target,edgeMask,
+                   compositeMask=None,
+                   directory='.',
+                   level=None,
+                   donorMask=None,
+                   pred_edges=None,
+                   graph=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     sizeChange = (-location[0], -location[1]) if location != (0, 0) and sizeChange == (0, 0) else sizeChange
@@ -183,6 +201,60 @@ def crop_transform(edge, edgeMask, compositeMask=None,directory='.', level=None,
     return edgeMask
 
 
+def seam_transform(edge,
+                   source,
+                   target,
+                   edgeMask,
+                   compositeMask=None,
+                   directory='.',
+                   level=None,
+                   donorMask=None,
+                   pred_edges=None,
+                   graph=None):
+    targetImage = graph.get_image(target)[0]
+    sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+    args = edge['arguments'] if 'arguments' in edge else {}
+    #if 'skip'
+    matchx = sizeChange[0] == 0
+    matchy = sizeChange[1] == 0
+    if (matchx and not matchy) or (not matchx and matchy):
+        if compositeMask is not None:
+            expectedSize = (targetImage.size[1], targetImage.size[0])
+            res = tool_set.carveMask(compositeMask, edgeMask, expectedSize)
+        else:
+            # Need to think through this some more.
+            # Seam carving essential puts pixels back.
+            # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
+            targetSize = edgeMask.shape
+            res = tool_set.applyMask(donorMask, edgeMask)
+            transformMatrix = edge['transform matrix'] if 'transform matrix' in edge  else None
+            if transformMatrix is not None:
+                res = cv2.warpPerspective(res, tool_set.deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
+                                          flags=cv2.WARP_INVERSE_MAP,
+                                          borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
+            # need to use target size since the expected does ot align with the donor paths.
+            if targetSize != res.shape:
+                res = cv2.resize(res, (targetSize[1], targetSize[0]))
+
+    else:
+        res = tool_set.applyInterpolateToCompositeImage(compositeMask if compositeMask is not None else donorMask,
+                                              graph.get_image(source)[0],
+                                                   targetImage,
+                                              inverse=donorMask is not None,
+                                              arguments=edge['arguments'] if 'arguments' in edge else {})
+        if res is None or len(np.unique(res)) == 1:
+            return defaultMaskTransform(edge,
+                                        source,
+                                        target,
+                                        edgeMask,
+                                        compositeMask=compositeMask,
+                                        directory=directory,
+                                        level=level,
+                                        donorMask=donorMask,
+                                        pred_edges=pred_edges,
+                                        graph=graph)
+    return res
+
 def move_pixels(frommask, tomask, image, isComposite=False):
     lowerm, upperm = tool_set.boundingRegion(frommask)
     lowerd, upperd = tool_set.boundingRegion(tomask)
@@ -206,7 +278,13 @@ def move_pixels(frommask, tomask, image, isComposite=False):
         transformedImage = transformedImage.astype('uint8')
     return transformedImage
 
-def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
+def move_transform(edge, source, target, edgeMask,
+                   compositeMask=None,
+                   directory='.',
+                   level=None,
+                   donorMask=None,
+                   pred_edges=None,
+                   graph=None):
     import os
     returnRaw = False
     try:
@@ -257,7 +335,13 @@ def move_transform(edge, edgeMask, compositeMask=None, directory='.', level=None
     return edgeMask
 
 
-def pastesplice(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
+def pastesplice(edge, source, target,edgeMask,
+                compositeMask=None,
+                directory='.',
+                level=None,
+                donorMask=None,
+                pred_edges=None,
+                graph=None):
     import os
     if compositeMask is not None:
         pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
@@ -271,12 +355,13 @@ def pastesplice(edge, edgeMask, compositeMask=None, directory='.', level=None,do
     return donorMask
 
 
-def donor(edge, edgeMask,
+def donor(edge, source, target, edgeMask,
           compositeMask=None,
           directory='.',
           level=None,
           donorMask=None,
-          pred_edges=None):
+          pred_edges=None,
+          graph=None):
     if compositeMask is not None:
         return compositeMask
     else:
@@ -315,7 +400,6 @@ def _getOrientation(edge):
             edge['exifdiff']['Orientation'][1]
     return ''
 
-
 def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     # change the mask to reflect the output image
     # considering the crop again, the high-lighted change is not dropped
@@ -336,12 +420,10 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', lev
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
     cut = edge['op'] in ('SelectRemove')
-    carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
-    crop = sizeChange != (0, 0) and \
-           (edge['op'] == 'TransformSeamCarving' and not carve and tm is None)
+    crop = sizeChange != (0, 0)
     flip = flip if flip is not None else orientflip
     global_resize = (sizeChange != (0, 0) and edge['op'] not in ['TransformSeamCarving', 'Recapture'])
-    tm = None if (crop or cut or flip or carve or global_resize) else tm
+    tm = None if (crop or cut or flip or global_resize) else tm
     location = (0, 0) if tm and edge['op'] in ['TransformSeamCarving', 'Recapture']  else location
     crop = True if edge['op'] in ['TransformSeamCarving', 'Recapture'] else crop
     compositeMask = alterMask(compositeMask,
@@ -353,9 +435,9 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', lev
                               flip=flip,
                               transformMatrix=tm,
                               crop=crop,
-                              cut=cut,
-                              carve=carve)
+                              cut=cut)
     return compositeMask
+
 
 def defaultAlterDonor(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
@@ -377,12 +459,10 @@ def defaultAlterDonor(edge, edgeMask, compositeMask=None, directory='.', level=N
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
     cut = edge['op'] in ('SelectRemove')
-    carve, tm, edgeMask = graph_rules.seamCarvingAlterations(edge, tm, edgeMask)
-    cut = carve or cut
-    crop = sizeChange != (0, 0) and ((edge['op'] == 'TransformSeamCarving' and not carve and tm is None))
+    crop = sizeChange != (0, 0)
     flip = flip if flip is not None else orientflip
     global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
-    tm = None if (cut or flip or carve or global_resize) else tm
+    tm = None if (cut or flip or  global_resize) else tm
     return alterReverseMask(donorMask,
                             edgeMask,
                             rotation=rotation,
@@ -394,7 +474,16 @@ def defaultAlterDonor(edge, edgeMask, compositeMask=None, directory='.', level=N
                             crop=crop,
                             cut=cut)
 
-def defaultMaskTransform(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
+def defaultMaskTransform(edge,
+                         source,
+                         target,
+                         edgeMask,
+                         compositeMask=None,
+                         directory='.',
+                         level=None,
+                         donorMask=None,
+                         pred_edges=None,
+                         graph=None):
     if compositeMask is not None:
         return defaultAlterComposite(edge, edgeMask, compositeMask=compositeMask,directory=directory,
                                      level=level,donorMask=None,pred_edges=pred_edges)
@@ -402,14 +491,20 @@ def defaultMaskTransform(edge, edgeMask, compositeMask=None, directory='.', leve
         return defaultAlterDonor(edge, edgeMask, compositeMask=None, directory=directory,
                               level=level, donorMask=donorMask, pred_edges=pred_edges)
 
-def alterComposite(edge, compositeMask, edgeMask,directory,level=255):
+def alterComposite(edge, source, target, compositeMask, edgeMask,directory,level=255,graph=None):
     op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
-        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, level=level,compositeMask=compositeMask,directory=directory)
-    return defaultAlterComposite(edge, edgeMask, level=level,compositeMask=compositeMask,directory=directory)
+        return graph_rules.getRule(op.maskTransformFunction)(edge, source, target, edgeMask, level=level,
+                                                             compositeMask=compositeMask,
+                                                             directory=directory,
+                                                             graph=graph)
+    return defaultAlterComposite(edge, edgeMask,
+                                 level=level,
+                                 compositeMask=compositeMask,
+                                 directory=directory)
 
 
-def alterDonor(donorMask, source, target, edge, edgeMask,  directory='.',pred_edges=[]):
+def alterDonor(donorMask, source, target, edge, edgeMask,  directory='.',pred_edges=[],graph=None):
     """
 
     :param self:
@@ -427,7 +522,17 @@ def alterDonor(donorMask, source, target, edge, edgeMask,  directory='.',pred_ed
     edgeMask = edgeMask.to_array()
     op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
-        return graph_rules.getRule(op.maskTransformFunction)(edge, edgeMask, directory=directory,donorMask=donorMask,pred_edges=pred_edges)
+        return graph_rules.getRule(op.maskTransformFunction)(edge,
+                                                             source,
+                                                             target,
+                                                             edgeMask,
+                                                             directory=directory,
+                                                             donorMask=donorMask,
+                                                             pred_edges=pred_edges,
+                                                             graph=graph)
 
     return defaultAlterDonor(edge, edgeMask, directory=directory,donorMask=donorMask,pred_edges=pred_edges)
+
+
+
 

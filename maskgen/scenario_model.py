@@ -1083,7 +1083,12 @@ class ImageProjectModel:
                 # build composite
                 selectMasks =  self._getUnresolvedSelectMasksForEdge(edge)
                 composite = edgeMask.invert().to_array()
-                composite = mask_rules.alterComposite(edge,composite,edgeMask.to_array(),self.get_dir())
+                composite = mask_rules.alterComposite(edge,
+                                                      edge_id[0],
+                                                      edge_id[1],
+                                                      composite,edgeMask.to_array(),
+                                                      self.get_dir(),
+                                                      graph=self.G)
                 for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), composite):
                     target_mask = target_mask.invert()
                     if finalNodeId in selectMasks:
@@ -1379,7 +1384,7 @@ class ImageProjectModel:
             if edgeMask is None:
                 raise ValueError('Missing edge mask from ' + source + ' to ' + target)
             edgeMask = edgeMask.to_array()
-            newMask = mask_rules.alterComposite(edge, mask, edgeMask, self.get_dir())
+            newMask = mask_rules.alterComposite(edge, source, target, mask, edgeMask, self.get_dir(),graph=self.G)
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
 
@@ -1400,7 +1405,8 @@ class ImageProjectModel:
                                              edge,
                                              self.G.get_edge_image(pred, node, 'maskname',returnNoneOnMissing=True)[0],
                                              directory=self.get_dir(),
-                                             pred_edges=[p for p in pred_edges if p != edge])
+                                             pred_edges=[p for p in pred_edges if p != edge],
+                                             graph=self.G)
             result.extend(self._constructDonor(pred, donorMask))
         return result
 
@@ -2358,14 +2364,18 @@ class ImageProjectModel:
         result = {}
         donors = []
         for k, v in args.iteritems():
-            if ('arguments' in operation and \
-                            operation['arguments'] is not None and \
-                        k in operation['arguments'] and \
-                            operation['arguments'][k]['type'] == 'donor'):
-                result[k] = self.getImageAndName(v)[1]
-                donors.append(k)
-            else:
-                result[k] = v
+            result[k] = v
+        if ('arguments' in operation and \
+                        operation['arguments'] is not None):
+            for k, v in args.iteritems():
+                if k in operation['arguments'] and \
+                            operation['arguments'][k]['type'] == 'donor':
+                    result[k] = self.getImageAndName(v)[1]
+                    donors.append(k)
+            for arg, info in operation['arguments'].iteritems():
+                if arg not in result and 'defaultvalue' in info and \
+                        info['defaultvalue'] is not None:
+                    result[arg] = info['defaultvalue']
         return result, donors
 
     def _pluginError(self, filter, msg):
@@ -2445,17 +2455,19 @@ class ImageProjectModel:
 
     def exporttos3(self, location, tempdir=None):
         import boto3
+        from boto3.s3.transfer import S3Transfer,TransferConfig
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
             path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
             if len(errors) == 0:
-                s3 = boto3.client('s3', 'us-east-1')
+                config = TransferConfig()
+                s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
                 BUCKET = location.split('/')[0].strip()
                 DIR = location[location.find('/') + 1:].strip()
                 logging.getLogger('maskgen').info( 'Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1])
+                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1],callback=S3ProgressPercentage(path))
                 os.remove(path)
                 self.notify(self.getName(),'export')
             return errors
@@ -2507,7 +2519,7 @@ class ImageProjectModel:
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x)  for x in edge['compositecolor'].split(' ')] if 'compositecolor' in edge else [0,0,0]
             colorMap[level.value] = color
-        return mask_rules.alterComposite(edge,compositeMask,edgeMask,self.get_dir(),level=level.value)
+        return mask_rules.alterComposite(edge,source,target,compositeMask,edgeMask,self.get_dir(),level=level.value,graph=self.G)
 
     def _getModificationForEdge(self, start,end, edge):
         """

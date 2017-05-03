@@ -7,12 +7,14 @@ from scipy import ndimage
 import getpass
 import re
 import imghdr
-import os
+import os,sys
 from image_wrap import *
 from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
+import time
 import logging
+from logging import handlers
 
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
@@ -28,6 +30,84 @@ suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".w
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
+class S3ProgressPercentage(object):
+    def __init__(self, filename):
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._percentage_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify we'll assume this is hooked up
+        # to a single filename.
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            if (percentage - self._percentage_so_far) > 5:
+                logging.getLogger('maskgen').info(
+                    "%s  %s / %s  (%.2f%%)" % (
+                        self._filename, self._seen_so_far, self._size,
+                        percentage))
+                self._percentage_so_far = percentage
+
+def exportlogsto3(location,lastuploaded):
+    import boto3
+    flush_logging()
+    logging_file = get_logging_file()
+    if logging_file is not None and lastuploaded != logging_file:
+        logging_file_name = os.path.split(logging_file)[1]
+        s3 = boto3.client('s3', 'us-east-1')
+        BUCKET = location.split('/')[0].strip()
+        DIR = location[location.find('/') + 1:].strip()
+        DIR = DIR[:-1] if DIR.endswith('/') else DIR
+        DIR = DIR[:DIR.rfind('/')+1:].strip() + "logs/"
+        try:
+            s3.upload_file(logging_file, BUCKET, DIR + get_username() + '_' + logging_file_name)
+        except:
+            logging.getLogger('maskgen').error("Could not upload prior log file to " + DIR)
+    return logging_file
+
+def get_logging_file():
+    """
+    :return: The last roll over log file
+    """
+    newest = None
+    newesttime = None
+    filename = 'maskgen.log.'
+    for item in os.listdir('.'):
+        if item.startswith(filename):
+            t = os.stat(item).st_ctime
+            if newesttime is None or newesttime < t:
+                newest = item
+                newesttime = t
+    return newest
+
+class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
+    """
+    Always roll-over if it is a new day, not just when the process is active
+    """
+    forceRotate = False
+    def __init__(self, filename):
+        if os.path.exists(filename):
+            yesterday = time.strftime("%Y-%m-%d", time.gmtime(int(os.stat(filename).st_ctime)))
+            today = time.strftime("%Y-%m-%d", time.gmtime(time.time()))
+            self.forceRotate = (yesterday != today)
+        handlers.TimedRotatingFileHandler.__init__(self,filename, when='D', interval=1, utc=True)
+
+    def shouldRollover(self, record):
+        """
+                Determine if rollover should occur
+
+                record is not used, as we are just comparing times, but it is needed so
+                the method siguratures are the same
+                """
+        t = int(time.time())
+        if t >= self.rolloverAt or self.forceRotate:
+            self.forceRotate = False
+            return 1
+        return 0
+
 def set_logging():
     logger = logging.getLogger('maskgen')
     logger.setLevel(logging.INFO)
@@ -42,14 +122,19 @@ def set_logging():
     # add ch to logger
     logger.addHandler(ch)
 
-    fh = logging.FileHandler('maskgen.log', mode='a', encoding=None, delay=False)
+    fh = MaskGenTimedRotatingFileHandler('maskgen.log')
 
-    fh.setLevel(logging.WARNING)
+    fh.setLevel(logging.INFO)
     # add formatter to ch
     fh.setFormatter(formatter)
 
     # add ch to logger
     logger.addHandler(fh)
+
+def flush_logging():
+    logger = logging.getLogger('maskgen')
+    for handler in logger.handlers:
+        handler.flush()
 
 def getMaskFileTypes():
     return maskfiletypes
@@ -255,6 +340,32 @@ class VidTimeManager:
     def isBeforeTime(self):
         return self.beforeStartTime
 
+def getFrameDurationString(st, et):
+        """
+         calculation duration
+        """
+        stdt = None
+        try:
+            stdt = datetime.strptime(st, '%H:%M:%S.%f')
+        except ValueError:
+            stdt = datetime.strptime(st, '%H:%M:%S')
+
+        etdt = None
+        try:
+            etdt = datetime.strptime(et, '%H:%M:%S.%f')
+        except ValueError:
+            etdt = datetime.strptime(et, '%H:%M:%S')
+
+        delta = etdt - stdt
+        if delta.days < 0:
+            return None
+
+        sec = delta.seconds
+        sec += (1 if delta.microseconds > 0 else 0)
+        hr = sec / 3600
+        mi = sec / 60 - (hr * 60)
+        ss = sec - (hr * 3600) - mi * 60
+        return '{:=02d}:{:=02d}:{:=02d}'.format(hr, mi, ss)
 
 def getMilliSecondsAndFrameCount(v):
     dt = None
@@ -365,6 +476,75 @@ def getFileMeta(file):
         meta.extend(_processFileMeta(stdout))
     return meta
 
+def millisec2time(millisec):
+    ''' Convert milliseconds to 'HH:MM:SS.FFF' '''
+    s, ms = divmod(millisec, 1000)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    if ms > 0:
+        pattern = r'%02d:%02d:%02d.%03d'
+        return pattern % (h, m, s, ms)
+    else:
+        pattern = r'%02d:%02d:%02d'
+        return pattern % (h, m, s)
+
+def outputVideoFrame(filename,outputName=None,videoFrameTime=None,isMask=False):
+    import os
+    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
+    if outputName is not None:
+        outfilename  = outputName
+    else:
+        outfilename = filename[0:filename.rfind('.')] + '.png'
+    command = [ffcommand,'-i',filename]
+    if videoFrameTime is not None:
+        st = videoFrameTime[0] + 30*videoFrameTime[1]
+        command.extend(['-ss',millisec2time(st)])
+    command.extend(['-vframes', '1',  outfilename])
+    try:
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        p.communicate()
+        p.wait()
+    except OSError as e:
+        logging.getLogger('maskgen').error( "FFmpeg not installed")
+        logging.getLogger('maskgen').error(str(e))
+        raise e
+    return openImage(outfilename,isMask=isMask)
+
+def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileName=None):
+    cap = cv2.VideoCapture(filename)
+    bestSoFar = None
+    bestVariance = -1
+    maxTry = 20
+    time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = np.roll(frame, 1, axis=-1)
+            elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            time_manager.updateToNow(elapsed_time)
+            if time_manager.isPastTime():
+                bestSoFar = frame
+                break
+            varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
+            if frame is not None and bestVariance < varianceOfImage:
+                bestSoFar = frame
+                bestVariance = varianceOfImage
+            maxTry -= 1
+            if not videoFrameTime and maxTry <= 0:
+                break
+    finally:
+        cap.release()
+    if bestSoFar is None:
+        logging.getLogger('maskgen').error("{} cannot be read by OpenCV/ffmpeg.  Mask generation will not function properly.".format(filename))
+        return outputVideoFrame(filename, outputName = snapshotFileName,videoFrameTime=videoFrameTime,isMask=isMask)
+    else:
+        img = ImageWrapper(bestSoFar, to_mask=isMask)
+        if snapshotFileName is not None and snapshotFileName != filename:
+            img.save(snapshotFileName)
+        return img
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
@@ -395,38 +575,12 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                                   os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
         if not ('video' in getFileMeta(filename)):
             return openImage('./icons/audio.png')
-        cap = cv2.VideoCapture(filename)
-        bestSoFar = None
-        bestVariance = -1
-        maxTry = 20
-        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
-        try:
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                frame = np.roll(frame, 1, axis=-1)
-                elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-                time_manager.updateToNow(elapsed_time)
-                if time_manager.isPastTime():
-                    bestSoFar = frame
-                    break
-                varianceOfImage = math.sqrt(ndimage.measurements.variance(frame))
-                if frame is not None and bestVariance < varianceOfImage:
-                    bestSoFar = frame
-                    bestVariance = varianceOfImage
-                maxTry -= 1
-                if not videoFrameTime and maxTry <= 0:
-                    break
-        finally:
-            cap.release()
-        if bestSoFar is None:
+        videoFrameImg = readImageFromVideo(filename,videoFrameTime=videoFrameTime,isMask=isMask,
+                                           snapshotFileName=snapshotFileName if preserveSnapshot else None)
+        if videoFrameImg is None:
             logging.getLogger('maskgen').warning( 'invalid or corrupted file ' + filename)
             return openImage('./icons/RedX.png')
-        img = ImageWrapper(bestSoFar, to_mask=isMask)
-        if preserveSnapshot and snapshotFileName != filename:
-            img.save(snapshotFileName)
-        return img
+        return videoFrameImg
     else:
         try:
             img = openImageFile(snapshotFileName, isMask=isMask)
@@ -436,7 +590,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return openImage('./icons/RedX.png')
 
 
-def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
+def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
     """
 
     :param mask:
@@ -453,17 +607,16 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     mask = np.asarray(mask)
     mask = mask.astype('uint8')
     try:
-        mask1 = convertToMask(img1).to_array() if img1.has_alpha() else None
-        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted, arguments=arguments)
+        mask1 = convertToMask(startIm).to_array() if startIm.has_alpha() else None
+        TM,matchCount  = __sift(startIm, destIm, mask1=mask1, mask2=maskInverted, arguments=arguments)
     except:
         TM = None
-        computed_mask = None
     if TM is not None:
-        newMask = cv2.warpPerspective(mask, TM, (img1.size[0], img1.size[1]), flags=cv2.WARP_INVERSE_MAP,
+        newMask = cv2.warpPerspective(mask, TM, (startIm.size[0], startIm.size[1]), flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
-        return newMask if computed_mask is None else computed_mask, analysis
+        return newMask, analysis
     else:
         try:
             contours, hier = cv2.findContours(255 - mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -485,7 +638,7 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
             h = maxpoint[1] - minpoint[1] + 1
             x = minpoint[0]
             y = minpoint[1]
-            if (img1.size[0] - w) < 2 and (img1.size[1] - h) < 2:
+            if (startIm.size[0] - w) < 2 and (startIm.size[1] - h) < 2:
                 return mask[x:x + h, y:y + w], {}
         except:
             return None, None
@@ -659,7 +812,7 @@ def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, 
         mask = inputmask
     else:
         mask2 =  mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
@@ -677,7 +830,7 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
@@ -686,7 +839,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def boundingRegion (mask):
@@ -804,7 +957,7 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
@@ -824,6 +977,56 @@ def __indexOf(source, dest):
                 break
     return positions
 
+def __flannMatcher(d1, d2):
+    FLANN_INDEX_KDTREE = 0
+    FLANN_INDEX_LSH = 6
+    TREES = 16
+    CHECKS = 50
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
+    # index_params= dict(algorithm         = FLANN_INDEX_LSH,
+    #                   table_number      = 6,
+    #                   key_size          = 12,
+    #                   multi_probe_level = 1)
+    search_params = dict(checks=CHECKS)
+
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    return flann.knnMatch(d1, d2, k=2) if d1 is not None and d2 is not None else []
+
+def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), matcher=__flannMatcher):
+    img1 = img1.to_rgb().apply_mask(mask1).to_array()
+    img2 = img2.to_rgb().apply_mask(mask2).to_array()
+    detector = cv2.FeatureDetector_create("SIFT")
+    extractor = cv2.DescriptorExtractor_create("SIFT")
+    threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
+
+    kp1a = detector.detect(img1)
+    kp2a = detector.detect(img2)
+
+    (kp1, d1) = extractor.compute(img1, kp1a)
+    (kp2, d2) = extractor.compute(img2, kp2a)
+
+    if kp2 is None or len(kp2) == 0:
+        return None
+
+    if kp1 is None or len(kp1) == 0:
+        return None
+
+    d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
+    d1 = np.sqrt(d1)
+
+    d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
+    d2 = np.sqrt(d2)
+
+    matches = matcher(d1,d2)
+
+    # store all the good matches as per Lowe's ratio test.
+    good = [m for m, n in matches if m.distance < 0.8 * n.distance]
+
+    if len(good) >= threshold:
+         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+         return (src_pts, dst_pts) if src_pts is not None else None
+    return None
 
 def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     """
@@ -837,55 +1040,13 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     @type img2: ImageWrapper
     :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
     """
-    img1 = img1.to_rgb().apply_mask(mask1).to_array()
-    img2 = img2.to_rgb().apply_mask(mask2).to_array()
-    detector = cv2.FeatureDetector_create("SIFT")
-    extractor = cv2.DescriptorExtractor_create("SIFT")
-
-    FLANN_INDEX_KDTREE = 0
-    FLANN_INDEX_LSH = 6
-    TREES = 16
-    CHECKS = 50
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
-    # index_params= dict(algorithm         = FLANN_INDEX_LSH,
-    #                   table_number      = 6,
-    #                   key_size          = 12,
-    #                   multi_probe_level = 1)
-    search_params = dict(checks=CHECKS)
-
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-
-    kp1a = detector.detect(img1)
-    kp2a = detector.detect(img2)
-
-    (kp1, d1) = extractor.compute(img1, kp1a)
-    (kp2, d2) = extractor.compute(img2, kp2a)
-
-    if kp2 is None or len(kp2) == 0:
-        return None, None
-
-    if kp1 is None or len(kp1) == 0:
-        return None, None
-
-    d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
-    d1 = np.sqrt(d1)
-
-    d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
-    d2 = np.sqrt(d2)
-
-    matches = flann.knnMatch(d1, d2, k=2) if d1 is not None and d2 is not None else []
-
-    # store all the good matches as per Lowe's ratio test.
-    good = [m for m, n in matches if m.distance < 0.8 * n.distance]
-
-    if len(good) >= 10:
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    src_dts_pts =  getMatchedSIFeatures(img1,img2,mask1=mask1,mask2=mask2,arguments=arguments)
+    if src_dts_pts is not None:
         # new_src_pts = cv2.convexHull(src_pts)
-        new_src_pts = src_pts
+        new_src_pts = src_dts_pts[0]
         # positions = __indexOf(src_pts,new_src_pts)
         # new_dst_pts = dst_pts[positions]
-        new_dst_pts = dst_pts
+        new_dst_pts = src_dts_pts[1]
         RANSAC_THRESHOLD = 4.0
         if arguments is not None and 'RANSAC' in arguments:
             if arguments['RANSAC'] == 'None':
@@ -895,8 +1056,9 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
             except:
                 logging.getLogger('maskgen').error('invalid RANSAC ' + arguments['RANSAC'])
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
-        if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
-            return None, None
+        matchCount = sum(sum(matches))
+        if float(matchCount) / len(src_dts_pts) < 0.15 and matchCount < 30:
+            return None,None
         # M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         # matchesMask = mask.ravel().tolist()
 
@@ -908,11 +1070,11 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
         # new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
         # cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
         ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        return M1, None  # mask.astype('uint8')
+        return M1,matchCount  # mask.astype('uint8')
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
-    return None, None
+    return None,None
 
 
 def applyResizeComposite(compositeMask, size):
@@ -1004,8 +1166,55 @@ def applyToComposite(compositeMask, func, shape=None):
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
         newLevelMask = func(levelMask)
-        newMask[newLevelMask > 100] = level
+        if newLevelMask is not None:
+            newMask[newLevelMask > 100] = level
     return newMask
+
+def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,arguments={}):
+    """
+       Loop through each level add apply SIFT to transform the mask
+       :param compositeMask:
+       :param mask:
+       :param transform_matrix:
+       :return:
+       @type destIm: ImageWrapper
+       @type startIm: ImageWrapper
+       """
+    newMask = np.zeros((destIm.image_array.shape[0],destIm.image_array.shape[1]),dtype=np.uint8)
+    TMs = {}
+    bestTM = None
+    bestSize = 0
+    bestMatch = 0
+    levels = list(np.unique(compositeMask))
+    for level in levels:
+        if level == 0:
+            continue
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 255
+        TM,matchCount = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
+        if TM is not None:
+            TMs[level] =TM
+            sizeOfMask = sum(sum(levelMask))
+            if  matchCount > bestMatch:
+                bestTM = TM
+                bestMatch = matchCount
+                bestSize = sizeOfMask
+    if bestTM is None:
+        return None
+    flags = cv2.WARP_INVERSE_MAP if inverse else cv2.INTER_LINEAR
+    borderValue = 0
+    for level in levels:
+        if level == 0:
+            continue
+        TM = TMs[level] if level in TMs else bestTM
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 255
+        newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
+                                      borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
+        if newLevelMask is not None:
+            newMask[newLevelMask > 100] = level
+    return newMask
+
 
 def applyRotateToCompositeImage(img,angle, pivot):
     """
@@ -1384,7 +1593,7 @@ def carveMask(image, mask, expectedSize):
 
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None,  crop=False, cut=False, carve=False):
+              transformMatrix=None, flip=None,  crop=False, cut=False):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
@@ -1419,8 +1628,6 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         res = applyFlipComposite(res, edgeMask, flip)
     if cut:
         res = applyMask(res, edgeMask)
-    if carve:
-        res = carveMask(res, edgeMask, expectedSize)
     if expectedSize != res.shape:
         res = applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
     return res
@@ -1454,10 +1661,6 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     elif flip is not None:
         res = applyFlipComposite(res, edgeMask, flip)
 
-
-    # Need to think through Seam Carving here.
-    # Seam carving essential puts pixels back.
-    # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
     if cut:
         # res is the donor mask
         # edgeMask may be the overriding mask from a PasteSplice, thus in the same shape

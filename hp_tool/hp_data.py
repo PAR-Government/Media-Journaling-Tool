@@ -6,9 +6,6 @@ tool for bulk renaming of files to standard
 
 import shutil
 import os
-import sys
-from PIL import Image
-import change_all_metadata
 import datetime
 import csv
 import hashlib
@@ -21,7 +18,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 FIELDSPATH = os.path.join('data', 'fieldnames.json')
 HEADERSPATH = os.path.join('data', 'headers.json')
-RVERSION = '#@version=01.07'
+RVERSION = '#@version=01.08'
 
 def copyrename(image, path, usrname, org, seq, other):
     """
@@ -52,65 +49,20 @@ def copyrename(image, path, usrname, org, seq, other):
     return newPathName
 
 
-def parse_prefs(self, data):
+def check_settings(self):
     """
-    Parse preferences file
+    Check settings for new seq and additional filetypes
     :param self: reference to HP GUI
-    :param data: string containing path to preferences file
-    :return: dictionary containing preference option and setting (e.g. {username:AS...})
     """
-    newData = {}
-    # open text file
-    try:
-        with open(data) as f:
-            for line in f:
-                try:
-                    (tag, descr) = line.split('=')
-                    newData[tag.lower().strip()] = descr.strip()
-                except ValueError:
-                    continue
-    except IOError:
-        print 'Input file: ' + data + ' not found. '
-        return
-
-    try:
-        (newData['organization'] and newData['username'])
-    except KeyError:
-        print 'Must specify ''username'' and ''organization'' in preferences file'
-        return
-
-    # convert to single-char organization code
-    if len(newData['organization']) > 1:
-        try:
-            newData['organization'] = orgs[newData['organization']]
-        except KeyError:
-            if newData['organization'][-2] in orgs.values():
-                newData['fullorgname'] = newData['organization']
-                newData['organization'] = newData['organization'][-2]
-            else:
-                print 'Error: organization: ' + newData['organization'] + ' not recognized'
-                return
-    elif len(newData['organization']) == 1:
-        if newData['organization'] not in orgs.values():
-            print 'Error: organization code: ' + newData['organization'] + ' not recognized'
-            return
-
     # reset sequence if date is new
-    try:
-        if newData['date'] != datetime.datetime.now().strftime('%Y%m%d')[2:]:
-            newData['seq'] = '00000'
-    except KeyError:
-        newData['date'] = datetime.datetime.now().strftime('%Y%m%d')[2:]
-        add_date(data)
+    if self.settings.get('date') != datetime.datetime.now().strftime('%Y%m%d')[2:]:
+        self.settings.set('seq', '00000')
+    else:
+        self.settings.set('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
 
-    if 'imagetypes' in newData:
-        add_types(newData['imagetypes'], 'image')
-    if 'videotypes' in newData:
-        add_types(newData['videotypes'], 'video')
-    if 'audiotypes' in newData:
-        add_types(newData['audiotypes'], 'audio')
-
-    return newData
+    add_types(self.settings.get('imagetypes'), 'image')
+    add_types(self.settings.get('videotypes'), 'video')
+    add_types(self.settings.get('audiotypes'), 'audio')
 
 def add_types(data, mformat):
     global exts
@@ -180,58 +132,18 @@ def grab_dir(inpath, outdir=None, r=False):
                 ritCSV = os.path.join(outdir, f)
                 rit = pd.read_csv(ritCSV, dtype=str)
                 repeated = rit['OriginalImageName'].tolist()
+                break
         removeList = []
         for name in imageList:
             for repeatedName in repeated:
                 if repeatedName:
-                    if repeatedName in name:
+                    if os.path.basename(repeatedName) == os.path.basename(name):
                         removeList.append(name)
-                        # imageList.remove(name)
-                        # repeated.remove(repeatedName)
                         break
 
         for imageName in removeList:
             imageList.remove(imageName)
     return imageList
-
-
-def update_prefs(prefs, inputdir, outputdir, newSeq):
-    """
-    Updates the sequence value in a file
-    :param prefs: the file to be updated
-    :param newSeq: string containing the new 5-digit sequence value (e.g. '00001'
-    :return: None
-    """
-    originalFileName = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'preferences.txt')
-    tmpFileName = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tmp.txt')
-    with open(tmpFileName, 'wb') as new:
-        with open(originalFileName, 'rb') as original:
-            for line in original:
-                if line.startswith('seq='):
-                    new.write('seq=' + newSeq + '\n')
-                elif line.startswith('date='):
-                    new.write('date=' + datetime.datetime.now().strftime('%Y%m%d')[2:] + '\n')
-                else:
-                    new.write(line)
-                    if not line.endswith('\n'):
-                        new.write('\n')
-    os.remove(originalFileName)
-    shutil.move(tmpFileName, originalFileName)
-
-def add_seq(filename):
-    """
-    Appends a sequence field and an initial sequence to a file
-    (Specifically, adds '\nseq=00000'
-    :param filename: file to be edited
-    :return: None
-    """
-    with open(filename, 'ab') as f:
-        f.write('\nseq=00000\n')
-
-def add_date(filename):
-    with open(filename, 'ab') as f:
-        f.write('\ndate=' + datetime.datetime.now().strftime('%Y%m%d')[2:] + '\n')
-
 
 def build_keyword_file(image, keywords, csvFile):
     """
@@ -288,7 +200,7 @@ def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
                     try:
                         row.append(info[imNo][h])
                     except KeyError:
-                        self.master.statusBox.println('Could not find column ' + h)
+                        print('Could not find column ' + h)
                         row.append('ERROR')
             wtr.writerow(row)
 
@@ -401,7 +313,7 @@ def parse_image_info(self, imageList, **kwargs):
     try:
         exifDataResult = json.loads(exifDataResult)
     except:
-        self.master.statusBox.println('Exiftool could not return data for all input. Process cancelled.')
+        print('Exiftool could not return data for all input. Process cancelled.')
         return None
 
     # further organize exif data into a dictionary based on source filename
@@ -431,7 +343,7 @@ def check_for_errors(data, cameraData, images, path):
         errors[os.path.basename(images[image])] = e = []
         # replace None with empty string
         for item in dbData:
-            if dbData[item] is None:
+            if dbData[item] is None or dbData[item] == 'nan':
                 dbData[item] = ''
         if (data[image]['CameraModel'] != dbData['exif_camera_model']):
             e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database.'))
@@ -445,13 +357,29 @@ def check_for_errors(data, cameraData, images, path):
         json.dump(errors, j)
     return fullpath
 
-def process(self, cameraData, preferences='', metadata='', imgdir='', outputdir='', recursive=False,
+def process_metadata(dir, metadata, recursive=False, quiet=False):
+    exifToolInput = ['exiftool', '-progress']
+    for key, value in metadata.iteritems():
+        exifToolInput.append('-' + key + '=' + value)
+    if recursive:
+        exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-r', '-L', '-m', '-P'))
+    else:
+        exifToolInput.extend(('-XMPToolkit=', '-overwrite_original', '-L', '-m', '-P'))
+
+    exifToolInput.append(dir)
+
+    if quiet:
+        del exifToolInput[1]
+
+    # run exiftool
+    subprocess.call(exifToolInput)
+
+def process(self, cameraData, imgdir='', outputdir='', recursive=False,
             keywords='', additionalInfo='', **kwargs):
     """
     The main process workflow for the hp tool.
     :param self: reference to HP GUI
     :param preferences: preferences filename
-    :param metadata: metadata-to-be-set filename
     :param imgdir: directory of raw images/video/audio files to be processed
     :param outputdir: output directory (csv, image, video, and audio files will be made here)
     :param recursive: boolean, whether or not to search subdirectories as well
@@ -460,87 +388,83 @@ def process(self, cameraData, preferences='', metadata='', imgdir='', outputdir=
     :param kwargs: hp data to be set
     :return: list of paths of original images and new images
     """
-    # parse preferences
-    userInfo = parse_prefs(self, preferences)
-    self.master.statusBox.println('Successfully pulled preferences')
+    check_settings(self)
+    print('Settings OK')
 
     # collect image list
-    self.master.statusBox.println('Collecting images...')
+    print('Collecting images...')
     imageList = []
 
     # set up the output subdirectories
     check_create_subdirectories(outputdir)
 
     imageList.extend(grab_dir(imgdir, os.path.join(outputdir, 'csv'), recursive))
-    self.master.statusBox.println('done')
 
     if not imageList:
-        self.master.statusBox.println('No new images found')
+        print('No new images found')
         remove_temp_subs(outputdir)
         return imageList, [], None
 
     # build information list. This is the bulk of the processing, and what runs exiftool
-    self.master.statusBox.println('Building image info...')
+    print('Building image info...')
     imageInfo = parse_image_info(self, imageList, path=imgdir, rec=recursive, **kwargs)
     if imageInfo is None:
         return None, None, None
     else:
         errors = check_for_errors(imageInfo, cameraData, imageList, os.path.join(outputdir, 'csv'))
-    self.master.statusBox.println(' done')
+    print('...done')
 
     # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories
     check_create_subdirectories(outputdir)
 
     # prepare for the copy operation
     try:
-        count = int(userInfo['seq'])
-    except KeyError:
+        count = int(self.settings.get('seq'))
+    except TypeError:
         count = 0
-        add_seq(preferences)
+        self.settings.set('seq', '00000')
 
     csv_keywords = os.path.join(outputdir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
-                                userInfo['organization'] + userInfo['username'] + '-' + 'keywords.csv')
+                                self.settings.get('organization') + self.settings.get('username') + '-' + 'keywords.csv')
 
     # copy with renaming
-    self.master.statusBox.println('Copying files...')
+    print('Copying files...')
     newNameList = []
     for image in imageList:
-        newName = copyrename(image, outputdir, userInfo['username'], userInfo['organization'], pad_to_5_str(count), additionalInfo)
+        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo)
         if keywords:
             build_keyword_file(newName, keywords, csv_keywords)
         newNameList += [newName]
         count += 1
-    self.master.statusBox.println(' done')
+    print(' done')
 
-    update_prefs(preferences, inputdir=imgdir, outputdir=outputdir, newSeq=pad_to_5_str(count))
-    self.master.statusBox.println('Prefs updated with new sequence number')
+    self.settings.set('seq', pad_to_5_str(count))
+    self.settings.set('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
+    print('Settings updated with new sequence number')
 
-    self.master.statusBox.println('Updating metadata...')
-    newData = change_all_metadata.parse_file(metadata)
-    if imgdir:
-        change_all_metadata.process(os.path.join(outputdir, 'image', '.hptemp'), newData, quiet=True)
-        change_all_metadata.process(os.path.join(outputdir, 'video', '.hptemp'), newData, quiet=True)
-        change_all_metadata.process(os.path.join(outputdir, 'audio', '.hptemp'), newData, quiet=True)
-    else:
-        change_all_metadata.process(newNameList, newData, quiet=True)
+    print('Updating metadata...')
 
-    self.master.statusBox.println('Building RIT file')
+    for folder in ['image', 'video', 'audio']:
+        process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get('metadata'), quiet=True)
+
+
+    print('Building RIT file')
     csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rit.csv')
     build_csv_file(self, imageList, newNameList, imageInfo, csv_rit, 'rit')
 
     # history file:
-    self.master.statusBox.println('Building history file')
+    print('Building history file')
     csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'history.csv')
     build_csv_file(self, imageList, newNameList, imageInfo, csv_history, 'history')
 
-    self.master.statusBox.println('Building RankOne file')
+    print('Building RankOne file')
     csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rankone.csv')
     build_csv_file(self, imageList, newNameList, imageInfo, csv_ro, 'rankone')
 
     # move out of tempfolder
-    self.master.statusBox.println('Cleaning up...')
+    print('Cleaning up...')
     remove_temp_subs(outputdir)
 
-    self.master.statusBox.println('\nComplete!')
+    print('\nComplete!')
 
     return imageList, newNameList, errors

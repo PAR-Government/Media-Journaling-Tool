@@ -6,6 +6,26 @@ import math
 from scipy.ndimage.filters import convolve
 from scipy.sparse import dok_matrix,coo_matrix
 
+def _build_path(positions, length=0 , kern_size=8, start=0):
+    """ Calculate the route for traversal between NxN kernels.
+       Roughly follows a diagonal pattern starting from the top-left.
+    """
+    if length == 0:
+        return positions
+    last_pos = positions[start]
+    if last_pos[0] == 0 and last_pos[1] < kern_size:
+        new_y = last_pos[1]+ 1
+        positions = positions + [(0, new_y)]
+        length = length - 1
+        if length == 0:
+            return positions
+    if last_pos[0] >= kern_size:
+        return _build_path(positions, length=length, kern_size=kern_size, start=start+1)
+    else:
+        new_y = last_pos[1]
+        new_x = last_pos[0] + 1
+        return _build_path(positions + [(new_x, new_y)], length=length-1, kern_size=kern_size, start=start + 1)
+
 def _build_sequence( size, a=np.asarray([1]), mult=np.asarray([1, -1])):
     if size == 0:
         return [a]
@@ -17,6 +37,7 @@ def _build_sequence( size, a=np.asarray([1]), mult=np.asarray([1, -1])):
 def _build_sequence_array( kernel_size):
     return np.asarray(_build_sequence(kernel_size))
 
+"""https://en.wikipedia.org/wiki/Hadamard_transform"""
 def gen_wh( kernel_size, func=_build_sequence_array):
     hh = func(kernel_size / 2)
     full = np.zeros((kernel_size * kernel_size, kernel_size * kernel_size))
@@ -32,7 +53,7 @@ class WH:
     def __init__(self, matrix):
 
         self.matrix = matrix
-        self.box = (math.sqrt(matrix.shape[0]),math.sqrt(matrix.shape[1]))
+        self.box = (int(math.sqrt(matrix.shape[0])),int(math.sqrt(matrix.shape[1])))
 
     def dot(self, position, img):
         """
@@ -44,7 +65,7 @@ class WH:
         """
         x = position[0]*self.box[0]
         y = position[1]*self.box[1]
-        WHbox = self.matrix[x:x+self.box[0],y:y+self.box[0]]
+        WHbox = self.matrix[x:x+self.box[0],y:y+self.box[1]]
         return convolve(img,WHbox,mode='constant')
 
 class LHashTable:
@@ -63,7 +84,7 @@ class LHashTable:
         else:
             self.shifts = np.zeros((len(self.sequence)))
             for i in range(len(self.sequence)):
-                self.shifts[i] = random.randint(0,width-1)
+                self.shifts[i] = random.uniform(0,width-1)
 
     def __eq__(self, other):
         return self.sequence == other.sequence
@@ -120,7 +141,7 @@ def _computePositionSet(positions, length=0):
     return _computePositionSet(positions,length=length-1)
 
 
-def generateTableSet(number_of_tables = 2, length_of_tables=6, width=None):
+def generateTableSet(number_of_tables = 2, length_of_tables=16, width=None):
     """
     :param number_of_tables:
     :param length_of_tables:
@@ -133,7 +154,7 @@ def generateTableSet(number_of_tables = 2, length_of_tables=6, width=None):
         raise ValueError("number of tables cannot exceed length of tables")
     if width is None:
         width = length_of_tables
-    base = _computePositionSet([(0, 0)], length=length_of_tables-1)
+    base = _build_path([(0, 0)], length=length_of_tables-1, kern_size=width)
     while len(tables) < number_of_tables:
         table = LHashTable(base,width=width)
         base = _perturbPositions(base)
@@ -477,23 +498,49 @@ class CSHSingleIndexer(CSHIndexer):
         index = {}
         index_process.init(imgA, imgB,  self.patch_size)
         for table in self.tables:
-            code = table.hash(imgA, self.wh)
-            for pair in zip(*np.nonzero(code)):
-                if pair[0]%4 != 0 or pair[1]%4 != 0:
-                    continue
-                whatisit = code[pair]
-                if whatisit not in index:
-                    index[whatisit] =[pair]
-                else:
-                    index[whatisit].append(pair)
-            code = table.hash(imgB, self.wh)
-            for pair in zip(*np.nonzero(code)):
-                if pair[0]%4 != 0 or pair[1]%4 != 0:
-                    continue
-                whatisit = code[pair]
-                if whatisit in index:
-                  index_process.process_single(index[whatisit],pair)
+            codeA =  table.hash(imgA, self.wh)
+            codeB =  table.hash(imgB, self.wh)
+            codeSetA = set(np.unique(codeA))
+            codeSetB = set(np.unique(codeB))
+            matchSet = codeSetA.intersection(codeSetB)
+            matchDict={}
+            for i in np.ndindex(codeA.shape):
+                if codeA[i[0],i[1]] in matchSet:
+                    matchDict[codeA[i[0],i[1]]] = imgA[i[0],i[1]]
+            for i in np.ndindex(codeB.shape):
+                if codeB[i[0],i[1]] in matchSet:
 
+                    matchDict[imgB[i[0],i[1]]] = i
+
+            for match in matchSet:
+                for pair in zip(*np.where(codeA==match)):
+                    if match not in index:
+                        index[match] = [pair]
+                    else:
+                        index[match].append(pair)
+                for pair in zip(*np.where(codeB==match)):
+                    index_process.process_single(index[match], pair)
+
+def compose_descriptor(src_pt,dst_pt):
+    dist = math.sqrt(math.pow(dst_pt[0][0] - src_pt[0][0], 2) + math.pow(dst_pt[0][1] - src_pt[0][1], 2))
+    m = (dst_pt[0][1] - src_pt[0][1]) / (dst_pt[0][0] - src_pt[0][0])
+    return (dist,m, src_pt, dst_pt)
+
+def find_lines(src, dst):
+    from sklearn.cluster import DBSCAN
+    from sklearn.metrics import pairwise
+    data_set = [compose_descriptor(src[i], dst[i]) for i in range(len(src))]
+    data_set = [item for item in data_set if not (math.isnan(item[0]) or math.isinf(item[0])) and
+                not (math.isnan(item[1]) or math.isinf(item[1])) and abs(item[1]) < 4]
+    mean2 = np.median([item[0] for item in data_set])
+    std2 = np.std([item[0] for item in data_set])
+    data_set = [item for item in data_set if abs(item[0] - mean2) <0.5*std2]
+    dist_slope =  [(item[0],item[1]) for item in data_set]
+    distances = pairwise.euclidean_distances(dist_slope)
+    mean2 = np.median(distances)
+    ms = DBSCAN(eps=mean2)
+    labels = ms.fit_predict(dist_slope)
+    return data_set,labels
 
 
 class TestToolSet(unittest.TestCase):
@@ -505,8 +552,13 @@ class TestToolSet(unittest.TestCase):
             patch[i,j] = patch[i,j] + random.randint(-30,30)
 
     def test_wh_generation(self):
+        from  maskgen.image_wrap import ImageWrapper
         seq2 = gen_wh(4).astype(int)
         self.assertEqual(seq2.shape[0], 16)
+        im = np.copy(seq2)
+        im[im < 0 ]= 0
+        im[im > 0] =255
+        ImageWrapper(im.astype('uint8')).save('foo.png')
         for i in range(4):
             for j in range(4):
                 quadsum = sum(sum(seq2[i*4:i*4+4,j*4:j*4+4]))
@@ -516,7 +568,7 @@ class TestToolSet(unittest.TestCase):
                     self.assertEqual(0, quadsum,msg=str((i,j)))
         #print seq2
 
-    def xtest_hash(self):
+    def test_hash(self):
         length_of_tables = 6
         tables= generateTableSet(number_of_tables=4, length_of_tables=length_of_tables)
         wh = WH(gen_wh(8))
@@ -591,6 +643,8 @@ class TestToolSet(unittest.TestCase):
         plt.show()
 
     def test_two_images(self):
+        from maskgen import tool_set
+        from maskgen.image_wrap import ImageWrapper
         aorig = image_wrap.openImageFile ('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-17-CLONE.png')
         a = aorig.convert('YCbCr')
         borig = image_wrap.openImageFile('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-18-CARVE.png')
@@ -598,10 +652,33 @@ class TestToolSet(unittest.TestCase):
         index = CSHSingleIndexer()
         index.init(number_of_tables=2, length_of_tables=6)
         collector = ImageLabel()
-        index.hash_images(a.to_array()[:, :, 0], b.to_array()[:, :, 0], collector)
-        self.plot_mega(collector.create_mega_image())
-        resultA, resultB = collector.create_label_images()
-        self.plot_label(resultA,resultB)
+        analysis={}
+        src_dst_pts = tool_set.getMatchedSIFeatures(ImageWrapper(a.to_array()[:, :, 0]),
+                                                    ImageWrapper(b.to_array()[:, :, 0]))
+        data_set,labels = find_lines(src_dst_pts[0],src_dst_pts[1])
+
+        label_set = np.unique(labels)
+        dist = 125 / len(label_set)
+        label_map = {}
+        i=0
+        for label in np.unique(labels):
+            if label >= 0:
+                label_map[label] = 124 + i*dist
+                i+=1
+        amask = np.zeros(a.shape,dtype=np.uint8)
+        bmask = np.zeros(b.shape, dtype=np.uint8)
+
+        for i in range(len(data_set)):
+            result  = data_set[i]
+            if labels[i] >= 0:
+                amask[result[2][0]-5:result[2][0]+5,result[2][1]-5:result[2][1]+5] = label_map[labels[i]]
+                bmask[result[3][0] - 5:result[3][0] + 5, result[3][1] - 5:result[3][1] + 5] = label_map[labels[i]]
+
+
+        #index.hash_images(a.to_array()[:, :, 0], b.to_array()[:, :, 0], collector)
+        #self.plot_mega(collector.create_mega_image())
+        #resultA, resultB = collector.create_label_images()
+        #self.plot_label(resultA,resultB)
 
 
 

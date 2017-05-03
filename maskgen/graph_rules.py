@@ -960,14 +960,3 @@ def getNodeSummary(scModel, node_id):
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
 
-# RULES FOR COMPOSITES AND DONORS
-
-def seamCarvingAlterations(edge, transform_matrix, edgeMask):
-    if edge['op'] == 'TransformSeamCarving':
-        size_changes = _getSizeChange(edge)
-        matchx =  size_changes[0] == 0
-        matchy =  size_changes[1] == 0
-        if (not matchx and not matchy) or ( matchx and matchy):
-            return False, transform_matrix, edgeMask
-        return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
-    return False, transform_matrix,edgeMask

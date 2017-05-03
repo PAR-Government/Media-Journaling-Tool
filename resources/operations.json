@@ -3808,6 +3808,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.seam_transform",
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
       "transitions": [

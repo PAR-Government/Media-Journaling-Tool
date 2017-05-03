@@ -958,6 +958,10 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             if k in arginfo:
                 continue
             argumentTuples.append((k, v))
+        for k,v in arginfo.iteritems():
+            if 'defaultvalue' in v and v['defaultvalue'] is not None and \
+                k not in self.argvalues:
+                   self.argvalues[k] =  v['defaultvalue']
 
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
