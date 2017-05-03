@@ -86,11 +86,12 @@ class Operation:
     groupedOperations = None
     groupedCategories = None
     maskTransformFunction = None
+    compareOperations = None
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
-                 maskTransformFunction=maskTransformFunction):
+                 maskTransformFunction=None):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -105,6 +106,12 @@ class Operation:
         self.groupedOperations = groupedOperations
         self.groupedCategories = groupedCategories
         self.maskTransformFunction = maskTransformFunction
+
+    def getCompareFunction(self):
+        if 'function' in self.compareparameters:
+            funcName = self.compareparameters['function']
+            return getRule(funcName)
+        return None
 
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,

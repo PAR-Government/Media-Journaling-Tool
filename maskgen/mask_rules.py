@@ -217,6 +217,7 @@ def seam_transform(edge,
     #if 'skip'
     matchx = sizeChange[0] == 0
     matchy = sizeChange[1] == 0
+    res = None
     if (matchx and not matchy) or (not matchx and matchy):
         if compositeMask is not None:
             expectedSize = (targetImage.size[1], targetImage.size[0])
@@ -242,17 +243,48 @@ def seam_transform(edge,
                                                    targetImage,
                                               inverse=donorMask is not None,
                                               arguments=edge['arguments'] if 'arguments' in edge else {})
-        if res is None or len(np.unique(res)) == 1:
-            return defaultMaskTransform(edge,
-                                        source,
-                                        target,
-                                        edgeMask,
-                                        compositeMask=compositeMask,
-                                        directory=directory,
-                                        level=level,
-                                        donorMask=donorMask,
-                                        pred_edges=pred_edges,
-                                        graph=graph)
+    if res is None or len(np.unique(res)) == 1:
+        return defaultMaskTransform(edge,
+                                    source,
+                                    target,
+                                    edgeMask,
+                                    compositeMask=compositeMask,
+                                    directory=directory,
+                                    level=level,
+                                    donorMask=donorMask,
+                                    pred_edges=pred_edges,
+                                    graph=graph)
+    return res
+
+def cas_transform(edge,
+                   source,
+                   target,
+                   edgeMask,
+                   compositeMask=None,
+                   directory='.',
+                   level=None,
+                   donorMask=None,
+                   pred_edges=None,
+                   graph=None):
+    res = None
+    if compositeMask is not None:
+        targetImage = graph.get_image(target)[0]
+        res = tool_set.applyInterpolateToCompositeImage(compositeMask,
+                                              graph.get_image(source)[0],
+                                              targetImage,
+                                              inverse=donorMask is not None,
+                                              arguments=edge['arguments'] if 'arguments' in edge else {})
+    if res is None or len(np.unique(res)) == 1:
+        return defaultMaskTransform(edge,
+                                    source,
+                                    target,
+                                    edgeMask,
+                                    compositeMask=compositeMask,
+                                    directory=directory,
+                                    level=level,
+                                    donorMask=donorMask,
+                                    pred_edges=pred_edges,
+                                    graph=graph)
     return res
 
 def move_pixels(frommask, tomask, image, isComposite=False):

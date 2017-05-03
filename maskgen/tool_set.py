@@ -962,8 +962,8 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert=False, arguments={}, crop=False, seam=False):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop, seam=seam)
+def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None):
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,alternativeFunction=alternativeFunction)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
 
@@ -1185,6 +1185,9 @@ def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,
     bestTM = None
     bestSize = 0
     bestMatch = 0
+    matchtype = arguments['Transform Selection'] if 'Transform Selection' in arguments else 'Skip'
+    if matchtype == 'Skip':
+        return None
     levels = list(np.unique(compositeMask))
     for level in levels:
         if level == 0:
@@ -1195,22 +1198,26 @@ def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,
         if TM is not None:
             TMs[level] =TM
             sizeOfMask = sum(sum(levelMask))
-            if  matchCount > bestMatch:
+            if  matchCount > bestMatch and matchtype == 'Count':
                 bestTM = TM
                 bestMatch = matchCount
+            elif sizeOfMask > bestSize and matchtype == 'Size':
+                bestTM = TM
                 bestSize = sizeOfMask
-    if bestTM is None:
-        return None
     flags = cv2.WARP_INVERSE_MAP if inverse else cv2.INTER_LINEAR
     borderValue = 0
     for level in levels:
         if level == 0:
             continue
         TM = TMs[level] if level in TMs else bestTM
-        levelMask = np.zeros(compositeMask.shape).astype('uint16')
-        levelMask[compositeMask == level] = 255
-        newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
-                                      borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
+        if TM is None:
+            newLevelMask = cv2.resize(levelMask, (destIm.size[0], destIm.size[1]))
+        else:
+            levelMask = np.zeros(compositeMask.shape).astype('uint16')
+            levelMask[compositeMask == level] = 255
+            # NOTE: size mirrors IM shape
+            newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
+                                          borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
         if newLevelMask is not None:
             newMask[newLevelMask > 100] = level
     return newMask
@@ -1304,19 +1311,34 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     return newMask
 
 
-def __composeMask(img1, img2, invert, arguments=dict(), crop=False, seam=False):
+def cropCompare(img1, img2, invert, arguments=dict()):
+    if (sum(img1.shape) > sum(img2.shape)):
+        return __composeCropImageMask(img1, img2)
+    return None, {}
+
+def seamCompare(img1, img2, invert, arguments=dict()):
+    if (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
+        # seams can only be calculated in one dimension--only one dimension can change in size
+        return __composeSeamMask(img1, img2)
+    elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
+        return __composeCropImageMask(img1, img2)
+    return None,{}
+
+def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
+
+    if alternativeFunction is not None:
+        mask,analysis = alternativeFunction(img1, img2, invert,arguments=arguments)
+        if mask is not None:
+            return mask,analysis
+
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
     if abs(rotation) > 0.0001 and img1.shape != img2.shape:
         return __compareRotatedImage(rotation, img1, img2, invert, arguments)
     if (sum(img1.shape) > sum(img2.shape)):
-        if crop or (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
-            return __composeCropImageMask(img1, img2)
-        elif seam and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
-            # seams can only be calculated in one dimension--only one dimension can change in size
-            return __composeSeamMask(img1, img2)
+        return __composeCropImageMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
         return __composeExpandImageMask(img1, img2)
     try:
@@ -1600,7 +1622,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
-    if ((location != (0, 0) or crop) and not carve):
+    if (location != (0, 0) or crop):
         if sizeChange[0]>0 or sizeChange[1]>0:
             #inverse crop
             newRes = np.zeros(expectedSize).astype('uint8')
