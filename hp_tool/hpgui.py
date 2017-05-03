@@ -556,12 +556,22 @@ class HPGUI(Frame):
     def open_old_rit_csv(self):
         outputdir = self.settings.get('outputdir')
         csv = tkFileDialog.askopenfilename(initialdir=outputdir)
-        HPSpreadsheet(self.settings, dir=outputdir, ritCSV=csv, master=self.master).open_spreadsheet()
+        open_data = tkMessageBox.askyesnocancel(title='Data Selection', message='Select image data to preview in sheet? If yes, you should select the root directory - the one with Image, Video, etc. folders.')
+        if open_data:
+            d = tkFileDialog.askdirectory(title='Select Root Data Folder')
+        elif open_data is None:
+            return
+        else:
+            d = os.path.dirname(csv)
+
+        h = HPSpreadsheet(self.settings, dir=d, ritCSV=csv, master=self, devices=self.cameras)
+        h.open_spreadsheet()
 
     def open_old_keywords_csv(self):
         outputdir = self.settings.get('outputdir')
         csv = tkFileDialog.askopenfilename(initialdir=outputdir)
-        KeywordsSheet(self.settings, dir=outputdir, keyCSV=csv, master=self.master).open_spreadsheet()
+        k = KeywordsSheet(self.settings, dir=outputdir, keyCSV=csv, master=self)
+        k.open_spreadsheet()
 
     def open_settings(self):
         SettingsWindow(master=self.master, settings=self.settings)
