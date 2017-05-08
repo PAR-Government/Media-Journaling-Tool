@@ -12,6 +12,11 @@ from scipy.spatial import ConvexHull
 import math
 from skimage.restoration import denoise_tv_bregman
 
+from sys import platform as sys_pf
+if sys_pf == 'darwin':
+    import matplotlib
+    matplotlib.use("TkAgg")
+
 from matplotlib import transforms
 from matplotlib.patches import Ellipse
 
