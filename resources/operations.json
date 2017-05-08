@@ -3527,12 +3527,14 @@
           "type": "list",
           "source": "image",
            "values": [
-             "Count",
-             "Size",
              "None",
              "Skip"
            ],
            "description": "Instructions for missing transforms during composite mask generation"
+        },
+        "Match Count": {
+          "type": "int[0:1000]",
+           "description": "Number of feature matches for RANSAC"
         }
       },
       "analysisOperations": [
@@ -3823,12 +3825,14 @@
           "type": "list",
           "source": "image",
            "values": [
-             "Count",
-             "Size",
              "None",
              "Skip"
            ],
            "description": "Instructions for missing transforms during composite mask generation"
+        },
+        "Match Count": {
+          "type": "int[0:1000]",
+           "description": "Number of feature matches for RANSAC"
         }
       },
       "compareparameters" : {

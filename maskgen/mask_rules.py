@@ -218,6 +218,7 @@ def seam_transform(edge,
     matchx = sizeChange[0] == 0
     matchy = sizeChange[1] == 0
     res = None
+    transformMatrix = tool_set.deserializeMatrix(edge['transform matrix']) if 'transform matrix' in edge  else None
     if (matchx and not matchy) or (not matchx and matchy):
         if compositeMask is not None:
             expectedSize = (targetImage.size[1], targetImage.size[0])
@@ -228,9 +229,8 @@ def seam_transform(edge,
             # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
             targetSize = edgeMask.shape
             res = tool_set.applyMask(donorMask, edgeMask)
-            transformMatrix = edge['transform matrix'] if 'transform matrix' in edge  else None
             if transformMatrix is not None:
-                res = cv2.warpPerspective(res, tool_set.deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
+                res = cv2.warpPerspective(res, transformMatrix, (targetSize[1], targetSize[0]),
                                           flags=cv2.WARP_INVERSE_MAP,
                                           borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
             # need to use target size since the expected does ot align with the donor paths.
@@ -242,7 +242,8 @@ def seam_transform(edge,
                                               graph.get_image(source)[0],
                                                    targetImage,
                                               inverse=donorMask is not None,
-                                              arguments=edge['arguments'] if 'arguments' in edge else {})
+                                              arguments=edge['arguments'] if 'arguments' in edge else {},
+                                              defaultTransform=transformMatrix)
     if res is None or len(np.unique(res)) == 1:
         return defaultMaskTransform(edge,
                                     source,
@@ -267,13 +268,15 @@ def cas_transform(edge,
                    pred_edges=None,
                    graph=None):
     res = None
+    tm = tool_set.deserializeMatrix(edge['transform matrix']) if 'transform matrix' in edge  else None
     if compositeMask is not None:
         targetImage = graph.get_image(target)[0]
         res = tool_set.applyInterpolateToCompositeImage(compositeMask,
                                               graph.get_image(source)[0],
                                               targetImage,
                                               inverse=donorMask is not None,
-                                              arguments=edge['arguments'] if 'arguments' in edge else {})
+                                              arguments=edge['arguments'] if 'arguments' in edge else {},
+                                              defaultTransform=tm)
     if res is None or len(np.unique(res)) == 1:
         return defaultMaskTransform(edge,
                                     source,
@@ -452,12 +455,11 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', lev
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
     cut = edge['op'] in ('SelectRemove')
-    crop = sizeChange != (0, 0)
+    crop = (sizeChange[0] < 0 or sizeChange[1] < 0) and tm is None and abs(rotation) < 0.00001
     flip = flip if flip is not None else orientflip
-    global_resize = (sizeChange != (0, 0) and edge['op'] not in ['TransformSeamCarving', 'Recapture'])
-    tm = None if (crop or cut or flip or global_resize) else tm
-    location = (0, 0) if tm and edge['op'] in ['TransformSeamCarving', 'Recapture']  else location
-    crop = True if edge['op'] in ['TransformSeamCarving', 'Recapture'] else crop
+    tm = None if (cut or flip) else tm
+    location = (0, 0) if tm and edge['op'] in [ 'Recapture']  else location
+    crop = True if edge['op'] in ['Recapture'] else crop
     compositeMask = alterMask(compositeMask,
                               edgeMask,
                               rotation=rotation,
@@ -491,10 +493,9 @@ def defaultAlterDonor(edge, edgeMask, compositeMask=None, directory='.', level=N
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
     cut = edge['op'] in ('SelectRemove')
-    crop = sizeChange != (0, 0)
+    crop = (sizeChange[0] < 0 or sizeChange[1] < 0) and tm is None and abs(rotation) < 0.00001
     flip = flip if flip is not None else orientflip
-    global_resize = (sizeChange != (0, 0) and edge['op'] != 'TransformSeamCarving')
-    tm = None if (cut or flip or  global_resize) else tm
+    tm = None if (cut or flip) else tm
     return alterReverseMask(donorMask,
                             edgeMask,
                             rotation=rotation,

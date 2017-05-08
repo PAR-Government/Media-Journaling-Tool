@@ -657,6 +657,8 @@ def serializeMatrix(m):
 
 
 def deserializeMatrix(data):
+    if data is None:
+        return None
     m = np.zeros((int(data['r']), int(data['c'])))
     for r in range(m.shape[0]):
         m[r, :] = data['r' + str(r)]
@@ -1057,7 +1059,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
                 logging.getLogger('maskgen').error('invalid RANSAC ' + arguments['RANSAC'])
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
         matchCount = sum(sum(matches))
-        if float(matchCount) / len(src_dts_pts) < 0.15 and matchCount < 30:
+        if float(matchCount) / len(src_dts_pts) < 0.15 and matchCount < 30 :
             return None,None
         # M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         # matchesMask = mask.ravel().tolist()
@@ -1170,7 +1172,7 @@ def applyToComposite(compositeMask, func, shape=None):
             newMask[newLevelMask > 100] = level
     return newMask
 
-def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,arguments={}):
+def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,arguments={}, defaultTransform=None):
     """
        Loop through each level add apply SIFT to transform the mask
        :param compositeMask:
@@ -1182,10 +1184,8 @@ def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,
        """
     newMask = np.zeros((destIm.image_array.shape[0],destIm.image_array.shape[1]),dtype=np.uint8)
     TMs = {}
-    bestTM = None
-    bestSize = 0
-    bestMatch = 0
     matchtype = arguments['Transform Selection'] if 'Transform Selection' in arguments else 'Skip'
+    matchcount = int(arguments['Match Count']) if 'Match Count' in arguments else 0
     if matchtype == 'Skip':
         return None
     levels = list(np.unique(compositeMask))
@@ -1194,22 +1194,17 @@ def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
-        TM,matchCount = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
-        if TM is not None:
+        TM,matchCountResult = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
+        if TM is not None and matchCountResult > matchcount:
             TMs[level] =TM
-            sizeOfMask = sum(sum(levelMask))
-            if  matchCount > bestMatch and matchtype == 'Count':
-                bestTM = TM
-                bestMatch = matchCount
-            elif sizeOfMask > bestSize and matchtype == 'Size':
-                bestTM = TM
-                bestSize = sizeOfMask
+        else:
+            TMs[level] = defaultTransform
     flags = cv2.WARP_INVERSE_MAP if inverse else cv2.INTER_LINEAR
     borderValue = 0
     for level in levels:
         if level == 0:
             continue
-        TM = TMs[level] if level in TMs else bestTM
+        TM = TMs[level]
         if TM is None:
             newLevelMask = cv2.resize(levelMask, (destIm.size[0], destIm.size[1]))
         else:
@@ -1419,10 +1414,10 @@ def seamCompare(img1, img2,  arguments=dict()):
     if (sum(img1.shape) != sum(img2.shape) and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1])):
         # seams can only be calculated in one dimension--only one dimension can change in size
         return __composeSeamMask(img1, img2)
-    return _composeLCS(img1,img2),{}
-    #elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
-    #    return __composeCropImageMask(img1, img2)
-    #return None,{}
+    #return _composeLCS(img1,img2),{}
+    elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
+        return __composeCropImageMask(img1, img2)
+    return None,{}
 
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
@@ -1435,21 +1430,22 @@ def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     mask = None
+    analysis = {}
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
-    if abs(rotation) > 0.0001 and img1.shape != img2.shape:
-        mask = __compareRotatedImage(rotation, img1, img2,  arguments)
+    if abs(rotation) > 0.0001:
+        mask,analysis = __compareRotatedImage(rotation, img1, img2,  arguments)
     if (sum(img1.shape) > sum(img2.shape)):
-        mask =  __composeCropImageMask(img1, img2)
+        mask,analysis =  __composeCropImageMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
-        mask = __composeExpandImageMask(img1, img2)
+        mask,analysis= __composeExpandImageMask(img1, img2)
     if mask is None:
         try:
             if img1.shape == img2.shape:
                 return __diffMask(img1, img2, invert, args=arguments)
         except ValueError as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
-    mask = np.ones(img1.shape,type=np.uint8) * 255
-    return abs(255 - mask).astype('uint8') if not invert else mask, {}
+        mask = np.zeros(img1.shape, type=np.uint8)
+    return abs(255 - mask).astype('uint8') if invert else mask, analysis
 
 
 def __alignShape(im, shape):
@@ -1491,7 +1487,7 @@ def __rotateImage(rotation, img, expectedDims=None, cval=0):
 
 def __compareRotatedImage(rotation, img1, img2,  arguments):
     res = __rotateImage(rotation, img1, expectedDims=img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2,
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2,False,
                                                                                                     args=arguments)
     res = __rotateImage(-rotation, mask, expectedDims=img1.shape, cval=255)
     return res, analysis
