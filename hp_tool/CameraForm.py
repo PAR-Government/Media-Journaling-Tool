@@ -8,9 +8,8 @@ import collections
 import subprocess
 import tkFileDialog, tkMessageBox
 import json
-
 import requests
-
+from hpgui import API_Camera_Handler
 
 class HP_Device_Form(Toplevel):
     def __init__(self, master, validIDs=None, pathvar=None, token=None, browser=None):
@@ -105,14 +104,16 @@ class HP_Device_Form(Toplevel):
 
         Label(self.f.interior, text='Trello Login Token*', font=(20)).pack()
         Label(self.f.interior, text='This is required to send a notification of the new device.').pack()
-        trelloTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
+        trello_link = 'https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token'
+        trelloTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_link(trello_link))
         trelloTokenButton.pack()
         tokenEntry = Entry(self.f.interior, textvar=self.trello_token)
         tokenEntry.pack()
 
         Label(self.f.interior, text='Browser Login Token*', font=(20)).pack()
         Label(self.f.interior, text='This allows for the creation of the new device.').pack()
-        browserTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
+        browser_link = 'https://medifor.rankone.io/api/login/'
+        browserTokenButton = Button(self.f.interior, text='Get Trello Token', command=lambda: self.open_link(browser_link))
         browserTokenButton.pack()
         browserEntry = Entry(self.f.interior, textvar=self.browser_token)
         browserEntry.pack()
@@ -176,16 +177,21 @@ class HP_Device_Form(Toplevel):
         self.destroy()
 
     def local_id_used(self):
-        return self.localID.get().lower() in [i.lower() for i in self.validIDs]
+        print 'Verifying local ID is not already in use...'
+        c = API_Camera_Handler(self, token=self.browser_token.get(), url='https://medifor.rankone.io')
+        local_id_reference = c.get_local_ids()
+        if not local_id_reference:
+            return 'Could not successfully connect to Medifor browser. Please check credentials.'
+        elif self.localID.get().lower() in [i.lower() for i in local_id_reference]:
+            return 'Local ID ' + self.localID.get() + ' already in use.'
 
-    def open_trello_token(self):
-        webbrowser.open('https://trello.com/1/authorize?key='+self.trello_key+'&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
-
+    def open_link(self, link):
+        webbrowser.open(link)
 
     def post_to_trello(self, filepath):
         """create a new card in trello and attach a file to it"""
 
-        token = self.token.get()
+        token = self.trello_token.get()
 
         # list ID for "New Devices" list
         list_id = '58ecda84d8cfce408d93dd34'
