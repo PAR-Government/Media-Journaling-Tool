@@ -2,9 +2,12 @@
 
 echo "You will be prompted for the your password to support sudo.  You must have sudo privilegs"
 
+xcode-select --install
+
 which gcc
 if [ "$?" == "1" ]
 then
+   brew install gcc
    echo "Some Items may not install if XCode is not installed"
 fi
 
@@ -21,9 +24,15 @@ then
    brew link git
 fi
 brew install python --with-tcl-tk
+pip install nose
+pip install pyparsing
+pip install pep8
 brew install graphviz
 brew install libraw
 brew install homebrew/science/hdf5
+brew tap homebrew/science
+brew install matplotlib
+brew install scipy
 brew install ffmpeg --with-fdk-aac --with-ffplay --with-freetype --with-libass --with-libquvi --with-libvorbis --with-libvpx --with-opus --with-x265 --with-x264 --with-gpl --with-xvid --with-libmp3lame
 brew tap homebrew/science
 brew install opencv --universal --with-ffmpeg --with-gstreamer --with-jasper --with-java --with-libdc1394 --with-opengl --with-openni --with-tbb --with-vtk --with-ximea --without-eigen --without-numpy --without-opencl --without-openexr --without-python --without-test --HEAD
@@ -35,8 +44,11 @@ sudo installer -pkg /Volumes/ExifTool-10.50/ExifTool-10.50.pkg -target /
 
 pip install tifffile
 pip install graphviz
+pip install pygraphviz
 sudo pip install numpy --upgrade
 pip install PyPDF2
+pip install awscli
+pip install boto3
 
 git clone https://github.com/rwgdrummer/maskgen.git
 pip install setuptools
