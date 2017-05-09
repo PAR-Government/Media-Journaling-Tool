@@ -2196,6 +2196,14 @@ class ImageProjectModel:
         elif 'nodetype' not in self.G.get_node(destination):
             self.__assignLabel(destination, 'base')
 
+    def finalNodes(self):
+        final = []
+        for name in self.getNodeNames():
+            node = self.G.get_node(name)
+            if node['nodetype'] == 'final':
+                final.append(name)
+        return final
+
     def _findTerminalNodes(self, node, excludeDonor=False,includeOps=None):
         return self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor,includeOps=includeOps)
 
