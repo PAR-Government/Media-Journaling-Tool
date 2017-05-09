@@ -13,7 +13,7 @@ import requests
 
 
 class HP_Device_Form(Toplevel):
-    def __init__(self, master, validIDs=None, pathvar=None, token=None):
+    def __init__(self, master, validIDs=None, pathvar=None, token=None, browser=None):
         Toplevel.__init__(self, master)
         self.geometry("%dx%d%+d%+d" % (800, 800, 250, 125))
         self.master = master
@@ -34,8 +34,10 @@ class HP_Device_Form(Toplevel):
         self.lens_mount = StringVar()
         self.os = StringVar()
         self.osver = StringVar()
-        self.token = StringVar()
-        self.token.set(token) if token is not None else ''
+        self.trello_token = StringVar()
+        self.trello_token.set(token) if token is not None else ''
+        self.browser_token = StringVar()
+        self.browser_token.set(browser) if browser is not None else ''
 
         self.create_widgets()
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
@@ -80,13 +82,10 @@ class HP_Device_Form(Toplevel):
         ]
         self.headers = collections.OrderedDict(head)
 
-        r=0
         for h in self.headers:
             Label(self.f.interior, text=h, font=(20)).pack()
-            r+=1
             if 'description' in self.headers[h]:
                 Label(self.f.interior, text=self.headers[h]['description'], wraplength=600).pack()
-                r+=1
             if self.headers[h]['type'] == 'text':
                 e = Entry(self.f.interior, textvar=self.headers[h]['var'])
                 e.pack()
@@ -98,21 +97,25 @@ class HP_Device_Form(Toplevel):
                         e.pack()
                     else:
                         Radiobutton(self.f.interior, text=v, variable=self.headers[h]['var'], value=v).pack()
-                    r+=1
 
             elif self.headers[h]['type'] == 'list':
                 ttk.Combobox(self.f.interior, values=self.headers[h]['values'], textvariable=self.headers[h]['var']).pack()
 
-            r+=1
-
         self.headers['Device Affiliation*']['var'].set('RIT')
 
-        Label(self.f.interior, text='Trello Login Token*', font=("Courier", 20)).pack()
-        Label(self.f.interior, text='This will be a different login token than for MaskGen.').pack()
-        apiTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
-        apiTokenButton.pack()
-        tokenEntry = Entry(self.f.interior, textvar=self.token)
+        Label(self.f.interior, text='Trello Login Token*', font=(20)).pack()
+        Label(self.f.interior, text='This is required to send a notification of the new device.').pack()
+        trelloTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
+        trelloTokenButton.pack()
+        tokenEntry = Entry(self.f.interior, textvar=self.trello_token)
         tokenEntry.pack()
+
+        Label(self.f.interior, text='Browser Login Token*', font=(20)).pack()
+        Label(self.f.interior, text='This allows for the creation of the new device.').pack()
+        browserTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_trello_token)
+        browserTokenButton.pack()
+        browserEntry = Entry(self.f.interior, textvar=self.browser_token)
+        browserEntry.pack()
 
         self.okbutton = Button(self.f.interior, text='Complete', command=self.export_results)
         self.okbutton.pack()
@@ -142,8 +145,10 @@ class HP_Device_Form(Toplevel):
             if h.endswith('*') and self.headers[h]['var'].get() == '':
                 msg = 'Field ' + h[:-1] + ' is a required field.'
                 break
-        if self.token.get() == '':
+        if self.trello_token.get() == '':
             msg = 'Trello Token is a required field.'
+        if self.browser_token.get() == '':
+            msg = 'Browser Token is a required field.'
         if self.local_id_used():
             msg = 'Local ID ' + self.localID.get() + ' already in use.'
 

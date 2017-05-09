@@ -82,7 +82,7 @@ class HP_Starter(Frame):
             yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
             if yes:
                 v = StringVar()
-                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=self.settings.get('trello'))
+                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
                 h.wait_window()
                 if v.get():
                     r = self.master.add_device(v.get())
@@ -291,7 +291,7 @@ class PRNU_Uploader(Frame):
 
     def open_new_insert_id(self):
         self.newCam.set(1)
-        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=self.settings.get('trello'))
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
         if self.localIDfile.get():
             self.newCamEntry.config(state=NORMAL)
 
@@ -548,7 +548,7 @@ class HPGUI(Frame):
     def open_form(self):
         token = self.settings.get('trello')
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=token)
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=token, browser=self.settings.get('apitoken'))
         h.wait_window()
         if new_device.get():
             r = self.add_device(new_device.get())
@@ -680,9 +680,9 @@ class API_Camera_Handler:
                 else:
                     raise requests.HTTPError()
         except (requests.HTTPError, requests.ConnectionError):
-            print 'An error ocurred connecting to API (' + str(response.status_code) + ').\n Devices will be loaded from hp_tool/data.'
+            print 'An error ocurred connecting to Medifor browser (' + str(response.status_code) + ').\n Devices will be loaded from hp_tool/data.'
         except KeyError:
-            tkMessageBox.showerror(title='Information', message='Could not find API credentials in settings. Please '
+            tkMessageBox.showerror(title='Information', message='Could not find browser credentials in settings. Please '
                                                                'add them via Settings in the File menu.')
 
 def main():
