@@ -9,7 +9,7 @@ import subprocess
 import tkFileDialog, tkMessageBox
 import json
 import requests
-from hpgui import API_Camera_Handler
+from camera_handler import API_Camera_Handler
 
 class HP_Device_Form(Toplevel):
     def __init__(self, master, validIDs=None, pathvar=None, token=None, browser=None):
@@ -38,8 +38,9 @@ class HP_Device_Form(Toplevel):
         self.browser_token = StringVar()
         self.browser_token.set(browser) if browser is not None else ''
 
-        self.create_widgets()
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.create_widgets()
+
 
     def set_list_options(self):
         df = pd.read_csv(os.path.join('data', 'db.csv'))
@@ -71,7 +72,7 @@ class HP_Device_Form(Toplevel):
                ('Camera Model',{'description':'If Camera Model appears in image/video exif data from this camera, please enter it here (ex. SM-009). If there is no model listed in exif data, leave blank.', 'type':'text',
                                  'var':self.camera_model}),
                ('Edition',{'description':'If applicable', 'type':'text', 'var':self.edition}),
-               ('Device Type*',{'description':'', 'type':'list', 'values':self.device_types, 'var':self.device_type}),
+               ('Device Type*',{'description':'', 'type':'readonlylist', 'values':self.device_types, 'var':self.device_type}),
                ('Sensor Information',{'description':'Sensor size/dimensions/other sensor info.', 'type':'text', 'var':self.sensor}),
                ('General Description',{'description':'Other specifications', 'type':'text', 'var':self.general}),
                ('Lens Mount*',{'description':'Choose \"builtin\" if the device does not have interchangeable lenses.', 'type':'list', 'values':self.lens_mounts,
@@ -97,15 +98,19 @@ class HP_Device_Form(Toplevel):
                     else:
                         Radiobutton(self.f.interior, text=v, variable=self.headers[h]['var'], value=v).pack()
 
-            elif self.headers[h]['type'] == 'list':
-                ttk.Combobox(self.f.interior, values=self.headers[h]['values'], textvariable=self.headers[h]['var']).pack()
+            elif 'list' in self.headers[h]['type']:
+                c = ttk.Combobox(self.f.interior, values=self.headers[h]['values'], textvariable=self.headers[h]['var'])
+                c.pack()
+                c.bind('<MouseWheel>', self.remove_bind)
+                if 'readonly' in self.headers[h]['type']:
+                    c.config(state='readonly')
 
         self.headers['Device Affiliation*']['var'].set('RIT')
 
         Label(self.f.interior, text='Trello Login Token*', font=(20)).pack()
         Label(self.f.interior, text='This is required to send a notification of the new device.').pack()
         trello_link = 'https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token'
-        trelloTokenButton = Button(self.f.interior, text='Get Trello Token', command=self.open_link(trello_link))
+        trelloTokenButton = Button(self.f.interior, text='Get Trello Token', command=lambda: self.open_link(trello_link))
         trelloTokenButton.pack()
         tokenEntry = Entry(self.f.interior, textvar=self.trello_token)
         tokenEntry.pack()
@@ -122,6 +127,9 @@ class HP_Device_Form(Toplevel):
         self.okbutton.pack()
         self.cancelbutton = Button(self.f.interior, text='Cancel', command=self.destroy)
         self.cancelbutton.pack()
+
+    def remove_bind(self, event):
+        return 'break'
 
     def populate_from_image(self):
         self.imfile = tkFileDialog.askopenfilename(title='Select Image File')
@@ -150,14 +158,22 @@ class HP_Device_Form(Toplevel):
             msg = 'Trello Token is a required field.'
         if self.browser_token.get() == '':
             msg = 'Browser Token is a required field.'
-        if self.local_id_used():
-            msg = 'Local ID ' + self.localID.get() + ' already in use.'
+        check = self.local_id_used()
+        msg = msg if check is None else check
 
         if msg:
             tkMessageBox.showerror(title='Error', message=msg)
             return
 
+        browser_resp = self.post_to_browser()
+        if browser_resp.status_code == requests.codes.ok:
+            tkMessageBox.showinfo(title='Complete', message='Successfully posted new camera information! Press Okay to continue.')
+        else:
+            tkMessageBox.showerror(title='Error', message='An error ocurred posting the new camera information to the MediBrowser. (' + str(browser_resp.status_code)) + ')'
+
         path = tkFileDialog.asksaveasfilename(initialfile=self.localID.get()+'.csv')
+        if self.pathvar:
+            self.pathvar.set(path)
         with open(path, 'wb') as csvFile:
             wtr = csv.writer(csvFile)
             wtr.writerow(['Affiliation', 'HP-LocalDeviceID', 'DeviceSN', 'Manufacturer', 'CameraModel', 'HP-CameraModel', 'Edition',
@@ -165,8 +181,6 @@ class HP_Device_Form(Toplevel):
             wtr.writerow([self.affiliation.get(), self.localID.get(), self.serial.get(), self.manufacturer.get(), self.camera_model.get(),
                           self.series_model.get(), self.edition.get(), self.device_type.get(), self.sensor.get(), self.general.get(),
                           self.lens_mount.get(), self.os.get(), self.osver.get(), '0'])
-        if self.pathvar:
-            self.pathvar.set(path)
 
         code = self.post_to_trello(path)
         if code is not None:
@@ -175,6 +189,36 @@ class HP_Device_Form(Toplevel):
             tkMessageBox.showinfo(title='Information', message='Complete!')
 
         self.destroy()
+
+    def post_to_browser(self):
+        url = 'https://medifor.rankone.io/api/cameras/'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + self.browser_token.get(),
+        }
+        data = { 'hp_device_local_id': self.localID.get(),
+                 'affiliation': self.affiliation.get(),
+                 'hp_camera_model': self.series_model.get(),
+                 'exif_device_serial_number': self.serial.get(),
+                 'exif_camera_make': self.manufacturer.get(),
+                 'exif_camera_model': self.camera_model.get(),
+                 'camera_edition': self.edition.get(),
+                 'camera_type': self.device_type.get(),
+                 'camera_sensor': self.sensor.get(),
+                 'camera_description': self.general.get(),
+                 'camera_lens_mount': self.lens_mount.get(),
+                 'camera_firmware': self.os.get(),
+                 'camera_version': self.osver.get()
+        }
+        data = self.json_string(data)
+
+        return requests.post(url, headers=headers, data=data)
+
+    def json_string(self, data):
+        for key, val in data.iteritems():
+            if val == '':
+                data[key] = None
+        return json.dumps(data)
 
     def local_id_used(self):
         print 'Verifying local ID is not already in use...'
