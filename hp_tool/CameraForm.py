@@ -41,7 +41,6 @@ class HP_Device_Form(Toplevel):
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.create_widgets()
 
-
     def set_list_options(self):
         df = pd.read_csv(os.path.join('data', 'db.csv'))
         self.manufacturers = [str(x).strip() for x in df['Manufacturer'] if str(x).strip() != 'nan']

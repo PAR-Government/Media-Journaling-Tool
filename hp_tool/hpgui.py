@@ -612,7 +612,7 @@ class HPGUI(Frame):
             'exif_camera_make': fields['Manufacturer'],
             'exif_device_serial_number': fields['DeviceSN']
         }
-        self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list. This will be valid for this instance only.')
+        self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list.')
 
 
 class ReadOnlyText(Text):
