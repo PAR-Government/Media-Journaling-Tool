@@ -40,7 +40,7 @@ def openRaw(filename,isMask=False):
 def openTiff(filename, isMask=False):
     raw = openRaw(filename,isMask=isMask)
     info = {}
-    if filename.lower().find('tif'):
+    if filename.lower().find('tif') >= 0:
         try:
             with TiffFile(filename) as tiffdata:
                 for page in tiffdata:

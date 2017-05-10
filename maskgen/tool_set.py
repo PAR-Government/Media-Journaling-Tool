@@ -603,7 +603,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return openImage('./icons/RedX.png')
 
 
-def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
+def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
     """
 
     :param mask:
@@ -620,17 +620,16 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
     mask = np.asarray(mask)
     mask = mask.astype('uint8')
     try:
-        mask1 = convertToMask(img1).to_array() if img1.has_alpha() else None
-        TM, computed_mask = __sift(img1, img2, mask1=mask1, mask2=maskInverted, arguments=arguments)
+        mask1 = convertToMask(startIm).to_array() if startIm.has_alpha() else None
+        TM,matchCount  = __sift(startIm, destIm, mask1=mask1, mask2=maskInverted, arguments=arguments)
     except:
         TM = None
-        computed_mask = None
     if TM is not None:
-        newMask = cv2.warpPerspective(mask, TM, (img1.size[0], img1.size[1]), flags=cv2.WARP_INVERSE_MAP,
+        newMask = cv2.warpPerspective(mask, TM, (startIm.size[0], startIm.size[1]), flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
-        return newMask if computed_mask is None else computed_mask, analysis
+        return newMask, analysis
     else:
         try:
             contours, hier = cv2.findContours(255 - mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -652,7 +651,7 @@ def interpolateMask(mask, img1, img2, invert=False, arguments=dict()):
             h = maxpoint[1] - minpoint[1] + 1
             x = minpoint[0]
             y = minpoint[1]
-            if (img1.size[0] - w) < 2 and (img1.size[1] - h) < 2:
+            if (startIm.size[0] - w) < 2 and (startIm.size[1] - h) < 2:
                 return mask[x:x + h, y:y + w], {}
         except:
             return None, None
@@ -671,6 +670,8 @@ def serializeMatrix(m):
 
 
 def deserializeMatrix(data):
+    if data is None:
+        return None
     m = np.zeros((int(data['r']), int(data['c'])))
     for r in range(m.shape[0]):
         m[r, :] = data['r' + str(r)]
@@ -826,7 +827,7 @@ def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, 
         mask = inputmask
     else:
         mask2 =  mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
@@ -844,7 +845,7 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
@@ -853,7 +854,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def boundingRegion (mask):
@@ -971,13 +972,13 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
-    matrix, mask = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+    matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     if matrix is not None:
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert=False, arguments={}, crop=False, seam=False):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments, crop=crop, seam=seam)
+def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None):
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,alternativeFunction=alternativeFunction)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
 
@@ -991,6 +992,56 @@ def __indexOf(source, dest):
                 break
     return positions
 
+def __flannMatcher(d1, d2):
+    FLANN_INDEX_KDTREE = 0
+    FLANN_INDEX_LSH = 6
+    TREES = 16
+    CHECKS = 50
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
+    # index_params= dict(algorithm         = FLANN_INDEX_LSH,
+    #                   table_number      = 6,
+    #                   key_size          = 12,
+    #                   multi_probe_level = 1)
+    search_params = dict(checks=CHECKS)
+
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    return flann.knnMatch(d1, d2, k=2) if d1 is not None and d2 is not None else []
+
+def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), matcher=__flannMatcher):
+    img1 = img1.to_rgb().apply_mask(mask1).to_array()
+    img2 = img2.to_rgb().apply_mask(mask2).to_array()
+    detector = cv2.FeatureDetector_create("SIFT")
+    extractor = cv2.DescriptorExtractor_create("SIFT")
+    threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
+
+    kp1a = detector.detect(img1)
+    kp2a = detector.detect(img2)
+
+    (kp1, d1) = extractor.compute(img1, kp1a)
+    (kp2, d2) = extractor.compute(img2, kp2a)
+
+    if kp2 is None or len(kp2) == 0:
+        return None
+
+    if kp1 is None or len(kp1) == 0:
+        return None
+
+    d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
+    d1 = np.sqrt(d1)
+
+    d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
+    d2 = np.sqrt(d2)
+
+    matches = matcher(d1,d2)
+
+    # store all the good matches as per Lowe's ratio test.
+    good = [m for m, n in matches if m.distance < 0.8 * n.distance]
+
+    if len(good) >= threshold:
+         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+         return (src_pts, dst_pts) if src_pts is not None else None
+    return None
 
 def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     """
@@ -1004,55 +1055,13 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     @type img2: ImageWrapper
     :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
     """
-    img1 = img1.to_rgb().apply_mask(mask1).to_array()
-    img2 = img2.to_rgb().apply_mask(mask2).to_array()
-    detector = cv2.FeatureDetector_create("SIFT")
-    extractor = cv2.DescriptorExtractor_create("SIFT")
-
-    FLANN_INDEX_KDTREE = 0
-    FLANN_INDEX_LSH = 6
-    TREES = 16
-    CHECKS = 50
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
-    # index_params= dict(algorithm         = FLANN_INDEX_LSH,
-    #                   table_number      = 6,
-    #                   key_size          = 12,
-    #                   multi_probe_level = 1)
-    search_params = dict(checks=CHECKS)
-
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-
-    kp1a = detector.detect(img1)
-    kp2a = detector.detect(img2)
-
-    (kp1, d1) = extractor.compute(img1, kp1a)
-    (kp2, d2) = extractor.compute(img2, kp2a)
-
-    if kp2 is None or len(kp2) == 0:
-        return None, None
-
-    if kp1 is None or len(kp1) == 0:
-        return None, None
-
-    d1 /= (d1.sum(axis=1, keepdims=True) + 1e-7)
-    d1 = np.sqrt(d1)
-
-    d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
-    d2 = np.sqrt(d2)
-
-    matches = flann.knnMatch(d1, d2, k=2) if d1 is not None and d2 is not None else []
-
-    # store all the good matches as per Lowe's ratio test.
-    good = [m for m, n in matches if m.distance < 0.8 * n.distance]
-
-    if len(good) >= 10:
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    src_dts_pts =  getMatchedSIFeatures(img1,img2,mask1=mask1,mask2=mask2,arguments=arguments)
+    if src_dts_pts is not None:
         # new_src_pts = cv2.convexHull(src_pts)
-        new_src_pts = src_pts
+        new_src_pts = src_dts_pts[0]
         # positions = __indexOf(src_pts,new_src_pts)
         # new_dst_pts = dst_pts[positions]
-        new_dst_pts = dst_pts
+        new_dst_pts = src_dts_pts[1]
         RANSAC_THRESHOLD = 4.0
         if arguments is not None and 'RANSAC' in arguments:
             if arguments['RANSAC'] == 'None':
@@ -1062,8 +1071,9 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
             except:
                 logging.getLogger('maskgen').error('invalid RANSAC ' + arguments['RANSAC'])
         M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
-        if float(sum(sum(matches))) / len(good) < 0.15 and sum(sum(matches)) < 30:
-            return None, None
+        matchCount = sum(sum(matches))
+        if float(matchCount) / len(src_dts_pts) < 0.15 and matchCount < 30 :
+            return None,None
         # M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         # matchesMask = mask.ravel().tolist()
 
@@ -1075,11 +1085,11 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
         # new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
         # cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
         ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        return M1, None  # mask.astype('uint8')
+        return M1,matchCount  # mask.astype('uint8')
 
         # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     # Sort them in the order of their distance.
-    return None, None
+    return None,None
 
 
 def applyResizeComposite(compositeMask, size):
@@ -1171,8 +1181,55 @@ def applyToComposite(compositeMask, func, shape=None):
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
         newLevelMask = func(levelMask)
-        newMask[newLevelMask > 100] = level
+        if newLevelMask is not None:
+            newMask[newLevelMask > 100] = level
     return newMask
+
+def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,arguments={}, defaultTransform=None):
+    """
+       Loop through each level add apply SIFT to transform the mask
+       :param compositeMask:
+       :param mask:
+       :param transform_matrix:
+       :return:
+       @type destIm: ImageWrapper
+       @type startIm: ImageWrapper
+       """
+    newMask = np.zeros((destIm.image_array.shape[0],destIm.image_array.shape[1]),dtype=np.uint8)
+    TMs = {}
+    matchtype = arguments['Transform Selection'] if 'Transform Selection' in arguments else 'Skip'
+    matchcount = int(arguments['Match Count']) if 'Match Count' in arguments else 0
+    if matchtype == 'Skip':
+        return None
+    levels = list(np.unique(compositeMask))
+    for level in levels:
+        if level == 0:
+            continue
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 255
+        TM,matchCountResult = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
+        if TM is not None and matchCountResult > matchcount:
+            TMs[level] =TM
+        else:
+            TMs[level] = defaultTransform
+    flags = cv2.WARP_INVERSE_MAP if inverse else cv2.INTER_LINEAR
+    borderValue = 0
+    for level in levels:
+        if level == 0:
+            continue
+        TM = TMs[level]
+        if TM is None:
+            newLevelMask = cv2.resize(levelMask, (destIm.size[0], destIm.size[1]))
+        else:
+            levelMask = np.zeros(compositeMask.shape).astype('uint16')
+            levelMask[compositeMask == level] = 255
+            # NOTE: size mirrors IM shape
+            newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
+                                          borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
+        if newLevelMask is not None:
+            newMask[newLevelMask > 100] = level
+    return newMask
+
 
 def applyRotateToCompositeImage(img,angle, pivot):
     """
@@ -1262,28 +1319,146 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     return newMask
 
 
-def __composeMask(img1, img2, invert, arguments=dict(), crop=False, seam=False):
+def cropCompare(img1, img2, arguments=dict()):
+    if (sum(img1.shape) > sum(img2.shape)):
+        return __composeCropImageMask(img1, img2)
+    return None, {}
+
+def _composeLCS(img1, img2):
+    from scipy import sparse
+    m = img1.shape[0] * img1.shape[1]
+    n = img2.shape[0] * img2.shape[1]
+    LCS = sparse.lil_matrix((m+1,n+1), dtype=np.int8)
+    # that L[i][j] contains length of LCS of X[0..i-1] and Y[0..j-1]
+    for i in xrange(1,m + 1,1):
+        for j in xrange(1,n + 1,1):
+            x1 = (i-1) % img1.shape[0]
+            y1 = (i-1) / img1.shape[0]
+            x2 = (j-1) % img2.shape[0]
+            y2 = (j-1) / img2.shape[0]
+            if img1[x1,y1] == img2[x2,y2]:
+                LCS[i,j] = LCS[i - 1,j - 1] + 1
+            else:
+                m = max(LCS[i - 1,j], LCS[i,j - 1])
+                if m > 0:
+                    LCS[i,j] = m
+                # Start from the right-most-bottom-most corner and
+        # one by one store characters in lcs[]
+    i = m-1
+    j = n-1
+    mask = np.zeros(img1.shape, type=np.uint8)
+    while i >= 0 and j >= 0:
+        x1 = i % img1.shape[0]
+        y1 = i / img1.shape[0]
+        x2 = j % img2.shape[0]
+        y2 = j / img2.shape[0]
+        if img1[x1, y1] == img2[x2, y2]:
+            mask[x1, y1] = 255
+            i -= 1
+            j -= 1
+        # If not same, then find the larger of two and
+        # go in the direction of larger value
+        elif LCS[i - 1, j] > LCS[i, j - 1]:
+            i -= 1
+        else:
+            j -= 1
+
+
+
+
+def __search1(pixel, img2, tally,endx,endy,x,y):
+    from collections import deque
+    def __addToQueue(x, y, endx, endy, queue):
+        if x > endx:
+            queue.append((x - 1, y))
+        if y > endy:
+            queue.append((x, y - 1))
+            if x > endx:
+                queue.append((x - 1, y - 1))
+    pixel2 = img2[x, y]
+    if pixel == pixel2:
+        return (x,y)
+    queue = deque()
+    __addToQueue(x,y,endx,endy,queue)
+    while len(queue) > 0:
+        x,y = queue.popleft()
+        pixel2 = img2[x, y]
+        if pixel == pixel2:
+            return (x, y)
+        if tally[x, y] == 0:
+            __addToQueue(x, y, endx, endy, queue)
+    return None
+
+def __search(pixel, img2, tally, position, depth):
+    startx = min(max(0, position[0] - depth[0]),img2.shape[0])
+    starty = min(max(0, position[1] - depth[1]),img2.shape[1])
+    endx   = min(position[0] + depth[0], img2.shape[0]) + 1
+    endy   = min(position[1] + depth[1], img2.shape[1]) + 1
+    imgbox = img2[startx:endx, starty:endy]
+    imgpositions = zip(*np.where(imgbox==pixel))
+    if len(imgpositions) > 0:
+        tallybox = tally[startx:endx, starty:endy]
+        tallypostions = zip(*np.where(tallybox>0))
+        if len(tallypostions) > 0:
+            maxtally = max(tallypostions)
+            imgpositions = [p for p in imgpositions if p >  maxtally]
+    else:
+        return None
+    if len(imgpositions) > 0:
+        best =  min(imgpositions)
+        return (startx + best[0],starty + best[1])
+    return None
+
+def _tallySeam(img1, img2, minDepth=50):
+
+    tally1 = np.zeros(img1.shape)
+    tally2 = np.zeros(img2.shape)
+    depthx = max(img2.shape[0] - img1.shape[0],minDepth)
+    depthy = max(img2.shape[1] - img1.shape[1],minDepth)
+    for x1 in range (img1.shape[0]):
+        for y1 in range (img1.shape[1]):
+            pos = __search(img1[x1, y1], img2, tally2, (x1,y1), (depthx,depthy))
+            if pos is not None:
+                tally1[x1, y1] = 1
+                tally2[pos[0], pos[1]] = 1
+    return tally1.astype('uint8')*255
+
+def seamCompare(img1, img2,  arguments=dict()):
+    if (sum(img1.shape) != sum(img2.shape) and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1])):
+        # seams can only be calculated in one dimension--only one dimension can change in size
+        return __composeSeamMask(img1, img2)
+    #return _composeLCS(img1,img2),{}
+    elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
+        return __composeCropImageMask(img1, img2)
+    return None,{}
+
+def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
+
+    if alternativeFunction is not None:
+        mask,analysis = alternativeFunction(img1, img2, arguments=arguments)
+        if mask is not None:
+            return mask if not invert else 255-mask,analysis
+
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
+    mask = None
+    analysis = {}
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
-    if abs(rotation) > 0.0001 and img1.shape != img2.shape:
-        return __compareRotatedImage(rotation, img1, img2, invert, arguments)
+    if abs(rotation) > 0.0001:
+        mask,analysis = __compareRotatedImage(rotation, img1, img2,  arguments)
     if (sum(img1.shape) > sum(img2.shape)):
-        if crop or (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
-            return __composeCropImageMask(img1, img2)
-        elif seam and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1]):
-            # seams can only be calculated in one dimension--only one dimension can change in size
-            return __composeSeamMask(img1, img2)
+        mask,analysis =  __composeCropImageMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
-        return __composeExpandImageMask(img1, img2)
-    try:
-        if img1.shape == img2.shape:
-            return __diffMask(img1, img2, invert, args=arguments)
-    except ValueError as e:
-        logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
-    mask = np.ones(img1.shape) * 255
-    return abs(255 - mask).astype('uint8'), {}
+        mask,analysis= __composeExpandImageMask(img1, img2)
+    if mask is None:
+        try:
+            if img1.shape == img2.shape:
+                return __diffMask(img1, img2, invert, args=arguments)
+        except ValueError as e:
+            logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
+        mask = np.zeros(img1.shape, type=np.uint8)
+    return abs(255 - mask).astype('uint8') if invert else mask, analysis
 
 
 def __alignShape(im, shape):
@@ -1323,9 +1498,9 @@ def __rotateImage(rotation, img, expectedDims=None, cval=0):
     return res
 
 
-def __compareRotatedImage(rotation, img1, img2, invert, arguments):
+def __compareRotatedImage(rotation, img1, img2,  arguments):
     res = __rotateImage(rotation, img1, expectedDims=img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2, invert,
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2,False,
                                                                                                     args=arguments)
     res = __rotateImage(-rotation, mask, expectedDims=img1.shape, cval=255)
     return res, analysis
@@ -1335,7 +1510,7 @@ def __findRotation(img1, img2, range):
     best = img1.shape[0] * img1.shape[1]
     r = None
     for rotation in range:
-        res, analysis  = __compareRotatedImage(rotation, img1,img2,False, {})
+        res, analysis  = __compareRotatedImage(rotation, img1,img2, {})
         c = sum(sum(res))
         if c < best:
             best = c
@@ -1551,14 +1726,14 @@ def carveMask(image, mask, expectedSize):
 
 
 def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None,  crop=False, cut=False, carve=False):
+              transformMatrix=None, flip=None,  crop=False, cut=False):
     res = compositeMask
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
-    if ((location != (0, 0) or crop) and not carve):
+    if (location != (0, 0) or crop):
         if sizeChange[0]>0 or sizeChange[1]>0:
             #inverse crop
             newRes = np.zeros(expectedSize).astype('uint8')
@@ -1586,8 +1761,6 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
         res = applyFlipComposite(res, edgeMask, flip)
     if cut:
         res = applyMask(res, edgeMask)
-    if carve:
-        res = carveMask(res, edgeMask, expectedSize)
     if expectedSize != res.shape:
         res = applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
     return res
@@ -1621,10 +1794,6 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
     elif flip is not None:
         res = applyFlipComposite(res, edgeMask, flip)
 
-
-    # Need to think through Seam Carving here.
-    # Seam carving essential puts pixels back.
-    # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
     if cut:
         # res is the donor mask
         # edgeMask may be the overriding mask from a PasteSplice, thus in the same shape

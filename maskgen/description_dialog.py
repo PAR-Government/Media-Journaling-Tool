@@ -1342,6 +1342,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def load_overlay(self, event, initialize=False, master=None):
+        import logging
         option = self.item.get()
         if option in self.selectMasks.keys():
             finalNode = option
@@ -1360,7 +1361,10 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             im = imTuple[1]
         imResized = imageResizeRelative(im, (250, 250), im.size)
         finalResized = imageResizeRelative(finalImage, (250, 250), finalImage.size)
-        finalResized = finalResized.overlay(imResized,color=color)
+        try:
+            finalResized = finalResized.overlay(imResized,color=color)
+        except Exception as ex:
+            logging.getLogger('maskgen').error("Improper size mask" + ex.message)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize:
             self.c = Canvas(master, width=260, height=260)

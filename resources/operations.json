@@ -3527,11 +3527,25 @@
              "5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "Transform Selection": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "None",
+             "Skip"
+           ],
+           "description": "Instructions for missing transforms during composite mask generation"
+        },
+        "Match Count": {
+          "type": "int[0:1000]",
+           "description": "Number of feature matches for RANSAC"
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.cas_transform",
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false,
       "transitions": [
@@ -3552,6 +3566,9 @@
           "type": "coordinates",
           "description": "Tuple in form of (x,y) describing the upper left crop corner."
         }
+      },
+      "compareparameters" : {
+         "function" :"maskgen.tool_set.cropCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.globalTransformAnalysis"
@@ -3807,12 +3824,29 @@
              "4",
              "5"
            ],
-           "description": "Tune transform creation for composite mask generation"
+           "description": "Tune transform during composite mask generation"
+        },
+        "Transform Selection": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "None",
+             "Skip"
+           ],
+           "description": "Instructions for missing transforms during composite mask generation"
+        },
+        "Match Count": {
+          "type": "int[0:1000]",
+           "description": "Number of feature matches for RANSAC"
         }
+      },
+      "compareparameters" : {
+         "function" :"maskgen.tool_set.seamCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.seam_transform",
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
       "transitions": [
