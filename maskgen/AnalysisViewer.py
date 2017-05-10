@@ -8,6 +8,8 @@ from tool_set import fileType
 import Tkinter as tk
 import numpy as np
 import matplotlib
+import collections
+from dctAnalytic import *
 matplotlib.use("TkAgg")
 
 
@@ -71,7 +73,12 @@ class YuvHistogramAnalytic:
         canvas.show()
         canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
-customAnalytics = {'allyuvhist': YuvHistogramAnalytic()}
+# Order YuvHistogramAnalytic first, as it is relatively lightweight
+customAnalytics = [('allyuvhist', YuvHistogramAnalytic()),
+                   ('dcthist', DCTView()),
+                   ('fftdcthist', FFT_DCTView())]
+customAnalytics = collections.OrderedDict(customAnalytics)
+
 def loadAnalytics():
     global customAnalytics
     import pkg_resources
