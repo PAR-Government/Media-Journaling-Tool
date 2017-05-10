@@ -41,3 +41,4 @@ class MaskGenLoader:
         file_path = os.path.join(expanduser("~"), ".maskgen2")
         with open(file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
+

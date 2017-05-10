@@ -83,6 +83,19 @@ def get_logging_file():
                 newesttime = t
     return newest
 
+
+def getImageFileTypes():
+    prefLoader = MaskGenLoader()
+    filetypes = prefLoader.get_key('filetypes')
+    filetypes = [] if filetypes is None else filetypes
+    types = [tuple(x) for x in filetypes]
+    tset = set([x[1] for x in types])
+    for suffix in getFileTypes():
+        if suffix[1] not in tset:
+            types.append(suffix)
+    return types
+
+
 class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """
     Always roll-over if it is a new day, not just when the process is active
@@ -1900,7 +1913,9 @@ def img_analytics(z1, z2, mask=None):
 def __diffMask(img1, img2, invert, args=None):
     dst = np.abs(img1 - img2)
     gray_image = np.zeros(img1.shape).astype('uint8')
+    ii16 = np.iinfo(dst.dtype)
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
+    difference = difference*ii16.max
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis

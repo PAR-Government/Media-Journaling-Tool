@@ -1676,7 +1676,7 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
       "compareparameters" : {
-         "tolerance" : 5.0
+         "tolerance" : 0.0001
       },
       "includeInMask": true,
       "transitions": [
@@ -3182,8 +3182,13 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "tolerance": {
+          "type": "float[0:1]",
+          "description": "How much influence a pixel change has on the resulting mask."
         }
       },
+      "maskTransformFunction": "maskgen.mask_rules.select_remove",
       "description": "Remove a limited selection within an image.",
       "includeInMask": false,
       "transitions": [
@@ -3900,6 +3905,7 @@
           "type": "list",
           "source": "image",
            "values": [
+             "None",
              "3",
              "4",
              "5"

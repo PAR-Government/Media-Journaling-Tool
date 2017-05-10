@@ -156,7 +156,7 @@ class MakeGenUI(Frame):
 
     def add(self,cgi=False):
         val = tkFileDialog.askopenfilenames(initialdir=self.scModel.get_dir(), title="Select image file(s)",
-                                            filetypes=self.getPreferredFileTypes())
+                                            filetypes=self.getMergedFileTypes())
         if (val != None and len(val) > 0):
             self.updateFileTypes(val[0])
             try:

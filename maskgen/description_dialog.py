@@ -7,7 +7,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getFileTypes, get_username, coordsFromString, IntObject
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -21,6 +21,7 @@ import sys
 from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
+from software_loader import MaskGenLoader
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
@@ -2028,7 +2029,7 @@ class PropertyFrame(VerticalScrolledFrame):
                widget[1].grid(row=row, column=2, sticky=E)
                #widget[1].select()
            elif prop.type == 'file:image':
-               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, getFileTypes())
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, getImageFileTypes())
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)

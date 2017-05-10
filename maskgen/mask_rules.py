@@ -168,6 +168,36 @@ def resize_transform(edge, source, target,edgeMask,
         return res
     return edgeMask
 
+def select_remove(edge, source, target,edgeMask,
+                     compositeMask=None,
+                     directory='.',
+                     level=None,
+                     donorMask=None,
+                     pred_edges=None,
+                     graph=None):
+    sizeChange = (0, 0)
+    if 'shape change' in edge:
+        changeTuple = toIntTuple(edge['shape change'])
+        sizeChange = (changeTuple[0], changeTuple[1])
+    location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
+    if location != (0, 0):
+        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
+    if compositeMask is not None:
+        expectedSize = (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1])
+        res = tool_set.applyMask(compositeMask, edgeMask)
+        if expectedSize != res.shape:
+            res = tool_set.applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
+        return res
+    else:
+        targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
+        res = donorMask
+        # res is the donor mask
+        # edgeMask may be the overriding mask from a PasteSplice, thus in the same shape
+        # The transfrom will convert to the target mask size of the donor path.
+        #res = tool_set.applyMask(donorMask, edgeMask)
+        if targetSize != res.shape:
+            res = cv2.resize(res, (targetSize[1], targetSize[0]))
+        return res
 
 def crop_transform(edge, source, target,edgeMask,
                    compositeMask=None,
