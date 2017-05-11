@@ -1,4 +1,6 @@
 import argparse
+import matplotlib
+matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
