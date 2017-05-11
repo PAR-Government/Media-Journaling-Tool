@@ -1533,6 +1533,7 @@ class ImageProjectModel:
                     len(edge['inputmaskname']) > 0 and \
                     edge['recordMaskInComposite'] == 'yes':
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
+
                 if not os.path.exists(fullpath):
                     raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
                 #invert because these masks are white=Keep(unchanged), Black=Remove (changed)
