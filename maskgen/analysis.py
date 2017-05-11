@@ -13,11 +13,21 @@ def pca(i,component=0, normalize=False):
     A = pca.components_[component] * pca.explained_variance_ratio_[component]
     A1 = (A - min(A)) / (max(A) - min(A)) * 255
     if normalize:
-        A1 = (A1 - min(A1))/(max(A1) - min(A1)) * 255
+        imhist, bins = np.histogram(A1, 256, normed=True)
+        cdf = imhist.cumsum()  # cumulative distribution function
+        cdf = 255 * cdf / cdf[-1]
+        A1 = np.interp(A1, bins[:-1], cdf)
     PCI = np.reshape(A1, i.image_array[:, :, 0].shape).astype('uint8')
-    if normalize:
-        PCI = cv2.equalizeHist(PCI)
     return ImageWrapper(PCI)
+
+def histeq(im,nbr_bins=256):
+   #get image histogram
+   imhist,bins = np.histogram(im.flatten(),nbr_bins,normed=True)
+   cdf = imhist.cumsum() #cumulative distribution function
+   cdf = 255 * cdf / cdf[-1] #normalize
+   #use linear interpolation of cdf to find new pixel values
+   im2 = np.interp(im.flatten(),bins[:-1],cdf)
+   return im2.reshape(im.shape)
 
 def ela(i):
     from PIL import Image
@@ -34,5 +44,6 @@ def ela(i):
     maxdiff = np.max(ela_im)
     mindiff = np.min(ela_im)
     scale = 255.0 / (maxdiff - mindiff)
-    ela_im = (ela_im - mindiff) * scale
+    for channel in range(ela_im.shape[2]):
+        ela_im[:,:,channel] = histeq(ela_im[:,:,channel]) # - mindiff) * scale
     return ImageWrapper(ela_im.astype('uint8'))
