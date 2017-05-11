@@ -8,6 +8,8 @@ from tool_set import fileType
 import Tkinter as tk
 import numpy as np
 import matplotlib
+import collections
+from dctAnalytic import *
 matplotlib.use("TkAgg")
 import  tkFileDialog
 from maskgen.tool_set import imageResize,fixTransparency
@@ -130,7 +132,14 @@ class YuvHistogramAnalytic:
         canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         return f
 
-customAnalytics = {'allyuvhist': YuvHistogramAnalytic(), 'ela': ElaAnalytic(), 'pca': PCAAnalytic()}
+# Order YuvHistogramAnalytic first, as it is relatively lightweight
+customAnalytics = [('allyuvhist', YuvHistogramAnalytic()),
+                   ('ela',ElaAnalytic()),
+                   ('pca', PCAAnalytic()),
+                   ('dcthist', DCTView()),
+                   ('fftdcthist', FFT_DCTView())]
+customAnalytics = collections.OrderedDict(customAnalytics)
+
 def loadAnalytics():
     global customAnalytics
     import pkg_resources
@@ -185,14 +194,15 @@ class AnalsisViewDialog(tkSimpleDialog.Dialog):
             if analytic.appliesTo(filename):
                 analytics.append(sn)
         self.analyticBox.config(values=analytics)
-        self.analytic.set(customAnalytics['allyuvhist'].screenName())
+        self.analytic.set(self.first.screenName())
         self.load_analytic(None)
 
     def body(self, master):
         import ttk
         self.item = StringVar()
         self.analytic = StringVar()
-        self.analytic.set(customAnalytics['allyuvhist'].screenName())
+        self.first = customAnalytics[customAnalytics.keys()[0]]
+        self.analytic.set(self.first.screenName())
         row = 0
         self.image_frame = master
         self.item.set(self.finalNodes[0] if len(self.finalNodes) > 0 else '')
