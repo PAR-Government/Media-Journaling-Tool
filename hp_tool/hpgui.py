@@ -465,8 +465,8 @@ class PRNU_Uploader(Frame):
         self.newCamCheckbox.config(state=NORMAL)
 
     def archive_prnu(self):
-        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
-        archive = tarfile.open(ftar, "w", errorlevel=2)
+        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tgz')
+        archive = tarfile.open(ftar, "w:gz", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         if self.newCam.get():
             archive.add(self.localIDfile.get(), arcname=os.path.split(self.localIDfile.get())[1])
