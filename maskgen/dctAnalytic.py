@@ -576,14 +576,32 @@ def create_histogram_fft(data, frame):
     mid = n / 2
 
     fig = plt.figure()
-    plt.plot(bincenters[mid-100:mid+100], Y[mid-100:mid+100], 'r')
+    plt.plot(bincenters[mid-100:mid+100], Y[mid-100:mid+100], 'k')
+    plt.plot(bincenters[mid-100:mid+100], hat(Y[mid-100:mid+100]), 'r')
+
+    sigma = np.std(Y)
+    stdv = '$\sigma=%.2f$'%(sigma)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    fig.text(0.25, 0.85, stdv, fontsize=14,
+            verticalalignment='top', bbox=props)
 
     canvas = FigureCanvasTkAgg(fig, frame)
     canvas.show()
     canvas.get_tk_widget().pack(side=BOTTOM, fill=BOTH, expand=True)
 
-    # print 'std of Y (shifted fft): ' + str(np.std(Y))
-    # print 'std of dc: ' + str(np.std(dc))
+def hat(data):
+    length = len(data)
+    arr = np.zeros_like(data)
+    amp = max(data)
+    minimum = int(amp * 0.15)
+    intercept1 = int(length * 0.425)
+    intercept2 = int(length * 0.575)
+
+    arr[0:intercept1] = minimum
+    arr[intercept1:intercept2] = amp
+    arr[intercept2:] = minimum
+
+    return arr
 
 def create_histogram_dct(data, frame):
     dclum = []
@@ -624,6 +642,11 @@ def create_histogram_dct(data, frame):
     frequencies = np.histogram(dc, bins=binBoundaries)[0]
 
     fig = plt.figure()
+    sigma = np.std(dc)
+    stdv = '$\sigma=%.2f$'%(sigma)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    fig.text(0.25, 0.85, stdv, fontsize=14,
+            verticalalignment='top', bbox=props)
     #plt.hist(dc, bins=binBoundaries, log=True)
     plt.plot(bincenters, frequencies)
 
