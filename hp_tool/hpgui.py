@@ -326,7 +326,9 @@ class PRNU_Uploader(Frame):
                                 os.remove(os.path.join(path, f))
                             except OSError:
                                 pass
-                    msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
+                        else:
+                            msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
+                            break
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
                     msgs.append('Images and Video folders must each contain Primary and Secondary folders.')
@@ -337,7 +339,9 @@ class PRNU_Uploader(Frame):
                                 os.remove(os.path.join(path, f))
                             except OSError:
                                 pass
-                    msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
+                        else:
+                            msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
+                            break
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
@@ -351,6 +355,7 @@ class PRNU_Uploader(Frame):
                                 pass
                         else:
                             msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
+                            break
             elif last.lower() in self.vocab:
                 if dirs:
                     msgs.append('There should be no additional subfolders in folder ' + path)
