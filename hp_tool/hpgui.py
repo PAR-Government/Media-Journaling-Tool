@@ -409,25 +409,26 @@ class PRNU_Uploader(Frame):
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        print('Creating archive...')
-        archive = self.archive_prnu()
-        md5file = self.write_md5(archive)
-
         print('Uploading...')
-        try:
-            s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1], callback=ProgressPercentage(archive))
-            s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1], callback=ProgressPercentage(md5file))
-            upload_error = False
-        except:
-            upload_error = True
+        total = sum([len(files) for r, d, files in os.walk(self.root_dir.get())])
+        ct = 0.0
+        upload_error = False
+        for root, dirs, files in os.walk(self.root_dir.get()):
+            for f in files:
+                local_path = os.path.join(root, f)
+                upload_path = local_path[local_path.lower().index(self.localID.get().lower()):]
+                try:
+                    s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
+                                   callback=ProgressPercentage(local_path, total, ct))
+                except:
+                    upload_error = True
 
-        os.remove(archive)
-        os.remove(md5file)
+                ct += 1
 
         if upload_error:
             msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
         else:
-            err = self.notify_trello(os.path.basename(archive))
+            err = self.notify_trello('s3://' + val)
             if err is not None:
                 msg = 'S3 upload completed, but failed to notify Trello (' + str(
                     err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
@@ -470,8 +471,8 @@ class PRNU_Uploader(Frame):
         self.newCamCheckbox.config(state=NORMAL)
 
     def archive_prnu(self):
-        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tgz')
-        archive = tarfile.open(ftar, "w:gz", errorlevel=2)
+        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
+        archive = tarfile.open(ftar, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         if self.newCam.get():
             archive.add(self.localIDfile.get(), arcname=os.path.split(self.localIDfile.get())[1])

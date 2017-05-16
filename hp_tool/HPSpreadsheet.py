@@ -798,11 +798,13 @@ class ProgressPercentage(object):
     """
     http://boto3.readthedocs.io/en/latest/_modules/boto3/s3/transfer.html
     """
-    def __init__(self, filename):
+    def __init__(self, filename, total_files=None, count=None):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._lock = threading.Lock()
+        if total_files and count:
+            self.percent_of_total = (count / total_files) * 100
 
     def __call__(self, bytes_amount):
         # To simplify we'll assume this is hooked up
@@ -810,10 +812,11 @@ class ProgressPercentage(object):
         with self._lock:
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
+            p = '[%.2f%% of total files uploaded.]' % self.percent_of_total if hasattr(self, 'percent_of_total') else ''
             sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)" % (
+                "\r%s  %s / %s  (%.2f%%) " % (
                     self._filename, self._seen_so_far, self._size,
-                    percentage))
+                    percentage) + p)
             sys.stdout.flush()
 
 
