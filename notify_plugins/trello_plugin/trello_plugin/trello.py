@@ -45,6 +45,13 @@ class TrelloAPI(MaskgenNotifer):
             logging.error('failed to contact trello service: {}'.format(resp.text))
         return None
 
+    def check_status(self):
+        r = self.get_from_trello(
+            self.loaded_config['user'],
+            fields='username')
+        if r is None:
+            return 'Trello user validation failed'
+
     def get_properties(self):
         return {"trelloapitoken" : "Trello API Token"}
 

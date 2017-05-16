@@ -85,6 +85,15 @@ def copyexif(source, target):
         return 'exiftool not installed'
 
 
+def toolCheck():
+    exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
+    try:
+        stdout, stderr = Popen([exifcommand, '-ver'], stdout=PIPE, stderr=PIPE).communicate()
+        if stdout is not None:
+            return None
+    except:
+        return exifcommand + ' is not installed'
+
 def runexif(args, fix=True):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     command = [exifcommand]
