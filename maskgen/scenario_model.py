@@ -1091,7 +1091,8 @@ class ImageProjectModel:
                                                       edge_id[1],
                                                       composite,edgeMask.to_array(),
                                                       self.get_dir(),
-                                                      graph=self.G)
+                                                      graph=self.G,
+                                                      top=True)
                 for target_mask,finalNodeId in self._constructTransformedMask((edge_id[0],edge_id[1]), composite):
                     target_mask = target_mask.invert()
                     if finalNodeId in selectMasks:

@@ -141,12 +141,12 @@ def get_fields(filename, apitoken, url):
         url = url[:-1] if url.endswith('/') else url
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
-        data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
+        data = '{ "file_name": {"type": "exact", "value": "' + filename + '" }}'
         logging.getLogger('maskgen').info( 'checking external service APIs for ' + filename)
         response = requests.post(url, data=data,headers=headers)
         if response.status_code == requests.codes.ok:
             r = json.loads(response.content)
-            if 'count' in r and r['count'] > 0:
+            if 'results' in r:
                 result = []
                 for item in r['results']:
                     info = {}

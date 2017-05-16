@@ -15,7 +15,8 @@ def recapture_transform(edge, source, target, edgeMask,
                         level=None,
                         donorMask=None,
                         pred_edges=None,
-                        graph=None):
+                        graph=None,
+                        top=False):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     position_str = edge['arguments']['Position Mapping'] if 'arguments' in edge and \
@@ -116,7 +117,8 @@ def resize_transform(edge, source, target,edgeMask,
                      level=None,
                      donorMask=None,
                      pred_edges=None,
-                     graph=None):
+                     graph=None,
+                     top=False):
     import os
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
@@ -174,7 +176,8 @@ def select_remove(edge, source, target,edgeMask,
                      level=None,
                      donorMask=None,
                      pred_edges=None,
-                     graph=None):
+                     graph=None,
+                  top=False):
     sizeChange = (0, 0)
     if 'shape change' in edge:
         changeTuple = toIntTuple(edge['shape change'])
@@ -205,7 +208,8 @@ def crop_transform(edge, source, target,edgeMask,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None):
+                   graph=None,
+                   top=False):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     sizeChange = (-location[0], -location[1]) if location != (0, 0) and sizeChange == (0, 0) else sizeChange
@@ -240,7 +244,8 @@ def seam_transform(edge,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None):
+                   graph=None,
+                   top=False):
     targetImage = graph.get_image(target)[0]
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
@@ -296,7 +301,8 @@ def cas_transform(edge,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None):
+                   graph=None,
+                  top=False):
     res = None
     tm = tool_set.deserializeMatrix(edge['transform matrix']) if 'transform matrix' in edge  else None
     if compositeMask is not None:
@@ -349,7 +355,8 @@ def move_transform(edge, source, target, edgeMask,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None):
+                   graph=None,
+                   top = False):
     import os
     returnRaw = False
     try:
@@ -400,22 +407,27 @@ def move_transform(edge, source, target, edgeMask,
     return edgeMask
 
 
-def pastesplice(edge, source, target,edgeMask,
+def pastesplice(edge, source, target,
+                edgeMask,
                 compositeMask=None,
                 directory='.',
                 level=None,
                 donorMask=None,
                 pred_edges=None,
-                graph=None):
+                graph=None,
+                top = False):
     import os
     if compositeMask is not None:
         pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
-        if pastemask is not None and os.path.exists (os.path.join(directory,pastemask)):
+        if top and pastemask is not None and os.path.exists (os.path.join(directory,pastemask)):
            inputmask =  tool_set.openImageFile(os.path.join(directory,pastemask)).to_mask().to_array()
            compositeMask[compositeMask == level]  = 0
            compositeMask[inputmask>0] = level
         return compositeMask
     else:
+        # during a paste splice, the edge mask can split up the donor.
+        # although I am wondeing if the edgemask needs to be inverted.
+        # this effectively sets the donorMask pixels to 0 where the edge mask is 0 (which is 'changed')
         donorMask = tool_set.applyMask(donorMask, edgeMask)
     return donorMask
 
@@ -554,13 +566,14 @@ def defaultMaskTransform(edge,
         return defaultAlterDonor(edge, edgeMask, compositeMask=None, directory=directory,
                               level=level, donorMask=donorMask, pred_edges=pred_edges)
 
-def alterComposite(edge, source, target, compositeMask, edgeMask,directory,level=255,graph=None):
+def alterComposite(edge, source, target, compositeMask, edgeMask,directory,level=255,graph=None, top=False):
     op = getOperationWithGroups(edge['op'],fake=True)
     if op.maskTransformFunction is not None:
         return graph_rules.getRule(op.maskTransformFunction)(edge, source, target, edgeMask, level=level,
                                                              compositeMask=compositeMask,
                                                              directory=directory,
-                                                             graph=graph)
+                                                             graph=graph,
+                                                             top=top)
     return defaultAlterComposite(edge, edgeMask,
                                  level=level,
                                  compositeMask=compositeMask,
