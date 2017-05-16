@@ -1,14 +1,31 @@
 #!/bin/bash 
 
-echo "You will be prompted for the your password to support sudo.  You must have sudo privilegs"
+if [ -f maskgen/tool_set.py ]
+then
+   echo "You will be prompted for the your password to support sudo.  You must have sudo privilegs"
+else
+   echo "Run from the maskgen top level directory: ./scripts/install_mac.sh"
+   exit 1
+fi
+exit 0
 
-xcode-select --install
+VERSION=$((python --version) 2>&1)
+check=".*2.7.1[123].*"
+if [[ $VERSION =~ $check ]]
+then
+   echo "Python version $VERSION"
+else
+   echo "Unexpected python version $VERSION"
+   exit 1
+fi
 
-which gcc
+which cc
 if [ "$?" == "1" ]
 then
-   brew install gcc
-   echo "Some Items may not install if XCode is not installed"
+   xcode-select --install
+   echo "Some Items may not install if XCode is not installed" 
+   echo "Restart once Xcode is installed"
+   exit  0
 fi
 
 which brew
@@ -17,12 +34,20 @@ then
    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 fi
 brew update
+
 which git
 if [ "$?" == "1" ]
 then
    brew install git
    brew link git
 fi
+
+which wget
+if [ "$?" == "1" ]
+then
+   brew install wget
+fi
+
 brew install python --with-tcl-tk
 pip install nose
 pip install pyparsing
@@ -34,8 +59,7 @@ brew tap homebrew/science
 brew install matplotlib
 brew install scipy
 brew install ffmpeg --with-fdk-aac --with-ffplay --with-freetype --with-libass --with-libquvi --with-libvorbis --with-libvpx --with-opus --with-x265 --with-x264 --with-gpl --with-xvid --with-libmp3lame
-brew tap homebrew/science
-brew install opencv --universal --with-ffmpeg --with-gstreamer --with-jasper --with-java --with-libdc1394 --with-opengl --with-openni --with-tbb --with-vtk --with-ximea --without-eigen --without-numpy --without-opencl --without-openexr --without-python --without-test --HEAD
+brew install homebew/science/opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --HEAD
 brew install hdf5
 
 wget http://www.sno.phy.queensu.ca/~phil/exiftool/ExifTool-10.50.dmg
@@ -48,12 +72,16 @@ pip install pygraphviz
 sudo pip install numpy --upgrade
 pip install PyPDF2
 pip install awscli
+pip install boto
 pip install boto3
+pip install rawpy
+pip install scikit-image
+pip install awscli --force-reinstall --upgrade
 
-git clone https://github.com/rwgdrummer/maskgen.git
+#git clone https://github.com/rwgdrummer/maskgen.git
 pip install setuptools
-cd maskgen
-sudo python setup.py install
+sudo python setup.py sdist
+sudo pip install -e .
 
 echo "Make sure your path variable includes /usr/local/bin"
 

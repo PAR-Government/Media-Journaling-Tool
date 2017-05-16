@@ -21,7 +21,6 @@ import sys
 from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
-from software_loader import MaskGenLoader
 
 
 def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):

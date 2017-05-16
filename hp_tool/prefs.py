@@ -85,7 +85,7 @@ class SettingsWindow(Toplevel):
         Toplevel.__init__(self, master=master)
         self.master=master
         self.settings = settings
-        self.title('Preferences')
+        self.title('Setings')
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
         self.set_text_vars()
         self.prefsFrame = Frame(self, width=300, height=300)
@@ -121,6 +121,7 @@ class SettingsWindow(Toplevel):
         self.s3Var = StringVar()
         self.s3VarPRNU = StringVar()
         self.urlVar = StringVar()
+        self.urlVar.set('https://medifor.rankone.io')
         self.tokenVar = StringVar()
         self.trelloVar = StringVar()
 
@@ -195,18 +196,20 @@ class SettingsWindow(Toplevel):
         self.urlLabel = Label(self.prefsFrame, text='Browser API URL: ')
         self.urlLabel.grid(row=r, column=0, columnspan=4)
 
-        self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar)
+        self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar, state=DISABLED)
         self.urlBox.grid(row=r, column=4)
 
         r+=1
-        self.tokenLabel = Label(self.prefsFrame, text='Browser API Token: ')
-        self.tokenLabel.grid(row=r, column=0, columnspan=4)
+        medi_link = 'https://medifor.rankone.io/api/login'
+        self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ', command=lambda:self.open_website(medi_link))
+        self.browserButton.grid(row=r, column=0, columnspan=4)
 
-        self.tokenBox = Entry(self.prefsFrame, textvar=self.tokenVar)
-        self.tokenBox.grid(row=r, column=4)
+        self.browserBox = Entry(self.prefsFrame, textvar=self.tokenVar)
+        self.browserBox.grid(row=r, column=4)
 
         r+=1
-        self.trelloButton = Button(self.prefsFrame, text='Trello Token: ', command=self.get_trello_token)
+        trello_link = 'https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token'
+        self.trelloButton = Button(self.prefsFrame, text='Trello Token: ', command=lambda:self.open_website(trello_link))
         self.trelloButton.grid(row=r, column=0, columnspan=4)
 
         self.trelloBox = Entry(self.prefsFrame, textvar=self.trelloVar)
@@ -254,8 +257,8 @@ class SettingsWindow(Toplevel):
         self.cancelButton = Button(self.buttonFrame, text='Cancel', command=self.destroy)
         self.cancelButton.grid(row=0, column=1, padx=5)
 
-    def get_trello_token(self):
-        webbrowser.open('https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
+    def open_website(self, link):
+        webbrowser.open(link)
 
     def show_default_types(self):
         imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
@@ -321,6 +324,8 @@ class SettingsWindow(Toplevel):
         self.settings.set('imagetypes', self.imageVar.get())
         self.settings.set('videotypes', self.videoVar.get())
         self.settings.set('audiotypes', self.audioVar.get())
+        self.settings.set('trello_login_url', 'https://trello.com/1/authorize?key='+self.trello_key+'&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
+        self.settings.set('browser_login_url', 'https://medifor.rankone.io/api/login')
 
         self.settings.set_m('copyrightnotice', self.copyrightVar.get())
         self.settings.set_m('by-line', self.bylineVar.get())
