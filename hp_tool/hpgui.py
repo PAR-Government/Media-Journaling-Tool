@@ -414,6 +414,7 @@ class PRNU_Uploader(Frame):
         total = sum([len(files) for r, d, files in os.walk(self.root_dir.get())])
         ct = 0.0
         upload_error = False
+        retry = []
         for root, dirs, files in os.walk(self.root_dir.get()):
             for f in files:
                 local_path = os.path.join(root, f)
@@ -421,28 +422,40 @@ class PRNU_Uploader(Frame):
                 try:
                     s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
                                    callback=ProgressPercentage(local_path, total, ct))
-                except:
+                    ct += 1
+                except Exception as e:
+                    print '\n' + str(e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
+                    retry.append({'local_path':local_path, 'upload_path': upload_path})
                     upload_error = True
-
-                ct += 1
-
+        failed = []
+        msg = []
         if upload_error:
-            msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+            print '\n Retrying Failed Files...\n'
+            for f in retry:
+                try:
+                    s3.upload_file(f['local_path'], BUCKET, os.path.join(DIR, f['upload_path']).replace('\\', '/'),
+                                   callback=ProgressPercentage(f['local_path'], total, ct))
+                    ct+=1
+                except Exception as e:
+                    s = 'Failed to upload '+ f['local_path']
+                    print s +'\n'
+                    failed.append(s)
+            if failed:
+                msg.append('Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+        err = self.notify_trello_prnu('s3://' + os.path.join(val, self.root_dir.get()), failed)
+        if err is not None:
+            msg.append('S3 upload completed, but failed to notify Trello (' + str(
+                err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+            self.master.statusBox.println(msg)
         else:
-            err = self.notify_trello('s3://' + val)
-            if err is not None:
-                msg = 'S3 upload completed, but failed to notify Trello (' + str(
-                    err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
-                self.master.statusBox.println(msg)
-            else:
-                msg = 'Complete!'
-                self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
-        d = tkMessageBox.showinfo(title='Status', message=msg)
+            msg.append('Complete!')
+            self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
+        d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
 
         # reset state of buttons and boxes
         self.cancel_upload()
 
-    def notify_trello(self, path):
+    def notify_trello_prnu(self, path, errors):
         if self.settings.get('trello') is None:
             t = TrelloSignInPrompt(self)
             token = t.token.get()
@@ -451,8 +464,9 @@ class PRNU_Uploader(Frame):
         # post the new card
         list_id = '58dd916dee8fc7d4da953571'
         new = str(datetime.datetime.now())
+        desc = path + '\n' + '\n'.join(errors) if errors else path
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
-                             data=dict(name=new, idList=list_id, desc=path))
+                             data=dict(name=new, idList=list_id, desc=desc))
         if resp.status_code == requests.codes.ok:
             me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.settings.get('trello')))
             member_id = json.loads(me.content)['id']

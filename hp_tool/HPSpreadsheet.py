@@ -501,51 +501,55 @@ class HPSpreadsheet(Toplevel):
                 tkMessageBox.showinfo(title='Information', message='Upload canceled.')
                 return
             self.settings.set('aws', val)
-            print('Creating archive...')
-            archive = self.create_hp_archive()
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
             print('Uploading...')
-            try:
-                s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1], callback=ProgressPercentage(archive))
-                upload_error = False
-            except:
-                upload_error = True
-
-
-            # print 'Uploading CSV...'
-            # s3.upload_file(self.rankOnecsv, BUCKET, DIR + 'csv/' + os.path.split(self.rankOnecsv)[1])
-            #
-            # print 'Uploading Image Files [' + str(len(os.listdir(self.imageDir))) +']...'
-            # for image in os.listdir(self.imageDir):
-            #     s3.upload_file(os.path.join(self.imageDir, image), BUCKET, DIR + 'image/' + image)
-            #
-            # print 'Uploading Video Files [' + str(len(os.listdir(self.videoDir))) +']...'
-            # for video in os.listdir(self.videoDir):
-            #     s3.upload_file(os.path.join(self.videoDir, video), BUCKET, DIR + 'video/' + video)
-            #
-            # print 'Uploading Audio Files [' + str(len(os.listdir(self.videoDir))) +']...'
-            # for audio in os.listdir(self.audioDir):
-            #     s3.upload_file(os.path.join(self.audioDir, audio), BUCKET, DIR + 'audio/' + audio)
-
-            os.remove(archive)
-
-            if upload_error:
-                msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
-                self.master.statusBox.println(msg)
+            local_id = self.pt.model.df['HP-DeviceLocalID'][0]
+            dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
+            total = sum([len(files) for r, d, files in os.walk(self.dir)])
+            ct = 0.0
+            retry = []
+            for root, dirs, files in os.walk(self.dir):
+                for f in files:
+                    ct += 1
+                    local_path = os.path.join(root, f)
+                    upload_path = local_path[local_path.lower().index(os.path.basename(self.dir).lower()):]
+                    upload_path = upload_path.replace(os.path.basename(self.dir).lower(), local_id + '-' + dt)
+                    try:
+                        s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
+                                       callback=ProgressPercentage(local_path, total, ct))
+                    except Exception as e:
+                        print '\n' + str(
+                            e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
+                        retry.append({'local_path': local_path, 'upload_path': upload_path})
+            failed = []
+            msg = []
+            if retry:
+                print '\n Retrying Failed Files...\n'
+                for f in retry:
+                    try:
+                        s3.upload_file(f['local_path'], BUCKET,
+                                       os.path.join(DIR, f['upload_path']).replace('\\', '/'),
+                                       callback=ProgressPercentage(f['local_path'], total, ct))
+                        ct += 1
+                    except Exception as e:
+                        s = 'Failed to upload ' + f['local_path']
+                        print s + '\n'
+                        failed.append(s)
+                if failed:
+                    msg.append(
+                        'Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+            err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, local_id + '-' + dt), comment, failed)
+            if err is not None:
+                msg.append('S3 upload completed, but failed to notify Trello (' + str(
+                    err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
             else:
-                err = self.notify_trello(os.path.basename(archive), comment)
-                if err is not None:
-                    msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
-                    self.master.statusBox.println(msg)
-                else:
-                    msg = 'Complete!'
-                    self.master.statusBox.println(
-                        'Successfully uploaded HP data to S3://' + val + '.')
-            d = tkMessageBox.showinfo(title='Status', message=msg)
+                msg.append('Complete!')
+                self.master.statusBox.println('Successfully uploaded HP data to S3://' + val + '.')
+            d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
         else:
             tkMessageBox.showinfo(title='Information', message='Upload canceled.')
 
@@ -558,7 +562,7 @@ class HPSpreadsheet(Toplevel):
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.')
         return comment
 
-    def notify_trello(self, archive, comment):
+    def notify_trello(self, filestr, comment, failed):
         if self.settings.get('trello') is None:
             token = self.get_trello_token()
             self.settings.set('trello', token)
@@ -570,7 +574,8 @@ class HPSpreadsheet(Toplevel):
 
         # post the new card
         new = str(datetime.datetime.now())
-        stats = archive + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
+        stats = filestr + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
+        stats = stats + 'Failed Files:\n' + '\n'.join(failed) if failed else stats
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
                              data=dict(name=new, idList=list_id, desc=stats))
 
