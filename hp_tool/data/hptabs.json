@@ -59,11 +59,6 @@
   "Mandatory Image Fields":[
     "ImageFilename",
     "HP-OnboardFilter",
-    "HP-WeakReflection",
-    "HP-StrongReflection",
-    "HP-TransparentReflection",
-    "HP-ReflectedObject",
-    "HP-Shadows",
     "HP-HDR",
     "HP-Inside",
     "HP-Outside",
@@ -72,11 +67,6 @@
   "Mandatory Video Fields": [
     "ImageFilename",
     "HP-OnboardFilter",
-    "HP-WeakReflection",
-    "HP-StrongReflection",
-    "HP-TransparentReflection",
-    "HP-ReflectedObject",
-    "HP-Shadows",
     "HP-HDR",
     "HP-CameraKinematics",
     "HP-Inside",
