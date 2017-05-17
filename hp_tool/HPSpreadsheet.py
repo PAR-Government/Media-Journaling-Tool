@@ -243,7 +243,7 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
-            validValues = sorted(set([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None]), key=lambda s: s.lower())
+            validValues = self.load_device_exif('exif_camera_model')
         elif currentCol == 'HP-CameraModel':
             validValues = sorted(set([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'DeviceSN':
@@ -305,6 +305,13 @@ class HPSpreadsheet(Toplevel):
             for v in validValues:
                 self.validateBox.insert(END, v)
             self.validateBox.bind('<<ListboxSelect>>', self.insert_item)
+
+    def load_device_exif(self, field):
+        output = []
+        for cameraID, data in self.devices.iteritems():
+            for configuration in data['exif']:
+                output.append(configuration[field])
+        return sorted(set([x for x in output if x is not None]), key = lambda s: s.lower())
 
     def insert_item(self, event=None):
         selection = event.widget.curselection()

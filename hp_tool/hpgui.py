@@ -597,8 +597,8 @@ class HPGUI(Frame):
                 self.cameras[data['HP-LocalDeviceID'][num]] = {
                     'hp_device_local_id': str(data['HP-LocalDeviceID'][num]),
                     'hp_camera_model': str(data['HP-CameraModel'][num]),
-                    'exif_camera_model': str(data['CameraModel'][num]),
-                    'exif_camera_make': str(data['Manufacturer'][num]),
+                    'exif': [{'exif_camera_model': str(data['CameraModel'][num]),
+                              'exif_camera_make': str(data['Manufacturer'][num])}],
                     'exif_device_serial_number': str(data['DeviceSN'][num])
                 }
             self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
