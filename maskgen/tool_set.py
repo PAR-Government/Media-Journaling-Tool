@@ -2300,3 +2300,24 @@ class GrayFrameWriter:
 
     def release(self):
         self.close()
+
+def selfVideoTest():
+    logging.getLogger('maskgen').info('Checking opencv and ffmpeg, this may take a minute.')
+    writer = GrayBlockWriter('test_ts_gw', 29.97002997)
+    mask_set = list()
+    for i in range(255):
+        mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
+        mask_set.append(mask)
+        writer.write(mask, 33.3666666667)
+    writer.close()
+    fn = writer.get_file_name()
+    vidfn = convertToVideo(fn)
+    if not os.path.exists(vidfn):
+        return 'Video Writing Failed'
+    try:
+        size = openImage(vidfn, getMilliSecondsAndFrameCount('00:00:01:2')).size
+        if size == (1920, 1090):
+            return 'Video Writing Failed: Frame Size inconsistent'
+    except:
+        return 'Video Writing Failed'
+    return None

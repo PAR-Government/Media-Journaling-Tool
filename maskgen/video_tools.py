@@ -322,10 +322,26 @@ def processFrames(stream):
     return frames
 
 
+def ffmpegToolTest():
+    ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe'), '-L']
+    try:
+        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+    except:
+        return ffmpegcommand + ' not installed properly'
+
+    ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffmpeg'), '-L']
+    try:
+        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+    except:
+        return ffmpegcommand + ' not installed properly'
+    return None
+
 #   sortFrames(frames)
 
 def getMeta(file, with_frames=False, show_streams=False):
-    ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe'), file]
+    ffmpegcommand = [os.getenv('MASKGEN_FFMPEG', 'ffprobe'), file]
     if with_frames:
         ffmpegcommand.append('-show_frames')
     if show_streams:
