@@ -598,24 +598,12 @@ class HPGUI(Frame):
         SettingsWindow(master=self.master, settings=self.settings)
 
     def load_ids(self):
-        try:
-            cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
-            self.cameras = cams.get_all()
-            if not self.cameras:
-                raise
+        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
+        self.cameras = cams.get_all()
+        if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
-        except:
-            self.cameras = {}
-            data = pd.read_csv(os.path.join('data', 'Devices.csv')).to_dict()
-            for num in range(0, len(data['HP-LocalDeviceID'])):
-                self.cameras[data['HP-LocalDeviceID'][num]] = {
-                    'hp_device_local_id': str(data['HP-LocalDeviceID'][num]),
-                    'hp_camera_model': str(data['HP-CameraModel'][num]),
-                    'exif': [{'exif_camera_model': str(data['CameraModel'][num]),
-                              'exif_camera_make': str(data['Manufacturer'][num])}],
-                    'exif_device_serial_number': str(data['DeviceSN'][num])
-                }
-            self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
+        else:
+            self.statusBox.println('Camera data loaded from hp_tool/data/devices.json.')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
 
@@ -628,8 +616,8 @@ class HPGUI(Frame):
         self.cameras[fields['HP-LocalDeviceID']] = {
             'hp_device_local_id': fields['HP-LocalDeviceID'],
             'hp_camera_model': fields['HP-CameraModel'],
-            'exif_camera_model': fields['CameraModel'],
-            'exif_camera_make': fields['Manufacturer'],
+            'exif': [{'exif_camera_model': fields['CameraModel'],
+                      'exif_camera_make': fields['Manufacturer']}],
             'exif_device_serial_number': fields['DeviceSN']
         }
         self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list.')

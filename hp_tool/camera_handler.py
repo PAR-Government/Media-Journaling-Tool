@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 import tkMessageBox
 
 class API_Camera_Handler:
@@ -13,6 +14,7 @@ class API_Camera_Handler:
         self.makes_exif = []
         self.sn_exif = []
         self.all = {}
+        self.source = None
         self.load_data()
 
     def get_local_ids(self):
@@ -32,6 +34,9 @@ class API_Camera_Handler:
 
     def get_all(self):
         return self.all
+
+    def get_source(self):
+        return self.source
 
     def load_data(self):
         try:
@@ -57,8 +62,23 @@ class API_Camera_Handler:
                         break
                 else:
                     raise requests.HTTPError()
-        except (requests.HTTPError, requests.ConnectionError):
-            print 'An error ocurred connecting to Medifor browser (' + str(response.status_code) + ').\n Devices will be loaded from hp_tool/data.'
-        except KeyError:
-            tkMessageBox.showerror(title='Information', message='Could not find browser credentials in settings. Please '
-                                                               'add them via Settings in the File menu.')
+            self.source = 'remote'
+        except:
+            print 'Could not connect. Loading from local file.'
+            self.localIDs = []
+            self.models_hp = []
+            self.models_exif = []
+            self.makes_exif = []
+            self.sn_exif = []
+            self.all = {}
+            with open(os.path.join('data', 'devices.json')) as j:
+                device_data = json.load(j)
+            for localID, data in device_data.iteritems():
+                self.all[localID] = data
+                self.localIDs.append(data['hp_device_local_id'])
+                self.models_hp.append(data['hp_camera_model'])
+                self.sn_exif.append(data['exif_device_serial_number'])
+                for configuration in data['exif']:
+                    self.models_exif.append(configuration['exif_camera_model'])
+                    self.makes_exif.append(configuration['exif_camera_make'])
+            self.source = 'local'

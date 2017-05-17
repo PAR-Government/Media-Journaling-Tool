@@ -734,11 +734,6 @@ class HPSpreadsheet(Toplevel):
         filters = [w.lower().strip() for w in df['LensFilter']]
         return sorted(list(set(filters)))
 
-    def load_devices(self):
-        models = [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]
-        localIDs = self.devices.items()
-        return sorted(list(set(models))), localIDs
-
     def check_model(self, row):
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
