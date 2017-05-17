@@ -629,6 +629,18 @@ class MakeGenUI(Frame):
         self.scModel.renametobase()
         self._setTitle()
 
+    def systemcheck(self):
+        errors = [video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+                  graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+                  self.notifiers.check_status()]
+        error_count = 0
+        for error in errors:
+            if error is not None:
+                logging.getLogger('maskgen').error(error)
+                error_count += 1
+        logging.getLogger('maskgen').info('System check complete')
+        return error_count == 0
+
     def viewdonor(self):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
         if im is not None:
@@ -793,6 +805,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_cascade(label="Properties", command=self.getproperties)
         filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
+        filemenu.add_cascade(label="System Check", command=self.systemcheck)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)
@@ -994,6 +1007,7 @@ class MakeGenUI(Frame):
             self.getproperties()
 
 
+
 def saveme(saver=None):
     """
 
@@ -1019,6 +1033,7 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--imagedir', help='image directory', required=False)
+    parser.add_argument('--test',action='store_true', help='For testing')
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
@@ -1028,6 +1043,7 @@ def main(argv=None):
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
     set_logging()
+
     if args.imagedir is not None:
         imgdir = args.imagedir
     if args.http is not None:
@@ -1038,10 +1054,13 @@ def main(argv=None):
     loadSoftware(uiProfile.software)
     loadProjectProperties(uiProfile.projectProperties)
     root = Tk()
-
     prefLoader = MaskGenLoader()
     gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
                     base=args.base if args.base is not None else None, uiProfile=uiProfile)
+    if args.test:
+        if not gui.systemcheck():
+            sys.exit(1)
+        return
     root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':

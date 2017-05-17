@@ -131,6 +131,23 @@ def get_journal(url, apitoken):
        logging.getLogger('maskgen').error(str(e))
     return url
 
+
+def test_api(apitoken, url):
+    import requests
+    if url is None:
+        return "External Service URL undefined"
+    try:
+        url = url[:-1] if url.endswith('/') else url
+        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+        url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
+        data = '{ "file_name": {"type": "contains", "value": "' + 'test' + '" }}'
+        response = requests.post(url, data=data, headers=headers)
+        if response.status_code != requests.codes.ok:
+            return "Error calling external service: " + url
+    except Exception as e:
+        return "Error calling external service: " + url
+    return None
+
 def get_fields(filename, apitoken, url):
     import requests
     import json
