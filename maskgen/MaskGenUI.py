@@ -638,6 +638,7 @@ class MakeGenUI(Frame):
             if error is not None:
                 logging.getLogger('maskgen').error(error)
                 error_count += 1
+        logging.getLogger('maskgen').info('System check complete')
         return error_count == 0
 
     def viewdonor(self):
