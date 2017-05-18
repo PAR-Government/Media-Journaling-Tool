@@ -7,7 +7,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import  getProjectProperties,getSemanticGroups
+from software_loader import  loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -632,6 +632,8 @@ class MakeGenUI(Frame):
                 logging.getLogger('maskgen').error(error)
                 error_count += 1
         logging.getLogger('maskgen').info('System check complete')
+        if error_count > 0:
+           tkMessageBox.showinfo("System Check", " ".join([error for error in errors if error is not None]))
         return error_count == 0
 
     def viewdonor(self):
@@ -1043,6 +1045,14 @@ def main(argv=None):
         loadHTTP(args.http)
     elif args.s3 is not None:
         loadS3(args.s3)
+
+    operations = 'operations.json'
+    software = 'software.csv'
+    projectProperties = 'project_properties.json'
+    loadOperations(operations)
+    loadSoftware(software)
+    loadProjectProperties(projectProperties)
+    graph_rules.setup()
     root = Tk()
     prefLoader = MaskGenLoader()
     gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),

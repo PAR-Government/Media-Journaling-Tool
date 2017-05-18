@@ -776,7 +776,7 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
     totalChange = sum(sum(mask.astype('float32'))) / 255.0
     ratio = float(totalChange) / float(totalPossible)
-    globalchange = False
+    globalchange = True
     if globalAnalysis:
         globalchange = ratio > 0.75
         kernel = np.ones((5, 5), np.uint8)
@@ -790,7 +790,6 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
                 np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
             globalchange = globalchange or area / totalArea > 0.50
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
-
 
 
 def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):

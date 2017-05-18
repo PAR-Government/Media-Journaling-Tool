@@ -122,6 +122,7 @@ def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     if val is not None and len(val) > 0:
         var.set(val)
     else:
+        var.set('')
         val = None
     obj.buttons[id].configure(text=os.path.split(val)[1] if (val is not None and len(val) > 0) else ' ' * 30)
 
@@ -649,7 +650,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.description.setInputMaskName(self.inputMaskName)
         self.description.semanticGroups =  list(self.listbox.get(0,END))
         self.description.setArguments(
-            {k: v for (k, v) in self.argvalues.iteritems() if k in [x[0] for x in self.arginfo]})
+            {k: v for (k, v) in self.argvalues.iteritems() if v is not None  and len(str(v)) > 0 and (k in [x[0] for x in self.arginfo])})
         self.description.setSoftware(Software(self.e4.get(), self.e5.get()))
         if (self.softwareLoader.add(self.description.software)):
             self.softwareLoader.save()
