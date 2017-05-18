@@ -327,7 +327,9 @@ class PRNU_Uploader(Frame):
                                 os.remove(os.path.join(path, f))
                             except OSError:
                                 pass
-                    msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
+                        else:
+                            msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
+                            break
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
                     msgs.append('Images and Video folders must each contain Primary and Secondary folders.')
@@ -338,7 +340,9 @@ class PRNU_Uploader(Frame):
                                 os.remove(os.path.join(path, f))
                             except OSError:
                                 pass
-                    msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
+                        else:
+                            msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
+                            break
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
@@ -352,6 +356,7 @@ class PRNU_Uploader(Frame):
                                 pass
                         else:
                             msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
+                            break
             elif last.lower() in self.vocab:
                 if dirs:
                     msgs.append('There should be no additional subfolders in folder ' + path)
@@ -405,38 +410,52 @@ class PRNU_Uploader(Frame):
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        print('Creating archive...')
-        archive = self.archive_prnu()
-        md5file = self.write_md5(archive)
-
         print('Uploading...')
-        try:
-            s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1], callback=ProgressPercentage(archive))
-            s3.upload_file(md5file, BUCKET, DIR + os.path.split(md5file)[1], callback=ProgressPercentage(md5file))
-            upload_error = False
-        except:
-            upload_error = True
-
-        os.remove(archive)
-        os.remove(md5file)
-
+        total = sum([len(files) for r, d, files in os.walk(self.root_dir.get())])
+        ct = 0.0
+        upload_error = False
+        retry = []
+        for root, dirs, files in os.walk(self.root_dir.get()):
+            for f in files:
+                local_path = os.path.join(root, f)
+                upload_path = local_path[local_path.lower().index(self.localID.get().lower()):]
+                try:
+                    s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
+                                   callback=ProgressPercentage(local_path, total, ct))
+                    ct += 1
+                except Exception as e:
+                    print '\n' + str(e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
+                    retry.append({'local_path':local_path, 'upload_path': upload_path})
+                    upload_error = True
+        failed = []
+        msg = []
         if upload_error:
-            msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
+            print '\n Retrying Failed Files...\n'
+            for f in retry:
+                try:
+                    s3.upload_file(f['local_path'], BUCKET, os.path.join(DIR, f['upload_path']).replace('\\', '/'),
+                                   callback=ProgressPercentage(f['local_path'], total, ct))
+                    ct+=1
+                except Exception as e:
+                    s = 'Failed to upload '+ f['local_path']
+                    print s +'\n'
+                    failed.append(s)
+            if failed:
+                msg.append('Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+        err = self.notify_trello_prnu('s3://' + os.path.join(val, self.root_dir.get()), failed)
+        if err is not None:
+            msg.append('S3 upload completed, but failed to notify Trello (' + str(
+                err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+            self.master.statusBox.println(msg)
         else:
-            err = self.notify_trello(os.path.basename(archive))
-            if err is not None:
-                msg = 'S3 upload completed, but failed to notify Trello (' + str(
-                    err) + ').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
-                self.master.statusBox.println(msg)
-            else:
-                msg = 'Complete!'
-                self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
-        d = tkMessageBox.showinfo(title='Status', message=msg)
+            msg.append('Complete!')
+            self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
+        d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
 
         # reset state of buttons and boxes
         self.cancel_upload()
 
-    def notify_trello(self, path):
+    def notify_trello_prnu(self, path, errors):
         if self.settings.get('trello') is None:
             t = TrelloSignInPrompt(self)
             token = t.token.get()
@@ -445,8 +464,9 @@ class PRNU_Uploader(Frame):
         # post the new card
         list_id = '58dd916dee8fc7d4da953571'
         new = str(datetime.datetime.now())
+        desc = path + '\n' + '\n'.join(errors) if errors else path
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
-                             data=dict(name=new, idList=list_id, desc=path))
+                             data=dict(name=new, idList=list_id, desc=desc))
         if resp.status_code == requests.codes.ok:
             me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.settings.get('trello')))
             member_id = json.loads(me.content)['id']
@@ -578,24 +598,12 @@ class HPGUI(Frame):
         SettingsWindow(master=self.master, settings=self.settings)
 
     def load_ids(self):
-        try:
-            cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
-            self.cameras = cams.get_all()
-            if not self.cameras:
-                raise
+        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
+        self.cameras = cams.get_all()
+        if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
-        except:
-            self.cameras = {}
-            data = pd.read_csv(os.path.join('data', 'Devices.csv')).to_dict()
-            for num in range(0, len(data['HP-LocalDeviceID'])):
-                self.cameras[data['HP-LocalDeviceID'][num]] = {
-                    'hp_device_local_id': str(data['HP-LocalDeviceID'][num]),
-                    'hp_camera_model': str(data['HP-CameraModel'][num]),
-                    'exif_camera_model': str(data['CameraModel'][num]),
-                    'exif_camera_make': str(data['Manufacturer'][num]),
-                    'exif_device_serial_number': str(data['DeviceSN'][num])
-                }
-            self.statusBox.println('Camera data loaded from hp_tool/data/Devices.csv.')
+        else:
+            self.statusBox.println('Camera data loaded from hp_tool/data/devices.json.')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
 
@@ -608,8 +616,8 @@ class HPGUI(Frame):
         self.cameras[fields['HP-LocalDeviceID']] = {
             'hp_device_local_id': fields['HP-LocalDeviceID'],
             'hp_camera_model': fields['HP-CameraModel'],
-            'exif_camera_model': fields['CameraModel'],
-            'exif_camera_make': fields['Manufacturer'],
+            'exif': [{'exif_camera_model': fields['CameraModel'],
+                      'exif_camera_make': fields['Manufacturer']}],
             'exif_device_serial_number': fields['DeviceSN']
         }
         self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list.')

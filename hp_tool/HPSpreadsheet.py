@@ -243,7 +243,7 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
         elif currentCol == 'CameraModel':
-            validValues = sorted(set([self.devices[data]['exif_camera_model'] for data in self.devices if self.devices[data]['exif_camera_model'] is not None]), key=lambda s: s.lower())
+            validValues = self.load_device_exif('exif_camera_model')
         elif currentCol == 'HP-CameraModel':
             validValues = sorted(set([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'DeviceSN':
@@ -306,6 +306,13 @@ class HPSpreadsheet(Toplevel):
                 self.validateBox.insert(END, v)
             self.validateBox.bind('<<ListboxSelect>>', self.insert_item)
 
+    def load_device_exif(self, field):
+        output = []
+        for cameraID, data in self.devices.iteritems():
+            for configuration in data['exif']:
+                output.append(configuration[field])
+        return sorted(set([x for x in output if x is not None]), key = lambda s: s.lower())
+
     def insert_item(self, event=None):
         selection = event.widget.curselection()
         val = event.widget.get(selection[0])
@@ -344,8 +351,7 @@ class HPSpreadsheet(Toplevel):
             self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 
         self.mandatoryImage = []
-        self.mandatoryImageNames = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection', 'HP-ReflectedObject',
-                 'HP-Shadows', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside', 'HP-PrimarySecondary']
+        self.mandatoryImageNames = ['HP-OnboardFilter', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside', 'HP-PrimarySecondary']
         for i in self.mandatoryImageNames:
             self.mandatoryImage.append(self.pt.model.df.columns.get_loc(i))
 
@@ -495,51 +501,55 @@ class HPSpreadsheet(Toplevel):
                 tkMessageBox.showinfo(title='Information', message='Upload canceled.')
                 return
             self.settings.set('aws', val)
-            print('Creating archive...')
-            archive = self.create_hp_archive()
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
             print('Uploading...')
-            try:
-                s3.upload_file(archive, BUCKET, DIR + os.path.split(archive)[1], callback=ProgressPercentage(archive))
-                upload_error = False
-            except:
-                upload_error = True
-
-
-            # print 'Uploading CSV...'
-            # s3.upload_file(self.rankOnecsv, BUCKET, DIR + 'csv/' + os.path.split(self.rankOnecsv)[1])
-            #
-            # print 'Uploading Image Files [' + str(len(os.listdir(self.imageDir))) +']...'
-            # for image in os.listdir(self.imageDir):
-            #     s3.upload_file(os.path.join(self.imageDir, image), BUCKET, DIR + 'image/' + image)
-            #
-            # print 'Uploading Video Files [' + str(len(os.listdir(self.videoDir))) +']...'
-            # for video in os.listdir(self.videoDir):
-            #     s3.upload_file(os.path.join(self.videoDir, video), BUCKET, DIR + 'video/' + video)
-            #
-            # print 'Uploading Audio Files [' + str(len(os.listdir(self.videoDir))) +']...'
-            # for audio in os.listdir(self.audioDir):
-            #     s3.upload_file(os.path.join(self.audioDir, audio), BUCKET, DIR + 'audio/' + audio)
-
-            os.remove(archive)
-
-            if upload_error:
-                msg = 'Failed to upload to S3. Make sure your upload path is correct.\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
-                self.master.statusBox.println(msg)
+            local_id = self.pt.model.df['HP-DeviceLocalID'][0]
+            dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
+            total = sum([len(files) for r, d, files in os.walk(self.dir)])
+            ct = 0.0
+            retry = []
+            for root, dirs, files in os.walk(self.dir):
+                for f in files:
+                    ct += 1
+                    local_path = os.path.join(root, f)
+                    upload_path = local_path[local_path.lower().index(os.path.basename(self.dir).lower()):]
+                    upload_path = upload_path.replace(os.path.basename(self.dir).lower(), local_id + '-' + dt)
+                    try:
+                        s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
+                                       callback=ProgressPercentage(local_path, total, ct))
+                    except Exception as e:
+                        print '\n' + str(
+                            e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
+                        retry.append({'local_path': local_path, 'upload_path': upload_path})
+            failed = []
+            msg = []
+            if retry:
+                print '\n Retrying Failed Files...\n'
+                for f in retry:
+                    try:
+                        s3.upload_file(f['local_path'], BUCKET,
+                                       os.path.join(DIR, f['upload_path']).replace('\\', '/'),
+                                       callback=ProgressPercentage(f['local_path'], total, ct))
+                        ct += 1
+                    except Exception as e:
+                        s = 'Failed to upload ' + f['local_path']
+                        print s + '\n'
+                        failed.append(s)
+                if failed:
+                    msg.append(
+                        'Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+            err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, local_id + '-' + dt), comment, failed)
+            if err is not None:
+                msg.append('S3 upload completed, but failed to notify Trello (' + str(
+                    err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
             else:
-                err = self.notify_trello(os.path.basename(archive), comment)
-                if err is not None:
-                    msg = 'S3 upload completed, but failed to notify Trello (' + str(err) +').\nIf you are unsure why this happened, please email medifor_manipulators@partech.com.'
-                    self.master.statusBox.println(msg)
-                else:
-                    msg = 'Complete!'
-                    self.master.statusBox.println(
-                        'Successfully uploaded HP data to S3://' + val + '.')
-            d = tkMessageBox.showinfo(title='Status', message=msg)
+                msg.append('Complete!')
+                self.master.statusBox.println('Successfully uploaded HP data to S3://' + val + '.')
+            d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
         else:
             tkMessageBox.showinfo(title='Information', message='Upload canceled.')
 
@@ -552,7 +562,7 @@ class HPSpreadsheet(Toplevel):
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.')
         return comment
 
-    def notify_trello(self, archive, comment):
+    def notify_trello(self, filestr, comment, failed):
         if self.settings.get('trello') is None:
             token = self.get_trello_token()
             self.settings.set('trello', token)
@@ -564,7 +574,8 @@ class HPSpreadsheet(Toplevel):
 
         # post the new card
         new = str(datetime.datetime.now())
-        stats = archive + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
+        stats = filestr + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
+        stats = stats + 'Failed Files:\n' + '\n'.join(failed) if failed else stats
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
                              data=dict(name=new, idList=list_id, desc=stats))
 
@@ -723,11 +734,6 @@ class HPSpreadsheet(Toplevel):
         filters = [w.lower().strip() for w in df['LensFilter']]
         return sorted(list(set(filters)))
 
-    def load_devices(self):
-        models = [self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]
-        localIDs = self.devices.items()
-        return sorted(list(set(models))), localIDs
-
     def check_model(self, row):
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
@@ -798,11 +804,13 @@ class ProgressPercentage(object):
     """
     http://boto3.readthedocs.io/en/latest/_modules/boto3/s3/transfer.html
     """
-    def __init__(self, filename):
+    def __init__(self, filename, total_files=None, count=None):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._lock = threading.Lock()
+        if total_files and count:
+            self.percent_of_total = (count / total_files) * 100
 
     def __call__(self, bytes_amount):
         # To simplify we'll assume this is hooked up
@@ -810,10 +818,11 @@ class ProgressPercentage(object):
         with self._lock:
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
+            p = '[%.2f%% of total files uploaded.]' % self.percent_of_total if hasattr(self, 'percent_of_total') else ''
             sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)" % (
+                "\r%s  %s / %s  (%.2f%%) " % (
                     self._filename, self._seen_so_far, self._size,
-                    percentage))
+                    percentage) + p)
             sys.stdout.flush()
 
 

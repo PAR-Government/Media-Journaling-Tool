@@ -117,7 +117,7 @@ class HP_Device_Form(Toplevel):
         Label(self.f.interior, text='Browser Login Token*', font=(20)).pack()
         Label(self.f.interior, text='This allows for the creation of the new device.').pack()
         browser_link = 'https://medifor.rankone.io/api/login/'
-        browserTokenButton = Button(self.f.interior, text='Get Trello Token', command=lambda: self.open_link(browser_link))
+        browserTokenButton = Button(self.f.interior, text='Get Browser Token', command=lambda: self.open_link(browser_link))
         browserTokenButton.pack()
         browserEntry = Entry(self.f.interior, textvar=self.browser_token)
         browserEntry.pack()
@@ -165,10 +165,11 @@ class HP_Device_Form(Toplevel):
             return
 
         browser_resp = self.post_to_browser()
-        if browser_resp.status_code == requests.codes.ok:
-            tkMessageBox.showinfo(title='Complete', message='Successfully posted new camera information! Press Okay to continue.')
+        if browser_resp.status_code in (requests.codes.ok, requests.codes.created):
+            tkMessageBox.showinfo(title='Complete', message='Successfully posted new camera information! Press Okay to continue. You will be prompted to save a file that will be posted to trello.')
         else:
-            tkMessageBox.showerror(title='Error', message='An error ocurred posting the new camera information to the MediBrowser. (' + str(browser_resp.status_code)) + ')'
+            tkMessageBox.showerror(title='Error', message='An error ocurred posting the new camera information to the MediBrowser. (' + str(browser_resp.status_code)+ ')')
+            return
 
         path = tkFileDialog.asksaveasfilename(initialfile=self.localID.get()+'.csv')
         if self.pathvar:
@@ -198,9 +199,11 @@ class HP_Device_Form(Toplevel):
         data = { 'hp_device_local_id': self.localID.get(),
                  'affiliation': self.affiliation.get(),
                  'hp_camera_model': self.series_model.get(),
+                 'exif':[{'exif_camera_make': self.manufacturer.get(),
+                          'exif_camera_model': self.camera_model.get(),
+                          'hp_app': None,
+                          'media_type': None}],
                  'exif_device_serial_number': self.serial.get(),
-                 'exif_camera_make': self.manufacturer.get(),
-                 'exif_camera_model': self.camera_model.get(),
                  'camera_edition': self.edition.get(),
                  'camera_type': self.device_type.get(),
                  'camera_sensor': self.sensor.get(),
@@ -217,6 +220,10 @@ class HP_Device_Form(Toplevel):
         for key, val in data.iteritems():
             if val == '':
                 data[key] = None
+        for configuration in data['exif']:
+            for key, val in configuration.iteritems():
+                if val == '':
+                    configuration[key] = None
         return json.dumps(data)
 
     def local_id_used(self):
