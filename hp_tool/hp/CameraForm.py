@@ -10,6 +10,7 @@ import tkFileDialog, tkMessageBox
 import json
 import requests
 from camera_handler import API_Camera_Handler
+import data_files
 
 class HP_Device_Form(Toplevel):
     def __init__(self, master, validIDs=None, pathvar=None, token=None, browser=None):
@@ -42,7 +43,7 @@ class HP_Device_Form(Toplevel):
         self.create_widgets()
 
     def set_list_options(self):
-        df = pd.read_csv(os.path.join('data', 'db.csv'))
+        df = pd.read_csv(os.path.join(data_files._DB))
         self.manufacturers = [str(x).strip() for x in df['Manufacturer'] if str(x).strip() != 'nan']
         self.lens_mounts = [str(y).strip() for y in df['LensMount'] if str(y).strip() != 'nan']
         self.device_types = [str(z).strip() for z in df['DeviceType'] if str(z).strip() != 'nan']
