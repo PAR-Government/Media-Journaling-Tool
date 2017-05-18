@@ -442,6 +442,17 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+def check_pastemask(graph,frm, to):
+    edge = graph.get_edge(frm, to)
+    if 'arguments' in edge and edge['arguments'] is not None and 'pastemask' in edge['arguments']:
+        from_img, from_file = graph.get_image(frm)
+        file = os.path.join(graph.dir, edge['arguments']['pastemask'])
+        if not os.path.exists(file):
+            return 'Pastemask file is missing'
+        pasteim = openImageFile(file)
+        if pasteim.size != from_img.size:
+            return 'Pastemask image does not match the size of the source image'
+    return None
 
 def check_local_warn(graph, frm, to):
     edge = graph.get_edge(frm,to)

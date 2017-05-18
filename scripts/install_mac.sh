@@ -7,7 +7,6 @@ else
    echo "Run from the maskgen top level directory: ./scripts/install_mac.sh"
    exit 1
 fi
-exit 0
 
 VERSION=$((python --version) 2>&1)
 check=".*2.7.1[123].*"

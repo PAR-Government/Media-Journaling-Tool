@@ -3,6 +3,7 @@ import csv
 import platform
 import os
 import json
+import argparse
 
 global_image = {}
 imageLoaded = False
@@ -42,3 +43,17 @@ class MaskGenLoader:
         with open(file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
+
+def main():
+    import sys
+    loader = MaskGenLoader()
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        id = args[i]
+        v = args[i+1]
+        loader.save(id,v)
+        i+=2
+
+if __name__ == '__main__':
+    main()

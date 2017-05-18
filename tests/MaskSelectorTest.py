@@ -4,8 +4,6 @@ from maskgen import plugins, image_wrap
 import numpy
 import tempfile
 
-
-
 class MaskSelectorTestCase(unittest.TestCase):
     filesToKill = []
 
