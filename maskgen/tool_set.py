@@ -1346,7 +1346,7 @@ def _composeLCS(img1, img2):
         # one by one store characters in lcs[]
     i = m-1
     j = n-1
-    mask = np.zeros(img1.shape, type=np.uint8)
+    mask = np.zeros(img1.shape, dtype=np.uint8)
     while i >= 0 and j >= 0:
         x1 = i % img1.shape[0]
         y1 = i / img1.shape[0]
@@ -1457,7 +1457,7 @@ def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None
                 return __diffMask(img1, img2, invert, args=arguments)
         except ValueError as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
-        mask = np.zeros(img1.shape, type=np.uint8)
+        mask = np.zeros(img1.shape, dtype=np.uint8)
     return abs(255 - mask).astype('uint8') if invert else mask, analysis
 
 
