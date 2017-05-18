@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import data_files
 import tkMessageBox
 
 class API_Camera_Handler:
@@ -71,7 +72,7 @@ class API_Camera_Handler:
             self.makes_exif = []
             self.sn_exif = []
             self.all = {}
-            with open(os.path.join('data', 'devices.json')) as j:
+            with open(data_files._DEVICES) as j:
                 device_data = json.load(j)
             for localID, data in device_data.iteritems():
                 self.all[localID] = data
@@ -82,3 +83,9 @@ class API_Camera_Handler:
                     self.models_exif.append(configuration['exif_camera_model'])
                     self.makes_exif.append(configuration['exif_camera_make'])
             self.source = 'local'
+
+def main():
+    print data_files._DEVICES
+
+if __name__ == '__main__':
+    main()

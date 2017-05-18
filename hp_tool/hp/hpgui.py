@@ -17,6 +17,7 @@ from ErrorWindow import ErrorWindow
 from prefs import SettingsWindow, SettingsManager
 from CameraForm import HP_Device_Form
 from camera_handler import API_Camera_Handler
+from data_files import *
 
 class HP_Starter(Frame):
 
@@ -217,7 +218,7 @@ class PRNU_Uploader(Frame):
         self.s3path = StringVar()
         self.newCam = BooleanVar()
         self.newCam.set(0)
-        self.parse_vocab(os.path.join('data', 'prnu_vocab.csv'))
+        self.parse_vocab(data_files._PRNUVOCAB)
         self.create_prnu_widgets()
         self.s3path.set(self.settings.get('aws-prnu', notFound=''))
 
