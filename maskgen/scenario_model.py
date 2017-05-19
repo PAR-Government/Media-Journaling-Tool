@@ -469,10 +469,15 @@ class ImageImageLinkTool(LinkTool):
             if not skipDonorAnalysis:
                 errors= list()
                 for pred in predecessors:
-                    expect_donor_mask = operation is not None and 'checkSIFT' in operation.rules
+                    pred_edge = scModel.G.get_edge(pred, destination)
+                    edge_op = getOperationWithGroups(pred_edge['op'])
+                    expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
                     if expect_donor_mask:
+                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')[0]
+                        if mask is None:
+                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')[0]
                         mask, analysis = interpolateMask(
-                            scModel.G.get_edge_image(pred, destination, 'maskname')[0], startIm, destIm,
+                            mask, startIm, destIm,
                             arguments=consolidate(arguments,analysis_params), invert=invert)
                         if mask is not None:
                             mask = ImageWrapper(mask)
