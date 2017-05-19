@@ -21,6 +21,7 @@ from CameraForm import HP_Device_Form
 import hp_data
 import datetime
 import threading
+import data_files
 
 RVERSION = hp_data.RVERSION
 
@@ -75,7 +76,7 @@ class HPSpreadsheet(Toplevel):
         l = Label(self.topFrame, height=1, textvariable=self.currentImageNameVar)
         l.pack(fill=BOTH, expand=1)
 
-        image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+        image = Image.open(data_files._REDX)
         image.thumbnail((250,250))
         self.photo = ImageTk.PhotoImage(image)
         self.l2 = Button(self.rightFrame, image=self.photo, command=self.open_image)
@@ -181,7 +182,7 @@ class HPSpreadsheet(Toplevel):
         try:
             im = Image.open(os.path.join(self.imageDir, self.imName))
         except (IOError, AttributeError):
-            im = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+            im = Image.open(data_files._REDX)
         if im.size[0] > maxSize or im.size[1] > maxSize:
             im.thumbnail((maxSize,maxSize), Image.ANTIALIAS)
         newimg=ImageTk.PhotoImage(im)
@@ -190,14 +191,14 @@ class HPSpreadsheet(Toplevel):
         self.update_valid_values()
 
     def add_tabs(self):
-        with open(os.path.join('data', 'hptabs.json')) as j:
+        with open(data_files._HPTABS) as j:
             tabs = json.load(j, object_pairs_hook=collections.OrderedDict)
         for tab in tabs:
             self.nbtabs[tab] = ttk.Frame(self.nb)
             self.nb.add(self.nbtabs[tab], text=tab)
 
     def switch_tabs(self, event=None):
-        with open(os.path.join('data', 'hptabs.json')) as j:
+        with open(data_files._HPTABS) as j:
             tabs = json.load(j)
         clickedTab = self.nb.tab(event.widget.select(), 'text')
         if clickedTab == 'All Items':
@@ -471,7 +472,7 @@ class HPSpreadsheet(Toplevel):
     def export_rankOne(self):
         global RVERSION
         self.rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
-        with open(os.path.join('data', 'headers.json')) as j:
+        with open(data_files._HEADERS) as j:
             headers = json.load(j)['rankone']
         with open(self.rankOnecsv, 'w') as ro:
             wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
@@ -695,8 +696,7 @@ class HPSpreadsheet(Toplevel):
 
     def load_kinematics(self):
         try:
-            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Kinematics.csv')
-            df = pd.read_csv(dataFile)
+            df = pd.read_csv(data_files._KINEMATICS)
         except IOError:
             tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found! (hp_tool/data/Kinematics.csv')
             return []
@@ -716,8 +716,7 @@ class HPSpreadsheet(Toplevel):
 
     def load_apps(self):
         try:
-            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'apps.csv')
-            df = pd.read_csv(dataFile)
+            df = pd.read_csv(data_files._APPS)
         except IOError:
             tkMessageBox.showwarning('Warning', 'HP-App reference not found! (hp_tool/data/apps.csv)')
             return
@@ -726,8 +725,7 @@ class HPSpreadsheet(Toplevel):
 
     def load_lens_filters(self):
         try:
-            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'LensFilters.csv')
-            df = pd.read_csv(dataFile)
+            df = pd.read_csv(data_files._LENSFILTERS)
         except IOError:
             tkMessageBox.showwarning('Warning', 'LensFilter reference not found! (hp_tool/data/LensFilters.csv)')
             return

@@ -170,6 +170,41 @@ def resize_transform(edge, source, target,edgeMask,
         return res
     return edgeMask
 
+def rotate_transform(edge, source, target,edgeMask,
+                     compositeMask=None,
+                     directory='.',
+                     level=None,
+                     donorMask=None,
+                     pred_edges=None,
+                     graph=None,
+                     top=False):
+    sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+    args = edge['arguments'] if 'arguments' in edge else {}
+    rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else 0)
+    tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+    rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else 0
+    if sizeChange != (0,0) and abs(int(round(rotation))) % 90 == 0:
+        tm = None
+    if donorMask is not None:
+        if tm is not None:
+            res = tool_set.applyTransform(donorMask, mask=edgeMask, transform_matrix=tool_set.deserializeMatrix(tm),
+                                  invert=True,
+                                 returnRaw=False)
+        else:
+            targetSize = edgeMask.shape if edgeMask is not None else (0, 0)
+            res = tool_set.__rotateImage(-rotation, donorMask, expectedDims=targetSize, cval=0)
+    else:
+        expectedSize = (compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1])
+        if tm is not None:
+            res = tool_set.applyTransformToComposite(compositeMask, edgeMask, tool_set.deserializeMatrix(tm))
+        else:
+            res = tool_set.applyRotateToComposite(rotation, compositeMask,
+                                             (compositeMask.shape[0] + sizeChange[0],
+                                              compositeMask.shape[1] + sizeChange[1]))
+        if expectedSize != res.shape:
+            res = tool_set.applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
+    return res
+
 def select_remove(edge, source, target,edgeMask,
                      compositeMask=None,
                      directory='.',

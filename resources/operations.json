@@ -2752,7 +2752,8 @@
         "checkSIFT",
         "checkForDonorWithRegion",
         "checkFileTypeChange",
-        "check_local"
+        "check_local",
+        "check_pastemask"
       ],
       "optionalparameters": {
          "pastemask": {
@@ -3485,7 +3486,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3515,7 +3517,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3588,7 +3591,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3632,7 +3636,8 @@
       },
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3663,7 +3668,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "checkInputMask"
+        "checkInputMask",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3711,7 +3717,8 @@
       },
       "rules": [
         "checkFileTypeChange",
-        "checkResizeInterpolation"
+        "checkResizeInterpolation",
+        "check_local_warn"
       ],
       "optionalparameters": {
          "inputmaskname": {
@@ -3751,7 +3758,8 @@
         }
       },
       "rules": [
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3771,6 +3779,7 @@
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false,
+      "maskTransformFunction": "maskgen.mask_rules.rotate_transform",
       "transitions": [
         "image.image",
         "video.video"
@@ -3782,7 +3791,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3894,7 +3904,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3929,7 +3940,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {

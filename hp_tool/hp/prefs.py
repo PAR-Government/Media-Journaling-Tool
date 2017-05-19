@@ -6,13 +6,12 @@ import datetime
 import hp_data
 import tkMessageBox
 import json
+import data_files
 
 class SettingsManager():
     def __init__(self, settingsFile=None):
         if settingsFile is None:
-            self.settingsFile = os.path.join('data', 'hpsettings.json')
-            if os.path.exists(os.path.join('data', 'preferences.txt')) and os.path.exists(os.path.join('data', 'preferences.txt')):
-                self.convert_prefs_to_settings()
+            self.settingsFile = data_files.get_data('hpsettings.json')
         else:
             self.settingsFile = settingsFile
         self.load_settings()
@@ -48,36 +47,6 @@ class SettingsManager():
         self.settings['metadata'][setting] = val
         with open(self.settingsFile, 'w') as j:
             json.dump(self.settings, j, indent=4)
-
-    def convert_prefs_to_settings(self):
-        """
-        Support transition from legacy prefs to settings
-        Will delete preferences.txt and metadata.txt.
-        """
-        prefsFile = os.path.join('data', 'preferences.txt')
-        metadataFile = os.path.join('data', 'metadata.txt')
-        try:
-            with open(prefsFile) as f:
-                for line in f:
-                    try:
-                        (tag, descr) = line.split('=')
-                        self.settings[tag.lower().strip()] = descr.strip()
-                    except ValueError:
-                        continue
-            with open(metadataFile) as g:
-                for line in g:
-                    try:
-                        (tag, descr) = line.split('=')
-                        self.settings['metadata'][tag.lower().strip()] = descr.strip()
-                    except ValueError:
-                        continue
-        except IOError:
-            pass
-
-        with open(self.settingsFile, 'w') as j:
-            json.dump(self.settings, j, indent=4)
-        os.remove(prefsFile)
-        os.remove(metadataFile)
 
 
 class SettingsWindow(Toplevel):

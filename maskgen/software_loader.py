@@ -228,10 +228,15 @@ def getRule(name, globals={}):
         if '.' not in name:
             return globals.get(name)
         mod_name, func_name = name.rsplit('.', 1)
-        mod = importlib.import_module(mod_name)
-        func = getattr(mod, func_name)
-        customRuleFunc[name] = func
-        return func#globals.get(name)
+        try:
+            mod = importlib.import_module(mod_name)
+            func = getattr(mod, func_name)
+            customRuleFunc[name] = func
+            return func#globals.get(name)
+        except Exception as e:
+            logging.getLogger('maskgen').error('Unable to load rule {}: {}'.format(name,str(e)))
+            return None
+
 
 def loadProjectProperties(fileName):
     global projectProperties

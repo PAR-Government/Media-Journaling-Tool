@@ -7,7 +7,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
+from software_loader import  loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -18,7 +18,7 @@ from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
 from CompositeViewer import CompositeViewDialog
-from notifiers import  loadNotifier
+from notifiers import  getNotifier
 import logging
 
 """
@@ -55,9 +55,6 @@ def fromFileTypeString(types, profileTypes):
 
 
 class UIProfile:
-    operations = 'operations.json'
-    software = 'software.csv'
-    projectProperties = 'project_properties.json'
     name = 'Image/Video'
 
     def getFactory(self):
@@ -95,7 +92,7 @@ class MakeGenUI(Frame):
     errorlistDialog = None
     exportErrorlistDialog = None
     uiProfile = UIProfile()
-    notifiers = loadNotifier(prefLoader)
+    notifiers = getNotifier(prefLoader)
     menuindices = {}
     scModel = None
     """
@@ -553,10 +550,6 @@ class MakeGenUI(Frame):
             try:
                 loadS3([val])
                 self.prefLoader.save('s3info', val)
-                loadOperations(self.uiProfile.operations)
-                loadSoftware(self.uiProfile.software)
-                loadProjectProperties(self.uiProfile.projectProperties)
-                graph_rules.setup()
             except ClientError as e:
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
@@ -639,6 +632,8 @@ class MakeGenUI(Frame):
                 logging.getLogger('maskgen').error(error)
                 error_count += 1
         logging.getLogger('maskgen').info('System check complete')
+        if error_count > 0:
+           tkMessageBox.showinfo("System Check", " ".join([error for error in errors if error is not None]))
         return error_count == 0
 
     def viewdonor(self):
@@ -1050,9 +1045,14 @@ def main(argv=None):
         loadHTTP(args.http)
     elif args.s3 is not None:
         loadS3(args.s3)
-    loadOperations(uiProfile.operations)
-    loadSoftware(uiProfile.software)
-    loadProjectProperties(uiProfile.projectProperties)
+
+    operations = 'operations.json'
+    software = 'software.csv'
+    projectProperties = 'project_properties.json'
+    loadOperations(operations)
+    loadSoftware(software)
+    loadProjectProperties(projectProperties)
+    graph_rules.setup()
     root = Tk()
     prefLoader = MaskGenLoader()
     gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),

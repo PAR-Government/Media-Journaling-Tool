@@ -12,12 +12,11 @@ import hashlib
 import pandas as pd
 import subprocess
 import json
+import data_files
 
 exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
-FIELDSPATH = os.path.join('data', 'fieldnames.json')
-HEADERSPATH = os.path.join('data', 'headers.json')
 RVERSION = '#@version=01.08'
 
 def copyrename(image, path, usrname, org, seq, other):
@@ -173,7 +172,7 @@ def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
     :return:
     """
     newFile = not os.path.isfile(csvFile)
-    headers = load_json_dictionary(HEADERSPATH)
+    headers = load_json_dictionary(data_files._HEADERS)
     with open(csvFile, 'a') as c:
         wtr = csv.writer(c, lineterminator='\n', quoting=csv.QUOTE_ALL)
         if newFile:
@@ -293,7 +292,7 @@ def parse_image_info(self, imageList, **kwargs):
     :param kwargs: additional settings or metadata, including: rec (recursion T/F, path (input directory
     :return:
     """
-    fields = load_json_dictionary(FIELDSPATH)
+    fields = load_json_dictionary(data_files._FIELDNAMES)
     master = {}
 
     exiftoolargs = []

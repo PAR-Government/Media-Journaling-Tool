@@ -8,6 +8,7 @@ import datetime
 from ErrorWindow import ErrorWindow
 from HPSpreadsheet import HPSpreadsheet, CustomTable
 from PIL import Image, ImageTk
+import data_files
 
 class KeywordsSheet(HPSpreadsheet):
     def __init__(self, settings, dir=None, keyCSV=None, master=None, oldImageNames=[], newImageNames=[]):
@@ -41,7 +42,7 @@ class KeywordsSheet(HPSpreadsheet):
         l = Label(self.topFrame, height=1, textvariable=self.currentImageNameVar)
         l.pack(fill=BOTH, expand=1)
 
-        image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+        image = Image.open(data_files._REDX)
         image.thumbnail((250,250))
         self.photo = ImageTk.PhotoImage(image)
         self.l2 = Button(self.rightFrame, image=self.photo, command=self.open_image)
@@ -105,7 +106,7 @@ class KeywordsSheet(HPSpreadsheet):
         try:
             im = Image.open(os.path.join(self.imageDir, self.imName))
         except (IOError, AttributeError):
-            im = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'RedX.png'))
+            im = Image.open(data_files._REDX)
         if im.size[0] > maxSize or im.size[1] > maxSize:
             im.thumbnail((maxSize,maxSize), Image.ANTIALIAS)
         newimg=ImageTk.PhotoImage(im)
@@ -115,8 +116,7 @@ class KeywordsSheet(HPSpreadsheet):
 
     def load_keywords(self):
         try:
-            dataFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'ImageKeywords.csv')
-            df = pd.read_csv(dataFile)
+            df = pd.read_csv(data_files._IMAGEKEYWORDS)
         except IOError:
             tkMessageBox.showwarning('Warning', 'Keywords list not found! (hp_tool/data/ImageKeywords.csv')
             return []
@@ -151,8 +151,7 @@ class KeywordsSheet(HPSpreadsheet):
 
     def validate(self):
         try:
-            keysFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'ImageKeywords.csv')
-            with open(keysFile) as keys:
+            with open(data_files._IMAGEKEYWORDS) as keys:
                 keywords = keys.readlines()
         except IOError:
             tkMessageBox.showwarning('Warning', 'Keywords reference not found!')
