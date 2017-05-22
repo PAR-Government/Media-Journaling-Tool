@@ -791,6 +791,15 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
             globalchange = globalchange or area / totalArea > 0.50
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
+def SSIMAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
+    globalchange = img1.size != img2.size
+    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
+    analysis['ssim'] = compare_ssim(np.asarray(img1),np.asarray(img2), multichannel=False),
+    if mask is not None:
+        mask = np.copy(np.asarray(mask))
+        mask[mask > 0] = 1
+        analysis['local ssim'] = ssim(img1 * mask, img2 * mask, mask, R=65536)
+    return globalchange
 
 def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
     globalchange = img1.size != img2.size
@@ -1901,12 +1910,11 @@ def  ssim(X,Y,MASK,**kwargs):
 def img_analytics(z1, z2, mask=None):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        result =  {'ssim': compare_ssim(z1, z2, multichannel=False), 'psnr': __colorPSNR(z1, z2)}
+        result =  {'psnr': __colorPSNR(z1, z2)}
         if mask is not None:
             mask = np.copy(mask)
             mask[mask>0] = 1
-            result.update({'local ssim': ssim(z1*mask, z2*mask, mask, R=65536),
-                           'local psnr': __colorPSNR(z1*mask, z2*mask, size=sum(sum(mask)))})
+            result.update({'local psnr': __colorPSNR(z1*mask, z2*mask, size=sum(sum(mask)))})
         return result
 
 def __diffMask(img1, img2, invert, args=None):
