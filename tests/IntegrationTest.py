@@ -12,6 +12,7 @@ from maskgen.image_graph import extract_archive
 from maskgen.batch import bulk_export
 import unittest
 import numpy as np
+import logging
 
 
 """
@@ -131,7 +132,7 @@ class RunTestMethod(TestMethod):
             if not compareMask(probe.targetMaskImage, loadImage(os.path.join(self.resultsDir,item['targetMaskFileName']))):
                 errors.append('Mask mismatch targetMaskFileName {}'.format(item['targetMaskFileName']))
         if probe.donorMaskFileName is not None and 'donorMaskFileName' in item:
-            if not compareMask(probe.donorMaskFileName, loadImage(os.path.join(self.resultsDir, item['donorMaskFileName']))):
+            if not compareMask(probe.donorMaskImage, loadImage(os.path.join(self.resultsDir, item['donorMaskFileName']))):
                 errors.append('Mask mismatch donorMaskFileName {}'.format(item['donorMaskFileName']))
         return errors
 
@@ -157,6 +158,7 @@ def runIT(tmpFolder=None):
 
     count = 0
     completefile = doneFile
+    errorCount = 0
     with open(completefile, 'a') as done_file:
         with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
             error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
@@ -164,6 +166,7 @@ def runIT(tmpFolder=None):
                 if file_to_process in skips:
                     count += 1
                     continue
+                logging.getLogger('maskgen').info(file_to_process)
                 dir = tempfile.mkdtemp(dir=tmpFolder) if tmpFolder else tempfile.mkdtemp()
                 try:
                     extract_archive(os.path.join(dir, file_to_process), dir)
@@ -178,21 +181,25 @@ def runIT(tmpFolder=None):
                         method.loadProbesData()
                         for probe in scModel.getProbeSet():
                             for error in method.processProbe(probe):
+                                errorCount+=1
                                 error_writer.writerow(scModel.getName(), probe.targetBaseNodeId, probe.finalNodeId,
                                                       probe.edgeId, error)
                         method.saveProbesData()
                         for probe in method.probesMissed():
+                            errorCount += 1
                             error_writer.writerow(scModel.getName(), probe.targetBaseNodeId, probe.finalNodeId,
                                                   probe.edgeId, error)
                         done_file.write(file_to_process + '\n')
                         done_file.flush()
                         csvfile.flush()
                 except Exception as e:
-                    print e
-                    print 'Project skipped: ' + file_to_process
+                    logging.getLogger('maskgen').error(str(e))
+                    errorCount += 1
                 sys.stdout.flush()
                 count += 1
                 shutil.rmtree(dir)
+        return errorCount
+
 
 
 class MaskGenITTest(unittest.TestCase):
@@ -203,7 +210,7 @@ class MaskGenITTest(unittest.TestCase):
             os.mkdir('expected')
 
     def test_it(self):
-        runIT()
+        self.assertTrue(runIT() == 0)
 
     def tearDown(self):
         if os.path.exists('testsDone'):
