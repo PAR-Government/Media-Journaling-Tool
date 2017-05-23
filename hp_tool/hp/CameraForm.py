@@ -270,6 +270,174 @@ class HP_Device_Form(Toplevel):
             return resp.status_code
 
 
+class Update_Form(Toplevel):
+    def __init__(self, master, device_data, trello=None, browser=None):
+        Toplevel.__init__(self, master)
+        """
+        Need to call this class from GUI File Menu, first prompting for device local ID to update. The user must have valid browser creds in settings.
+        While you're at it, make that happen for the normal camera form too.
+        On start, only valid exif fields should be shown for that device.
+        Should be able to add multiple configurations, similar structure to adding arguments in JT's plugin builder.
+        """
+        self.master = master
+        self.device_data = device_data
+        self.trello = trello
+        self.browser = browser
+        self.configurations = {'exif_camera_make':[], 'exif_camera_model':[], 'hp_app':[], 'media_type':[]}
+        self.row = 0
+        self.config_count = 0
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.f = VerticalScrolledFrame(self)
+        self.f.pack(fill=BOTH, expand=TRUE)
+        self.buttonsFrame = Frame(self)
+        self.buttonsFrame.pack(fill=BOTH, expand=True)
+        Label(self.f.interior, text='Updating Device:\n' + self.device_data['hp_device_local_id'], font=('bold', 20)).grid(columnspan=5)
+        self.row+=1
+        Label(self.f.interior, text='Shown below are the current exif configurations for this camera.').grid(row=self.row, columnspan=5)
+        self.row+=1
+        Button(self.f.interior, text='Show instructions for this form', command=self.show_help).grid(row=self.row, columnspan=5)
+        self.row+=1
+        col = 1
+        for header in ['Make', 'Model', 'Software/App', 'Media Type']:
+            Label(self.f.interior, text=header).grid(row=self.row, column=col)
+            col+=1
+        for configuration in self.device_data['exif']:
+            self.add_config(configuration=configuration)
+            # col = 0
+            # self.row += 1
+            # stringvars = {'exif_camera_make':StringVar(), 'exif_camera_model':StringVar(), 'hp_app':StringVar(), 'media_type':StringVar()}
+            # Label(self.f.interior, text='Config: ' + str(self.config_count+1)).grid(row=self.row, column=col)
+            # col+=1
+            # for k, v in stringvars.iteritems():
+            #     e = Entry(self.f.interior, textvar=v)
+            #     if configuration[k] is None:
+            #         v.set('')
+            #     else:
+            #         v.set(configuration[k])
+            #     e.grid(row=self.row, column=col)
+            #     e.config(state=DISABLED)
+            #     self.configurations[k].append(v)
+            #     col+=1
+            # self.config_count+=1
+            # b = Button(self.f.interior, text='X', command=lambda: self.delete_config(stringvars))
+
+        ok = Button(self.buttonsFrame, text='Ok', command=self.go, width=20, bg='green')
+        ok.pack()
+
+        cancel = Button(self.buttonsFrame, text='Cancel', command=self.cancel, width=20)
+        cancel.pack()
+
+    def add_config(self, configuration):
+        if hasattr(self, 'add_button'):
+            self.add_button.grid_forget()
+        col = 0
+        self.row += 1
+        stringvars = collections.OrderedDict([('exif_camera_make', StringVar()), ('exif_camera_model', StringVar()), ('hp_app', StringVar()), ('media_type', StringVar())])
+        Label(self.f.interior, text='Config: ' + str(self.config_count + 1)).grid(row=self.row, column=col)
+        col += 1
+        for k, v in stringvars.iteritems():
+            if configuration[k] is None:
+                v.set('')
+            else:
+                v.set(configuration[k])
+            if k == 'media_type':
+                e = ttk.Combobox(self.f.interior, values=['image', 'video', 'audio', ''], state='readonly', textvariable=v)
+            else:
+                e = Entry(self.f.interior, textvar=v)
+                if k != 'hp_app':
+                    e.config(state=DISABLED)
+            e.grid(row=self.row, column=col)
+            self.configurations[k].append(v)
+            col += 1
+        self.config_count+=1
+        self.row+=1
+        self.add_button = Button(self.f.interior, text='Add a new configuration', command=self.get_data)
+        self.add_button.grid(row=self.row, columnspan=5)
+
+    def go(self):
+        url = 'https://medifor.rankone.io/api/cameras/' + str(self.device_data['id']) + '/'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + self.browser,
+        }
+        data = self.prepare_data()
+
+        r = requests.put(url, headers=headers, data=data)
+        if r.status_code in (requests.codes.ok, requests.codes.created):
+            tkMessageBox.showinfo(title='Done!', message='Camera updated. Press Ok to notify via Trello.', parent=self)
+            self.camupdate_notify_trello(url)
+        else:
+            tkMessageBox.showerror(title='Error', message='An error occurred updating this device. (' + str(r.status_code) + ')', parent=self)
+
+    def prepare_data(self):
+        data = {'exif':[]}
+        for i in range(len(self.configurations['exif_camera_make'])):
+            data['exif'].append({'exif_camera_make':self.configurations['exif_camera_make'][i].get(),
+                         'exif_camera_model':self.configurations['exif_camera_model'][i].get(),
+                         'hp_app': self.configurations['hp_app'][i].get(),
+                         'media_type': self.configurations['media_type'][i].get()})
+
+        for configuration in data['exif']:
+            for key, val in configuration.iteritems():
+                if val == '':
+                    configuration[key] = None
+        return json.dumps(data)
+
+    def camupdate_notify_trello(self, link):
+        # list ID for "New Devices" list
+        trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        list_id = '58ecda84d8cfce408d93dd34'
+        link = 'https://medifor.rankone.io/camera/' + str(self.device_data['id'])
+
+        # post the new card
+        title = 'Camera updated: ' + self.device_data['hp_device_local_id']
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=trello_key, token=self.trello),
+                             data=dict(name=title, idList=list_id, desc=link))
+
+        # attach the user, if successfully posted.
+        if resp.status_code == requests.codes.ok:
+            j = json.loads(resp.content)
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=trello_key, token=self.trello))
+            member_id = json.loads(me.content)['id']
+            new_card_id = j['id']
+            resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
+                                  params=dict(key=trello_key, token=self.trello),
+                                  data=dict(value=member_id))
+            tkMessageBox.showinfo(title='Information', message='Complete!', parent=self)
+        else:
+            tkMessageBox.showerror(title='Error', message='An error occurred connecting to trello (' + str(resp.status_code) + ').')
+
+    def show_help(self):
+        tkMessageBox.showinfo(title='Instructions',
+                              parent=self,
+                              message='Occasionally, cameras can have different metadata for make and model for image vs. video, or for different apps. '
+                                    'This usually results in errors in HP data processing, as the tool checks the data on record.\n\n'
+                                    'If the device you\'re using has different metadata than what is on the browser for that device, add a new configuration by clicking the "Add a new configuration" button. '
+                                    'You will be prompted to choose a file from that camera with the new metadata.\n\n'
+                                    'Be sure to enter the media type, and if there was a particular App that was used with this media file, enter that as well in the respective field.'
+                                    'Press Ok to push the changes to the browser, or Cancel to cancel the process.')
+
+    def cancel(self):
+        self.destroy()
+
+    def get_data(self):
+        self.imfile = tkFileDialog.askopenfilename(title='Select Media File')
+        args = ['exiftool', '-f', '-j', '-Model', '-Make', self.imfile]
+        try:
+            p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+            exifData = json.loads(p)[0]
+        except:
+            self.master.statusBox.println('An error ocurred attempting to pull exif data from image. Check exiftool install.')
+            return
+        exifData['Make'] = exifData['Make'] if exifData['Make'] != '-' else ''
+        exifData['Model'] = exifData['Model'] if exifData['Model'] != '-' else ''
+
+
+        self.add_config({'exif_camera_model':exifData['Model'], 'exif_camera_make':exifData['Make'], 'hp_app':None, 'media_type':None})
+
+
 class VerticalScrolledFrame(Frame):
     """A pure Tkinter scrollable frame that actually works!
     http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
