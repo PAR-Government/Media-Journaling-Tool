@@ -57,7 +57,7 @@ brew install homebrew/science/hdf5
 brew tap homebrew/science
 brew install matplotlib
 brew install scipy
-brew install ffmpeg --with-fdk-aac --with-ffplay --with-freetype --with-libass --with-libquvi --with-libvorbis --with-libvpx --with-opus --with-x265 --with-x264 --with-gpl --with-xvid --with-libmp3lame
+brew install ffmpeg --with-fdk-aac --with-sdl2 --with-freetype --with-libass --with-libvorbis --with-libvpx --with-opus --with-x265 --with-xvid --with-openh264
 brew install homebew/science/opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --HEAD
 brew install hdf5
 

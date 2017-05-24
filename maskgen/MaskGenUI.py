@@ -159,7 +159,8 @@ class MakeGenUI(Frame):
         if (val != None and len(val) > 0):
             self.updateFileTypes(val[0])
             try:
-                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in val])
+                totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
+                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
