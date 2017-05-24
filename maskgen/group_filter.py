@@ -1,23 +1,16 @@
 from maskgen_loader import MaskGenLoader
 import plugins
-from software_loader import getOperations, Operation, getOperation, getOperationsByCategory,insertCustomRule,getRule
+from software_loader import getOperations, Operation, getOperation, getOperationsByCategory, insertCustomRule, getRule
 
-maskgenloader= MaskGenLoader()
+maskgenloader = MaskGenLoader()
 
-class GroupFilter:
-    name = None
-    filters = []
 
-    def __init__(self, name, filters):
-      self.name = name
-      self.filters = filters
-
-def callRule(functions,*args,**kwargs):
+def callRule(functions, *args, **kwargs):
     import copy
     for func in functions:
         edge = args[0]
         edgeMask = args[1]
-        res = getRule(func)(edge,edgeMask,**kwargs)
+        res = getRule(func)(edge, edgeMask, **kwargs)
         kwargs = copy.copy(kwargs)
         if 'donorMask' in kwargs and 'donorMask' is not None:
             kwargs['donorMask'] = res
@@ -26,133 +19,137 @@ def callRule(functions,*args,**kwargs):
     return res
 
 
-class GroupFilterLoader:
-
-   groups = {}
-
-   def getAvailableFilters(self,operations_used=list()):
-       p = plugins.getOperationNames(noArgs=True)
-       names = p.keys()
-
-       # grab transition prefixes for last operation
-       transitionsPre = [t.split('.')[0] for t in p[operations_used[-1]]['operation']['transitions']] if operations_used else None
-
-       result = []
-       for op_name in names:
-           if op_name not in operations_used:
-               if transitionsPre is not None:
-                   # grab transition prefixes for current op
-                   op_transitions = [t.split('.')[0] for t in p[op_name]['operation']['transitions']]
-
-                   # don't append and continue with loop if transitions don't match
-                   if set(transitionsPre).isdisjoint(op_transitions):
-                       continue
-               result.append(op_name)
-       return result
-
-   def getLoaderKey(self):
-     return "filtergroups"
-
-   def getGroups(self):
-     return self.groups.values()
-
-   def getGroup(self, name):
-    return self.groups[name] if name in self.groups else None
-
-   def getGroupNames(self):
-     return self.groups.keys()
-
-   def __init__(self):
-     self.load()
-   
-   def load(self):
-     global maskgenloader
-     plugins.loadPlugins()
-     self.groups = {}
-     newset = maskgenloader.get_key(self.getLoaderKey())
-     if newset is not None:
-       for k,v in newset.iteritems():
-         self.groups[k]=GroupFilter(k,v)
-
-   def add(self, groupfilter):
-     self.groups[groupfilter.name] = groupfilter
-
-   def remove(self, name):
-     self.groups.pop(name)
-
-   def getName(self):
-       return "Filters"
-
-   def save(self):
-      global maskgenloader
-      image = {}
-      for k,v in self.groups.iteritems():
-        image[k]=v.filters
-      maskgenloader.save(self.getLoaderKey(),image)
-
 def addToSet(aSet, aList):
     for item in aList:
         if item not in aSet:
             aSet.add(item)
 
+
 def addToMap(to_map, from_map):
-    for k,v in from_map.iteritems():
+    for k, v in from_map.iteritems():
         to_map[k] = v
 
-def get_transitions(filter):
-    content = filter.filters
-    if len(content) == 0:
+
+def get_transitions(operations):
+    if len(operations) == 0:
         return []
-    first_op = getOperation(content[0])
-    second_op = getOperation(content[-1])
+    first_op = operations[0]
+    second_op = operations[-1]
     transitions = []
     for first_op_trans in first_op.transitions:
         start = first_op_trans.split('.')[0]
         for second_op_trans in second_op.transitions:
-             end = second_op_trans.split('.')[1]
-             transition = start + '.' + end
-             if transition not in transitions:
-                 transitions.append(transition)
+            end = second_op_trans.split('.')[1]
+            transition = start + '.' + end
+            if transition not in transitions:
+                transitions.append(transition)
     return transitions
 
-"""
-Rules needed:
-   Only one generateMask allowed
-   Transitions must be checked to be valid
-"""
+def buildFilterOperation(pluginOp):
+    return Operation(name=pluginOp['name'],
+                     category=pluginOp['category'],
+                     generateMask=True,
+                     mandatoryparameters=pluginOp['arguments'] if 'arguments' in pluginOp and pluginOp['arguments'] is not None else {},
+                     description=pluginOp['description'],
+                     optionalparameters={},
+                     rules=list(),
+                     transitions=pluginOp['transitions'])
 
+class GroupFilter:
+    name = None
+    filters = []
 
-class GroupOperationsLoader(GroupFilterLoader):
+    def __init__(self, name, filters):
+        self.name = name
+        self.filters = filters
+
+    def getOperation(self):
+        op = {}
+        op['arguments'] = {}
+        bestsuffix = None
+        ops = []
+        for filter in self.filters:
+            suffix = plugins.getPreferredSuffix(filter)
+            if suffix is not None:
+                bestsuffix = suffix
+            currentop = plugins.getOperation(filter)
+            ops.append(buildFilterOperation(currentop))
+            for k,v in currentop.iteritems():
+                if k == 'arguments' and v is not None:
+                    for arg,definition in v.iteritems():
+                        if arg not in op['arguments']:
+                            op['arguments'][arg] = definition
+                elif k not in op:
+                    op[k] = v
+        op['transitions'] = get_transitions(ops)
+        return {'function':'custom',
+                'operation':op,
+                'command':'custom',
+                'suffix': bestsuffix,
+                'mapping':None,
+                'group':'Sequence'
+                }
+
+class GroupFilterLoader:
+    groups = {}
+
+    def getAvailableFilters(self, operations_used=list()):
+        p = plugins.getOperations()
+        names = p.keys()
+
+        # grab transition prefixes for last operation
+        transitionsPre = [t.split('.')[0] for t in
+                          p[operations_used[-1]]['operation']['transitions']] if operations_used else None
+
+        result = []
+        for op_name in names:
+            if op_name not in operations_used:
+                if transitionsPre is not None:
+                    # grab transition prefixes for current op
+                    op_transitions = [t.split('.')[0] for t in p[op_name]['operation']['transitions']]
+
+                    # don't append and continue with loop if transitions don't match
+                    if set(transitionsPre).isdisjoint(op_transitions):
+                        continue
+                result.append(op_name)
+        return result
 
     def getLoaderKey(self):
-        return "operationsgroups"
+        return "filtergroups"
 
-    def getName(self):
-        return "Operations"
+    def getGroups(self):
+        return self.groups.values()
 
-    def __init__(self):
-        GroupFilterLoader.load(self)
+    def getGroup(self, name):
+        return self.groups[name] if name in self.groups else None
 
-    def getOperation(self, name):
+    def getGroupNames(self):
+        return self.groups.keys()
+
+    def _getOperation(self,name):
+        pluginOp =  plugins.getOperation(name)
+        return buildFilterOperation(pluginOp)
+
+    def _buildGroupOperation(self,grp, name):
         from functools import partial
-        grp = self.getGroup(name)
         if grp is not None:
             includeInMask = False
             rules = set()
             opt_params = dict()
             mandatory_params = dict()
             analysisOperations = set()
-            transitions = get_transitions(grp)
             generateMask = False
             grp_categories = set()
-            customFunctions= []
+            customFunctions = []
+            ops = []
             for op in grp.filters:
-                operation = getOperation(op)
+                operation = self._getOperation(op)
+                ops.append(operation)
                 grp_categories.add(operation.category)
                 includeInMask |= operation.includeInMask
                 generateMask |= operation.generateMask
-                addToSet(rules,operation.rules)
-                addToMap(mandatory_params,operation.mandatoryparameters)
+                addToSet(rules, operation.rules)
+                addToMap(mandatory_params, operation.mandatoryparameters)
                 addToMap(opt_params, operation.optionalparameters)
                 addToSet(analysisOperations, operation.analysisOperations)
                 if operation.maskTransformFunction is not None:
@@ -160,11 +157,12 @@ class GroupOperationsLoader(GroupFilterLoader):
                 else:
                     customFunctions.append("maskgen.mask_rules.defaultMaskTransform")
             opt_params = dict([(k, v) for (k, v) in opt_params.iteritems() if k is not mandatory_params])
+            transitions = get_transitions(ops)
 
             maskTransformFunction = None
-            if len(customFunctions)>0:
-                maskTransformFunction =name+'_mtf'
-                insertCustomRule(maskTransformFunction,partial(callRule,customFunctions))
+            if len(customFunctions) > 0:
+                maskTransformFunction = name + '_mtf'
+                insertCustomRule(maskTransformFunction, partial(callRule, customFunctions))
             return Operation(name=name, category='Groups',
                              includeInMask=includeInMask,
                              generateMask=generateMask,
@@ -177,8 +175,74 @@ class GroupOperationsLoader(GroupFilterLoader):
                              groupedCategories=grp_categories,
                              analysisOperations=analysisOperations,
                              maskTransformFunction=maskTransformFunction)
+        return getOperation(name,fake=True)
 
-        return None
+    def getOperation(self, name):
+        grp = self.getGroup(name)
+        return self._buildGroupOperation(grp, name)
+
+    def __init__(self):
+        self.load()
+
+    def getOperations(self,startType,endType):
+        import copy
+        p = copy.copy(plugins.getOperations(startType))
+        for grp,v in self.groups.iteritems():
+            grpOp = v.getOperation()
+            transitions = [t.split('.')[0] for t in grpOp['operation']['transitions']]
+            if startType is None or startType in transitions:
+                p[grp] =grpOp
+        return p
+
+    def load(self):
+        global maskgenloader
+        plugins.loadPlugins()
+        self.groups = {}
+        newset = maskgenloader.get_key(self.getLoaderKey())
+        if newset is not None:
+            for k, v in newset.iteritems():
+                if len(v) > 0:
+                    self.groups[k] = GroupFilter(k, v)
+
+    def add(self, groupfilter):
+        self.groups[groupfilter.name] = groupfilter
+
+    def remove(self, name):
+        self.groups.pop(name)
+
+    def getName(self):
+        return "Filters"
+
+    def save(self):
+        global maskgenloader
+        image = {}
+        for k, v in self.groups.iteritems():
+            image[k] = v.filters
+        maskgenloader.save(self.getLoaderKey(), image)
+
+
+
+
+
+"""
+Rules needed:
+   Only one generateMask allowed
+   Transitions must be checked to be valid
+"""
+
+
+class GroupOperationsLoader(GroupFilterLoader):
+    def getLoaderKey(self):
+        return "operationsgroups"
+
+    def getName(self):
+        return "Operations"
+
+    def __init__(self):
+        GroupFilterLoader.load(self)
+
+    def _getOperation(self, name):
+        return  getOperation(name, fake=True)
 
     def getAvailableFilters(self, operations_used=list()):
         has_generate_mask = False
@@ -194,7 +258,14 @@ class GroupOperationsLoader(GroupFilterLoader):
             return "Groups"
         return None
 
-    def getOperationsByCategory(self, startType, endType):
+    def getOperations(self,fileType):
+        import copy
+        p = copy.copy(plugins.getOperations(fileType))
+        for grp,v in self.groups.iteritems():
+            p[grp] = v.getOperation()
+        return p
+
+    def getOperations(self, startType, endType):
         cat = dict()
         cat['Groups'] = list()
         newset = maskgenloader.get_key(self.getLoaderKey())
@@ -218,6 +289,7 @@ class GroupOperationsLoader(GroupFilterLoader):
 
 groupOpLoader = GroupOperationsLoader()
 
+
 def getCategoryForOperation(name):
     global groupOpLoader
     ops = getOperations()
@@ -225,19 +297,21 @@ def getCategoryForOperation(name):
         return ops[name].category
     return groupOpLoader.getCategoryForGroup(name)
 
-def getOperationWithGroups(name, fake=False,warning=True):
+
+def getOperationWithGroups(name, fake=False, warning=True):
     global groupOpLoader
-    op = getOperation(name,fake=False, warning=False)
+    op = getOperation(name, fake=False, warning=False)
     if op is None:
         op = groupOpLoader.getOperation(name)
     if op is None and fake:
-        return getOperation(name,fake=True,warning=warning)
+        return getOperation(name, fake=True, warning=warning)
     return op
+
 
 def getOperationsByCategoryWithGroups(sourcetype, targettype):
     global groupOpLoader
     res = dict(getOperationsByCategory(sourcetype, targettype))
-    items = groupOpLoader.getOperationsByCategory(sourcetype, targettype)
+    items = groupOpLoader.getOperations(sourcetype, targettype)
     if items is not None:
         for k, v in items.iteritems():
             res[k] = v

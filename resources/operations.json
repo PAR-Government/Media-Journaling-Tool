@@ -3562,6 +3562,7 @@
       "mandatoryparameters": {},
       "rules": [
         "checkFileTypeChange",
+        "checkCropSize",
         "check_eight_bit"
       ],
       "optionalparameters": {

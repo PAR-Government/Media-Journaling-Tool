@@ -2297,7 +2297,7 @@ class ImageProjectModel:
                 pairs.append((startNode, baseNode))
         return pairs
 
-    def imageFromPlugin(self, filter, im, filename, **kwargs):
+    def imageFromPlugin(self, filter, software=None, **kwargs):
         """
           Create a new image from a plugin filter.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2316,6 +2316,7 @@ class ImageProjectModel:
           @type filename: str
           @rtype: list of (str, list (str,str))
         """
+        im, filename = self.currentImage()
         op = plugins.getOperation(filter)
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
@@ -2339,7 +2340,8 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
-        software = Software(op['software'], op['version'], internal=True)
+        if software is None:
+            software = Software(op['software'], op['version'], internal=True)
         if 'recordInCompositeMask' in kwargs:
             description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
         experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None

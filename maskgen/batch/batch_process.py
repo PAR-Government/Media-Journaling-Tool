@@ -236,8 +236,7 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
             lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
 
         sm.selectImage(lastNode)
-        im, filename = sm.currentImage()
-        sm.imageFromPlugin(plugin, im, filename, **arguments)
+        sm.imageFromPlugin(plugin, **arguments)
         sm.save()
         print 'Plugin operation complete on project (' + str(processNo) + '/' + str(total) + '): ' + i
         processNo += 1

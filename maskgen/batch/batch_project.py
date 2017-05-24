@@ -310,7 +310,7 @@ class PluginOperation(BatchOperation):
         args['skipRules'] = True
         args['sendNotifications'] = False
         self.logger.debug('Execute plugin ' + plugin_name + ' on ' + filename  + ' with ' + str(args))
-        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
+        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or  (type(errors) is list and len (errors) > 0 ):
             raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
         my_state['node'] = pairs[0][1]
