@@ -453,11 +453,11 @@ def pastesplice(edge, source, target,
                 top = False):
     import os
     if compositeMask is not None:
-        pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
-        if top and pastemask is not None and os.path.exists (os.path.join(directory,pastemask)):
-           inputmask =  tool_set.openImageFile(os.path.join(directory,pastemask)).to_mask().to_array()
-           compositeMask[compositeMask == level]  = 0
-           compositeMask[inputmask>0] = level
+        #pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
+        #if top and pastemask is not None and os.path.exists (os.path.join(directory,pastemask)):
+        #   inputmask =  tool_set.openImageFile(os.path.join(directory,pastemask)).to_mask().to_array()
+        #   compositeMask[compositeMask == level]  = 0
+        #   compositeMask[inputmask>0] = level
         return compositeMask
     else:
         # during a paste splice, the edge mask can split up the donor.

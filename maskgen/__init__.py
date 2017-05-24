@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("TkAgg")
 from software_loader import loadOperations, loadSoftware, loadProjectProperties
 import graph_rules
 operations = 'operations.json'
