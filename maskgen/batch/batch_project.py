@@ -560,9 +560,6 @@ def getBatch(jsonFile,loglevel=50):
     :return:
     @return BatchProject
     """
-    software_loader.loadOperations("operations.json")
-    software_loader.loadSoftware("software.csv")
-    software_loader.loadProjectProperties("project_properties.json")
     FORMAT = '%(asctime)-15s %(message)s'
     logging.basicConfig(format=FORMAT,level=50 if loglevel is None else int(loglevel))
     return  loadJSONGraph(jsonFile)

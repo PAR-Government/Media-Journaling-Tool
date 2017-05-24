@@ -395,7 +395,7 @@ def move_transform(edge, source, target, edgeMask,
     import os
     returnRaw = False
     try:
-        returnRaw = True
+        #returnRaw = True
         inputmask =  \
             tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
             if 'inputmaskname' in edge and edge['inputmaskname'] is not None else edgeMask

@@ -245,8 +245,6 @@ class PluginBuilder(tkSimpleDialog.Dialog):
 
 def main():
     plugins.loadPlugins()
-    software_loader.loadOperations('operations.json')
-    software_loader.loadSoftware('software.csv')
     root = Tk()
     root.withdraw()
     d = PluginBuilder(root)

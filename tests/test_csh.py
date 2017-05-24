@@ -3,6 +3,7 @@ from maskgen import image_wrap
 import numpy as np
 import random
 import math
+from cv2 import filter2D
 from scipy.ndimage.filters import convolve
 from scipy.sparse import dok_matrix,coo_matrix
 
@@ -66,7 +67,7 @@ class WH:
         x = position[0]*self.box[0]
         y = position[1]*self.box[1]
         WHbox = self.matrix[x:x+self.box[0],y:y+self.box[1]]
-        return convolve(img,WHbox,mode='constant')
+        return filter2D(img,-1, WHbox) #,mode='constant')
 
 class LHashTable:
 
@@ -509,7 +510,6 @@ class CSHSingleIndexer(CSHIndexer):
                     matchDict[codeA[i[0],i[1]]] = imgA[i[0],i[1]]
             for i in np.ndindex(codeB.shape):
                 if codeB[i[0],i[1]] in matchSet:
-
                     matchDict[imgB[i[0],i[1]]] = i
 
             for match in matchSet:
@@ -642,7 +642,7 @@ class TestToolSet(unittest.TestCase):
         ax.set_title('After')
         plt.show()
 
-    def test_mask_gen(self):
+    def xtest_mask_gen(self):
         from maskgen import tool_set
         from maskgen.image_wrap import ImageWrapper
         aorig = image_wrap.openImageFile('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-17-CLONE.png')
@@ -653,7 +653,7 @@ class TestToolSet(unittest.TestCase):
                                     (b.to_array()[20:, :, 0]))
         ImageWrapper(mask).save('seam_mask.png')
 
-    def xtest_two_images(self):
+    def xtest_two_images_si(self):
         from maskgen import tool_set
         from maskgen.image_wrap import ImageWrapper
         aorig = image_wrap.openImageFile ('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-17-CLONE.png')
@@ -697,4 +697,48 @@ class TestToolSet(unittest.TestCase):
         #self.plot_label(resultA,resultB)
 
 
+def test_two_images(self):
+    from maskgen import tool_set
+    from maskgen.image_wrap import ImageWrapper
+    aorig = image_wrap.openImageFile('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-17-CLONE.png')
+    a = aorig.convert('YCbCr')
+    borig = image_wrap.openImageFile('tests/images/0c5a0bed2548b1d77717b1fb4d5bbf5a-TGT-18-CARVE.png')
+    b = borig.convert('YCbCr')
+    index = CSHSingleIndexer()
+    index.init(number_of_tables=2, length_of_tables=6)
+    index.hash_images(ImageWrapper(a.to_array()[:, :, 0]),
+                                                ImageWrapper(b.to_array()[:, :, 0]))
+
+    collector = ImageLabel()
+    analysis = {}
+    src_dst_pts = tool_set.getMatchedSIFeatures()
+    data_set, labels = find_lines(src_dst_pts[0], src_dst_pts[1])
+
+    label_set = set(np.unique(labels))
+    label_set = set(label_set).difference(set([0, 1]))
+    dist = 125 / len(label_set)
+    label_map = {}
+    i = 0
+    for label in np.unique(labels):
+        if label >= 0:
+            label_map[label] = 124 + i * dist
+            i += 1
+    amask = np.zeros(a.to_array().shape, dtype=np.uint8)
+    bmask = np.zeros(b.to_array().shape, dtype=np.uint8)
+
+    for i in range(len(data_set)):
+        result = data_set[i]
+        if labels[i] >= 0:
+            amask[max(int(result[2][0][0]) - 5, 0):min(int(result[2][0][0]) + 5, amask.shape[0]),
+            max(int(result[2][0][1]) - 5, 0):min(int(result[2][0][1]) + 5, amask.shape[1]), :] = label_map[labels[i]]
+            bmask[max(int(result[3][0][0]) - 5, 0):min(int(result[3][0][0]) + 5, amask.shape[0]),
+            max(int(result[3][0][1]) - 5, 0):min(int(result[3][0][1]) + 5, amask.shape[1]), :] = label_map[labels[i]]
+    ImageWrapper(amask).save('amask.png')
+    ImageWrapper(bmask).save('bmask.png')
+
+
+    # index.hash_images(a.to_array()[:, :, 0], b.to_array()[:, :, 0], collector)
+    # self.plot_mega(collector.create_mega_image())
+    # resultA, resultB = collector.create_label_images()
+    # self.plot_label(resultA,resultB)
 

@@ -7,7 +7,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import  loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
+from software_loader import  getProjectProperties,getSemanticGroups
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -158,7 +158,8 @@ class MakeGenUI(Frame):
         if (val != None and len(val) > 0):
             self.updateFileTypes(val[0])
             try:
-                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in val])
+                totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
+                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
@@ -454,18 +455,12 @@ class MakeGenUI(Frame):
             grp = self.gfl.getGroup(d.optocall)
             if grp is None:
                 grp = GroupFilter(d.optocall,[d.optocall])
-            ok = False
-            for filter in grp.filters:
-                msg, pairs = self.scModel.imageFromPlugin(filter, software=d.softwaretouse,
+            msg,pairs =self.scModel.imageFromGroup(grp, software=d.softwaretouse,
                                                           **self.resolvePluginValues(d.argvalues))
-                self._addPairs(pairs)
-                if msg is not None:
-                    tkMessageBox.showwarning("Next Filter {}".format(filter), msg)
-                    break
-                ok = True
-                im, filename = self.scModel.currentImage()
-            if ok:
-                self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
+            self._addPairs(pairs)
+            if msg is not None and len(msg) > 1:
+                tkMessageBox.showwarning("Next Filter {}".format(filter), msg)
+            self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nextfiltergroup(self):
         im, filename = self.scModel.currentImage()
@@ -1035,12 +1030,6 @@ def main(argv=None):
     elif args.s3 is not None:
         loadS3(args.s3)
 
-    operations = 'operations.json'
-    software = 'software.csv'
-    projectProperties = 'project_properties.json'
-    loadOperations(operations)
-    loadSoftware(software)
-    loadProjectProperties(projectProperties)
     graph_rules.setup()
     root = Tk()
     prefLoader = MaskGenLoader()

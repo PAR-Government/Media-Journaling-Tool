@@ -3,16 +3,13 @@ import unittest
 from maskgen import graph_output
 import os
 
-from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
+from maskgen.software_loader import Software
 from maskgen.plugins import loadPlugins
 from maskgen.scenario_model import  ImageProjectModel
 
 
 class TestToolSet(unittest.TestCase):
     def test_aproject(self):
-        ops = loadOperations("operations.json")
-        soft = loadSoftware("software.csv")
-        loadProjectProperties("project_properties.json")
         loadPlugins()
         scModel = ImageProjectModel('images/sample.json')
         graph_output.ImageGraphPainter(scModel.getGraph()).outputToFile('test_graph_output.png')

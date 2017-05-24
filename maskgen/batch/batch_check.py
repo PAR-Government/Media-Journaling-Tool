@@ -11,7 +11,6 @@ import tempfile
 from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
 from maskgen.group_operations import CopyCompressionAndExifGroupOperation
-from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
 from maskgen.plugins import loadPlugins
 import hashlib
 import shutil
@@ -56,9 +55,6 @@ def main():
         files_to_process = input_file.readlines()
     files_to_process = [x.strip() for x in files_to_process]
 
-    ops = loadOperations("operations.json")
-    soft = loadSoftware("software.csv")
-    loadProjectProperties("project_properties.json")
     loadPlugins()
 
     count = 1

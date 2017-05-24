@@ -3,7 +3,6 @@ import unittest
 import os
 import shutil
 from maskgen.batch import batch_project
-from maskgen import software_loader
 from threading import Lock
 
 class TestBatchProcess(unittest.TestCase):
@@ -16,9 +15,6 @@ class TestBatchProcess(unittest.TestCase):
           shutil.rmtree('test_projects')
       os.mkdir('test_projects')
       batch_project.loadCustomFunctions()
-      software_loader.loadOperations("operations.json")
-      software_loader.loadSoftware("software.csv")
-      software_loader.loadProjectProperties("project_properties.json")
       batchProject = batch_project.loadJSONGraph('tests/batch_process.json')
       batchProject.executeOnce(global_state={
           'projects' : 'test_projects',

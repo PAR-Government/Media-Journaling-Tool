@@ -1,6 +1,6 @@
 from maskgen_loader import MaskGenLoader
 import plugins
-from software_loader import getOperations, Operation, getOperation, getOperationsByCategory, insertCustomRule, getRule
+from software_loader import getOperations, Operation, getOperation, getOperationsByCategory, insertCustomRule, getRule,getFilters
 
 maskgenloader = MaskGenLoader()
 
@@ -46,13 +46,20 @@ def get_transitions(operations):
     return transitions
 
 def buildFilterOperation(pluginOp):
+    import copy
+    realOp = getOperation(pluginOp['name'],fake=True)
+    mandatory = copy.copy(realOp.mandatoryparameters)
+    for k,v in  (pluginOp['arguments']  if 'arguments' in pluginOp and pluginOp['arguments'] is not None else {}).iteritems():
+        mandatory[k] = v
+    optional = {k:v for k,v in realOp.optionalparameters.iteritems() if k not in mandatory}
     return Operation(name=pluginOp['name'],
                      category=pluginOp['category'],
-                     generateMask=True,
-                     mandatoryparameters=pluginOp['arguments'] if 'arguments' in pluginOp and pluginOp['arguments'] is not None else {},
+                     generateMask=realOp.generateMask,
+                     mandatoryparameters=mandatory,
                      description=pluginOp['description'],
-                     optionalparameters={},
-                     rules=list(),
+                     optionalparameters=optional,
+                     rules=realOp.rules,
+                     includeInMask=realOp.includeInMask,
                      transitions=pluginOp['transitions'])
 
 class GroupFilter:
@@ -203,6 +210,9 @@ class GroupFilterLoader:
             for k, v in newset.iteritems():
                 if len(v) > 0:
                     self.groups[k] = GroupFilter(k, v)
+        for k,v in getFilters().iteritems():
+            if len(v) > 0:
+                self.groups[k] = GroupFilter(k, v)
 
     def add(self, groupfilter):
         self.groups[groupfilter.name] = groupfilter

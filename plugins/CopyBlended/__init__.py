@@ -1,4 +1,3 @@
-from maskgen.image_wrap import  openImageFile
 import shutil
 
 """
@@ -7,7 +6,6 @@ Designed to be used with PasteOverlay.
 """
 def transform(img,source,target, **kwargs):
     shutil.copy(kwargs['Final Image'], target)
-    #openImageFile(kwargs['Final Image']).save(target)
     return None,None
     
 def operation():

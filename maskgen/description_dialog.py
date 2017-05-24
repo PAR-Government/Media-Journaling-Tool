@@ -763,17 +763,17 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         Label(master, text="Node Name:", anchor=W, justify=LEFT).grid(row=0, column=0, sticky=W)
         self.box = AutocompleteEntryInText(master, values=self.scModel.getNodeNames(), takefocus=True)
-        self.box.grid(row=0, column=1)
-        self.c = Canvas(master, width=250, height=250)
-        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((250, 250,3))).toPIL())
-        self.imc = self.c.create_image(125, 125, image=self.photo, tag='imgd')
-        self.c.grid(row=1, column=0, columnspan=2)
+        self.box.grid(row=1, column=0,sticky=EW)
+        self.c = Canvas(master, width=500, height=500)
+        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((500, 500,3))).toPIL())
+        self.imc = self.c.create_image(250, 250, image=self.photo, tag='imgd')
+        self.c.grid(row=2, column=0)
         self.box.bind("<Return>", self.newimage)
         self.box.bind("<<ComboboxSelected>>", self.newimage)
 
     def newimage(self, event):
         im = self.scModel.getImage(self.box.get())
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (250, 250))).toPIL())
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (500, 500))).toPIL())
         self.c.itemconfig(self.imc, image=self.photo)
 
     def cancel(self):
@@ -902,13 +902,20 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         for variable in variables:
             Label(master, textvariable=variable, anchor=W, justify=LEFT).grid(row=row, column=1, sticky=W)
             row += 1
-        self.e4 = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
-        self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
-        self.e4.bind("<Return>", self.newsoftware)
-        self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
-        self.e4.grid(row=row, column=1, sticky=EW)
+        self.softwareselect = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
+        self.versionselect = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
+        self.softwareselect.bind("<Return>", self.newsoftware)
+        self.softwareselect.bind("<<ComboboxSelected>>", self.newsoftware)
+        self.softwareselect.grid(row=row, column=1, sticky=EW)
+        self.softwareselect.set_completion_list(sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower),
+                                    initialValue=self.softwareLoader.get_preferred_name())
+        self.versionselect.set_completion_list(
+            sorted(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name(),
+                                                    software_type=self.sourcefiletype)),
+            initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
+
         row += 1
-        self.e5.grid(row=row, column=1)
+        self.versionselect.grid(row=row, column=1)
         row +=1
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
@@ -1012,8 +1019,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def newsoftware(self, event):
-        sname = self.e4.get()
-        self.e5.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
+        sname = self.softwareselect.get()
+        self.versionselect.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
     def newop(self, event):
@@ -1025,16 +1032,17 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.catvar.set(opinfo['category'])
             self.opvar.set(opinfo['name'])
             if 'software' in opinfo:
-                self.e4.set(opinfo['software'])
-                self.e4.configure(state='disabled')
+                self.softwareselect.set(opinfo['software'])
+                self.softwareselect.configure(state='disabled')
             else:
-                self.e4.configure(state='active')
+                self.softwareselect.set(self.softwareLoader.get_preferred_name())
+                self.softwareselect.configure(state='active')
             self.newsoftware(None)
             self.buildArgBox(opinfo['name'], opinfo['arguments'])
         else:
             self.catvar.set('')
             self.opvar.set('')
-            self.e4.set('')
+            self.softwareselect.set(self.softwareLoader.get_preferred_name())
             self.newsoftware(None)
             self.optocall = None
             self.buildArgBox(None, [])
@@ -1049,7 +1057,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     def apply(self):
         self.cancelled = False
         self.optocall = self.e1.get()
-        self.softwaretouse = Software(self.e4.get(), self.e5.get())
+        self.softwaretouse = Software(self.softwareselect.get(), self.versionselect.get())
         if self.softwareLoader.add(self.softwaretouse ):
             self.softwareLoader.save()
 
