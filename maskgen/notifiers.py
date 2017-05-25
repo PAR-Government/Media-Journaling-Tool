@@ -39,8 +39,9 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
             return str(errors)
 
 
-def loadNotifier(loader):
+def getNotifier(loader):
     """
+    Get notifiers attached to entry point maskgen_notifiers
     :param loader:
     :return:
     @type loader: MaskGenLoader
