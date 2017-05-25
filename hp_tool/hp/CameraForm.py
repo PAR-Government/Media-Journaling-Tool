@@ -42,9 +42,11 @@ class HP_Device_Form(Toplevel):
         Label(self.f.interior, text='Add a new HP Device', font=('bold underline', 25)).pack()
         Label(self.f.interior, text='Once complete, the new camera will be added automatically, and a notification card will be posted to trello.', wraplength=400).pack()
 
-        Label(self.f.interior, text='Example Image', font=('bold', 20)).pack()
-        Label(self.f.interior, text='This is required. Once exif data is loaded, you may continue to complete the form.', wraplength=400).pack()
-        self.imageButton = Button(self.f.interior, text='Select Image', command=self.populate_from_image)
+        Label(self.f.interior, text='Sample File', font=('bold', 18)).pack()
+        Label(self.f.interior, text='This is required. Select an image/video/audio file. Once metadata is loaded from it, you may continue to complete the form.'
+                                    ' Some devices can have multiple make/model configurations for images vs. video, or for apps. In this instances, submit this '
+                                    'form as normal, and then go to File->Update a Device on the main GUI.', wraplength=400).pack()
+        self.imageButton = Button(self.f.interior, text='Select File', command=self.populate_from_image)
         self.imageButton.pack()
 
         head = [('Media Type*', {'description': 'Select the type of media contained in the sample file (Image, Video, Audio)',
