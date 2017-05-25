@@ -367,23 +367,6 @@ class Update_Form(Toplevel):
             col+=1
         for configuration in self.device_data['exif']:
             self.add_config(configuration=configuration)
-            # col = 0
-            # self.row += 1
-            # stringvars = {'exif_camera_make':StringVar(), 'exif_camera_model':StringVar(), 'hp_app':StringVar(), 'media_type':StringVar()}
-            # Label(self.f.interior, text='Config: ' + str(self.config_count+1)).grid(row=self.row, column=col)
-            # col+=1
-            # for k, v in stringvars.iteritems():
-            #     e = Entry(self.f.interior, textvar=v)
-            #     if configuration[k] is None:
-            #         v.set('')
-            #     else:
-            #         v.set(configuration[k])
-            #     e.grid(row=self.row, column=col)
-            #     e.config(state=DISABLED)
-            #     self.configurations[k].append(v)
-            #     col+=1
-            # self.config_count+=1
-            # b = Button(self.f.interior, text='X', command=lambda: self.delete_config(stringvars))
 
         ok = Button(self.buttonsFrame, text='Ok', command=self.go, width=20, bg='green')
         ok.pack()
