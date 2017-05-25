@@ -1,11 +1,13 @@
 import argparse
+import matplotlib
+matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
+from software_loader import  loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -16,7 +18,7 @@ from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
 from CompositeViewer import CompositeViewDialog
-from notifiers import  loadNotifier
+from notifiers import  getNotifier
 import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 
@@ -54,9 +56,6 @@ def fromFileTypeString(types, profileTypes):
 
 
 class UIProfile:
-    operations = 'operations.json'
-    software = 'software.csv'
-    projectProperties = 'project_properties.json'
     name = 'Image/Video'
 
     def getFactory(self):
@@ -94,7 +93,7 @@ class MakeGenUI(Frame):
     errorlistDialog = None
     exportErrorlistDialog = None
     uiProfile = UIProfile()
-    notifiers = loadNotifier(prefLoader)
+    notifiers = getNotifier(prefLoader)
     menuindices = {}
     scModel = None
     """
@@ -161,7 +160,8 @@ class MakeGenUI(Frame):
         if (val != None and len(val) > 0):
             self.updateFileTypes(val[0])
             try:
-                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in val])
+                totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
+                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError:
                 tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
@@ -559,10 +559,6 @@ class MakeGenUI(Frame):
             try:
                 loadS3([val])
                 self.prefLoader.save('s3info', val)
-                loadOperations(self.uiProfile.operations)
-                loadSoftware(self.uiProfile.software)
-                loadProjectProperties(self.uiProfile.projectProperties)
-                graph_rules.setup()
             except ClientError as e:
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
@@ -634,6 +630,20 @@ class MakeGenUI(Frame):
     def renametobase(self):
         self.scModel.renametobase()
         self._setTitle()
+
+    def systemcheck(self):
+        errors = [video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+                  graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+                  self.notifiers.check_status()]
+        error_count = 0
+        for error in errors:
+            if error is not None:
+                logging.getLogger('maskgen').error(error)
+                error_count += 1
+        logging.getLogger('maskgen').info('System check complete')
+        if error_count > 0:
+           tkMessageBox.showinfo("System Check", " ".join([error for error in errors if error is not None]))
+        return error_count == 0
 
     def viewdonor(self):
         im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
@@ -799,6 +809,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_cascade(label="Properties", command=self.getproperties)
         filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
+        filemenu.add_cascade(label="System Check", command=self.systemcheck)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)
@@ -1002,6 +1013,7 @@ class MakeGenUI(Frame):
             self.getproperties()
 
 
+
 def saveme(saver=None):
     """
 
@@ -1027,6 +1039,7 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--imagedir', help='image directory', required=False)
+    parser.add_argument('--test',action='store_true', help='For testing')
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
     parser.add_argument('--http', help="http address and header params", nargs='+')
@@ -1036,21 +1049,29 @@ def main(argv=None):
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
     set_logging()
+
     if args.imagedir is not None:
         imgdir = args.imagedir
     if args.http is not None:
         loadHTTP(args.http)
     elif args.s3 is not None:
         loadS3(args.s3)
-    loadOperations(uiProfile.operations)
-    loadSoftware(uiProfile.software)
-    loadProjectProperties(uiProfile.projectProperties)
-    loadAnalytics()
-    root = Tk()
 
+    operations = 'operations.json'
+    software = 'software.csv'
+    projectProperties = 'project_properties.json'
+    loadOperations(operations)
+    loadSoftware(software)
+    loadProjectProperties(projectProperties)
+    graph_rules.setup()
+    root = Tk()
     prefLoader = MaskGenLoader()
     gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
                     base=args.base if args.base is not None else None, uiProfile=uiProfile)
+    if args.test:
+        if not gui.systemcheck():
+            sys.exit(1)
+        return
     root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':

@@ -131,6 +131,23 @@ def get_journal(url, apitoken):
        logging.getLogger('maskgen').error(str(e))
     return url
 
+
+def test_api(apitoken, url):
+    import requests
+    if url is None:
+        return "External Service URL undefined"
+    try:
+        url = url[:-1] if url.endswith('/') else url
+        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+        url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
+        data = '{ "file_name": {"type": "contains", "value": "' + 'test' + '" }}'
+        response = requests.post(url, data=data, headers=headers)
+        if response.status_code != requests.codes.ok:
+            return "Error calling external service: " + url
+    except Exception as e:
+        return "Error calling external service: " + url
+    return None
+
 def get_fields(filename, apitoken, url):
     import requests
     import json
@@ -141,12 +158,12 @@ def get_fields(filename, apitoken, url):
         url = url[:-1] if url.endswith('/') else url
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type':'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
-        data = '{ "file_name": {"type": "contains", "value": "' + filename + '" }}'
+        data = '{ "file_name": {"type": "exact", "value": "' + filename + '" }}'
         logging.getLogger('maskgen').info( 'checking external service APIs for ' + filename)
         response = requests.post(url, data=data,headers=headers)
         if response.status_code == requests.codes.ok:
             r = json.loads(response.content)
-            if 'count' in r and r['count'] > 0:
+            if 'results' in r:
                 result = []
                 for item in r['results']:
                     info = {}
@@ -425,6 +442,17 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+def check_pastemask(graph,frm, to):
+    edge = graph.get_edge(frm, to)
+    if 'arguments' in edge and edge['arguments'] is not None and 'pastemask' in edge['arguments']:
+        from_img, from_file = graph.get_image(frm)
+        file = os.path.join(graph.dir, edge['arguments']['pastemask'])
+        if not os.path.exists(file):
+            return 'Pastemask file is missing'
+        pasteim = openImageFile(file)
+        if pasteim.size != from_img.size:
+            return 'Pastemask image does not match the size of the source image'
+    return None
 
 def check_local_warn(graph, frm, to):
     edge = graph.get_edge(frm,to)
@@ -960,14 +988,3 @@ def getNodeSummary(scModel, node_id):
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
 
-# RULES FOR COMPOSITES AND DONORS
-
-def seamCarvingAlterations(edge, transform_matrix, edgeMask):
-    if edge['op'] == 'TransformSeamCarving':
-        size_changes = _getSizeChange(edge)
-        matchx =  size_changes[0] == 0
-        matchy =  size_changes[1] == 0
-        if (not matchx and not matchy) or ( matchx and matchy):
-            return False, transform_matrix, edgeMask
-        return True, None, edgeMask #ImageWrapper(edgeMask).invert().to_array()
-    return False, transform_matrix,edgeMask

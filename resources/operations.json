@@ -2752,7 +2752,8 @@
         "checkSIFT",
         "checkForDonorWithRegion",
         "checkFileTypeChange",
-        "check_local"
+        "check_local",
+        "check_pastemask"
       ],
       "optionalparameters": {
          "pastemask": {
@@ -3485,7 +3486,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3515,7 +3517,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3527,11 +3530,25 @@
              "5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "Transform Selection": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "None",
+             "Skip"
+           ],
+           "description": "Instructions for missing transforms during composite mask generation"
+        },
+        "Match Count": {
+          "type": "int[0:1000]",
+           "description": "Number of feature matches for RANSAC"
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.cas_transform",
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false,
       "transitions": [
@@ -3553,6 +3570,9 @@
           "description": "Tuple in form of (x,y) describing the upper left crop corner."
         }
       },
+      "compareparameters" : {
+         "function" :"maskgen.tool_set.cropCompare"
+      },
       "analysisOperations": [
         "maskgen.tool_set.globalTransformAnalysis"
       ],
@@ -3571,7 +3591,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3615,7 +3636,8 @@
       },
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3646,7 +3668,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "checkInputMask"
+        "checkInputMask",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3694,7 +3717,8 @@
       },
       "rules": [
         "checkFileTypeChange",
-        "checkResizeInterpolation"
+        "checkResizeInterpolation",
+        "check_local_warn"
       ],
       "optionalparameters": {
          "inputmaskname": {
@@ -3734,7 +3758,8 @@
         }
       },
       "rules": [
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3754,6 +3779,7 @@
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false,
+      "maskTransformFunction": "maskgen.mask_rules.rotate_transform",
       "transitions": [
         "image.image",
         "video.video"
@@ -3765,7 +3791,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "RANSAC": {
@@ -3807,12 +3834,29 @@
              "4",
              "5"
            ],
-           "description": "Tune transform creation for composite mask generation"
+           "description": "Tune transform during composite mask generation"
+        },
+        "Transform Selection": {
+          "type": "list",
+          "source": "image",
+           "values": [
+             "None",
+             "Skip"
+           ],
+           "description": "Instructions for missing transforms during composite mask generation"
+        },
+        "Match Count": {
+          "type": "int[0:1000]",
+           "description": "Number of feature matches for RANSAC"
         }
+      },
+      "compareparameters" : {
+         "function" :"maskgen.tool_set.seamCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": "maskgen.mask_rules.seam_transform",
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
       "transitions": [
@@ -3860,7 +3904,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3895,7 +3940,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {

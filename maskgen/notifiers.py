@@ -9,6 +9,9 @@ class MaskgenNotifer:
     def get_properties(self):
         return {}
 
+    def check_status(self):
+        pass
+
 class CompositeMaskgenNotifer(MaskgenNotifer):
 
     notifiers = []
@@ -26,8 +29,19 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
                 r[k] = v
         return r
 
-def loadNotifier(loader):
+    def check_status(self):
+        errors = []
+        for notifier in self.notifiers:
+            error = notifier.check_status()
+            if error is not None:
+                errors.append()
+        if len(errors) > 0:
+            return str(errors)
+
+
+def getNotifier(loader):
     """
+    Get notifiers attached to entry point maskgen_notifiers
     :param loader:
     :return:
     @type loader: MaskGenLoader

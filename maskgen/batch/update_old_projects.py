@@ -535,10 +535,6 @@ def main():
         files_to_process = input_file.readlines()
     files_to_process = [x.strip() for x in files_to_process]
 
-    ops = loadOperations("operations.json")
-    soft = loadSoftware("software.csv")
-    loadProjectProperties("project_properties.json")
-    loadPlugins()
 
     count = 1
     total = len(files_to_process)
