@@ -84,12 +84,8 @@ class HP_Starter(Frame):
         if self.camModel.get() == '':
             yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
             if yes:
-                v = StringVar()
-                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
-                h.wait_window()
-                if v.get():
-                    r = self.master.add_device(v.get())
-                    self.update_model()
+                self.master.open_form()
+                self.update_model()
             return
 
         globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
@@ -570,9 +566,14 @@ class HPGUI(Frame):
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        token = self.settings.get('trello')
+        if self.settings.get('trello') in (None, ''):
+            tkMessageBox.showerror(title='Error', message='Trello login is required to use this feature. Enter this in settings.')
+            return
+        elif self.settings.get('apitoken') in (None, ''):
+            tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
+            return
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=token, browser=self.settings.get('apitoken'))
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
         h.wait_window()
         if new_device.get():
             r = self.add_device(new_device.get())
