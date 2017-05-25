@@ -451,8 +451,10 @@ class Update_Form(Toplevel):
                                   params=dict(key=trello_key, token=self.trello),
                                   data=dict(value=member_id))
             tkMessageBox.showinfo(title='Information', message='Complete!', parent=self)
+            self.destroy()
         else:
-            tkMessageBox.showerror(title='Error', message='An error occurred connecting to trello (' + str(resp.status_code) + ').')
+            tkMessageBox.showerror(title='Error', message='An error occurred connecting to trello (' + str(resp.status_code) + '). The device was still updated.')
+            self.destroy()
 
     def show_help(self):
         tkMessageBox.showinfo(title='Instructions',
