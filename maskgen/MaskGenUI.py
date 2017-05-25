@@ -1063,6 +1063,7 @@ def main(argv=None):
     loadOperations(operations)
     loadSoftware(software)
     loadProjectProperties(projectProperties)
+    loadAnalytics()
     graph_rules.setup()
     root = Tk()
     prefLoader = MaskGenLoader()
