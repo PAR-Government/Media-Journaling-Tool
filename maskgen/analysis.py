@@ -35,10 +35,8 @@ def ela(i):
     import os
     tmp = 't' + str(time.clock()) + '.jpg'
     Image.fromarray(i.image_array).save(tmp,'JPEG', quality=95)
-    with open(tmp,'r') as f:
-        i_qa = Image.open(f)
+    with Image.open(tmp,'r') as i_qa:
         i_qa_array = np.asarray(i_qa)
-        i_qa.load()
     os.remove(tmp)
     ela_im = i.image_array - i_qa_array
     maxdiff = np.max(ela_im)
