@@ -20,6 +20,7 @@ from graph_output import ImageGraphPainter
 from CompositeViewer import CompositeViewDialog
 from notifiers import  getNotifier
 import logging
+from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 
 """
   Main UI Driver for MaskGen
@@ -397,6 +398,10 @@ class MakeGenUI(Frame):
                 self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
+
+    def imageanalysis(self):
+        d = AnalsisViewDialog(self, 'Final Image Analysis', self.scModel,nodes=[self.scModel.start])
+
     def nextauto(self):
         destination = self.scModel.scanNextImageUnConnectedImage()
         if destination is None:
@@ -538,6 +543,9 @@ class MakeGenUI(Frame):
             self.errorlistDialog = None
         if window == self.exportErrorlistDialog:
             self.exportErrorlistDialog = None
+
+    def finalimageanalysis(self):
+        d = AnalsisViewDialog(self,'Final Image Analysis',self.scModel)
 
     def cloneinputmask(self):
         self.scModel.fixInputMasks()
@@ -834,6 +842,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="QA...", command=self.startQA)
         validationmenu.add_command(label="View Comments", command=self.comments)
         validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
+        validationmenu.add_command(label="Final Image Analysis", command=self.finalimageanalysis)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
@@ -899,6 +908,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
         self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
         self.nodemenu.add_command(label="Compress", command=self.compress)
+        self.nodemenu.add_command(label="Analyze", command=self.imageanalysis)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
@@ -1053,6 +1063,7 @@ def main(argv=None):
     loadOperations(operations)
     loadSoftware(software)
     loadProjectProperties(projectProperties)
+    loadAnalytics()
     graph_rules.setup()
     root = Tk()
     prefLoader = MaskGenLoader()

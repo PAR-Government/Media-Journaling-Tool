@@ -1548,6 +1548,7 @@ class ImageProjectModel:
                     len(edge['inputmaskname']) > 0 and \
                     edge['recordMaskInComposite'] == 'yes':
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
+
                 if not os.path.exists(fullpath):
                     raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
                 #invert because these masks are white=Keep(unchanged), Black=Remove (changed)
@@ -2210,6 +2211,14 @@ class ImageProjectModel:
             self.__assignLabel(destination, 'interim')
         elif 'nodetype' not in self.G.get_node(destination):
             self.__assignLabel(destination, 'base')
+
+    def finalNodes(self):
+        final = []
+        for name in self.getNodeNames():
+            node = self.G.get_node(name)
+            if node['nodetype'] == 'final':
+                final.append(name)
+        return final
 
     def _findTerminalNodes(self, node, excludeDonor=False,includeOps=None):
         terminalsWithOps =  self._findTerminalNodesWithCycleDetection(node, visitSet=list(),excludeDonor=excludeDonor)
