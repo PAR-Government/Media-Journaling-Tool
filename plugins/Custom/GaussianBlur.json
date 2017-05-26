@@ -1,8 +1,8 @@
 {
     "name": "GaussianBlur",
     "operation": {
-      "name": "AdditionalEffectFilterBlur",
-      "category": "AdditionalEffect",
+      "name": "Blur",
+      "category": "Filter",
       "description": "Automatically apply a motion blur with the given radius and sigma value. (https://www.imagemagick.org/script/command-line-options.php#blur)",
       "software": "ImageMagick",
       "version": "7.0",
@@ -16,6 +16,11 @@
           "type": "string",
           "defaultvalue": null,
           "description": "Blur specifications."
+        },
+        "Blur Type": {
+              "type": "text",
+              "defaultvalue": "Gaussian",
+              "description": ""
         }
       },
       "transitions": ["image.image"]

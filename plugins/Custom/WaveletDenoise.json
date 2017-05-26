@@ -1,8 +1,8 @@
 {
     "name": "WaveletDenoise",
     "operation": {
-      "name": "AdditionalEffectFilterSmoothing",
-      "category": "AdditionalEffect",
+      "name": "Blur",
+      "category": "Filter",
       "description": "Removes Noise from an image using the Wavelet specification. (https://www.imagemagick.org/script/command-line-options.php#wavelet-denoise)",
       "software": "ImageMagick",
       "version": "7.0",
@@ -11,7 +11,12 @@
           "type": "string",
           "defaultvalue": null,
           "description": "Wavelet threshold."
-        }
+        },
+          "Blur Type": {
+              "type": "text",
+              "defaultvalue": "Smooth",
+              "description": ""
+            }
       },
       "transitions": ["image.image"]
     },

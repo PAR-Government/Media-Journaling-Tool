@@ -1,7 +1,7 @@
 {
     "name": "Level Correction",
     "operation": {
-      "name": "IntensityNormalization",
+      "name": "Levels",
       "category": "Intensity",
       "description": "Adjust the level of image channels (https://www.imagemagick.org/script/command-line-options.php#level)",
       "software": "ImageMagick",

@@ -49,6 +49,9 @@ def updateJournal(scModel):
     if "0.4.0308.db2133eadc" not in upgrades:
         _fixFileArgs(scModel)
         upgrades.append('0.4.0308.db2133eadc')
+   # if "0.4.0425.d3bc2f59e1" not in upgrades:
+        # _pasteSpliceBlend(scModel)
+        #upgrades.append('0.4.0425.d3bc2f59e1')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -58,6 +61,26 @@ def _fixValidationTime(scModel):
     validationdate = scModel.getProjectData('validationdate')
     if validationdate is not None and len(validationdate) > 0:
         scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
+
+def _pasteSpliceBlend(scModel):
+    import copy
+    from group_filter import GroupFilterLoader
+    gfl = GroupFilterLoader()
+    scModel.G.addEdgeFilePath('arguments.Final Image', 'inputmaskownership')
+    grp = gfl.etGroup('PasteSpliceBlend')
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'pastemask'  in edge and edge['pastemask'] is not None:
+            args = copy.copy(edge['arguments'])
+            args['inputmaskname'] = os.path.joint(scModel.get_dir(),os.path.split(args['pastemask'])[1])
+            args['Final Image'] = os.path.joint(scModel.get_dir(),scModel.G.get_node(to)['file'])
+            donors = [pred for pred in scModel.G.predecessors() if pred != frm]
+            if len(donors) > 0:
+                args['donor'] = donors[0]
+            args['sendNotifications'] = False
+            mod = scModel.getModificationForEdge(frm,to,edge)
+            scModel.imageFromGroup(grp, software=mod.software, **args)
+
 
 def _fixLabels(scModel):
     for node in scModel.getNodeNames():

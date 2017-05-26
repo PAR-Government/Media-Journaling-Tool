@@ -397,43 +397,7 @@
     },
     {
       "category": "AdditionalEffect",
-      "name": "AdditionalEffectAddLightSource",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectFading",
+      "name": "Fading",
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
@@ -463,13 +427,12 @@
       "description": "Decrease opacity of an image or a layer.",
       "includeInMask": false,
       "transitions": [
-        "image.image",
         "video.video"
       ]
     },
     {
       "category": "AdditionalEffect",
-      "name": "AdditionalEffectMosaic",
+      "name": "Mosaic",
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
@@ -512,7 +475,7 @@
     },
     {
       "category": "AdditionalEffect",
-      "name": "AdditionalEffectReduceInterlaceFlicker",
+      "name": "ReduceInterlaceFlicker",
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
@@ -544,8 +507,8 @@
       ]
     },
     {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectFilterAddNoise",
+      "category": "Filter",
+      "name": "AddNoise",
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
@@ -555,6 +518,11 @@
         "End Time": {
           "type": "time",
           "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Noise Type": {
+          "type" : "list",
+          "values" : ["salt-pepper", "shot", "uniform", "random", "gaussian", "periodic", "other" ],
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -579,8 +547,8 @@
       ]
     },
     {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectFilterBlur",
+      "category": "Filter",
+      "name": "Blur",
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
@@ -591,6 +559,15 @@
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Blur Type": {
+          "type": "list",
+          "values" : ["Smooth", "Wavelet Denoise", "Median", "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion (Image)", "Other"],
+          "description" : "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
+        },
+        "Laundering": {
+          "type": "yesno",
+          "description": "Is the intent to launder the image or a simply smoothing."
         }
       },
       "rules": [
@@ -616,7 +593,7 @@
     },
     {
       "category": "AdditionalEffect",
-      "name": "AdditionalEffectWarpStabilize",
+      "name": "WarpStabilize",
       "mandatoryparameters": {
          "result" : {
            "type": "list",
@@ -662,48 +639,8 @@
       ]
     },
     {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectFilterMedianSmoothing",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "Laundering": {
-          "type": "yesno",
-          "description": "Is the intent to launder the image or a simply smoothing."
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Execute a nonlinear digital filtering technique, often used to remove noise while preserving edges.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectFilterSharpening",
+      "category": "Filter",
+      "name": "Sharpening",
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
@@ -739,114 +676,7 @@
     },
     {
       "category": "AdditionalEffect",
-      "name": "AdditionalEffectFilterSmoothing",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Smooth textures while preserving edge detail.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectGradientEffect",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Apply a filter for scaling intensity.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectSoftEdgeBrushing",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Use a brush tool with a variable feathered edge.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "AdditionalEffect",
-      "name": "AdditionalEffectAddTransitions",
+      "name": "AddTransitions",
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
@@ -1099,18 +929,31 @@
       ]
     },
     {
-      "category": "ArtifactsCGI",
-      "name": "ArtifactsCGIArtificialLighting",
-      "mandatoryparameters": {},
+      "category": "CGI",
+      "name": "ArtificialLighting",
+      "mandatoryparameters": {
+            "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
+        "checkFrameTimes",
         "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
+          "source": "image",
           "description": "An image file containing a mask describing the areas affected."
         }
       },
@@ -1123,8 +966,8 @@
       ]
     },
     {
-      "category": "ArtifactsCGI",
-      "name": "ArtifactsCGIArtificialReflection",
+      "category": "CGI",
+      "name": "ArtificialReflection",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
@@ -1147,8 +990,8 @@
       ]
     },
     {
-      "category": "ArtifactsCGI",
-      "name": "ArtifactsCGIArtificialShadow",
+      "category": "CGI",
+      "name": "ArtificialShadow",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
@@ -1171,8 +1014,8 @@
       ]
     },
     {
-      "category": "ArtifactsCGI",
-      "name": "ArtifactsCGIObjectCGI",
+      "category": "CGI",
+      "name": "ObjectCGI",
       "mandatoryparameters": {
          "file:image": {
           "type": "file:image",
@@ -1407,13 +1250,29 @@
       ]
     },
     {
-      "category": "Color",
-      "name": "ColorFill",
-      "mandatoryparameters": {},
+      "category": "CGI",
+      "name": "CGIFill",
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "fill category": {
+          "type": "list",
+          "values" : ["uniform color", "pattern", "paint brush"]
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
+        "checkFrameTimes",
         "check_local_warn"
       ],
       "optionalparameters": {
@@ -1430,10 +1289,55 @@
         "video.video"
       ]
     },
+     {
+      "category": "CGI",
+      "name": "Paint Brush",
+      "mandatoryparameters": {
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "fill category": {
+          "type": "list",
+          "values" : ["uniform color", "pattern"]
+        }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "check_local_warn"
+      ],
+      "optionalparameters": {
+        "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the areas affected."
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Use a brush to append pixel values within a given diameter.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
     {
       "category": "Color",
-      "name": "ColorHue",
-      "mandatoryparameters": {},
+      "name": "Hue",
+      "mandatoryparameters": {
+        "Source" : {
+          "type": "list",
+          "values" : ["self","other"]
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1456,58 +1360,14 @@
     },
     {
       "category": "Color",
-      "name": "ColorMatch",
+      "name": "Saturation",
       "mandatoryparameters": {
-         "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
+        "direction" : {
+          "type":"list",
+          "values" : ["increase", "decrease"],
+          "description":"intent of saturation alteration"
         }
       },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Use a tool to paint an area with the same color values as a selected donor area.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-
-    {
-      "category": "Color",
-      "name": "ColorReplace",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Create a selection based on hue that is then painted over with another color value.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Color",
-      "name": "ColorSaturation",
-      "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1530,8 +1390,14 @@
     },
     {
       "category": "Color",
-      "name": "ColorVibranceContentBoosting",
-      "mandatoryparameters": {},
+      "name": "Vibrance",
+      "mandatoryparameters": {
+        "direction": {
+          "type":"list",
+          "values": ["increase","decrease"],
+          "description" : ""
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1545,7 +1411,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Increase intensity of muted colors.",
+      "description": "Visually change brightness and saturation",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -1553,32 +1419,8 @@
       ]
     },
     {
-      "category": "Color",
-      "name": "ColorVibranceReduction",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Reduce intensity of muted colors.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Creation",
-      "name": "CreationFilterGT",
+      "category": "Filter",
+      "name": "CreativeFilter",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
@@ -1592,7 +1434,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Create an object not originally in the image",
+      "description": "Filter to alter visual impact of the image.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -1600,44 +1442,8 @@
       ]
     },
     {
-      "category": "Fill",
-      "name": "FillBackground",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Apply an adjustment to a selection of non foreground objects.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillContentAwareFill",
+      "category": "Paste",
+      "name": "ContentAwareFill",
       "mandatoryparameters": {
         "purpose": {
           "type": "list",
@@ -1685,44 +1491,8 @@
       ]
     },
     {
-      "category": "Fill",
-      "name": "FillForeground",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Apply an adjustment to a selection of specified foreground objects.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillGradient",
+      "category": "CGI",
+      "name": "Gradient",
       "mandatoryparameters": {
          "Start Time": {
           "type": "time",
@@ -1750,103 +1520,6 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillLocalRetouching",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Create adjustments within a localized selection. Replaced with PasteSampled",
-      "includeInMask": false,
-      "hidden" : true,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillPaintBrushTool",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Use a brush to append pixel values within a given diameter.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillPaintBucket",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Apply a paintbucket to uniformly fill a given selection.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Fill",
-      "name": "FillPattern",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Use a specified selection pattern to uniformly fill an area.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -1933,7 +1606,7 @@
     },
     {
       "category": "Filter",
-      "name": "FilterBlurMotion",
+      "name": "MotionBlur",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -1951,37 +1624,12 @@
       "description": "Modify an image or image selection to create the illusion of motion.",
       "includeInMask": false,
       "transitions": [
-        "image.image",
         "video.video"
       ]
     },
     {
       "category": "Filter",
-      "name": "FilterBlurNoise",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Modify an image or image selection to create the illusion of Camera Noise.",
-      "includeInMask": true,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Filter",
-      "name": "FilterCameraRawFilter",
+      "name": "CameraRawFilter",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -1992,6 +1640,10 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file recording meta-data."
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -2004,7 +1656,7 @@
     },
     {
       "category": "Filter",
-      "name": "FilterColorLUT",
+      "name": "ColorLUT",
       "mandatoryparameters": {},
       "rules": [],
       "optionalparameters": {
@@ -2035,64 +1687,7 @@
     },
     {
       "category": "Intensity",
-      "name": "IntensityBrightness",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {},
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Shift midtone luminance values on a histogram to higher or lower values.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityBurn",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {},
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Local adjustment, making the area darker.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityDodge",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {},
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Local adjustment, making the area brighter.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityNormalization",
+      "name": "Normalization",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2121,7 +1716,7 @@
     },
     {
       "category": "Intensity",
-      "name": "IntensityContrast",
+      "name": "Contrast",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2140,7 +1735,7 @@
     },
     {
       "category": "Intensity",
-      "name": "IntensityCurves",
+      "name": "Curves",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2159,51 +1754,14 @@
     },
     {
       "category": "Intensity",
-      "name": "IntensityDarken",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {},
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Shift lower luminance values on a histogram to a higher or lower values.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityDesaturate",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
+      "name": "Exposure",
+      "mandatoryparameters": {
+        "direction" : {
+          "type": "list",
+          "values" : ["increase","decrease"],
+          "description": "Shift midtone luminance in the desired direction"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Reduce the given intensity of colors.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityExposure",
-      "mandatoryparameters": {},
       "rules": [
         "checkSize",
         "checkLengthSame",
@@ -2226,31 +1784,7 @@
     },
     {
       "category": "Intensity",
-      "name": "IntensityHighlight",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Change the high values of a luminance histogram.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityLevels",
+      "name": "Levels",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2274,31 +1808,7 @@
     },
     {
       "category": "Intensity",
-      "name": "IntensityLighten",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Alter the luminance of an image or selection.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Intensity",
-      "name": "IntensityLuminosity",
+      "name": "Luminosity",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2321,8 +1831,8 @@
       ]
     },
     {
-      "category": "Markup",
-      "name": "MarkupDigitalPenDraw",
+      "category": "CGI",
+      "name": "DigitalPenDraw",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2352,8 +1862,8 @@
       ]
     },
     {
-      "category": "Markup",
-      "name": "MarkupHandwriting",
+      "category": "CGI",
+      "name": "Handwriting",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2383,8 +1893,8 @@
       ]
     },
     {
-      "category": "Markup",
-      "name": "MarkupOverlayObject",
+      "category": "CGI",
+      "name": "OverlayObject",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -2414,8 +1924,8 @@
       ]
     },
     {
-      "category": "Markup",
-      "name": "MarkupOverlayText",
+      "category": "CGI",
+      "name": "OverlayText",
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
@@ -3187,7 +2697,7 @@
       },
       "maskTransformFunction": "maskgen.mask_rules.select_remove",
       "description": "Remove a limited selection within an image.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image"
       ]
