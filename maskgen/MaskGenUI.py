@@ -1021,7 +1021,6 @@ def main(argv=None):
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
-    set_logging()
 
     if args.imagedir is not None:
         imgdir = args.imagedir

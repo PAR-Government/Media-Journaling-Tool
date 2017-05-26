@@ -210,7 +210,7 @@ class GroupFilterLoader:
             for k, v in newset.iteritems():
                 if len(v) > 0:
                     self.groups[k] = GroupFilter(k, v)
-        for k,v in getFilters().iteritems():
+        for k,v in getFilters(self.getLoaderKey()).iteritems():
             if len(v) > 0:
                 self.groups[k] = GroupFilter(k, v)
 

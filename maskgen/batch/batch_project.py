@@ -590,7 +590,6 @@ def main():
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
         return
-    tool_set.set_logging()
     loadCustomFunctions()
     batchProject =getBatch(args.json, loglevel=args.loglevel)
     picklists_files = {}

@@ -352,8 +352,6 @@ def main():
 
     args = parser.parse_args()
 
-    maskgen.tool_set.set_logging()
-
     props = parse_properties(args.sourceDir, args.endDir, args.plugin, projectdescription=args.projectDescription,
                              technicalsummary=args.technicalSummary, username=args.username, organization=args.organization,
                              manipulationcategory=args.manipulationCategory, semanticrestaging=args.semanticRestaging,

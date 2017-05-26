@@ -250,9 +250,12 @@ def getProjectProperties():
 def getSemanticGroups():
     return [prop.description for prop in getProjectProperties() if prop.semanticgroup]
 
-def getFilters():
+def getFilters(filtertype):
     global metadataLoader
-    return metadataLoader.filters
+    if filtertype == 'filtergroups':
+        return metadataLoader.filters
+    else:
+        return {}
 
 
 class MetaDataLoader:
