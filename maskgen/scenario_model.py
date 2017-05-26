@@ -11,7 +11,7 @@ import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
-from group_filter import getOperationWithGroups
+from group_filter import getOperationWithGroups, buildFilterOperation
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
@@ -19,6 +19,7 @@ import collections
 from threading import Lock
 import mask_rules
 from maskgen.image_graph import ImageGraph
+import copy
 
 def formatStat(val):
    if type(val) == float:
@@ -26,6 +27,7 @@ def formatStat(val):
    return str(val)
 
 prefLoader = MaskGenLoader()
+
 
 def imageProjectModelFactory(name, **kwargs):
     return ImageProjectModel(name, **kwargs)
@@ -1440,7 +1442,6 @@ class ImageProjectModel:
         @type replacementEdgeMask: ImageWrapper
         @rtype ImageWrapper
         """
-        import copy
         edge = self.G.get_edge(self.start, self.end)
         if len(override_args)> 0 and edge is not None:
             edge = copy.deepcopy(edge)
@@ -1740,7 +1741,9 @@ class ImageProjectModel:
         :return:
         """
         if len(arguments) > 0 and opName != 'node':
-            op = getOperationWithGroups(opName, fake=True)
+            self.__addEdgeFilePaths(getOperationWithGroups(opName, fake=True))
+
+    def __addEdgeFilePaths(self,op):
             for k,v in op.mandatoryparameters.iteritems():
                 if k =='inputmaskname':
                     continue
@@ -2306,7 +2309,18 @@ class ImageProjectModel:
                 pairs.append((startNode, baseNode))
         return pairs
 
-    def imageFromPlugin(self, filter, im, filename, **kwargs):
+    def imageFromGroup(self, grp, software=None, **kwargs):
+        pairs_composite = []
+        resultmsg = ''
+        for filter in grp.filters:
+            msg, pairs = self.imageFromPlugin(filter, software=software,
+                                                      **kwargs)
+            if msg is not None:
+                resultmsg += msg
+            pairs_composite.extend(pairs)
+        return resultmsg, pairs_composite
+
+    def imageFromPlugin(self, filter, software=None, **kwargs):
         """
           Create a new image from a plugin filter.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2325,11 +2339,13 @@ class ImageProjectModel:
           @type filename: str
           @rtype: list of (str, list (str,str))
         """
+        im, filename = self.currentImage()
         op = plugins.getOperation(filter)
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
         preferred = plugins.getPreferredSuffix(filter)
-        resolved,donors = self._resolvePluginValues(kwargs,op)
+        fullOp = buildFilterOperation(op)
+        resolved,donors,graph_args = self._resolvePluginValues(kwargs,fullOp)
         if preferred is not None:
             if preferred in donors:
                 suffix = os.path.splitext(resolved[preferred])[1].lower()
@@ -2338,6 +2354,8 @@ class ImageProjectModel:
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(self.start, suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
+
+        self.__addEdgeFilePaths(fullOp)
         try:
             extra_args,warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
@@ -2345,15 +2363,21 @@ class ImageProjectModel:
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
+        if extra_args is not None and 'rename_target' in extra_args:
+            filename = extra_args.pop('rename_target')
+            newtarget = os.path.join(os.path.split(target)[0],os.path.split(filename)[1])
+            shutil.copy2(target, newtarget)
+            target = newtarget
         description = Modification(op['name'], filter + ':' + op['description'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
-        software = Software(op['software'], op['version'], internal=True)
+        if software is None:
+            software = Software(op['software'], op['version'], internal=True)
         if 'recordInCompositeMask' in kwargs:
             description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
         experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
         description.setArguments(
-            {k: v for k, v in kwargs.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
+            {k: v for k, v in graph_args.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
         if extra_args is not None and type(extra_args) == type({}):
              for k,v in extra_args.iteritems():
                  if k not in kwargs:
@@ -2386,22 +2410,26 @@ class ImageProjectModel:
         return self._pluginError(filter, msg), pairs
 
     def _resolvePluginValues(self, args, operation):
-        result = {}
+        parameters = {}
+        stripped_args ={}
         donors = []
+        arguments = copy.copy(operation.mandatoryparameters)
+        arguments.update(operation.optionalparameters)
         for k, v in args.iteritems():
-            result[k] = v
-        if ('arguments' in operation and \
-                        operation['arguments'] is not None):
-            for k, v in args.iteritems():
-                if k in operation['arguments'] and \
-                            operation['arguments'][k]['type'] == 'donor':
-                    result[k] = self.getImageAndName(v)[1]
-                    donors.append(k)
-            for arg, info in operation['arguments'].iteritems():
-                if arg not in result and 'defaultvalue' in info and \
+            if k in arguments or k in {'sendNotifications', 'skipRules', 'experiment_id', 'recordInCompositeMask'}:
+                parameters[k] = v
+                #if arguments[k]['type'] != 'donor':
+                stripped_args[k] = v
+        for k, v in args.iteritems():
+            if k in arguments and \
+                arguments[k]['type'] == 'donor':
+                   parameters[k] = self.getImageAndName(v)[1]
+                   donors.append(k)
+        for arg, info in arguments.iteritems():
+            if arg not in parameters and 'defaultvalue' in info and \
                         info['defaultvalue'] is not None:
-                    result[arg] = info['defaultvalue']
-        return result, donors
+                parameters[arg] = info['defaultvalue']
+        return parameters, donors, stripped_args
 
     def _pluginError(self, filter, msg):
         if msg is not None and len(msg) > 0:

@@ -11,7 +11,6 @@ import tempfile
 from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
 from maskgen.group_operations import CopyCompressionAndExifGroupOperation
-from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
 from maskgen.plugins import loadPlugins
 import hashlib
 import shutil

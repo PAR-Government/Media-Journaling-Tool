@@ -2756,14 +2756,10 @@
         "check_pastemask"
       ],
       "optionalparameters": {
-         "pastemask": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the area pasted into."
-        },
         "mode": {
            "type":"list",
            "values" : ["Color Dodge","Color","Darken","Difference","Dissolve","Divide","Exclusion","Hard Light","Hard Mix","Hue","IntensityBurn","Lighten","Lighter Dodge","Linear Burn",
-             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Multiply","Opacity","Overlay","Pin Light","Saturation","Screen","Soft Light","Subtract","Vivid Light" ],
+             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Opacity","Overlay","Pin Light","Saturation","Screen","Soft Light","Subtract","Vivid Light" ],
            "description":"Blend Mode",
            "rule" : {"purpose": "blend"}
          }
@@ -3562,6 +3558,7 @@
       "mandatoryparameters": {},
       "rules": [
         "checkFileTypeChange",
+        "checkCropSize",
         "check_eight_bit"
       ],
       "optionalparameters": {
@@ -4035,5 +4032,12 @@
         "video.video"
       ]
     }
-  ]
+  ],
+  "filtergroups": {
+    "PasteSpliceBlend": [
+      "PasteOverlay",
+      "CopyBlended"
+    ]
+  }
+
 }

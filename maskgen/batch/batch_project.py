@@ -310,7 +310,7 @@ class PluginOperation(BatchOperation):
         args['skipRules'] = True
         args['sendNotifications'] = False
         self.logger.debug('Execute plugin ' + plugin_name + ' on ' + filename  + ' with ' + str(args))
-        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, im, filename, **args)
+        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or  (type(errors) is list and len (errors) > 0 ):
             raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
         my_state['node'] = pairs[0][1]
@@ -560,9 +560,6 @@ def getBatch(jsonFile,loglevel=50):
     :return:
     @return BatchProject
     """
-    software_loader.loadOperations("operations.json")
-    software_loader.loadSoftware("software.csv")
-    software_loader.loadProjectProperties("project_properties.json")
     FORMAT = '%(asctime)-15s %(message)s'
     logging.basicConfig(format=FORMAT,level=50 if loglevel is None else int(loglevel))
     return  loadJSONGraph(jsonFile)
@@ -593,7 +590,6 @@ def main():
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         print 'invalid directory for results: ' + args.results
         return
-    tool_set.set_logging()
     loadCustomFunctions()
     batchProject =getBatch(args.json, loglevel=args.loglevel)
     picklists_files = {}

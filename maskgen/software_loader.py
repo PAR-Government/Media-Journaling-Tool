@@ -12,10 +12,7 @@ class OperationEncoder(JSONEncoder):
         return o.__dict__
 
 
-softwareset = {}
-operations = {}
-operationsByCategory = {}
-projectProperties = {}
+
 
 
 def getFileName(fileName, path=None):
@@ -125,24 +122,24 @@ def getOperation(name, fake = False, warning=True):
     :param fake: Set to True to allow fake operations
     :return: Operation
     """
-    global operations
+    global metadataLoader
     if name == 'Donor':
         return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
-    if name not in operations and warning:
+    if name not in metadataLoader.operations and warning:
         logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
-    return operations[name] if name in operations else (Operation(name='name', category='Bad') if fake else None)
+    return metadataLoader.operations[name] if name in metadataLoader.operations else (Operation(name='name', category='Bad') if fake else None)
 
 
 def getOperations():
-    global operations
-    return operations
+    global metadataLoader
+    return metadataLoader.operations
 
 
 def getOperationsByCategory(sourcetype, targettype):
-    global operationsByCategory
+    global metadataLoader
     result = {}
     transition = sourcetype + '.' + targettype
-    for name, op in operations.iteritems():
+    for name, op in metadataLoader.operations.iteritems():
         if transition in op.transitions:
             if op.category not in result:
                 result[op.category] = []
@@ -151,15 +148,15 @@ def getOperationsByCategory(sourcetype, targettype):
 
 
 def getSoftwareSet():
-    global softwareset
-    return softwareset
+    global metadataLoader
+    return metadataLoader.softwareset
 
 
 def saveJSON(filename):
-    global operations
-    opnamelist = list(operations.keys())
+    global metadataLoader
+    opnamelist = list(metadataLoader.operations.keys())
     opnamelist.sort()
-    oplist = [operations[op] for op in opnamelist]
+    oplist = [metadataLoader.operations[op] for op in opnamelist]
     with open(filename, 'w') as f:
         json.dump({'operations': oplist}, f, indent=2, cls=OperationEncoder)
 
@@ -187,12 +184,12 @@ def loadProjectPropertyJSON(fileName):
 
 
 def loadOperationJSON(fileName):
-    res = {}
+    operations = {}
     fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
         ops = json.load(f)
         for op in ops['operations']:
-            res[op['name']] = Operation(name=op['name'], category=op['category'], includeInMask=op['includeInMask'],
+            operations[op['name']] = Operation(name=op['name'], category=op['category'], includeInMask=op['includeInMask'],
                                         rules=op['rules'], optionalparameters=op['optionalparameters'],
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
@@ -203,7 +200,7 @@ def loadOperationJSON(fileName):
                                         compareparameters=op[
                                             'compareparameters'] if 'compareparameters' in op else dict(),
                                         maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
-    return res
+    return operations, ops['filtergroups'] if 'filtergroups' in ops else {}
 
 customRuleFunc = {}
 def loadCustomRules():
@@ -238,11 +235,6 @@ def getRule(name, globals={}):
             return None
 
 
-def loadProjectProperties(fileName):
-    global projectProperties
-    loadCustomRules()
-    projectProperties = loadProjectPropertyJSON(fileName)
-    return projectProperties
 
 
 def getProjectProperties():
@@ -251,65 +243,89 @@ def getProjectProperties():
     :return:
     @rtype: list of ProjectProperty
     """
-    global projectProperties
-    return projectProperties
+    global metadataLoader
+    return metadataLoader.projectProperties
 
 
 def getSemanticGroups():
     return [prop.description for prop in getProjectProperties() if prop.semanticgroup]
 
-def loadOperations(fileName):
-    global operations
-    global operationsByCategory
-    operations = loadOperationJSON(fileName)
+def getFilters(filtertype):
+    global metadataLoader
+    if filtertype == 'filtergroups':
+        return metadataLoader.filters
+    else:
+        return {}
+
+
+class MetaDataLoader:
+    softwareset = {}
+    operations = {}
+    filters = {}
     operationsByCategory = {}
-    for op, data in operations.iteritems():
-        category = data.category
-        if category not in operationsByCategory:
-            operationsByCategory[category] = []
-        operationsByCategory[category].append(op)
-    return operations
+    projectProperties = {}
+
+    def __init__(self):
+        self.operations , self.filters, self.operationsByCategory = self.loadOperations('operations.json')
+        self.softwareset = self.loadSoftware('software.csv')
+        self.projectProperties = self.loadProjectProperties('project_properties.json')
+
+    def loadSoftware(self, fileName):
+        fileName = getFileName(fileName)
+        self.softwareset = {'image': {}, 'video': {}, 'audio': {}}
+        with open(fileName) as f:
+            line_no = 0
+            for l in f.readlines():
+                line_no += 1
+                l = l.strip()
+                if len(l) == 0:
+                    continue
+                columns = l.split(',')
+                if len(columns) < 3:
+                    logging.getLogger('maskgen').error(
+                        'Invalid software description on line ' + str(line_no) + ': ' + l)
+                software_type = columns[0].strip()
+                software_name = columns[1].strip()
+                versions = [x.strip() for x in columns[2:] if len(x) > 0]
+                if software_type not in ['both', 'image', 'video', 'audio', 'all']:
+                    logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
+                elif len(software_name) > 0:
+                    types = ['image', 'video'] if software_type == 'both' else [software_type]
+                    types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                    types = ['video', 'audio'] if software_type == 'audio' else types
+                    for stype in types:
+                        self.softwareset[stype][software_name] = versions
+        return self.softwareset
+
+    def loadProjectProperties(self, fileName):
+        loadCustomRules()
+        self.projectProperties = loadProjectPropertyJSON(fileName)
+        return self.projectProperties
+
+    def loadOperations(self,fileName):
+        self.operations, self.filters = loadOperationJSON(fileName)
+        self.operationsByCategory = {}
+        for op, data in self.operations.iteritems():
+            category = data.category
+            if category not in self.operationsByCategory:
+                self.operationsByCategory[category] = []
+                self.operationsByCategory[category].append(op)
+        return self.operations, self.filters, self.operationsByCategory
+
+
+metadataLoader =  MetaDataLoader()
 
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
-
-
-def loadSoftware(fileName):
-    global softwareset
-    fileName = getFileName(fileName)
-    softwareset = {'image': {}, 'video': {},'audio': {}}
-    with open(fileName) as f:
-        line_no = 0
-        for l in f.readlines():
-            line_no += 1
-            l = l.strip()
-            if len(l) == 0:
-                continue
-            columns = l.split(',')
-            if len(columns) < 3:
-                logging.getLogger('maskgen').error( 'Invalid software description on line ' + str(line_no) + ': ' + l)
-            software_type = columns[0].strip()
-            software_name = columns[1].strip()
-            versions = [x.strip() for x in columns[2:] if len(x) > 0]
-            if software_type not in ['both', 'image', 'video', 'audio', 'all']:
-                logging.getLogger('maskgen').error( 'Invalid software type on line ' + str(line_no) + ': ' + l)
-            elif len(software_name) > 0:
-                types = ['image', 'video'] if software_type == 'both' else [software_type]
-                types = ['image', 'video', 'audio'] if software_type == 'all' else types
-                types = ['video', 'audio'] if software_type == 'audio' else types
-                for stype in types:
-                    softwareset[stype][software_name] = versions
-    return softwareset
-
 
 def getOS():
     return platform.system() + ' ' + platform.release() + ' ' + platform.version()
 
 
 def validateSoftware(softwareName, softwareVersion):
-    global softwareset
-    for software_type, typed_software_set in softwareset.iteritems():
+    global metadataLoader
+    for software_type, typed_software_set in metadataLoader.softwareset.iteritems():
         if softwareName in typed_software_set and softwareVersion in typed_software_set[softwareName]:
             return True
     return False
@@ -324,8 +340,6 @@ class Software:
         self.name = name
         self.version = version
         self.internal = internal
-
-
 
 
 class SoftwareLoader:
@@ -369,14 +383,14 @@ class SoftwareLoader:
         return None
 
     def get_names(self, software_type):
-        global softwareset
-        return list(softwareset[software_type].keys())
+        global metadataLoader
+        return list(metadataLoader.softwareset[software_type].keys())
 
     def get_versions(self, name, software_type=None, version=None):
-        global softwareset
+        global metadataLoader
         types_to_check = ['image', 'video', 'audio'] if software_type is None else [software_type]
         for type_to_check in types_to_check:
-            versions = softwareset[type_to_check][name] if name in softwareset[type_to_check] else None
+            versions = metadataLoader.softwareset[type_to_check][name] if name in metadataLoader.softwareset[type_to_check] else None
             if versions is None:
                 continue
             if version is not None and version not in versions:

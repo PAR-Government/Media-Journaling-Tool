@@ -426,6 +426,13 @@ def checkFrameTimes(graph, frm, to):
         return 'Start Time occurs after End Time'
     return None
 
+def checkCropSize(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    if 'shape change' in edge:
+        changeTuple = toIntTuple(edge['shape change'])
+        if changeTuple[0] > 0 or changeTuple[1] > 0:
+            return 'Crop cannot increase a dimension size of the image'
+
 def checkResizeInterpolation(graph, frm, to):
     edge = graph.get_edge(frm, to)
     interpolation = edge['arguments']['interpolation']

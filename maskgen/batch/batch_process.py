@@ -236,8 +236,7 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
             lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
 
         sm.selectImage(lastNode)
-        im, filename = sm.currentImage()
-        sm.imageFromPlugin(plugin, im, filename, **arguments)
+        sm.imageFromPlugin(plugin, **arguments)
         sm.save()
         print 'Plugin operation complete on project (' + str(processNo) + '/' + str(total) + '): ' + i
         processNo += 1
@@ -353,11 +352,6 @@ def main():
 
     args = parser.parse_args()
 
-    maskgen.tool_set.set_logging()
-    ops = loadOperations("operations.json")
-    soft = loadSoftware("software.csv")
-    loadProjectProperties("project_properties.json")
-
     props = parse_properties(args.sourceDir, args.endDir, args.plugin, projectdescription=args.projectDescription,
                              technicalsummary=args.technicalSummary, username=args.username, organization=args.organization,
                              manipulationcategory=args.manipulationCategory, semanticrestaging=args.semanticRestaging,
@@ -376,7 +370,6 @@ def main():
         print 'Performing plugin operation ' + args.plugin + '...'
         process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
     elif args.sourceDir:
-        check_ops(ops, soft, args)
         additionalArgs = {} if args.op is None else check_additional_args(args.arguments, getOperation(args.op), args.continueWithWarning)
         if args.op:
             print 'Adding operation '+ args.op + '...'

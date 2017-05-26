@@ -1,14 +1,9 @@
 from maskgen import graph_rules
 import unittest
-from maskgen.scenario_model import ImageProjectModel,loadProject
-
-from maskgen.software_loader import Software,loadOperations,loadProjectProperties,loadSoftware
+from maskgen.scenario_model import loadProject
 
 class TestToolSet(unittest.TestCase):
     def test_aproject(self):
-        ops = loadOperations("operations.json")
-        soft = loadSoftware("software.csv")
-        loadProjectProperties("project_properties.json")
         model = loadProject('images/sample.json')
         leafBaseTuple=  model.getTerminalAndBaseNodeTuples()[0]
         result = graph_rules.setFinalNodeProperties(model,leafBaseTuple[0])

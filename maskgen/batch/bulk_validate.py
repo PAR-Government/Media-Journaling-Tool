@@ -12,9 +12,6 @@ def main():
     parser.add_argument('--projects', help='Directory of projects')
     args = parser.parse_args()
 
-    loadOperations("operations.json")
-    loadSoftware("software.csv")
-
     graph_rules.setup()
 
     project_list = bulk_export.pick_projects(args.projects)

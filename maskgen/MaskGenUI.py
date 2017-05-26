@@ -7,7 +7,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import  loadOperations, loadSoftware, loadProjectProperties, getProjectProperties,getSemanticGroups
+from software_loader import  getProjectProperties,getSemanticGroups
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -114,7 +114,6 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(3, state=state)
         self.processmenu.entryconfig(4, state=state)
         self.processmenu.entryconfig(5, state=state)
-        self.processmenu.entryconfig(6, state=state)
 
     def new(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
@@ -454,13 +453,19 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        d = FilterCaptureDialog(self, self.scModel.get_dir(), im, plugins.getOperations(fileType=self.scModel.getStartType()), os.path.split(filename)[1],
+        d = FilterCaptureDialog(self,
+                                self.gfl,
                                 self.scModel)
         if d.optocall is not None:
-            msg, pairs = self.scModel.imageFromPlugin(d.optocall, im, filename, **self.resolvePluginValues(d.argvalues))
-            if msg is not None:
-                tkMessageBox.showwarning("Next Filter", msg)
+            grp = self.gfl.getGroup(d.optocall)
+            if grp is None:
+                grp = GroupFilter(d.optocall,[d.optocall])
+            msg,pairs =self.scModel.imageFromGroup(grp, software=d.softwaretouse,
+                                                          **self.resolvePluginValues(d.argvalues))
             self._addPairs(pairs)
+            if msg is not None and len(msg) > 1:
+                tkMessageBox.showwarning("Next Filter {}".format(filter), msg)
+            self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nextfiltergroup(self):
         im, filename = self.scModel.currentImage()
@@ -475,7 +480,7 @@ class MakeGenUI(Frame):
             end = None
             ok = False
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-                msg, pairs = self.scModel.imageFromPlugin(filter, im, filename)
+                msg, pairs = self.scModel.imageFromPlugin(filter)
                 self._addPairs(pairs)
                 if msg is not None:
                     tkMessageBox.showwarning("Next Filter", msg)
@@ -489,25 +494,6 @@ class MakeGenUI(Frame):
             self.drawState()
             if ok:
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
-
-    def nextfiltergroupsequence(self):
-        im, filename = self.scModel.currentImage()
-        if (im is None):
-            return
-        if len(self.gfl.getGroupNames()) == 0:
-            tkMessageBox.showwarning("Next Group Filter", "No groups found")
-            return
-        d = FilterGroupCaptureDialog(self, im, os.path.split(filename)[1])
-        if d.getGroup() is not None:
-            for filter in self.gfl.getGroup(d.getGroup()).filters:
-                msg, pairs = self.scModel.imageFromPlugin(filter, im, filename)
-                if msg is not None:
-                    tkMessageBox.showwarning("Next Filter", msg)
-                    break
-                self._addPairs(pairs)
-                im, filename = self.scModel.getImageAndName(self.scModel.end)
-            self.drawState()
-            self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def renamefinal(self):
         for node in self.scModel.renameFileImages():
@@ -826,9 +812,6 @@ class MakeGenUI(Frame):
         self.processmenu.add_command(label="Next w/Add", command=self.nextadd, accelerator="Ctrl+L", state='disabled')
         self.processmenu.add_command(label="Next w/Filter", command=self.nextfilter, accelerator="Ctrl+F",
                                      state='disabled')
-        self.processmenu.add_command(label="Next w/Filter Group", command=self.nextfiltergroup, state='disabled')
-        self.processmenu.add_command(label="Next w/Filter Sequence", command=self.nextfiltergroupsequence,
-                                     state='disabled')
         self.processmenu.add_separator()
         self.uiProfile.addProcessCommand(self.processmenu, self)
         self.processmenu.add_command(label="Rename Final Images", command=self.renamefinal)
@@ -1048,7 +1031,6 @@ def main(argv=None):
     argv = argv[1:]
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
-    set_logging()
 
     if args.imagedir is not None:
         imgdir = args.imagedir
@@ -1057,12 +1039,6 @@ def main(argv=None):
     elif args.s3 is not None:
         loadS3(args.s3)
 
-    operations = 'operations.json'
-    software = 'software.csv'
-    projectProperties = 'project_properties.json'
-    loadOperations(operations)
-    loadSoftware(software)
-    loadProjectProperties(projectProperties)
     loadAnalytics()
     graph_rules.setup()
     root = Tk()

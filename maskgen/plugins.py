@@ -50,9 +50,9 @@ def loadCustom(plugin, path):
     loaded[plugin]['function'] = 'custom'
     loaded[plugin]['operation'] = data['operation']
     loaded[plugin]['command'] = data['command']
+    loaded[plugin]['group'] = None
     loaded[plugin]['mapping'] = data['mapping'] if 'mapping' in data else None
     loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
-
 
 def loadPlugins():
    global loaded
@@ -80,7 +80,7 @@ def getOperations(fileType=None):
     ops = {}
     for l in loaded.keys():
         transitions = [t.split('.')[0] for t in loaded[l]['operation']['transitions']]
-        if fileType in transitions:
+        if fileType is None or fileType in transitions:
             ops[l] = loaded[l]
     return ops
 
@@ -93,16 +93,6 @@ def getPreferredSuffix(name):
     global loaded
     return loaded[name]['suffix']
 
-def getOperationNames(noArgs=False):
-    global loaded
-    if not noArgs:
-      return loaded
-    result = {}
-    for k,v in loaded.iteritems():
-      if v['operation']['arguments'] is None or len(v['operation']['arguments'])==0:
-        result[k] = v
-    return result
-    
 def getOperation(name):
     global loaded
     if name not in loaded:

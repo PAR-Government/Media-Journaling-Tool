@@ -292,7 +292,7 @@ class MyDropDown(OptionMenu):
         self.command = command
         OptionMenu.__init__(self, master, self.var,'')
         for val in oplist:
-            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.doit(l))
+            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.set(l))
 
     def set_completion_list(self, values, initialValue=None):
         if initialValue is None:
@@ -301,13 +301,13 @@ class MyDropDown(OptionMenu):
             initialValue = ''
         self.children['menu'].delete(0, END)
         for val in values:
-            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.doit(l))
+            self.children['menu'].add_command(label=val, command=lambda v=self.var, l=val: self.set(l))
         self.var.set(initialValue)
 
     def get(self):
         return self.var.get()
 
-    def doit(self,v):
+    def set(self,v):
         self.var.set(v)
         if self.command is not None:
             self.command(self.var.get())
@@ -407,7 +407,6 @@ class DescriptionCaptureDialog(Toplevel):
         sname = self.e4.get()
         self.e5.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
-
 
     def buildArgBox(self, opname):
         if self.argBox is not None:
@@ -764,17 +763,17 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         Label(master, text="Node Name:", anchor=W, justify=LEFT).grid(row=0, column=0, sticky=W)
         self.box = AutocompleteEntryInText(master, values=self.scModel.getNodeNames(), takefocus=True)
-        self.box.grid(row=0, column=1)
-        self.c = Canvas(master, width=250, height=250)
-        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((250, 250,3))).toPIL())
-        self.imc = self.c.create_image(125, 125, image=self.photo, tag='imgd')
-        self.c.grid(row=1, column=0, columnspan=2)
+        self.box.grid(row=1, column=0,sticky=EW)
+        self.c = Canvas(master, width=500, height=500)
+        self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((500, 500,3))).toPIL())
+        self.imc = self.c.create_image(250, 250, image=self.photo, tag='imgd')
+        self.c.grid(row=2, column=0)
         self.box.bind("<Return>", self.newimage)
         self.box.bind("<<ComboboxSelected>>", self.newimage)
 
     def newimage(self, event):
         im = self.scModel.getImage(self.box.get())
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (250, 250))).toPIL())
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (500, 500))).toPIL())
         self.c.itemconfig(self.imc, image=self.photo)
 
     def cancel(self):
@@ -870,14 +869,17 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     cancelled = True
     okButton = None
 
-    def __init__(self, parent, dir, im, pluginOps, name, scModel):
-        self.pluginOps = pluginOps
+    def __init__(self, parent,  groupFilterLoader,  scModel):
+        im, filename = scModel.currentImage()
+        self.gfl = groupFilterLoader
+        self.pluginOps = groupFilterLoader.getOperations(scModel.getStartType(),None)
         self.im = im
-        self.dir = dir
+        self.dir = scModel.get_dir()
         self.parent = parent
         self.scModel = scModel
+        self.softwareLoader = SoftwareLoader()
         self.sourcefiletype = scModel.getStartType()
-        tkSimpleDialog.Dialog.__init__(self, parent, name)
+        tkSimpleDialog.Dialog.__init__(self, parent, os.path.split(filename)[1])
 
     def body(self, master):
         self.photo = ImageTk.PhotoImage(imageResize(self.im, (250, 250)).toPIL())
@@ -894,14 +896,27 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             row += 1
         self.catvar = StringVar()
         self.opvar = StringVar()
-        self.softwarevar = StringVar()
-        self.versionvar = StringVar()
         self.e1.grid(row=1, column=1)
         row = 2
-        variables = [self.catvar, self.opvar, self.softwarevar, self.versionvar]
+        variables = [self.catvar, self.opvar]
         for variable in variables:
             Label(master, textvariable=variable, anchor=W, justify=LEFT).grid(row=row, column=1, sticky=W)
             row += 1
+        self.softwareselect = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
+        self.versionselect = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
+        self.softwareselect.bind("<Return>", self.newsoftware)
+        self.softwareselect.bind("<<ComboboxSelected>>", self.newsoftware)
+        self.softwareselect.grid(row=row, column=1, sticky=EW)
+        self.softwareselect.set_completion_list(sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower),
+                                    initialValue=self.softwareLoader.get_preferred_name())
+        self.versionselect.set_completion_list(
+            sorted(self.softwareLoader.get_versions(self.softwareLoader.get_preferred_name(),
+                                                    software_type=self.sourcefiletype)),
+            initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
+
+        row += 1
+        self.versionselect.grid(row=row, column=1)
+        row +=1
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
         self.argBoxRow = row
@@ -922,7 +937,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         ok = True
         for k, v in self.argvalues.iteritems():
             info = self.__getinfo(k)
-            if info is None:
+            if info is None or 'type' not in info:
                 continue
             cv, error = checkValue(k, info['type'], v)
             if v is not None and cv is None:
@@ -931,13 +946,18 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         return ok
 
     def __buildTuple(self, argument, arginfo, operation):
-        argumentTuple = (argument, operation.mandatoryparameters[argument]) if operation is not None and \
-                                                                               argument in operation.mandatoryparameters else None
-        argumentTuple = (argument, operation.optionalparameters[argument]) if operation is not None and \
+        import copy
+        argumentTuple = (argument, arginfo)
+        argumentTuple = (argument, copy.copy(operation.mandatoryparameters[argument])) if operation is not None and \
+                                                                               argument in operation.mandatoryparameters else argumentTuple
+        argumentTuple = (argument, copy.copy(operation.optionalparameters[argument])) if operation is not None and \
                                                                               argument in operation.optionalparameters else argumentTuple
-        values = arginfo['values'] if 'values' in arginfo and arginfo['values'] else []
-        argumentTuple = (argument, {'type': arginfo['type'], 'description': arginfo['description'], 'values':values if
-                                    ('type' in arginfo and 'description' in arginfo) else 'Not Available'}) if argumentTuple is None else argumentTuple
+        if 'values' in arginfo:
+            argumentTuple[1]['values'] = arginfo['values']
+        if 'visible' in arginfo:
+            argumentTuple[1]['visible'] = arginfo['visible']
+        if 'description' not in argumentTuple[1]:
+            argumentTuple[1]['description'] = 'Not Available'
         return argumentTuple
 
     def buildArgBox(self, operationName, arginfo):
@@ -945,7 +965,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             self.argBox.destroy()
         if arginfo is None:
             arginfo = {}
-        operation = getOperationWithGroups(operationName)
+        operation = self.gfl.getOperation(operationName)
         argumentTuples = [self.__buildTuple(arg, arginfo[arg], operation) for arg in arginfo]
         for k, v in operation.mandatoryparameters.iteritems():
             if 'source' in v and v['source'] != self.sourcefiletype:
@@ -971,7 +991,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                       values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
-                      for argumentTuple in argumentTuples]
+                      for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
+                           argumentTuple[1]['visible']]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
                                 scModel=self.scModel,
                                 propertyFunction=EdgePropertyFunction(properties),
@@ -997,6 +1018,10 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
+    def newsoftware(self, event):
+        sname = self.softwareselect.get()
+        self.versionselect.set_completion_list(self.softwareLoader.get_versions(sname,software_type=self.sourcefiletype),
+                                    initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
     def newop(self, event):
         self.argvalues = {}
@@ -1006,14 +1031,19 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             opinfo = op['operation']
             self.catvar.set(opinfo['category'])
             self.opvar.set(opinfo['name'])
-            self.softwarevar.set(opinfo['software'])
-            self.versionvar.set(opinfo['version'])
+            if 'software' in opinfo:
+                self.softwareselect.set(opinfo['software'])
+                self.softwareselect.configure(state='disabled')
+            else:
+                self.softwareselect.set(self.softwareLoader.get_preferred_name())
+                self.softwareselect.configure(state='active')
+            self.newsoftware(None)
             self.buildArgBox(opinfo['name'], opinfo['arguments'])
         else:
             self.catvar.set('')
             self.opvar.set('')
-            self.softwarevar.set('')
-            self.versionvar.set('')
+            self.softwareselect.set(self.softwareLoader.get_preferred_name())
+            self.newsoftware(None)
             self.optocall = None
             self.buildArgBox(None, [])
         if self.okButton is not None:
@@ -1027,7 +1057,9 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     def apply(self):
         self.cancelled = False
         self.optocall = self.e1.get()
-
+        self.softwaretouse = Software(self.softwareselect.get(), self.versionselect.get())
+        if self.softwareLoader.add(self.softwaretouse ):
+            self.softwareLoader.save()
 
 class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
     gfl = None
