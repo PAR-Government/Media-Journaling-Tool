@@ -10,12 +10,13 @@ matplotlib.use("TkAgg")
 import ttk
 import tkFileDialog
 import tkMessageBox
+import tkSimpleDialog
 from hp_data import *
 from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt, ProgressPercentage
 from KeywordsSheet import KeywordsSheet
 from ErrorWindow import ErrorWindow
 from prefs import SettingsWindow, SettingsManager
-from CameraForm import HP_Device_Form
+from CameraForm import HP_Device_Form, Update_Form
 from camera_handler import API_Camera_Handler
 from data_files import *
 
@@ -33,7 +34,7 @@ class HP_Starter(Frame):
         self.bindings()
 
     def bindings(self):
-        self.bind_all('<Return>', self.go)
+        self.bind('<Return>', self.go)
 
     def update_defaults(self):
         self.settings.set('inputdir', self.inputdir.get())
@@ -83,12 +84,8 @@ class HP_Starter(Frame):
         if self.camModel.get() == '':
             yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
             if yes:
-                v = StringVar()
-                h = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=v, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
-                h.wait_window()
-                if v.get():
-                    r = self.master.add_device(v.get())
-                    self.update_model()
+                self.master.open_form()
+                self.update_model()
             return
 
         globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
@@ -552,6 +549,7 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Open Keywords Spreadsheet for Editing', command=self.open_old_keywords_csv)
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
+        self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
         self.master.config(menu=self.menubar)
 
         self.statusFrame = Frame(self)
@@ -568,12 +566,40 @@ class HPGUI(Frame):
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        token = self.settings.get('trello')
+        if self.settings.get('trello') in (None, ''):
+            tkMessageBox.showerror(title='Error', message='Trello login is required to use this feature. Enter this in settings.')
+            return
+        elif self.settings.get('apitoken') in (None, ''):
+            tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
+            return
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=token, browser=self.settings.get('apitoken'))
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
         h.wait_window()
         if new_device.get():
             r = self.add_device(new_device.get())
+
+    def edit_device(self):
+        token = self.settings.get('apitoken')
+        trello = self.settings.get('trello')
+        if token is None:
+            tkMessageBox.showerror(title='Error', message='You must be logged into browser to use this feature. Please enter your browser token in settings.')
+            return
+        if trello is None:
+            tkMessageBox.showerror(title='Error',
+                                   message='You must be logged into trello to use this feature. Please enter your trello token in settings.')
+            return
+
+        device_id = tkSimpleDialog.askstring(title='Device ID', prompt='Please enter device local ID:')
+
+        source = self.reload_ids()
+        if source == 'local':
+            tkMessageBox.showerror(title='Error', message='Could not update camera list from browser.')
+            return
+        else:
+            try:
+                d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
+            except KeyError:
+                tkMessageBox.showerror(title='Error', message='Invalid Device ID (case-sensitive).')
 
     def open_old_rit_csv(self):
         outputdir = self.settings.get('outputdir')
@@ -607,6 +633,11 @@ class HPGUI(Frame):
             self.statusBox.println('Camera data loaded from hp_tool/data/devices.json.')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
+        return cams.source
+
+    def reload_ids(self):
+        self.cameras = None
+        return self.load_ids()
 
     def add_device(self, path):
         df = pd.read_csv(path)
