@@ -300,6 +300,10 @@ class GroupOperationsLoader(GroupFilterLoader):
 groupOpLoader = GroupOperationsLoader()
 
 
+def injectGroup(name, ops):
+    global groupOpLoader
+    groupOpLoader.groups[name] = GroupFilter(name, ops)
+
 def getCategoryForOperation(name):
     global groupOpLoader
     ops = getOperations()

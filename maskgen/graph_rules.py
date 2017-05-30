@@ -9,6 +9,7 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
+import numpy as np
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -449,7 +450,66 @@ def checkFileTypeChange(graph, frm, to):
         return 'operation not permitted to change the type of image or video file'
     return None
 
+
+def sigmoid(x, x0, k):
+    y = 1 / (1 + np.exp(-k * (x - x0)))
+    return y
+
+def checkLevelsVsCurves(graph,frm,to):
+    from sklearn import datasets, linear_model
+    from scipy.optimize import curve_fit
+    edge = graph.get_edge(frm, to)
+    frm_file = graph.get_image(frm)[0].to_array()
+    to_file = graph.get_image(to)[0].to_array()
+    rangebins = range(257)
+    lstart = np.histogram(frm_file[:,:,0],bins=rangebins)
+    lfinish = np.histogram(to_file[:,:,0], bins=rangebins)
+    diff = lstart[0]-lfinish[0]
+    xdata = np.asarray(rangebins[:-1]).reshape(256, 1)
+    ydata = diff.reshape(256, 1)
+    popt, pcov = curve_fit(sigmoid, xdata, ydata)
+    #regr = linear_model.LinearRegression()
+    # Train the model using the training sets
+    #regr.fit(np.asarray(, )
+    print ("%ss op" % edge['op'])
+    #print("Mean squared error: %.2f" % np.mean(
+     #   (regr.predict(np.asarray(rangebins[:-1]).reshape(256, 1)) - diff.reshape(256, 1)) ** 2))
+    return ''
+
+
+def checkForRawFile(graph,frm, to):
+    snode = graph.get_node(frm)
+    exifdata = exif.getexif(os.path.join(graph.dir, snode['file']))
+    if 'File Type'  in exifdata and exifdata['File Type'] in ['AA','AAX','ACR',
+                                                              'AI','AIT','AFM','ACFM','AMFM',
+                                                              'PDF','PS','AVI',
+                                                              'APE','ASF','BMP','DIB'
+                                                              'BPG','PNG','JPEG','GIF',
+                                                              'DIVX','DOC','DOCX',
+                                                              'DV','EXV',
+                                                              'F4V','F4A','F4P','F4B',
+                                                              'EXR', 'HDR','FLV','FPF','FLAC',
+                                                              'FLA','FFF','IDML',
+                                                              'J2C','JPC','JP2','JPF',
+                                                              'J2K','JPX','JPM',
+                                                              'JPE','JPG',
+                                                              'LA','LFP',
+                                                              'MP4','MP3',
+                                                              'M2TS','MTS','M2T','TS',
+                                                              'M4A','M4B','M4P','M4V',
+                                                              'MAX','MOV','QT',
+                                                              'O','PAC','MIFF','MIF',
+                                                              'MIE',
+                                                              'JNG','MNG','PPT','PPS',
+                                                              'QIF','QTI','QTIF',
+                                                              'RIF','RIFF','SWF',
+                                                              'VOB','TTF','TTC','SWF',
+                                                              'SEQ','WEBM','WEBP']:
+        return 'Only raw images permitted for this operation'
+    return None
+
 def check_pastemask(graph,frm, to):
+
     edge = graph.get_edge(frm, to)
     if 'arguments' in edge and edge['arguments'] is not None and 'pastemask' in edge['arguments']:
         from_img, from_file = graph.get_image(frm)
@@ -610,6 +670,7 @@ def checkSizeAndExif(graph, frm, to):
         return 'operation is not permitted to change the size of the image'
     return None
 
+
 def checkSize(graph, frm, to):
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] != 0 or change[1] != 0):
@@ -676,7 +737,7 @@ def getValue(obj, path, convertFunction=None):
 def blurLocalRule( scModel,edgeTuples):
     found = False
     for edgeTuple in edgeTuples:
-        if edgeTuple.edge['op'] == 'AdditionalEffectFilterBlur':
+        if edgeTuple.edge['op'] == 'Blur':
             found = 'global' not in edgeTuple.edge or edgeTuple.edge['global'] == 'no'
         if found:
             break
@@ -685,7 +746,7 @@ def blurLocalRule( scModel,edgeTuples):
 def histogramGlobalRule(scModel, edgeTuples):
     found = False
     for edgeTuple in edgeTuples:
-        if edgeTuple.edge['op'] == 'IntensityNormalization':
+        if edgeTuple.edge['op'] == 'Normalization':
             found = 'global' not in edgeTuple.edge or edgeTuple.edge['global'] == 'yes'
         if found:
             break
@@ -694,7 +755,7 @@ def histogramGlobalRule(scModel, edgeTuples):
 def contrastGlobalRule(scModel,edgeTuples):
     found = False
     for edgeTuple in edgeTuples:
-        if edgeTuple.edge['op'] == 'IntensityContrast':
+        if edgeTuple.edge['op'] == 'Contrast':
             found = 'global' not in edgeTuple.edge or edgeTuple.edge['global'] == 'yes'
         if found:
             break
@@ -829,6 +890,15 @@ def imageReformatRule(scModel, edgeTuples):
             return 'yes'
     return 'no'
 
+def medianSmoothingRule(scModel, edgeTuples):
+    for edgeTuple in edgeTuples:
+        if edgeTuple.edge['op'] == 'Blur' and \
+            'arguments' in edgeTuple.edge and \
+            'Blur Type' in edgeTuple.edge['arguments'] and \
+            edgeTuple.edge['arguments']['Blur Type'] == 'Median Smoothing':
+            return 'yes'
+    return 'no'
+
 def imageCompressionRule(scModel, edgeTuples):
     """
 
@@ -855,6 +925,15 @@ def semanticRepurposeRule(scModel, edgeTuples):
 def semanticRestageRule(scModel, edgeTuples):
     return scModel.getProjectData('semanticrestaging')
 
+def audioactivityRule(scModel,edgeTuples):
+    for edgeTuple in edgeTuples:
+        op = getOperationWithGroups(edgeTuple.edge['op'], fake=True )
+        found = (op.category == 'Audio')
+        if not found and  op.groupedOperations is not None:
+            for imbedded_op in op.groupedOperations:
+                found |= imbedded_op.category == 'Audio'
+    return 'yes' if found else 'no'
+
 def compositeSizeRule(scModel, edgeTuples):
     value = 0
     composite_rank = ['small', 'medium', 'large']
@@ -865,10 +944,10 @@ def compositeSizeRule(scModel, edgeTuples):
     return composite_rank[value]
 
 def _checkOpOther(op):
-    if op.category in ['AdditionalEffect', 'Fill', 'Transform', 'Intensity', 'Layer', 'Filter', 'Markup']:
-        if op.name not in ['AdditionalEffectFilterBlur', 'AdditionalEffectFilterSharpening', 'TransformResize',
+    if op.category in ['AdditionalEffect', 'Fill', 'Transform', 'Intensity', 'Layer', 'Filter', 'CGI']:
+        if op.name not in ['Blur', 'Sharpening', 'TransformResize',
                            'TransformCrop', 'TransformRotate', 'TransformSeamCarving',
-                           'TransformWarp', 'IntensityNormalization', 'IntensityContrast']:
+                           'TransformWarp', 'Normalization', 'Contrast']:
             return True
     return False
 

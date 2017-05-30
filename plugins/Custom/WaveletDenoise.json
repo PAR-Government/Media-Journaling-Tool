@@ -14,7 +14,7 @@
         },
           "Blur Type": {
               "type": "text",
-              "defaultvalue": "Smooth",
+              "defaultvalue": "Wavelet Denoise",
               "description": ""
             }
       },

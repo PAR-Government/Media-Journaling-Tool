@@ -11,7 +11,7 @@ import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
-from group_filter import getOperationWithGroups, buildFilterOperation,GroupFilterLoader
+from group_filter import getOperationWithGroups, buildFilterOperation,GroupFilterLoader, injectGroup
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
@@ -1896,6 +1896,8 @@ class ImageProjectModel:
                 if len(p) > 0:
                     self.start = p[0]
                     self.end = n[0]
+        for group, ops in self.G.getDataItem('groups', default_value={}).iteritems():
+            injectGroup(group,ops)
 
     def getStartType(self):
         return self.getNodeFileType(self.start) if self.start is not None else 'image'

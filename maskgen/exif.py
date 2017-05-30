@@ -3,6 +3,9 @@ import os
 import numpy as np
 import tool_set
 import logging
+from cachetools import cached
+from cachetools import LRUCache
+from threading import RLock
 
 
 def getOrientationFromExif(source):
@@ -115,7 +118,15 @@ def runexif(args, fix=True):
         logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
         raise e
 
+exif_lock = RLock()
+exif_cache = LRUCache(maxsize=12)
 
+def sourcefilehashkey(*args, **kwargs):
+    """Return a cache key for the specified hashable arguments."""
+    return args[0]
+
+
+@cached(exif_cache, lock=exif_lock, key=sourcefilehashkey)
 def getexif(source, args=None, separator=': '):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     command = [exifcommand]

@@ -84,6 +84,30 @@ def extract_and_list_archive(fname, dir):
 
     return l
 
+
+def setPathValue(d, path, value):
+    pos = path.find('.')
+    lbracket = path.find('[')
+    listpos = None
+    nextpath = path[pos + 1:] if pos > 0 else None
+    if lbracket > 0 and (pos < 0 or lbracket < pos):
+        rbracket = path.find(']')
+        listpos = int(path[lbracket + 1:rbracket])
+        pos = lbracket
+    if pos < 0:
+        if listpos is not None:
+            d[path][listpos] = value
+        elif value is None:
+            d.pop(path)
+        else:
+            d[path] = value
+    elif listpos is not None:
+        setPathValue(d[path[0:pos]][listpos], nextpath, value)
+    else:
+        if path[0:pos] not in d:
+            d[path[0:pos]] = {}
+        setPathValue(d[path[0:pos]], nextpath, value)
+
 def getPathValues(d, path):
     """
     Given a nest structure,
@@ -928,27 +952,6 @@ class ImageGraph:
             errors.extend(self._archive_path(parent, archive_name, archive, pathGraph,names_added=names_added))
         return errors
 
-    def _updatePathValue(self, d, path, value):
-        pos = path.find('.')
-        lbracket = path.find('[')
-        listpos = None
-        nextpath = path[pos + 1:] if pos > 0 else None
-        if lbracket>0 and (pos < 0 or lbracket < pos):
-            rbracket = path.find(']')
-            listpos  = int(path[lbracket+1:rbracket])
-            pos = lbracket
-        if pos < 0:
-            if listpos is not None:
-                d[path][listpos] = value
-            elif value is None:
-                d.pop(path)
-            else:
-                d[path] = value
-        elif listpos is not None:
-            self._updatePathValue(d[path[0:pos]][listpos], nextpath, value)
-        else:
-            self._updatePathValue(d[path[0:pos]], nextpath, value)
-
     def getLastUpdateTime(self):
         return strptime(self.G.graph['updatetime'],"%Y-%m-%d %H:%M:%S")
 
@@ -973,7 +976,7 @@ class ImageGraph:
         return path == pathTemplate
 
     def _updateEdgePathValue(self, edge, path, value):
-        self._updatePathValue(edge, path, value)
+        setPathValue(edge, path, value)
         for edgePath in self.G.graph['edgeFilePaths']:
             struct = self._buildStructure(path, value)
             for revisedPath in buildPath(struct, edgePath.split('.')):
@@ -981,9 +984,9 @@ class ImageGraph:
                     ownership = self.G.graph['edgeFilePaths'][edgePath]
                     for pathValue in getPathValues(struct, revisedPath):
                         filenamevalue, ownershipvalue = self._handle_inputfile(pathValue)
-                        self._updatePathValue(edge, revisedPath, filenamevalue)
+                        setPathValue(edge, revisedPath, filenamevalue)
                         if len(ownership)>0:
-                            self._updatePathValue(edge, ownership, ownershipvalue)
+                            setPathValue(edge, ownership, ownershipvalue)
 
     def create_path_archive(self, location, end):
         self.save()

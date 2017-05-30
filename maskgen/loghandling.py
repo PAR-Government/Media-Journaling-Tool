@@ -42,7 +42,9 @@ def set_logging():
     # add ch to logger
     logger.addHandler(ch)
 
-    fh = MaskGenTimedRotatingFileHandler('maskgen.log')
+    logfile = os.path.join(os.getenv("HOME"),'maskgen.log') if not os.access('.', os.W_OK) else 'maskgen.log'
+
+    fh = MaskGenTimedRotatingFileHandler(logfile)
 
     fh.setLevel(logging.INFO)
     # add formatter to ch

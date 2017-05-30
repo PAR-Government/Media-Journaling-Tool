@@ -562,7 +562,7 @@
         },
         "Blur Type": {
           "type": "list",
-          "values" : ["Smooth", "Wavelet Denoise", "Median", "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion (Image)", "Other"],
+          "values" : ["Smooth", "Wavelet Denoise", "Median", "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion", "Other"],
           "description" : "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
         },
         "Laundering": {
@@ -1263,9 +1263,10 @@
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
-        "fill category": {
+        "Fill Category": {
           "type": "list",
-          "values" : ["uniform color", "pattern", "paint brush"]
+          "values" : ["uniform color", "pattern", "paint brush"],
+          "description":"Fill Operation"
         }
       },
       "rules": [
@@ -1289,53 +1290,14 @@
         "video.video"
       ]
     },
-     {
-      "category": "CGI",
-      "name": "Paint Brush",
-      "mandatoryparameters": {
-         "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "fill category": {
-          "type": "list",
-          "values" : ["uniform color", "pattern"]
-        }
-      },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFileTypeChange",
-        "checkFrameTimes",
-        "check_local_warn"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Use a brush to append pixel values within a given diameter.",
-      "includeInMask": false,
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
     {
       "category": "Color",
       "name": "Hue",
       "mandatoryparameters": {
         "Source" : {
           "type": "list",
-          "values" : ["self","other"]
+          "values" : ["self","other"],
+          "description":"source of color.  Other is some color palette or texture. Self is using a color from the same image."
         }
       },
       "rules": [
@@ -1362,7 +1324,7 @@
       "category": "Color",
       "name": "Saturation",
       "mandatoryparameters": {
-        "direction" : {
+        "Direction" : {
           "type":"list",
           "values" : ["increase", "decrease"],
           "description":"intent of saturation alteration"
@@ -1392,10 +1354,10 @@
       "category": "Color",
       "name": "Vibrance",
       "mandatoryparameters": {
-        "direction": {
+        "Direction": {
           "type":"list",
           "values": ["increase","decrease"],
-          "description" : ""
+          "description" : "INcrease or decrease color vibrance"
         }
       },
       "rules": [
@@ -1634,7 +1596,8 @@
       "rules": [
         "checkSize",
         "checkLengthSame",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkForRawFile"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1741,7 +1704,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkLevelsVsCurves"
       ],
       "optionalparameters": {},
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1756,7 +1720,7 @@
       "category": "Intensity",
       "name": "Exposure",
       "mandatoryparameters": {
-        "direction" : {
+        "Direction" : {
           "type": "list",
           "values" : ["increase","decrease"],
           "description": "Shift midtone luminance in the desired direction"
@@ -1790,7 +1754,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkLevelsVsCurves"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1916,7 +1881,7 @@
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ArtifactsCGIObjectCGI.",
+      "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ObjectCGI.",
       "includeInMask": true,
       "transitions": [
         "image.image",
@@ -3317,7 +3282,11 @@
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Change the size of an image or layer while preserving dimensions.",
-      "includeInMask": false
+      "includeInMask": false,
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
     },
     {
       "category": "Transform",
