@@ -100,7 +100,7 @@ def getPreferredSuffix(name):
 def getOperation(name):
     global loaded
     if name not in loaded:
-        logging.getLogger('maskgen').warning('Request plugined not found: ' + str(name))
+        logging.getLogger('maskgen').warning('Requested plugin not found: ' + str(name))
         return None
     return loaded[name]['operation']
 
