@@ -390,7 +390,7 @@ class HPSpreadsheet(Toplevel):
             with open(self.errorpath) as j:
                 self.processErrors = json.load(j)
         else:
-            self.processErrors = None
+            self.processErrors = {}
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
