@@ -12,6 +12,7 @@ from image_wrap import *
 from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
+import loghandling
 
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("Raw NEF", "*.nef"),
@@ -50,7 +51,7 @@ class S3ProgressPercentage(object):
 
 def exportlogsto3(location,lastuploaded):
     import boto3
-    flush_logging()
+    loghandling.flush_logging()
     logging_file = get_logging_file()
     if logging_file is not None and lastuploaded != logging_file:
         logging_file_name = os.path.split(logging_file)[1]
