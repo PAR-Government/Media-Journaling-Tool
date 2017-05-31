@@ -7,7 +7,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import  getProjectProperties,getSemanticGroups
+from software_loader import  getProjectProperties,getSemanticGroups,operationVersion
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -135,7 +135,9 @@ class MakeGenUI(Frame):
         self.getproperties()
 
     def about(self):
-        tkMessageBox.showinfo('About', 'Version: ' + self.scModel.getVersion())
+        tkMessageBox.showinfo('About', 'Version: ' + self.scModel.getVersion() +
+                              ' \nProject Version: ' + self.scModel.getGraph().getProjectVersion() +
+                              ' \nOperations: ' + operationVersion() )
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
@@ -149,6 +151,8 @@ class MakeGenUI(Frame):
             self.canvas.update()
             if (self.scModel.start is not None):
                 self.setSelectState('normal')
+            if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
+                tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
 
     def addcgi(self):
         self.add(cgi=True)

@@ -372,7 +372,7 @@ class Modification:
 
     def setOperationName(self, name):
         self.operationName = name
-        if name is None:
+        if name is None or name == '':
             return
         op = getOperationWithGroups(self.operationName,warning=False)
         self.category = op.category if op is not None else None

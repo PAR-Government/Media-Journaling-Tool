@@ -707,8 +707,11 @@ class ImageGraph:
         else:
             return None
 
+    def getProjectVersion(self):
+        return self.G.graph['igversion'] if 'igversion' in self.G.graph else ''
+
     def getVersion(self):
-        return self.G.graph['igversion']  if 'igversion' in self.G.graph else igversion
+        return  igversion
 
     def getCreator(self):
         return self.G.graph['creator'] if 'creator' in self.G.graph else get_username()
