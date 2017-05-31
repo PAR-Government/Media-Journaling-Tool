@@ -692,7 +692,7 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def check_valid_error(self, localID, err):
-        database_map = {'CameraMake':'exif_camera_make', 'CameraModel':'exif_camera_model', 'DeviceSerialNumber':'exif_device_serial_number'}
+        database_map = {'CameraMake':'exif_camera_make', 'CameraModel':'exif_camera_model', 'DeviceSN':'exif_device_serial_number'}
         ground_truth_exif = self.master.cameras[localID]['exif']
         for configuration in ground_truth_exif:
             try:
