@@ -11,7 +11,7 @@ import data_files
 class SettingsManager():
     def __init__(self, settingsFile=None):
         if settingsFile is None:
-            self.settingsFile = data_files.get_data('hpsettings.json')
+            self.settingsFile = os.path.join(os.path.expanduser('~'), '.hpsettings')
         else:
             self.settingsFile = settingsFile
         self.load_settings()
