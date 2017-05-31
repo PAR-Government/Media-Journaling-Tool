@@ -61,7 +61,7 @@ class HP_Device_Form(Toplevel):
                 ('Exif Camera Model',{'description': 'Device model, pulled from device Exif.',
                                       'type': 'text',
                                       'values': None}),
-                ('Device Serial Number', {'description': 'Please enter the serial number shown in the image\'s exif data. If not available, enter the SN marked on the device body',
+                ('Device Serial Number', {'description': 'Device serial number, pulled from device Exif. If not available, enter the SN marked on the device body.',
                                           'type': 'text',
                                           'values': None}),
                 ('Local ID*', {'description': 'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MODEL, such as'
@@ -212,9 +212,9 @@ class HP_Device_Form(Toplevel):
                  'hp_camera_model': self.questions['HP Model'].get(),
                  'exif':[{'exif_camera_make': self.questions['Exif Camera Make'].get(),
                           'exif_camera_model': self.questions['Exif Camera Model'].get(),
+                          'exif_device_serial_number': self.questions['Device Serial Number'].get(),
                           'hp_app': self.questions['App'].get(),
                           'media_type': self.questions['Media Type*'].get()}],
-                 'exif_device_serial_number': self.questions['Device Serial Number'].get(),
                  'camera_edition': self.questions['Edition'].get(),
                  'camera_type': self.questions['Device Type*'].get(),
                  'camera_sensor': self.questions['Sensor Information'].get(),
@@ -345,7 +345,7 @@ class Update_Form(Toplevel):
         self.device_data = device_data
         self.trello = trello
         self.browser = browser
-        self.configurations = {'exif_camera_make':[], 'exif_camera_model':[], 'hp_app':[], 'media_type':[]}
+        self.configurations = {'exif_device_serial_number':[],'exif_camera_make':[], 'exif_camera_model':[], 'hp_app':[], 'media_type':[]}
         self.row = 0
         self.config_count = 0
         self.create_widgets()
@@ -355,14 +355,14 @@ class Update_Form(Toplevel):
         self.f.pack(fill=BOTH, expand=TRUE)
         self.buttonsFrame = Frame(self)
         self.buttonsFrame.pack(fill=BOTH, expand=True)
-        Label(self.f.interior, text='Updating Device:\n' + self.device_data['hp_device_local_id'], font=('bold', 20)).grid(columnspan=5)
+        Label(self.f.interior, text='Updating Device:\n' + self.device_data['hp_device_local_id'], font=('bold', 20)).grid(columnspan=6)
         self.row+=1
-        Label(self.f.interior, text='Shown below are the current exif configurations for this camera.').grid(row=self.row, columnspan=5)
+        Label(self.f.interior, text='Shown below are the current exif configurations for this camera.').grid(row=self.row, columnspan=6)
         self.row+=1
-        Button(self.f.interior, text='Show instructions for this form', command=self.show_help).grid(row=self.row, columnspan=5)
+        Button(self.f.interior, text='Show instructions for this form', command=self.show_help).grid(row=self.row, columnspan=6)
         self.row+=1
         col = 1
-        for header in ['Make', 'Model', 'Software/App', 'Media Type']:
+        for header in ['Serial', 'Make', 'Model', 'Software/App', 'Media Type']:
             Label(self.f.interior, text=header).grid(row=self.row, column=col)
             col+=1
         for configuration in self.device_data['exif']:
@@ -379,7 +379,7 @@ class Update_Form(Toplevel):
             self.add_button.grid_forget()
         col = 0
         self.row += 1
-        stringvars = collections.OrderedDict([('exif_camera_make', StringVar()), ('exif_camera_model', StringVar()), ('hp_app', StringVar()), ('media_type', StringVar())])
+        stringvars = collections.OrderedDict([('exif_device_serial_number', StringVar()), ('exif_camera_make', StringVar()), ('exif_camera_model', StringVar()), ('hp_app', StringVar()), ('media_type', StringVar())])
         Label(self.f.interior, text='Config: ' + str(self.config_count + 1)).grid(row=self.row, column=col)
         col += 1
         for k, v in stringvars.iteritems():
@@ -399,7 +399,7 @@ class Update_Form(Toplevel):
         self.config_count+=1
         self.row+=1
         self.add_button = Button(self.f.interior, text='Add a new configuration', command=self.get_data)
-        self.add_button.grid(row=self.row, columnspan=5)
+        self.add_button.grid(row=self.row, columnspan=6)
 
     def go(self):
         url = 'https://medifor.rankone.io/api/cameras/' + str(self.device_data['id']) + '/'
@@ -422,7 +422,8 @@ class Update_Form(Toplevel):
             data['exif'].append({'exif_camera_make':self.configurations['exif_camera_make'][i].get(),
                          'exif_camera_model':self.configurations['exif_camera_model'][i].get(),
                          'hp_app': self.configurations['hp_app'][i].get(),
-                         'media_type': self.configurations['media_type'][i].get()})
+                         'media_type': self.configurations['media_type'][i].get(),
+                         'exif_device_serial_number': self.configurations['exif_device_serial_number'][i].get()})
 
         for configuration in data['exif']:
             for key, val in configuration.iteritems():
@@ -471,7 +472,7 @@ class Update_Form(Toplevel):
 
     def get_data(self):
         self.imfile = tkFileDialog.askopenfilename(title='Select Media File')
-        args = ['exiftool', '-f', '-j', '-Model', '-Make', self.imfile]
+        args = ['exiftool', '-f', '-j', '-Model', '-Make', '-SerialNumber', self.imfile]
         try:
             p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
             exifData = json.loads(p)[0]
@@ -480,9 +481,10 @@ class Update_Form(Toplevel):
             return
         exifData['Make'] = exifData['Make'] if exifData['Make'] != '-' else ''
         exifData['Model'] = exifData['Model'] if exifData['Model'] != '-' else ''
+        exifData['SerialNumber'] = exifData['SerialNumber'] if exifData['SerialNumber'] != '-' else ''
 
-
-        self.add_config({'exif_camera_model':exifData['Model'], 'exif_camera_make':exifData['Make'], 'hp_app':None, 'media_type':None})
+        self.add_config({'exif_device_serial_number':exifData['SerialNumber'], 'exif_camera_model':exifData['Model'],
+                         'exif_camera_make':exifData['Make'], 'hp_app':None, 'media_type':None})
 
 
 class VerticalScrolledFrame(Frame):
