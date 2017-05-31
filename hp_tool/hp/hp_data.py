@@ -340,6 +340,7 @@ def check_for_errors(data, cameraData, images, path):
     for image in data:
         db_exif_models = []
         db_exif_makes = []
+        db_exif_sn = []
         dbData = cameraData[data[image]['HP-DeviceLocalID']]
         errors[os.path.basename(images[image])] = e = []
         # replace None with empty string
@@ -352,13 +353,14 @@ def check_for_errors(data, cameraData, images, path):
                     dbData['exif'][configuration][field] = ''
             db_exif_models.append(dbData['exif'][configuration]['exif_camera_model'])
             db_exif_makes.append(dbData['exif'][configuration]['exif_camera_make'])
+            db_exif_sn.append(dbData['exif'][configuration]['exif_device_serial_number'])
 
         if (data[image]['CameraModel'] not in db_exif_models):
-            e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database (' + ', '.join(db_exif_models) + ').'))
+            e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database (' + ', '.join(db_exif_models) + ').', data[image]['CameraModel']))
         if (data[image]['CameraMake'] not in db_exif_makes):
-            e.append(('CameraMake','Camera make found in exif for image ' + images[image] + ' (' + data[image]['CameraMake'] + ') does not match database (' + ', '.join(db_exif_makes) + ').'))
-        if (data[image]['DeviceSerialNumber'] != dbData['exif_device_serial_number']) and (data[image]['DeviceSerialNumber'] != ''):
-            e.append(('DeviceSN','Camera serial number found in exif for image ' + images[image] + ' (' + data[image]['DeviceSerialNumber'] + ') does not match database (' + dbData['exif_device_serial_number'] + ').'))
+            e.append(('CameraMake','Camera make found in exif for image ' + images[image] + ' (' + data[image]['CameraMake'] + ') does not match database (' + ', '.join(db_exif_makes) + ').', data[image]['CameraMake']))
+        if (data[image]['DeviceSerialNumber'] not in db_exif_sn) and data[image]['DeviceSerialNumber'] != '':
+            e.append(('DeviceSN','Camera serial number found in exif for image ' + images[image] + ' (' + str(data[image]['DeviceSerialNumber']) + ') does not match database (' + ', '.join(db_exif_sn) + ').', str(data[image]['DeviceSerialNumber'])))
 
     fullpath = os.path.join(path, 'errors.json')
     with open(fullpath, 'w') as j:
