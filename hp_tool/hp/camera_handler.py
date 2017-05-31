@@ -53,10 +53,10 @@ class API_Camera_Handler:
                         self.all[item['hp_device_local_id']] = item
                         self.localIDs.append(item['hp_device_local_id'])
                         self.models_hp.append(item['hp_camera_model'])
-                        self.sn_exif.append(item['exif_device_serial_number'])
                         for configuration in item['exif']:
                             self.models_exif.append(configuration['exif_camera_model'])
                             self.makes_exif.append(configuration['exif_camera_make'])
+                            self.sn_exif.append(configuration['exif_device_serial_number'])
 
                     url = r['next']
                     if url is None:

@@ -600,6 +600,7 @@ class HPGUI(Frame):
                 d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
             except KeyError:
                 tkMessageBox.showerror(title='Error', message='Invalid Device ID (case-sensitive).')
+                return
 
     def open_old_rit_csv(self):
         outputdir = self.settings.get('outputdir')
@@ -649,8 +650,8 @@ class HPGUI(Frame):
             'hp_device_local_id': fields['HP-LocalDeviceID'],
             'hp_camera_model': fields['HP-CameraModel'],
             'exif': [{'exif_camera_model': fields['CameraModel'],
-                      'exif_camera_make': fields['Manufacturer']}],
-            'exif_device_serial_number': fields['DeviceSN']
+                      'exif_camera_make': fields['Manufacturer'],
+                      'exif_device_serial_number': fields['DeviceSN']}],
         }
         self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list.')
 
