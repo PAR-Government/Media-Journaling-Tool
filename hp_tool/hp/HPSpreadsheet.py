@@ -390,7 +390,7 @@ class HPSpreadsheet(Toplevel):
             with open(self.errorpath) as j:
                 self.processErrors = json.load(j)
         else:
-            self.processErrors = None
+            self.processErrors = {}
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
@@ -692,7 +692,7 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def check_valid_error(self, localID, err):
-        database_map = {'CameraMake':'exif_camera_make', 'CameraModel':'exif_camera_model', 'DeviceSerialNumber':'exif_device_serial_number'}
+        database_map = {'CameraMake':'exif_camera_make', 'CameraModel':'exif_camera_model', 'DeviceSN':'exif_device_serial_number'}
         ground_truth_exif = self.master.cameras[localID]['exif']
         for configuration in ground_truth_exif:
             try:
