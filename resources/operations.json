@@ -1155,10 +1155,6 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
@@ -1755,8 +1751,7 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn",
-        "checkLevelsVsCurves"
+        "check_local_warn"
       ],
       "optionalparameters": {
         "inputmaskname": {

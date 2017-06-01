@@ -248,7 +248,7 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'HP-CameraModel':
             validValues = sorted(set([self.devices[data]['hp_camera_model'] for data in self.devices if self.devices[data]['hp_camera_model'] is not None]), key=lambda s: s.lower())
         elif currentCol == 'DeviceSN':
-            validValues = sorted(set([self.devices[data]['exif_device_serial_number'] for data in self.devices if self.devices[data]['exif_device_serial_number'] is not None]), key=lambda s: s.lower())
+            validValues = self.load_device_exif('exif_device_serial_number')
         elif currentCol == 'HP-App':
             validValues = self.apps
         elif currentCol == 'HP-LensFilter':
@@ -390,7 +390,7 @@ class HPSpreadsheet(Toplevel):
             with open(self.errorpath) as j:
                 self.processErrors = json.load(j)
         else:
-            self.processErrors = None
+            self.processErrors = {}
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
@@ -673,11 +673,34 @@ class HPSpreadsheet(Toplevel):
 
     def parse_process_errors(self, row):
         errors = []
+        invalid_errors = []
         imageName = self.pt.model.df['OriginalImageName'][row]
+        localID = self.pt.model.df['HP-DeviceLocalID'][row]
         if hasattr(self, 'processErrors') and imageName in self.processErrors:
             for err in self.processErrors[imageName]:
-                errors.append(err[1] + ' (row ' + str(row) + ')')
+                if self.check_valid_error(localID, err):
+                    errors.append(err[1] + ' (row ' + str(row) + ')')
+                else:
+                    invalid_errors.append((imageName, err))
+
+            for item in invalid_errors:
+                self.processErrors[item[0]].remove(item[1])
+            with open(self.errorpath, 'w') as j:
+                json.dump(self.processErrors, j)
+
+        self.color_code_cells()
         return errors
+
+    def check_valid_error(self, localID, err):
+        database_map = {'CameraMake':'exif_camera_make', 'CameraModel':'exif_camera_model', 'DeviceSN':'exif_device_serial_number'}
+        ground_truth_exif = self.master.cameras[localID]['exif']
+        for configuration in ground_truth_exif:
+            try:
+                if err[2] == configuration[database_map[err[0]]]:
+                    return False
+            except IndexError:
+                continue
+        return True
 
     def check_save(self):
         if self.saveState == False:

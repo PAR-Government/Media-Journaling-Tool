@@ -311,8 +311,8 @@ class MetaDataLoader:
         return self.operations, self.filters, self.operationsByCategory
 
 
+global metadataLoader
 metadataLoader =  MetaDataLoader()
-
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]

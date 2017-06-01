@@ -451,30 +451,43 @@ def checkFileTypeChange(graph, frm, to):
     return None
 
 
-def sigmoid(x, x0, k):
-    y = 1 / (1 + np.exp(-k * (x - x0)))
-    return y
+def serial_corr(wave, lag=1):
+    n = len(wave)
+    y1 = wave[lag:]
+    y2 = wave[:n-lag]
+    corr = np.corrcoef(y1, y2, ddof=0)[0, 1]
+    return corr
+
+def autocorr(wave):
+    lags = range(len(wave)//2)
+    corrs = [serial_corr(wave, lag) for lag in lags]
+    return lags, corrs
+
 
 def checkLevelsVsCurves(graph,frm,to):
-    from sklearn import datasets, linear_model
-    from scipy.optimize import curve_fit
     edge = graph.get_edge(frm, to)
-    frm_file = graph.get_image(frm)[0].to_array()
-    to_file = graph.get_image(to)[0].to_array()
+    frm_file = graph.get_image(frm)[0].convert('L').to_array()
+    to_file = graph.get_image(to)[0].convert('L').to_array()
     rangebins = range(257)
-    lstart = np.histogram(frm_file[:,:,0],bins=rangebins)
-    lfinish = np.histogram(to_file[:,:,0], bins=rangebins)
+    lstart = np.histogram(frm_file,bins=rangebins)
+    lfinish = np.histogram(to_file, bins=rangebins)
     diff = lstart[0]-lfinish[0]
-    xdata = np.asarray(rangebins[:-1]).reshape(256, 1)
-    ydata = diff.reshape(256, 1)
-    popt, pcov = curve_fit(sigmoid, xdata, ydata)
+    #change = lstart[0]/lfinish[0].astype('float')
+    #cor(diff[-len(diff)], diff[-1])
+    lags, corrs1 = autocorr(diff)
+    #lags, corrs2 = autocorr(change)
+    #deviation = np.std(np.diff(change))
     #regr = linear_model.LinearRegression()
     # Train the model using the training sets
     #regr.fit(np.asarray(, )
-    print ("%ss op" % edge['op'])
-    #print("Mean squared error: %.2f" % np.mean(
-     #   (regr.predict(np.asarray(rangebins[:-1]).reshape(256, 1)) - diff.reshape(256, 1)) ** 2))
-    return ''
+    #print ("%s %f %f" % (edge['op'], corrs1[1],deviation))
+   # np.var(np.diff(x))
+    #print("Mean squared error: %.2f" % np.mean( sigmoid(np.asarray(rangebins[:-1]),*popt)- diff.reshape(256, 1) ** 2))
+
+    #The lag-one autocorrelation will serve as a score and has a reasonably straightforward statistical interpretation too.
+    if corrs1[1] < 0.9:
+        print '[Warning] Verify this operation was performed with Levels rather than Curves'
+    return None
 
 
 def checkForRawFile(graph,frm, to):

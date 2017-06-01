@@ -574,9 +574,11 @@ class MakeGenUI(Frame):
     def quit(self):
         self.save()
         Frame.quit(self)
+        quit()
 
     def quitnosave(self):
         Frame.quit(self)
+        quit()
 
     def gquit(self, event):
         self.quit()
@@ -1053,7 +1055,7 @@ def main(argv=None):
         if not gui.systemcheck():
             sys.exit(1)
         return
-    root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
+    #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval != '0':
         execute_every(float(interval),saveme, saver=gui)

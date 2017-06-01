@@ -26,10 +26,6 @@ def updateJournal(scModel):
         _fixResize(scModel)
         _fixResolution(scModel)
         upgrades.append('0.4.0101.8593b8f323')
-    if '0.4.0101.b4561b475b' not in upgrades:
-        _fixCreator(scModel)
-        _fixValidationTime(scModel)
-        upgrades.append('0.4.0101.b4561b475b')
     if "0.4.0308.f7d9a62a7e" not in upgrades:
         _fixLabels(scModel)
         upgrades.append('0.4.0308.f7d9a62a7e')
@@ -49,6 +45,10 @@ def updateJournal(scModel):
     if "0.4.0425.d3bc2f59e1" not in upgrades:
         _operationsChange1(scModel)
         upgrades.append('0.4.0425.d3bc2f59e1')
+    if '0.4.0101.b4561b475b' not in upgrades:
+        _fixCreator(scModel)
+        _fixValidationTime(scModel)
+        upgrades.append('0.4.0101.b4561b475b')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -101,6 +101,10 @@ def _operationsChange1(scModel):
         'IntensityDarken':'decrease',
         'IntensityBurn':'decrease'
         }
+    noise_mapping = {
+        'FilterBlurNoise': 'other',
+        'AdditionalEffectFilterAddNoise': 'other'
+    }
     op_mapping = {
         'AdditionalEffectAddLightSource':'ArtificialLighting',
         'AdditionalEffectFading':'Fading',
@@ -154,7 +158,7 @@ def _operationsChange1(scModel):
         'MarkupDigitalPenDraw':'DigitalPenDraw',
         'MarkupHandwriting':'Handwriting',
         'MarkupOverlayObject': 'OverlayObject',
-        'MarkupOverlaText':'OverlayText',
+        'MarkupOverlayText':'OverlayText',
         'AdditionalEffectAddTransitions':'AddTransitions'
     }
     groups = scModel.G.getDataItem('groups')
@@ -169,6 +173,8 @@ def _operationsChange1(scModel):
         for op in ops:
             if op in blur_type_mapping:
                 setPathValue(edge,'arguments.Blur Type', blur_type_mapping[op])
+            if op in noise_mapping:
+                setPathValue(edge, 'arguments.Noise Type', noise_mapping[op])
             if op in fill_category_mapping:
                 setPathValue(edge,'arguments.Fill Category', fill_category_mapping[op])
             if op in laundering_type_mapping:
