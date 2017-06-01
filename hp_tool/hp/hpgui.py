@@ -590,6 +590,8 @@ class HPGUI(Frame):
             return
 
         device_id = tkSimpleDialog.askstring(title='Device ID', prompt='Please enter device local ID:')
+        if device_id in ('', None):
+            return
 
         source = self.reload_ids()
         if source == 'local':
