@@ -14,7 +14,7 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used. 
 # the category to be shown
 def operation():
-  return {'name':'IntensityNormalization',
+  return {'name':'Normalization',
           'category':'Intensity',
           'description':'Equalize Colors using Histogram over the Chrominance Channel',
           'software':'OpenCV',

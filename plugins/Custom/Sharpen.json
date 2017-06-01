@@ -1,8 +1,8 @@
 {
     "name": "Sharpen",
     "operation": {
-      "name": "AdditionalEffectFilterSharpening",
-      "category": "AdditionalEffect",
+      "name": "Sharpening",
+      "category": "Filter",
       "description": "Automatically apply a sharpen kernel with the given radius and sigma value. (https://www.imagemagick.org/script/command-line-options.php#sharpen)",
       "software": "ImageMagick",
       "version": "7.0",

@@ -11,10 +11,6 @@ class OperationEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__
 
-
-
-
-
 def getFileName(fileName, path=None):
     import sys
     if (os.path.exists(fileName)):
@@ -200,7 +196,7 @@ def loadOperationJSON(fileName):
                                         compareparameters=op[
                                             'compareparameters'] if 'compareparameters' in op else dict(),
                                         maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
-    return operations, ops['filtergroups'] if 'filtergroups' in ops else {}
+    return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc'
 
 customRuleFunc = {}
 def loadCustomRules():
@@ -213,6 +209,9 @@ def loadCustomRules():
 def insertCustomRule(name,func):
     global customRuleFunc
     customRuleFunc[name] = func
+
+def noopFule(*arg,**kwargs):
+    return None
 
 def getRule(name, globals={}):
     if name is None:
@@ -232,10 +231,7 @@ def getRule(name, globals={}):
             return func#globals.get(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Unable to load rule {}: {}'.format(name,str(e)))
-            return None
-
-
-
+            return noopFule
 
 def getProjectProperties():
     """
@@ -259,6 +255,7 @@ def getFilters(filtertype):
 
 
 class MetaDataLoader:
+    verison = ''
     softwareset = {}
     operations = {}
     filters = {}
@@ -303,7 +300,8 @@ class MetaDataLoader:
         return self.projectProperties
 
     def loadOperations(self,fileName):
-        self.operations, self.filters = loadOperationJSON(fileName)
+        self.operations, self.filters, self.version = loadOperationJSON(fileName)
+        logging.getLogger('maskgen').info('Loaded operation version ' + self.version)
         self.operationsByCategory = {}
         for op, data in self.operations.iteritems():
             category = data.category
@@ -313,8 +311,8 @@ class MetaDataLoader:
         return self.operations, self.filters, self.operationsByCategory
 
 
+global metadataLoader
 metadataLoader =  MetaDataLoader()
-
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
@@ -322,6 +320,10 @@ def toSoftware(columns):
 def getOS():
     return platform.system() + ' ' + platform.release() + ' ' + platform.version()
 
+
+def operationVersion():
+    global metadataLoader
+    return metadataLoader.version
 
 def validateSoftware(softwareName, softwareVersion):
     global metadataLoader

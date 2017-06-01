@@ -14,7 +14,7 @@ setup(name='maskgen',
                    ['plugins/Custom/GammaCorrection.json', 'plugins/Custom/GaussianBlur.json', 'plugins/Custom/LevelCorrection.json',
                     'plugins/Custom/Resize.json','plugins/Custom/OutputJpg.json','plugins/Custom/Sharpen.json','plugins/Custom/WaveletDenoise.json'
                     ])],
-      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy','cachetools','requests','matplotlib'],
+      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy','cachetools','requests','matplotlib','pandas','awscli'],
       entry_points=
        {'gui_scripts': [
             'jtuiw = maskgen.MaskGenUI:main',

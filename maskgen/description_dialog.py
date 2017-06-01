@@ -413,7 +413,7 @@ class DescriptionCaptureDialog(Toplevel):
             self.argBox.destroy()
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
-                                      information=argumentTuple[1]['description'],
+                                      information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
                                       type=argumentTuple[1]['type'],
                                       values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[

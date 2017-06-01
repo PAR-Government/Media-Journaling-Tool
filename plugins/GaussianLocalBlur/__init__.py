@@ -38,8 +38,8 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used.
 # the category to be shown
 def operation():
-  return {'name':'AdditionalEffectFilterBlur',
-          'category':'AdditionalEffect',
+  return {'name':'Filter',
+          'category':'Blur',
           'description':'Gaussian Blur',
           'software':'OpenCV',
           'version':'2.4.13',
@@ -48,8 +48,12 @@ def operation():
                   'type':'imagefile',
                   'defaultvalue':None,
                   'description':'Mask image where black pixels identify region to blur'
-              }
-          },
+              },
+              'Blur Type': {
+              'type': 'text',
+              'defaultvalue': 'Gaussian',
+              'description': ''
+          }},
           'transitions': [
               'image.image'
           ]

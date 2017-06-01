@@ -97,8 +97,8 @@
       "description": "Audio Activity",
       "name": "audioactivity",
       "type": "yesno",
+      "rule": "audioactivityRule",
       "node" : true,
-      "operations": ["Undefined"],
       "information": "Applies to video journals where the final video contains a variety of audio content based on location and audio activity."
     },
     {
@@ -153,7 +153,7 @@
       "description": "Histogram Normalization Global",
       "name": "histogramnormalizationglobal",
       "type": "yesno",
-       "_comment": " IntensityNormalization and effect is global",
+       "_comment": "Normalization and effect is global",
       "rule": "histogramGlobalRule",
       "node" : true
     },
@@ -392,7 +392,7 @@
        "description": "Post Process Stabilization",
        "name": "postprocessstabilization",
        "node" : true,
-       "operations": ["AdditionalEffectWarpStabilize"],
+       "operations": ["WarpStabilize"],
        "nodetype": "video",
        "type": "yesno",
        "information": "Post Process Stabilization"
@@ -449,10 +449,8 @@
        "description": "Laundering Median Filtering",
        "name": "launderingmedianfiltering",
        "node" : true,
-       "operations": ["AdditionalEffectFilterMedianSmoothing"],
-       "parameter":"Laundering",
-       "value":"yes",
        "type": "yesno",
+       "rule" : "medianSmoothingRule",
        "information": "Laundering Median Filtering"
     },
     {
@@ -491,7 +489,7 @@
        "description": "AntiForensic Noise Restoration",
        "name": "antiforensicnoiserestoration",
        "node" : true,
-       "operations": ["AdditionalEffectFilterAddNoise"],
+       "operations": ["AddNoise"],
        "type": "yesno",
        "information": "AntiForensic Noise Restoration"
     },
@@ -499,7 +497,7 @@
        "description": "AntiForensic Other",
        "name": "antiforensicother",
        "node" : true,
-       "operations": ["Undefined"],
+       "operations": ["Undefined","LensDistortion","AntiForensicDither","AntiForensicEditExif","RemoveCamFingerprintPRNU"],
        "type": "yesno",
        "information": "AntiForensic Other"
     },
@@ -550,7 +548,7 @@
       "name": "mosaicing",
       "type": "yesno",
       "node" : true,
-      "operations": ["AdditionalEffectMosaic"],
+      "operations": ["AdditionalEffectMosaic","Mosaic"],
       "information": "Mosaicing."
     },
     {

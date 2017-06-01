@@ -1,7 +1,6 @@
 from image_graph import current_version
 import tool_set
 import os
-from group_filter import getOperationWithGroups
 import logging
 
 def updateJournal(scModel):
@@ -16,23 +15,17 @@ def updateJournal(scModel):
     if "0.3.1115" not in upgrades:
         _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
-        _fixTransforms(scModel)
         upgrades.append('0.3.1115')
     if  "0.3.1213" not in upgrades:
         _fixQT(scModel)
         _fixUserName(scModel)
         upgrades.append('0.3.1213')
     if  "0.4.0101" not in upgrades:
-        _fixTransforms(scModel)
         upgrades.append('0.4.0101')
     if  "0.4.0101.8593b8f323" not in upgrades:
         _fixResize(scModel)
         _fixResolution(scModel)
         upgrades.append('0.4.0101.8593b8f323')
-    if '0.4.0101.b4561b475b' not in upgrades:
-        _fixCreator(scModel)
-        _fixValidationTime(scModel)
-        upgrades.append('0.4.0101.b4561b475b')
     if "0.4.0308.f7d9a62a7e" not in upgrades:
         _fixLabels(scModel)
         upgrades.append('0.4.0308.f7d9a62a7e')
@@ -49,6 +42,13 @@ def updateJournal(scModel):
     if "0.4.0308.db2133eadc" not in upgrades:
         _fixFileArgs(scModel)
         upgrades.append('0.4.0308.db2133eadc')
+    if "0.4.0425.d3bc2f59e1" not in upgrades:
+        _operationsChange1(scModel)
+        upgrades.append('0.4.0425.d3bc2f59e1')
+    if '0.4.0101.b4561b475b' not in upgrades:
+        _fixCreator(scModel)
+        _fixValidationTime(scModel)
+        upgrades.append('0.4.0101.b4561b475b')
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
@@ -58,6 +58,159 @@ def _fixValidationTime(scModel):
     validationdate = scModel.getProjectData('validationdate')
     if validationdate is not None and len(validationdate) > 0:
         scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
+
+def _operationsChange1(scModel):
+    projecttype = scModel.G.getDataItem('projecttype')
+    from image_graph import setPathValue
+    blur_type_mapping = {
+        'AdditionalEffectFilterBlur':'Other',
+        'AdditionalEffectFilterSmoothing':'Smooth',
+        'FilterBlurMotion':'Motion',
+        'AdditionalEffectFilterMedianSmoothing':'Median Smoothing',
+    }
+    laundering_type_mapping = {
+        'AdditionalEffectFilterBlur': 'no',
+        'AdditionalEffectFilterSmoothing': 'yes',
+        'FilterBlurMotion': 'no',
+        'AdditionalEffectFilterMedianSmoothing': 'yes',
+    }
+    fill_category_mapping = {
+        'ColorFill': 'uniform color',
+        'FillPattern': 'pattern',
+        'FillPaintBucket': 'uniform color',
+        'FillLocalRetouching': 'paint brush',
+        'FillBackground': 'paint brush',
+        'FillForeground': 'paint brush',
+        'AdditionalEffectSoftEdgeBrushing': 'paint brush',
+        'FillPaintBrushTool': 'paint brush'
+    }
+    source_mapping = {
+        'ColorReplace': 'self',
+        'ColorHue': 'other',
+        'ColorMatch': 'self'
+    }
+    direction_mapping = {
+        'ColorSaturation': 'increase',
+        'ColorVibranceContentBoosting': 'increase',
+        'IntensityDesaturate': 'decrease',
+        'ColorVibranceReduction': 'decrease',
+        'IntensityBrightness':'increase',
+        'IntensityDodge':'increase',
+        'IntensityHighlight':'increase',
+        'IntensityLighten': 'increase',
+        'IntensityDarken':'decrease',
+        'IntensityBurn':'decrease'
+        }
+    noise_mapping = {
+        'FilterBlurNoise': 'other',
+        'AdditionalEffectFilterAddNoise': 'other'
+    }
+    op_mapping = {
+        'AdditionalEffectAddLightSource':'ArtificialLighting',
+        'AdditionalEffectFading':'Fading',
+        'AdditionalEffectMosaic':'Mosaic',
+        'AdditionalEffectReduceInterlaceFlicker':'ReduceInterlaceFlicker',
+        'AdditionalEffectWarpStabilize':'WarpStabilize',
+        'AdditionalEffectFilterBlur':'Blur',
+        'AdditionalEffectFilterSmoothing':'Blur',
+        'AdditionalEffectFilterMedianSmoothing':'Blur',
+        'AdditionalEffectFilterSharpening':'Sharpening',
+        'AdditionalEffectGradientEffect':'Gradient',
+        'AdditionalEffectFilterAddNoise':'AddNoise',
+        'FilterBlurNoise':'AddNoise',
+        'AdditionalEffectSoftEdgeBrushing':'CGIFill',
+        'FilterBlurMotion':'MotionBlur',
+        'CreationFilterGT':'CreativeFilter',
+        'ArtifactsCGIArtificialReflection':'ArtificialReflection',
+        'ArtifactsCGIArtificialShadow':'ArtificialShadow',
+        'ArtifactsCGIObjectCGI':'ObjectCGI',
+        'ColorFill':'CGIFill',
+        'ColorReplace':'Hue',
+        'ColorHue':'Hue',
+        'ColorMatch':'Hue',
+        'ColorVibranceContentBoosting':'Vibrance',
+        'ColorVibranceReduction':'Vibrance',
+        'IntensityDesaturate':'Saturation',
+        'ColorSaturation':'Saturation',
+        'FillBackground':'CGIFill',
+        'FillForeground':'CGIFill',
+        'FillGradient':'Gradient',
+        'FillPattern':'CGIFill',
+        'FillPaintBrushTool':'CGIFill',
+        'FillLocalRetouching':'CGIFill',
+        'FillPaintBucket':'CGIFill',
+        'FillContentAwareFill':'ContentAwareFill',
+        'FilterCameraRawFilter':'CameraRawFilter',
+        'FilterColorLUT':'ColorLUT',
+        'IntensityBrightness':'Exposure',
+        'IntensityDarken': 'Exposure',
+        'IntensityLighten': 'Exposure',
+        'IntensityHighlight': 'Exposure',
+        'IntensityNormalization':'Normalization',
+        'IntensityBurn': 'Exposure',
+        'IntensityExposure':'Exposure',
+        'IntensityDodge': 'Exposure',
+        'IntensityLevels':'Levels',
+        'IntensityContrast':'Contrast',
+        'IntensityCurves':'Curves',
+        'IntensityLuminosity':'Luminosity',
+        'IntensityExposure': 'Exposure',
+        'MarkupDigitalPenDraw':'DigitalPenDraw',
+        'MarkupHandwriting':'Handwriting',
+        'MarkupOverlayObject': 'OverlayObject',
+        'MarkupOverlayText':'OverlayText',
+        'AdditionalEffectAddTransitions':'AddTransitions'
+    }
+    groups = scModel.G.getDataItem('groups')
+    if groups is None:
+        groups = {}
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] in groups:
+            ops = groups[edge['op']]
+        else:
+            ops = [edge['op']]
+        for op in ops:
+            if op in blur_type_mapping:
+                setPathValue(edge,'arguments.Blur Type', blur_type_mapping[op])
+            if op in noise_mapping:
+                setPathValue(edge, 'arguments.Noise Type', noise_mapping[op])
+            if op in fill_category_mapping:
+                setPathValue(edge,'arguments.Fill Category', fill_category_mapping[op])
+            if op in laundering_type_mapping:
+                setPathValue(edge,'arguments.Laundering', laundering_type_mapping[op])
+            if op in direction_mapping:
+                setPathValue(edge,'arguments.Direction', direction_mapping[op])
+            if op in source_mapping:
+                setPathValue(edge,'arguments.Source', source_mapping[op])
+            if projecttype == 'video' and op == 'FilterBlurMotion':
+                edge['op'] = 'MotionBlur'
+            elif op in op_mapping:
+                edge['op'] = op_mapping[op]
+        newgroups = {}
+        for k,v in groups.iteritems():
+            newgroups[k] = [op_mapping[op] if op in op_mapping else op for op in v]
+        scModel.G.setDataItem('groups', newgroups)
+
+def _pasteSpliceBlend(scModel):
+    import copy
+    from group_filter import GroupFilterLoader
+    gfl = GroupFilterLoader()
+    scModel.G.addEdgeFilePath('arguments.Final Image', 'inputmaskownership')
+    grp = gfl.etGroup('PasteSpliceBlend')
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'pastemask'  in edge and edge['pastemask'] is not None:
+            args = copy.copy(edge['arguments'])
+            args['inputmaskname'] = os.path.joint(scModel.get_dir(),os.path.split(args['pastemask'])[1])
+            args['Final Image'] = os.path.joint(scModel.get_dir(),scModel.G.get_node(to)['file'])
+            donors = [pred for pred in scModel.G.predecessors() if pred != frm]
+            if len(donors) > 0:
+                args['donor'] = donors[0]
+            args['sendNotifications'] = False
+            mod = scModel.getModificationForEdge(frm,to,edge)
+            scModel.imageFromGroup(grp, software=mod.software, **args)
+
 
 def _fixLabels(scModel):
     for node in scModel.getNodeNames():
@@ -144,8 +297,7 @@ def _fixResolution(scModel):
 def _fixResize(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        op = getOperationWithGroups(edge['op'], fake=True)
-        if op.name == 'TransformResize':
+        if edge['op'] == 'TransformResize':
             if 'arguments' not in edge:
                 edge['arguments'] = {}
             if 'interpolation' not in edge['arguments']:
@@ -154,8 +306,7 @@ def _fixResize(scModel):
 def _fixPasteSpliceMask(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        op = getOperationWithGroups(edge['op'], fake=True)
-        if op.name == 'PasteSplice':
+        if edge['op'] == 'PasteSplice':
             if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
                 if 'arguments' not in edge:
                     edge['arguments']  = {}
@@ -164,12 +315,6 @@ def _fixPasteSpliceMask(scModel):
                 if 'inputmaskownership' in edge:
                     edge.pop('inputmaskownership')
 
-def _fixTransforms(scModel):
-    for frm, to in scModel.G.get_edges():
-        edge = scModel.G.get_edge(frm, to)
-        op = getOperationWithGroups(edge['op'], fake=True)
-        if op.category in 'Transform' and edge['recordMaskInComposite'] == 'yes':
-            edge['recordMaskInComposite']= 'no'
 
 def _fixUserName(scModel):
     """

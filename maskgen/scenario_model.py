@@ -11,7 +11,7 @@ import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
-from group_filter import getOperationWithGroups, buildFilterOperation
+from group_filter import getOperationWithGroups, buildFilterOperation,GroupFilterLoader, injectGroup
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
@@ -372,7 +372,7 @@ class Modification:
 
     def setOperationName(self, name):
         self.operationName = name
-        if name is None:
+        if name is None or name == '':
             return
         op = getOperationWithGroups(self.operationName,warning=False)
         self.category = op.category if op is not None else None
@@ -1896,6 +1896,8 @@ class ImageProjectModel:
                 if len(p) > 0:
                     self.start = p[0]
                     self.end = n[0]
+        for group, ops in self.G.getDataItem('groups', default_value={}).iteritems():
+            injectGroup(group,ops)
 
     def getStartType(self):
         return self.getNodeFileType(self.start) if self.start is not None else 'image'
@@ -1928,7 +1930,7 @@ class ImageProjectModel:
         for pred in self.G.predecessors(node):
             edge = self.G.get_edge(pred, node)
             if edge['op'] != 'Donor':
-                return self._getModificationForEdge(pred, node, edge)
+                return self.getModificationForEdge(pred, node, edge)
         return None
 
     def getDescription(self):
@@ -1936,7 +1938,7 @@ class ImageProjectModel:
             return None
         edge = self.G.get_edge(self.start, self.end)
         if edge is not None:
-            return self._getModificationForEdge(self.start, self.end,edge)
+            return self.getModificationForEdge(self.start, self.end,edge)
         return None
 
     def getImage(self, name):
@@ -2310,6 +2312,14 @@ class ImageProjectModel:
         return pairs
 
     def imageFromGroup(self, grp, software=None, **kwargs):
+        """
+        :param grp:
+        :param software:
+        :param kwargs:
+        :return:
+        @type grp GroupFilterLoader
+        @type software Software
+        """
         pairs_composite = []
         resultmsg = ''
         for filter in grp.filters:
@@ -2487,7 +2497,7 @@ class ImageProjectModel:
         :return: descriptions for all edges
          @rtype list of Modification
         """
-        return [self._getModificationForEdge(edge[0],edge[1],self.G.get_edge(edge[0],edge[1])) for edge in self.G.get_edges()]
+        return [self.getModificationForEdge(edge[0],edge[1],self.G.get_edge(edge[0],edge[1])) for edge in self.G.get_edges()]
 
     def openImage(self, nfile):
         im = None
@@ -2574,7 +2584,7 @@ class ImageProjectModel:
             colorMap[level.value] = color
         return mask_rules.alterComposite(edge,source,target,compositeMask,edgeMask,self.get_dir(),level=level.value,graph=self.G)
 
-    def _getModificationForEdge(self, start,end, edge):
+    def getModificationForEdge(self, start,end, edge):
         """
 
         :param start:
