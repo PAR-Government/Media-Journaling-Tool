@@ -598,6 +598,9 @@ class HPGUI(Frame):
         else:
             try:
                 d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
+                self.wait_window(d)
+                if d.updated:
+                    self.reload_ids()
             except KeyError:
                 tkMessageBox.showerror(title='Error', message='Invalid Device ID (case-sensitive).')
                 return
