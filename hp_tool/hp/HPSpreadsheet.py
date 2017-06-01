@@ -393,6 +393,7 @@ class HPSpreadsheet(Toplevel):
             self.processErrors = {}
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
+            self.parse_process_errors(row)
             for col in range(0, tab.cols):
                 colName = list(tab.model.df)[col]
                 currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
@@ -668,6 +669,10 @@ class HPSpreadsheet(Toplevel):
         if errors:
             d = ErrorWindow(self, errors)
             cancelPressed = d.cancelPressed
+        else:
+            d = tkMessageBox.showinfo(title='Information', message='No validation errors found!', parent=self)
+
+        self.color_code_cells()
 
         return errors, cancelPressed
 
@@ -687,8 +692,6 @@ class HPSpreadsheet(Toplevel):
                 self.processErrors[item[0]].remove(item[1])
             with open(self.errorpath, 'w') as j:
                 json.dump(self.processErrors, j)
-
-        self.color_code_cells()
         return errors
 
     def check_valid_error(self, localID, err):

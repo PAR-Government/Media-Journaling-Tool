@@ -348,6 +348,7 @@ class Update_Form(Toplevel):
         self.configurations = {'exif_device_serial_number':[],'exif_camera_make':[], 'exif_camera_model':[], 'hp_app':[], 'media_type':[]}
         self.row = 0
         self.config_count = 0
+        self.updated = False
         self.create_widgets()
 
     def create_widgets(self):
@@ -413,6 +414,7 @@ class Update_Form(Toplevel):
         if r.status_code in (requests.codes.ok, requests.codes.created):
             tkMessageBox.showinfo(title='Done!', message='Camera updated. Press Ok to notify via Trello.', parent=self)
             self.camupdate_notify_trello(url)
+            self.updated = True
         else:
             tkMessageBox.showerror(title='Error', message='An error occurred updating this device. (' + str(r.status_code) + ')', parent=self)
 
@@ -471,7 +473,7 @@ class Update_Form(Toplevel):
         self.destroy()
 
     def get_data(self):
-        self.imfile = tkFileDialog.askopenfilename(title='Select Media File')
+        self.imfile = tkFileDialog.askopenfilename(title='Select Media File', parent=self)
         args = ['exiftool', '-f', '-j', '-Model', '-Make', '-SerialNumber', self.imfile]
         try:
             p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
