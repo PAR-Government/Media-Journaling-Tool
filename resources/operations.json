@@ -524,7 +524,7 @@
         "Noise Type": {
           "type" : "list",
           "values" : ["salt-pepper", "shot", "uniform", "random", "gaussian", "periodic", "other" ],
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "The type of noise introduced"
         }
       },
       "rules": [
@@ -563,7 +563,7 @@
         },
         "Blur Type": {
           "type": "list",
-          "values" : ["Smooth", "Wavelet Denoise", "Median", "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion", "Other"],
+          "values" : ["Smooth", "Wavelet Denoise",  "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion", "Other"],
           "description" : "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
         },
         "Laundering": {
