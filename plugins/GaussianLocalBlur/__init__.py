@@ -38,8 +38,8 @@ def transform(img,source,target,**kwargs):
 # the actual link name to be used.
 # the category to be shown
 def operation():
-  return {'name':'Filter',
-          'category':'Blur',
+  return {'name':'Blur',
+          'category':'Filter',
           'description':'Gaussian Blur',
           'software':'OpenCV',
           'version':'2.4.13',

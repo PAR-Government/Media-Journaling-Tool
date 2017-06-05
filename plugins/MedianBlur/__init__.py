@@ -22,8 +22,8 @@ def transform(img,source,target,**kwargs):
 # the category to be shown
 def operation():
   return {
-          'category': 'AdditionalEffect',
-          'name': 'AdditionalEffectFilterBlur',
+          'category': 'Filter',
+          'name': 'Blur',
           'description':'Median Filter',
           'software':'OpenCV',
           'version':'2.4.13',
@@ -37,6 +37,11 @@ def operation():
                   'type': 'float[0.01:1]',
                   'defaultValue': 1,
                   'description': 'The size of the randomly chosen area to blur. 1 for the whole image'
+              },
+              'Blur Type': {
+                  'type': 'text',
+                  'defaultvalue':'Median',
+                  'description': ''
               }
           },
           'transitions': [
