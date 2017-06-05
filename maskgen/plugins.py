@@ -79,7 +79,11 @@ def getOperations(fileType=None):
     global loaded
     ops = {}
     for l in loaded.keys():
-        transitions = [t.split('.')[0] for t in loaded[l]['operation']['transitions']]
+        if 'operation' not in loaded[l]:
+            logging.getLogger('maskgen').error('Invalid plugin {}'.format(l))
+            continue
+        transitions = loaded[l]['operation']['transitions'] if 'transitions' in loaded[l]['operation'] else []
+        transitions = [t.split('.')[0] for t in transitions]
         if fileType is None or fileType in transitions:
             ops[l] = loaded[l]
     return ops
@@ -87,16 +91,16 @@ def getOperations(fileType=None):
 # return list of tuples, name and default value (which can be None)
 def getArguments(name):
     global loaded
-    return loaded[name]['arguments']
+    return loaded[name]['arguments'] if 'arguments' in loaded[name] else dict()
 
 def getPreferredSuffix(name):
     global loaded
-    return loaded[name]['suffix']
+    return loaded[name]['suffix'] if 'suffix' in loaded[name] else None
 
 def getOperation(name):
     global loaded
     if name not in loaded:
-        logging.getLogger('maskgen').warning('Request plugined not found: ' + str(name))
+        logging.getLogger('maskgen').warning('Requested plugin not found: ' + str(name))
         return None
     return loaded[name]['operation']
 

@@ -590,6 +590,8 @@ class HPGUI(Frame):
             return
 
         device_id = tkSimpleDialog.askstring(title='Device ID', prompt='Please enter device local ID:')
+        if device_id in ('', None):
+            return
 
         source = self.reload_ids()
         if source == 'local':
@@ -598,6 +600,9 @@ class HPGUI(Frame):
         else:
             try:
                 d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
+                self.wait_window(d)
+                if d.updated:
+                    self.reload_ids()
             except KeyError:
                 tkMessageBox.showerror(title='Error', message='Invalid Device ID (case-sensitive).')
                 return

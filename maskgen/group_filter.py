@@ -1,6 +1,7 @@
 from maskgen_loader import MaskGenLoader
 import plugins
 from software_loader import getOperations, Operation, getOperation, getOperationsByCategory, insertCustomRule, getRule,getFilters
+import logging
 
 maskgenloader = MaskGenLoader()
 
@@ -47,6 +48,8 @@ def get_transitions(operations):
 
 def buildFilterOperation(pluginOp):
     import copy
+    if pluginOp is None:
+        return None
     realOp = getOperation(pluginOp['name'],fake=True)
     mandatory = copy.copy(realOp.mandatoryparameters)
     for k,v in  (pluginOp['arguments']  if 'arguments' in pluginOp and pluginOp['arguments'] is not None else {}).iteritems():
@@ -69,6 +72,13 @@ class GroupFilter:
     def __init__(self, name, filters):
         self.name = name
         self.filters = filters
+
+    def isValid(self):
+        for filter in self.filters:
+            if plugins.getOperation(filter) is None:
+                logging.getLogger('maskgen').warning('Invalid filter {} in group {}'.format( filter, self.name))
+                return False
+        return True
 
     def getOperation(self):
         op = {}
@@ -149,6 +159,8 @@ class GroupFilterLoader:
             grp_categories = set()
             customFunctions = []
             ops = []
+            if not grp.isValid():
+                return None
             for op in grp.filters:
                 operation = self._getOperation(op)
                 ops.append(operation)
@@ -195,6 +207,8 @@ class GroupFilterLoader:
         import copy
         p = copy.copy(plugins.getOperations(startType))
         for grp,v in self.groups.iteritems():
+            if not v.isValid():
+                continue
             grpOp = v.getOperation()
             transitions = [t.split('.')[0] for t in grpOp['operation']['transitions']]
             if startType is None or startType in transitions:
@@ -209,10 +223,14 @@ class GroupFilterLoader:
         if newset is not None:
             for k, v in newset.iteritems():
                 if len(v) > 0:
-                    self.groups[k] = GroupFilter(k, v)
+                    group = GroupFilter(k, v)
+                    if group.isValid():
+                        self.groups[k] = group
         for k,v in getFilters(self.getLoaderKey()).iteritems():
             if len(v) > 0:
-                self.groups[k] = GroupFilter(k, v)
+                group = GroupFilter(k, v)
+                if group.isValid():
+                    self.groups[k] = group
 
     def add(self, groupfilter):
         self.groups[groupfilter.name] = groupfilter
