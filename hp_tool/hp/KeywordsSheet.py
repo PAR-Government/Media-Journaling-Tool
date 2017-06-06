@@ -1,3 +1,4 @@
+import json
 from Tkinter import *
 import os
 import pandas as pd
@@ -9,6 +10,9 @@ from ErrorWindow import ErrorWindow
 from HPSpreadsheet import HPSpreadsheet, CustomTable
 from PIL import Image, ImageTk
 import data_files
+import hp_data
+
+RVERSION = hp_data.RVERSION
 
 class KeywordsSheet(HPSpreadsheet):
     def __init__(self, settings, dir=None, keyCSV=None, master=None, oldImageNames=[], newImageNames=[]):
@@ -20,6 +24,7 @@ class KeywordsSheet(HPSpreadsheet):
         self.dir = dir
         if self.dir:
             self.imageDir = os.path.join(self.dir, 'image')
+        self.on_main_tab = True
         self.master = master
         self.keyCSV = keyCSV
         self.saveState = True
@@ -89,12 +94,6 @@ class KeywordsSheet(HPSpreadsheet):
             for f in os.listdir(self.csvdir):
                 if f.endswith('.csv') and 'keywords' in f:
                     self.keyCSV = os.path.join(self.csvdir, f)
-
-        if self.keyCSV == None:
-            self.keyCSV = self.createKeywordsCSV()
-        else:
-            self.build_keywords_csv()
-
         self.title(self.keyCSV)
         self.pt.importCSV(self.keyCSV)
 
@@ -118,70 +117,44 @@ class KeywordsSheet(HPSpreadsheet):
         try:
             df = pd.read_csv(data_files._IMAGEKEYWORDS)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'Keywords list not found! (hp_tool/data/ImageKeywords.csv')
+            tkMessageBox.showwarning('Warning', 'Keywords list not found!', parent=self)
             return []
         return [x.strip() for x in df['keywords']]
 
     def update_valid_values(self):
         pass
 
-    def createKeywordsCSV(self):
-        keywordsName = os.path.join(self.dir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + 'keywords.csv')
-        if not os.path.exists(keywordsName):
-            with open(keywordsName, 'wb') as csvFile:
-                writer = csv.writer(csvFile)
-                writer.writerow(['New Filename', 'Keyword1', 'Keyword2', 'Keyword3'])
-                for im in range(0, len(self.newImageNames)):
-                    writer.writerow([os.path.basename(self.newImageNames[im])] + ['']*3)
-
-        return keywordsName
-
-    def build_keywords_csv(self):
-        writtenImages = []
-        with open(self.keyCSV) as csvFile:
-            reader = csv.reader(csvFile)
-            for row in reader:
-                writtenImages.append(row[0])
-            writtenImages.pop(0)
-        with open(self.keyCSV, 'ab') as csvFile:
-            writer = csv.writer(csvFile)
-            for im in range(0, len(self.newImageNames)):
-                if os.path.basename(self.newImageNames[im]) not in writtenImages:
-                    writer.writerow([os.path.basename(self.newImageNames[im])])
-
     def validate(self):
         try:
             with open(data_files._IMAGEKEYWORDS) as keys:
                 keywords = keys.readlines()
         except IOError:
-            tkMessageBox.showwarning('Warning', 'Keywords reference not found!')
+            tkMessageBox.showwarning('Warning', 'Keywords reference not found!', parent=self)
             return
 
         keywords = [x.strip() for x in keywords]
         errors = []
         for row in range(0, self.pt.rows):
-            for col in range(2, self.pt.cols):
+            for col in range(1, self.pt.cols):
                 val = str(self.pt.model.getValueAt(row, col))
                 if val != 'nan' and val != '' and val not in keywords:
-                    errors.append('Invalid keyword for ' + str(self.pt.model.getValueAt(row, 0)) + ' (Row ' + str(row+1) + ', Keyword ' + str(col-1) + ', Value: ' + val + ')')
+                    errors.append('Invalid keyword for ' + str(self.pt.model.getValueAt(row, 0)) + ' (Row ' + str(row+1) + ', Keyword' + str(col) + ', Value: ' + val + ')')
 
         if errors:
             ErrorWindow(self, errors)
         else:
-            tkMessageBox.showinfo('Spreadsheet Validation', 'Nice work! All entries are valid.')
+            tkMessageBox.showinfo('Spreadsheet Validation', 'All keywords are valid.', parent=self)
 
     def add_column(self):
         numCols = self.pt.cols
         new = np.empty(self.pt.rows)
         new[:] = np.NAN
-        self.pt.model.df['Keyword ' + str(self.pt.cols - 1)] = pd.Series(new, index=self.pt.model.df.index)
+        self.pt.model.df['keyword' + str(numCols)] = pd.Series(new, index=self.pt.model.df.index)
         self.pt.redraw()
 
 
-    def exportCSV(self, showErrors=True):
+    def exportCSV(self, showErrors=True, quiet=False):
         self.pt.redraw()
-        if showErrors:
-            self.validate()
         self.pt.doExport(self.keyCSV)
         tmp = self.keyCSV + '-tmp.csv'
         with open(self.keyCSV, 'rb') as source:
@@ -192,8 +165,30 @@ class KeywordsSheet(HPSpreadsheet):
                     wtr.writerow((r[1:]))
         os.remove(self.keyCSV)
         os.rename(tmp, self.keyCSV)
+        self.save_to_rankone()
         self.saveState = True
-        tkMessageBox.showinfo('Status', 'Saved!')
+        if not quiet and showErrors:
+            tkMessageBox.showinfo('Status', 'Saved! The spreadsheet will now be validated.', parent=self)
+        if showErrors:
+            self.validate()
+
+    def save_to_rankone(self):
+        global RVERSION
+        rankone_file = self.keyCSV.replace('keywords', 'rankone')
+        with open(self.keyCSV) as keywords:
+            rdr = csv.reader(keywords)
+            next(rdr)  # skip header row
+            rankone_data = pd.read_csv(rankone_file, header=1)
+            idx = 0
+            for row in rdr:
+                row_no_empty = filter(lambda a: a != '', row)  # remove empty strings
+                rankone_data.loc[idx, 'HP-Keywords'] = '\t'.join(row_no_empty[1:])
+                idx+=1
+        with open(rankone_file, 'w') as ro:
+            wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
+            wtr.writerow([RVERSION])
+            rankone_data.to_csv(ro, index=False)
+
 
     def close(self):
         self.destroy()

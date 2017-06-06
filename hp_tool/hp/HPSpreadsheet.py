@@ -34,7 +34,7 @@ class HPSpreadsheet(Toplevel):
             self.imageDir = os.path.join(self.dir, 'image')
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
-            self.errorpath = os.path.join(self.dir, 'csv', 'errors.json')
+            self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
         self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
@@ -43,6 +43,8 @@ class HPSpreadsheet(Toplevel):
         self.error_cells = []
         self.create_widgets()
         self.kinematics = self.load_kinematics()
+        self.collections = sorted(hp_data.load_json_dictionary(data_files._COLLECTIONS).keys())
+        self.collections.remove('None')
         self.devices = devices
         self.apps = self.load_apps()
         self.lensFilters = self.load_lens_filters()
@@ -101,7 +103,7 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
-        self.fileMenu.add_command(label='Load image directory', command=self.load_images)
+        #self.fileMenu.add_command(label='Load image directory', command=self.load_images)
         self.fileMenu.add_command(label='Validate', command=self.validate)
         self.fileMenu.add_command(label='Export to S3...', command=self.s3export)
 
@@ -119,6 +121,7 @@ class HPSpreadsheet(Toplevel):
 
     def set_bindings(self):
         self.bind('<Key>', self.keypress)
+        self.validateBox.bind('<Button-1>', self.keypress)
         self.bind('<Button-1>', self.update_current_image)
         self.bind('<Left>', self.update_current_image)
         self.bind('<Right>', self.update_current_image)
@@ -243,6 +246,8 @@ class HPSpreadsheet(Toplevel):
             validValues = ['High', 'Medium', 'Low']
         elif currentCol == 'Type':
             validValues = ['image', 'video', 'audio']
+        elif currentCol == 'CameraMake':
+            validValues = self.load_device_exif('exif_camera_make')
         elif currentCol == 'CameraModel':
             validValues = self.load_device_exif('exif_camera_model')
         elif currentCol == 'HP-CameraModel':
@@ -279,13 +284,13 @@ class HPSpreadsheet(Toplevel):
             validValues = ['landscape', 'portrait']
         elif currentCol == 'HP-DynamicStatic':
             validValues = ['dynamic', 'static']
+        elif currentCol == 'HP-Collection':
+            validValues = self.collections
 
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
             validValues = {'instructions':'Any integer value'}
         elif currentCol in ['GPSLongitude', 'GPSLatitude']:
             validValues = {'instructions':'Coodinates, specified in decimal degree format'}
-        elif currentCol == 'HP-CollectionRequestID':
-            validValues = {'instructions':'Request ID for this image, if applicable'}
         elif currentCol == 'CreationDate':
             validValues = {'instructions':'Date/Time, specified as \"YYYY:MM:DD HH:mm:SS\"'}
         elif currentCol == 'FileType':
@@ -309,7 +314,7 @@ class HPSpreadsheet(Toplevel):
 
     def load_device_exif(self, field):
         output = []
-        for cameraID, data in self.devices.iteritems():
+        for cameraID, data in self.master.cameras.iteritems():
             for configuration in data['exif']:
                 output.append(configuration[field])
         return sorted(set([x for x in output if x is not None]), key = lambda s: s.lower())
@@ -338,10 +343,9 @@ class HPSpreadsheet(Toplevel):
 
     def open_spreadsheet(self):
         if self.dir and not self.ritCSV:
-            self.csvdir = os.path.join(self.dir, 'csv')
-            for f in os.listdir(self.csvdir):
+            for f in os.listdir(self.csvDir):
                 if f.endswith('.csv') and 'rit' in f:
-                    self.ritCSV = os.path.join(self.csvdir, f)
+                    self.ritCSV = os.path.join(self.csvDir, f)
         self.title(self.ritCSV)
         self.pt.importCSV(self.ritCSV)
 
@@ -375,6 +379,7 @@ class HPSpreadsheet(Toplevel):
 
         #self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
 
+        self.processErrors = self.check_process_errors()
         self.color_code_cells()
         self.update_current_image()
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
@@ -386,19 +391,14 @@ class HPSpreadsheet(Toplevel):
         else:
             track_highlights = False
         tab.disabled_cells = []
-        if hasattr(self, 'errorpath') and os.path.exists(self.errorpath):
-            with open(self.errorpath) as j:
-                self.processErrors = json.load(j)
-        else:
-            self.processErrors = {}
+
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
-            self.parse_process_errors(row)
             for col in range(0, tab.cols):
                 colName = list(tab.model.df)[col]
                 currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
                 x1, y1, x2, y2 = tab.getCellCoords(row, col)
-                if notnans.iloc[row, col]:
+                if notnans.iloc[row, col] and colName != 'HP-Collection':
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
@@ -426,17 +426,16 @@ class HPSpreadsheet(Toplevel):
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for error in self.processErrors[image]:
                     errCol = error[0]
-                    if errCol != 'CameraMake':
-                        try:
-                            col = tab.model.df.columns.get_loc(errCol)
-                            x1, y1, x2, y2 = tab.getCellCoords(row, col)
-                            rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                        fill='#ff5b5b',
-                                                        outline='#084B8A',
-                                                        tag='cellrect')
-                            self.error_cells.append((row, col))
-                        except KeyError:
-                            pass
+                    try:
+                        col = tab.model.df.columns.get_loc(errCol)
+                        x1, y1, x2, y2 = tab.getCellCoords(row, col)
+                        rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                    fill='#ff5b5b',
+                                                    outline='#084B8A',
+                                                    tag='cellrect')
+                        self.error_cells.append((row, col))
+                    except KeyError:
+                        continue
 
         tab.lift('cellrect')
         tab.redraw()
@@ -459,8 +458,8 @@ class HPSpreadsheet(Toplevel):
         os.rename(tmp, self.ritCSV)
         self.export_rankOne()
         self.saveState = True
-        if not quiet:
-            msg = tkMessageBox.showinfo('Status', 'Saved! The spreadsheet will now be validated.')
+        if not quiet and showErrors:
+            msg = tkMessageBox.showinfo('Status', 'Saved! The spreadsheet will now be validated.', parent=self)
         if showErrors:
             try:
                 (errors, cancelled) = self.validate()
@@ -475,6 +474,10 @@ class HPSpreadsheet(Toplevel):
         self.rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
         with open(data_files._HEADERS) as j:
             headers = json.load(j)['rankone']
+
+        old_rankone_data = pd.read_csv(self.rankOnecsv, header=1)
+        keywords = old_rankone_data['HP-Keywords'].tolist()
+
         with open(self.rankOnecsv, 'w') as ro:
             wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
             wtr.writerow([RVERSION])
@@ -484,6 +487,7 @@ class HPSpreadsheet(Toplevel):
             for row in range(0, len(subset.index)):
                 importDates.append(now)
             subset['ImportDate'] = importDates
+            subset['HP-Keywords'] = keywords
             subset.to_csv(ro, columns=headers, index=False)
 
     def s3export(self):
@@ -500,7 +504,7 @@ class HPSpreadsheet(Toplevel):
         if (val is not None and len(val) > 0):
             comment = self.check_trello_login()
             if comment is None:
-                tkMessageBox.showinfo(title='Information', message='Upload canceled.')
+                tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
                 return
             self.settings.set('aws', val)
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
@@ -551,9 +555,9 @@ class HPSpreadsheet(Toplevel):
             else:
                 msg.append('Complete!')
                 self.master.statusBox.println('Successfully uploaded HP data to S3://' + val + '.')
-            d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
+            d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg), parent=self)
         else:
-            tkMessageBox.showinfo(title='Information', message='Upload canceled.')
+            tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
 
     def check_trello_login(self):
         if self.settings.get('trello', notFound='') == '':
@@ -575,7 +579,7 @@ class HPSpreadsheet(Toplevel):
         list_id = '58f4e07b1d52493b1910598f'
 
         # post the new card
-        new = str(datetime.datetime.now())
+        new = os.path.basename(self.rankOnecsv)[:-4]
         stats = filestr + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
         stats = stats + 'Failed Files:\n' + '\n'.join(failed) if failed else stats
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
@@ -631,6 +635,7 @@ class HPSpreadsheet(Toplevel):
         errors = []
         types = self.pt.model.df['Type']
         uniqueIDs = []
+        self.processErrors = self.check_process_errors()
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
                 currentColName = self.pt.model.df.columns[col]
@@ -652,6 +657,7 @@ class HPSpreadsheet(Toplevel):
             errors.extend(self.check_model(row))
             errors.extend(self.check_kinematics(row))
             errors.extend(self.check_localID(row))
+            errors.extend(self.check_collections(row))
             if self.pt.model.df['HP-DeviceLocalID'][row] not in uniqueIDs:
                 uniqueIDs.append(self.pt.model.df['HP-DeviceLocalID'][row])
 
@@ -683,32 +689,57 @@ class HPSpreadsheet(Toplevel):
         localID = self.pt.model.df['HP-DeviceLocalID'][row]
         if hasattr(self, 'processErrors') and imageName in self.processErrors:
             for err in self.processErrors[imageName]:
-                if self.check_valid_error(localID, err):
-                    errors.append(err[1] + ' (row ' + str(row) + ')')
-                else:
-                    invalid_errors.append((imageName, err))
-
-            for item in invalid_errors:
-                self.processErrors[item[0]].remove(item[1])
-            with open(self.errorpath, 'w') as j:
-                json.dump(self.processErrors, j)
+                errors.append(err[1])
         return errors
 
-    def check_valid_error(self, localID, err):
-        database_map = {'CameraMake':'exif_camera_make', 'CameraModel':'exif_camera_model', 'DeviceSN':'exif_device_serial_number'}
-        ground_truth_exif = self.master.cameras[localID]['exif']
-        for configuration in ground_truth_exif:
+    def check_process_errors(self):
+        errors = {}
+        self.master.reload_ids()
+        for row in range(0, self.pt.rows):
+            db_exif_models = []
+            db_exif_makes = []
+            db_exif_sn = []
+            image = self.pt.model.df['OriginalImageName'][row]
+            errors[image] = []
             try:
-                if err[2] == configuration[database_map[err[0]]]:
-                    return False
-            except IndexError:
+                dbData = self.master.cameras[self.pt.model.df['HP-DeviceLocalID'][row]]
+            except KeyError:
+                errors[image].append(('HP-DeviceLocalID', 'Invalid Device Local ID ' + self.pt.model.df['HP-DeviceLocalID'][row]))
                 continue
-        return True
+            for item in dbData:
+                if dbData[item] is None or dbData[item] == 'nan':
+                    dbData[item] = ''
+            for configuration in range(len(dbData['exif'])):
+                for field, val in dbData['exif'][configuration].iteritems():
+                    if val is None or val == 'nan':
+                        dbData['exif'][configuration][field] = ''
+                db_exif_models.append(dbData['exif'][configuration]['exif_camera_model'])
+                db_exif_makes.append(dbData['exif'][configuration]['exif_camera_make'])
+                db_exif_sn.append(dbData['exif'][configuration]['exif_device_serial_number'])
+
+            if self.get_val(self.pt.model.df['CameraMake'][row]) not in db_exif_makes:
+                errors[image].append(('CameraMake', 'Invalid CameraMake: ' + self.get_val(self.pt.model.df['CameraMake'][row]) + ', row ' +
+                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_makes)))
+
+            if self.get_val(self.pt.model.df['CameraModel'][row]) not in db_exif_models:
+                errors[image].append(('CameraModel', 'Invalid CameraModel: ' + self.get_val(self.pt.model.df['CameraModel'][row]) + ', row ' +
+                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_models)))
+
+            if self.get_val(self.pt.model.df['DeviceSN'][row]) not in db_exif_sn:
+                errors[image].append(('DeviceSN', 'Invalid DeviceSN: ' + self.get_val(self.pt.model.df['DeviceSN'][row]) + ', row ' +
+                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_sn)))
+        return errors
+
+    def get_val(self, item):
+        if pd.isnull(item):
+            return ''
+        else:
+            return item
 
     def check_save(self):
         if self.saveState == False:
             message = 'Would you like to save before closing this sheet?'
-            confirm = tkMessageBox.askyesnocancel(title='Save On Close', message=message, default=tkMessageBox.YES)
+            confirm = tkMessageBox.askyesnocancel(title='Save On Close', message=message, default=tkMessageBox.YES, parent=self)
             if confirm:
                 errs = self.exportCSV(showErrors=False)
                 if not errs:
@@ -724,9 +755,16 @@ class HPSpreadsheet(Toplevel):
         try:
             df = pd.read_csv(data_files._KINEMATICS)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found! (hp_tool/data/Kinematics.csv')
+            tkMessageBox.showwarning('Warning', 'Camera kinematics reference not found!', parent=self)
             return []
         return [x.strip() for x in df['Camera Kinematics']]
+
+    def check_collections(self, row):
+        errors = []
+        collection = self.pt.model.df['HP-Collection'][row]
+        if collection not in self.collections and pd.notnull(collection):
+            errors.append('Invalid Collection name: ' + collection + ' (row ' + str(row + 1) + ')')
+        return errors
 
     def check_kinematics(self, row):
         errors = []
@@ -744,7 +782,7 @@ class HPSpreadsheet(Toplevel):
         try:
             df = pd.read_csv(data_files._APPS)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'HP-App reference not found! (hp_tool/data/apps.csv)')
+            tkMessageBox.showwarning('Warning', 'HP-App reference not found!', parent=self)
             return
         apps = [w.strip() for w in df['AppName']]
         return sorted(list(set(apps)))
@@ -753,7 +791,7 @@ class HPSpreadsheet(Toplevel):
         try:
             df = pd.read_csv(data_files._LENSFILTERS)
         except IOError:
-            tkMessageBox.showwarning('Warning', 'LensFilter reference not found! (hp_tool/data/LensFilters.csv)')
+            tkMessageBox.showwarning('Warning', 'LensFilter reference not found!', parent=self)
             return
         filters = [w.lower().strip() for w in df['LensFilter']]
         return sorted(list(set(filters)))
@@ -956,7 +994,7 @@ class CustomTable(pandastable.Table):
             for col in columns:
                 if (row, col) in self.disabled_cells:
                     return tkMessageBox.askyesno(title='Error',
-                                          message='Some cells in column are disabled. Would you like to fill the valid ones?')
+                                          message='Some cells in column are disabled. Would you like to fill the valid ones?', parent=self)
         return True
 
     def copy_value(self, event=None):

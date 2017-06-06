@@ -43,7 +43,7 @@ class API_Camera_Handler:
         try:
             headers = {'Authorization': 'Token ' + self.token, 'Content-Type': 'application/json'}
             url = self.url + '/api/cameras/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
-            print 'Checking browser API for list of devices...'
+            print 'Updating camera list from browser API... ',
 
             while True:
                 response = requests.get(url, headers=headers)
@@ -63,9 +63,10 @@ class API_Camera_Handler:
                         break
                 else:
                     raise requests.HTTPError()
+            print 'complete.'
             self.source = 'remote'
         except:
-            print 'Could not connect. Loading from local file.'
+            print 'Could not connect. Loading from local file... ',
             self.localIDs = []
             self.models_hp = []
             self.models_exif = []
@@ -82,4 +83,5 @@ class API_Camera_Handler:
                     self.models_exif.append(configuration['exif_camera_model'])
                     self.makes_exif.append(configuration['exif_camera_make'])
                     self.sn_exif.append(configuration['exif_device_serial_number'])
+            print 'complete.'
             self.source = 'local'

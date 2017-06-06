@@ -10,6 +10,7 @@ import datetime
 import csv
 import hashlib
 import pandas as pd
+import numpy as np
 import subprocess
 import json
 import data_files
@@ -17,7 +18,7 @@ import data_files
 exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
-RVERSION = '#@version=01.08'
+RVERSION = '#@version=01.10'
 
 def copyrename(image, path, usrname, org, seq, other):
     """
@@ -144,6 +145,13 @@ def grab_dir(inpath, outdir=None, r=False):
             imageList.remove(imageName)
     return imageList
 
+def find_rit_file(outdir):
+    rit_file = None
+    for f in os.listdir(outdir):
+        if f.endswith('rit.csv'):
+            rit_file = os.path.join(outdir, f)
+    return rit_file
+
 def build_keyword_file(image, keywords, csvFile):
     """
     Adds keywords to specified file
@@ -181,6 +189,10 @@ def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
             wtr.writerow(headers[type])
         for imNo in xrange(len(oldNameList)):
             row = []
+            if type == 'keywords':
+                row.extend([os.path.basename(newNameList[imNo]), '', '', ''])
+                wtr.writerow(row)
+                continue
             for h in headers[type]:
                 if h == 'MD5':
                     md5 = hashlib.md5(open(newNameList[imNo], 'rb').read()).hexdigest()
@@ -284,6 +296,48 @@ def set_other_data(data, imfile):
 
     return data
 
+def check_outdated(ritCSV, path):
+    current_headers = load_json_dictionary(data_files._FIELDNAMES)
+    rit_data = pd.read_csv(ritCSV)
+    rit_headers = list(rit_data)
+    diff = [x for x in current_headers.keys() if x not in rit_headers]  # list all new items
+
+    for new_item in diff:
+        if new_item == 'HP-Collection':
+            rit_data.rename(columns={'HP-CollectionRequestID':'HP-Collection'}, inplace=True)
+            print('Updating: Changed HP-CollectionRequestID to HP-Collection.')
+        elif new_item == 'CameraMake':
+            add_exif_column(rit_data, 'CameraMake', '-Make', path)
+
+    if diff:
+        rit_data.to_csv(ritCSV, index=False)
+
+def add_exif_column(df, title, exif_tag, path):
+    print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
+    exifDataResult = subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
+    exifDataResult = json.loads(exifDataResult)
+    exifDict = {}
+    for item in exifDataResult:
+        exifDict[os.path.normpath(item['SourceFile'])] = item
+
+    a = np.empty(df.shape[0])
+    a[:] = np.NaN
+    new = pd.Series(a, index=df.index)
+
+    try:
+        for index, row in df.iterrows():
+            image = row['ImageFilename']
+            sub = row['Type']
+            key = os.path.join(path, sub, image)
+            val = exifDict[os.path.normpath(key)][exif_tag[1:]]
+            new[index] = val if val != '-' else ''
+    except KeyError:
+        print('Could not add column. You may encounter validation errors. It is recommended to re-process your data.')
+        return
+
+    df[title] = new
+    print('done')
+
 def parse_image_info(self, imageList, **kwargs):
     """
     Extract image information from imageList
@@ -328,44 +382,6 @@ def parse_image_info(self, imageList, **kwargs):
 
     return data
 
-def check_for_errors(data, cameraData, images, path):
-    """
-    Check processed data with database information
-    :param data: processed HP data
-    :param cameraData: ground truth database information
-    :param images: list of image names
-    :return: list of errors
-    """
-    errors = {}
-    for image in data:
-        db_exif_models = []
-        db_exif_makes = []
-        db_exif_sn = []
-        dbData = cameraData[data[image]['HP-DeviceLocalID']]
-        errors[os.path.basename(images[image])] = e = []
-        # replace None with empty string
-        for item in dbData:
-            if dbData[item] is None or dbData[item] == 'nan':
-                dbData[item] = ''
-        for configuration in range(len(dbData['exif'])):
-            for field, val in dbData['exif'][configuration].iteritems():
-                if val is None or val == 'nan':
-                    dbData['exif'][configuration][field] = ''
-            db_exif_models.append(dbData['exif'][configuration]['exif_camera_model'])
-            db_exif_makes.append(dbData['exif'][configuration]['exif_camera_make'])
-            db_exif_sn.append(dbData['exif'][configuration]['exif_device_serial_number'])
-
-        if (data[image]['CameraModel'] not in db_exif_models):
-            e.append(('CameraModel','Camera model found in exif for image ' + images[image] + ' (' + data[image]['CameraModel'] + ') does not match database (' + ', '.join(db_exif_models) + ').', data[image]['CameraModel']))
-        if (data[image]['CameraMake'] not in db_exif_makes):
-            e.append(('CameraMake','Camera make found in exif for image ' + images[image] + ' (' + data[image]['CameraMake'] + ') does not match database (' + ', '.join(db_exif_makes) + ').', data[image]['CameraMake']))
-        if (data[image]['DeviceSerialNumber'] not in db_exif_sn) and data[image]['DeviceSerialNumber'] != '':
-            e.append(('DeviceSN','Camera serial number found in exif for image ' + images[image] + ' (' + str(data[image]['DeviceSerialNumber']) + ') does not match database (' + ', '.join(db_exif_sn) + ').', str(data[image]['DeviceSerialNumber'])))
-
-    fullpath = os.path.join(path, 'errors.json')
-    with open(fullpath, 'w') as j:
-        json.dump(errors, j)
-    return fullpath
 
 def process_metadata(dir, metadata, recursive=False, quiet=False):
     exifToolInput = ['exiftool', '-progress']
@@ -413,15 +429,14 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     if not imageList:
         print('No new images found')
         remove_temp_subs(outputdir)
-        return imageList, [], None
+        check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
+        return imageList, []
 
     # build information list. This is the bulk of the processing, and what runs exiftool
     print('Building image info...')
     imageInfo = parse_image_info(self, imageList, path=imgdir, rec=recursive, **kwargs)
     if imageInfo is None:
-        return None, None, None
-    else:
-        errors = check_for_errors(imageInfo, cameraData, imageList, os.path.join(outputdir, 'csv'))
+        return None, None
     print('...done')
 
     # once we're sure we have info to work with, we can check for the image, video, and csv subdirectories
@@ -434,16 +449,11 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         count = 0
         self.settings.set('seq', '00000')
 
-    csv_keywords = os.path.join(outputdir, 'csv', datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' +
-                                self.settings.get('organization') + self.settings.get('username') + '-' + 'keywords.csv')
-
     # copy with renaming
     print('Copying files...')
     newNameList = []
     for image in imageList:
         newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo)
-        if keywords:
-            build_keyword_file(newName, keywords, csv_keywords)
         newNameList += [newName]
         count += 1
     print(' done')
@@ -457,19 +467,13 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     for folder in ['image', 'video', 'audio']:
         process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get('metadata'), quiet=True)
 
+    dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
 
-    print('Building RIT file')
-    csv_rit = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rit.csv')
-    build_csv_file(self, imageList, newNameList, imageInfo, csv_rit, 'rit')
-
-    # history file:
-    print('Building history file')
-    csv_history = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'history.csv')
-    build_csv_file(self, imageList, newNameList, imageInfo, csv_history, 'history')
-
-    print('Building RankOne file')
-    csv_ro = os.path.join(outputdir, 'csv', os.path.basename(newNameList[0])[0:-9] + 'rankone.csv')
-    build_csv_file(self, imageList, newNameList, imageInfo, csv_ro, 'rankone')
+    for csv_type in  ['rit', 'history', 'rankone', 'keywords']:
+        print('Writing ' + csv_type + ' file')
+        csv_path = os.path.join(outputdir, 'csv', '-'.join(
+            (dt, self.settings.get('organization') + self.settings.get('username'), csv_type + '.csv')))
+        build_csv_file(self, imageList, newNameList, imageInfo, csv_path, csv_type)
 
     # move out of tempfolder
     print('Cleaning up...')
@@ -477,4 +481,4 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print('\nComplete!')
 
-    return imageList, newNameList, errors
+    return imageList, newNameList

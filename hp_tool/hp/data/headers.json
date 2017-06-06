@@ -1,10 +1,11 @@
 {
   "rit": [
     "ImageFilename",
-    "HP-CollectionRequestID",
+    "HP-Collection",
     "HP-HDLocation",
     "OriginalImageName",
     "MD5",
+    "CameraMake",
     "CameraModel",
     "HP-CameraModel",
     "DeviceSN",
@@ -70,7 +71,7 @@
     "MD5",
     "HP-CameraModel",
     "ImageFilename",
-    "HP-CollectionRequestID",
+    "HP-Collection",
     "HP-DeviceLocalID",
     "HP-LensLocalID",
     "HP-Location",
@@ -102,6 +103,14 @@
     "HP-Orientation",
     "HP-DynamicStatic",
     "HP-NumberOfSpeakers",
+    "HP-Keywords",
     "ImportDate"
+  ],
+  "keywords": [
+    "ImageFilename",
+    "keyword1",
+    "keyword2",
+    "keyword3"
   ]
+
 }

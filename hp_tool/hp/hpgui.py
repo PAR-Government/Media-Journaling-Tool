@@ -29,6 +29,7 @@ class HP_Starter(Frame):
         self.grid()
         self.oldImageNames = []
         self.newImageNames = []
+        self.collections = load_json_dictionary(data_files._COLLECTIONS)
         self.createWidgets()
         self.load_defaults()
         self.bindings()
@@ -88,7 +89,7 @@ class HP_Starter(Frame):
                 self.update_model()
             return
 
-        globalFields = ['HP-CollectionRequestID', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
+        globalFields = ['HP-Collection', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
         kwargs = {'settings':self.settings,
                   'imgdir':self.inputdir.get(),
                   'outputdir':self.outputdir.get(),
@@ -96,17 +97,18 @@ class HP_Starter(Frame):
                   'additionalInfo':self.additionalinfo.get(),
                   }
         for fieldNum in xrange(len(globalFields)):
-            kwargs[globalFields[fieldNum]] = self.attributes[self.descriptionFields[fieldNum]].get()
+            val = self.attributes[self.descriptionFields[fieldNum]].get()
+            if val == 'None':
+                val = ''
+            kwargs[globalFields[fieldNum]] = val
 
         self.update_defaults()
 
-        (self.oldImageNames, self.newImageNames, errors) = process(self, self.master.cameras, **kwargs)
+        (self.oldImageNames, self.newImageNames) = process(self, self.master.cameras, **kwargs)
         if self.oldImageNames == None:
             return
         aSheet = HPSpreadsheet(self.settings, dir=self.outputdir.get(), master=self.master, devices=self.master.cameras)
         aSheet.open_spreadsheet()
-        if errors is not None:
-            ErrorWindow(aSheet, errors)
         self.keywordsbutton.config(state=NORMAL)
         keySheet = self.open_keywords_sheet()
         keySheet.close()
@@ -153,12 +155,12 @@ class HP_Starter(Frame):
         r+=1
 
         self.sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=r, columnspan=8, sticky='EW')
-        self.descriptionFields = ['Coll. Request ID', 'Local Camera ID', 'Camera Model', 'Local Lens ID']
+        self.descriptionFields = ['HP-Collection', 'Local Camera ID', 'Camera Model', 'Local Lens ID']
         r+=1
 
         Label(self, text='Enter collection information. Local Camera ID is REQUIRED. If you enter a valid ID (case sensitive), the corresponding '
                          'model will appear in the camera model box.\nIf you enter an invalid ID and Run, it is assumed '
-                         'that this is a new device, and you will be prompted to enter the new device\'s information').grid(row=r,columnspan=8)
+                         'that this is a new device, and you will be prompted to enter the new device\'s information.').grid(row=r,columnspan=8)
         r+=1
 
         self.localID = StringVar()
@@ -167,8 +169,13 @@ class HP_Starter(Frame):
         col = 0
         self.attributes = {}
         for field in self.descriptionFields:
-            self.attrlabel = Label(self, text=field).grid(row=r, column=col, ipadx=5, ipady=5, padx=5, pady=5)
-            self.attributes[field] = Entry(self, width=10)
+            attrlabel = Label(self, text=field)
+            attrlabel.grid(row=r, column=col, ipadx=5, ipady=5, padx=5, pady=5)
+            if field == 'HP-Collection':
+                self.attributes[field] = ttk.Combobox(self, width=20, values=self.collections.keys(), state='readonly')
+                self.attributes[field].set('None')
+            else:
+                self.attributes[field] = Entry(self, width=10)
             self.attributes[field].grid(row=r, column=col+1, ipadx=0, ipady=5, padx=5, pady=5)
 
             if field == 'Local Camera ID':
@@ -608,24 +615,57 @@ class HPGUI(Frame):
                 return
 
     def open_old_rit_csv(self):
-        outputdir = self.settings.get('outputdir')
-        csv = tkFileDialog.askopenfilename(initialdir=outputdir)
-        open_data = tkMessageBox.askyesnocancel(title='Data Selection', message='Select image data to preview in sheet? If yes, you should select the root directory - the one with Image, Video, etc. folders.')
+        open_data = tkMessageBox.askokcancel(title='Data Selection', message='Select data to open. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
         if open_data:
             d = tkFileDialog.askdirectory(title='Select Root Data Folder')
-        elif open_data is None:
-            return
+            if d is None:
+                return
+            else:
+                try:
+                    csv = None
+                    for f in os.listdir(os.path.join(d, 'csv')):
+                        if f.endswith('rit.csv'):
+                            csv = os.path.join(d, 'csv', f)
+                            break
+                    if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
+                                                   os.path.exists(os.path.join(d, 'video')),
+                                                   os.path.exists(os.path.join(d, 'audio'))):
+                        raise OSError()
+                except OSError as e:
+                    tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*rit.csv).')
+                    return
+                check_outdated(csv, d)
+                h = HPSpreadsheet(self.settings, dir=d, ritCSV=csv, master=self, devices=self.cameras)
+                h.open_spreadsheet()
         else:
-            d = os.path.dirname(csv)
-
-        h = HPSpreadsheet(self.settings, dir=d, ritCSV=csv, master=self, devices=self.cameras)
-        h.open_spreadsheet()
+            return
 
     def open_old_keywords_csv(self):
-        outputdir = self.settings.get('outputdir')
-        csv = tkFileDialog.askopenfilename(initialdir=outputdir)
-        k = KeywordsSheet(self.settings, dir=outputdir, keyCSV=csv, master=self)
-        k.open_spreadsheet()
+        open_data = tkMessageBox.askokcancel(title='Data Selection', message='Select data to edit keywords. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
+        if open_data:
+            d = tkFileDialog.askdirectory(title='Select Root Data Folder')
+            if d is None:
+                return
+            else:
+                try:
+                    csv = None
+                    for f in os.listdir(os.path.join(d, 'csv')):
+                        if f.endswith('keywords.csv'):
+                            csv = os.path.join(d, 'csv', f)
+                            break
+                    if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
+                                                   os.path.exists(os.path.join(d, 'video')),
+                                                   os.path.exists(os.path.join(d, 'audio'))):
+                        raise OSError()
+                except OSError as e:
+                    tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*keywords.csv).')
+                    return
+
+                k = KeywordsSheet(self.settings, dir=d, keyCSV=csv, master=self)
+                k.open_spreadsheet()
+        else:
+            return
+
 
     def open_settings(self):
         SettingsWindow(master=self.master, settings=self.settings)

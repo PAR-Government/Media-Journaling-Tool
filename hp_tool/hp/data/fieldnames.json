@@ -1,5 +1,5 @@
 {
-    "HP-CollectionRequestID":"",
+    "HP-Collection":"",
     "HP-HDLocation":"",
     "DeviceSerialNumber":"-SerialNumber",
     "HP-DeviceLocalID":"",
@@ -55,5 +55,6 @@
     "HP-LightSource":"",
     "HP-Orientation":"",
     "HP-DynamicStatic":"",
-    "HP-NumberOfSpeakers":""
+    "HP-NumberOfSpeakers":"",
+    "HP-Keywords":""
 }
