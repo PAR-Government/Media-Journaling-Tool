@@ -2165,29 +2165,30 @@ class ImageProjectModel:
                 try:
                     with open(os.path.join(self.G.dir, nodeData['file'])) as rp:
                         new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
+                        fullname = os.path.join(self.G.dir, new_file_name)
+                        file_path_name = os.path.join(self.G.dir, nodeData['file'])
+                        if not os.path.exists(fullname):
+                            try:
+                                os.rename(file_path_name, fullname)
+                                renamed.append(node)
+                                logging.getLogger('maskgen').info(
+                                    'Renamed {} to {} '.format(nodeData['file'], new_file_name))
+                                self.G.update_node(node, file=new_file_name)
+                            except Exception as e:
+                                try:
+                                    logging.getLogger('maskgen').error(
+                                        ('Failure to rename file {} : {}.  Trying copy').format(file_path_name, str(e)))
+                                    shutil.copy2(file_path_name, fullname)
+                                    logging.getLogger('maskgen').info(
+                                        'Renamed {} to {} '.format(nodeData['file'], new_file_name))
+                                    self.G.update_node(node, file=new_file_name)
+                                except:
+                                    continue
+                        else:
+                            logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
                 except:
                     logging.getLogger('maskgen').error( 'Missing file or invalid permission: {} '.format( nodeData['file']))
-                    new_file_name = nodeData['file']
                     continue
-                fullname = os.path.join(self.G.dir,new_file_name)
-                file_path_name = os.path.join(self.G.dir ,nodeData['file'])
-                if not os.path.exists(fullname):
-                    try:
-                        os.rename(file_path_name, fullname)
-                        renamed.append(node)
-                        logging.getLogger('maskgen').info('Renamed {} to {} '.format( nodeData['file'], new_file_name))
-                        self.G.update_node(node,file=new_file_name)
-                    except Exception as e:
-                        try:
-                            logging.getLogger('maskgen').error(('Failure to rename file {} : {}.  Trying copy').format(file_path_name,str(e)))
-                            shutil.copy2(file_path_name,fullname)
-                            logging.getLogger('maskgen').info(
-                                'Renamed {} to {} '.format(nodeData['file'], new_file_name))
-                            self.G.update_node(node, file=new_file_name)
-                        except:
-                            continue
-                else:
-                   logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
         self.save()
         return renamed
 

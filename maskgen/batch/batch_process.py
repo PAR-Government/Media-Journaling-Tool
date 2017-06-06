@@ -43,6 +43,9 @@ def check_additional_args(additionalArgs, op, continueWithWarning=False):
     """
     # parse additional arguments (rotation, etc.)
     # http://stackoverflow.com/questions/6900955/python-convert-list-to-dictionary
+    if op is None:
+        print 'Invalid Operation Name {}'.format(op)
+        return {}
     if len(additionalArgs) > 0:
         parsedArgs = dict(itertools.izip_longest(*[iter(additionalArgs)] * 2, fillvalue=""))
         for key in parsedArgs:
@@ -327,7 +330,8 @@ def parse_properties(sourceDir, endDir, plugin, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projects',             required=True,         help='Projects directory')
+    parser.add_argument('--projects',             default=None,         help='Projects directory')
+    parser.add_argument('--plugins',              action='store_true',   help='Dump plugin formation')
     parser.add_argument('--plugin',               default=None,          help='Perform specified plugin operation')
     parser.add_argument('--sourceDir',            default=None,          help='Directory of starting images')
     parser.add_argument('--endDir',               default=None,          help='Directory of manipulated images')
@@ -358,19 +362,48 @@ def main():
                              semanticrepurposing=args.semanticRepurposing, semanticrefabrication=args.semanticEventFabrication,
                              imagereformat=args.imageReformatting)
 
+    if args.plugins:
+        for plugin in maskgen.plugins.loadPlugins().keys():
+            if args.plugin is not None and plugin != args.plugin:
+                continue
+            print '---------------------------------------'
+            print plugin
+            op = maskgen.plugins.getOperation(plugin)
+            if 'arguments' not in op or op['arguments'] is None:
+                continue
+            print 'Arguments:'
+            for name,definition in  op['arguments'].iteritems():
+                vals = (' of ' + ','.join(definition['values'])) if definition['type'] == 'list' else ''
+                print '  {}: {}{} [ {} ]'.format(name, definition['type'],vals,
+                                                 definition['description'] if 'description' in definition else '' )
+        return
+
     # perform the specified operation
-    if args.plugin:
+    elif args.plugin:
+        if args.projects is None:
+            print 'projects is required'
+            sys.exit(-1)
         maskgen.plugins.loadPlugins()
         opDef = maskgen.plugins.getOperation(args.plugin)
         additionalArgs = {}
         if opDef is not None:
             op = getOperation(opDef['name'])
+            if op is None:
+                print 'Invalid Operation definition {} for plugin.  Plugin is an invalid state.'.format(args.op)
+                sys.exit(-1)
             additionalArgs = check_additional_args(args.arguments, op, args.continueWithWarning)
 
         print 'Performing plugin operation ' + args.plugin + '...'
         process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
     elif args.sourceDir:
-        additionalArgs = {} if args.op is None else check_additional_args(args.arguments, getOperation(args.op), args.continueWithWarning)
+        op = getOperation(args.op)
+        if args.projects is None:
+            print 'projects is required'
+            sys.exit(-1)
+        if op is None:
+            print 'Invalid Operation {}'.format(args.op)
+            sys.exit(-1)
+        additionalArgs = {} if args.op is None else check_additional_args(args.arguments, op, args.continueWithWarning)
         if args.op:
             print 'Adding operation '+ args.op + '...'
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
