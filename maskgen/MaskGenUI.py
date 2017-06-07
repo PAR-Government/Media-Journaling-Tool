@@ -139,20 +139,23 @@ class MakeGenUI(Frame):
                               ' \nProject Version: ' + self.scModel.getGraph().getProjectVersion() +
                               ' \nOperations: ' + operationVersion() )
 
+    def _open_project(self, path):
+        self.scModel.load(path)
+        if self.scModel.getProjectData('typespref') is None:
+            self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
+        self._setTitle()
+        self.drawState()
+        self.canvas.update()
+        if (self.scModel.start is not None):
+            self.setSelectState('normal')
+        if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
+            tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
                                            filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])
         if (val != None and len(val) > 0):
-            self.scModel.load(val)
-            if self.scModel.getProjectData('typespref') is None:
-                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
-            self._setTitle()
-            self.drawState()
-            self.canvas.update()
-            if (self.scModel.start is not None):
-                self.setSelectState('normal')
-            if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
-                tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+            self._open_project(val)
 
     def addcgi(self):
         self.add(cgi=True)
@@ -261,7 +264,7 @@ class MakeGenUI(Frame):
                     self.prefLoader.save('s3info', val)
             except IOError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
-                tkMessageBox.showinfo("Error", "Failed to upload export")
+                tkMessageBox.showinfo("Error", "Failed to upload export.  Check log file details.")
             except ClientError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
@@ -540,8 +543,13 @@ class MakeGenUI(Frame):
     def cloneinputmask(self):
         self.scModel.fixInputMasks()
 
+    def openS3(self):
+        val = tkSimpleDialog.askstring("S3 File URL", "URL",
+                                       initialvalue='')
+        if (val is not None and len(val) > 0):
+            self._open_project(fetchbyS3URL(val))
+
     def fetchS3(self):
-        import graph_rules
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
@@ -696,22 +704,26 @@ class MakeGenUI(Frame):
         self.drawState()
         self.setSelectState('normal')
 
-    def changeEvent(self, recipient, eventType):
+    def changeEvent(self, recipient, eventType, **kwargs):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
+            return True
         if eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
             validation_person = self.scModel.getProjectData('validatedby')
             comment = 'Exported by ' + self.prefLoader.get_key('username')
+            for k,v in kwargs.iteritems():
+                comment = comment + '\n {}: {}'.format(k,v)
             comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
             if validation_person is not None:
                 comment = comment + '\n Validated By: ' + validation_person
-            self.notifiers.update_journal_status(self.scModel.getName(),
+            return self.notifiers.update_journal_status(self.scModel.getName(),
                                                  self.scModel.getGraph().getCreator().lower(),
                                                  comment,
                                                  self.scModel.getGraph().get_project_type())
         #        elif eventType == 'connect':
         #           self.canvas.showEdge(recipient[0],recipient[1])
+        return True
 
     def remove(self):
         self.canvas.remove()
@@ -787,6 +799,7 @@ class MakeGenUI(Frame):
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)
         filemenu.add_command(label="Open", command=self.open, accelerator="Ctrl+O")
+        filemenu.add_command(label="Open S3", command=self.openS3, accelerator="Ctrl+O")
         filemenu.add_command(label="New", command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)

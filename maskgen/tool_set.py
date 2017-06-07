@@ -66,6 +66,19 @@ def exportlogsto3(location,lastuploaded):
             logging.getLogger('maskgen').error("Could not upload prior log file to " + DIR)
     return logging_file
 
+def fetchbyS3URL(url):
+    import boto3
+    location  = url[5:] if url.startswith('s3://') else url
+    parts = location.split('/')
+    BUCKET = parts[0].strip()
+    location = location[location.find('/') + 1:].strip()
+    file = parts[-1]
+    s3 = boto3.resource('s3')
+    destination = os.path.join('.', file)
+    my_bucket = s3.Bucket(BUCKET)
+    my_bucket.download_file(location, destination)
+    return destination
+
 def get_logging_file():
     """
     :return: The last roll over log file

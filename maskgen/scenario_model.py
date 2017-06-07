@@ -440,9 +440,12 @@ class ImageImageLinkTool(LinkTool):
         im1 = scModel.getImage(start)
         im2 = scModel.getImage(end)
         edge = scModel.G.get_edge(start, end)
-        operation = getOperationWithGroups(edge['op'])
+        compareFunction = None
+        if edge is not None:
+            operation = getOperationWithGroups(edge['op'] if edge is not None else 'NA', fake=True)
+            compareFunction = operation.getCompareFunction()
         mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
-                                    alternativeFunction=operation.getCompareFunction())
+                                    alternativeFunction=compareFunction)
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -2162,33 +2165,31 @@ class ImageProjectModel:
                 logging.getLogger('maskgen').info( 'Inspecting {}  for rename'.format(nodeData['file']))
                 suffix_pos = nodeData['file'].rfind('.')
                 suffix = nodeData['file'][suffix_pos:].lower()
+                file_path_name = os.path.join(self.G.dir, nodeData['file'])
                 try:
                     with open(os.path.join(self.G.dir, nodeData['file'])) as rp:
                         new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
-                        fullname = os.path.join(self.G.dir, new_file_name)
-                        file_path_name = os.path.join(self.G.dir, nodeData['file'])
-                        if not os.path.exists(fullname):
-                            try:
-                                os.rename(file_path_name, fullname)
-                                renamed.append(node)
-                                logging.getLogger('maskgen').info(
-                                    'Renamed {} to {} '.format(nodeData['file'], new_file_name))
-                                self.G.update_node(node, file=new_file_name)
-                            except Exception as e:
-                                try:
-                                    logging.getLogger('maskgen').error(
-                                        ('Failure to rename file {} : {}.  Trying copy').format(file_path_name, str(e)))
-                                    shutil.copy2(file_path_name, fullname)
-                                    logging.getLogger('maskgen').info(
-                                        'Renamed {} to {} '.format(nodeData['file'], new_file_name))
-                                    self.G.update_node(node, file=new_file_name)
-                                except:
-                                    continue
-                        else:
-                            logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
+                    fullname = os.path.join(self.G.dir, new_file_name)
                 except:
                     logging.getLogger('maskgen').error( 'Missing file or invalid permission: {} '.format( nodeData['file']))
                     continue
+                if not os.path.exists(fullname):
+                    try:
+                        os.rename(file_path_name, fullname)
+                        renamed.append(node)
+                        logging.getLogger('maskgen').info('Renamed {} to {} '.format( nodeData['file'], new_file_name))
+                        self.G.update_node(node,file=new_file_name)
+                    except Exception as e:
+                        try:
+                            logging.getLogger('maskgen').error(('Failure to rename file {} : {}.  Trying copy').format(file_path_name,str(e)))
+                            shutil.copy2(file_path_name,fullname)
+                            logging.getLogger('maskgen').info(
+                                'Renamed {} to {} '.format(nodeData['file'], new_file_name))
+                            self.G.update_node(node, file=new_file_name)
+                        except:
+                            continue
+                else:
+                   logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
         self.save()
         return renamed
 
@@ -2379,6 +2380,11 @@ class ImageProjectModel:
             newtarget = os.path.join(os.path.split(target)[0],os.path.split(filename)[1])
             shutil.copy2(target, newtarget)
             target = newtarget
+        if extra_args is not None and 'output_files' in extra_args:
+            file_params = extra_args.pop('output_files')
+            for name,value in file_params.iteritems():
+                extra_args[name] = value
+                self.G.addEdgeFilePath('arguments.' + name, '')
         description = Modification(op['name'], filter + ':' + op['description'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
@@ -2391,7 +2397,7 @@ class ImageProjectModel:
             {k: v for k, v in graph_args.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
         if extra_args is not None and type(extra_args) == type({}):
              for k,v in extra_args.iteritems():
-                 if k not in kwargs:
+                 if k not in kwargs or v is not None:
                      description.arguments[k] = v
         description.setSoftware(software)
         description.setAutomated('yes')
@@ -2533,7 +2539,8 @@ class ImageProjectModel:
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
                 s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1],callback=S3ProgressPercentage(path))
                 os.remove(path)
-                self.notify(self.getName(),'export')
+                if not self.notify(self.getName(),'export', location='s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1]):
+                    errors = [('','','Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
             return errors
 
     def export_path(self, location):
