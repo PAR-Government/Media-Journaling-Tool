@@ -88,10 +88,6 @@ def getOperations(fileType=None):
             ops[l] = loaded[l]
     return ops
 
-# return list of tuples, name and default value (which can be None)
-def getArguments(name):
-    global loaded
-    return loaded[name]['arguments'] if 'arguments' in loaded[name] else dict()
 
 def getPreferredSuffix(name):
     global loaded
