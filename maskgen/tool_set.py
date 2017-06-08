@@ -2281,7 +2281,7 @@ def selfVideoTest():
         return 'Video Writing Failed'
     try:
         size = openImage(vidfn, getMilliSecondsAndFrameCount('00:00:01:2')).size
-        if size == (1920, 1090):
+        if size != (1920, 1090):
             return 'Video Writing Failed: Frame Size inconsistent'
     except:
         return 'Video Writing Failed'

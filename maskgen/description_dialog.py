@@ -420,7 +420,6 @@ class DescriptionCaptureDialog(Toplevel):
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                scModel=self.scModel,
                                 propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
@@ -994,7 +993,6 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
                            argumentTuple[1]['visible']]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                scModel=self.scModel,
                                 propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
@@ -2003,14 +2001,13 @@ class PropertyFrame(VerticalScrolledFrame):
    cancelled = True
    dir = '.'
    buttons = {}
-   scModel = None
    propertyFunction = PropertyFunction()
    extra_args = {}
    """
    @type scModel: ImageProjectModel
    """
 
-   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),scModel=None,
+   def __init__(self, parent, properties, propertyFunction=PropertyFunction(),
                 dir='.',
                 changeParameterCB=None,
                 extra_args ={},
@@ -2022,7 +2019,6 @@ class PropertyFrame(VerticalScrolledFrame):
      self.changeParameterCB = changeParameterCB
      self.dir = dir
      self.propertyFunction = propertyFunction
-     self.scModel = scModel
      self.extra_args = extra_args
      VerticalScrolledFrame.__init__(self, parent, **kwargs)
      self.body()
@@ -2133,6 +2129,27 @@ class PropertyFrame(VerticalScrolledFrame):
                tkMessageBox.showwarning('Error', prop.name, error)
            i += 1
 
+class SystemPropertyFunction(PropertyFunction):
+
+    prefLoader = None
+    """
+    @type prefLoader: MaskGenLoader
+    """
+    def __init__(self,prefLoader):
+        """
+
+        :param prefLoader:
+        @type prefLoader: MaskGenLoader
+        """
+        self.prefLoader = prefLoader
+
+
+    def getValue(self, name):
+        return self.prefLoader.get_key(name,'')
+
+    def setValue(self, name,value):
+        return self.prefLoader.save(name,value)
+
 class ProjectPropertyFunction(PropertyFunction):
 
     def __init__(self,scModel):
@@ -2148,6 +2165,31 @@ class ProjectPropertyFunction(PropertyFunction):
     def setValue(self, name,value):
         return self.scModel.setProjectData(name,value)
 
+class SystemPropertyDialog(tkSimpleDialog.Dialog):
+
+   cancelled = False
+   def __init__(self, parent, properties, prefLoader=None,title="System Properties", dir='.'):
+        self.properties =properties
+        self.prefLoader = prefLoader
+        self.dir=dir
+        tkSimpleDialog.Dialog.__init__(self, parent, title)
+
+   def body(self, master):
+        self.vs = PropertyFrame(master,
+                            self.properties,
+                            propertyFunction=SystemPropertyFunction(self.prefLoader),
+                            dir=self.dir)
+        self.vs.grid(row=0)
+
+   def cancel(self, event=None):
+    self.cancelled = True
+    tkSimpleDialog.Dialog.cancel(self,event=event)
+
+   def apply(self):
+       if not self.cancelled:
+            self.vs.apply()
+       tkSimpleDialog.Dialog.apply(self)
+
 class PropertyDialog(tkSimpleDialog.Dialog):
 
    cancelled = False
@@ -2159,7 +2201,6 @@ class PropertyDialog(tkSimpleDialog.Dialog):
 
    def body(self, master):
         self.vs = PropertyFrame(master, self.properties,
-                           scModel=self.scModel,
                            propertyFunction=ProjectPropertyFunction(self.scModel),
                             dir=self.dir)
         self.vs.grid(row=0)

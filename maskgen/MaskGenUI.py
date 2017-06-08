@@ -567,6 +567,9 @@ class MakeGenUI(Frame):
         else:
             self.errorlistDialog.setItems(errorList)
 
+    def getsystemproperties(self):
+        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader)
+
     def getproperties(self):
         d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
 
@@ -786,13 +789,10 @@ class MakeGenUI(Frame):
         exportmenu.add_command(label="To S3", command=self.exporttoS3)
 
         settingsmenu = Menu(tearoff=0)
-        settingsmenu.add_command(label="Username", command=self.setusername)
-        settingsmenu.add_command(label="Organization", command=self.setorganization)
+        settingsmenu.add_command(label="System Properties", command=self.getsystemproperties)
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
         settingsmenu.add_command(label="Autosave", command=self.setautosave)
-        settingsmenu.add_command(label="API Token", command=partial(self.setproperty,'apitoken','API Token'))
-        settingsmenu.add_command(label="API URL", command=partial(self.setproperty,'apiurl','API URL'))
         for k,v in self.notifiers.get_properties().iteritems():
             settingsmenu.add_command(label=v, command=partial(self.setproperty,k,v))
 
@@ -993,6 +993,26 @@ class MakeGenUI(Frame):
                 types.append(suffix)
         return types
 
+    def getSystemPreferences(self):
+        props =  [ProjectProperty(name='username',
+                                  type='text',
+                                  description='User Name',
+                                  information='Journal User Name'),
+                ProjectProperty(name='organization', type='text',
+                                description='Organization',
+                                information="journal user's organization"),
+                ProjectProperty(name='apiurl', type='text',
+                                description="API URL",
+                                information='Validation API URL'),
+                ProjectProperty(name='apitoken', type='text',
+                                description="API Token",
+                                information = 'Validation API URL')
+                ]
+        for k, v in self.notifiers.get_properties().iteritems():
+            props.append(ProjectProperty(name=k, type='text', description=k,
+                                         information='notification property'))
+        return props
+
     def __init__(self, dir, master=None, pluginops={}, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
@@ -1011,6 +1031,8 @@ class MakeGenUI(Frame):
             else:
                 self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
         self.createWidgets()
+        if self.prefLoader.get_key('username',None) is None:
+            self.getsystemproperties()
         if tuple[1]:
             self.getproperties()
 
