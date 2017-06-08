@@ -2539,7 +2539,7 @@ class ImageProjectModel:
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
                 s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1],callback=S3ProgressPercentage(path))
                 os.remove(path)
-                if not self.notify(self.getName(),'export', location='s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1]):
+                if not self.notify(self.getName(),'export', location='s3://' + BUCKET + '/' + DIR +  os.path.split(path)[1]):
                     errors = [('','','Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
             return errors
 

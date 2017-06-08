@@ -203,16 +203,16 @@ class TrelloAPI(MaskgenNotifer):
                     'close card {} of list {} on board {}'.format(cardname, listname, board),
                     value=False)
 
-            self.post_to_trello(
+            ok = self.post_to_trello(
                 self.loaded_config['comment'].format(cardid=cardinfo[0]),
                 'add comment to card {} of list {} on board {}'.format(cardname, listname, board),
                 quiet=False,
-                text=comment)
+                text=comment) is not None
 
             for label in labels:
                 self.add_label_to_card(board,cardinfo[0],label)
 
-            return True
+            return ok
         else:
             return False
 
