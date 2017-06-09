@@ -154,6 +154,10 @@ def filehashkey(*args, **kwargs):
     """Return a cache key for the specified hashable arguments."""
     return args[0]
 
+def deleteImage(filename):
+    with image_lock:
+        if filename in image_cache:
+             image_cache.pop(filename)
 
 @cached(image_cache, lock=image_lock,key=filehashkey)
 def openImageFile(filename,isMask=False):
@@ -277,6 +281,7 @@ class ImageWrapper:
         elif self.image_array.dtype == 'float':
             img_array = self.image_array * 256
             self.image_array = img_array.astype('uint8')
+
 
     def save(self, filename, **kwargs):
         #global image_cache

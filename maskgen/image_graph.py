@@ -1,6 +1,7 @@
 import os
 import networkx as nx
 from networkx.readwrite import json_graph
+from image_wrap import deleteImage
 import json
 import shutil
 from software_loader import getOS
@@ -614,6 +615,7 @@ class ImageGraph:
                     f = os.path.abspath(os.path.join(self.dir, pathvalue))
                     if (os.path.exists(f)):
                         self.filesToRemove.add(f)
+                        deleteImage(f)
         actionList.append(dict(start=start, end=end, action='removeEdge', **self.G.edge[start][end]))
 
     def _nodeFileRemover(self, name):
@@ -624,6 +626,7 @@ class ImageGraph:
         f = os.path.abspath(os.path.join(self.dir, self.G.node[name]['file']))
         if (node['ownership'] == 'yes' and os.path.exists(f)):
             self.filesToRemove.add(f)
+            deleteImage(f)
 
         for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
             for pathvalue in getPathValues(node, path):
@@ -631,6 +634,7 @@ class ImageGraph:
                     f = os.path.abspath(os.path.join(self.dir, pathvalue))
                     if (os.path.exists(f)):
                         self.filesToRemove.add(f)
+                        deleteImage(f)
         self.U.append(dict(name=name, action='removeNode', **self.G.node[name]))
         self.G.remove_node(name)
 
