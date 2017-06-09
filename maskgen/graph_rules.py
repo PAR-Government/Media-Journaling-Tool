@@ -137,6 +137,7 @@ def test_api(apitoken, url):
     import requests
     if url is None:
         return "External Service URL undefined"
+    baseurl = url
     try:
         url = url[:-1] if url.endswith('/') else url
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
@@ -144,9 +145,9 @@ def test_api(apitoken, url):
         data = '{ "file_name": {"type": "contains", "value": "' + 'test' + '" }}'
         response = requests.post(url, data=data, headers=headers)
         if response.status_code != requests.codes.ok:
-            return "Error calling external service: " + url
+            return "Error calling external service {} : {}".format(baseurl,str(response.content))
     except Exception as e:
-        return "Error calling external service: " + url
+        return "Error calling external service: {} : {}".format(baseurl,str(e.message))
     return None
 
 def get_fields(filename, apitoken, url):

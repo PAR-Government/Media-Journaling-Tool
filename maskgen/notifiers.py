@@ -36,7 +36,7 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
         for notifier in self.notifiers:
             error = notifier.check_status()
             if error is not None:
-                errors.append()
+                errors.append(error)
         if len(errors) > 0:
             return str(errors)
 
