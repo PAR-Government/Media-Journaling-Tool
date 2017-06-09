@@ -2,6 +2,7 @@
    "enabled":true,
    "url":"https://api.trello.com",
    "boards" : "/1/members/{trelloapiusername}/boards",
+   "memberships" : "/1/boards/{boardid}/memberships",
    "lists" : "/1/boards/{boardid}/lists",
    "cards" : "/1/lists/{listid}/cards",
    "user" : "/1/members/me",

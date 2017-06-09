@@ -139,20 +139,23 @@ class MakeGenUI(Frame):
                               ' \nProject Version: ' + self.scModel.getGraph().getProjectVersion() +
                               ' \nOperations: ' + operationVersion() )
 
+    def _open_project(self, path):
+        self.scModel.load(path)
+        if self.scModel.getProjectData('typespref') is None:
+            self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
+        self._setTitle()
+        self.drawState()
+        self.canvas.update()
+        if (self.scModel.start is not None):
+            self.setSelectState('normal')
+        if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
+            tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
                                            filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])
         if (val != None and len(val) > 0):
-            self.scModel.load(val)
-            if self.scModel.getProjectData('typespref') is None:
-                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
-            self._setTitle()
-            self.drawState()
-            self.canvas.update()
-            if (self.scModel.start is not None):
-                self.setSelectState('normal')
-            if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
-                tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+            self._open_project(val)
 
     def addcgi(self):
         self.add(cgi=True)
@@ -261,7 +264,7 @@ class MakeGenUI(Frame):
                     self.prefLoader.save('s3info', val)
             except IOError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
-                tkMessageBox.showinfo("Error", "Failed to upload export")
+                tkMessageBox.showinfo("Error", "Failed to upload export.  Check log file details.")
             except ClientError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
@@ -540,8 +543,13 @@ class MakeGenUI(Frame):
     def cloneinputmask(self):
         self.scModel.fixInputMasks()
 
+    def openS3(self):
+        val = tkSimpleDialog.askstring("S3 File URL", "URL",
+                                       initialvalue='')
+        if (val is not None and len(val) > 0):
+            self._open_project(fetchbyS3URL(val))
+
     def fetchS3(self):
-        import graph_rules
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
@@ -558,6 +566,9 @@ class MakeGenUI(Frame):
             self.errorlistDialog = ListDialog(self, errorList, "Validation Errors")
         else:
             self.errorlistDialog.setItems(errorList)
+
+    def getsystemproperties(self):
+        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader)
 
     def getproperties(self):
         d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
@@ -696,22 +707,26 @@ class MakeGenUI(Frame):
         self.drawState()
         self.setSelectState('normal')
 
-    def changeEvent(self, recipient, eventType):
+    def changeEvent(self, recipient, eventType, **kwargs):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
+            return True
         if eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
             validation_person = self.scModel.getProjectData('validatedby')
             comment = 'Exported by ' + self.prefLoader.get_key('username')
+            for k,v in kwargs.iteritems():
+                comment = comment + '\n {}: {}'.format(k,v)
             comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
             if validation_person is not None:
                 comment = comment + '\n Validated By: ' + validation_person
-            self.notifiers.update_journal_status(self.scModel.getName(),
+            return self.notifiers.update_journal_status(self.scModel.getName(),
                                                  self.scModel.getGraph().getCreator().lower(),
                                                  comment,
                                                  self.scModel.getGraph().get_project_type())
         #        elif eventType == 'connect':
         #           self.canvas.showEdge(recipient[0],recipient[1])
+        return True
 
     def remove(self):
         self.canvas.remove()
@@ -774,19 +789,17 @@ class MakeGenUI(Frame):
         exportmenu.add_command(label="To S3", command=self.exporttoS3)
 
         settingsmenu = Menu(tearoff=0)
-        settingsmenu.add_command(label="Username", command=self.setusername)
-        settingsmenu.add_command(label="Organization", command=self.setorganization)
+        settingsmenu.add_command(label="System Properties", command=self.getsystemproperties)
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
         settingsmenu.add_command(label="Autosave", command=self.setautosave)
-        settingsmenu.add_command(label="API Token", command=partial(self.setproperty,'apitoken','API Token'))
-        settingsmenu.add_command(label="API URL", command=partial(self.setproperty,'apiurl','API URL'))
         for k,v in self.notifiers.get_properties().iteritems():
             settingsmenu.add_command(label=v, command=partial(self.setproperty,k,v))
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="About", command=self.about)
         filemenu.add_command(label="Open", command=self.open, accelerator="Ctrl+O")
+        filemenu.add_command(label="Open S3", command=self.openS3, accelerator="Ctrl+O")
         filemenu.add_command(label="New", command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)
@@ -980,6 +993,26 @@ class MakeGenUI(Frame):
                 types.append(suffix)
         return types
 
+    def getSystemPreferences(self):
+        props =  [ProjectProperty(name='username',
+                                  type='text',
+                                  description='User Name',
+                                  information='Journal User Name'),
+                ProjectProperty(name='organization', type='text',
+                                description='Organization',
+                                information="journal user's organization"),
+                ProjectProperty(name='apiurl', type='text',
+                                description="API URL",
+                                information='Validation API URL'),
+                ProjectProperty(name='apitoken', type='text',
+                                description="API Token",
+                                information = 'Validation API URL')
+                ]
+        for k, v in self.notifiers.get_properties().iteritems():
+            props.append(ProjectProperty(name=k, type='text', description=k,
+                                         information='notification property'))
+        return props
+
     def __init__(self, dir, master=None, pluginops={}, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
@@ -998,6 +1031,8 @@ class MakeGenUI(Frame):
             else:
                 self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
         self.createWidgets()
+        if self.prefLoader.get_key('username',None) is None:
+            self.getsystemproperties()
         if tuple[1]:
             self.getproperties()
 
