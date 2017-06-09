@@ -15,6 +15,7 @@ import pandastable
 import csv
 import webbrowser
 import requests
+import tempfile
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
 from CameraForm import HP_Device_Form
@@ -105,7 +106,8 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
         #self.fileMenu.add_command(label='Load image directory', command=self.load_images)
         self.fileMenu.add_command(label='Validate', command=self.validate)
-        self.fileMenu.add_command(label='Export to S3...', command=self.s3export)
+        self.fileMenu.add_command(label='Export to S3', command=self.s3export)
+        #self.fileMenu.add_command(label='Export to S3 for ingest', command=self.ingest)
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
@@ -488,16 +490,13 @@ class HPSpreadsheet(Toplevel):
                 importDates.append(now)
             subset['ImportDate'] = importDates
             subset['HP-Keywords'] = keywords
-            subset.to_csv(ro, columns=headers, index=False)
+            subset.to_csv(ro, columns=headers, index=False, quoting=csv.QUOTE_ALL)
 
     def s3export(self):
         cancelled = self.exportCSV(quiet=True)
         if cancelled:
             return
 
-        # localIDs = set(self.pt.model.df['HP-DeviceLocalID'])
-        # if not localIDs.issubset(set(self.devices.keys())):
-        #     self.prompt_for_new_camera(invalids=localIDs - set(self.devices.keys()))
         initial = self.settings.get('aws', notFound='')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
 
@@ -512,43 +511,20 @@ class HPSpreadsheet(Toplevel):
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
+            print('Archiving data...')
+            archive = self.create_hp_archive()
+
             print('Uploading...')
-            local_id = self.pt.model.df['HP-DeviceLocalID'][0]
-            dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
-            total = sum([len(files) for r, d, files in os.walk(self.dir)])
-            ct = 0.0
-            retry = []
-            for root, dirs, files in os.walk(self.dir):
-                for f in files:
-                    ct += 1
-                    local_path = os.path.join(root, f)
-                    upload_path = local_path[local_path.lower().index(os.path.basename(self.dir).lower()):]
-                    upload_path = upload_path.replace(os.path.basename(self.dir).lower(), local_id + '-' + dt)
-                    try:
-                        s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
-                                       callback=ProgressPercentage(local_path, total, ct))
-                    except Exception as e:
-                        print '\n' + str(
-                            e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
-                        retry.append({'local_path': local_path, 'upload_path': upload_path})
-            failed = []
+            try:
+                s3.upload_file(archive, BUCKET, DIR, callback=ProgressPercentage(archive))
+            except Exception as e:
+                tkMessageBox.showerror(title='Error', message='Could not complete upload.')
+                return
+
+            #self.verify_upload(all_files, os.path.join(BUCKET, DIR))
             msg = []
-            if retry:
-                print '\n Retrying Failed Files...\n'
-                for f in retry:
-                    try:
-                        s3.upload_file(f['local_path'], BUCKET,
-                                       os.path.join(DIR, f['upload_path']).replace('\\', '/'),
-                                       callback=ProgressPercentage(f['local_path'], total, ct))
-                        ct += 1
-                    except Exception as e:
-                        s = 'Failed to upload ' + f['local_path']
-                        print s + '\n'
-                        failed.append(s)
-                if failed:
-                    msg.append(
-                        'Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
-            err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, local_id + '-' + dt), comment, failed)
+            failed = []
+            err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), comment, failed)
             if err is not None:
                 msg.append('S3 upload completed, but failed to notify Trello (' + str(
                     err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
@@ -558,6 +534,12 @@ class HPSpreadsheet(Toplevel):
             d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg), parent=self)
         else:
             tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
+
+    def verify_upload(self, all_files, location):
+        s3 = boto3.resource('s3')
+        my_bucket = s3.Bucket(location)
+
+
 
     def check_trello_login(self):
         if self.settings.get('trello', notFound='') == '':
@@ -622,14 +604,15 @@ class HPSpreadsheet(Toplevel):
     def create_hp_archive(self):
         val = self.pt.model.df['HP-DeviceLocalID'][0]
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
-        fname = os.path.join(self.dir, val + '-' + dt + '.tgz')
-        DIRNAME = self.dir
-        archive = tarfile.open(fname, "w:gz", errorlevel=2)
-        for item in os.listdir(DIRNAME):
-            if item != fname:
-                archive.add(os.path.join(DIRNAME, item), arcname=item)
+        fd, tname = tempfile.mkstemp(suffix='.tar')
+        archive = tarfile.open(tname, "w", errorlevel=2)
+        archive.add(self.dir, arcname=os.path.split(self.dir)[1])
         archive.close()
-        return fname
+        os.close(fd)
+        final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
+        os.rename(tname, os.path.join(self.dir, final_name))
+
+        return final_name
 
     def validate(self):
         errors = []

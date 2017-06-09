@@ -311,6 +311,7 @@ def check_outdated(ritCSV, path):
 
     if diff:
         rit_data.to_csv(ritCSV, index=False, quoting=csv.QUOTE_ALL)
+        rit_data.to_csv(ritCSV, index=False, quoting=csv.QUOTE_ALL)
 
 def add_exif_column(df, title, exif_tag, path):
     print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
