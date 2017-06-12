@@ -2,6 +2,16 @@ from image_graph import ImageGraph
 from tool_set import imageResizeRelative
 import os
 
+def check_graph_status():
+    import pydot
+    try:
+        pygraph = pydot.Dot(graph_type='digraph')
+        pygraph.add_node(pydot.Node('test', label='test', shape='plain') )
+        pygraph.write_png('check_graph_status.png')
+        os.remove('check_graph_status.png')
+    except Exception as ex:
+        return 'pygraph failure: {}'.format(str(ex))
+
 class ImageGraphPainter:
 
     """

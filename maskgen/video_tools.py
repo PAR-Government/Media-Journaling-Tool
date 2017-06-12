@@ -328,14 +328,14 @@ def ffmpegToolTest():
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
     except:
-        return ffmpegcommand + ' not installed properly'
+        return ffmpegcommand[0]+ ' not installed properly'
 
     ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffmpeg'), '-L']
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
     except:
-        return ffmpegcommand + ' not installed properly'
+        return ffmpegcommand[0] + ' not installed properly'
     return None
 
 #   sortFrames(frames)

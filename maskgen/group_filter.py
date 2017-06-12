@@ -107,6 +107,18 @@ class GroupFilter:
                 'group':'Sequence'
                 }
 
+class OperationGroupFilter(GroupFilter):
+
+    def __init__(self, name, filters):
+        GroupFilter.__init__(self,name,filters)
+
+    def isValid(self):
+        for filter in self.filters:
+            if getOperation(filter) is None:
+                logging.getLogger('maskgen').warning('Invalid operation {} in group {}'.format(filter, self.name))
+                return False
+        return True
+
 class GroupFilterLoader:
     groups = {}
 
@@ -215,7 +227,7 @@ class GroupFilterLoader:
                 p[grp] =grpOp
         return p
 
-    def load(self):
+    def load(self, filterFactory=lambda k,v: GroupFilter(k, v)):
         global maskgenloader
         plugins.loadPlugins()
         self.groups = {}
@@ -223,12 +235,12 @@ class GroupFilterLoader:
         if newset is not None:
             for k, v in newset.iteritems():
                 if len(v) > 0:
-                    group = GroupFilter(k, v)
+                    group = filterFactory(k, v)
                     if group.isValid():
                         self.groups[k] = group
         for k,v in getFilters(self.getLoaderKey()).iteritems():
             if len(v) > 0:
-                group = GroupFilter(k, v)
+                group = filterFactory(k, v)
                 if group.isValid():
                     self.groups[k] = group
 
@@ -267,7 +279,7 @@ class GroupOperationsLoader(GroupFilterLoader):
         return "Operations"
 
     def __init__(self):
-        GroupFilterLoader.load(self)
+        GroupFilterLoader.load(self,filterFactory=lambda k,v: OperationGroupFilter(k,v))
 
     def _getOperation(self, name):
         return  getOperation(name, fake=True)
@@ -320,7 +332,7 @@ groupOpLoader = GroupOperationsLoader()
 
 def injectGroup(name, ops):
     global groupOpLoader
-    groupOpLoader.groups[name] = GroupFilter(name, ops)
+    groupOpLoader.groups[name] = OperationGroupFilter(name, ops)
 
 def getCategoryForOperation(name):
     global groupOpLoader

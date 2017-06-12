@@ -127,7 +127,13 @@ class TrelloAPI(MaskgenNotifer):
         r = self.get_from_trello(self.loaded_config['memberships'].format(boardid=boardid),
                                  'find memberships for board {}'.format(name),
                                  filter='me')
+        if type(r) == list:
+            for i in r:
+                if i is not None and 'idMember' in i:
+                    return True
+            return False
         return r is not None and 'idMember' in r
+
 
     def get_list_id_by_name(self, board,name,create=False):
         boardid = self.get_board_id_by_name(board)

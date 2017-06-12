@@ -21,7 +21,7 @@ from CompositeViewer import CompositeViewDialog
 from notifiers import  getNotifier
 import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
-
+from graph_output import check_graph_status
 """
   Main UI Driver for MaskGen
 """
@@ -635,8 +635,9 @@ class MakeGenUI(Frame):
         self._setTitle()
 
     def systemcheck(self):
-        errors = [video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
-                  graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+        errors = [graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+                  video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+                  check_graph_status(),
                   self.notifiers.check_status()]
         error_count = 0
         for error in errors:
