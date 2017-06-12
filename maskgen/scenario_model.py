@@ -1050,6 +1050,8 @@ class ImageProjectModel:
         """
         if self.start is None:
             return "Node node selected", False
+        if not self.G.has_node(destination):
+            return "Canvas out of state from model.  Node Missing.", False
         if self.findChild(destination, self.start):
             return "Cannot connect to ancestor node", False
         for suc in self.G.successors(self.start):
@@ -2035,12 +2037,15 @@ class ImageProjectModel:
         return None, None
 
     def selectImage(self, name):
-        self.start = name
-        self.end = None
+        if self.G.has_node(name):
+            self.start = name
+            self.end = None
 
     def selectEdge(self, start, end):
-        self.start = start
-        self.end = end
+        if self.G.has_node(start):
+           self.start = start
+        if self.G.has_node(end):
+           self.end = end
 
     def remove(self):
         """ Remove the selected node or edge """
