@@ -2167,7 +2167,7 @@ class ImageProjectModel:
                 suffix = nodeData['file'][suffix_pos:].lower()
                 file_path_name = os.path.join(self.G.dir, nodeData['file'])
                 try:
-                    with open(os.path.join(self.G.dir, nodeData['file'])) as rp:
+                    with open(os.path.join(self.G.dir, nodeData['file']),'rb') as rp:
                         new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
                     fullname = os.path.join(self.G.dir, new_file_name)
                 except:
