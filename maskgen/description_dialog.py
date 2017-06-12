@@ -190,7 +190,7 @@ def promptForDonorandFillButtonText(obj, id, row):
     @type row: int
     :return:
     """
-    d = ImageNodeCaptureDialog(obj, obj.scModel)
+    d = ImageNodeCaptureDialog(obj, obj.propertyFunction.scModel)
     res = d.selectedImage
     var = obj.values[row]
     var.set(res if (res is not None and len(res) > 0) else None)
@@ -420,7 +420,7 @@ class DescriptionCaptureDialog(Toplevel):
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(properties),
+                                propertyFunction=EdgePropertyFunction(self.scModel,properties),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
                                             'start_im':self.start_im,
@@ -993,7 +993,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
                            argumentTuple[1]['visible']]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(properties),
+                                propertyFunction=EdgePropertyFunction(self.scModel,properties),
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
@@ -2217,11 +2217,12 @@ class PropertyDialog(tkSimpleDialog.Dialog):
 class EdgePropertyFunction(PropertyFunction):
 
     lookup_values = {}
-    def __init__(self,properties):
+    def __init__(self, scModel, properties):
         """
         :param scModel:
         @type scModel: ImageProjectModel
         """
+        self.scModel = scModel
         for prop in properties:
             self.lookup_values[prop.name] = prop.value
 

@@ -586,6 +586,8 @@ class ImageGraph:
         :return:
         @rtype (ImageWrapper,str)
         """
+        if not self.G.has_node(name):
+            return None,None
         node = self.G.node[name]
         filename = os.path.abspath(os.path.join(self.dir, node['file']))
         proxy = getProxy(filename)
