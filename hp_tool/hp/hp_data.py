@@ -470,7 +470,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
 
-    for csv_type in  ['rit', 'history', 'rankone', 'keywords']:
+    for csv_type in  ['rit', 'rankone', 'keywords']:
         print('Writing ' + csv_type + ' file')
         csv_path = os.path.join(outputdir, 'csv', '-'.join(
             (dt, self.settings.get('organization') + self.settings.get('username'), csv_type + '.csv')))
