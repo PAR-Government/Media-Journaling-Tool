@@ -10,6 +10,7 @@ import tkFileDialog, tkMessageBox
 import json
 import requests
 from camera_handler import API_Camera_Handler
+from hp_data import exts
 import data_files
 
 class HP_Device_Form(Toplevel):
@@ -389,7 +390,7 @@ class Update_Form(Toplevel):
             else:
                 v.set(configuration[k])
             if k == 'media_type':
-                e = ttk.Combobox(self.f.interior, values=['image', 'video', 'audio', ''], state='readonly', textvariable=v)
+                e = ttk.Combobox(self.f.interior, values=['image', 'video', 'audio'], state='readonly', textvariable=v)
             else:
                 e = Entry(self.f.interior, textvar=v)
                 if k != 'hp_app':
@@ -409,6 +410,8 @@ class Update_Form(Toplevel):
             'Authorization': 'Token ' + self.browser,
         }
         data = self.prepare_data()
+        if data is None:
+            return
 
         r = requests.put(url, headers=headers, data=data)
         if r.status_code in (requests.codes.ok, requests.codes.created):
@@ -431,7 +434,12 @@ class Update_Form(Toplevel):
             for key, val in configuration.iteritems():
                 if val == '':
                     configuration[key] = None
-        return json.dumps(data)
+                if key == 'media_type' and val == '':
+                    configuration[key] = 'image'
+
+        # remove duplicate entries
+        data = [dict(t) for t in set([tuple(d.items()) for d in data['exif']])]
+        return json.dumps({'exif':data})
 
     def camupdate_notify_trello(self, link):
         # list ID for "New Devices" list
@@ -474,6 +482,8 @@ class Update_Form(Toplevel):
 
     def get_data(self):
         self.imfile = tkFileDialog.askopenfilename(title='Select Media File', parent=self)
+        if self.imfile in ('', None):
+            return
         args = ['exiftool', '-f', '-j', '-Model', '-Make', '-SerialNumber', self.imfile]
         try:
             p = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
@@ -485,8 +495,16 @@ class Update_Form(Toplevel):
         exifData['Model'] = exifData['Model'] if exifData['Model'] != '-' else ''
         exifData['SerialNumber'] = exifData['SerialNumber'] if exifData['SerialNumber'] != '-' else ''
 
-        self.add_config({'exif_device_serial_number':exifData['SerialNumber'], 'exif_camera_model':exifData['Model'],
-                         'exif_camera_make':exifData['Make'], 'hp_app':None, 'media_type':None})
+        global exts
+        if os.path.splitext(self.imfile)[1].lower() in exts['VIDEO']:
+            type = 'video'
+        elif os.path.splitext(self.imfile)[1].lower() in exts['AUDIO']:
+            type = 'audio'
+        else:
+            type = 'image'
+
+        self.add_config({'exif_device_serial_number': exifData['SerialNumber'], 'exif_camera_model': exifData['Model'],
+                         'exif_camera_make': exifData['Make'], 'hp_app': None, 'media_type': type})
 
 
 class VerticalScrolledFrame(Frame):

@@ -374,7 +374,7 @@ class HPSpreadsheet(Toplevel):
         for c in self.mandatoryAudioNames:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -426,18 +426,18 @@ class HPSpreadsheet(Toplevel):
                         tab.disabled_cells.append((row, col))
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
-                for error in self.processErrors[image]:
-                    errCol = error[0]
-                    try:
-                        col = tab.model.df.columns.get_loc(errCol)
-                        x1, y1, x2, y2 = tab.getCellCoords(row, col)
-                        rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#ff5b5b',
-                                                    outline='#084B8A',
-                                                    tag='cellrect')
-                        self.error_cells.append((row, col))
-                    except KeyError:
-                        continue
+                for errors in self.processErrors[image]:
+                    for errCol in errors[0]:
+                        try:
+                            col = tab.model.df.columns.get_loc(errCol)
+                            x1, y1, x2, y2 = tab.getCellCoords(row, col)
+                            rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                        fill='#ff5b5b',
+                                                        outline='#084B8A',
+                                                        tag='cellrect')
+                            self.error_cells.append((row, col))
+                        except KeyError:
+                            continue
 
         tab.lift('cellrect')
         tab.redraw()
@@ -538,7 +538,7 @@ class HPSpreadsheet(Toplevel):
     def verify_upload(self, all_files, location):
         s3 = boto3.resource('s3')
         my_bucket = s3.Bucket(location)
-
+        # wip
 
 
     def check_trello_login(self):
@@ -679,9 +679,7 @@ class HPSpreadsheet(Toplevel):
         errors = {}
         self.master.reload_ids()
         for row in range(0, self.pt.rows):
-            db_exif_models = []
-            db_exif_makes = []
-            db_exif_sn = []
+            db_configs = []
             image = self.pt.model.df['OriginalImageName'][row]
             errors[image] = []
             try:
@@ -696,21 +694,19 @@ class HPSpreadsheet(Toplevel):
                 for field, val in dbData['exif'][configuration].iteritems():
                     if val is None or val == 'nan':
                         dbData['exif'][configuration][field] = ''
-                db_exif_models.append(dbData['exif'][configuration]['exif_camera_model'])
-                db_exif_makes.append(dbData['exif'][configuration]['exif_camera_make'])
-                db_exif_sn.append(dbData['exif'][configuration]['exif_device_serial_number'])
+                dbData['exif'][configuration].pop('hp_app', 0)
+                db_configs.append(dbData['exif'][configuration])
 
-            if self.get_val(self.pt.model.df['CameraMake'][row]) not in db_exif_makes:
-                errors[image].append(('CameraMake', 'Invalid CameraMake: ' + self.get_val(self.pt.model.df['CameraMake'][row]) + ', row ' +
-                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_makes)))
+            data_config = {'exif_camera_make': self.get_val(self.pt.model.df['CameraMake'][row]),
+                           'exif_camera_model': self.get_val(self.pt.model.df['CameraModel'][row]),
+                           'exif_device_serial_number': self.get_val(self.pt.model.df['DeviceSN'][row]),
+                           'media_type': self.get_val(self.pt.model.df['Type'][row])}
 
-            if self.get_val(self.pt.model.df['CameraModel'][row]) not in db_exif_models:
-                errors[image].append(('CameraModel', 'Invalid CameraModel: ' + self.get_val(self.pt.model.df['CameraModel'][row]) + ', row ' +
-                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_models)))
+            if data_config not in db_configs:
+                errors[image].append((['CameraMake', 'CameraModel', 'DeviceSN', 'Type'],
+                                      'Invalid exif metadata configuration (row ' + str(row+1) +
+                                      '). Add a new configuration for this device via \"File->Update a Device\" on the main UI\'s menu.'))
 
-            if self.get_val(self.pt.model.df['DeviceSN'][row]) not in db_exif_sn:
-                errors[image].append(('DeviceSN', 'Invalid DeviceSN: ' + self.get_val(self.pt.model.df['DeviceSN'][row]) + ', row ' +
-                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_sn)))
         return errors
 
     def get_val(self, item):
