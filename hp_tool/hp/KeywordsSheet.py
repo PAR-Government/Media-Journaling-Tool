@@ -187,7 +187,7 @@ class KeywordsSheet(HPSpreadsheet):
         with open(rankone_file, 'w') as ro:
             wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
             wtr.writerow([RVERSION])
-            rankone_data.to_csv(ro, index=False)
+            rankone_data.to_csv(ro, index=False, quoting=csv.QUOTE_ALL)
 
 
     def close(self):
