@@ -1,6 +1,7 @@
 from Tkinter import *
 from group_filter import GroupFilter,getOperationWithGroups
 import tkSimpleDialog
+from tool_set import get_icon
 from PIL import ImageTk
 from PIL import Image
 
@@ -26,8 +27,8 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
             self.groupBox.insert(END, name)
         self.groupBox.grid(row=1, column=0, columnspan=2, sticky=N + S + E + W)
         self.groupBox.bind("<<ListboxSelect>>", self.groupselect)
-        self.addImage = ImageTk.PhotoImage(Image.open("icons/add.png").resize((16, 16)))
-        self.subImage = ImageTk.PhotoImage(Image.open("icons/subtract.png").resize( (16, 16)))
+        self.addImage = ImageTk.PhotoImage(Image.open(get_icon('add.png')).resize((16, 16)))
+        self.subImage = ImageTk.PhotoImage(Image.open(get_icon('subtract.png')).resize( (16, 16)))
         self.addb = Button(master, image=self.addImage, text="Add", command=self.addgroup)
         self.addb.grid(row=2, column=0)
         self.subb = Button(master, image=self.subImage, text="Sub", command=self.subgroup)
@@ -45,8 +46,8 @@ class GroupManagerDialog(tkSimpleDialog.Dialog):
         self.assignedBox.grid(row=1, column=5, sticky=N + S + E + W)
         self.yASScroll['command'] = self.assignedBox.yview
 
-        self.addFilterImage = ImageTk.PhotoImage(Image.open("icons/rightarrow.png").resize( (16, 16)))
-        self.subFilterImage = ImageTk.PhotoImage(Image.open("icons/leftarrow.png").resize( (16, 16)))
+        self.addFilterImage = ImageTk.PhotoImage(Image.open(get_icon("rightarrow.png")).resize( (16, 16)))
+        self.subFilterImage = ImageTk.PhotoImage(Image.open(get_icon("leftarrow.png")).resize( (16, 16)))
         self.addFilterButton = Button(master, image=self.addFilterImage, text="Add", command=self.addfilter)
         self.addFilterButton.grid(row=2, column=3)
         self.subFilterButton = Button(master, image=self.subFilterImage, text="Sub", command=self.subfilter)

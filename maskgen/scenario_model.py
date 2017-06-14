@@ -594,7 +594,7 @@ class VideoVideoLinkTool(LinkTool):
             op = getOperationWithGroups(edge['op'])
             if op is not None and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
-                    os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
+                    os.path.join(scModel.G.dir,shortenName(start + '_' + destination, '_mask')),
                     scModel.G.dir,
                     edge['videomasks'],
                     startFileName,
@@ -898,6 +898,8 @@ class ImageProjectModel:
             if filename == baseImageFileName:
                 self.start = nname
                 self.end = None
+        if self.notify is not None:
+            self.notify((self.start, None), 'add')
 
     def addImage(self, pathname,cgi=False):
         maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
@@ -906,6 +908,8 @@ class ImageProjectModel:
         nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx+75, ypos=maxy,**additional)
         self.start = nname
         self.end = None
+        if self.notify is not None:
+            self.notify((self.start, None), 'add')
         return nname
 
     def getEdgesBySemanticGroup(self):
@@ -1281,7 +1285,7 @@ class ImageProjectModel:
         if self.G.has_node(recipientNode):
             if 'donors' not in self.G.get_node(recipientNode):
                 self.G.get_node(recipientNode)['donors'] = {}
-            fname = recipientNode + '_' + baseNode + '_donor_mask.png'
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png')
             self.G.get_node(recipientNode)['donors'][baseNode] = fname
             try:
                 mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
@@ -1707,7 +1711,7 @@ class ImageProjectModel:
                           skipDonorAnalysis=False,
                           analysis_params={}):
         try:
-            maskname = self.start + '_' + destination + '_mask' + '.png'
+            maskname = shortenName(self.start + '_' + destination, '_mask.png')
             if mod.inputMaskName is not None:
                 mod.arguments['inputmaskname'] = mod.inputMaskName
             mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
@@ -1845,9 +1849,13 @@ class ImageProjectModel:
 
     def undo(self):
         """ Undo the last graph edit """
+        s = self.start
+        e = self.end
         self.start = None
         self.end = None
         self.G.undo()
+        if self.notify is not None:
+            self.notify((s,e), 'undo')
 
     def select(self, edge):
         self.start = edge[0]
@@ -2048,6 +2056,8 @@ class ImageProjectModel:
            self.end = end
 
     def remove(self):
+        s = self.start
+        e = self.end
         """ Remove the selected node or edge """
         if (self.start is not None and self.end is not None):
             self.G.remove_edge(self.start, self.end)
@@ -2062,6 +2072,8 @@ class ImageProjectModel:
             self.end = None
             for node in p:
                 self.labelNodes(node)
+        if self.notify is not None:
+            self.notify((s,e), 'remove')
 
     def getProjectData(self, item):
         return self.G.getDataItem(item)

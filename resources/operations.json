@@ -1515,7 +1515,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkInputMask",
-        "check_local"
+        "check_local",
+        "sampledInputMask"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2646,10 +2647,6 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        },
         "tolerance": {
           "type": "float[0:1]",
           "description": "How much influence a pixel change has on the resulting mask."

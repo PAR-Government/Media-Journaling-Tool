@@ -299,12 +299,12 @@ class MakeGenUI(Frame):
         d = SelectDialog(self,
                          "AutoSave",
                          "Autosave every 'n' seconds. 0 turns off AutoSave",
-                         ['0', '60', '300', '600'],
+                         ['0', '60', '300', '600', 'L'],
                          initial_value=autosave_decision)
         new_autosave_decision = d.choice if d.choice is not None else autosave_decision
         self.prefLoader.save('autosave', new_autosave_decision)
-        autosave_decision = float(autosave_decision) if autosave_decision else 0.0
-        new_autosave_decision = float(new_autosave_decision) if new_autosave_decision else 0.0
+        autosave_decision = float(autosave_decision) if autosave_decision is not None and autosave_decision != 'L'  else 0.0
+        new_autosave_decision = float(new_autosave_decision) if new_autosave_decision and new_autosave_decision != 'L'else 0.0
         if new_autosave_decision != autosave_decision:
             cancel_execute(saveme)
             if new_autosave_decision > 0:
@@ -521,8 +521,8 @@ class MakeGenUI(Frame):
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
-        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)).toPIL())
-        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)).toPIL())
+        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), sim.size)).toPIL())
+        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), nim.size)).toPIL())
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
@@ -712,6 +712,12 @@ class MakeGenUI(Frame):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
             return True
+        if eventType in ['connect','add','remove','undo']:
+            if prefLoader.get_key('autosave','') == 'L':
+                try:
+                    self.scModel.save()
+                except Exception as e:
+                    logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
         if eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
             validation_person = self.scModel.getProjectData('validatedby')
@@ -1093,7 +1099,7 @@ def main(argv=None):
         return
     #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
-    if interval and interval != '0':
+    if interval and interval not in [ '0' , 'L']:
         execute_every(float(interval),saveme, saver=gui)
 
     gui.mainloop()

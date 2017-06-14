@@ -79,6 +79,15 @@ def fetchbyS3URL(url):
     my_bucket.download_file(location, destination)
     return destination
 
+
+def get_icon(name):
+    places = []#['./icons']
+    places.extend([os.path.join(x, 'icons/'+name) for x in sys.path if 'maskgen' in x])
+    for place in places:
+        if os.path.exists(place):
+            return place
+    return None
+
 def get_logging_file():
     """
     :return: The last roll over log file
@@ -517,6 +526,11 @@ def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileNam
             img.save(snapshotFileName)
         return img
 
+def shortenName(name, postfix):
+    import hashlib
+    middle = ''.join([x[0]+x[-1] for x in name.split('_')])
+    return hashlib.md5(name+postfix).hexdigest() +  middle + '_' + postfix
+
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
@@ -529,8 +543,8 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
     snapshotFileName = filename
     if not os.path.exists(filename):
         logging.getLogger('maskgen').warning(filename + ' is missing.')
-        if filename != './icons/RedX.png':
-            return openImage('./icons/RedX.png')
+        if not filename.endswith('icons/RedX.png'):
+            return openImage(get_icon('RedX.png'))
         return None
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
@@ -538,19 +552,19 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
     if fileType(filename) == 'audio':
-        return openImage('./icons/audio.png')
+        return openImage(get_icon('audio.png'))
 
     if videoFrameTime is not None or \
             (snapshotFileName != filename and \
                      (not os.path.exists(snapshotFileName) or \
                                   os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
         if not ('video' in getFileMeta(filename)):
-            return openImage('./icons/audio.png')
+            return openImage(get_icon('audio.png'))
         videoFrameImg = readImageFromVideo(filename,videoFrameTime=videoFrameTime,isMask=isMask,
                                            snapshotFileName=snapshotFileName if preserveSnapshot else None)
         if videoFrameImg is None:
             logging.getLogger('maskgen').warning( 'invalid or corrupted file ' + filename)
-            return openImage('./icons/RedX.png')
+            return openImage(get_icon('RedX.png'))
         return videoFrameImg
     else:
         try:
@@ -558,7 +572,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return img if img is not None else openImage('./icons/RedX.png')
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
-            return openImage('./icons/RedX.png')
+            return openImage(get_icon('RedX.png'))
 
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
