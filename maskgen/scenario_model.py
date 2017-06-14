@@ -898,6 +898,8 @@ class ImageProjectModel:
             if filename == baseImageFileName:
                 self.start = nname
                 self.end = None
+        if self.notify is not None:
+            self.notify((self.start, None), 'add')
 
     def addImage(self, pathname,cgi=False):
         maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
@@ -906,6 +908,8 @@ class ImageProjectModel:
         nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx+75, ypos=maxy,**additional)
         self.start = nname
         self.end = None
+        if self.notify is not None:
+            self.notify((self.start, None), 'add')
         return nname
 
     def getEdgesBySemanticGroup(self):
@@ -1235,7 +1239,7 @@ class ImageProjectModel:
           Remove a composite image associated with a node
         """
         if self.G.has_node(nodeName):
-            fname = shortenName(nodeName,'_c_mask.png')
+            fname = nodeName + '_composite_mask.png'
             if 'compositemaskname' in self.G.get_node(nodeName):
                 self.G.get_node(nodeName).pop('compositemaskname')
                 if 'compositebase' in self.G.get_node(nodeName):
@@ -1261,7 +1265,7 @@ class ImageProjectModel:
         Add mask to leaf node and save mask to disk
         """
         if self.G.has_node(leafNode):
-            fname = shortenName(leafNode , '_c_mask.png')
+            fname = leafNode + '_composite_mask.png'
             try:
                 image.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
             except IOError:
@@ -1845,9 +1849,13 @@ class ImageProjectModel:
 
     def undo(self):
         """ Undo the last graph edit """
+        s = self.start
+        e = self.end
         self.start = None
         self.end = None
         self.G.undo()
+        if self.notify is not None:
+            self.notify((s,e), 'undo')
 
     def select(self, edge):
         self.start = edge[0]
@@ -2048,6 +2056,8 @@ class ImageProjectModel:
            self.end = end
 
     def remove(self):
+        s = self.start
+        e = self.end
         """ Remove the selected node or edge """
         if (self.start is not None and self.end is not None):
             self.G.remove_edge(self.start, self.end)
@@ -2062,6 +2072,8 @@ class ImageProjectModel:
             self.end = None
             for node in p:
                 self.labelNodes(node)
+        if self.notify is not None:
+            self.notify((s,e), 'remove')
 
     def getProjectData(self, item):
         return self.G.getDataItem(item)
