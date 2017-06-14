@@ -7,7 +7,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -1384,7 +1384,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         imTuple  = self.selectMasks[finalNode]
         color = [0,198,0]
         if imTuple is None:
-            red = openImage('./icons/RedX.png').to_mask()
+            red = openImage(get_icon('RedX.png')).to_mask()
             color = [198,0,0]
             im = red.resize(finalImage.size,1)
         else:

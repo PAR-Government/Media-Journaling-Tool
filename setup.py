@@ -10,6 +10,8 @@ setup(name='maskgen',
 
       packages=find_packages(exclude=["images", "plugins", "resources", "tests","wrapper_plugins"]),
       data_files=[('resources',['resources/operations.json','resources/software.csv','resources/project_properties.json']),
+		  ('icons',['icons/RedX.png','icons/audio.png','icons/rightarrow.png','icons/leftarrow.png','icons/subtract.png',
+                   'icons/attach.png','icons/add.png','icons/question.png']),
                   ('plugins/Custom',
                    ['plugins/Custom/GammaCorrection.json', 'plugins/Custom/GaussianBlur.json', 'plugins/Custom/LevelCorrection.json',
                     'plugins/Custom/Resize.json','plugins/Custom/OutputJpg.json','plugins/Custom/Sharpen.json','plugins/Custom/WaveletDenoise.json'

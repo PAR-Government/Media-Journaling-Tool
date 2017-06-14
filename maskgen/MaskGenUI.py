@@ -521,8 +521,8 @@ class MakeGenUI(Frame):
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
-        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)).toPIL())
-        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)).toPIL())
+        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), sim.size)).toPIL())
+        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), nim.size)).toPIL())
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)

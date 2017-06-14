@@ -594,7 +594,7 @@ class VideoVideoLinkTool(LinkTool):
             op = getOperationWithGroups(edge['op'])
             if op is not None and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
-                    os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
+                    os.path.join(scModel.G.dir,shortenName(start + '_' + destination, '_mask')),
                     scModel.G.dir,
                     edge['videomasks'],
                     startFileName,
@@ -1235,7 +1235,7 @@ class ImageProjectModel:
           Remove a composite image associated with a node
         """
         if self.G.has_node(nodeName):
-            fname = nodeName + '_composite_mask.png'
+            fname = shortenName(nodeName,'_c_mask.png')
             if 'compositemaskname' in self.G.get_node(nodeName):
                 self.G.get_node(nodeName).pop('compositemaskname')
                 if 'compositebase' in self.G.get_node(nodeName):
@@ -1261,7 +1261,7 @@ class ImageProjectModel:
         Add mask to leaf node and save mask to disk
         """
         if self.G.has_node(leafNode):
-            fname = leafNode + '_composite_mask.png'
+            fname = shortenName(leafNode , '_c_mask.png')
             try:
                 image.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
             except IOError:
@@ -1281,7 +1281,7 @@ class ImageProjectModel:
         if self.G.has_node(recipientNode):
             if 'donors' not in self.G.get_node(recipientNode):
                 self.G.get_node(recipientNode)['donors'] = {}
-            fname = recipientNode + '_' + baseNode + '_donor_mask.png'
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png')
             self.G.get_node(recipientNode)['donors'][baseNode] = fname
             try:
                 mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
@@ -1707,7 +1707,7 @@ class ImageProjectModel:
                           skipDonorAnalysis=False,
                           analysis_params={}):
         try:
-            maskname = self.start + '_' + destination + '_mask' + '.png'
+            maskname = shortenName(self.start + '_' + destination, '_mask.png')
             if mod.inputMaskName is not None:
                 mod.arguments['inputmaskname'] = mod.inputMaskName
             mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
