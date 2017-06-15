@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import tkMessageBox
 import csv
+import shutil
 import datetime
 from ErrorWindow import ErrorWindow
 from HPSpreadsheet import HPSpreadsheet, CustomTable
@@ -164,7 +165,7 @@ class KeywordsSheet(HPSpreadsheet):
                 for r in rdr:
                     wtr.writerow((r[1:]))
         os.remove(self.keyCSV)
-        os.rename(tmp, self.keyCSV)
+        shutil.move(tmp, self.keyCSV)
         self.save_to_rankone()
         self.saveState = True
         if not quiet and showErrors:

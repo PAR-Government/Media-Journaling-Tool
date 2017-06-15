@@ -16,6 +16,7 @@ import csv
 import webbrowser
 import requests
 import tempfile
+import shutil
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
 from CameraForm import HP_Device_Form
@@ -457,7 +458,7 @@ class HPSpreadsheet(Toplevel):
                 for r in rdr:
                     wtr.writerow((r[1:]))
         os.remove(self.ritCSV)
-        os.rename(tmp, self.ritCSV)
+        shutil.move(tmp, self.ritCSV)
         self.export_rankOne()
         self.saveState = True
         if not quiet and showErrors:
@@ -610,7 +611,7 @@ class HPSpreadsheet(Toplevel):
         archive.close()
         os.close(fd)
         final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
-        os.rename(tname, os.path.join(self.dir, final_name))
+        shutil.move(tname, os.path.join(self.dir, final_name))
 
         return final_name
 

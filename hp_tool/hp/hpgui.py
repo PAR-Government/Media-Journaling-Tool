@@ -514,8 +514,7 @@ class PRNU_Uploader(Frame):
         def rename_all(root, items):
             for name in items:
                 try:
-                    os.rename(os.path.join(root, name),
-                              os.path.join(root, name.title()))
+                    shutil.move(os.path.join(root, name), os.path.join(root, name.title()))
                 except OSError:
                     pass  # just skip if can't be renamed
 
