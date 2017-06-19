@@ -516,8 +516,8 @@
       "information": "Change of a persons look to indicate older or younger"
     },
     {
-      "description": "Bruising",
-      "name": "bruising",
+      "description": "Wound",
+      "name": "wound",
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Indications of injury on a person"
