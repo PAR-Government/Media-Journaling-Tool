@@ -509,6 +509,48 @@
        "information": "AntiForensic Illumination"
     },
     {
+      "description": "Aging",
+      "name": "aging",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Change of a persons look to indicate older or younger"
+    },
+    {
+      "description": "Bruising",
+      "name": "bruising",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Indications of injury on a person"
+    },
+    {
+      "description": "Cadaver",
+      "name": "cadaver",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Alter a person image to look like a cadaver"
+    },
+    {
+      "description": "Crowd Relocation",
+      "name": "crowdrelocation",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Relocate a crowd in a new setting that is not semantically coherent"
+    },
+    {
+      "description": "Building Relocation",
+      "name": "buildingrelocation",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Relocate a building in a new setting that is not architecturally coherent"
+    },
+    {
+      "description": "Timeofday",
+      "name": "timeofday",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Change lighting to indicate a different time of day"
+    },
+    {
       "description": "Data Embedding Steganography",
       "name": "dataembeddingsteganography",
       "type": "yesno",
@@ -522,12 +564,19 @@
       "semanticgroup" : true,
       "information": "Data Embedding Watermark.  All final images must have watermarks."
     },
-     {
+    {
       "description": "Face Manipulations",
       "name": "facemanipulations",
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Manipulations to alter a face or faces (e.g. warp, swap, etc.)."
+    },
+    {
+      "description": "Mood Change",
+      "name": "moodchange",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Face manipulation to change a person's mood"
     },
        {
       "description": "Shadow Manipulations",
