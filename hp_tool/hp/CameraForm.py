@@ -346,7 +346,8 @@ class Update_Form(Toplevel):
         self.device_data = device_data
         self.trello = trello
         self.browser = browser
-        self.configurations = {'exif_device_serial_number':[],'exif_camera_make':[], 'exif_camera_model':[], 'hp_app':[], 'media_type':[]}
+        self.configurations = {'exif_device_serial_number':[],'exif_camera_make':[], 'exif_camera_model':[], 'hp_app':[],
+                               'media_type':[], 'username':[], 'created':[]}
         self.row = 0
         self.config_count = 0
         self.updated = False
@@ -357,16 +358,21 @@ class Update_Form(Toplevel):
         self.f.pack(fill=BOTH, expand=TRUE)
         self.buttonsFrame = Frame(self)
         self.buttonsFrame.pack(fill=BOTH, expand=True)
-        Label(self.f.interior, text='Updating Device:\n' + self.device_data['hp_device_local_id'], font=('bold', 20)).grid(columnspan=6)
+        Label(self.f.interior, text='Updating Device:\n' + self.device_data['hp_device_local_id'], font=('bold', 20)).grid(columnspan=8)
         self.row+=1
-        Label(self.f.interior, text='Shown below are the current exif configurations for this camera.').grid(row=self.row, columnspan=6)
+        Label(self.f.interior, text='Shown below are the current exif configurations for this camera.').grid(row=self.row, columnspan=8)
         self.row+=1
-        Button(self.f.interior, text='Show instructions for this form', command=self.show_help).grid(row=self.row, columnspan=6)
+        Button(self.f.interior, text='Show instructions for this form', command=self.show_help).grid(row=self.row, columnspan=8)
         self.row+=1
         col = 1
-        for header in ['Serial', 'Make', 'Model', 'Software/App', 'Media Type']:
+        for header in ['Serial', 'Make', 'Model', 'Software/App', 'Media Type', 'Username', 'Created']:
             Label(self.f.interior, text=header).grid(row=self.row, column=col)
             col+=1
+
+        self.row += 1
+        self.add_button = self.create_add_button()
+        self.add_button.grid(row=self.row, columnspan=8)
+
         for configuration in self.device_data['exif']:
             self.add_config(configuration=configuration)
 
@@ -381,7 +387,9 @@ class Update_Form(Toplevel):
             self.add_button.grid_forget()
         col = 0
         self.row += 1
-        stringvars = collections.OrderedDict([('exif_device_serial_number', StringVar()), ('exif_camera_make', StringVar()), ('exif_camera_model', StringVar()), ('hp_app', StringVar()), ('media_type', StringVar())])
+        stringvars = collections.OrderedDict([('exif_device_serial_number', StringVar()), ('exif_camera_make', StringVar()),
+                                              ('exif_camera_model', StringVar()), ('hp_app', StringVar()),
+                                              ('media_type', StringVar()), ('username', StringVar()), ('created', StringVar())])
         Label(self.f.interior, text='Config: ' + str(self.config_count + 1)).grid(row=self.row, column=col)
         col += 1
         for k, v in stringvars.iteritems():
@@ -400,8 +408,11 @@ class Update_Form(Toplevel):
             col += 1
         self.config_count+=1
         self.row+=1
-        self.add_button = Button(self.f.interior, text='Add a new configuration', command=self.get_data)
-        self.add_button.grid(row=self.row, columnspan=6)
+        self.add_button = self.create_add_button()
+        self.add_button.grid(row=self.row, columnspan=8)
+
+    def create_add_button(self):
+        return Button(self.f.interior, text='Add a new configuration', command=self.get_data)
 
     def go(self):
         url = 'https://medifor.rankone.io/api/cameras/' + str(self.device_data['id']) + '/'
@@ -429,6 +440,9 @@ class Update_Form(Toplevel):
                          'hp_app': self.configurations['hp_app'][i].get(),
                          'media_type': self.configurations['media_type'][i].get(),
                          'exif_device_serial_number': self.configurations['exif_device_serial_number'][i].get()})
+            if self.configurations['created'][i].get() != 'ToBeSetOnUpdate' and self.configurations['username'][i].get() != 'ToBeSetOnUpdate':
+                data['exif'][i]['created'] = self.configurations['created'][i].get()
+                data['exif'][i]['username'] = self.configurations['username'][i].get()
 
         for configuration in data['exif']:
             for key, val in configuration.iteritems():
@@ -503,8 +517,10 @@ class Update_Form(Toplevel):
         else:
             type = 'image'
 
-        self.add_config({'exif_device_serial_number': exifData['SerialNumber'], 'exif_camera_model': exifData['Model'],
-                         'exif_camera_make': exifData['Make'], 'hp_app': None, 'media_type': type})
+        new_config = {'exif_device_serial_number': exifData['SerialNumber'], 'exif_camera_model': exifData['Model'],
+                         'exif_camera_make': exifData['Make'], 'hp_app': None, 'media_type': type,
+                         'username': 'ToBeSetOnUpdate', 'created': 'ToBeSetOnUpdate'}
+        self.add_config(new_config)
 
 
 class VerticalScrolledFrame(Frame):
