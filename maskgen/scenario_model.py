@@ -509,7 +509,8 @@ class ImageImageLinkTool(LinkTool):
             mask, analysis = createMask(startIm, destIm,
                                         invert=invert,
                                         arguments=arguments,
-                                        alternativeFunction=operation.getCompareFunction())
+                                        alternativeFunction=operation.getCompareFunction(),
+                                        convertFunction=operation.getConvertFunction())
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -2498,16 +2499,18 @@ class ImageProjectModel:
         seriesName = self.getSeriesName()
         if seriesName is not None:
             prefix = seriesName
+        prefix = prefix[0:32] if len(prefix) > 32 else prefix
+        files = [self.G.get_node(node)['file'] for node in self.G.get_nodes()]
 
         def filterFunction(file):
-            return not self.G.has_node(os.path.split(file[0:file.rfind('.')])[1]) and \
+            return os.path.split(file)[1] not in files and \
                    not (file.rfind('_mask') > 0) and \
                    not (file.rfind('_proxy') > 0)
 
         def findFiles(dir, preFix, filterFunction):
             set = [os.path.abspath(os.path.join(dir, filename)) for filename in os.listdir(dir) if
                    (filename.startswith(preFix)) and filterFunction(os.path.abspath(os.path.join(dir, filename)))]
-            set.sort()
+            set = sorted(set, key=lambda f: -os.stat(f).st_mtime)
             return set
 
         nfile = None

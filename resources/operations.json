@@ -2540,6 +2540,9 @@
       ],
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false,
+      "compareparameters" : {
+         "convert_function" :"maskgen.tool_set.extractAlpha"
+      },
       "transitions": [
         "image.image"
       ]

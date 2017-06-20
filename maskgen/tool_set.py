@@ -957,8 +957,10 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,alternativeFunction=alternativeFunction)
+def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,convertFunction=None):
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,
+                                   alternativeFunction=alternativeFunction,
+                                   convertFunction=convertFunction)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
 
@@ -1412,8 +1414,9 @@ def seamCompare(img1, img2,  arguments=dict()):
         return __composeCropImageMask(img1, img2)
     return None,{}
 
-def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None):
-    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
+def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
+    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments,
+                                 convertFunction=convertFunction)
 
     if alternativeFunction is not None:
         mask,analysis = alternativeFunction(img1, img2, arguments=arguments)
@@ -1506,8 +1509,19 @@ def __findRotation(img1, img2, range):
 #        diff = (diff[0] if diff[0] > 0 else 0, diff[1] if diff[1] > 0 else 0)
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
+def extractAlpha(rawimg1, rawimg2):
+    img2_array =  rawimg2.to_array()
+    img1_array = rawimg1.to_array()
+    ii16 = np.iinfo(np.uint16)
+    if len(img2_array.shape) == 3 and img2_array.shape[2] == 4:
+        img2_array = img2_array[:,:,3]
+    if len(img2_array.shape) == 2:
+        all =  np.ones((img2_array.shape[0],img2_array.shape[1])).astype('uint16')
+        all[img2_array>0] = ii16.max
+        return np.zeros((img1_array.shape[0],img1_array.shape[1])).astype('uint16'),all
+    return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
-def __alignChannels(rawimg1, rawimg2, equalize_colors=False):
+def __alignChannels(rawimg1, rawimg2, equalize_colors=False,convertFunction= None):
     """
 
     :param rawimg1:
@@ -1517,6 +1531,8 @@ def __alignChannels(rawimg1, rawimg2, equalize_colors=False):
     @type rawimg1: ImageWrapper
     @type rawimg2: ImageWrapper
     """
+    if convertFunction is not None:
+        return convertFunction(rawimg1, rawimg2)
     return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
 
