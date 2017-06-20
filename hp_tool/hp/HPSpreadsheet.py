@@ -696,6 +696,8 @@ class HPSpreadsheet(Toplevel):
                     if val is None or val == 'nan':
                         dbData['exif'][configuration][field] = ''
                 dbData['exif'][configuration].pop('hp_app', 0)
+                dbData['exif'][configuration].pop('created', 0)
+                dbData['exif'][configuration].pop('username', 0)
                 db_configs.append(dbData['exif'][configuration])
 
             data_config = {'exif_camera_make': self.get_val(self.pt.model.df['CameraMake'][row]),
@@ -779,7 +781,7 @@ class HPSpreadsheet(Toplevel):
     def check_model(self, row):
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
-        if model.lower() == 'nan' or model == '':
+        if pd.isnull(model) or model.lower() == 'nan' or model == '':
             imageName = self.pt.model.getValueAt(row, 0)
             errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
         elif model not in [self.devices[data]['hp_camera_model'] for data in self.devices if
