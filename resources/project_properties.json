@@ -632,6 +632,14 @@
        "rule" : "semanticEventFabricationRule",
       "information": "A large scale activity that requires an entire volume of manipulated or generated imagery to provide to simulate a full event. This could include imagery that appears to be from many individuals, cameras, and social media accounts"
 
+    },
+    {
+      "description": "Semantic Groups",
+      "name": "semanticgroups",
+      "type": "list",
+      "readonly" : true,
+      "information": "Summary of semantic groups used in the journal"
+
     }
   ]
 }
