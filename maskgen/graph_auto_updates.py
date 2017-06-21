@@ -49,6 +49,8 @@ def updateJournal(scModel):
         _fixCreator(scModel)
         _fixValidationTime(scModel)
         upgrades.append('0.4.0101.b4561b475b')
+    if scModel.getGraph().getVersion() not in upgrades:
+        upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')

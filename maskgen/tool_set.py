@@ -419,10 +419,10 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
             return int(argValue)
         elif argDef['type'] == 'list':
             if argValue not in argDef['values']:
-                raise ValueError(argName + ' is not one of the allowed values')
+                raise ValueError(argValue + ' is not one of the allowed values')
         elif argDef['type'] == 'time':
             if not validateTimeString(argValue):
-                raise ValueError(argName + ' is not a valid time (e.g. HH:MM:SS.micro)')
+                raise ValueError(argValue + ' is not a valid time (e.g. HH:MM:SS.micro)')
         elif argDef['type'] == 'yesno':
             if argValue.lower() not in ['yes', 'no']:
                 raise ValueError(argName + ' is not yes or no')

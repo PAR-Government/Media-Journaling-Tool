@@ -10,11 +10,15 @@ def transform(img,source,target,**kwargs):
     cv_image = numpy.array(rgb)
     size_w = int(percentageChange * float(cv_image.shape[1]))
     size_h = int(percentageChange *  float(cv_image.shape[0]))
-    r_w = randint(1, cv_image.shape[1] - size_w)
-    r_h = randint(1, cv_image.shape[0] - size_h)
+    try:
+        r_w = randint(1, cv_image.shape[1] - size_w)
+        r_h = randint(1, cv_image.shape[0] - size_h)
+    except:
+        r_w = 0
+        r_h = 0
     roi = cv_image[r_h:r_h + size_h, r_w:r_w + size_w, ]
     blur_roi = cv2.medianBlur(roi, kernelSize)
-    cv_image[r_h:r_h + size_h, r_w:r_w + size_h] = blur_roi
+    cv_image[r_h:r_h + size_h, r_w:r_w + size_w] = blur_roi
     Image.fromarray(cv_image, 'RGB').save(target)
     return None, None
 
@@ -40,7 +44,7 @@ def operation():
               },
               'Blur Type': {
                   'type': 'text',
-                  'defaultvalue':'Median',
+                  'defaultvalue':'Median Smoothing',
                   'description': ''
               }
           },
