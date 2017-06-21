@@ -1064,6 +1064,19 @@ def do_every (interval, worker_func, iterations = 0):
     ).start ()
 
 
+def headless_systemcheck(prefLoader):
+    notifiers = getNotifier(prefLoader)
+    errors = [graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+              video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+              check_graph_status(),
+              notifiers.check_status()]
+    error_count = 0
+    for error in errors:
+        if error is not None:
+            logging.getLogger('maskgen').error(error)
+            error_count += 1
+    logging.getLogger('maskgen').info('System check complete')
+    return error_count == 0
 
 def main(argv=None):
     if (argv is None):
@@ -1090,14 +1103,16 @@ def main(argv=None):
 
     loadAnalytics()
     graph_rules.setup()
-    root = Tk()
+
     prefLoader = MaskGenLoader()
-    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
-                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
     if args.test:
-        if not gui.systemcheck():
+        if not headless_systemcheck(prefLoader):
             sys.exit(1)
         return
+    root = Tk()
+    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
+
     #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval not in [ '0' , 'L']:
