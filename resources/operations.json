@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0425.d3bc2f59e1",
+  "version": "0.4.0620.9e49dd037f",
   "operations": [
      {
       "category": "Audio",
@@ -2545,6 +2545,9 @@
       ],
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false,
+      "compareparameters" : {
+         "convert_function" :"maskgen.tool_set.extractAlpha"
+      },
       "transitions": [
         "image.image"
       ]

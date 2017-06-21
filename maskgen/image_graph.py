@@ -10,8 +10,8 @@ from tool_set import *
 from time import gmtime, strftime,strptime
 import logging
 
-snapshot='.d3bc2f59e1'
-igversion='0.4.0425' + snapshot
+snapshot='.9e49dd037f'
+igversion='0.4.0620' + snapshot
 
 
 def current_version():

@@ -434,7 +434,7 @@ class MakeGenUI(Frame):
                                      im, os.path.split(filename)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg, status = self.scModel.addNextImage(filename, mod=d.description)
+            msg, status = self.scModel.addNextImage(filename, mod=d.description, position=self.scModel._getCurrentPosition((0,75)))
             if msg is not None:
                 tkMessageBox.showwarning("Auto Connect", msg)
             if status:

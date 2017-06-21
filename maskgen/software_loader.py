@@ -100,6 +100,12 @@ class Operation:
         self.groupedCategories = groupedCategories
         self.maskTransformFunction = maskTransformFunction
 
+    def getConvertFunction(self):
+        if 'convert_function' in self.compareparameters:
+                funcName = self.compareparameters['convert_function']
+                return getRule(funcName)
+        return None
+
     def getCompareFunction(self):
         if 'function' in self.compareparameters:
             funcName = self.compareparameters['function']
