@@ -571,6 +571,7 @@ class MakeGenUI(Frame):
         d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader)
 
     def getproperties(self):
+        graph_rules.setProjectSummary(self.scModel)
         d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
 
     def pluginbuilder(self):

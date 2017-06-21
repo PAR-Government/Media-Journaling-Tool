@@ -929,6 +929,7 @@ class ImageProjectModel:
 
     def add_to_edge(self,**items):
         self.G.update_edge(self.start, self.end, **items)
+        self.notify((self.start, self.end),'update_edge')
 
     def update_edge(self, mod):
         """
@@ -947,6 +948,7 @@ class ImageProjectModel:
                            softwareName=('' if mod.software is None else mod.software.name),
                            softwareVersion=('' if mod.software is None else mod.software.version),
                            inputmaskname=mod.inputMaskName)
+        self.notify((self.start, self.end), 'update_edge')
         self._save_group(mod.operationName)
 
     def compare(self, destination, arguments={}):
@@ -2656,6 +2658,7 @@ class ImageProjectModel:
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)
+            self.notify((self.start, self.end), 'update_edge')
 
     def set_validation_properties(self,qaState,qaPerson, qaComment):
         import time
