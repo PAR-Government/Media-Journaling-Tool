@@ -79,6 +79,10 @@ pip install awscli --force-reinstall --upgrade
 
 #git clone https://github.com/rwgdrummer/maskgen.git
 pip install setuptools
+cd setuptools-version
+python setup.py sdist
+pip install -e .
+cd ..
 python setup.py sdist
 pip install -e .
 

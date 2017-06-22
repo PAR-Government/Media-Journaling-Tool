@@ -98,4 +98,10 @@ sudo pip install PyPDF2
 git clone https://github.com/rwgdrummer/maskgen.git
 sudo pip install setuptools
 cd maskgen
-sudo python setup.py install
+cd setuptools-version
+python setup.py sdist
+sudo pip install -e .
+cd ..
+python setup.py sdist
+sudo pip install -e .
+cd ..
