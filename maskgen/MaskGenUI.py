@@ -22,6 +22,7 @@ from notifiers import  getNotifier
 import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
+from maskgen.updater import UpdaterGitAPI
 """
   Main UI Driver for MaskGen
 """
@@ -1039,11 +1040,16 @@ class MakeGenUI(Frame):
             else:
                 self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
         self.createWidgets()
+        self.startedWithNewProject = tuple[1]
+
+    def initCheck(self):
         if self.prefLoader.get_key('username',None) is None:
             self.getsystemproperties()
-        if tuple[1]:
+        sha, message =  UpdaterGitAPI().isOutdated()
+        if sha is not None:
+            tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message))
+        if self.startedWithNewProject:
             self.getproperties()
-
 
 
 def saveme(saver=None):
@@ -1118,6 +1124,7 @@ def main(argv=None):
     if interval and interval not in [ '0' , 'L']:
         execute_every(float(interval),saveme, saver=gui)
 
+    gui.after_idle(gui.initCheck)
     gui.mainloop()
 
 

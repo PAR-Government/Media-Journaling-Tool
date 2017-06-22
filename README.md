@@ -22,7 +22,12 @@ brew install opencv
 ```
 ### Tool
 ```
+pip install setuptools
+cd setuptools-version
 python setup.py install
+cd ..
+python setup.py sdist
+pip install -e . 
 ```
 
 ## For Anaconda

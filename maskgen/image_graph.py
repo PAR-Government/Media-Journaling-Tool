@@ -9,10 +9,9 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime,strptime
 import logging
+import maskgen
 
-snapshot='.9e49dd037f'
-igversion='0.4.0620' + snapshot
-
+igversion=maskgen.__version__
 
 def current_version():
     return igversion
