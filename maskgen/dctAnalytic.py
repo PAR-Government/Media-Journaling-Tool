@@ -576,8 +576,8 @@ def create_histogram_fft(data, frame):
     mid = n / 2
 
     fig = plt.figure()
-    plt.plot(bincenters[mid-100:mid+100], Y[mid-100:mid+100], 'k')
-    plt.plot(bincenters[mid-100:mid+100], hat(Y[mid-100:mid+100]), 'r')
+    plt.plot(bincenters[mid-1000:mid+1000], Y[mid-1000:mid+1000], 'k')
+    plt.plot(bincenters[mid-1000:mid+1000], hat(Y[mid-1000:mid+1000]), 'r')
 
     sigma = np.std(Y)
     stdv = '$\sigma=%.2f$'%(sigma)
