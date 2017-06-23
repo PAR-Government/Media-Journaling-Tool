@@ -293,8 +293,6 @@ class ImageWrapper:
 
 
     def save(self, filename, **kwargs):
-        with image_lock:
-            image_cache[filename] = (self,os.stat(filename).st_mtime)
         format = kwargs['format'] if 'format' in kwargs else 'PNG'
         format = 'TIFF' if self.image_array.dtype == 'uint16' else format
         newargs = dict(kwargs)
@@ -308,6 +306,9 @@ class ImageWrapper:
             return
         newargs.pop('format')
         imsave(filename, self.image_array,**newargs)
+        if os.path.exists(filename):
+            with image_lock:
+                image_cache[filename] = (self,os.stat(filename).st_mtime)
         #flags =[(cv2.IMWRITE_JPEG_QUALITY,100)]if format in kwargs and format['kwargs'] == 'JPEG' else [(int(cv2.IMWRITE_PNG_COMPRESSION),0)]
         #cv2.imwrite(filename, self.image_array)
        # tiff = TIFF.open(filename,mode='w')
