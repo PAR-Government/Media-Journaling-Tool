@@ -25,7 +25,7 @@ hg clone https://bitbucket.org/multicoreware/x265
 cd ~/ffmpeg_sources/x265/build/linux
 PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED:bool=off ../../source
 make
-sudo make install
+sudo PATH="$HOME/bin:$PATH" make install
 make distclean
 
 sudo apt-get -y install zip
