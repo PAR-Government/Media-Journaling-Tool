@@ -1088,8 +1088,8 @@ class ImageProjectModel:
                 if skipComputation:
                     sample_probes = []
                     for finalNodeId in self._findTerminalNodes(edge_id[1]):
-                        target_mask_filename = os.path.join(self.get_dir(),
-                                                            edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
+                        target_mask_filename = os.path.join(self.get_dir(),shortenName(
+                                                            edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId, '_ps.png'))
                         if os.path.exists(target_mask_filename):
                             target_mask = openImageFile(target_mask_filename)
                             self._add_final_node_with_donors(sample_probes, edge_id, finalNodeId, baseNodeId,
@@ -1121,7 +1121,7 @@ class ImageProjectModel:
                         except Exception as e:
                            logging.getLogger('maskgen').error( 'bad replacement file ' + selectMasks[finalNodeId])
                     target_mask_filename = os.path.join(self.get_dir(),
-                                                        edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
+                                                         shortenName(edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId, '_ps.png'))
                     target_mask.save(target_mask_filename, format='PNG')
                     self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
                                                      target_mask_filename, edge_id[1],level)

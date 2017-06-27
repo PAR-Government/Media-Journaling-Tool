@@ -528,8 +528,8 @@ def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileNam
 
 def shortenName(name, postfix):
     import hashlib
-    middle = ''.join([x[0]+x[-1] for x in name.split('_')])
-    return hashlib.md5(name+postfix).hexdigest() +  middle + '_' + postfix
+    middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])
+    return hashlib.md5(name+postfix).hexdigest() + '_' +  middle + '_' + postfix
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """

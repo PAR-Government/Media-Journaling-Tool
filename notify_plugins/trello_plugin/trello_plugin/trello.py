@@ -135,6 +135,7 @@ class TrelloAPI(MaskgenNotifer):
         return r is not None and 'idMember' in r
 
 
+
     def get_list_id_by_name(self, board,name,create=False):
         boardid = self.get_board_id_by_name(board)
         r = self.get_from_trello(
