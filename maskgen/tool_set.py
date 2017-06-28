@@ -528,8 +528,8 @@ def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileNam
 
 def shortenName(name, postfix):
     import hashlib
-    middle = ''.join([x[0]+x[-1] for x in name.split('_')])
-    return hashlib.md5(name+postfix).hexdigest() +  middle + '_' + postfix
+    middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])
+    return hashlib.md5(name+postfix).hexdigest() + '_' +  middle + '_' + postfix
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
@@ -995,6 +995,7 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
+    maxmatches = arguments['sift_max_matches'] if 'sift_max_matches' in arguments else 20
 
     kp1a = detector.detect(img1)
     kp2a = detector.detect(img2)
@@ -1018,6 +1019,8 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
 
     # store all the good matches as per Lowe's ratio test.
     good = [m for m, n in matches if m.distance < 0.8 * n.distance]
+    good = sorted(good, lambda g1,g2: -int(max(g1.distance,g2.distance)*1000))
+    good = good[0:min(maxmatches, len(good))]
 
     if len(good) >= threshold:
          src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)

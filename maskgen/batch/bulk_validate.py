@@ -22,9 +22,6 @@ def main():
             try:
                 name = os.path.basename(project)
                 sm = scenario_model.loadProject(project)
-                for node in sm.getNodeNames():
-                    sm.labelNodes(node)
-                #sm.fixInputMasks()
                 error_list = sm.validate()
                 sm.getProbeSet()
                 for err in error_list:
