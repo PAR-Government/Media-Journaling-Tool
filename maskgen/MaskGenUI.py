@@ -614,8 +614,6 @@ class MakeGenUI(Frame):
     def viewcomposite(self):
         #ps  = self.scModel.getProbeSet()
         composite = self.scModel.constructComposite()
-     #   for p in ps:
-     #       self.scModel.selectImage( p.finalNodeId)
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
