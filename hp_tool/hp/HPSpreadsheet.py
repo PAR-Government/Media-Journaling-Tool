@@ -499,13 +499,9 @@ class HPSpreadsheet(Toplevel):
             return
 
         initial = self.settings.get('aws', notFound='')
-        val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
+        val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial, parent=self)
 
         if (val is not None and len(val) > 0):
-            comment = self.check_trello_login()
-            if comment is None:
-                tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
-                return
             self.settings.set('aws', val)
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
@@ -519,20 +515,19 @@ class HPSpreadsheet(Toplevel):
             try:
                 s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
             except Exception as e:
-                tkMessageBox.showerror(title='Error', message='Could not complete upload.')
+                tkMessageBox.showerror(title='Error', message='Could not complete upload.', parent=self)
                 return
 
             #self.verify_upload(all_files, os.path.join(BUCKET, DIR))
-            msg = []
             failed = []
-            err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), comment, failed)
-            if err is not None:
-                msg.append('S3 upload completed, but failed to notify Trello (' + str(
-                    err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
-            else:
-                msg.append('Complete!')
-                self.master.statusBox.println('Successfully uploaded HP data to S3://' + val + '.')
-            d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg), parent=self)
+            if tkMessageBox.askyesno(title='Complete', message='Successfully uploaded HP data to S3://' + val + '. Would you like to notify via Trello?', parent=self):
+                comment = self.check_trello_login()
+                err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), comment, failed)
+                if err:
+                    tkMessageBox.showerror(title='Error', message='Failed to notify Trello (' + str(err) + ')', parent=self)
+                else:
+                    tkMessageBox.showinfo(title='Status', message='Complete!', parent=self)
+
         else:
             tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
 
@@ -548,7 +543,7 @@ class HPSpreadsheet(Toplevel):
             if token == '':
                 return None
             self.settings.set('trello', token)
-        comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.')
+        comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
 
     def notify_trello(self, filestr, comment, failed):

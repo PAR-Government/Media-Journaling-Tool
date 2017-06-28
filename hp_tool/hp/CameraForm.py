@@ -1,4 +1,5 @@
 import csv
+import tkSimpleDialog
 import webbrowser
 from Tkinter import *
 import ttk
@@ -62,7 +63,7 @@ class HP_Device_Form(Toplevel):
                 ('Exif Camera Model',{'description': 'Device model, pulled from device Exif.',
                                       'type': 'text',
                                       'values': None}),
-                ('Device Serial Number', {'description': 'Device serial number, pulled from device Exif. If not available, enter the SN marked on the device body.',
+                ('Device Serial Number', {'description': 'Device serial number, pulled from device Exif.',
                                           'type': 'text',
                                           'values': None}),
                 ('Local ID*', {'description': 'This can be a one of a few forms. The most preferable is the cage number. If it is a personal device, you can use INITIALS-MODEL, such as'
@@ -72,7 +73,7 @@ class HP_Device_Form(Toplevel):
                 ('Device Affiliation*', {'description': 'If it is a personal device, please define the affiliation as Other, and write in your organization and your initials, e.g. RIT-TK',
                                          'type': 'radiobutton',
                                          'values': ['RIT', 'PAR', 'Other (please specify):']}),
-                ('HP Model',{'description': 'Please write the make/model such as it would be easily identifiable, such as Samsung Galaxy S6.',
+                ('HP Model*',{'description': 'Please write the make/model such as it would be easily identifiable, such as Samsung Galaxy S6.',
                              'type': 'text',
                              'values': None}),
                 ('Edition',{'description': 'Specific edition of the device, if applicable and not already in the device\'s name.',
@@ -105,8 +106,8 @@ class HP_Device_Form(Toplevel):
             d.pack(pady=4)
             self.questions[h] = d
 
-        Label(self.f.interior, text='Trello Login Token*', font=(20)).pack()
-        Label(self.f.interior, text='This is required to send a notification of the new device.').pack()
+        Label(self.f.interior, text='Trello Login Token', font=(20)).pack()
+        Label(self.f.interior, text='This is required to send a notification of the new device to Trello.').pack()
         trello_link = 'https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token'
         trelloTokenButton = Button(self.f.interior, text='Get Trello Token', command=lambda: self.open_link(trello_link))
         trelloTokenButton.pack()
@@ -149,12 +150,13 @@ class HP_Device_Form(Toplevel):
             a.enable()
         if exifData['Make'] != '-':
             self.questions['Exif Camera Make'].set(exifData['Make'])
-            self.questions['Exif Camera Make'].disable()
+        self.questions['Exif Camera Make'].disable()
         if exifData['Model'] != '-':
             self.questions['Exif Camera Model'].set(exifData['Model'])
-            self.questions['Exif Camera Model'].disable()
+        self.questions['Exif Camera Model'].disable()
         if exifData['SerialNumber'] != '-':
             self.questions['Device Serial Number'].set(exifData['SerialNumber'])
+        self.questions['Device Serial Number'].disable()
         self.okbutton.config(state='normal')
 
     def export_results(self):
@@ -163,44 +165,30 @@ class HP_Device_Form(Toplevel):
             if h.endswith('*') and self.questions[h].get() == '':
                 msg = 'Field ' + h[:-1] + ' is a required field.'
                 break
-        if self.trello_token.get() == '':
-            msg = 'Trello Token is a required field.'
         if self.browser_token.get() == '':
             msg = 'Browser Token is a required field.'
         check = self.local_id_used()
         msg = msg if check is None else check
 
         if msg:
-            tkMessageBox.showerror(title='Error', message=msg)
+            tkMessageBox.showerror(title='Error', message=msg, parent=self)
             return
 
         browser_resp = self.post_to_browser()
         if browser_resp.status_code in (requests.codes.ok, requests.codes.created):
-            tkMessageBox.showinfo(title='Complete', message='Successfully posted new camera information! Press Okay to continue. You will be prompted to save a file that will be posted to trello.')
+            cont = tkMessageBox.askyesno(title='Complete', message='Successfully posted new camera information! Post notification to Trello?', parent=self)
         else:
-            tkMessageBox.showerror(title='Error', message='An error ocurred posting the new camera information to the MediBrowser. (' + str(browser_resp.status_code)+ ')')
+            tkMessageBox.showerror(title='Error', message='An error ocurred posting the new camera information to the MediBrowser. (' + str(browser_resp.status_code)+ ')', parent=self)
             return
+        if cont:
+            code = self.post_to_trello()
+            if code is not None:
+                tkMessageBox.showerror('Trello Error', message='An error ocurred connecting to trello (' + str(
+                    code) + ').\nIf you\'re not sure what is causing this error, email medifor_manipulators@partech.com.', parent=self)
+            else:
+                tkMessageBox.showinfo(title='Information', message='Complete!', parent=self)
 
-        path = tkFileDialog.asksaveasfilename(initialfile=self.questions['Local ID*'].get()+'.csv')
-        if self.pathvar:
-            self.pathvar.set(path)
-        with open(path, 'wb') as csvFile:
-            wtr = csv.writer(csvFile)
-            wtr.writerow(['Affiliation', 'HP-LocalDeviceID', 'DeviceSN', 'Manufacturer', 'CameraModel', 'HP-CameraModel', 'Edition',
-                          'DeviceType', 'Sensor', 'Description', 'LensMount', 'Firmware', 'version', 'HasPRNUData'])
-            wtr.writerow([self.questions['Device Affiliation*'].get(), self.questions['Local ID*'].get(), self.questions['Device Serial Number'].get(),
-                          self.questions['Exif Camera Make'].get(), self.questions['Exif Camera Model'].get(),
-                          self.questions['HP Model'].get(), self.questions['Edition'].get(), self.questions['Device Type*'].get(),
-                          self.questions['Sensor Information'].get(), self.questions['General Description'].get(),
-                          self.questions['Lens Mount*'].get(), self.questions['Firmware/OS'].get(), self.questions['Firmware/OS Version'].get(), '0'])
-
-        code = self.post_to_trello(path)
-        if code is not None:
-            tkMessageBox.showerror('Trello Error', message='An error ocurred connecting to trello (' + str(code) + ').\nIf you\'re not sure what is causing this error, email medifor_manipulators@partech.com.')
-        else:
-            tkMessageBox.showinfo(title='Information', message='Complete!')
-
-        self.destroy()
+            self.destroy()
 
     def post_to_browser(self):
         url = 'https://medifor.rankone.io/api/cameras/'
@@ -210,7 +198,7 @@ class HP_Device_Form(Toplevel):
         }
         data = { 'hp_device_local_id': self.questions['Local ID*'].get(),
                  'affiliation': self.questions['Device Affiliation*'].get(),
-                 'hp_camera_model': self.questions['HP Model'].get(),
+                 'hp_camera_model': self.questions['HP Model*'].get(),
                  'exif':[{'exif_camera_make': self.questions['Exif Camera Make'].get(),
                           'exif_camera_model': self.questions['Exif Camera Model'].get(),
                           'exif_device_serial_number': self.questions['Device Serial Number'].get(),
@@ -250,7 +238,7 @@ class HP_Device_Form(Toplevel):
     def open_link(self, link):
         webbrowser.open(link)
 
-    def post_to_trello(self, filepath):
+    def post_to_trello(self):
         """create a new card in trello and attach a file to it"""
 
         token = self.trello_token.get()
@@ -261,14 +249,11 @@ class HP_Device_Form(Toplevel):
         # post the new card
         new = self.questions['Local ID*'].get()
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
-                             data=dict(name=new, idList=list_id))
+                             data=dict(name='NEW DEVICE: ' + new, idList=list_id))
 
         # attach the file and user, if the card was successfully posted
         if resp.status_code == requests.codes.ok:
             j = json.loads(resp.content)
-            files = {'file': open(filepath, 'rb')}
-            requests.post("https://trello.com/1/cards/%s/attachments" % (j['id']),
-                          params=dict(key=self.trello_key, token=token), files=files)
 
             me = requests.get("https://trello.com/1/members/me", params=dict(key=self.trello_key, token=token))
             member_id = json.loads(me.content)['id']
@@ -426,9 +411,10 @@ class Update_Form(Toplevel):
 
         r = requests.put(url, headers=headers, data=data)
         if r.status_code in (requests.codes.ok, requests.codes.created):
-            tkMessageBox.showinfo(title='Done!', message='Camera updated. Press Ok to notify via Trello.', parent=self)
-            self.camupdate_notify_trello(url)
+            if tkMessageBox.askyesno(title='Done!', message='Camera updated. Post notification to Trello?', parent=self):
+                self.camupdate_notify_trello(url)
             self.updated = True
+            self.destroy()
         else:
             tkMessageBox.showerror(title='Error', message='An error occurred updating this device. (' + str(r.status_code) + ')', parent=self)
 
@@ -476,10 +462,8 @@ class Update_Form(Toplevel):
                                   params=dict(key=trello_key, token=self.trello),
                                   data=dict(value=member_id))
             tkMessageBox.showinfo(title='Information', message='Complete!', parent=self)
-            self.destroy()
         else:
             tkMessageBox.showerror(title='Error', message='An error occurred connecting to trello (' + str(resp.status_code) + '). The device was still updated.')
-            self.destroy()
 
     def show_help(self):
         tkMessageBox.showinfo(title='Instructions',
