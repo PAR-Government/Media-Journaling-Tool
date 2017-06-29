@@ -327,6 +327,7 @@ class PRNU_Uploader(Frame):
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
                         msgs.append('Invalid reference type: ' + sub)
+                    elif sub.lower().startswith('rgb_no_lens'):
                         msgs.extend(self.check_luminance(os.path.join(path, sub)))
                 if files:
                     for f in files:
