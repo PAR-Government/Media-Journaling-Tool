@@ -1293,6 +1293,13 @@ class ImageProjectModel:
                 return self.constructComposite()
         return masks[nodeName][0]
 
+    def getBaseImage(self,node):
+        for pred in self.G.predecessors(node):
+            edge = self.G.get_edge(pred, node)
+            if edge['op'] != 'Donor':
+                return self.getBaseImage(pred)
+        return node
+
     def getDonorAndBaseImages(self,force=False):
         """
          Get the composite image for the selected node.

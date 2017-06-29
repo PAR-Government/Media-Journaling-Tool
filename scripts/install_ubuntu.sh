@@ -9,7 +9,7 @@ sudo apt-get install -y pkg-config
 sudo apt-get install -y python python-numpy python-dev
 sudo apt-get install -y build-essential checkinstall
 sudo apt-get install -y libavcodec-dev libavformat-dev libswscale-dev
-sudo apt-get install -y libjpeg-dev libpng12-dev libtiff5-dev libjasper-dev
+sudo apt-get install -y libjpeg-dev libpng12-dev libtiff5-dev libjasper-dev wget
 sudo pip install --upgrade pip 
 sudo pip install -upgrade virtualenv
  

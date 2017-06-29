@@ -5,7 +5,7 @@ from random import randint
 def transform(img,source,target,**kwargs):
     cv_image = numpy.array(img)
     shape = cv_image.shape
-    snapto8 = 'eightbit boundary' in  kwargs and kwargs['eightbit boundary'] == 'yes'
+    snapto8 = 'eightbit_boundary' in  kwargs and kwargs['eightbit_boundary'] == 'yes'
     percentageWidth = float(kwargs['percentage_width'])
     percentageHeight = float(kwargs['percentage_height'])
     pixelWidth = int(shape[1] * percentageWidth)
@@ -34,7 +34,7 @@ def operation():
                            {'type': "float[0:0.5]", 'description':'the percentage of pixels to remove horizontal'},
                        'percentage_height':
                            {'type': "float[0:0.5]", 'description':'the percentage of pixels to remove vertically'},
-                       'eightbit boundary':
+                       'eightbit_boundary':
                            {'type': "yesno", 'defaultvalue':'no', 'description':'Snap to 8 bit boundary'}
                        },
           'transitions': [
