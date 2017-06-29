@@ -2053,8 +2053,8 @@ class ImageProjectModel:
         if self.notify is not None:
             self.notify((s,e), 'remove')
 
-    def getProjectData(self, item):
-        return self.G.getDataItem(item)
+    def getProjectData(self, item,default_value=None):
+        return self.G.getDataItem(item,default_value=default_value)
 
     def setProjectData(self, item, value,excludeUpdate=False):
         """
