@@ -326,11 +326,17 @@ def check_masks(edge, op, graph, frm, to):
     """
     if 'maskname' not in edge or edge['maskname'] is None or \
         len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
-        return ['Change mask missing.']
+        return ['Link mask is missing. Recompute the link mask.']
     inputmasknanme = edge['inputmaskname'] if 'inputmaskname' in edge  else None
+    if inputmasknanme is not None and len(inputmasknanme) > 0 and \
+            not os.path.exists(os.path.join(graph.dir, inputmasknanme)):
+        return ["Input mask file {} is missing".format(inputmasknanme)]
     if  inputmasknanme is not None and len(inputmasknanme) > 0 and \
          os.path.exists(os.path.join(graph.dir, inputmasknanme)):
-            inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme)).to_mask().to_array()
+            inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme))
+            if inputmask is None:
+                return ["Input mask file {} is missing".format(inputmasknanme)]
+            inputmask = inputmask.to_mask().to_array()
             mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
             if inputmask.shape != mask.shape:
                 return ['input mask name parameter has an invalid size']
@@ -541,6 +547,17 @@ def check_local_warn(graph, frm, to):
     is_global = 'global' in edge and edge['global'] == 'yes'
     if not is_global and not included_in_composite:
         return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
+    return None
+
+def sampledInputMask(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    if 'arguments' in edge and \
+            ('purpose' not in edge['arguments'] or \
+              edge['arguments']['purpose'] != 'clone') and \
+        'inputmaskname' in edge and \
+        edge['inputmaskname'] is not None:
+          edge.pop('inputmaskname')
+          return 'Unneeded input mask. Auto-removal executed.'
     return None
 
 def check_local(graph, frm, to):
@@ -1005,6 +1022,19 @@ def _cleanEdges(scModel, edges):
         if "pathanalysis" in node:
             node.pop("pathanalysis")
     return [edgeTuple for edgeTuple in edges]
+
+def setProjectSummary(scModel):
+    """
+    :param scModel:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    groups = []
+    for edgeTuple in scModel.getGraph().get_edges():
+        edge = scModel.getGraph().get_edge(edgeTuple[0],edgeTuple[1])
+        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
+            groups.extend(edge['semanticGroups'])
+    scModel.setProjectData('semanticgroups',groups)
 
 def setFinalNodeProperties(scModel, finalNode):
     """

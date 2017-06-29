@@ -9,10 +9,9 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime,strptime
 import logging
+import maskgen
 
-snapshot='.d3bc2f59e1'
-igversion='0.4.0425' + snapshot
-
+igversion=maskgen.__version__
 
 def current_version():
     return igversion
@@ -586,6 +585,8 @@ class ImageGraph:
         :return:
         @rtype (ImageWrapper,str)
         """
+        if not self.G.has_node(name):
+            return None,None
         node = self.G.node[name]
         filename = os.path.abspath(os.path.join(self.dir, node['file']))
         proxy = getProxy(filename)

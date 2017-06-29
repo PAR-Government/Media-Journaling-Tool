@@ -298,7 +298,7 @@ def set_other_data(data, imfile):
 
 def check_outdated(ritCSV, path):
     current_headers = load_json_dictionary(data_files._FIELDNAMES)
-    rit_data = pd.read_csv(ritCSV)
+    rit_data = pd.read_csv(ritCSV, dtype=str)
     rit_headers = list(rit_data)
     diff = [x for x in current_headers.keys() if x not in rit_headers]  # list all new items
 
@@ -310,7 +310,7 @@ def check_outdated(ritCSV, path):
             add_exif_column(rit_data, 'CameraMake', '-Make', path)
 
     if diff:
-        rit_data.to_csv(ritCSV, index=False)
+        rit_data.to_csv(ritCSV, index=False, quoting=csv.QUOTE_ALL)
 
 def add_exif_column(df, title, exif_tag, path):
     print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
@@ -469,7 +469,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
 
-    for csv_type in  ['rit', 'history', 'rankone', 'keywords']:
+    for csv_type in  ['rit', 'rankone', 'keywords']:
         print('Writing ' + csv_type + ' file')
         csv_path = os.path.join(outputdir, 'csv', '-'.join(
             (dt, self.settings.get('organization') + self.settings.get('username'), csv_type + '.csv')))

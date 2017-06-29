@@ -15,6 +15,8 @@ import pandastable
 import csv
 import webbrowser
 import requests
+import tempfile
+import shutil
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
 from CameraForm import HP_Device_Form
@@ -105,7 +107,8 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
         #self.fileMenu.add_command(label='Load image directory', command=self.load_images)
         self.fileMenu.add_command(label='Validate', command=self.validate)
-        self.fileMenu.add_command(label='Export to S3...', command=self.s3export)
+        self.fileMenu.add_command(label='Export to S3', command=self.s3export)
+        #self.fileMenu.add_command(label='Export to S3 for ingest', command=self.ingest)
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
@@ -372,7 +375,7 @@ class HPSpreadsheet(Toplevel):
         for c in self.mandatoryAudioNames:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -424,18 +427,18 @@ class HPSpreadsheet(Toplevel):
                         tab.disabled_cells.append((row, col))
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
-                for error in self.processErrors[image]:
-                    errCol = error[0]
-                    try:
-                        col = tab.model.df.columns.get_loc(errCol)
-                        x1, y1, x2, y2 = tab.getCellCoords(row, col)
-                        rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                    fill='#ff5b5b',
-                                                    outline='#084B8A',
-                                                    tag='cellrect')
-                        self.error_cells.append((row, col))
-                    except KeyError:
-                        continue
+                for errors in self.processErrors[image]:
+                    for errCol in errors[0]:
+                        try:
+                            col = tab.model.df.columns.get_loc(errCol)
+                            x1, y1, x2, y2 = tab.getCellCoords(row, col)
+                            rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                        fill='#ff5b5b',
+                                                        outline='#084B8A',
+                                                        tag='cellrect')
+                            self.error_cells.append((row, col))
+                        except KeyError:
+                            continue
 
         tab.lift('cellrect')
         tab.redraw()
@@ -455,7 +458,7 @@ class HPSpreadsheet(Toplevel):
                 for r in rdr:
                     wtr.writerow((r[1:]))
         os.remove(self.ritCSV)
-        os.rename(tmp, self.ritCSV)
+        shutil.move(tmp, self.ritCSV)
         self.export_rankOne()
         self.saveState = True
         if not quiet and showErrors:
@@ -488,76 +491,51 @@ class HPSpreadsheet(Toplevel):
                 importDates.append(now)
             subset['ImportDate'] = importDates
             subset['HP-Keywords'] = keywords
-            subset.to_csv(ro, columns=headers, index=False)
+            subset.to_csv(ro, columns=headers, index=False, quoting=csv.QUOTE_ALL)
 
     def s3export(self):
         cancelled = self.exportCSV(quiet=True)
         if cancelled:
             return
 
-        # localIDs = set(self.pt.model.df['HP-DeviceLocalID'])
-        # if not localIDs.issubset(set(self.devices.keys())):
-        #     self.prompt_for_new_camera(invalids=localIDs - set(self.devices.keys()))
         initial = self.settings.get('aws', notFound='')
-        val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial)
+        val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial, parent=self)
 
         if (val is not None and len(val) > 0):
-            comment = self.check_trello_login()
-            if comment is None:
-                tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
-                return
             self.settings.set('aws', val)
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
+            print('Archiving data...')
+            archive = self.create_hp_archive()
+
             print('Uploading...')
-            local_id = self.pt.model.df['HP-DeviceLocalID'][0]
-            dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
-            total = sum([len(files) for r, d, files in os.walk(self.dir)])
-            ct = 0.0
-            retry = []
-            for root, dirs, files in os.walk(self.dir):
-                for f in files:
-                    ct += 1
-                    local_path = os.path.join(root, f)
-                    upload_path = local_path[local_path.lower().index(os.path.basename(self.dir).lower()):]
-                    upload_path = upload_path.replace(os.path.basename(self.dir).lower(), local_id + '-' + dt)
-                    try:
-                        s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
-                                       callback=ProgressPercentage(local_path, total, ct))
-                    except Exception as e:
-                        print '\n' + str(
-                            e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
-                        retry.append({'local_path': local_path, 'upload_path': upload_path})
+            try:
+                s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
+            except Exception as e:
+                tkMessageBox.showerror(title='Error', message='Could not complete upload.', parent=self)
+                return
+
+            #self.verify_upload(all_files, os.path.join(BUCKET, DIR))
             failed = []
-            msg = []
-            if retry:
-                print '\n Retrying Failed Files...\n'
-                for f in retry:
-                    try:
-                        s3.upload_file(f['local_path'], BUCKET,
-                                       os.path.join(DIR, f['upload_path']).replace('\\', '/'),
-                                       callback=ProgressPercentage(f['local_path'], total, ct))
-                        ct += 1
-                    except Exception as e:
-                        s = 'Failed to upload ' + f['local_path']
-                        print s + '\n'
-                        failed.append(s)
-                if failed:
-                    msg.append(
-                        'Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
-            err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, local_id + '-' + dt), comment, failed)
-            if err is not None:
-                msg.append('S3 upload completed, but failed to notify Trello (' + str(
-                    err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
-            else:
-                msg.append('Complete!')
-                self.master.statusBox.println('Successfully uploaded HP data to S3://' + val + '.')
-            d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg), parent=self)
+            if tkMessageBox.askyesno(title='Complete', message='Successfully uploaded HP data to S3://' + val + '. Would you like to notify via Trello?', parent=self):
+                comment = self.check_trello_login()
+                err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), comment, failed)
+                if err:
+                    tkMessageBox.showerror(title='Error', message='Failed to notify Trello (' + str(err) + ')', parent=self)
+                else:
+                    tkMessageBox.showinfo(title='Status', message='Complete!', parent=self)
+
         else:
             tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
+
+    def verify_upload(self, all_files, location):
+        s3 = boto3.resource('s3')
+        my_bucket = s3.Bucket(location)
+        # wip
+
 
     def check_trello_login(self):
         if self.settings.get('trello', notFound='') == '':
@@ -565,7 +543,7 @@ class HPSpreadsheet(Toplevel):
             if token == '':
                 return None
             self.settings.set('trello', token)
-        comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.')
+        comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
 
     def notify_trello(self, filestr, comment, failed):
@@ -622,14 +600,15 @@ class HPSpreadsheet(Toplevel):
     def create_hp_archive(self):
         val = self.pt.model.df['HP-DeviceLocalID'][0]
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
-        fname = os.path.join(self.dir, val + '-' + dt + '.tgz')
-        DIRNAME = self.dir
-        archive = tarfile.open(fname, "w:gz", errorlevel=2)
-        for item in os.listdir(DIRNAME):
-            if item != fname:
-                archive.add(os.path.join(DIRNAME, item), arcname=item)
+        fd, tname = tempfile.mkstemp(suffix='.tar')
+        archive = tarfile.open(tname, "w", errorlevel=2)
+        archive.add(self.dir, arcname=os.path.split(self.dir)[1])
         archive.close()
-        return fname
+        os.close(fd)
+        final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
+        shutil.move(tname, os.path.join(self.dir, final_name))
+
+        return final_name
 
     def validate(self):
         errors = []
@@ -696,9 +675,7 @@ class HPSpreadsheet(Toplevel):
         errors = {}
         self.master.reload_ids()
         for row in range(0, self.pt.rows):
-            db_exif_models = []
-            db_exif_makes = []
-            db_exif_sn = []
+            db_configs = []
             image = self.pt.model.df['OriginalImageName'][row]
             errors[image] = []
             try:
@@ -713,21 +690,21 @@ class HPSpreadsheet(Toplevel):
                 for field, val in dbData['exif'][configuration].iteritems():
                     if val is None or val == 'nan':
                         dbData['exif'][configuration][field] = ''
-                db_exif_models.append(dbData['exif'][configuration]['exif_camera_model'])
-                db_exif_makes.append(dbData['exif'][configuration]['exif_camera_make'])
-                db_exif_sn.append(dbData['exif'][configuration]['exif_device_serial_number'])
+                dbData['exif'][configuration].pop('hp_app', 0)
+                dbData['exif'][configuration].pop('created', 0)
+                dbData['exif'][configuration].pop('username', 0)
+                db_configs.append(dbData['exif'][configuration])
 
-            if self.get_val(self.pt.model.df['CameraMake'][row]) not in db_exif_makes:
-                errors[image].append(('CameraMake', 'Invalid CameraMake: ' + self.get_val(self.pt.model.df['CameraMake'][row]) + ', row ' +
-                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_makes)))
+            data_config = {'exif_camera_make': self.get_val(self.pt.model.df['CameraMake'][row]),
+                           'exif_camera_model': self.get_val(self.pt.model.df['CameraModel'][row]),
+                           'exif_device_serial_number': self.get_val(self.pt.model.df['DeviceSN'][row]),
+                           'media_type': self.get_val(self.pt.model.df['Type'][row])}
 
-            if self.get_val(self.pt.model.df['CameraModel'][row]) not in db_exif_models:
-                errors[image].append(('CameraModel', 'Invalid CameraModel: ' + self.get_val(self.pt.model.df['CameraModel'][row]) + ', row ' +
-                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_models)))
+            if data_config not in db_configs:
+                errors[image].append((['CameraMake', 'CameraModel', 'DeviceSN', 'Type'],
+                                      'Invalid exif metadata configuration (row ' + str(row+1) +
+                                      '). Add a new configuration for this device via \"File->Update a Device\" on the main UI\'s menu.'))
 
-            if self.get_val(self.pt.model.df['DeviceSN'][row]) not in db_exif_sn:
-                errors[image].append(('DeviceSN', 'Invalid DeviceSN: ' + self.get_val(self.pt.model.df['DeviceSN'][row]) + ', row ' +
-                                     str(row) + '. Known values for this device are: ' + ', '.join(db_exif_sn)))
         return errors
 
     def get_val(self, item):
@@ -799,7 +776,7 @@ class HPSpreadsheet(Toplevel):
     def check_model(self, row):
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
-        if model.lower() == 'nan' or model == '':
+        if pd.isnull(model) or model.lower() == 'nan' or model == '':
             imageName = self.pt.model.getValueAt(row, 0)
             errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
         elif model not in [self.devices[data]['hp_camera_model'] for data in self.devices if

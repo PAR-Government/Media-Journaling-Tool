@@ -202,7 +202,7 @@ def operation():
                 'quality': {
                     'type': 'int[0:100]',
                     'defaultvalue': '0',
-                    'description': 'Quality Factor'
+                    'description': "Quality Factor overrides the donor.  The default value of 0 indicates using the donor image's quality factor."
                 }
             },
             'transitions': [

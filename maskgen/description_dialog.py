@@ -7,7 +7,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -190,7 +190,7 @@ def promptForDonorandFillButtonText(obj, id, row):
     @type row: int
     :return:
     """
-    d = ImageNodeCaptureDialog(obj, obj.scModel)
+    d = ImageNodeCaptureDialog(obj, obj.propertyFunction.scModel)
     res = d.selectedImage
     var = obj.values[row]
     var.set(res if (res is not None and len(res) > 0) else None)
@@ -420,7 +420,7 @@ class DescriptionCaptureDialog(Toplevel):
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(properties),
+                                propertyFunction=EdgePropertyFunction(self.scModel,properties),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
                                             'start_im':self.start_im,
@@ -993,7 +993,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
                            argumentTuple[1]['visible']]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(properties),
+                                propertyFunction=EdgePropertyFunction(self.scModel,properties),
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
@@ -1384,7 +1384,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         imTuple  = self.selectMasks[finalNode]
         color = [0,198,0]
         if imTuple is None:
-            red = openImage('./icons/RedX.png').to_mask()
+            red = openImage(get_icon('RedX.png')).to_mask()
             color = [198,0,0]
             im = red.resize(finalImage.size,1)
         else:
@@ -2036,8 +2036,12 @@ class PropertyFrame(VerticalScrolledFrame):
            if v:
                self.values[row].set(v)
            if prop.type == 'list':
-               widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row], state='readonly')
-               widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
+               if prop.readonly:
+                  widget = Label(master, text=', '.join(v if v is not None else ''))
+                  widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
+               else:
+                  widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row], state='readonly')
+                  widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
            elif prop.type == 'text':
                widget = Text(master, takefocus=(row == 0), width=60, height=3, relief=RAISED,
                                        borderwidth=2)
@@ -2217,11 +2221,12 @@ class PropertyDialog(tkSimpleDialog.Dialog):
 class EdgePropertyFunction(PropertyFunction):
 
     lookup_values = {}
-    def __init__(self,properties):
+    def __init__(self, scModel, properties):
         """
         :param scModel:
         @type scModel: ImageProjectModel
         """
+        self.scModel = scModel
         for prop in properties:
             self.lookup_values[prop.name] = prop.value
 

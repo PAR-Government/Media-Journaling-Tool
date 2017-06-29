@@ -36,6 +36,7 @@ class MaskGraphCanvas(tk.Canvas):
     drag_item = None
     drag_data = None
     scrollregion = (100,100)
+    region = (0,0)
 
     def __init__(self, master, uiProfile, scModel, callback, **kwargs):
         self.scModel = scModel
@@ -110,10 +111,13 @@ class MaskGraphCanvas(tk.Canvas):
 
     def redrawNode(self, nodeid):
         wid = self.toItemIds[nodeid][1] if nodeid in self.toItemIds else None
-        if wid is not None:
+        if wid is not None and wid in self.itemToCanvas:
             n = self.scModel.getGraph().get_node(nodeid)
             #         self.move(wid,0,0)
-            self.itemToCanvas[wid].node_name = n['file']
+            if n is None:
+                self.itemToCanvas[wid].node_name = 'Missing'
+            else:
+                self.itemToCanvas[wid].node_name = n['file']
             self.itemToCanvas[wid].render()
             self.update_idletasks()
 
@@ -199,15 +203,15 @@ class MaskGraphCanvas(tk.Canvas):
         self.region = (x, y)
 
     def add_selected_item(self,item):
-        #if self.lassobox:
-        #    self.delete(self.lassobox)
         addedid = [k for (k, v) in self.itemToCanvas.items() if v == item][0]
         edgeid = self.itemToEdgeIds[addedid] if addedid in self.itemToEdgeIds else None
         if edgeid is not None:
             start = [k for (k, v) in self.itemToNodeIds.items() if v == edgeid[0]][0]
             end = [k for (k, v) in self.itemToNodeIds.items() if v == edgeid[1]][0]
-            self.itemToCanvas[start].selectgroup()
-            self.itemToCanvas[end].selectgroup()
+            if start in self.itemToCanvas:
+               self.itemToCanvas[start].selectgroup()
+            if end in self.itemToCanvas:
+               self.itemToCanvas[end].selectgroup()
             if self.lassoitems:
                 if start not in self.lassoitems:
                     self.lassoitems.append(start)
@@ -216,7 +220,7 @@ class MaskGraphCanvas(tk.Canvas):
             else:
                 self.lassoitems = [start,end]
         else:
-            nodeid = self.itemToNodeIds[addedid] if addedid in self.itemToNodeIds else Nonde
+            nodeid = self.itemToNodeIds[addedid] if addedid in self.itemToNodeIds else None
             if nodeid is not None:
                 item.selectgroup()
                 if self.lassoitems:
@@ -233,7 +237,8 @@ class MaskGraphCanvas(tk.Canvas):
             self.delete(self.lassobox)
         if self.lassoitems:
             for item in self.lassoitems:
-                self.itemToCanvas[item].deselectgroup()
+                if item in self.itemToCanvas:
+                    self.itemToCanvas[item].deselectgroup()
             self.lassoitems = None
             return
         x = self.canvasx(event.x)
@@ -244,7 +249,8 @@ class MaskGraphCanvas(tk.Canvas):
         self.lassoitems = [item for item in items
                            if item in self.itemToCanvas and isinstance(self.itemToCanvas[item], NodeObj)]
         for item in self.lassoitems:
-            self.itemToCanvas[item].selectgroup()
+            if item in self.itemToCanvas:
+                self.itemToCanvas[item].selectgroup()
 
     def deselectCursor(self, event):
         cursor = self.cget("cursor")
@@ -266,6 +272,11 @@ class MaskGraphCanvas(tk.Canvas):
             nodeId = self.itemToNodeIds[item]
             preds = self.scModel.getGraph().predecessors(nodeId)
             im, filename = self.scModel.getImageAndName(nodeId)
+            if filename is None:
+                self.itemToNodeIds.pop(item)
+                self.clear()
+                self.update()
+                return
             file_without_path = os.path.split(filename)[1]
             ok = False
             if self.crossHairConnect:
@@ -296,8 +307,6 @@ class MaskGraphCanvas(tk.Canvas):
                 self._mark(self._draw_edge(self.scModel.start, self.scModel.end))
                 self.callback(event, "n")
             return
-        #        else:
-        #           self.onTokenRightClick(event,showMenu=False)
 
         self.setDragData((event.x, event.y), item=item)
 
@@ -312,6 +321,8 @@ class MaskGraphCanvas(tk.Canvas):
         return self.drag_data if self.drag_data else (x, y)
 
     def showNode(self, node):
+        if node not in self.toItemIds:
+            return
         item_id = self.toItemIds[node][1]
         self._mark(item_id)
         self.center_on_node(node)
@@ -347,6 +358,9 @@ class MaskGraphCanvas(tk.Canvas):
         from_xy = ((b[0] + b[2]) / 2, (b[1] + b[3]) / 2)
         from_node = self.itemToNodeIds[item]
         node = self.scModel.getGraph().get_node(from_node)
+        if node is None:
+            self.remove()
+            return
         node['xpos'] = restrictPosition(from_xy[0])
         node['ypos'] = restrictPosition(from_xy[1])
         for n in self.scModel.getGraph().successors(from_node):
@@ -369,13 +383,15 @@ class MaskGraphCanvas(tk.Canvas):
 
     def _unmark(self):
         if (self.marked is not None):
-            self.itemToCanvas[self.marked].unmark()
+            if self.marked in self.itemToCanvas:
+                self.itemToCanvas[self.marked].unmark()
             self.marked = None
 
     def _mark(self, item):
         self._unmark()
-        self.itemToCanvas[item].mark()
-        self.itemToCanvas[item].selectModel(self.scModel)
+        if item in self.itemToCanvas:
+            self.itemToCanvas[item].mark()
+            self.itemToCanvas[item].selectModel(self.scModel)
         self.callback(None, 'n')
         self.marked = item
 
@@ -395,13 +411,14 @@ class MaskGraphCanvas(tk.Canvas):
                 self.scModel.selectImage(self.itemToNodeIds[item])
             else:
                 e = self.itemToEdgeIds[item]
-                self.scModel.selectEdge(e[0], e[1])
-                eventname = 'rcEdge' if self.scModel.isEditableEdge(e[0], e[1]) else 'rcNonEditEdge'
+                if e is not None:
+                    self.scModel.selectEdge(e[0], e[1])
+                    eventname = 'rcEdge' if self.scModel.isEditableEdge(e[0], e[1]) else 'rcNonEditEdge'
             self._mark(item)
             self.callback(event, eventname if showMenu else 'n')
-            if (e is not None):
+            if e is not None:
                 edge = self.scModel.getGraph().get_edge(e[0], e[1])
-                if (edge is not None):
+                if edge is not None and item in self.itemToCanvas:
                     self.itemToCanvas[item].update(edge)
 
     def onNodeKey(self, event):
@@ -468,6 +485,8 @@ class MaskGraphCanvas(tk.Canvas):
         wx, wy = self.winfo_width(), self.winfo_height()
 
         node = self.scModel.getGraph().get_node(node_id)
+        if node is None:
+            return
         if (node.has_key('xpos')):
             x = node['xpos']
         else:

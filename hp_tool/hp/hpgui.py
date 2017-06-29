@@ -218,7 +218,6 @@ class PRNU_Uploader(Frame):
         self.settings = settings
         self.root_dir = StringVar()
         self.localID = StringVar()
-        self.localIDfile = StringVar()
         self.s3path = StringVar()
         self.newCam = BooleanVar()
         self.newCam.set(0)
@@ -228,8 +227,7 @@ class PRNU_Uploader(Frame):
 
     def create_prnu_widgets(self):
         r = 0
-        Label(self, text='Enter the absolute path of the main PRNU directory here. You can click the button to open a file select dialog.\n'
-                         'If you are using a new camera that does not yet have a local ID, check the respective box and follow the prompts.').grid(
+        Label(self, text='Enter the absolute path of the main PRNU directory here. You can click the button to open a file select dialog.').grid(
             row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=8)
         r+=1
 
@@ -237,12 +235,6 @@ class PRNU_Uploader(Frame):
         dirbutton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
         self.rootEntry = Entry(self, width=100, textvar=self.root_dir)
         self.rootEntry.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=4)
-        r+=1
-
-        self.newCamEntry = Entry(self, width=40, textvar=self.localIDfile, state=DISABLED)
-        self.newCamEntry.grid(row=r, column=1, columnspan=2, sticky=W)
-        self.newCamCheckbox = Checkbutton(self, text='I\'m using a new camera:', variable=self.newCam, command=self.set_new_cam_file)
-        self.newCamCheckbox.grid(row=r, column=0, )
         r+=1
 
         sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=r, columnspan=6, sticky='EW', pady=5)
@@ -279,27 +271,9 @@ class PRNU_Uploader(Frame):
         SettingsWindow(self.settings, master=self.master)
         self.s3path.set(self.settings.get('aws-prnu', notFound=''))
 
-    def set_new_cam_file(self):
-        if self.newCam.get():
-            if self.localIDfile:
-                ync = tkMessageBox.askyesnocancel(message='Have you already completed the New Camera Registration Form?', title='New Camera Data')
-                self.newCamEntry.config(state=NORMAL)
-                if ync:
-                    f = tkFileDialog.askopenfilename(filetypes=[('text files', '.txt')], title='Select data file')
-                    self.localIDfile.set(f)
-                elif ync is None:
-                    self.newCam.set(0)
-                    self.newCamEntry.config(state=DISABLED)
-                else:
-                    self.open_new_insert_id()
-        else:
-            self.newCamEntry.config(state=DISABLED)
-
     def open_new_insert_id(self):
-        self.newCam.set(1)
-        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), pathvar=self.localIDfile, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
-        if self.localIDfile.get():
-            self.newCamEntry.config(state=NORMAL)
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
+        self.master.reload_devices()
 
     def parse_vocab(self, path):
         self.vocab = []
@@ -390,9 +364,6 @@ class PRNU_Uploader(Frame):
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
-            self.newCamCheckbox.config(state=DISABLED)
-            if self.newCam:
-                self.newCamEntry.config(state=DISABLED)
             self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
 
     def has_same_contents(self, list1, list2):
@@ -447,6 +418,7 @@ class PRNU_Uploader(Frame):
                     failed.append(s)
             if failed:
                 msg.append('Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+
         err = self.notify_trello_prnu('s3://' + os.path.join(val, self.root_dir.get()), failed)
         if err is not None:
             msg.append('S3 upload completed, but failed to notify Trello (' + str(
@@ -486,16 +458,11 @@ class PRNU_Uploader(Frame):
     def cancel_upload(self):
         self.uploadButton.config(state=DISABLED)
         self.rootEntry.config(state=NORMAL)
-        if self.newCam:
-            self.newCamEntry.config(state=NORMAL)
-        self.newCamCheckbox.config(state=NORMAL)
 
     def archive_prnu(self):
         ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
         archive = tarfile.open(ftar, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
-        if self.newCam.get():
-            archive.add(self.localIDfile.get(), arcname=os.path.split(self.localIDfile.get())[1])
         archive.close()
         return ftar
 
@@ -514,8 +481,7 @@ class PRNU_Uploader(Frame):
         def rename_all(root, items):
             for name in items:
                 try:
-                    os.rename(os.path.join(root, name),
-                              os.path.join(root, name.title()))
+                    shutil.move(os.path.join(root, name), os.path.join(root, name.title()))
                 except OSError:
                     pass  # just skip if can't be renamed
 

@@ -79,6 +79,15 @@ def fetchbyS3URL(url):
     my_bucket.download_file(location, destination)
     return destination
 
+
+def get_icon(name):
+    places = []#['./icons']
+    places.extend([os.path.join(x, 'icons/'+name) for x in sys.path if 'maskgen' in x])
+    for place in places:
+        if os.path.exists(place):
+            return place
+    return None
+
 def get_logging_file():
     """
     :return: The last roll over log file
@@ -410,10 +419,10 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
             return int(argValue)
         elif argDef['type'] == 'list':
             if argValue not in argDef['values']:
-                raise ValueError(argName + ' is not one of the allowed values')
+                raise ValueError(argValue + ' is not one of the allowed values')
         elif argDef['type'] == 'time':
             if not validateTimeString(argValue):
-                raise ValueError(argName + ' is not a valid time (e.g. HH:MM:SS.micro)')
+                raise ValueError(argValue + ' is not a valid time (e.g. HH:MM:SS.micro)')
         elif argDef['type'] == 'yesno':
             if argValue.lower() not in ['yes', 'no']:
                 raise ValueError(argName + ' is not yes or no')
@@ -517,6 +526,11 @@ def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileNam
             img.save(snapshotFileName)
         return img
 
+def shortenName(name, postfix):
+    import hashlib
+    middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])
+    return hashlib.md5(name+postfix).hexdigest() + '_' +  middle + '_' + postfix
+
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
@@ -529,8 +543,8 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
     snapshotFileName = filename
     if not os.path.exists(filename):
         logging.getLogger('maskgen').warning(filename + ' is missing.')
-        if filename != './icons/RedX.png':
-            return openImage('./icons/RedX.png')
+        if not filename.endswith('icons/RedX.png'):
+            return openImage(get_icon('RedX.png'))
         return None
 
     if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
@@ -538,19 +552,19 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
 
     if fileType(filename) == 'audio':
-        return openImage('./icons/audio.png')
+        return openImage(get_icon('audio.png'))
 
     if videoFrameTime is not None or \
             (snapshotFileName != filename and \
                      (not os.path.exists(snapshotFileName) or \
                                   os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
         if not ('video' in getFileMeta(filename)):
-            return openImage('./icons/audio.png')
+            return openImage(get_icon('audio.png'))
         videoFrameImg = readImageFromVideo(filename,videoFrameTime=videoFrameTime,isMask=isMask,
                                            snapshotFileName=snapshotFileName if preserveSnapshot else None)
         if videoFrameImg is None:
             logging.getLogger('maskgen').warning( 'invalid or corrupted file ' + filename)
-            return openImage('./icons/RedX.png')
+            return openImage(get_icon('RedX.png'))
         return videoFrameImg
     else:
         try:
@@ -558,7 +572,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return img if img is not None else openImage('./icons/RedX.png')
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
-            return openImage('./icons/RedX.png')
+            return openImage(get_icon('RedX.png'))
 
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
@@ -943,8 +957,10 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
         analysis['transform matrix'] = serializeMatrix(matrix)
 
 
-def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,alternativeFunction=alternativeFunction)
+def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,convertFunction=None):
+    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,
+                                   alternativeFunction=alternativeFunction,
+                                   convertFunction=convertFunction)
     analysis['shape change'] = __sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
 
@@ -979,6 +995,7 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
+    maxmatches = arguments['sift_max_matches'] if 'sift_max_matches' in arguments else 20
 
     kp1a = detector.detect(img1)
     kp2a = detector.detect(img2)
@@ -1002,6 +1019,8 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
 
     # store all the good matches as per Lowe's ratio test.
     good = [m for m, n in matches if m.distance < 0.8 * n.distance]
+    good = sorted(good, lambda g1,g2: -int(max(g1.distance,g2.distance)*1000))
+    good = good[0:min(maxmatches, len(good))]
 
     if len(good) >= threshold:
          src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
@@ -1398,8 +1417,9 @@ def seamCompare(img1, img2,  arguments=dict()):
         return __composeCropImageMask(img1, img2)
     return None,{}
 
-def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None):
-    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments)
+def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
+    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments,
+                                 convertFunction=convertFunction)
 
     if alternativeFunction is not None:
         mask,analysis = alternativeFunction(img1, img2, arguments=arguments)
@@ -1492,8 +1512,19 @@ def __findRotation(img1, img2, range):
 #        diff = (diff[0] if diff[0] > 0 else 0, diff[1] if diff[1] > 0 else 0)
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
+def extractAlpha(rawimg1, rawimg2):
+    img2_array =  rawimg2.to_array()
+    img1_array = rawimg1.to_array()
+    ii16 = np.iinfo(np.uint16)
+    if len(img2_array.shape) == 3 and img2_array.shape[2] == 4:
+        img2_array = img2_array[:,:,3]
+    if len(img2_array.shape) == 2:
+        all =  np.ones((img2_array.shape[0],img2_array.shape[1])).astype('uint16')
+        all[img2_array>0] = ii16.max
+        return np.zeros((img1_array.shape[0],img1_array.shape[1])).astype('uint16'),all
+    return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
-def __alignChannels(rawimg1, rawimg2, equalize_colors=False):
+def __alignChannels(rawimg1, rawimg2, equalize_colors=False,convertFunction= None):
     """
 
     :param rawimg1:
@@ -1503,6 +1534,8 @@ def __alignChannels(rawimg1, rawimg2, equalize_colors=False):
     @type rawimg1: ImageWrapper
     @type rawimg2: ImageWrapper
     """
+    if convertFunction is not None:
+        return convertFunction(rawimg1, rawimg2)
     return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
 

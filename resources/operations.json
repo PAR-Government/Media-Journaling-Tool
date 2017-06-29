@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0425.d3bc2f59e1",
+  "version": "v04.0621.a474f3b799",
   "operations": [
      {
       "category": "Audio",
@@ -1021,6 +1021,10 @@
          "file:image": {
           "type": "file:image",
           "description": "An image file containing the image used.  The unused portion of the image should be transparent with an alpha-channel"
+        },
+        "is3D": {
+          "type":"yesno",
+          "description":"Indicates if the CGI is a 3D model with light sources, etc."
         }
       },
       "rules": [
@@ -1515,7 +1519,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkInputMask",
-        "check_local"
+        "check_local",
+        "sampledInputMask"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2536,10 +2541,13 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.optionalSiftAnalysis"
+         "maskgen.tool_set.optionalSiftAnalysis"
       ],
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false,
+      "compareparameters" : {
+         "convert_function" :"maskgen.tool_set.extractAlpha"
+      },
       "transitions": [
         "image.image"
       ]
@@ -2647,10 +2655,6 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        },
         "tolerance": {
           "type": "float[0:1]",
           "description": "How much influence a pixel change has on the resulting mask."

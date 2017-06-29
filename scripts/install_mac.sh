@@ -79,8 +79,12 @@ pip install awscli --force-reinstall --upgrade
 
 #git clone https://github.com/rwgdrummer/maskgen.git
 pip install setuptools
-sudo python setup.py sdist
-sudo pip install -e .
+cd setuptools-version
+python setup.py sdist
+pip install -e .
+cd ..
+python setup.py sdist
+pip install -e .
 
 echo "Make sure your path variable includes /usr/local/bin"
 

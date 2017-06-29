@@ -509,7 +509,8 @@ class ImageImageLinkTool(LinkTool):
             mask, analysis = createMask(startIm, destIm,
                                         invert=invert,
                                         arguments=arguments,
-                                        alternativeFunction=operation.getCompareFunction())
+                                        alternativeFunction=operation.getCompareFunction(),
+                                        convertFunction=operation.getConvertFunction())
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -594,7 +595,7 @@ class VideoVideoLinkTool(LinkTool):
             op = getOperationWithGroups(edge['op'])
             if op is not None and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
-                    os.path.join(scModel.G.dir,start + '_' + destination + '_mask'),
+                    os.path.join(scModel.G.dir,shortenName(start + '_' + destination, '_mask')),
                     scModel.G.dir,
                     edge['videomasks'],
                     startFileName,
@@ -898,6 +899,8 @@ class ImageProjectModel:
             if filename == baseImageFileName:
                 self.start = nname
                 self.end = None
+        if self.notify is not None:
+            self.notify((self.start, None), 'add')
 
     def addImage(self, pathname,cgi=False):
         maxx = max([self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
@@ -906,6 +909,8 @@ class ImageProjectModel:
         nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx+75, ypos=maxy,**additional)
         self.start = nname
         self.end = None
+        if self.notify is not None:
+            self.notify((self.start, None), 'add')
         return nname
 
     def getEdgesBySemanticGroup(self):
@@ -924,6 +929,7 @@ class ImageProjectModel:
 
     def add_to_edge(self,**items):
         self.G.update_edge(self.start, self.end, **items)
+        self.notify((self.start, self.end),'update_edge')
 
     def update_edge(self, mod):
         """
@@ -942,6 +948,7 @@ class ImageProjectModel:
                            softwareName=('' if mod.software is None else mod.software.name),
                            softwareVersion=('' if mod.software is None else mod.software.version),
                            inputmaskname=mod.inputMaskName)
+        self.notify((self.start, self.end), 'update_edge')
         self._save_group(mod.operationName)
 
     def compare(self, destination, arguments={}):
@@ -1050,6 +1057,8 @@ class ImageProjectModel:
         """
         if self.start is None:
             return "Node node selected", False
+        if not self.G.has_node(destination):
+            return "Canvas out of state from model.  Node Missing.", False
         if self.findChild(destination, self.start):
             return "Cannot connect to ancestor node", False
         for suc in self.G.successors(self.start):
@@ -1079,8 +1088,8 @@ class ImageProjectModel:
                 if skipComputation:
                     sample_probes = []
                     for finalNodeId in self._findTerminalNodes(edge_id[1]):
-                        target_mask_filename = os.path.join(self.get_dir(),
-                                                            edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
+                        target_mask_filename = os.path.join(self.get_dir(),shortenName(
+                                                            edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId, '_ps.png'))
                         if os.path.exists(target_mask_filename):
                             target_mask = openImageFile(target_mask_filename)
                             self._add_final_node_with_donors(sample_probes, edge_id, finalNodeId, baseNodeId,
@@ -1112,7 +1121,7 @@ class ImageProjectModel:
                         except Exception as e:
                            logging.getLogger('maskgen').error( 'bad replacement file ' + selectMasks[finalNodeId])
                     target_mask_filename = os.path.join(self.get_dir(),
-                                                        edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId + '.png')
+                                                         shortenName(edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId, '_ps.png'))
                     target_mask.save(target_mask_filename, format='PNG')
                     self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
                                                      target_mask_filename, edge_id[1],level)
@@ -1279,7 +1288,7 @@ class ImageProjectModel:
         if self.G.has_node(recipientNode):
             if 'donors' not in self.G.get_node(recipientNode):
                 self.G.get_node(recipientNode)['donors'] = {}
-            fname = recipientNode + '_' + baseNode + '_donor_mask.png'
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png')
             self.G.get_node(recipientNode)['donors'][baseNode] = fname
             try:
                 mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
@@ -1705,7 +1714,7 @@ class ImageProjectModel:
                           skipDonorAnalysis=False,
                           analysis_params={}):
         try:
-            maskname = self.start + '_' + destination + '_mask' + '.png'
+            maskname = shortenName(self.start + '_' + destination, '_mask.png')
             if mod.inputMaskName is not None:
                 mod.arguments['inputmaskname'] = mod.inputMaskName
             mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
@@ -1843,9 +1852,13 @@ class ImageProjectModel:
 
     def undo(self):
         """ Undo the last graph edit """
+        s = self.start
+        e = self.end
         self.start = None
         self.end = None
         self.G.undo()
+        if self.notify is not None:
+            self.notify((s,e), 'undo')
 
     def select(self, edge):
         self.start = edge[0]
@@ -2035,14 +2048,19 @@ class ImageProjectModel:
         return None, None
 
     def selectImage(self, name):
-        self.start = name
-        self.end = None
+        if self.G.has_node(name):
+            self.start = name
+            self.end = None
 
     def selectEdge(self, start, end):
-        self.start = start
-        self.end = end
+        if self.G.has_node(start):
+           self.start = start
+        if self.G.has_node(end):
+           self.end = end
 
     def remove(self):
+        s = self.start
+        e = self.end
         """ Remove the selected node or edge """
         if (self.start is not None and self.end is not None):
             self.G.remove_edge(self.start, self.end)
@@ -2057,6 +2075,8 @@ class ImageProjectModel:
             self.end = None
             for node in p:
                 self.labelNodes(node)
+        if self.notify is not None:
+            self.notify((s,e), 'remove')
 
     def getProjectData(self, item):
         return self.G.getDataItem(item)
@@ -2481,16 +2501,18 @@ class ImageProjectModel:
         seriesName = self.getSeriesName()
         if seriesName is not None:
             prefix = seriesName
+        prefix = prefix[0:32] if len(prefix) > 32 else prefix
+        files = [self.G.get_node(node)['file'] for node in self.G.get_nodes()]
 
         def filterFunction(file):
-            return not self.G.has_node(os.path.split(file[0:file.rfind('.')])[1]) and \
+            return os.path.split(file)[1] not in files and \
                    not (file.rfind('_mask') > 0) and \
                    not (file.rfind('_proxy') > 0)
 
         def findFiles(dir, preFix, filterFunction):
             set = [os.path.abspath(os.path.join(dir, filename)) for filename in os.listdir(dir) if
                    (filename.startswith(preFix)) and filterFunction(os.path.abspath(os.path.join(dir, filename)))]
-            set.sort()
+            set = sorted(set, key=lambda f: -os.stat(f).st_mtime)
             return set
 
         nfile = None
@@ -2636,6 +2658,7 @@ class ImageProjectModel:
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)
+            self.notify((self.start, self.end), 'update_edge')
 
     def set_validation_properties(self,qaState,qaPerson, qaComment):
         import time

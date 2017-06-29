@@ -34,7 +34,16 @@ def check_ops(ops, soft, args):
 
     return
 
-def check_additional_args(additionalArgs, op, continueWithWarning=False):
+def args_to_map(args, op):
+    if len(args) > 0:
+        parsedArgs = dict(itertools.izip_longest(*[iter(args)] * 2, fillvalue=""))
+        for key in parsedArgs:
+            parsedArgs[key] = maskgen.tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op, skipFileValidation=False)
+    else:
+        parsedArgs = {}
+    return parsedArgs
+
+def check_additional_args(parsedArgs, op, continueWithWarning=False):
     """
     Parse additional arguments (rotation, etc.) and validate
     :param additionalArgs: user input list of additional parameters e.g. [rotation, 60...]
@@ -46,12 +55,6 @@ def check_additional_args(additionalArgs, op, continueWithWarning=False):
     if op is None:
         print 'Invalid Operation Name {}'.format(op)
         return {}
-    if len(additionalArgs) > 0:
-        parsedArgs = dict(itertools.izip_longest(*[iter(additionalArgs)] * 2, fillvalue=""))
-        for key in parsedArgs:
-            parsedArgs[key] = maskgen.tool_set.validateAndConvertTypedValue(key, parsedArgs[key], op, skipFileValidation=False)
-    else:
-        parsedArgs = additionalArgs
 
     missing = [param for param in op.mandatoryparameters.keys() if
                (param not in parsedArgs or len(str(parsedArgs[param])) == 0) and
@@ -204,6 +207,8 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
             sm.addNextImage(eImg, mod=opDetails,
                             sendNotifications=False, position=position)
             print 'Operation ' + op + ' complete on project (' + str(processNo) + '/' + str(total) + '): ' + project
+        elif eImg is not None:
+            print 'Operation, Software and Version need to be defined to complete the link.'
         sm.save()
 
 
@@ -239,9 +244,12 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
             lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
 
         sm.selectImage(lastNode)
-        sm.imageFromPlugin(plugin, **arguments)
+        errors, pairs = sm.imageFromPlugin(plugin, **arguments)
+        if errors is not None and len(errors) > 0:
+            print 'Plugin Failed: ' + errors
         sm.save()
-        print 'Plugin operation complete on project (' + str(processNo) + '/' + str(total) + '): ' + i
+        if errors is None or len(errors) == 0:
+            print 'Plugin operation complete on project (' + str(processNo) + '/' + str(total) + '): ' + i
         processNo += 1
 
 def process_jpg(projects):
@@ -372,10 +380,25 @@ def main():
             if 'arguments' not in op or op['arguments'] is None:
                 continue
             print 'Arguments:'
+            argsProcessed = set()
             for name,definition in  op['arguments'].iteritems():
-                vals = (' of ' + ','.join(definition['values'])) if definition['type'] == 'list' else ''
+                argsProcessed.add(name)
+                vals = (' of ' + ','.join([str(v) for v in definition['values']])) if definition['type'] == 'list' else ''
                 print '  {}: {}{} [ {} ]'.format(name, definition['type'],vals,
                                                  definition['description'] if 'description' in definition else '' )
+            opdef = getOperation(op['name'],fake=True)
+            for name,definition in opdef.mandatoryparameters.iteritems():
+                if name not in argsProcessed:
+                    vals = (' of ' + ','.join([str(v) for v in definition['values']])) if definition[
+                                                                                              'type'] == 'list' else ''
+                    print '  {}: {}{} [ {} ]'.format(name, definition['type'], vals,
+                                                     definition['description'] if 'description' in definition else '')
+            for name,definition in opdef.optionalparameters.iteritems():
+                if name not in argsProcessed:
+                    vals = (' of ' + ','.join([str(v) for v in definition['values']])) if definition[
+                                                                                              'type'] == 'list' else ''
+                    print '  {}*: {}{} [ {} ]'.format(name, definition['type'], vals,
+                                                     definition['description'].encode('ascii',errors='ignore') if 'description' in definition else '')
         return
 
     # perform the specified operation
@@ -385,13 +408,19 @@ def main():
             sys.exit(-1)
         maskgen.plugins.loadPlugins()
         opDef = maskgen.plugins.getOperation(args.plugin)
-        additionalArgs = {}
         if opDef is not None:
             op = getOperation(opDef['name'])
             if op is None:
                 print 'Invalid Operation definition {} for plugin.  Plugin is an invalid state.'.format(args.op)
                 sys.exit(-1)
-            additionalArgs = check_additional_args(args.arguments, op, args.continueWithWarning)
+        additionalArgs = args_to_map(args.arguments, op)
+        if 'arguments' in opDef and opDef['arguments'] is not None:
+            for k,v in opDef['arguments'].iteritems():
+                if v is not None and 'defaultvalue' in v and v['defaultvalue'] is not None \
+                     and k not in additionalArgs:
+                     additionalArgs[k] = v['defaultvalue']
+
+        additionalArgs = check_additional_args(additionalArgs, op, args.continueWithWarning)
 
         print 'Performing plugin operation ' + args.plugin + '...'
         process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
@@ -403,7 +432,8 @@ def main():
         if op is None:
             print 'Invalid Operation {}'.format(args.op)
             sys.exit(-1)
-        additionalArgs = {} if args.op is None else check_additional_args(args.arguments, op, args.continueWithWarning)
+        additionalArgs = args_to_map(args.arguments, op)
+        additionalArgs = {} if args.op is None else check_additional_args(additionalArgs, op, args.continueWithWarning)
         if args.op:
             print 'Adding operation '+ args.op + '...'
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,

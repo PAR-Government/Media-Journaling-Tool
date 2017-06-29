@@ -22,6 +22,7 @@ from notifiers import  getNotifier
 import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
+from maskgen.updater import UpdaterGitAPI
 """
   Main UI Driver for MaskGen
 """
@@ -299,12 +300,12 @@ class MakeGenUI(Frame):
         d = SelectDialog(self,
                          "AutoSave",
                          "Autosave every 'n' seconds. 0 turns off AutoSave",
-                         ['0', '60', '300', '600'],
+                         ['0', '60', '300', '600', 'L'],
                          initial_value=autosave_decision)
         new_autosave_decision = d.choice if d.choice is not None else autosave_decision
         self.prefLoader.save('autosave', new_autosave_decision)
-        autosave_decision = float(autosave_decision) if autosave_decision else 0.0
-        new_autosave_decision = float(new_autosave_decision) if new_autosave_decision else 0.0
+        autosave_decision = float(autosave_decision) if autosave_decision is not None and autosave_decision != 'L'  else 0.0
+        new_autosave_decision = float(new_autosave_decision) if new_autosave_decision and new_autosave_decision != 'L'else 0.0
         if new_autosave_decision != autosave_decision:
             cancel_execute(saveme)
             if new_autosave_decision > 0:
@@ -434,7 +435,7 @@ class MakeGenUI(Frame):
                                      im, os.path.split(filename)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg, status = self.scModel.addNextImage(filename, mod=d.description)
+            msg, status = self.scModel.addNextImage(filename, mod=d.description, position=self.scModel._getCurrentPosition((0,75)))
             if msg is not None:
                 tkMessageBox.showwarning("Auto Connect", msg)
             if status:
@@ -521,8 +522,8 @@ class MakeGenUI(Frame):
     def drawState(self):
         sim = self.scModel.startImage()
         nim = self.scModel.nextImage()
-        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), nim.size)).toPIL())
-        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), sim.size)).toPIL())
+        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), sim.size)).toPIL())
+        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), nim.size)).toPIL())
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
@@ -571,6 +572,7 @@ class MakeGenUI(Frame):
         d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader)
 
     def getproperties(self):
+        graph_rules.setProjectSummary(self.scModel)
         d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
 
     def pluginbuilder(self):
@@ -712,6 +714,12 @@ class MakeGenUI(Frame):
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
             return True
+        if eventType in ['connect','add','remove','undo']:
+            if prefLoader.get_key('autosave','') == 'L':
+                try:
+                    self.scModel.save()
+                except Exception as e:
+                    logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
         if eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
             validation_person = self.scModel.getProjectData('validatedby')
@@ -1032,11 +1040,16 @@ class MakeGenUI(Frame):
             else:
                 self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
         self.createWidgets()
+        self.startedWithNewProject = tuple[1]
+
+    def initCheck(self):
         if self.prefLoader.get_key('username',None) is None:
             self.getsystemproperties()
-        if tuple[1]:
+        sha, message =  UpdaterGitAPI().isOutdated()
+        if sha is not None:
+            tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message))
+        if self.startedWithNewProject:
             self.getproperties()
-
 
 
 def saveme(saver=None):
@@ -1057,6 +1070,19 @@ def do_every (interval, worker_func, iterations = 0):
     ).start ()
 
 
+def headless_systemcheck(prefLoader):
+    notifiers = getNotifier(prefLoader)
+    errors = [graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+              video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+              check_graph_status(),
+              notifiers.check_status()]
+    error_count = 0
+    for error in errors:
+        if error is not None:
+            logging.getLogger('maskgen').error(error)
+            error_count += 1
+    logging.getLogger('maskgen').info('System check complete')
+    return error_count == 0
 
 def main(argv=None):
     if (argv is None):
@@ -1083,19 +1109,22 @@ def main(argv=None):
 
     loadAnalytics()
     graph_rules.setup()
-    root = Tk()
+
     prefLoader = MaskGenLoader()
-    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
-                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
     if args.test:
-        if not gui.systemcheck():
+        if not headless_systemcheck(prefLoader):
             sys.exit(1)
         return
+    root = Tk()
+    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
+
     #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
-    if interval and interval != '0':
+    if interval and interval not in [ '0' , 'L']:
         execute_every(float(interval),saveme, saver=gui)
 
+    gui.after_idle(gui.initCheck)
     gui.mainloop()
 
 

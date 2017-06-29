@@ -8,6 +8,7 @@ from cachetools import LRUCache
 from cachetools import cached
 from threading import RLock
 import logging
+import os
 
 image_lock = RLock()
 image_cache = LRUCache(maxsize=24)
@@ -159,7 +160,6 @@ def deleteImage(filename):
         if filename in image_cache:
              image_cache.pop(filename)
 
-@cached(image_cache, lock=image_lock,key=filehashkey)
 def openImageFile(filename,isMask=False):
     """
     :param filename:
@@ -168,9 +168,6 @@ def openImageFile(filename,isMask=False):
     @type filename: str
     @rtype: ImageWrapper
     """
-    import os
-
-
     if not os.path.exists(filename):
         pos = filename.rfind('.')
         mod_filename = filename[0:pos] + filename[pos:].lower()
@@ -178,7 +175,19 @@ def openImageFile(filename,isMask=False):
            filename = mod_filename
     if not os.path.exists(filename):
         raise ValueError("File not found: " + filename)
-    return openFromRegistry(filename,isMask=isMask)
+
+    current_time = os.stat(filename).st_mtime
+
+    with image_lock:
+        if filename in image_cache:
+            wrapper, update_time = image_cache[filename]
+            if current_time - update_time <= 0:
+                return wrapper
+
+    wrap = openFromRegistry(filename, isMask=isMask)
+    with image_lock:
+        image_cache[filename] = (wrap, current_time)
+    return wrap
 
 def invertMask(mask):
     mask.invert()
@@ -284,10 +293,6 @@ class ImageWrapper:
 
 
     def save(self, filename, **kwargs):
-        #global image_cache
-        #global image_lock
-        with image_lock:
-            image_cache[filename] = self
         format = kwargs['format'] if 'format' in kwargs else 'PNG'
         format = 'TIFF' if self.image_array.dtype == 'uint16' else format
         newargs = dict(kwargs)
@@ -301,6 +306,9 @@ class ImageWrapper:
             return
         newargs.pop('format')
         imsave(filename, self.image_array,**newargs)
+        if os.path.exists(filename):
+            with image_lock:
+                image_cache[filename] = (self,os.stat(filename).st_mtime)
         #flags =[(cv2.IMWRITE_JPEG_QUALITY,100)]if format in kwargs and format['kwargs'] == 'JPEG' else [(int(cv2.IMWRITE_PNG_COMPRESSION),0)]
         #cv2.imwrite(filename, self.image_array)
        # tiff = TIFF.open(filename,mode='w')

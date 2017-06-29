@@ -61,12 +61,6 @@
     "HP-DynamicStatic",
     "HP-NumberOfSpeakers"
   ],
-  "history": [
-    "Original Name",
-    "New Name",
-    "MD5",
-    "Type"
-  ],
   "rankone": [
     "MD5",
     "HP-CameraModel",
