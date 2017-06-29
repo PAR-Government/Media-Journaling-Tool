@@ -1,7 +1,7 @@
 from setuptools import setup,find_packages
 
 setup(name='maskgen',
-      version_format='v04.0621.{gitsha}',
+      version_format='04.0621.{gitsha}',
       setup_requires=['setuptools_maskgen_version'],
       description='JT',
       url='http://github.com/rwgdrummer/maskgen',
@@ -16,7 +16,7 @@ setup(name='maskgen',
                    ['plugins/Custom/GammaCorrection.json', 'plugins/Custom/GaussianBlur.json', 'plugins/Custom/LevelCorrection.json',
                     'plugins/Custom/Resize.json','plugins/Custom/OutputJpg.json','plugins/Custom/Sharpen.json','plugins/Custom/WaveletDenoise.json'
                     ])],
-      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'boto', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy','cachetools','requests','matplotlib','pandas','awscli'],
+      install_requires=['networkx','pillow','scikit-image','tkintertable','bitstring', 'awscli', 'boto3','numpy','moviepy', 'h5py','pydot','graphviz','pygraphviz','rawpy','cachetools','requests','matplotlib','pandas','awscli'],
       entry_points=
        {'gui_scripts': [
             'jtuiw = maskgen.MaskGenUI:main',

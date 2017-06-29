@@ -982,6 +982,32 @@ def _checkOpOther(op):
             return True
     return False
 
+def provenanceRule(scModel, edgeTuples):
+    """
+
+    :param scModel:
+    :param edgeTuples:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    bases = set()
+    for node in scModel.getNodeNames():
+        nodedata = scModel.getGraph().get_node(node)
+        if nodedata['nodetype'] == 'final':
+            bases.add(scModel.getBaseImage(node))
+    return 'yes' if len(bases) > 1 else 'no'
+
+
+def manipulationCategoryRule(scModel, edgeTuples):
+    best = ''
+    for node in scModel.getNodeNames():
+        nodedata = scModel.getGraph().get_node(node)
+        if 'pathanalysis' in nodedata and \
+                'manipulationcategory' in nodedata['pathanalysis'] and \
+                nodedata['pathanalysis']['manipulationcategory'] > best:
+            best = nodedata['pathanalysis']['manipulationcategory']
+    return best
+
 def otherEnhancementRule(scModel, edgeTuples):
     found = False
     for edgeTuple in edgeTuples:
@@ -1073,7 +1099,7 @@ def setFinalNodeProperties(scModel, finalNode):
                          edgeTuple.edge['arguments'][prop.parameter] == prop.value]) > 0)
             analysis[prop.name] = 'yes' if foundOne else 'no'
         if prop.rule is not None:
-            analysis[prop.name] = project_property_rules[prop.name](scModel,edges)
+            analysis[prop.name] = project_property_rules[propertyRuleIndexKey(prop)](scModel,edges)
     scModel.getGraph().update_node(finalNode, pathanalysis=analysis)
     return analysis
 
@@ -1086,7 +1112,7 @@ def processProjectProperties(scModel, rule=None):
     _setupPropertyRules()
     for prop in getProjectProperties():
         edges = None
-        if (rule is not None and prop.rule is None or prop.rule != rule) or prop.node:
+        if (rule is not None and (prop.rule is None or prop.rule != rule)) or prop.node:
             continue
         if prop.operations is not None and len(prop.operations) > 0:
             foundOne = False
@@ -1096,14 +1122,25 @@ def processProjectProperties(scModel, rule=None):
                                                             edge['arguments'][prop.parameter] == prop.value]) > 0)
             scModel.setProjectData(prop.name, 'yes' if foundOne else 'no')
         if prop.rule is not None:
-            scModel.setProjectData(prop.name,project_property_rules[prop.name](scModel, edges))
+            scModel.setProjectData(prop.name,project_property_rules[propertyRuleIndexKey(prop)](scModel, edges))
+
+def propertyRuleIndexKey(prop):
+    """
+    Since node and project properties can have the same name, a index into the single rule function list
+    must differentiate.
+    :param prop:
+    :return:
+    @type prop : ProjectProperty
+    @rtype string
+    """
+    return ('n' if prop.node else 'p') + prop.name
 
 def _setupPropertyRules():
     global project_property_rules
     if len(project_property_rules) == 0:
         for prop in getProjectProperties():
             if prop.rule is not None:
-                project_property_rules[prop.name] = getRule(prop.rule, globals=globals())
+                project_property_rules[propertyRuleIndexKey(prop)] = getRule(prop.rule, globals=globals())
 
 def getNodeSummary(scModel, node_id):
     """
