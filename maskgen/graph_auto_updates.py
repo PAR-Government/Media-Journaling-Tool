@@ -66,7 +66,7 @@ def _fixValidationTime(scModel):
 
 def _fixProvenanceCategory(scModel):
     from maskgen.graph_rules import  manipulationCategoryRule
-    cat = scModel.getProjectData('manipulationcategory')
+    cat = scModel.getProjectData('manipulationcategory',default_value='')
     if cat.lower() == 'provenance':
         scModel.setProjectData('provenance','yes')
     else:
