@@ -32,17 +32,11 @@
       "type": "text"
     },
     {
-      "description": "Manipulation Category",
-      "name": "manipulationcategory",
-      "type": "list",
-      "values": [
-        "Provenance",
-        "2-Unit",
-        "4-Unit",
-        "6-Unit",
-        "7+Unit"
-      ],
-       "information": "Provenance: multiple semantically meaningful manipulations. The number of semantic units within the project."
+      "description": "Provenance",
+      "name": "provenance",
+      "type": "yesno",
+       "information": "Multlple mixed donor images",
+       "rule" : "provenanceRule"
     },
      {
       "description": "QA Comments",
@@ -640,6 +634,14 @@
       "readonly" : true,
       "information": "Summary of semantic groups used in the journal"
 
+    },
+     {
+      "description": "Manipulation Category",
+      "name": "manipulationcategory",
+      "type": "string",
+       "readonly": true,
+       "information": "The maximum number of semantic units for all images produced by the project.",
+      "rule" : "manipulationCategoryRule"
     }
   ]
 }

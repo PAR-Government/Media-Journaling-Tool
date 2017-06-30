@@ -132,9 +132,16 @@ def proxyOpen(filename, isMask=False):
 
 # openTiff supports raw files as well
 file_registry = [('pdf', [pdf2_image_extractor,wand_image_extractor,convertToPDF]), ('', [defaultOpen]), ('', [openTiff]),('',[proxyOpen])]
+file_write_registry = {}
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):
     file_registry.insert(0,(entry_point.name,[entry_point.load()]))
+
+for entry_point in iter_entry_points(group='maskgen_image_writer', name=None):
+    file_write_registry[entry_point.name] =entry_point.load()
+
+def getFromWriterRegistry(format):
+    return file_write_registry[format] if format in file_write_registry else None
 
 def openFromRegistry(filename,isMask=False):
     for suffixList in file_registry:
@@ -217,6 +224,8 @@ def get_mode(image_array):
         return 'RGBA'
     elif s[2] == 2:
         return 'LA'
+    elif s[2] > 4 and image_array.dtype == 'uint8':
+        return 'JP2'
     else:
         return 'RGB'
 
@@ -293,16 +302,28 @@ class ImageWrapper:
 
 
     def save(self, filename, **kwargs):
-        format = kwargs['format'] if 'format' in kwargs else 'PNG'
+        if 'format' in kwargs:
+            format = kwargs['format']
+        elif getFromWriterRegistry(self.mode.lower()):
+            format = self.mode.lower()
+        else:
+            format = 'PNG'
         format = 'TIFF' if self.image_array.dtype == 'uint16' else format
         newargs = dict(kwargs)
         newargs['format'] = format
         img_array = self.image_array
+        file_writer = getFromWriterRegistry(format.lower())
+        if file_writer is not None:
+            file_writer(filename, img_array)
+            return
         if self.mode == 'F':
             img_array =  img_array * 256
             img_array = img_array.astype('uint8')
         if img_array.dtype == 'uint8' or self.mode == 'L':
-            Image.fromarray(img_array).save(filename,**newargs)
+            if format == 'PDF' and self.mode != 'RGB':
+                self.convert('RGB').save(filename,**newargs)
+            else:
+                Image.fromarray(img_array).save(filename,**newargs)
             return
         newargs.pop('format')
         imsave(filename, self.image_array,**newargs)
@@ -327,6 +348,10 @@ class ImageWrapper:
         if self.mode == 'F':
             return ImageWrapper(np.asarray(Image.fromarray(self.image_array,mode='F').convert(convert_type_str)))
         img_array = (np.iinfo('uint8').max * self.image_array).astype('uint8') if str(self.image_array.dtype).startswith('f') else self.image_array
+        if self.mode == 'JP2':
+            img_array = img_array[:,:,0:4]
+            return ImageWrapper(np.asarray(Image.fromarray(img_array, mode='RGBA').convert(convert_type_str)),
+                                mode=convert_type_str)
         if img_array.dtype == 'uint8':
             return ImageWrapper(np.asarray(Image.fromarray(img_array,mode=self.mode).convert(convert_type_str)),mode=convert_type_str)
         if self.mode == 'RGB' and convert_type_str == 'RGBA':

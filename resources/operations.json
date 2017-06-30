@@ -2021,6 +2021,25 @@
     },
     {
       "category": "Output",
+      "name": "OutputPDF",
+      "mandatoryparameters": {
+        "resolution": {
+          "type": "int",
+          "description": "DPI"
+        }
+      },
+      "rules": [
+      ],
+      "optionalparameters": {
+      },
+      "description": "Export the image in the PDF format.",
+      "includeInMask": false,
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputTif",
       "mandatoryparameters": {
         "Image Rotated": {

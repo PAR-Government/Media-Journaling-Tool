@@ -3,6 +3,7 @@ import threading
 from Tkinter import *
 import collections
 import boto3
+import rawpy
 from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
@@ -326,6 +327,8 @@ class PRNU_Uploader(Frame):
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
                         msgs.append('Invalid reference type: ' + sub)
+                    elif sub.lower().startswith('rgb_no_lens'):
+                        msgs.extend(self.check_luminance(os.path.join(path, sub)))
                 if files:
                     for f in files:
                         if f.startswith('.') or f.lower() == 'thumbs.db':
@@ -365,6 +368,47 @@ class PRNU_Uploader(Frame):
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
             self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
+
+    def check_luminance(self, foldername):
+        """
+        Verifies luminance of PRNU data folder
+        :param foldername: Full absolute path of folder to check. Last 
+        :return: list of error messages
+        """
+        results = []
+        standard_files = ['png', 'jpg', 'jpeg', 'tif', 'tiff']
+        raw_files = ['cr2', 'nef', 'raf', 'crw', 'dng', 'arw', 'srf', 'raf']
+        reds = []
+        greens = []
+        blues = []
+
+        target = int(foldername.split("_")[-1])
+        min_value = target-5
+        max_value = target+5
+
+        for f in os.listdir(foldername):
+            if f.lower().split(".")[-1] in standard_files:
+                with Image.open(os.path.join(foldername, f)) as image:
+                    data = np.asarray(image)
+            if f.lower().split(".")[-1] in raw_files:
+                with rawpy.imread(os.path.join(foldername, f)) as image:
+                    data = image.postprocess()
+            red = data[:, :, 0]
+            green = data[:, :, 1]
+            blue = data[:, :, 2]
+            reds.append((np.mean(red) / 255) * 100)
+            greens.append((np.mean(green) / 255) * 100)
+            blues.append((np.mean(blue) / 255) * 100)
+        red_per = int(np.mean(reds))
+        green_per = int(np.mean(greens))
+        blue_per = int(np.mean(blues))
+
+        if (red_per, green_per, blue_per) not in range(min_value, max_value):
+            relative_path = foldername.split("\\")[-3:]
+            results.append("{0} has incorrect luminance values of R:{1}, G:{2}, B:{3} where the target was {4}".format(foldername, red_per, green_per, blue_per, target))
+
+        return results
+
 
     def has_same_contents(self, list1, list2):
         # set both lists to lowercase strings and checks if they have the same items, in any order

@@ -49,6 +49,9 @@ def updateJournal(scModel):
         _fixCreator(scModel)
         _fixValidationTime(scModel)
         upgrades.append('0.4.0101.b4561b475b')
+    if '04.0621.3a5c9635ef' not in upgrades:
+        _fixProvenanceCategory(scModel)
+        upgrades.append('04.0621.3a5c9635ef')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -60,6 +63,15 @@ def _fixValidationTime(scModel):
     validationdate = scModel.getProjectData('validationdate')
     if validationdate is not None and len(validationdate) > 0:
         scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
+
+def _fixProvenanceCategory(scModel):
+    from maskgen.graph_rules import  manipulationCategoryRule
+    cat = scModel.getProjectData('manipulationcategory',default_value='')
+    if cat.lower() == 'provenance':
+        scModel.setProjectData('provenance','yes')
+    else:
+        scModel.setProjectData('provenance', 'no')
+    scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
 
 def _operationsChange1(scModel):
     projecttype = scModel.G.getDataItem('projecttype')

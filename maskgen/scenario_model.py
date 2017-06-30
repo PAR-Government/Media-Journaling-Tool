@@ -1157,7 +1157,7 @@ class ImageProjectModel:
                                 None,
                                 level=level))
 
-    def getProbeSet(self,skipComputation=False,operationTypes=None, otherCondition=None):
+    def getProbeSet(self,skipComputation=False,operationTypes=None, otherCondition=None, compositeBuilders=[ColorCompositeBuilder]):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
@@ -1178,55 +1178,23 @@ class ImageProjectModel:
         self.__assignColors()
         probes = self.getProbeSetWithoutComposites(skipComputation=skipComputation,otherCondition=otherCondition)
         probes = sorted(probes,key=lambda probe: probe.level)
-        composites=dict()
-        # build composites first
+        localCompositeBuilders = [cb() for cb in compositeBuilders]
+        maxpass = max([compositeBuilder.passes for compositeBuilder in localCompositeBuilders])
         composite_bases = dict()
-        for probe in probes:
-            edge = self.G.get_edge(probe.edgeId[0],probe.edgeId[1])
-            if (operationTypes is not None and edge['op'] not in operationTypes) or \
-                (otherCondition is not None and not otherCondition(edge)):
-                continue
-            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
-            if os.path.exists(targetColorMaskImageName) and skipComputation:
-                continue
-            color = [int(x) for x in edge['compositecolor'].split(' ')]
-            colorMask = maskToColorArray(probe.targetMaskImage, color=color)
-            if probe.finalNodeId in composites:
-                composites[probe.finalNodeId] = mergeColorMask(composites[probe.finalNodeId], colorMask)
-            else:
-                composites[probe.finalNodeId] = colorMask
+        for passcount in range(maxpass):
+            for probe in probes:
                 composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
-        # now reconstruct the probe target to be color coded and obscured by overlaying operations
-        for probe in probes:
-            edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
-            if (operationTypes is not None and edge['op'] not in operationTypes) or \
+                edge = self.G.get_edge(probe.edgeId[0],probe.edgeId[1])
+                if (operationTypes is not None and edge['op'] not in operationTypes) or \
                     (otherCondition is not None and not otherCondition(edge)):
-                continue
-            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName )
-            probe.targetColorMaskFileName = targetColorMaskImageName
-            if os.path.exists(targetColorMaskImageName) and skipComputation:
-                probe.targetColorMaskImage = openImageFile(targetColorMaskImageName)
-                if probe.finalNodeId in composites:
-                    composites.pop(probe.finalNodeId)
-                continue
-            color = [int(x) for x in edge['compositecolor'].split(' ')]
-            composite_mask_array = composites[probe.finalNodeId]
-            result = np.ones(composite_mask_array.shape).astype('uint8') * 255
-            matches = np.all(composite_mask_array == color, axis=2)
-            #  only contains visible color in the composite
-            result[matches] = color
-            probe.targetColorMaskImage = ImageWrapper(result)
-            probe.targetColorMaskImage.save(targetColorMaskImageName)
-        # look through composite masks and add to the graph
-        for finalNodeId, compositeMask in composites.iteritems():
-            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
-            matches = np.any(compositeMask != [255, 255, 255], axis=2)
-            result[matches] = 255
-            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
-                                                                     globalAnalysis=True)
-            self.addCompositeToNode(finalNodeId, composite_bases[finalNodeId], ImageWrapper(compositeMask),
-                                      changeCategory)
-
+                    continue
+                for compositeBuilder in localCompositeBuilders:
+                    compositeBuilder.build(passcount,probe,edge,skipComputation)
+        for finalNodeId,baseId in composite_bases.iteritems():
+            for compositeBuilder in localCompositeBuilders:
+                fileName, compositeMask, globalchange, changeCategory, ratio = compositeBuilder.getComposite(finalNodeId)
+                self.addCompositeToNode(finalNodeId, baseId, compositeMask,fileName,
+                                    changeCategory,composite_type=compositeBuilder.composite_type)
         return probes
 
     def removeCompositesAndDonors(self):
@@ -1237,20 +1205,21 @@ class ImageProjectModel:
             self.removeCompositeFromNode(node)
             self.removeDonorFromNode(node)
 
-    def removeCompositeFromNode(self, nodeName):
+    def removeCompositeFromNode(self, nodeName, compositeBuilders=[ColorCompositeBuilder]):
         """
           Remove a composite image associated with a node
         """
+        localCompositeBuilders = [cb() for cb in compositeBuilders]
         if self.G.has_node(nodeName):
-            fname = nodeName + '_composite_mask.png'
-            if 'compositemaskname' in self.G.get_node(nodeName):
-                self.G.get_node(nodeName).pop('compositemaskname')
-                if 'compositebase' in self.G.get_node(nodeName):
-                    self.G.get_node(nodeName).pop('compositebase')
-                if 'composite change size category' in self.G.get_node(nodeName):
-                    self.G.get_node(nodeName).pop('composite change size category')
-                if os.path.exists(os.path.abspath(os.path.join(self.get_dir(), fname))):
-                    os.remove(os.path.abspath(os.path.join(self.get_dir(), fname)))
+            for builder in localCompositeBuilders:
+                if 'composite ' + builder.composite_type + ' maskname' in self.G.get_node(nodeName):
+                    fname = self.G.get_node(nodeName).pop('composite ' + builder.composite_type + ' maskname')
+                    if 'compositebase' in self.G.get_node(nodeName):
+                        self.G.get_node(nodeName).pop('compositebase')
+                    if 'composite ' + builder.composite_type + ' change size category' in self.G.get_node(nodeName):
+                        self.G.get_node(nodeName).pop('composite ' + builder.composite_type + ' change size category')
+                    if os.path.exists(os.path.abspath(os.path.join(self.get_dir(), fname))):
+                        os.remove(os.path.abspath(os.path.join(self.get_dir(), fname)))
 
     def removeDonorFromNode(self, nodeName):
         """
@@ -1263,12 +1232,11 @@ class ImageProjectModel:
                         os.remove(os.path.abspath(os.path.join(self.get_dir(), fname)))
 
 
-    def addCompositeToNode(self,  leafNode, baseNode, image, category):
+    def addCompositeToNode(self, leafNode, baseNode, image, fname, category, composite_type='color'):
         """
         Add mask to leaf node and save mask to disk
         """
         if self.G.has_node(leafNode):
-            fname = leafNode + '_composite_mask.png'
             try:
                 image.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
             except IOError:
@@ -1276,9 +1244,10 @@ class ImageProjectModel:
                 compositeMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
 
             node = self.G.get_node(leafNode)
-            node['compositemaskname'] = fname
+            self.G.addNodeFilePath('composite ' + composite_type + ' maskname','')
+            node['composite ' + composite_type + ' maskname'] = fname
             node['compositebase'] = baseNode
-            node['composite change size category'] = category
+            node['composite ' + composite_type + ' change size category'] = category
 
     def addDonorToNode(self, recipientNode, baseNode, mask):
         """
@@ -1304,25 +1273,32 @@ class ImageProjectModel:
                     return pred
         return self.start
 
-    def getComposite(self):
+    def getComposite(self, composite_type='color'):
         """
          Get the composite image for the selected node.
          If the composite does not exist AND the node is a leaf node, then create the composite
          Return None if the node is not a leaf node
         """
         nodeName = self.start if self.end is None else self.end
-        masks = self.G.get_masks(nodeName,'compositemaskname')
+        masks = self.G.get_masks(nodeName,'composite ' + composite_type + ' maskname')
         if len(masks)==0:
             # verify the node is a leaf node
             endPointTuples = self.getTerminalAndBaseNodeTuples()
             if nodeName in [x[0] for x in endPointTuples]:
                 self.constructCompositesAndDonors()
-                masks = self.G.get_masks(nodeName,'compositemaskname')
+                masks = self.G.get_masks(nodeName,'composite ' + composite_type + ' maskname')
                 if len(masks) == 0:
                     return None
             else:
                 return self.constructComposite()
         return masks[nodeName][0]
+
+    def getBaseImage(self,node):
+        for pred in self.G.predecessors(node):
+            edge = self.G.get_edge(pred, node)
+            if edge['op'] != 'Donor':
+                return self.getBaseImage(pred)
+        return node
 
     def getDonorAndBaseImages(self,force=False):
         """
@@ -1533,7 +1509,7 @@ class ImageProjectModel:
                                                                      globalAnalysis=True)
             changes.append((globalchange, changeCategory, ratio))
             self.addCompositeToNode(composite[1], composite[0], ImageWrapper(
-                color_composite),changeCategory)
+                color_composite),composite[1] + '_composite_mask.png',changeCategory, composite_type='color')
         return composites
 
     def constructDonors(self, nodeOfInterest=None, recompute=False):
@@ -1889,8 +1865,7 @@ class ImageProjectModel:
                            edgeFilePaths={'inputmaskname': 'inputmaskownership',
                                            'selectmasks.mask': '',
                                            'videomasks.videosegment': ''},
-                           nodeFilePaths={'compositemaskname': '',
-                                        'donors.*': ''})
+                           nodeFilePaths={'donors.*': ''})
 
     def _autocorrect(self):
         updateJournal(self)
@@ -2078,8 +2053,8 @@ class ImageProjectModel:
         if self.notify is not None:
             self.notify((s,e), 'remove')
 
-    def getProjectData(self, item):
-        return self.G.getDataItem(item)
+    def getProjectData(self, item,default_value=None):
+        return self.G.getDataItem(item,default_value=default_value)
 
     def setProjectData(self, item, value,excludeUpdate=False):
         """
@@ -2164,6 +2139,7 @@ class ImageProjectModel:
         for k, v in edgeMap.iteritems():
             self.G.get_edge(k[0], k[1])['compositecolor'] = str(list(v[1])).replace('[', '').replace(']','').replace(
                     ',', '')
+            self.G.get_edge(k[0], k[1])['compositeid'] = v[0]
         return edgeMap
 
     def __assignLabel(self, node, label):

@@ -13,6 +13,7 @@ from maskgen.batch import bulk_export
 import unittest
 import numpy as np
 import logging
+from maskgen.loghandling import set_logging
 
 
 """
@@ -214,7 +215,7 @@ def runIT(tmpFolder=None):
 class MaskGenITTest(unittest.TestCase):
 
     def setUp(self):
-        maskgen.tool_set.set_logging()
+        set_logging()
         if not os.path.exists('expected'):
             os.mkdir('expected')
 
