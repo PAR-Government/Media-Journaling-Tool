@@ -2355,6 +2355,8 @@ def preferredSuffix(preferences=None):
     default_suffix = 'm4v'
     if sys.platform.startswith('win'):
         default_suffix = 'avi'
+    if sys.platform.startswith('linux'):
+        default_suffix = 'avi'
     if preferences is not None:
         t_suffix = preferences.get_key('vid_suffix')
         default_suffix = t_suffix if t_suffix is not None else default_suffix
@@ -2383,8 +2385,11 @@ class GrayFrameWriter:
             t_codec = preferences.get_key('vid_codec')
         if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
+	elif t_codec is None and sys.platform.startswith('linux'):
+            self.codec = 'XVID'
         elif t_codec is not None:
             self.codec = str(t_codec)
+        print self.codec
         self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
 
     def write(self, mask, mask_time):
