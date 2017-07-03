@@ -13,6 +13,7 @@ from maskgen  import plugins
 from maskgen import group_operations
 import logging
 from threading import Lock, Thread
+import numpy as np
 
 
 class IntObject:
@@ -34,6 +35,29 @@ class IntObject:
             self.value += 1
             return self.value
 
+def nextIteration(global_state,name, toIteratorFunction):
+    """
+
+    :param global_state:
+    :param name:
+    :param toIteratorFunction:  initialize iterator with this function if missing
+    :return:
+    """
+    with global_state['iteratorslock']:
+        if 'iterators' not in global_state:
+            global_state['iterators'] = {}
+        iterators = global_state['iterators']
+        if name not in iterators:
+            iterators[name] = toIteratorFunction()
+        try:
+            return iterators[name].next()
+        except:
+            iterators[name] = toIteratorFunction()
+            try:
+                return iterators[name].next()
+            except Exception as ex:
+                logging.getLogger('maskgen').error('Cannot initialize iterator for {}: {}'.format(name,ex.message))
+
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
         json_data = {}
@@ -46,24 +70,37 @@ def loadJSONGraph(pathname):
         return BatchProject(G,json_data)
     return None
 
-def pickArg(param, local_state):
+def pickArg(param, name, global_state, local_state, iterate=False):
     if param['type'] == 'list':
-        return random.choice(param['values'])
+        if iterate:
+            return nextIteration(global_state,name,param['values'].__iter__)
+        else:
+            return random.choice(param['values'])
     elif 'int' in param['type']  :
         v = param['type']
         vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len (vals) > 0 else 0
         end = vals[1] if len(vals) > 1 else beg+1
-        return random.randint(beg, end)
+        if iterate:
+            return nextIteration(global_state, name, lambda : xrange(beg, end+1, param['increment'] if 'increment' in param else 1).__iter__())
+        else:
+            return random.randint(beg, end)
     elif 'float' in param['type'] :
         v = param['type']
         vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len(vals) > 0 else 0
         end = vals[1] if len(vals) > 1 else beg+1.0
         diff = end - beg
-        return beg+ random.random()* diff
+        if iterate:
+            return nextIteration(global_state, name,
+                                 lambda: np.arange(beg, end, param['increment'] if 'increment' in param else 1.0).__iter__())
+        else:
+            return beg+ random.random()* diff
     elif param['type'] == 'yesno':
-        return random.choice(['yes','no'])
+        if iterate:
+            return nextIteration(global_state, name, ['yes','no'].__iter__)
+        else:
+            return random.choice(['yes','no'])
     elif param['type'].startswith('donor'):
         choices = [node for node in local_state['model'].getGraph().nodes() \
                    if len(local_state['model'].getGraph().predecessors(node)) == 0]
@@ -77,12 +114,16 @@ def loadCustomFunctions():
         print 'load spec ' + p.name
         pluginSpecFuncs[p.name] = p.load()
 
-def callPluginSpec(specification):
+def callPluginSpec(specification, local_state):
     if specification['name'] not in pluginSpecFuncs:
         raise ValueError("Invalid specification name:" + str(specification['name']))
+    if 'state_name' in specification:
+        if specification['state_name'] not in local_state:
+            local_state[specification['state_name']] = dict()
+        return pluginSpecFuncs[specification['name']](specification['parameters'],state=local_state[specification['state_name']])
     return pluginSpecFuncs[specification['name']](specification['parameters'])
 
-def executeParamSpec(specification, global_state, local_state, predecessors):
+def executeParamSpec(specification_name, specification, global_state, local_state, node_name, predecessors):
     """
     :param specification:
     :param global_state:
@@ -92,30 +133,30 @@ def executeParamSpec(specification, global_state, local_state, predecessors):
     @rtype : tuple(image_wrap.ImageWrapper,str)
     @type predecessors: List[str]
     """
+    iterateparam = 'iterate' in specification and specification['iterate'] == 'yes'
+    spec_name = '.'.join([node_name,specification_name])
     if specification['type'] == 'mask':
        source = getNodeState(specification['source'], local_state)['node']
        target = getNodeState(specification['target'], local_state)['node']
        return os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source, target, 'maskname')[1])
-    if specification['type'] == 'value':
+    elif specification['type'] == 'value':
         return specification['value']
-    if specification['type'] == 'list':
-        return random.choice(specification['values'])
-    if specification['type'] == 'variable':
+    elif specification['type'] == 'variable':
         return getNodeState(specification['source'], local_state)[specification['name']]
-    if specification['type'] == 'donor':
+    elif specification['type'] == 'donor':
         if 'source' in specification:
             return getNodeState(specification['source'], local_state)['node']
         return random.choice(predecessors)
-    if specification['type'] == 'imagefile':
+    elif specification['type'] == 'imagefile':
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
-    if specification['type'] == 'input':
+    elif specification['type'] == 'input':
         return getNodeState(specification['source'], local_state)['output']
-    if specification['type'] == 'plugin':
-        return  callPluginSpec(specification)
-    return pickArg(specification,local_state)
+    elif specification['type'] == 'plugin':
+        return  callPluginSpec(specification,local_state)
+    return pickArg(specification,spec_name, global_state, local_state, iterateparam)
 
-def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
+def pickArgs(local_state, global_state, node_name, argument_specs, operation,predecessors):
     """
     :param local_state:
     :param global_state:
@@ -130,19 +171,21 @@ def pickArgs(local_state, global_state, argument_specs, operation,predecessors):
     args = {}
     if argument_specs is not None:
         for spec_param, spec in argument_specs.iteritems():
-            args[spec_param] = executeParamSpec(spec,global_state,local_state, predecessors)
+            args[spec_param] = executeParamSpec(spec_param, spec, global_state,local_state,  node_name, predecessors)
     for param in operation.mandatoryparameters:
         if argument_specs is None or param not in argument_specs:
             paramDef = operation.mandatoryparameters[param]
             if 'source' in paramDef and paramDef['source'] is not None and paramDef['source'] != startType:
                 continue
-            v = pickArg(paramDef,local_state)
+            spec_name = '.'.join([node_name, param])
+            v = pickArg(paramDef,spec_name,global_state,local_state)
             if v is None:
                 raise ValueError('Missing Value for parameter ' + param + ' in ' + operation.name)
             args[param] = v
     for param in operation.optionalparameters:
         if argument_specs is None or param not in argument_specs:
-            v = pickArg(operation.optionalparameters[param],local_state)
+            spec_name = '.'.join([node_name, param])
+            v = pickArg(operation.optionalparameters[param],spec_name,global_state,local_state)
             if v is not None:
                 args[param] = v
     return args
@@ -167,12 +210,13 @@ def getNodeState(node_name,local_state):
 
 def pickImage(node, global_state={}):
     with global_state['picklistlock']:
+        replacement = 'replacement' in node and node['replacement'] == 'yes'
         if node['picklist'] not in global_state:
             if not os.path.exists(node['image_directory']):
                 raise ValueError("ImageSelection missing valid image_directory: " + node['image_directory'])
             listing = os.listdir(node['image_directory'])
             global_state[node['picklist']] = listing
-            if os.path.exists(node['picklist'] + '.txt'):
+            if os.path.exists(node['picklist'] + '.txt') and not replacement:
                with open(node['picklist'] + '.txt', 'r') as fp:
                   for line in fp.readlines():
                       line = line.strip()
@@ -183,7 +227,8 @@ def pickImage(node, global_state={}):
         if len(listing) == 0:
             raise ValueError("Picklist of Image Files Empty")
         pick = random.choice(listing)
-        listing.remove(pick)
+        if not replacement:
+            listing.remove(pick)
         if node['picklist'] not in global_state['picklists_files']:
             global_state['picklists_files'][node['picklist']] = \
                open(node['picklist'] + '.txt', 'a')
@@ -304,7 +349,7 @@ class PluginOperation(BatchOperation):
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
-        args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        args = pickArgs(local_state, global_state, node_name, node['arguments'] if 'arguments' in node else None, op,predecessors)
         if 'experiment_id' in node:
             args['experiment_id'] = node['experiment_id']
         args['skipRules'] = True
@@ -353,7 +398,7 @@ class InputMaskPluginOperation(PluginOperation):
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
-        args = pickArgs(local_state, global_state, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        args = pickArgs(local_state, global_state,node_name, node['arguments'] if 'arguments' in node else None, op,predecessors)
         args['skipRules'] = True
         args['sendNotifications'] = False
         targetfile,params = self.imageFromPlugin(plugin_name, im, filename, **args)
@@ -564,11 +609,12 @@ def getBatch(jsonFile,loglevel=50):
     logging.basicConfig(format=FORMAT,level=50 if loglevel is None else int(loglevel))
     return  loadJSONGraph(jsonFile)
 
-def thread_worker(projects,picklists_files,project,counter,picklistlock):
+def thread_worker(projects,picklists_files,project,counter,iteratorslock,picklistlock):
     globalState = {'projects' : projects,
                     'picklists_files':picklists_files,
                     'project':project,
                     'count': counter,
+                    'iteratorslock': iteratorslock,
                     'picklistlock': picklistlock}
     while (globalState['count'].decrement() > 0):
         project_directory = globalState['project'].executeOnce(globalState)
@@ -597,6 +643,7 @@ def main():
                     picklists_files,
                     batchProject,
                     IntObject(int(args.count)),
+                    Lock(),
                     Lock())
     if args.graph is not None:
         batchProject.dump()
