@@ -1453,6 +1453,8 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
 
 class QAViewDialog(Toplevel):
+    lookup = {}
+
     def __init__(self, parent):
         """
 
@@ -1466,6 +1468,11 @@ class QAViewDialog(Toplevel):
         self.createWidgets()
         self.resizable(width=False, height=False)
 
+    def getFileNameForNode(self, nodeid):
+        fn =  self.parent.scModel.getFileName(nodeid)
+        self.lookup [ fn] = nodeid
+        return fn
+
     def createWidgets(self):
         row=0
         col=0
@@ -1476,8 +1483,8 @@ class QAViewDialog(Toplevel):
         self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
         self.optionsLabel.grid(row=row,columnspan=5)
         row+=1
-        self.crit_links = ['->'.join([p.edgeId[1],p.finalNodeId]) for p in self.probes] if self.probes else []
-        donors = ['<-'.join([p.edgeId[1], p.donorBaseNodeId]) for p in self.probes if p.donorMaskImage is not None] if self.probes else []
+        self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]),self.getFileNameForNode(p.finalNodeId)]) for p in self.probes] if self.probes else []
+        donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in self.probes if p.donorMaskImage is not None] if self.probes else []
         donors  = set(sorted(donors))
         self.crit_links.extend ([x for x in donors])
         self.optionsBox = ttk.Combobox(self, values=self.crit_links)
@@ -1566,7 +1573,7 @@ class QAViewDialog(Toplevel):
     def load_overlay(self, initialize=False):
         edgeTuple = tuple(self.optionsBox.get().split('->'))
         if len(edgeTuple) > 1:
-            probe = [probe for probe in self.probes if probe.edgeId[1] == edgeTuple[0] and probe.finalNodeId==edgeTuple[1]][0]
+            probe = [probe for probe in self.probes if probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.finalNodeId==self.lookup[edgeTuple[1]]][0]
             n = self.parent.scModel.G.get_node(probe.finalNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
@@ -1574,7 +1581,7 @@ class QAViewDialog(Toplevel):
         else:
             edgeTuple = tuple(self.optionsBox.get().split('<-'))
             probe = \
-            [probe for probe in self.probes if probe.edgeId[1] == edgeTuple[0] and probe.donorBaseNodeId == edgeTuple[1]][0]
+            [probe for probe in self.probes if probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.donorBaseNodeId == self.lookup[edgeTuple[1]]][0]
             n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
