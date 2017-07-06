@@ -35,15 +35,81 @@ class IntObject:
             self.value += 1
             return self.value
 
-def nextIteration(global_state,name, toIteratorFunction):
+class PermuteGroupManager:
+
+    lock  = Lock()
+    groups = {}
+
+    def save(self):
+        for group in self.groups:
+            group.save()
+
+class PermuteGroupElement:
+
+    def __init__(self,name,toIteratorFunction, dependent):
+        self.name = name
+        self.factory = toIteratorFunction
+        self.iterator = toIteratorFunction()
+        self.done = False
+        self.dependent = dependent
+        self.current = self.iterator.next()
+
+    def next(self):
+        if self.dependent is not None:
+            try:
+                self.dependent.next()
+            except:
+                # throws an exception to caller
+                self.current = self.iterator.next()
+                self.dependent.reset()
+        else:
+            self.iterator.next()
+        return self.current
+
+    def reset(self):
+        self.iterator = self.factory()
+        self.dependent.reset()
+
+class PermuteGroup:
+    iterators = {}
+    last_created = None
+    """
+    @type iterators : dict of PermuteGroupElement
+    """
+
+    def next(self, name, toIteratorFunction):
+        if name not in self.iterators:
+            # not seen this one yet
+            element = PermuteGroupElement(name,toIteratorFunction,self.last_created)
+            self.iterators[name] = element
+            self.last_created = element
+        else:
+            try:
+                self.last_created.next()
+            except:
+                self.last_created.reset()
+            element = self.iterators[name]
+        return element.current
+
+    def save(self):
+        pass
+
+def nextIteration(global_state, name, permutegroup, toIteratorFunction):
     """
 
     :param global_state:
-    :param name:
-    :param toIteratorFunction:  initialize iterator with this function if missing
+    :param name: name of the of iterator (within the group)
+    :param permutegroup: the name of the permutation group
+    :param toIteratorFunction:  initialize iterator with this function if missing or exhausted
     :return:
     """
-    with global_state['iteratorslock']:
+    if 'permutegroups' not in global_state:
+        global_state['permutegroups'] = PermuteGroupManager()
+    manager = global_state['permutegroups']
+    with manager.lock.lock():
+        if permutegroup not in manager.groups:
+            manager.groups[permutegroup] = PermuteGroup()
+        return manager.groups[permutegroup].next(name,toIteratorFunction)
         if 'iterators' not in global_state:
             global_state['iterators'] = {}
         iterators = global_state['iterators']
@@ -70,10 +136,11 @@ def loadJSONGraph(pathname):
         return BatchProject(G,json_data)
     return None
 
-def pickArg(param, name, global_state, local_state, iterate=False):
+def pickArg(param, name, global_state, local_state, permutegroup=False):
     if param['type'] == 'list':
-        if iterate:
-            return nextIteration(global_state,name,param['values'].__iter__)
+        if permutegroup is not None:
+            return nextIteration(global_state,name,permutegroup,
+                                 param['values'].__iter__)
         else:
             return random.choice(param['values'])
     elif 'int' in param['type']  :
@@ -81,8 +148,9 @@ def pickArg(param, name, global_state, local_state, iterate=False):
         vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
         beg = vals[0] if len (vals) > 0 else 0
         end = vals[1] if len(vals) > 1 else beg+1
-        if iterate:
-            return nextIteration(global_state, name, lambda : xrange(beg, end+1, param['increment'] if 'increment' in param else 1).__iter__())
+        if permutegroup:
+            return nextIteration(global_state, name,permutegroup,
+                                 lambda : xrange(beg, end+1, param['increment'] if 'increment' in param else 1).__iter__())
         else:
             return random.randint(beg, end)
     elif 'float' in param['type'] :
@@ -91,14 +159,15 @@ def pickArg(param, name, global_state, local_state, iterate=False):
         beg = vals[0] if len(vals) > 0 else 0
         end = vals[1] if len(vals) > 1 else beg+1.0
         diff = end - beg
-        if iterate:
-            return nextIteration(global_state, name,
+        if permutegroup:
+            return nextIteration(global_state, name,permutegroup,
                                  lambda: np.arange(beg, end, param['increment'] if 'increment' in param else 1.0).__iter__())
         else:
             return beg+ random.random()* diff
     elif param['type'] == 'yesno':
-        if iterate:
-            return nextIteration(global_state, name, ['yes','no'].__iter__)
+        if permutegroup:
+            return nextIteration(global_state, name, permutegroup,
+                                 ['yes','no'].__iter__)
         else:
             return random.choice(['yes','no'])
     elif param['type'].startswith('donor'):
@@ -133,7 +202,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     @rtype : tuple(image_wrap.ImageWrapper,str)
     @type predecessors: List[str]
     """
-    iterateparam = 'iterate' in specification and specification['iterate'] == 'yes'
+    permutegroup = specification['permutegroup'] if 'permutegroup' in specification else None
     spec_name = '.'.join([node_name,specification_name])
     if specification['type'] == 'mask':
        source = getNodeState(specification['source'], local_state)['node']
@@ -154,7 +223,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         return getNodeState(specification['source'], local_state)['output']
     elif specification['type'] == 'plugin':
         return  callPluginSpec(specification,local_state)
-    return pickArg(specification,spec_name, global_state, local_state, iterateparam)
+    return pickArg(specification,spec_name, global_state, local_state, permutegroup)
+
+# each project ->
 
 def pickArgs(local_state, global_state, node_name, argument_specs, operation,predecessors):
     """
@@ -609,12 +680,12 @@ def getBatch(jsonFile,loglevel=50):
     logging.basicConfig(format=FORMAT,level=50 if loglevel is None else int(loglevel))
     return  loadJSONGraph(jsonFile)
 
-def thread_worker(projects,picklists_files,project,counter,iteratorslock,picklistlock):
+def thread_worker(projects,picklists_files,project,counter,picklistlock):
     globalState = {'projects' : projects,
                     'picklists_files':picklists_files,
                     'project':project,
                     'count': counter,
-                    'iteratorslock': iteratorslock,
+                    'permutegroups': PermuteGroupManager(),
                     'picklistlock': picklistlock}
     while (globalState['count'].decrement() > 0):
         project_directory = globalState['project'].executeOnce(globalState)
@@ -643,7 +714,6 @@ def main():
                     picklists_files,
                     batchProject,
                     IntObject(int(args.count)),
-                    Lock(),
                     Lock())
     if args.graph is not None:
         batchProject.dump()
