@@ -327,6 +327,37 @@ def seam_transform(edge,
                                     graph=graph)
     return res
 
+def warp_transform(edge,
+                   source,
+                   target,
+                   edgeMask,
+                   compositeMask=None,
+                   directory='.',
+                   level=None,
+                   donorMask=None,
+                   pred_edges=None,
+                   graph=None,
+                   top=False):
+    res = None
+    if compositeMask is not None:
+        res = tool_set.applyGridTransformCompositeImage(compositeMask,
+                                                        graph.get_image(source)[0],
+                                                        graph.get_image(target)[0],
+                                                        edgeMask=edgeMask,
+                                                        arguments=edge['arguments'] if 'arguments' in edge else {})
+    if res is None or len(np.unique(res)) == 1:
+        return defaultMaskTransform(edge,
+                                    source,
+                                    target,
+                                    edgeMask,
+                                    compositeMask=compositeMask,
+                                    directory=directory,
+                                    level=level,
+                                    donorMask=donorMask,
+                                    pred_edges=pred_edges,
+                                    graph=graph)
+    return res
+
 def cas_transform(edge,
                    source,
                    target,

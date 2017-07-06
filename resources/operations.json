@@ -3442,21 +3442,12 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
-        },
-        "RANSAC": {
-          "type": "list",
-          "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction" :"maskgen.mask_rules.warp_transform",
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
       "transitions": [

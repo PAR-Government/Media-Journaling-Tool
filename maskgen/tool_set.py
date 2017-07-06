@@ -1137,6 +1137,42 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
          return (src_pts, dst_pts) if src_pts is not None else None
     return None
 
+
+def __grid(img1, img2, compositeMask, edgeMask=None,  arguments=None):
+    from scipy.interpolate import griddata
+    """
+    Compute sparse maps from points between img1 to img2
+    :param img1:
+    :param img2:
+    :param mask1:
+    :param mask2:
+    @type img1: ImageWrapper
+    @type img2: ImageWrapper
+    :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
+    """
+    args = dict(arguments)
+    args['sift_max_matches'] = 50
+    #grid_x, grid_y = np.mgrid[0:mask1.shape[0]:complex(0,mask1.shape[0]), 0:mask1.shape[1]:complex(0,mask1.shape[1])]
+    grid_x, grid_y = np.mgrid[0:edgeMask.shape[0], 0:edgeMask.shape[1]]
+    long = edgeMask.reshape(edgeMask.shape[0]*edgeMask.shape[1])
+    src_dts_pts = getMatchedSIFeatures(img1, img2, mask1=edgeMask, mask2=None, arguments=args)
+    grid_z = griddata(np.array([x[0] for x in src_dts_pts[0].astype('int')]), np.array([x[0] for x in src_dts_pts[1].astype('int')]), (grid_x, grid_y), method='cubic')
+    map_x = np.append([], [ar[:,1] for ar in grid_z])
+    map_y = np.append([], [ar[:,0] for ar in grid_z])
+    default_x = np.append([], [ar for ar in grid_x])
+    default_y = np.append([], [ar for ar in grid_y])
+    #map_x = default_x
+    #map_y = default_y
+    map_x[long == 0] = default_x[long == 0]
+    map_y[long == 0] = default_y[long == 0]
+    jj = np.where(np.isnan(map_x))
+    map_x[jj] = default_x[jj]
+    jj = np.where(np.isnan(map_y))
+    map_y[jj] = default_y[jj]
+    map_x_32 = map_x.astype('float32').reshape(edgeMask.shape)
+    map_y_32 = map_y.astype('float32').reshape(edgeMask.shape)
+    return cv2.remap(compositeMask, map_x_32, map_y_32, cv2.INTER_CUBIC)
+
 def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     """
     Compute homography to transfrom img1 to img2
@@ -1277,6 +1313,21 @@ def applyToComposite(compositeMask, func, shape=None):
         newLevelMask = func(levelMask)
         if newLevelMask is not None:
             newMask[newLevelMask > 100] = level
+    return newMask
+
+def applyGridTransformCompositeImage(compositeMask,startIm,destIm,edgeMask=None,arguments={}):
+    newMask = np.zeros((destIm.image_array.shape[0], destIm.image_array.shape[1]), dtype=np.uint8)
+    matchtype = arguments['Transform Selection'] if 'Transform Selection' in arguments else 'Skip'
+    matchcount = int(arguments['Match Count']) if 'Match Count' in arguments else 0
+    levels = list(np.unique(compositeMask))
+    for level in levels:
+        if level == 0:
+            continue
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 255
+        newlevelmask = __grid(startIm, destIm, levelMask, edgeMask=255-edgeMask, arguments=arguments)
+        if newlevelmask is not None:
+            newMask[newlevelmask > 100] = level
     return newMask
 
 def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,arguments={}, defaultTransform=None):
@@ -2412,6 +2463,32 @@ class GrayFrameWriter:
 
     def release(self):
         self.close()
+
+def widthandheight(img):
+    a = np.where(img != 0)
+    bbox = np.min(a[0]), np.max(a[0]), np.min(a[1]), np.max(a[1])
+    h,w = bbox[1] - bbox[0], bbox[3] - bbox[2]
+    return bbox[2],bbox[0],w,h
+
+def place_in_image(mask,image_to_place,image_to_cover, placement_center):
+    x,y,w, h = widthandheight(mask)
+    w += w%2
+    h += h%2
+    x_offset = int(placement_center[0]) - int(math.floor(w/2))
+    y_offset = int(placement_center[1]) - int(math.floor(h/2))
+    if y_offset < 0:
+        return None
+    if x_offset < 0:
+        return None
+    image_to_cover = np.copy(image_to_cover)
+    flipped_mask = 255 - mask
+    for c in range(0, 3):
+        image_to_cover[y_offset:y_offset + h,x_offset:x_offset + w,  c] = \
+        image_to_cover[y_offset:y_offset + h,x_offset:x_offset + w,  c] * \
+        (flipped_mask[y:y+h,x:x+w]/255) + \
+        image_to_place[y:y + h,x:x+ w, c] * \
+        (mask[y:y + h,x:x + w]/255)
+    return image_to_cover
 
 def selfVideoTest():
     logging.getLogger('maskgen').info('Checking opencv and ffmpeg, this may take a minute.')

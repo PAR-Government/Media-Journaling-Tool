@@ -5,11 +5,13 @@ from maskgen.image_wrap import ImageWrapper
 from skimage.restoration import denoise_tv_bregman
 from skimage.segmentation import felzenszwalb
 import math
+from random import choice,randint
 
 """
 Select region from the image.
 Add an alpha channel to the image.
 Set the alpha channel pixels to 0 for the unselected portion of the image.
+Return variables paste_x and paste_y for placement in the same image (e.g. paste clone).
 """
 
 def transform(img,source,target,**kwargs):
@@ -36,23 +38,48 @@ def transform(img,source,target,**kwargs):
     cnts = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
     cnts = cnts[0: min(15,len(cnts))]
     cnt = random.choice(cnts)
-    max_mask = numpy.zeros((denoise_img.shape[0],denoise_img.shape[1]), numpy.uint8)
-    cv2.fillPoly(max_mask, pts=[cnt[0]], color=255)
-    rgba = numpy.asarray(img.convert('RGBA'))
-    rgba = numpy.copy(rgba)
-    rgba[max_mask!=255] = 0
-    ImageWrapper(rgba).save(target)
-    return None,None
+    mask = numpy.zeros((denoise_img.shape[0],denoise_img.shape[1]), numpy.uint8)
+    cv2.fillPoly(mask, pts=[cnt[0]], color=255)
+    if 'alpha' not in kwargs or kwargs['alpha'] == 'yes':
+        rgba = numpy.asarray(img.convert('RGBA'))
+        rgba = numpy.copy(rgba)
+        rgba[mask != 255] = 0
+        ImageWrapper(rgba).save(target)
+    else:
+        ImageWrapper(mask.astype('uint8')).save(target)
+
+    shape = mask.shape
+    x, y, w, h = cv2.boundingRect(cnt[0])
+    trial_boxes = [
+        [0, 0, x, shape[0] - h],
+        [0, 0, shape[1] - w, y],
+        [x + w, 0, shape[1] - w, shape[0] - h],
+        [0, y + h, shape[1] - w, shape[0] - h]
+    ]
+
+    boxes = [box for box in trial_boxes \
+             if (box[2] - box[0]) > 0 and (box[3] - box[1]) > 0]
+
+    if len(boxes) == 0:
+        box = [1, 1, shape[1] - w, shape[0] - h]
+    else:
+        box = choice(boxes)
+
+    new_position_x = randint(box[0], box[2])
+    new_position_y = randint(box[1], box[3])
+    return {'paste_x': new_position_x, 'paste_y': new_position_y}, None
 
 # the actual link name to be used. 
 # the category to be shown
 def operation():
   return {'name':'SelectRegion',
           'category':'Select',
-          'description':'Apply a mask to create an alpha channel',
+          'description':'Denoise and segment the image to find selection from the image. Output the image using the alpha channel indicating the selection.',
           'software':'OpenCV',
           'version':'2.4.13',
-          'arguments': None,
+          'arguments': {'alpha': {'type' : "yesno",
+                                      "defaultvalue": "yes",
+                                      'description': "If yes, save the image with an alpha channel instead of the mask."}},
           'transitions': [
               'image.image'
               ]
