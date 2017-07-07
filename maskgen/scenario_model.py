@@ -1817,6 +1817,9 @@ class ImageProjectModel:
     def operationImageName(self):
         return self.end if self.end is not None else self.start
 
+    def getFileName(self, nodeid):
+        return self.G.get_node(nodeid)['file']
+
     def startImageName(self):
         return self.G.get_node(self.start)['file'] if self.start is not None else ""
 
