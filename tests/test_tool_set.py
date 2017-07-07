@@ -51,7 +51,7 @@ class TestToolSet(unittest.TestCase):
 # The solution is to not fail the test in this case.
 # it is a legitimate case, so the final assertion must change.
 
-    def test_createHorizontalSeamMask(self):
+    def xtest_createHorizontalSeamMask(self):
         dim = 10
         old = np.random.randint(255, size=(dim, dim+1))
         new = self.createHorizontal(old ,dim-3, dim+1)
@@ -78,7 +78,7 @@ class TestToolSet(unittest.TestCase):
         new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
         self.assertTrue(np.all(new==new_rebuilt))
 
-    def test_createVerticalSeamMask(self):
+    def xtest_createVerticalSeamMask(self):
         dim = 10
         old = np.random.randint(255, size=(dim, dim))
         new = self.createVertical(old, dim, dim -3)
@@ -104,7 +104,7 @@ class TestToolSet(unittest.TestCase):
         new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
         self.assertTrue(np.all(new==new_rebuilt))
 
-    def test_rotate(self):
+    def xtest_rotate(self):
         img1 = np.zeros((100,100),dtype=np.uint8)
         img1[20:50,40:50] = 1
         img = tool_set.applyRotateToCompositeImage(img1, 90, (50,50))
@@ -125,6 +125,14 @@ class TestToolSet(unittest.TestCase):
         withtoleranceandqu = sum(sum(mask.image_array))
         self.assertTrue(withouttolerance < withtolerance)
         self.assertTrue(withtolerance <= withtoleranceandqu)
+
+    def test_map(self):
+            img1 = np.random.randint(0,255,size=(100,120)).astype('uint8')
+            mask = np.ones((100,120))
+            src_pts = [(x, y) for x in xrange(20, 30, 1) for y in xrange(50, 60, 1)]
+            dst_pts = [(x, y) for x in xrange(55, 65, 1) for y in xrange(15, 25, 1)]
+            result =tool_set._remap(img1,mask,src_pts,dst_pts)
+            self.assertTrue(np.all(result[55:65,15:25] == img1[20:30,50:60]))
 
     def test_timeparse(self):
         self.assertTrue(tool_set.validateTimeString('03:10:10.434'))
@@ -191,7 +199,7 @@ class TestToolSet(unittest.TestCase):
         result = (result - min)/(max-min) * 255.0
         print np.mean(result)
 
-    def test_gray_writing(self):
+    def xtest_gray_writing(self):
         import os
         import sys
         writer = tool_set.GrayBlockWriter('test_ts_gw', 29.97002997)

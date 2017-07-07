@@ -2980,13 +2980,15 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
            "values": [
-             "3",
-             "4",
-             "5"
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3011,28 +3013,23 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "RANSAC": {
-          "type": "list",
-          "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
-        },
-        "Transform Selection": {
+        "Homography": {
           "type": "list",
           "source": "image",
            "values": [
              "None",
-             "Skip"
+             "Map",
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
-           "description": "Instructions for missing transforms during composite mask generation"
+           "description": "Tune transform creation for composite mask generation"
         },
-        "Match Count": {
-          "type": "int[0:1000]",
-           "description": "Number of feature matches for RANSAC"
+        "Maximum Match Count": {
+          "type": "int[20:10000]",
+           "description": "Number of feature matches for SIFT"
         }
       },
       "analysisOperations": [
@@ -3090,13 +3087,15 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
            "values": [
-             "3",
-             "4",
-             "5"
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3163,14 +3162,17 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
            "values": [
              "None",
-             "3",
-             "4",
-             "5"
+             "Map",
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3216,14 +3218,16 @@
           "type": "file:image",
           "description": "An image file containing a mask of the component that was moved"
         },
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
-           "values": [
+          "values": [
              "None",
-             "3",
-             "4",
-             "5"
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3253,14 +3257,16 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "RANSAC": {
+        "Homograpy": {
           "type": "list",
           "source": "image",
-           "values": [
+          "values": [
              "None",
-             "3",
-             "4",
-             "5"
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3286,13 +3292,16 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
            "values": [
-             "3",
-             "4",
-             "5"
+             "None",
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3321,28 +3330,23 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {
-        "RANSAC": {
-          "type": "list",
-          "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
-           ],
-           "description": "Tune transform during composite mask generation"
-        },
-        "Transform Selection": {
+        "Homography": {
           "type": "list",
           "source": "image",
            "values": [
              "None",
-             "Skip"
+             "Map",
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
-           "description": "Instructions for missing transforms during composite mask generation"
+           "description": "Tune transform during composite mask generation"
         },
-        "Match Count": {
-          "type": "int[0:1000]",
-           "description": "Number of feature matches for RANSAC"
+        "Maximum Match Count": {
+          "type": "int[20:10000]",
+           "description": "Number of feature matches for SIFT"
         }
       },
       "compareparameters" : {
@@ -3372,13 +3376,16 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
+         "values": [
+             "None",
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3407,14 +3414,16 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
-           "values": [
+          "values": [
              "None",
-             "3",
-             "4",
-             "5"
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
@@ -3442,12 +3451,30 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+         "Homography": {
+          "type": "list",
+          "source": "image",
+          "values": [
+             "None",
+             "Map",
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5",
+             "RANSAC-ALL"
+           ],
+           "description": "Tune transform creation for composite mask generation"
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "maskTransformFunction" :"maskgen.mask_rules.warp_transform",
+      "compareparameters" : {
+         "sift_max_matches" : 2000
+      },
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
       "transitions": [
@@ -3503,13 +3530,15 @@
       },
       "rules": [],
       "optionalparameters": {
-        "RANSAC": {
+        "Homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "3",
-             "4",
-             "5"
+         "values": [
+             "All",
+             "LMEDS",
+             "RANSAC-3",
+             "RANSAC-4",
+             "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
         }
