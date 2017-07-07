@@ -195,8 +195,7 @@ def check_graph_rules(graph,node,external=False, prefLoader=None):
     """
     errors = []
     nodeData = graph.get_node(node)
-    category = graph.getDataItem('manipulationcategory')
-    multiplebaseok =  category.lower() == 'provenance' if category is not None else False
+    multiplebaseok = graph.getDataItem('provenance',default_value='no') == 'yes'
 
     if 'file' not in nodeData:
         errors.append('Missing file information.')
