@@ -2980,7 +2980,7 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
            "values": [
@@ -2991,6 +2991,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3013,7 +3017,7 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
            "values": [
@@ -3027,9 +3031,18 @@
            ],
            "description": "Tune transform creation for composite mask generation"
         },
-        "Maximum Match Count": {
-          "type": "int[20:10000]",
-           "description": "Number of feature matches for SIFT"
+        "composite homography": {
+          "type": "list",
+          "source": "image",
+          "values": [
+            "Single",
+            "Multiple"
+          ],
+          "description": "Use a single transform or one per probe mask component"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3087,7 +3100,7 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
            "values": [
@@ -3098,6 +3111,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3162,7 +3179,7 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
            "values": [
@@ -3175,6 +3192,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3218,7 +3239,7 @@
           "type": "file:image",
           "description": "An image file containing a mask of the component that was moved"
         },
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
           "values": [
@@ -3230,6 +3251,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3257,7 +3282,7 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "Homograpy": {
+        "homography": {
           "type": "list",
           "source": "image",
           "values": [
@@ -3269,6 +3294,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3292,7 +3321,7 @@
         "check_local_warn"
       ],
       "optionalparameters": {
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
            "values": [
@@ -3304,6 +3333,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3330,7 +3363,7 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
            "values": [
@@ -3344,9 +3377,18 @@
            ],
            "description": "Tune transform during composite mask generation"
         },
-        "Maximum Match Count": {
-          "type": "int[20:10000]",
-           "description": "Number of feature matches for SIFT"
+        "composite homography": {
+          "type": "list",
+          "source": "image",
+          "values": [
+            "Single",
+            "Multiple"
+          ],
+          "description": "Use a single transform or one per probe mask component"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "compareparameters" : {
@@ -3376,7 +3418,7 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
          "values": [
@@ -3388,6 +3430,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3414,7 +3460,7 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-        "Homography": {
+        "homography": {
           "type": "list",
           "source": "image",
           "values": [
@@ -3426,6 +3472,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -3452,7 +3502,7 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-         "Homography": {
+         "homography": {
           "type": "list",
           "source": "image",
           "values": [
@@ -3463,18 +3513,19 @@
              "RANSAC-3",
              "RANSAC-4",
              "RANSAC-5",
-             "RANSAC-ALL"
+             "RANSAC-6"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "maskTransformFunction" :"maskgen.mask_rules.warp_transform",
-      "compareparameters" : {
-         "sift_max_matches" : 2000
-      },
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
       "transitions": [
@@ -3541,6 +3592,10 @@
              "RANSAC-5"
            ],
            "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches" : {
+            "type": "int[20:10000]",
+           "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "description": "Reverse the direction of video play.",

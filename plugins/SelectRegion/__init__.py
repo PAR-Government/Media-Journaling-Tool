@@ -24,14 +24,22 @@ def transform(img,source,target,**kwargs):
     sigma = max(0.75,math.log10(dims[0]*dims[1]/10000.0) - 0.5)
     min_size = max(100.0,math.ceil(sigma*10.0)*10)
     segments_fz = felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
+    unique_labels, label_counts = numpy.unique(segments_fz, return_counts=True)
+    #segInd = randint(0, len(unique_labels) - 1)
+    #segVal = unique_labels[segInd]
+
+    #while label_counts[segInd] > segments_fz:
+    #    tempsegInd = randint(0, len(unique_labels) - 1)
+    #    if label_counts[segInd] > label_counts[tempsegInd]:
+    #        segInd = tempsegInd
+    #    count = count + 1
 
     cnts = []
-    for label in numpy.unique(segments_fz):
+    for label in numpy.unique(unique_labels):
         mask = numpy.zeros(gray.shape, dtype="uint8")
         mask[segments_fz == label] = 255
         cnts.extend(cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
                                      cv2.CHAIN_APPROX_SIMPLE)[-2])
-
 
     areas = [(cnt, cv2.contourArea(cnt)) for cnt in cnts
               if  cv2.moments(cnt)['m00'] > 2.0 ]

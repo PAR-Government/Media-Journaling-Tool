@@ -15,13 +15,13 @@
   "nodes": [
     {
       "op_type": "BaseSelection",
-      "image_directory": "tests/images",
+      "image_directory": "/Users/ericrobertson/Documents/projects/exp/images",
       "picklist": "imageset",
       "id": "0"
     },
     {
       "op_type": "ImageSelection",
-      "image_directory": "tests/images",
+      "image_directory": "/Users/ericrobertson/Documents/projects/exp/images",
       "picklist": "imageset",
       "id": "1"
     },
@@ -85,7 +85,7 @@
           "value": "yes"
         }
       },
-      "plugin": "SmartMaskSelector"
+      "plugin": "SelectRegion"
     },
     {
       "op_type": "PluginOperation",
@@ -94,7 +94,7 @@
       "arguments": {
         "approach": {
            "type":"value",
-           "value": "texture"
+           "value": "random"
          },
         "segment": {
            "type":"value",

@@ -348,8 +348,7 @@ def warp_transform(edge,
                                               edgeMask,
                                               inverse=donorMask is not None,
                                               arguments=edge['arguments'] if 'arguments' in edge else {},
-                                              defaultTransform=tm,
-                                            useDefaultFirst=True)
+                                              defaultTransform=tm)
     if res is None or len(np.unique(res)) == 1:
         return defaultMaskTransform(edge,
                                     source,

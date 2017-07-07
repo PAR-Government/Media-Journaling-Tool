@@ -18,11 +18,15 @@ class TestBatchProcess(unittest.TestCase):
       os.mkdir('test_projects')
       batch_project.loadCustomFunctions()
       batchProject = batch_project.loadJSONGraph('tests/batch_process.json')
-      batchProject.executeOnce(global_state={
-          'projects' : 'test_projects',
+      global_state = {
+          'projects': 'test_projects',
+          'project': batchProject,
           'picklists_files': {},
-          'picklistlock':Lock()
-      })
+          'picklistlock': Lock(),
+          'count': batch_project.IntObject(20)
+      }
+      for i in range(20):
+          batchProject.executeOnce(global_state)
 
 if __name__ == '__main__':
     unittest.main()

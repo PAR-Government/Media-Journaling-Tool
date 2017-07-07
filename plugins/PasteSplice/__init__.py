@@ -50,7 +50,11 @@ def minimum_bounding_box(image):
         except:
             continue
     selected = sorted(selected, key=lambda cnt: cnt[2], reverse=True)
-    return selected[0] if len(selected) > 0 else None
+    if len(selected) == 0:
+        print 'cannot determine contours'
+        x, y, w, h = tool_set.widthandheight(image)
+        selected = [ (w,h,w*h,x+w/2,y+h/2)]
+    return selected[0]
 
 def minimum_bounding_ellipse_of_points(points):
     M = cv2.moments(points)
@@ -153,76 +157,73 @@ def transform(img,source,target,**kwargs):
         gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
         gray = cv2.equalizeHist(gray)
         mask_of_image_to_paste_ellipse = minimum_bounding_ellipse(mask_of_image_to_paste)
-        if mask_of_image_to_paste_ellipse is None:
-            print 'Cannot paste an empty selection mask'
-        img_to_paste = img_to_paste.apply_mask_rgba(mask_of_image_to_paste)
-        dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0, math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
-        sigma = max(1.0, math.log10(dims[0] * dims[1] / 10000.0) - 0.5)
-        min_size = max(100.0, math.ceil(sigma * 10.0) * 10)
-        while out2 is None and sigma<5:
-            if segment_algorithm == 'slic':
-                masksize = float(sum(sum(mask_of_image_to_paste))/255)
-                imgsize = float(img.size[0] * img.size[1])
-                labels1 = segmentation.slic(gray, compactness=5, n_segments=min(500, int(imgsize/(sigma*2*masksize))))
-            else:
-                labels1= segmentation.felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
+        if mask_of_image_to_paste_ellipse is not None:
+            img_to_paste = img_to_paste.apply_mask_rgba(mask_of_image_to_paste)
+            dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0, math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
+            sigma = max(1.0, math.log10(dims[0] * dims[1] / 10000.0) - 0.5)
+            min_size = max(100.0, math.ceil(sigma * 10.0) * 10)
+            while out2 is None and sigma<5:
+                if segment_algorithm == 'slic':
+                    masksize = float(sum(sum(mask_of_image_to_paste))/255)
+                    imgsize = float(img.size[0] * img.size[1])
+                    labels1 = segmentation.slic(gray, compactness=5, n_segments=min(500, int(imgsize/(sigma*2*masksize))))
+                else:
+                    labels1= segmentation.felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
 
-            #Compute the Region Adjacency Graph using mean colors.
-            #
-            # Given an image and its initial segmentation, this method constructs the corresponding  RAG.
-            # Each node represents a set of pixels  within image with the same label in labels.
-            # The weight between two adjacent regions represents how similar or dissimilar two
-            # regions are depending on the mode parameter.
-            cutThresh = 0.000000005
-            labelset = np.unique(labels1)
-            while len(labels1) > 100000 or len(labelset) > 500:
-                g = graph.rag_mean_color(denoise_img, labels1, mode='similarity')
-                labels1 = graph.cut_threshold(labels1, g,cutThresh)
+                #Compute the Region Adjacency Graph using mean colors.
+                #
+                # Given an image and its initial segmentation, this method constructs the corresponding  RAG.
+                # Each node represents a set of pixels  within image with the same label in labels.
+                # The weight between two adjacent regions represents how similar or dissimilar two
+                # regions are depending on the mode parameter.
+                cutThresh = 0.000000005
                 labelset = np.unique(labels1)
-                cutThresh += 0.00000001
-            labelset = np.unique(labels1)
-            for label in labelset:
-                if label == 0:
-                    continue
-                mask  = np.zeros(labels1.shape)
-                mask[labels1==label] = 255
-                mask = mask.astype('uint8')
-                ret, thresh = cv2.threshold(mask, 127, 255, 0)
-                (contours, _) = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-                areas = [(cnt, cv2.contourArea(cnt)) for cnt in contours
-                         if cv2.moments(cnt)['m00'] > 2.0]
-                contours = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
-                contours = contours[0: min(20, len(contours))]
-                if len(contours) > 0:
-                    for contour in contours:
-                        try:
-                            placement_ellipse = minimum_bounding_ellipse_of_points(contour[0])
-                            if placement_ellipse is not None:
-                                transform_matrix = build_transform_matrix(placement_ellipse,mask_of_image_to_paste_ellipse)
-                                if transform_matrix is None:
-                                    continue
-                                transformed_image = transform_image(img_to_paste.to_array(), transform_matrix)
-                            else:
-                                transformed_image = img_to_paste.to_array()
-                            #ImageWrapper(transformed_image).save('s.png')
-                            #img_to_paste.save('i.png')
-                            out2 = tool_set.place_in_image(
-                                                  ImageWrapper(transformed_image).to_mask().to_array(),
-                                                  transformed_image,
-                                                  np.asarray(img),
-                                                  (placement_ellipse[0], placement_ellipse[1]))
-                            if out2 is not None:
-                                break
-                        except Exception as e:
-                            #print e
-                            continue
-                if out2 is not None:
-                    break
-            sigma+=0.5
+                while len(labels1) > 100000 or len(labelset) > 500:
+                    g = graph.rag_mean_color(denoise_img, labels1, mode='similarity')
+                    labels1 = graph.cut_threshold(labels1, g,cutThresh)
+                    labelset = np.unique(labels1)
+                    cutThresh += 0.00000001
+                labelset = np.unique(labels1)
+                for label in labelset:
+                    if label == 0:
+                        continue
+                    mask  = np.zeros(labels1.shape)
+                    mask[labels1==label] = 255
+                    mask = mask.astype('uint8')
+                    ret, thresh = cv2.threshold(mask, 127, 255, 0)
+                    (contours, _) = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+                    areas = [(cnt, cv2.contourArea(cnt)) for cnt in contours
+                             if cv2.moments(cnt)['m00'] > 2.0]
+                    contours = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
+                    contours = contours[0: min(20, len(contours))]
+                    if len(contours) > 0:
+                        for contour in contours:
+                            try:
+                                placement_ellipse = minimum_bounding_ellipse_of_points(contour[0])
+                                if placement_ellipse is not None:
+                                    transform_matrix = build_transform_matrix(placement_ellipse,mask_of_image_to_paste_ellipse)
+                                    if transform_matrix is None:
+                                        continue
+                                    transformed_image = transform_image(img_to_paste.to_array(), transform_matrix)
+                                else:
+                                    transformed_image = img_to_paste.to_array()
+                                out2 = tool_set.place_in_image(
+                                                      ImageWrapper(transformed_image).to_mask().to_array(),
+                                                      transformed_image,
+                                                      np.asarray(img),
+                                                      (placement_ellipse[0], placement_ellipse[1]))
+                                if out2 is not None:
+                                    break
+                            except Exception as e:
+                                #print e
+                                continue
+                    if out2 is not None:
+                        break
+                sigma+=0.5
     if out2 is None:
         transform_matrix, out2 = pasteAnywhere(img, img_to_paste.to_array(),mask_of_image_to_paste, approach=='simple')
     ImageWrapper(out2).save(target)
-    return {'transform matrix':tool_set.serializeMatrix(transform_matrix)},None
+    return {'transform matrix':tool_set.serializeMatrix(transform_matrix)} if transform_matrix is not None else None,None
 
 # the actual link name to be used. 
 # the category to be shown
