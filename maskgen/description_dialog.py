@@ -16,7 +16,7 @@ from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
-from software_loader import ProjectProperty, getSemanticGroups
+from software_loader import ProjectProperty, getSemanticGroups, metadataLoader
 import sys
 from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
@@ -420,7 +420,7 @@ class DescriptionCaptureDialog(Toplevel):
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(self.scModel,properties),
+                                propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
                                             'start_im':self.start_im,
@@ -652,6 +652,150 @@ class DescriptionCaptureDialog(Toplevel):
         self.description.setSoftware(Software(self.e4.get(), self.e5.get()))
         if (self.softwareLoader.add(self.description.software)):
             self.softwareLoader.save()
+
+
+class NodeDescriptionCaptureDialog(Toplevel):
+    im = None
+    dir = '.'
+    photo = None
+    c = None
+    moc = None
+    cancelled = True
+    sourcefiletype = 'image'
+    argvalues = {}
+    argBox = None
+    node_properties = {}
+
+    def __init__(self, parent, uiProfile, currentNode, sourcefiletype, im, name):
+        """
+
+        :param parent:
+        :param uiProfile:
+        :param scModel:
+        :param targetfiletype:
+        :param im:
+        :param name:
+        :param description:
+        @type scModel: ImageProjectModel
+        """
+        self.uiProfile = uiProfile
+        self.im = im
+        self.parent = parent
+        self.node_properties = metadataLoader.node_properties
+        for prop_name in self.node_properties[self.sourcefiletype]:
+            if prop_name in currentNode:
+                self.argvalues[prop_name] = currentNode[prop_name]
+
+        self.sourcefiletype = sourcefiletype
+        Toplevel.__init__(self, parent)
+        self.withdraw()  # remain invisible for now
+        # If the master is not viewable, don't
+        # make the child transient, or else it
+        # would be opened withdrawn
+        if parent.winfo_viewable():
+            self.transient(parent)
+
+        self.title(name)
+
+        self.parent = parent
+
+        self.result = None
+
+        body = Frame(self)
+        self.initial_focus = self.body(body)
+        self.buttonbox()
+        body.pack(padx=5, pady=5)
+
+        if not self.initial_focus:
+            self.initial_focus = self
+
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
+
+        if self.parent is not None:
+            self.geometry("+%d+%d" % (parent.winfo_rootx() + 50,
+                                      parent.winfo_rooty() + 50))
+
+        self.deiconify()  # become visibile now
+
+        self.initial_focus.focus_set()
+
+        # wait for window to appear on screen before calling grab_set
+        self.wait_visibility()
+        self.grab_set()
+        self.wait_window(self)
+
+    def destroy(self):
+        '''Destroy the window'''
+        self.initial_focus = None
+        Toplevel.destroy(self)
+
+    def buildArgBox(self, opname):
+        if self.argBox is not None:
+            self.argBox.destroy()
+
+        properties = [ProjectProperty(name=prop_name,
+                                      description=prop_name,
+                                      information=prop_def['description'],
+                                      type=prop_def['type'],
+                                      values=prop_def['values'] if 'values' in prop_def else [],
+                                      value=self.argvalues[prop_name] if prop_name in self.argvalues else None) \
+                      for prop_name, prop_def in self.node_properties[self.sourcefiletype].iteritems()]
+        self.argBox= PropertyFrame(self.argBoxMaster, properties,
+                                propertyFunction=NodePropertyFunction(self.argvalues),
+                                changeParameterCB=self.changeParameter,
+                                dir=self.dir)
+        self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+        self.argBox.grid_propagate(1)
+
+
+    def body(self, master):
+        self.okButton = None
+        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
+        self.c = Canvas(master, width=250, height=250)
+        self.c.create_image(125, 125, image=self.photo, tag='imgd')
+        self.c.grid(row=0, column=0, columnspan=2)
+        row  = 1
+        Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
+        row += 1
+        self.argBoxRow = row
+        self.argBoxMaster = master
+        self.argBox = self.buildArgBox(None)
+        row += 1
+        return self.c  # initial focus
+
+
+    def buttonbox(self):
+        box = Frame(self)
+        self.okButton = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE,
+                               state=ACTIVE)
+        self.okButton.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Escape>", self.cancel)
+        box.pack(side=BOTTOM)
+
+    def ok(self, event=None):
+        self.withdraw()
+        self.update_idletasks()
+        try:
+            self.apply()
+        finally:
+            self.cancel()
+
+    def changeParameter(self, name, type, value):
+        self.argvalues[name] = value
+
+    def cancel(self):
+        if self.cancelled:
+            self.argvalues = None
+        # put focus back to the parent window
+        if self.parent is not None:
+            self.parent.focus_set()
+        self.destroy()
+
+    def apply(self):
+        self.cancelled = False
+
 
 
 class DescriptionViewDialog(tkSimpleDialog.Dialog):
@@ -993,7 +1137,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
                            argumentTuple[1]['visible']]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(self.scModel,properties),
+                                propertyFunction=EdgePropertyFunction(properties),
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
@@ -2228,17 +2372,27 @@ class PropertyDialog(tkSimpleDialog.Dialog):
 class EdgePropertyFunction(PropertyFunction):
 
     lookup_values = {}
-    def __init__(self, scModel, properties):
+    def __init__(self,  properties):
         """
-        :param scModel:
-        @type scModel: ImageProjectModel
         """
-        self.scModel = scModel
         for prop in properties:
             self.lookup_values[prop.name] = prop.value
 
     def getValue(self, name):
         return self.lookup_values[name]
+
+    def setValue(self, name,value):
+        self.lookup_values[name] = value
+
+class NodePropertyFunction(PropertyFunction):
+
+    def __init__(self,  properties):
+        """
+        """
+        self.lookup_values = properties
+
+    def getValue(self, name):
+        return  self.lookup_values[name] if name in self.lookup_values else None
 
     def setValue(self, name,value):
         self.lookup_values[name] = value

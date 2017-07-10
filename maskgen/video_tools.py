@@ -536,18 +536,39 @@ def toMilliSeconds(st):
         stdt = datetime.strptime(st, '%H:%M:%S')
     return (stdt.hour * 3600 + stdt.minute * 60 + stdt.second) * 1000 + stdt.microsecond / 1000
 
+def removeVideoFromAudio(filename,outputname=None):
+    import tempfile
+    if outputname is None:
+        suffix = filename[filename.find('.'):]
+        newfilename = tempfile.mktemp(prefix='rmfa', suffix=suffix, dir='.')
+    else:
+        newfilename = outputname
+    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    command = [ffmpegcommand, '-y', '-i', filename,'-vn','-acodec','copy',newfilename]
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    try:
+        if stderr is not None:
+            for line in stderr.splitlines():
+                logging.getLogger('maskgen').warning("FFMPEG error for {} is {}".format(filename, line))
+        return newfilename if p.returncode == 0 else None
+    except OSError as e:
+        logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
-def x265(filename ,outputname=None, crf=0):
+
+def x265(filename ,outputname=None, crf=0, remove_video=False):
     return _vid_compress(filename,
                          ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
                          'hvec',
-                         outputname=outputname)
+                         outputname=outputname,
+                         remove_video=remove_video)
 
-def x264(filename, outputname=None, crf=0):
+def x264(filename, outputname=None, crf=0,remove_video=False):
     return _vid_compress(filename,
                          ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
                          'h264',
-                         outputname=outputname)
+                         outputname=outputname,
+                         remove_video=remove_video)
 
 def vid_md5(filename):
     ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
@@ -566,19 +587,29 @@ def vid_md5(filename):
     except OSError as e:
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
-def _vid_compress(filename, expressions, criteria,outputname=None):
+def _vid_compress(filename, expressions, criteria,outputname=None,remove_video=False):
     #md5 = vid_md5(filename)
     one_meta, one_frames = getMeta(filename, with_frames=False)
+    execute_remove= False
+    execute_compress = True
     #see if already compressed
     if one_meta is not None:
         for k,v in one_meta.iteritems():
+            if 'Stream' in k and 'Video' in v and remove_video:
+                execute_remove= True
             if 'Stream' in k and criteria in v:
-                return filename
-    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+                execute_compress = False
     prefix = filename[0:filename.rfind('.')]
     outFileName = prefix + '_compressed.avi' if outputname is None else outputname
-    if filename == outFileName:
+    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    if  execute_remove:
+        filename = removeVideoFromAudio(filename, outputname=outFileName if not execute_compress else None)
+    elif filename == outFileName:
         return filename
+
+    if not execute_compress:
+        return filename
+
     command = [ffmpegcommand, '-y','-i', filename]
     command.extend(expressions)
     command.append(outFileName)

@@ -149,8 +149,8 @@ class MakeGenUI(Frame):
         self.canvas.update()
         if (self.scModel.start is not None):
             self.setSelectState('normal')
-        if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
-            tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+        #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
+            #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
@@ -404,6 +404,16 @@ class MakeGenUI(Frame):
                 self.drawState()
                 self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
+
+    def nodeedit(self):
+        im, filename = self.scModel.currentImage()
+        if (im is None):
+            return
+        d = NodeDescriptionCaptureDialog(self, self.uiProfile, self.scModel.getCurrentNode(), self.scModel.getStartType(),
+                                     im, os.path.split(filename)[1])
+        if (d.argvalues is not None):
+            self.scModel.update_node(d.argvalues)
+        self.drawState()
 
 
     def imageanalysis(self):
@@ -918,6 +928,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
         self.nodemenu.add_command(label="Compress", command=self.compress)
         self.nodemenu.add_command(label="Analyze", command=self.imageanalysis)
+        self.nodemenu.add_command(label="Edit", command=self.nodeedit)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
