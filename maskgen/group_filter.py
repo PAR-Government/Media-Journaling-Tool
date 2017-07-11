@@ -311,19 +311,28 @@ class GroupOperationsLoader(GroupFilterLoader):
         newset = maskgenloader.get_key(self.getLoaderKey())
         if newset is None:
             return cat
+        deleteKeys  = []
         for group, content in newset.iteritems():
             if len(content) > 0:
                 first_op = getOperation(content[0])
+                if first_op is None:
+                    deleteKeys.append(group)
+                    continue
                 for first_op_trans in first_op.transitions:
                     start = first_op_trans.split('.')[0]
                     if start != startType:
                         continue
                     second_op = getOperation(content[-1])
+                    if second_op is None:
+                        deleteKeys.append( group)
+                        continue
                     for second_op_trans in second_op.transitions:
                         end = second_op_trans.split('.')[1]
                         if end == endType:
                             cat['Groups'].append(group)
                             continue
+        for group in deleteKeys:
+            newset.pop(group)
         return cat
 
 
