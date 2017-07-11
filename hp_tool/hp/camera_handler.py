@@ -79,7 +79,8 @@ class API_Camera_Handler:
             self.makes_exif = []
             self.sn_exif = []
             self.all = {}
-            with open(data_files._DEVICES) as j:
+            devices_path = data_files._LOCALDEVICES if os.path.exists(data_files._LOCALDEVICES) else data_files._DEVICES
+            with open(devices_path) as j:
                 device_data = json.load(j)
             for localID, data in device_data.iteritems():
                 self.all[localID] = data
@@ -93,5 +94,5 @@ class API_Camera_Handler:
             self.source = 'local'
 
     def write_devices(self):
-        with open(data_files._DEVICES, 'w') as j:
+        with open(data_files._LOCALDEVICES, 'w') as j:
             json.dump(self.all, j, indent=4)

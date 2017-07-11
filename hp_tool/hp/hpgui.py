@@ -740,7 +740,8 @@ class HPGUI(Frame):
         if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
         else:
-            self.statusBox.println('Camera data loaded from hp_tool/data/devices.json.')
+            self.statusBox.println('Camera data loaded from local device list.\nIf you have never connected before, this'
+                                   ' list is empty and you will not be able to process your data!')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
         return cams.source
