@@ -1,4 +1,5 @@
 import tarfile
+import tempfile
 import threading
 from Tkinter import *
 import collections
@@ -443,8 +444,6 @@ class PRNU_Uploader(Frame):
         :return: None
         """
 
-        # TODO upload as tar archive, like HP data
-
         self.capitalize_dirs()
         val = self.s3path.get()
         if (val is not None and len(val) > 0):
@@ -458,57 +457,31 @@ class PRNU_Uploader(Frame):
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        print('Uploading...')
-        total = sum([len(files) for r, d, files in os.walk(self.root_dir.get())])
-        ct = 0.0
-        upload_error = False
-        retry = []
-        for root, dirs, files in os.walk(self.root_dir.get()):
-            for f in files:
-                local_path = os.path.join(root, f)
-                upload_path = local_path[local_path.lower().index(self.localID.get().lower()):]
-                try:
-                    s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
-                                   callback=ProgressPercentage(local_path, total, ct))
-                    ct += 1
-                except Exception as e:
-                    print '\n' + str(e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
-                    retry.append({'local_path':local_path, 'upload_path': upload_path})
-                    upload_error = True
-        failed = []
-        msg = []
-        if upload_error:
-            print '\n Retrying Failed Files...\n'
-            for f in retry:
-                try:
-                    s3.upload_file(f['local_path'], BUCKET, os.path.join(DIR, f['upload_path']).replace('\\', '/'),
-                                   callback=ProgressPercentage(f['local_path'], total, ct))
-                    ct+=1
-                except Exception as e:
-                    s = 'Failed to upload '+ f['local_path']
-                    print s +'\n'
-                    failed.append(s)
-            if failed:
-                msg.append('Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+        print('Archiving data...')
+        archive = self.archive_prnu()
 
-        err = self.notify_trello_prnu('s3://' + os.path.join(val, self.root_dir.get()), failed)
-        if err is not None:
-            msg.append('S3 upload completed, but failed to notify Trello (' + str(
-                err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
-            self.master.statusBox.println(msg)
-        else:
-            msg.append('Complete!')
-            self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
-        d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
+        print('Uploading...')
+        try:
+            s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
+        except Exception as e:
+            tkMessageBox.showerror(title='Error', message='Could not complete upload.')
+            return
+
+        if tkMessageBox.askyesno(title='Complete',
+                                 message='Successfully uploaded PRNU data to S3://' + val + '. Would you like to notify via Trello?'):
+            err = self.notify_trello_prnu('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), archive)
+            if err:
+                tkMessageBox.showerror(title='Error', message='Failed to notify Trello (' + str(err) + ')')
+            else:
+                tkMessageBox.showinfo(title='Status', message='Complete!')
 
         # reset state of buttons and boxes
         self.cancel_upload()
 
-    def notify_trello_prnu(self, path, errors):
+    def notify_trello_prnu(self, path, archive_path):
         """
         Trello notifier. Posts location on s3 and timestamp, as well as errors.
         :param path: S3 bucket/path (used for card description only)
-        :param errors: List of errors occurring on upload.
         :return: Status code, if bad. Otherwise None.
         """
         if self.settings.get('trello') is None:
@@ -518,8 +491,8 @@ class PRNU_Uploader(Frame):
 
         # post the new card
         list_id = data_files._TRELLO['prnu_list']
-        new = str(datetime.datetime.now())
-        desc = path + '\n' + '\n'.join(errors) if errors else path
+        new = os.path.splitext(os.path.basename(archive_path))[0]
+        desc = path
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
                              data=dict(name=new, idList=list_id, desc=desc))
         if resp.status_code == requests.codes.ok:
@@ -538,11 +511,16 @@ class PRNU_Uploader(Frame):
         self.rootEntry.config(state=NORMAL)
 
     def archive_prnu(self):
-        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
-        archive = tarfile.open(ftar, "w", errorlevel=2)
+        dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
+        fd, tname = tempfile.mkstemp(suffix='.tar')
+        #ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
+        archive = tarfile.open(tname, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
-        return ftar
+        os.close(fd)
+        final_name = os.path.join(self.root_dir.get(), '-'.join((self.localID.get(), dt)) + '.tar')
+        shutil.move(tname, os.path.join(self.root_dir.get(), final_name))
+        return final_name
 
     def write_md5(self, path):
         # write md5 of archive to file
