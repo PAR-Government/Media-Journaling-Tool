@@ -14,6 +14,11 @@
             "values" : ["replace", "overlay"],
              "description": "Replacing or overlaying."
         },
+        "synchronization" : {
+            "type": "list",
+            "values" : ["none", "spacing", "compressing"],
+             "description": "If additional track alignment changes occurred with the addition."
+        },
         "Copy Stream" : {
           "type" : "list",
           "values": ["left", "right", "all"],
@@ -29,11 +34,6 @@
           "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Copy End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "Insertion Time": {
           "type": "time",
           "source": "video",
@@ -46,6 +46,11 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {
+        "Copy End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
@@ -135,6 +140,11 @@
             "type": "list",
             "values" : ["replace", "overlay"],
              "description": "Replacing or overlaying."
+        },
+        "synchronization" : {
+            "type": "list",
+            "values" : ["none", "spacing", "compressing"],
+             "description": "If additional track alignment changes occurred with the addition."
         },
         "Insertion Start Time": {
           "type": "time",
