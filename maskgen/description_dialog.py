@@ -420,7 +420,7 @@ class DescriptionCaptureDialog(Toplevel):
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(properties),
+                                propertyFunction=EdgePropertyFunction(properties, self.scModel),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
                                             'start_im':self.start_im,
@@ -1137,7 +1137,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
                            argumentTuple[1]['visible']]
         self.argBox= PropertyFrame(self.argBoxMaster, properties,
-                                propertyFunction=EdgePropertyFunction(properties),
+                                propertyFunction=EdgePropertyFunction(properties,self.scModel),
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
@@ -2372,9 +2372,16 @@ class PropertyDialog(tkSimpleDialog.Dialog):
 class EdgePropertyFunction(PropertyFunction):
 
     lookup_values = {}
-    def __init__(self,  properties):
+
+    scModel = None
+    def __init__(self,  properties, scModel):
         """
+        :param properties:
+        :param scModel:
+        @type properties: dict
+        @type scModel: ImageProjectModel
         """
+        self.scModel = scModel
         for prop in properties:
             self.lookup_values[prop.name] = prop.value
 
