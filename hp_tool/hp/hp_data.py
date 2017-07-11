@@ -1,7 +1,7 @@
 """
 hp_data
 
-tool for bulk renaming of files to standard
+Various helper functions that perform the backend processing for the HP Tool
 """
 
 import shutil
@@ -146,6 +146,11 @@ def grab_dir(inpath, outdir=None, r=False):
     return imageList
 
 def find_rit_file(outdir):
+    """
+    Find a file ending in a dir, ending with 'rit.csv'
+    :param outdir: string directory name
+    :return: string w/ rit filename, None if not found
+    """
     rit_file = None
     for f in os.listdir(outdir):
         if f.endswith('rit.csv'):
@@ -217,6 +222,11 @@ def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
 
 
 def check_create_subdirectories(path):
+    """
+    Check if temporary image, video, audio, and csv subdirectories exist in a path, and creates them if not.
+    :param path: directory path
+    :return: None
+    """
     subs = ['image', 'video', 'audio', 'csv']
     for sub in subs:
         if not os.path.exists(os.path.join(path, sub, '.hptemp')):
@@ -226,8 +236,12 @@ def check_create_subdirectories(path):
             if os.path.isfile(oldFile):
                 os.remove(oldFile)
 
-
 def remove_temp_subs(path):
+    """
+    Move files out of temporary subdirectories and into output folder.
+    :param path: Path containing temp subdirectories
+    :return:
+    """
     subs = ['image', 'video', 'audio', 'csv']
     for sub in subs:
         for f in os.listdir(os.path.join(path,sub,'.hptemp')):
@@ -237,6 +251,11 @@ def remove_temp_subs(path):
             os.rmdir(os.path.join(path,sub))
 
 def load_json_dictionary(path):
+    """
+    Load a json file into a dictionary
+    :param path: path to json file
+    :return: Dictionary containing json-format data
+    """
     with open(path) as j:
         data = json.load(j)
     return data
@@ -297,6 +316,13 @@ def set_other_data(data, imfile):
     return data
 
 def check_outdated(ritCSV, path):
+    """
+    If an old CSV directory is loaded, check for any updates.
+    Future update functions should be called from here for backwards compatibility. (For new column headings, etc)
+    :param ritCSV: path to RIT csv
+    :param path: path to data
+    :return:
+    """
     current_headers = load_json_dictionary(data_files._FIELDNAMES)
     rit_data = pd.read_csv(ritCSV, dtype=str)
     rit_headers = list(rit_data)
@@ -313,6 +339,14 @@ def check_outdated(ritCSV, path):
         rit_data.to_csv(ritCSV, index=False, quoting=csv.QUOTE_ALL)
 
 def add_exif_column(df, title, exif_tag, path):
+    """
+    Add a new column of exif data to a pandas dataframe containing image names
+    :param df: pandas dataframe, contains image data
+    :param title: string, column title
+    :param exif_tag: exif tag to run exiftool with (e.g. -Make)
+    :param path: path to root process directory
+    :return: None
+    """
     print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
     exifDataResult = subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
     exifDataResult = json.loads(exifDataResult)
@@ -320,10 +354,10 @@ def add_exif_column(df, title, exif_tag, path):
     for item in exifDataResult:
         exifDict[os.path.normpath(item['SourceFile'])] = item
 
+    # create an empty column, and add the new exif data to it
     a = np.empty(df.shape[0])
     a[:] = np.NaN
     new = pd.Series(a, index=df.index)
-
     try:
         for index, row in df.iterrows():
             image = row['ImageFilename']
@@ -340,11 +374,12 @@ def add_exif_column(df, title, exif_tag, path):
 
 def parse_image_info(self, imageList, **kwargs):
     """
-    Extract image information from imageList
+    One of the critical backend functions for the HP tool. Parses out exifdata all of the images, and sorts into
+    dictionary
     :param self: reference to HP GUI
     :param imageList: list of image filepaths
     :param kwargs: additional settings or metadata, including: rec (recursion T/F, path (input directory
-    :return:
+    :return: data: dictionary containing image names and their gathered data
     """
     fields = load_json_dictionary(data_files._FIELDNAMES)
     master = {}
@@ -384,6 +419,22 @@ def parse_image_info(self, imageList, **kwargs):
 
 
 def process_metadata(dir, metadata, recursive=False, quiet=False):
+    """
+    Attempts to add tags containing metadata gathered from preferences to all output images. Some media files will not
+    be writable by exiftool
+    Adds the following:
+        copyright
+        artist
+        by-line
+        credit
+        usage terms
+        copyright notice
+    :param dir: string, root directory
+    :param metadata: dictionary, metadata tags to write
+    :param recursive: boolean, whether or not to recursively edit metadata of subdirectories too
+    :param quiet: boolean, set to True for no progress messages
+    :return:
+    """
     exifToolInput = ['exiftool', '-progress']
     for key, value in metadata.iteritems():
         exifToolInput.append('-' + key + '=' + value)

@@ -1,5 +1,9 @@
 import os
 
+"""
+Contains easy method for accessing data files throughout the hp tool.
+"""
+
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 def get_data(path):
     return os.path.join(_ROOT, 'data', path)

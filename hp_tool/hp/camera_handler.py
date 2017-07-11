@@ -5,6 +5,11 @@ import data_files
 import tkMessageBox
 
 class API_Camera_Handler:
+    """
+    Manages camera metadata. If cannot connect to browser, will load from data/devices.json
+    :param url: base URL
+    :param token: browser login token
+    """
     def __init__(self, master, url, token):
         self.master = master
         self.url = url
@@ -64,6 +69,7 @@ class API_Camera_Handler:
                 else:
                     raise requests.HTTPError()
             print 'complete.'
+            self.write_devices()
             self.source = 'remote'
         except:
             print 'Could not connect. Loading from local file... ',
@@ -85,3 +91,7 @@ class API_Camera_Handler:
                     self.sn_exif.append(configuration['exif_device_serial_number'])
             print 'complete.'
             self.source = 'local'
+
+    def write_devices(self):
+        with open(data_files._DEVICES, 'w') as j:
+            json.dump(self.all, j, indent=4)

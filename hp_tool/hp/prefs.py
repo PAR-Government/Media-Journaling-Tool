@@ -9,6 +9,9 @@ import json
 import data_files
 
 class SettingsManager():
+    """
+    Handles reading/writing of user settings.
+    """
     def __init__(self, settingsFile=None):
         if settingsFile is None:
             self.settingsFile = os.path.join(os.path.expanduser('~'), '.hpsettings')
@@ -25,6 +28,7 @@ class SettingsManager():
             self.settings['metadata'] = {}
 
     def get(self, key, notFound=None):
+        # call with notFound param to change what value is returned if setting is not valid
         try:
             return self.settings[key]
         except KeyError:
@@ -50,6 +54,9 @@ class SettingsManager():
 
 
 class SettingsWindow(Toplevel):
+    """
+    Defines the user settings window.
+    """
     def __init__(self, settings, master=None):
         Toplevel.__init__(self, master=master)
         self.master=master
@@ -277,6 +284,9 @@ class SettingsWindow(Toplevel):
         self.creditVar.set(org)
 
     def save_prefs(self):
+        """
+        Write out settings
+        """
         if self.usrEntry.get():
             self.settings.set('username', self.usrVar.get().upper())
         else:
