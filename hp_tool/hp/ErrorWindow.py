@@ -5,6 +5,9 @@ import csv
 import tkFileDialog
 
 class ErrorWindow(Dialog):
+    """
+    Provided a list of error messages, shows them in a simple pop-up window.
+    """
     def __init__(self, master, errors):
         self.errors = errors
         self.cancelPressed = True

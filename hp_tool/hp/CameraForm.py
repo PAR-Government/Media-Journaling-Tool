@@ -14,7 +14,12 @@ from camera_handler import API_Camera_Handler
 from hp_data import exts
 import data_files
 
+"""
+Contains classes for managing camera browser adding/editing
+"""
+
 class HP_Device_Form(Toplevel):
+    """This class creates the window to add a new device. Must have browser login."""
     def __init__(self, master, validIDs=None, pathvar=None, token=None, browser=None):
         Toplevel.__init__(self, master)
         self.geometry("%dx%d%+d%+d" % (600, 600, 250, 125))
@@ -22,22 +27,31 @@ class HP_Device_Form(Toplevel):
         self.pathvar = pathvar # use this to set a tk variable to the path of the output txt file
         self.validIDs = validIDs if validIDs is not None else []
         self.set_list_options()
+        self.camera_added = False
 
         self.trello_token = StringVar()
         self.trello_token.set(token) if token is not None else ''
         self.browser_token = StringVar()
         self.browser_token.set(browser) if browser is not None else ''
 
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.create_widgets()
 
     def set_list_options(self):
+        """
+        Sets combobox options for manufacturer, lens mounts, and device types
+        :return: None
+        """
         df = pd.read_csv(os.path.join(data_files._DB))
         self.manufacturers = [str(x).strip() for x in df['Manufacturer'] if str(x).strip() != 'nan']
         self.lens_mounts = [str(y).strip() for y in df['LensMount'] if str(y).strip() != 'nan']
         self.device_types = [str(z).strip() for z in df['DeviceType'] if str(z).strip() != 'nan']
 
     def create_widgets(self):
+        """
+        Creates form widgets
+        :return: None
+        """
         self.f = VerticalScrolledFrame(self)
         self.f.pack(fill=BOTH, expand=TRUE)
 
@@ -51,6 +65,7 @@ class HP_Device_Form(Toplevel):
         self.imageButton = Button(self.f.interior, text='Select File', command=self.populate_from_image)
         self.imageButton.pack()
 
+        # all questions defined here. end name with a * to make mandatory
         head = [('Media Type*', {'description': 'Select the type of media contained in the sample file (Image, Video, Audio)',
                                  'type': 'readonlylist',
                                  'values': ['image', 'video', 'audio']}),
@@ -134,6 +149,10 @@ class HP_Device_Form(Toplevel):
             a.disable()
 
     def populate_from_image(self):
+        """
+        Fill mandatory exif-fillable fields
+        :return: None
+        """
         self.imfile = tkFileDialog.askopenfilename(title='Select Image File', parent=self)
         if not self.imfile:
             return
@@ -160,6 +179,10 @@ class HP_Device_Form(Toplevel):
         self.okbutton.config(state='normal')
 
     def export_results(self):
+        """
+        Triggers when ok/complete button is clicked. Validates and exports the new camera data
+        :return: None
+        """
         msg = None
         for h in self.headers:
             if h.endswith('*') and self.questions[h].get() == '':
@@ -174,9 +197,11 @@ class HP_Device_Form(Toplevel):
             tkMessageBox.showerror(title='Error', message=msg, parent=self)
             return
 
+        # post and check browser response
         browser_resp = self.post_to_browser()
         if browser_resp.status_code in (requests.codes.ok, requests.codes.created):
             cont = tkMessageBox.askyesno(title='Complete', message='Successfully posted new camera information! Post notification to Trello?', parent=self)
+            self.camera_added = True
         else:
             tkMessageBox.showerror(title='Error', message='An error ocurred posting the new camera information to the MediBrowser. (' + str(browser_resp.status_code)+ ')', parent=self)
             return
@@ -188,9 +213,13 @@ class HP_Device_Form(Toplevel):
             else:
                 tkMessageBox.showinfo(title='Information', message='Complete!', parent=self)
 
-            self.destroy()
+        self.destroy()
 
     def post_to_browser(self):
+        """
+        Handles the browser interaction
+        :return: requests.post() response
+        """
         url = 'https://medifor.rankone.io/api/cameras/'
         headers = {
             'Content-Type': 'application/json',
@@ -217,6 +246,11 @@ class HP_Device_Form(Toplevel):
         return requests.post(url, headers=headers, data=data)
 
     def json_string(self, data):
+        """
+        Convert a dictionary of camera data to a string. Also changes empty strings in the dict to None
+        :param data: dictionary containing camera data
+        :return: string version of data
+        """
         for key, val in data.iteritems():
             if val == '':
                 data[key] = None
@@ -227,6 +261,10 @@ class HP_Device_Form(Toplevel):
         return json.dumps(data)
 
     def local_id_used(self):
+        """
+        Check if a user-entered local ID is already in use
+        :return: (string) Error message (if error), otherwise None
+        """
         print 'Verifying local ID is not already in use...'
         c = API_Camera_Handler(self, token=self.browser_token.get(), url='https://medifor.rankone.io')
         local_id_reference = c.get_local_ids()
@@ -236,6 +274,11 @@ class HP_Device_Form(Toplevel):
             return 'Local ID ' + self.questions['Local ID*'].get() + ' already in use.'
 
     def open_link(self, link):
+        """
+        Open a web browser link
+        :param link: string containing website to open
+        :return: None
+        """
         webbrowser.open(link)
 
     def post_to_trello(self):
@@ -244,7 +287,7 @@ class HP_Device_Form(Toplevel):
         token = self.trello_token.get()
 
         # list ID for "New Devices" list
-        list_id = '58ecda84d8cfce408d93dd34'
+        list_id = data_files._TRELLO['camera_update_list']
 
         # post the new card
         new = self.questions['Local ID*'].get()
@@ -266,6 +309,9 @@ class HP_Device_Form(Toplevel):
             return resp.status_code
 
 class SectionFrame(Frame):
+    """
+    Question template for new camera form
+    """
     def __init__(self, master, title, descr, type, items=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.title = title
@@ -319,14 +365,12 @@ class SectionFrame(Frame):
             self._form.config(state='normal')
 
 class Update_Form(Toplevel):
+    """
+    Functions for updating a device. Accessed via File -> Update a Device in main menu. User must have valid browser
+    login set in settings.
+    """
     def __init__(self, master, device_data, trello=None, browser=None):
         Toplevel.__init__(self, master)
-        """
-        Need to call this class from GUI File Menu, first prompting for device local ID to update. The user must have valid browser creds in settings.
-        While you're at it, make that happen for the normal camera form too.
-        On start, only valid exif fields should be shown for that device.
-        Should be able to add multiple configurations, similar structure to adding arguments in JT's plugin builder.
-        """
         self.master = master
         self.device_data = device_data
         self.trello = trello
@@ -368,6 +412,11 @@ class Update_Form(Toplevel):
         cancel.pack()
 
     def add_config(self, configuration):
+        """
+        Controls the mechanism for adding a new exif configuration
+        :param configuration: dictionary containing exif fields shown in ordered dict
+        :return: None
+        """
         if hasattr(self, 'add_button'):
             self.add_button.grid_forget()
         col = 0
@@ -400,6 +449,10 @@ class Update_Form(Toplevel):
         return Button(self.f.interior, text='Add a new configuration', command=self.get_data)
 
     def go(self):
+        """
+        Posts the camera update, and notifies trello if option is selected.
+        :return: None. Should pop up box with status when complete.
+        """
         url = 'https://medifor.rankone.io/api/cameras/' + str(self.device_data['id']) + '/'
         headers = {
             'Content-Type': 'application/json',
@@ -419,6 +472,10 @@ class Update_Form(Toplevel):
             tkMessageBox.showerror(title='Error', message='An error occurred updating this device. (' + str(r.status_code) + ')', parent=self)
 
     def prepare_data(self):
+        """
+        Parse out exif data for posting on browser. Ensures no duplicates are created and assigns username/createdate.
+        :return: string-formatted json data with the new exif data
+        """
         data = {'exif':[]}
         for i in range(len(self.configurations['exif_camera_make'])):
             data['exif'].append({'exif_camera_make':self.configurations['exif_camera_make'][i].get(),
@@ -442,9 +499,15 @@ class Update_Form(Toplevel):
         return json.dumps({'exif':data})
 
     def camupdate_notify_trello(self, link):
+        """
+        Trello notifier. Posts a new card on update with user and details.
+        :param link: Link to device
+        :return: None. Message pop-up.
+        """
+
         # list ID for "New Devices" list
-        trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
-        list_id = '58ecda84d8cfce408d93dd34'
+        trello_key = data_files._TRELLO['app_key']
+        list_id = data_files._TRELLO['camera_update_list']
         link = 'https://medifor.rankone.io/camera/' + str(self.device_data['id'])
 
         # post the new card
@@ -479,6 +542,10 @@ class Update_Form(Toplevel):
         self.destroy()
 
     def get_data(self):
+        """
+        Parse out EXIF metadata from a sample media file.
+        :return: None. Calls add_config()
+        """
         self.imfile = tkFileDialog.askopenfilename(title='Select Media File', parent=self)
         if self.imfile in ('', None):
             return

@@ -1,4 +1,5 @@
 import tarfile
+import tempfile
 import threading
 from Tkinter import *
 import collections
@@ -213,6 +214,9 @@ class HP_Starter(Frame):
 
 
 class PRNU_Uploader(Frame):
+    """
+    Handles the checking and uploading of PRNU data
+    """
     def __init__(self, settings, master=None):
         Frame.__init__(self, master)
         self.master = master
@@ -277,6 +281,11 @@ class PRNU_Uploader(Frame):
         self.master.reload_devices()
 
     def parse_vocab(self, path):
+        """
+        Create valid vocabulary list for folder names. Adds valid numbering format to smaller list in file. (see prnu_vocab.csv)
+        :param path: string, path to PRNU vocab CSV
+        :return: None
+        """
         self.vocab = []
         with open(path) as v:
             rdr = csv.reader(v)
@@ -291,12 +300,19 @@ class PRNU_Uploader(Frame):
             self.root_dir.set(d)
 
     def examine_dir(self):
+        """
+        Bulk of the PRNU tool processing. Checks the specified directory for proper contents. See PRNU doc for more
+        information on rules. Will also remove hidden files and thumbs.db - be careful.
+        :return: None
+        """
         print('Verifying PRNU directory')
         self.localID.set(os.path.basename(os.path.normpath(self.root_dir.get())))
         msgs = []
 
         for path, dirs, files in os.walk(self.root_dir.get()):
             p, last = os.path.split(path)
+
+            # check root directory. should only have images and video folders.
             if last == self.localID.get():
                 if not self.has_same_contents(dirs, ['images', 'video']):
                     msgs.append('Root PRNU directory must have \"Images\" and \"Video\" folders.')
@@ -310,6 +326,8 @@ class PRNU_Uploader(Frame):
                         else:
                             msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
                             break
+
+            # check first level content. should contain primary and secondary folders only.
             elif last.lower() in ['images', 'video']:
                 if not self.has_same_contents(dirs, ['primary', 'secondary']):
                     msgs.append('Images and Video folders must each contain Primary and Secondary folders.')
@@ -323,6 +341,8 @@ class PRNU_Uploader(Frame):
                         else:
                             msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
                             break
+
+            # check second level directory, should have folders named with valid vocab
             elif last.lower() == 'primary' or last.lower() == 'secondary':
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
@@ -339,6 +359,8 @@ class PRNU_Uploader(Frame):
                         else:
                             msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
                             break
+
+            # check bottom level directory, should only have files
             elif last.lower() in self.vocab:
                 if dirs:
                     msgs.append('There should be no additional subfolders in folder ' + path)
@@ -417,6 +439,11 @@ class PRNU_Uploader(Frame):
         return collections.Counter(llist1) == collections.Counter(llist2)
 
     def upload(self):
+        """
+        Upload files to S3 individually (no archiving)
+        :return: None
+        """
+
         self.capitalize_dirs()
         val = self.s3path.get()
         if (val is not None and len(val) > 0):
@@ -430,62 +457,42 @@ class PRNU_Uploader(Frame):
         DIR = val[val.find('/') + 1:].strip()
         DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-        print('Uploading...')
-        total = sum([len(files) for r, d, files in os.walk(self.root_dir.get())])
-        ct = 0.0
-        upload_error = False
-        retry = []
-        for root, dirs, files in os.walk(self.root_dir.get()):
-            for f in files:
-                local_path = os.path.join(root, f)
-                upload_path = local_path[local_path.lower().index(self.localID.get().lower()):]
-                try:
-                    s3.upload_file(local_path, BUCKET, os.path.join(DIR, upload_path).replace('\\', '/'),
-                                   callback=ProgressPercentage(local_path, total, ct))
-                    ct += 1
-                except Exception as e:
-                    print '\n' + str(e) + '...Upload will continue, and this file will re-attempt upload again at the end...'
-                    retry.append({'local_path':local_path, 'upload_path': upload_path})
-                    upload_error = True
-        failed = []
-        msg = []
-        if upload_error:
-            print '\n Retrying Failed Files...\n'
-            for f in retry:
-                try:
-                    s3.upload_file(f['local_path'], BUCKET, os.path.join(DIR, f['upload_path']).replace('\\', '/'),
-                                   callback=ProgressPercentage(f['local_path'], total, ct))
-                    ct+=1
-                except Exception as e:
-                    s = 'Failed to upload '+ f['local_path']
-                    print s +'\n'
-                    failed.append(s)
-            if failed:
-                msg.append('Failed to upload all files to S3. Make sure your S3 upload path is correct.\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
+        print('Archiving data...')
+        archive = self.archive_prnu()
 
-        err = self.notify_trello_prnu('s3://' + os.path.join(val, self.root_dir.get()), failed)
-        if err is not None:
-            msg.append('S3 upload completed, but failed to notify Trello (' + str(
-                err) + ').\nReach out to medifor_manipulators@partech.com or Trello for assistance.')
-            self.master.statusBox.println(msg)
-        else:
-            msg.append('Complete!')
-            self.master.statusBox.println('Successfully uploaded PRNU data for ' + self.localID.get() + ' to S3://' + val + '.')
-        d = tkMessageBox.showinfo(title='Status', message='\n'.join(msg))
+        print('Uploading...')
+        try:
+            s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
+        except Exception as e:
+            tkMessageBox.showerror(title='Error', message='Could not complete upload.')
+            return
+
+        if tkMessageBox.askyesno(title='Complete',
+                                 message='Successfully uploaded PRNU data to S3://' + val + '. Would you like to notify via Trello?'):
+            err = self.notify_trello_prnu('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), archive)
+            if err:
+                tkMessageBox.showerror(title='Error', message='Failed to notify Trello (' + str(err) + ')')
+            else:
+                tkMessageBox.showinfo(title='Status', message='Complete!')
 
         # reset state of buttons and boxes
         self.cancel_upload()
 
-    def notify_trello_prnu(self, path, errors):
+    def notify_trello_prnu(self, path, archive_path):
+        """
+        Trello notifier. Posts location on s3 and timestamp, as well as errors.
+        :param path: S3 bucket/path (used for card description only)
+        :return: Status code, if bad. Otherwise None.
+        """
         if self.settings.get('trello') is None:
             t = TrelloSignInPrompt(self)
             token = t.token.get()
             self.settings.set('trello', token)
 
         # post the new card
-        list_id = '58dd916dee8fc7d4da953571'
-        new = str(datetime.datetime.now())
-        desc = path + '\n' + '\n'.join(errors) if errors else path
+        list_id = data_files._TRELLO['prnu_list']
+        new = os.path.splitext(os.path.basename(archive_path))[0]
+        desc = path
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
                              data=dict(name=new, idList=list_id, desc=desc))
         if resp.status_code == requests.codes.ok:
@@ -504,11 +511,16 @@ class PRNU_Uploader(Frame):
         self.rootEntry.config(state=NORMAL)
 
     def archive_prnu(self):
-        ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
-        archive = tarfile.open(ftar, "w", errorlevel=2)
+        dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
+        fd, tname = tempfile.mkstemp(suffix='.tar')
+        #ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
+        archive = tarfile.open(tname, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
-        return ftar
+        os.close(fd)
+        final_name = os.path.join(self.root_dir.get(), '-'.join((self.localID.get(), dt)) + '.tar')
+        shutil.move(tname, os.path.join(self.root_dir.get(), final_name))
+        return final_name
 
     def write_md5(self, path):
         # write md5 of archive to file
@@ -549,10 +561,13 @@ class PRNU_Uploader(Frame):
 
 
 class HPGUI(Frame):
+    """
+    The main HP GUI Window. Contains the initial UI setup, the camera list updating, and the file menu options.
+    """
     def __init__(self, master=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.settings = SettingsManager()
         self.create_widgets()
         self.load_ids()
@@ -583,33 +598,34 @@ class HPGUI(Frame):
         self.nb.add(f2, text='Export PRNU Data')
 
     def open_form(self):
-        if self.settings.get('trello') in (None, ''):
-            tkMessageBox.showerror(title='Error', message='Trello login is required to use this feature. Enter this in settings.')
-            return
-        elif self.settings.get('apitoken') in (None, ''):
+        """
+        Open the form for uploading a new HP device. Requires browser login.
+        :return: None
+        """
+        if self.settings.get('apitoken') in (None, ''):
             tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
             return
         new_device = StringVar()
         h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
         h.wait_window()
-        if new_device.get():
-            r = self.add_device(new_device.get())
+        if h.camera_added:
+            self.reload_ids()
 
     def edit_device(self):
+        """
+        Opens the form for updating an existing HP device with alternate exif metadata.
+        :return: None
+        """
         token = self.settings.get('apitoken')
-        trello = self.settings.get('trello')
         if token is None:
             tkMessageBox.showerror(title='Error', message='You must be logged into browser to use this feature. Please enter your browser token in settings.')
-            return
-        if trello is None:
-            tkMessageBox.showerror(title='Error',
-                                   message='You must be logged into trello to use this feature. Please enter your trello token in settings.')
             return
 
         device_id = tkSimpleDialog.askstring(title='Device ID', prompt='Please enter device local ID:')
         if device_id in ('', None):
             return
 
+        # before opening the camera update form, make sure the most up-to-date camera list is available
         source = self.reload_ids()
         if source == 'local':
             tkMessageBox.showerror(title='Error', message='Could not update camera list from browser.')
@@ -625,6 +641,10 @@ class HPGUI(Frame):
                 return
 
     def open_old_rit_csv(self):
+        """
+        Open an existing set of HP data for spreadsheet editing. user selects root output directory.
+        :return: None
+        """
         open_data = tkMessageBox.askokcancel(title='Data Selection', message='Select data to open. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
         if open_data:
             d = tkFileDialog.askdirectory(title='Select Root Data Folder')
@@ -637,6 +657,7 @@ class HPGUI(Frame):
                         if f.endswith('rit.csv'):
                             csv = os.path.join(d, 'csv', f)
                             break
+                    # csv directory and at least one of: image, video, audio folders must exist
                     if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
                                                    os.path.exists(os.path.join(d, 'video')),
                                                    os.path.exists(os.path.join(d, 'audio'))):
@@ -651,6 +672,10 @@ class HPGUI(Frame):
             return
 
     def open_old_keywords_csv(self):
+        """
+        Open existing keyword data for spreadsheet editing. User selects root output directory.
+        :return: None
+        """
         open_data = tkMessageBox.askokcancel(title='Data Selection', message='Select data to edit keywords. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
         if open_data:
             d = tkFileDialog.askdirectory(title='Select Root Data Folder')
@@ -663,6 +688,7 @@ class HPGUI(Frame):
                         if f.endswith('keywords.csv'):
                             csv = os.path.join(d, 'csv', f)
                             break
+                    # csv directory and at least one of: image, video, audio folders must exist
                     if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
                                                    os.path.exists(os.path.join(d, 'video')),
                                                    os.path.exists(os.path.join(d, 'audio'))):
@@ -681,37 +707,32 @@ class HPGUI(Frame):
         SettingsWindow(master=self.master, settings=self.settings)
 
     def load_ids(self):
+        """
+        Call to the camera handler class to get most updated version of camera list. Will load from local list if no
+        connection available.
+        :return: string containing source of camera data ('local' or 'remote')
+        """
         cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
         self.cameras = cams.get_all()
         if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
         else:
-            self.statusBox.println('Camera data loaded from hp_tool/data/devices.json.')
+            self.statusBox.println('Camera data loaded from local device list.\nIf you have never connected before, this'
+                                   ' list is empty and you will not be able to process your data!')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
         return cams.source
 
     def reload_ids(self):
+        """Wipe and reload camera data"""
         self.cameras = None
         return self.load_ids()
 
-    def add_device(self, path):
-        df = pd.read_csv(path)
-        fields = {}
-        for heading in ['HP-LocalDeviceID', 'DeviceSN', 'CameraModel', 'Manufacturer', 'HP-CameraModel']:
-            fields[heading] = df[heading][0] if str(df[heading][0]) != 'nan' else ''
-
-        self.cameras[fields['HP-LocalDeviceID']] = {
-            'hp_device_local_id': fields['HP-LocalDeviceID'],
-            'hp_camera_model': fields['HP-CameraModel'],
-            'exif': [{'exif_camera_model': fields['CameraModel'],
-                      'exif_camera_make': fields['Manufacturer'],
-                      'exif_device_serial_number': fields['DeviceSN']}],
-        }
-        self.statusBox.println('Added ' + fields['HP-LocalDeviceID'] + ' to camera list.')
-
 
 class ReadOnlyText(Text):
+    """
+    The Notifications box on main HP GUI
+    """
     def __init__(self, master, **kwargs):
         Text.__init__(self, master, **kwargs)
         self.master=master

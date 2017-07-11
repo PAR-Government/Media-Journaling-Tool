@@ -16,6 +16,10 @@ import hp_data
 RVERSION = hp_data.RVERSION
 
 class KeywordsSheet(HPSpreadsheet):
+    """
+    Class for managing keyword data entry. Simply overrides most of HPSpreadsheet, main difference being the lack of
+    tabs. 
+    """
     def __init__(self, settings, dir=None, keyCSV=None, master=None, oldImageNames=[], newImageNames=[]):
         self.keywords = self.load_keywords()
         self.settings = settings
@@ -77,7 +81,6 @@ class KeywordsSheet(HPSpreadsheet):
         self.fileMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
-        self.fileMenu.add_command(label='Load image directory', command=self.load_images)
         self.fileMenu.add_command(label='Validate', command=self.validate)
 
         self.editMenu = Menu(self.menubar, tearoff=0)
@@ -126,6 +129,7 @@ class KeywordsSheet(HPSpreadsheet):
         pass
 
     def validate(self):
+        """check with master list to ensure all keywords are valid"""
         try:
             with open(data_files._IMAGEKEYWORDS) as keys:
                 keywords = keys.readlines()
@@ -174,6 +178,7 @@ class KeywordsSheet(HPSpreadsheet):
             self.validate()
 
     def save_to_rankone(self):
+        """parses and inserts the keywords into rankone csv"""
         global RVERSION
         rankone_file = self.keyCSV.replace('keywords', 'rankone')
         with open(self.keyCSV) as keywords:
