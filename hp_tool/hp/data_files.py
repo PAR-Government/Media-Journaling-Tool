@@ -1,12 +1,20 @@
 import os
 
 """
-Contains easy method for accessing data files throughout the hp tool.
+Contains simple methods and constants for accessing data and files throughout the hp tool.
 """
 
+# can be changed to set where different trello notifications are posted
+_TRELLO = {'app_key':'dcb97514b94a98223e16af6e18f9f99e',
+           'hp_list':'58f4e07b1d52493b1910598f',
+           'prnu_list':'58dd916dee8fc7d4da953571',
+           'camera_update_list':'58ecda84d8cfce408d93dd34'}
+
 _ROOT = os.path.abspath(os.path.dirname(__file__))
+
 def get_data(path):
     return os.path.join(_ROOT, 'data', path)
+
 def get_home(path):
     return os.path.join(os.path.expanduser('~'), path)
 

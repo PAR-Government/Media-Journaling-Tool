@@ -62,7 +62,7 @@ class SettingsWindow(Toplevel):
         self.master=master
         self.settings = settings
         self.title('Setings')
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.set_text_vars()
         self.prefsFrame = Frame(self, width=300, height=300)
         self.prefsFrame.pack(side=TOP)

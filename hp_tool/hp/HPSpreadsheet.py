@@ -43,7 +43,7 @@ class HPSpreadsheet(Toplevel):
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.saveState = True
         self.highlighted_cells = []
         self.error_cells = []
@@ -631,7 +631,7 @@ class HPSpreadsheet(Toplevel):
         :param comment: string, user comment
         :return: status code if error occurs, else None
         """
-        # TODO move list ID and key to external file
+
         if self.settings.get('trello') is None:
             token = self.get_trello_token()
             self.settings.set('trello', token)
@@ -639,7 +639,7 @@ class HPSpreadsheet(Toplevel):
             token = self.settings.get('trello')
 
         # list ID for "New Devices" list
-        list_id = '58f4e07b1d52493b1910598f'
+        list_id = data_files._TRELLO['hp_list']
 
         # post the new card
         new = os.path.splitext(os.path.basename(archive))[0]
@@ -662,7 +662,7 @@ class HPSpreadsheet(Toplevel):
 
     def get_trello_token(self):
         # open prompt for Trello token
-        t = TrelloSignInPrompt(self, self.trello_key)
+        t = TrelloSignInPrompt(self)
         return t.token.get()
 
     def collect_stats(self):
@@ -945,10 +945,10 @@ class TrelloSignInPrompt(tkSimpleDialog.Dialog):
     """
     Prompt user for their trello credentials, showing button to get trello token.
     """
-    def __init__(self, master, key='dcb97514b94a98223e16af6e18f9f99e'):
+    def __init__(self, master):
         self.master=master
         self.token = StringVar()
-        self.trello_key = key
+        self.trello_key = data_files._TRELLO['app_key']
         tkSimpleDialog.Dialog.__init__(self, master)
 
     def body(self, master):

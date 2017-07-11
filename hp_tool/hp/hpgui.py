@@ -517,7 +517,7 @@ class PRNU_Uploader(Frame):
             self.settings.set('trello', token)
 
         # post the new card
-        list_id = '58dd916dee8fc7d4da953571'
+        list_id = data_files._TRELLO['prnu_list']
         new = str(datetime.datetime.now())
         desc = path + '\n' + '\n'.join(errors) if errors else path
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
@@ -589,8 +589,7 @@ class HPGUI(Frame):
     def __init__(self, master=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
-        # TODO move trello key to separate file
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.settings = SettingsManager()
         self.create_widgets()
         self.load_ids()

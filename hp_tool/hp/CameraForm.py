@@ -34,7 +34,7 @@ class HP_Device_Form(Toplevel):
         self.browser_token = StringVar()
         self.browser_token.set(browser) if browser is not None else ''
 
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.create_widgets()
 
     def set_list_options(self):
@@ -287,7 +287,7 @@ class HP_Device_Form(Toplevel):
         token = self.trello_token.get()
 
         # list ID for "New Devices" list
-        list_id = '58ecda84d8cfce408d93dd34'
+        list_id = data_files._TRELLO['camera_update_list']
 
         # post the new card
         new = self.questions['Local ID*'].get()
@@ -505,11 +505,9 @@ class Update_Form(Toplevel):
         :return: None. Message pop-up.
         """
 
-        # TODO move trello list ID and key to separate file. Also get URL from preferences.
-
         # list ID for "New Devices" list
-        trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
-        list_id = '58ecda84d8cfce408d93dd34'
+        trello_key = data_files._TRELLO['app_key']
+        list_id = data_files._TRELLO['camera_update_list']
         link = 'https://medifor.rankone.io/camera/' + str(self.device_data['id'])
 
         # post the new card
