@@ -74,7 +74,7 @@ def transform(img,source,target,**kwargs):
     largew = int(kwargs['largew'])
     largeh = int(kwargs['largeh'])
     size = int(kwargs['size'])
-    op = int(kwargs['op'])
+    op = kwargs['op'] if 'op' in kwargs else 'box'
 
     if size ==1:
         W=smallw
@@ -86,7 +86,7 @@ def transform(img,source,target,**kwargs):
         W=largew
         H=largeh
     cv_image = np.asarray(img.to_array())
-    if op==1:
+    if op == 'box':
       new_position_x,new_position_y,mask= build_mask_box(W,H,cv_image.shape)
     else:
       area = W*H
@@ -108,14 +108,14 @@ def operation():
           'description':'Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.  In the later case, paste_x and paste_y variables are returned indicating a suitable  upper left corner paste position in the source image. ',
           'software':'skimage',
           'version':'2.4.13',
-          'arguments':{'smallw': {'type': "int[32:64]", 'description':'small mask size'},
-                       'smallh': {'type': "int[32:64]", 'description':'small mask size'},
-                       'mediumw': {'type': "int[64:128]", 'description':'medium mask size'},
-                       'mediumh': {'type': "int[64:128]", 'description':'medium mask size'},
-                       'largew': {'type': "int[128:1000]", 'description':'large mask size'},
-                       'largeh': {'type': "int[128:1000]", 'description':'large mask size'},
+          'arguments':{'smallw': {'type': "int[32:64]", 'description':'small mask width size'},
+                       'smallh': {'type': "int[32:64]", 'description':'small mask height size'},
+                       'mediumw': {'type': "int[64:128]", 'description':'medium mask width size'},
+                       'mediumh': {'type': "int[64:128]", 'description':'medium mask width size'},
+                       'largew': {'type': "int[128:1000]", 'description':'large mask width size'},
+                       'largeh': {'type': "int[128:1000]", 'description':'large mask width size'},
                        'size': {'type': "int[1:4]", 'description':'mask size 1=small, 2=med, 3=large'},
-                       'op': {'type': "int[1:3]", 'description':'op 1=box, 2=segmentation boundry'},
+                       'op': {'type': 'list', 'values' : ['slic', 'box'], 'description':'selection algorithm to use'},
                        'alpha': {'type' : "yesno",
                                       "defaultvalue": "no",
                                       'description': "If yes, save the image with an alpha channel instead of the mask."}

@@ -7,7 +7,7 @@ from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import groupOpLoader, GroupFilterLoader
-from software_loader import  getProjectProperties,getSemanticGroups,operationVersion
+from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -209,10 +209,35 @@ class MakeGenUI(Frame):
         self.maskvar.set(self.scModel.maskStats())
 
     def recomputedonormask(self):
-        d = SelectDialog(self, "Mask Reconstruct", "Transform Parameter",
-                         ['None','3','4','5'])
-        choice = '0' if d.choice is None or d.choice == 'None' else d.choice
-        self.scModel.reproduceMask(skipDonorAnalysis=(choice=='0'),analysis_params={'RANSAC':int(choice)})
+
+        d = ItemDescriptionCaptureDialog(self,
+                                         {
+                                            'homography': self.scModel.getEdgeItem('homography',default='RANSAC-4'),
+                                            'homography max matches': self.scModel.getEdgeItem('homography max matches', default=10000)
+                                         },
+                                         {
+                                             "homography": {
+                                                 "type": "list",
+                                                 "source": "image",
+                                                 "values": [
+                                                     "None",
+                                                     "Map",
+                                                     "All",
+                                                     "LMEDS",
+                                                     "RANSAC-3",
+                                                     "RANSAC-4",
+                                                     "RANSAC-5"
+                                                 ],
+                                                 "description": "Tune transform during composite mask generation"
+                                             },
+                                             "homography max matches": {
+                                                 "type": "int[20:10000]",
+                                                 "description": "Maximum number of matched feature points used to compute the homography."
+                                             }
+                                         },
+                                         'Mask Reconstruct')
+        skipDonorAnalysis =  'homography' in d.argvalues and d.argvalues['homography'] == 'None'
+        self.scModel.reproduceMask(skipDonorAnalysis=skipDonorAnalysis,analysis_params=d.argvalues)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
@@ -409,8 +434,10 @@ class MakeGenUI(Frame):
         im, filename = self.scModel.currentImage()
         if (im is None):
             return
-        d = NodeDescriptionCaptureDialog(self, self.uiProfile, self.scModel.getCurrentNode(), self.scModel.getStartType(),
-                                     im, os.path.split(filename)[1])
+
+        d = ItemDescriptionCaptureDialog(self, self.scModel.getCurrentNode(),
+                                         getPropertiesBySourceType(self.scModel.getStartType()),
+                                         filename)
         if (d.argvalues is not None):
             self.scModel.update_node(d.argvalues)
         self.drawState()
@@ -527,7 +554,9 @@ class MakeGenUI(Frame):
             openFile(nim)
 
     def openMaskImage(self):
-        return
+        imname = self.scModel.maskImageName()
+        if imname != '':
+            openFile(os.path.join(self.scModel.get_dir(),imname))
 
     def drawState(self):
         sim = self.scModel.startImage()
@@ -540,6 +569,7 @@ class MakeGenUI(Frame):
         self.img3c.config(image=self.img3)
         self.l1.config(text=self.scModel.startImageName())
         self.l2.config(text=self.scModel.nextImageName())
+        self.l3.config(text=self.scModel.maskImageName())
         self.maskvar.set(self.scModel.maskStats())
 
     def doneWithWindow(self, window):

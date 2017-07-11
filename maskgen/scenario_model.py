@@ -2017,6 +2017,12 @@ class ImageProjectModel:
                 sms[terminal] = None
         return sms
 
+    def maskImageName(self):
+        if self.end is None:
+            return ''
+        edge = self.G.get_edge(self.start, self.end)
+        return edge['maskname'] if 'maskname' in edge else ''
+
     def maskImage(self):
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size

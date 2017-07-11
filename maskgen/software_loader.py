@@ -148,6 +148,9 @@ def getOperationsByCategory(sourcetype, targettype):
             result[op.category].append(op.name)
     return result
 
+def getPropertiesBySourceType(source):
+    global metadataLoader
+    return metadataLoader.node_properties[source]
 
 def getSoftwareSet():
     global metadataLoader
@@ -268,7 +271,6 @@ class MetaDataLoader:
     filters = {}
     operationsByCategory = {}
     projectProperties = {}
-    nodePropertiesByFileType = {}
 
     def __init__(self):
         self.operations , self.filters, self.operationsByCategory = self.loadOperations('operations.json')

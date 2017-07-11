@@ -51,7 +51,7 @@ class TestToolSet(unittest.TestCase):
 # The solution is to not fail the test in this case.
 # it is a legitimate case, so the final assertion must change.
 
-    def xtest_createHorizontalSeamMask(self):
+    def test_createHorizontalSeamMask(self):
         dim = 10
         old = np.random.randint(255, size=(dim, dim+1))
         new = self.createHorizontal(old ,dim-3, dim+1)
@@ -78,7 +78,7 @@ class TestToolSet(unittest.TestCase):
         new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
         self.assertTrue(np.all(new==new_rebuilt))
 
-    def xtest_createVerticalSeamMask(self):
+    def test_createVerticalSeamMask(self):
         dim = 10
         old = np.random.randint(255, size=(dim, dim))
         new = self.createVertical(old, dim, dim -3)
@@ -104,7 +104,7 @@ class TestToolSet(unittest.TestCase):
         new_rebuilt = tool_set.carveMask(old, 255-(mask * 255), new.shape)
         self.assertTrue(np.all(new==new_rebuilt))
 
-    def xtest_rotate(self):
+    def test_rotate(self):
         img1 = np.zeros((100,100),dtype=np.uint8)
         img1[20:50,40:50] = 1
         img = tool_set.applyRotateToCompositeImage(img1, 90, (50,50))
@@ -199,7 +199,7 @@ class TestToolSet(unittest.TestCase):
         result = (result - min)/(max-min) * 255.0
         print np.mean(result)
 
-    def xtest_gray_writing(self):
+    def test_gray_writing(self):
         import os
         import sys
         writer = tool_set.GrayBlockWriter('test_ts_gw', 29.97002997)

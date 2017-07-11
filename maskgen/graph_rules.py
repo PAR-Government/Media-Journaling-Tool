@@ -542,9 +542,10 @@ def check_pastemask(graph,frm, to):
 
 def check_local_warn(graph, frm, to):
     edge = graph.get_edge(frm,to)
+    opObj = getOperationWithGroups(edge['op'])
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
-    if not is_global and not included_in_composite:
+    if not is_global and not included_in_composite and opObj.category not in ['Output', 'Transform']:
         return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
     return None
 

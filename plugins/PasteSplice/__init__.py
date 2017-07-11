@@ -124,7 +124,7 @@ def transform_image(image,transform_matrix):
 
 
 def build_random_transform(img_to_paste, mask_of_image_to_paste, image_center):
-    scale = 0.5* random.random()
+    scale = 0.5 +  random.random()
     angle = 180.0*random.random() - 90.0
     return cv2.getRotationMatrix2D(image_center, angle, scale)
 

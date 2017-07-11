@@ -25,7 +25,7 @@ class TestBatchProcess(unittest.TestCase):
           'picklistlock': Lock(),
           'count': batch_project.IntObject(20)
       }
-      for i in range(20):
+      for i in range(2):
           batchProject.executeOnce(global_state)
 
 if __name__ == '__main__':

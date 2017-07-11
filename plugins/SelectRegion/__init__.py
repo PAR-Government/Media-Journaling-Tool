@@ -12,7 +12,23 @@ Select region from the image.
 Add an alpha channel to the image.
 Set the alpha channel pixels to 0 for the unselected portion of the image.
 Return variables paste_x and paste_y for placement in the same image (e.g. paste clone).
+Since felzenszwalb segmentation is slow, the user may want to use SmartMaskSelector or pre-segement the images and
+use SegmentedMaskSelector
 """
+
+def build_box_contour(img_shape):
+
+    if img_shape[0] * img_shape[1] < 625:
+        return numpy.asarray([[[1,1]],[[1, img_shape[1]-1]],[[img_shape[0]-1,img_shape[1]-1]],[[img_shape[0]-1,1]],[[1,1]]])
+
+    pixelWidth = randint(48,64)
+    pixelHeight = randint(48,64)
+
+    r_x = randint(1, abs(img_shape[1] - pixelWidth)- 1)
+    r_y = randint(1, abs(img_shape[0] - pixelHeight) - 1)
+
+    return numpy.asarray([[[r_x, r_y]], [[r_x, r_y + pixelHeight]],[[r_x + pixelWidth, r_y + pixelHeight]],[[r_x + pixelWidth,r_y]],[[r_x, r_y]]])
+
 
 def transform(img,source,target,**kwargs):
     denoise_img = denoise_tv_bregman(numpy.asarray(img), weight=0.4)
@@ -20,34 +36,34 @@ def transform(img,source,target,**kwargs):
     gray = cv2.cvtColor(denoise_img, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
 
+    max_area = (denoise_img.shape[0]*denoise_img.shape[1])/100
+
     dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0,math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
     sigma = max(0.75,math.log10(dims[0]*dims[1]/10000.0) - 0.5)
     min_size = max(100.0,math.ceil(sigma*10.0)*10)
     segments_fz = felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
     unique_labels, label_counts = numpy.unique(segments_fz, return_counts=True)
-    #segInd = randint(0, len(unique_labels) - 1)
-    #segVal = unique_labels[segInd]
-
-    #while label_counts[segInd] > segments_fz:
-    #    tempsegInd = randint(0, len(unique_labels) - 1)
-    #    if label_counts[segInd] > label_counts[tempsegInd]:
-    #        segInd = tempsegInd
-    #    count = count + 1
 
     cnts = []
-    for label in numpy.unique(unique_labels):
+    for label in unique_labels:
         mask = numpy.zeros(gray.shape, dtype="uint8")
         mask[segments_fz == label] = 255
         cnts.extend(cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
                                      cv2.CHAIN_APPROX_SIMPLE)[-2])
 
-    areas = [(cnt, cv2.contourArea(cnt)) for cnt in cnts
-              if  cv2.moments(cnt)['m00'] > 2.0 ]
+
+    areas = [(cnt, cv2.contourArea(cnt)) for cnt in cnts]
+    areas = [area for area in areas if area[1] > 4.0 and area[1] <= max_area]
     cnts = sorted(areas, key=lambda cnt: cnt[1], reverse=True)
+    cnts = [ cnt for cnt in cnts ]
+    # top 15 largest
     cnts = cnts[0: min(15,len(cnts))]
-    cnt = random.choice(cnts)
+    if len(cnts) == 0:
+        cnt = build_box_contour(denoise_img.shape)
+    else:
+        cnt = random.choice(cnts)[0]
     mask = numpy.zeros((denoise_img.shape[0],denoise_img.shape[1]), numpy.uint8)
-    cv2.fillPoly(mask, pts=[cnt[0]], color=255)
+    cv2.fillPoly(mask, pts=[cnt], color=255)
     if 'alpha' not in kwargs or kwargs['alpha'] == 'yes':
         rgba = numpy.asarray(img.convert('RGBA'))
         rgba = numpy.copy(rgba)
@@ -82,7 +98,7 @@ def transform(img,source,target,**kwargs):
 def operation():
   return {'name':'SelectRegion',
           'category':'Select',
-          'description':'Denoise and segment the image to find selection from the image. Output the image using the alpha channel indicating the selection.',
+          'description':'Denoise and segment (felzenszwalb) the image to find selection from the image. Output the image using the alpha channel indicating the selection.',
           'software':'OpenCV',
           'version':'2.4.13',
           'arguments': {'alpha': {'type' : "yesno",

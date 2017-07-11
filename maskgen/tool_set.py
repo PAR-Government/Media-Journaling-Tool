@@ -1104,7 +1104,7 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
-    maxmatches = arguments['homograph max matches'] if 'homograph' in arguments else 10000
+    maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
     kp1a = detector.detect(img1)
     kp2a = detector.detect(img2)
@@ -1312,7 +1312,7 @@ def applyToComposite(compositeMask, func, shape=None):
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint8')
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 255
         newLevelMask = func(levelMask)
         if newLevelMask is not None:

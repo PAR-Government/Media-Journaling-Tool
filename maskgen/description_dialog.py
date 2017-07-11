@@ -16,7 +16,7 @@ from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
-from software_loader import ProjectProperty, getSemanticGroups, metadataLoader
+from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
@@ -654,39 +654,29 @@ class DescriptionCaptureDialog(Toplevel):
             self.softwareLoader.save()
 
 
-class NodeDescriptionCaptureDialog(Toplevel):
-    im = None
-    dir = '.'
-    photo = None
-    c = None
-    moc = None
+class ItemDescriptionCaptureDialog(Toplevel):
+    """
+    Edit properties of a graph item (node, edge, etc.)
+    """
     cancelled = True
-    sourcefiletype = 'image'
     argvalues = {}
     argBox = None
-    node_properties = {}
 
-    def __init__(self, parent, uiProfile, currentNode, sourcefiletype, im, name):
+    def __init__(self, parent,  dictionary, properties, name):
         """
 
-        :param parent:
-        :param uiProfile:
-        :param scModel:
-        :param targetfiletype:
-        :param im:
-        :param name:
-        :param description:
-        @type scModel: ImageProjectModel
+       :param parent: parent frame
+       :param uiProfile:
+       :param dictionary: items to inspect/edt
+       :param properties: descriptionof items
+       :param name: title of window
         """
-        self.uiProfile = uiProfile
-        self.im = im
         self.parent = parent
-        self.node_properties = metadataLoader.node_properties
-        for prop_name in self.node_properties[self.sourcefiletype]:
-            if prop_name in currentNode:
-                self.argvalues[prop_name] = currentNode[prop_name]
+        self.properties = properties
+        for prop_name in self.properties:
+            if prop_name in dictionary:
+                self.argvalues[prop_name] = dictionary[prop_name]
 
-        self.sourcefiletype = sourcefiletype
         Toplevel.__init__(self, parent)
         self.withdraw()  # remain invisible for now
         # If the master is not viewable, don't
@@ -733,35 +723,31 @@ class NodeDescriptionCaptureDialog(Toplevel):
         if self.argBox is not None:
             self.argBox.destroy()
 
-        properties = [ProjectProperty(name=prop_name,
+        disp_properties = [ProjectProperty(name=prop_name,
                                       description=prop_name,
                                       information=prop_def['description'],
                                       type=prop_def['type'],
                                       values=prop_def['values'] if 'values' in prop_def else [],
                                       value=self.argvalues[prop_name] if prop_name in self.argvalues else None) \
-                      for prop_name, prop_def in self.node_properties[self.sourcefiletype].iteritems()]
-        self.argBox= PropertyFrame(self.argBoxMaster, properties,
+                      for prop_name, prop_def in self.properties.iteritems()]
+        self.argBox= PropertyFrame(self.argBoxMaster, disp_properties,
                                 propertyFunction=NodePropertyFunction(self.argvalues),
                                 changeParameterCB=self.changeParameter,
-                                dir=self.dir)
+                                dir='.')
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
         self.argBox.grid_propagate(1)
 
 
     def body(self, master):
         self.okButton = None
-        self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.im, (250, 250))).toPIL())
-        self.c = Canvas(master, width=250, height=250)
-        self.c.create_image(125, 125, image=self.photo, tag='imgd')
-        self.c.grid(row=0, column=0, columnspan=2)
-        row  = 1
+        row  = 0
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
         self.argBoxRow = row
         self.argBoxMaster = master
         self.argBox = self.buildArgBox(None)
         row += 1
-        return self.c  # initial focus
+        return self.argBox  # initial focus
 
 
     def buttonbox(self):
