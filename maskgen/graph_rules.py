@@ -142,7 +142,7 @@ def test_api(apitoken, url):
         url = url[:-1] if url.endswith('/') else url
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
-        data = '{ "file_name": {"type": "contains", "value": "' + 'test' + '" }}'
+        data = '{ "file_name": {"type": "exact", "value": "' + 'test' + '" }}'
         response = requests.post(url, data=data, headers=headers)
         if response.status_code != requests.codes.ok:
             return "Error calling external service {} : {}".format(baseurl,str(response.content))
