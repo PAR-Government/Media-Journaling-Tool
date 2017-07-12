@@ -16,6 +16,15 @@ from threading import Lock, Thread
 import numpy as np
 
 
+class EndOfResource(Exception):
+
+    def __init__(self, resource):
+        self.resource = resource
+
+
+    def __str__(self):
+        return "Resource {} depleted".format(self.resource)
+
 class IntObject:
     value = 0
     lock = Lock()
@@ -35,14 +44,7 @@ class IntObject:
             self.value += 1
             return self.value
 
-class PermuteGroupManager:
 
-    lock  = Lock()
-    groups = {}
-
-    def save(self):
-        for group in self.groups:
-            group.save()
 
 class PermuteGroupElement:
 
@@ -68,13 +70,13 @@ class PermuteGroupElement:
 
     def reset(self):
         self.iterator = self.factory()
-        self.dependent.reset()
 
 class PermuteGroup:
     iterators = {}
+    completed = set()
     last_created = None
     """
-    @type iterators : dict of PermuteGroupElement
+    @type iterators : dict[String, PermuteGroupElement]
     """
 
     def next(self, name, toIteratorFunction):
@@ -88,11 +90,42 @@ class PermuteGroup:
                 self.last_created.next()
             except:
                 self.last_created.reset()
+                self.completed.add(name)
             element = self.iterators[name]
         return element.current
 
+    def hasNext(self):
+        return len(self.completed) == len(self.iterators)
+
+    def reset(self):
+        for it in self.iterators.values():
+            it.reset()
+
     def save(self):
         pass
+
+class PermuteGroupManager:
+
+    lock  = Lock()
+    groups = {}
+
+    """
+    @type groups: Dict[string, PermuteGroup]
+    """
+
+    def __init__(self,resets=False):
+        self.resets = resets
+
+    def hasNext(self):
+        for grpid,grp in self.groups:
+            if grp.hasNext():
+                return True
+        return False
+
+    def save(self):
+        for group in self.groups:
+            group.save()
+
 
 def nextIteration(global_state, name, permutegroup, toIteratorFunction):
     """
@@ -103,8 +136,6 @@ def nextIteration(global_state, name, permutegroup, toIteratorFunction):
     :param toIteratorFunction:  initialize iterator with this function if missing or exhausted
     :return:
     """
-    if 'permutegroups' not in global_state:
-        global_state['permutegroups'] = PermuteGroupManager()
     manager = global_state['permutegroups']
     with manager.lock.lock():
         if permutegroup not in manager.groups:
@@ -296,7 +327,7 @@ def pickImage(node, global_state={}):
         else:
             listing = global_state[node['picklist']]
         if len(listing) == 0:
-            raise ValueError("Picklist of Image Files Empty")
+            raise EndOfResource("Picklist {} of Image Files".format(node['picklist']))
         pick = random.choice(listing)
         if not replacement:
             listing.remove(pick)
@@ -681,13 +712,14 @@ def getBatch(jsonFile,loglevel=50):
     return  loadJSONGraph(jsonFile)
 
 def thread_worker(projects,picklists_files,project,counter,picklistlock):
+    manager = PermuteGroupManager(resets=counter== 0)
     globalState = {'projects' : projects,
                     'picklists_files':picklists_files,
                     'project':project,
                     'count': counter,
-                    'permutegroups': PermuteGroupManager(),
+                    'permutegroups': manager,
                     'picklistlock': picklistlock}
-    while (globalState['count'].decrement() > 0):
+    while ((counter and counter.decrement() > 0) or manager.hasNext()):
         project_directory = globalState['project'].executeOnce(globalState)
         if project_directory is not None:
             print 'Completed' + project_directory
@@ -713,7 +745,7 @@ def main():
     globalState =  (args.results,
                     picklists_files,
                     batchProject,
-                    IntObject(int(args.count)),
+                    IntObject(int(args.count )) if args.count else None,
                     Lock())
     if args.graph is not None:
         batchProject.dump()

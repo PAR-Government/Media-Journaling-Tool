@@ -931,6 +931,9 @@ class ImageProjectModel:
         self.G.update_edge(self.start, self.end, **items)
         self.notify((self.start, self.end),'update_edge')
 
+    def update_node(self,node_properties):
+        self.G.update_node(self.start,**node_properties)
+
     def update_edge(self, mod):
         """
         :param mod:
@@ -1010,6 +1013,9 @@ class ImageProjectModel:
     def getNodeNames(self):
         return self.G.get_nodes()
 
+    def getCurrentNode(self):
+        return self.G.get_node(self.start)
+
     def isEditableEdge(self, start, end):
         e = self.G.get_edge(start, end)
         return 'editable' not in e or e['editable'] == 'yes'
@@ -1038,11 +1044,19 @@ class ImageProjectModel:
                     return
         if (len(self.G.successors(start)) == 0 or len(self.G.predecessors(start)) == 0)  and not force:
             return
+
+        props = {'remove_video':False}
+        for pred in self.G.predecessors(start):
+            edge = self.G.get_edge(pred,start)
+            op = getOperationWithGroups(edge['op'],fake=True)
+            if op.category == 'Audio':
+                props['remove_video'] = True
+
         func = getRule(prefLoader.get_key('compressor.' + ftype,
                                           default_value=defaults['compressor.' + ftype]))
         newfile = None
         if func is not None:
-            newfilename = func(os.path.join(self.get_dir(),node['file']))
+            newfilename = func(os.path.join(self.get_dir(),node['file']), **props)
             if newfilename is not None:
                 newfile = os.path.split(newfilename)[1]
                 node['file'] = newfile
@@ -1816,6 +1830,9 @@ class ImageProjectModel:
 
     def operationImageName(self):
         return self.end if self.end is not None else self.start
+
+    def getFileName(self, nodeid):
+        return self.G.get_node(nodeid)['file']
 
     def startImageName(self):
         return self.G.get_node(self.start)['file'] if self.start is not None else ""

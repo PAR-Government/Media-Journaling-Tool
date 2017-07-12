@@ -28,6 +28,10 @@ import data_files
 RVERSION = hp_data.RVERSION
 
 class HPSpreadsheet(Toplevel):
+    """
+    Allows for data entry in spreadsheet format for all HP data. Provides functions for validation, uploading,
+    and UI management.
+    """
     def __init__(self, settings, dir=None, ritCSV=None, master=None, devices=None):
         Toplevel.__init__(self, master=master)
         self.settings = settings
@@ -39,7 +43,7 @@ class HPSpreadsheet(Toplevel):
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
-        self.trello_key = 'dcb97514b94a98223e16af6e18f9f99e'
+        self.trello_key = data_files._TRELLO['app_key']
         self.saveState = True
         self.highlighted_cells = []
         self.error_cells = []
@@ -105,10 +109,8 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
-        #self.fileMenu.add_command(label='Load image directory', command=self.load_images)
         self.fileMenu.add_command(label='Validate', command=self.validate)
         self.fileMenu.add_command(label='Export to S3', command=self.s3export)
-        #self.fileMenu.add_command(label='Export to S3 for ingest', command=self.ingest)
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
@@ -137,6 +139,11 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Control-y>', self.redo)
 
     def undo(self, event=None):
+        """
+        Will undo the most recent fill action. Does not undo regular single text entry.
+        :param event: event trigger
+        :return: None
+        """
         if self.on_main_tab:
             currentTable = self.pt
         else:
@@ -150,6 +157,11 @@ class HPSpreadsheet(Toplevel):
             currentTable.redraw()
 
     def redo(self, event=None):
+        """
+        Will redo the most recent fill action, after undone with undo().
+        :param event: event trigger
+        :return: None
+        """
         if self.on_main_tab:
             currentTable = self.pt
         else:
@@ -162,9 +174,14 @@ class HPSpreadsheet(Toplevel):
             currentTable.redraw()
 
     def keypress(self, event):
+        # any time a key is pressed in spreadsheet, assume the sheet needs to be saved
         self.saveState = False
 
     def open_image(self):
+        """
+        Open clicked image in system default viewer. Primarily for video and raw files.
+        :return: None
+        """
         image = os.path.join(self.imageDir, self.imName)
         if not os.path.exists(image):
             image = os.path.join(self.videoDir, self.imName)
@@ -178,6 +195,11 @@ class HPSpreadsheet(Toplevel):
             os.system('open "' + image + '"')
 
     def update_current_image(self, event=None):
+        """
+        Open image in preview pane on right side based on current cell. Open default Red X image if fails.
+        :param event: event trigger
+        :return: None
+        """
         if self.on_main_tab:
             row = self.pt.getSelectedRow()
         else:
@@ -197,6 +219,10 @@ class HPSpreadsheet(Toplevel):
         self.update_valid_values()
 
     def add_tabs(self):
+        """
+        Add tabs to the spreadsheet. More tabs can be added in data/hptabs.json
+        :return: None
+        """
         with open(data_files._HPTABS) as j:
             tabs = json.load(j, object_pairs_hook=collections.OrderedDict)
         for tab in tabs:
@@ -204,6 +230,12 @@ class HPSpreadsheet(Toplevel):
             self.nb.add(self.nbtabs[tab], text=tab)
 
     def switch_tabs(self, event=None):
+        """
+        Logic handling for spreadsheet tabs. Main tab still acts as control. When a different tab is selected, ensures
+        main tab is updated, and then pulls data from main tab.
+        :param event: event trigger
+        :return: None
+        """
         with open(data_files._HPTABS) as j:
             tabs = json.load(j)
         clickedTab = self.nb.tab(event.widget.select(), 'text')
@@ -232,7 +264,11 @@ class HPSpreadsheet(Toplevel):
             del self.tabpt
 
     def update_valid_values(self):
-        #self.pt.model.df.columns.get_loc('HP-OnboardFilter')
+        """
+        Cheap function to handle instructions/value selection for cells. Started small, but has grown considerably.
+        Should be refactored when time allows.
+        :return: None
+        """
         if self.on_main_tab:
             col = self.pt.getSelectedColumn()
             cols = list(self.pt.model.df)
@@ -316,6 +352,11 @@ class HPSpreadsheet(Toplevel):
             self.validateBox.bind('<<ListboxSelect>>', self.insert_item)
 
     def load_device_exif(self, field):
+        """
+        Load all valid values for a particular exif field, based on known camera configurations.
+        :param field: string, field to search for
+        :return: sorted, lowercase list of valid values for that field
+        """
         output = []
         for cameraID, data in self.master.cameras.iteritems():
             for configuration in data['exif']:
@@ -323,16 +364,24 @@ class HPSpreadsheet(Toplevel):
         return sorted(set([x for x in output if x is not None]), key = lambda s: s.lower())
 
     def insert_item(self, event=None):
+        """
+        Inserts a value in the current cell from valid values box when value is clicked.
+        :param event: event trigger
+        :return: None
+        """
         selection = event.widget.curselection()
         val = event.widget.get(selection[0])
         if self.on_main_tab:
             currentTable = self.pt
         else:
             currentTable = self.tabpt
+
         row = currentTable.getSelectedRow()
         col = currentTable.getSelectedColumn()
+
         if hasattr(currentTable, 'disabled_cells') and (row, col) in currentTable.disabled_cells:
             return
+
         currentTable.undo = [(currentTable.model.getValueAt(row, col), row, col)]
         currentTable.model.setValueAt(val, row, col)
         currentTable.redraw()
@@ -340,11 +389,11 @@ class HPSpreadsheet(Toplevel):
             currentTable.cellentry.destroy()
         currentTable.parentframe.focus_set()
 
-    def load_images(self):
-        self.imageDir = tkFileDialog.askdirectory(initialdir=self.dir)
-        self.focus_set()
-
     def open_spreadsheet(self):
+        """
+        Call this function to load the CSV file and set the table defaults/settings
+        :return: None
+        """
         if self.dir and not self.ritCSV:
             for f in os.listdir(self.csvDir):
                 if f.endswith('.csv') and 'rit' in f:
@@ -388,6 +437,15 @@ class HPSpreadsheet(Toplevel):
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
 
     def color_code_cells(self, tab=None):
+        """
+        Go through all cells and check color coding. Called when spreadsheet is first opened, and after each validation.
+        GRAY (#c1c1c1) indicates cell is DISABLED
+        YELLOW (#f3f315) indicates cell is MANDATORY
+        RED (#ff5b5b) indicates an ERROR in that cell
+        WHITE (#ffffff) is NORMAL
+        :param tab: (optional), specify current tab (self.tabpt)
+        :return: None
+        """
         if tab is None:
             tab = self.pt
             track_highlights = True
@@ -444,6 +502,12 @@ class HPSpreadsheet(Toplevel):
         tab.redraw()
 
     def exportCSV(self, showErrors=True, quiet=False):
+        """
+        Export the spreadsheet to CSV. DOES NOT EXPORT TO S3 (see s3export).
+        :param showErrors: boolean, set False to skip validation
+        :param quiet: boolean, set True to skip message dialog pop-ups
+        :return: True if cancelled, None otherwise
+        """
         if not self.on_main_tab:
             self.nb.select(self.nbtabs['main'])
             self.update_main()
@@ -473,13 +537,21 @@ class HPSpreadsheet(Toplevel):
         return None
 
     def export_rankOne(self):
+        """
+        Export the rankOne csv. This file is the one that is actually processed on ingest.
+        :return: None
+        """
         global RVERSION
         self.rankOnecsv = self.ritCSV.replace('-rit.csv', '-rankone.csv')
         with open(data_files._HEADERS) as j:
             headers = json.load(j)['rankone']
 
+        # extract keyword data
         old_rankone_data = pd.read_csv(self.rankOnecsv, header=1)
-        keywords = old_rankone_data['HP-Keywords'].tolist()
+        try:
+            keywords = old_rankone_data['HP-Keywords'].tolist()
+        except KeyError:
+            pass
 
         with open(self.rankOnecsv, 'w') as ro:
             wtr = csv.writer(ro, lineterminator='\n', quoting=csv.QUOTE_ALL)
@@ -490,10 +562,18 @@ class HPSpreadsheet(Toplevel):
             for row in range(0, len(subset.index)):
                 importDates.append(now)
             subset['ImportDate'] = importDates
-            subset['HP-Keywords'] = keywords
+            try:
+                # insert keyword data into csv
+                subset['HP-Keywords'] = keywords
+            except:
+                pass
             subset.to_csv(ro, columns=headers, index=False, quoting=csv.QUOTE_ALL)
 
     def s3export(self):
+        """
+        Process control for HP Data S3 uploading
+        :return: None
+        """
         cancelled = self.exportCSV(quiet=True)
         if cancelled:
             return
@@ -519,10 +599,9 @@ class HPSpreadsheet(Toplevel):
                 return
 
             #self.verify_upload(all_files, os.path.join(BUCKET, DIR))
-            failed = []
             if tkMessageBox.askyesno(title='Complete', message='Successfully uploaded HP data to S3://' + val + '. Would you like to notify via Trello?', parent=self):
                 comment = self.check_trello_login()
-                err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), comment, failed)
+                err = self.notify_trello('s3://' + os.path.join(BUCKET, DIR, os.path.basename(archive)), archive, comment)
                 if err:
                     tkMessageBox.showerror(title='Error', message='Failed to notify Trello (' + str(err) + ')', parent=self)
                 else:
@@ -531,13 +610,11 @@ class HPSpreadsheet(Toplevel):
         else:
             tkMessageBox.showinfo(title='Information', message='Upload canceled.', parent=self)
 
-    def verify_upload(self, all_files, location):
-        s3 = boto3.resource('s3')
-        my_bucket = s3.Bucket(location)
-        # wip
-
-
     def check_trello_login(self):
+        """
+        Prompt for Trello comment, while also checking that trello credential exists
+        :return: string, comment to be posted to trello with upload information
+        """
         if self.settings.get('trello', notFound='') == '':
             token = self.get_trello_token()
             if token == '':
@@ -546,7 +623,15 @@ class HPSpreadsheet(Toplevel):
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
 
-    def notify_trello(self, filestr, comment, failed):
+    def notify_trello(self, filestr, archive, comment):
+        """
+        Handles trello card posting notifier
+        :param filestr: string, S3 path, used for description only
+        :param archive: string, archive filepath
+        :param comment: string, user comment
+        :return: status code if error occurs, else None
+        """
+
         if self.settings.get('trello') is None:
             token = self.get_trello_token()
             self.settings.set('trello', token)
@@ -554,12 +639,12 @@ class HPSpreadsheet(Toplevel):
             token = self.settings.get('trello')
 
         # list ID for "New Devices" list
-        list_id = '58f4e07b1d52493b1910598f'
+        list_id = data_files._TRELLO['hp_list']
 
         # post the new card
-        new = os.path.basename(self.rankOnecsv)[:-4]
+        new = os.path.splitext(os.path.basename(archive))[0]
         stats = filestr + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
-        stats = stats + 'Failed Files:\n' + '\n'.join(failed) if failed else stats
+        stats = stats
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
                              data=dict(name=new, idList=list_id, desc=stats))
 
@@ -576,14 +661,15 @@ class HPSpreadsheet(Toplevel):
             return resp.status_code
 
     def get_trello_token(self):
-        t = TrelloSignInPrompt(self, self.trello_key)
+        # open prompt for Trello token
+        t = TrelloSignInPrompt(self)
         return t.token.get()
 
-    def prompt_for_new_camera(self, invalids):
-        h = NewCameraPrompt(self, invalids, valids=self.devices.keys(), token=self.settings.get('trello'))
-        return h.pathVars
-
     def collect_stats(self):
+        """
+        Count images/video/audio files in upload
+        :return: string, count of each file category in CSV
+        """
         images = 0
         videos = 0
         audio = 0
@@ -598,6 +684,10 @@ class HPSpreadsheet(Toplevel):
         return 'Image Files: ' + str(images) + '\nVideo Files: ' + str(videos) + '\nAudio Files: ' + str(audio)
 
     def create_hp_archive(self):
+        """
+        Archive output folder into a .tar file.
+        :return: string, archive filename formatted as "USR-LocalID-YYmmddHHMMSS.tar"
+        """
         val = self.pt.model.df['HP-DeviceLocalID'][0]
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
@@ -611,6 +701,10 @@ class HPSpreadsheet(Toplevel):
         return final_name
 
     def validate(self):
+        """
+        Run validation routines, and re-color code cells after check is complete
+        :return: None. Opens ErrorWindow if errors exist.
+        """
         errors = []
         types = self.pt.model.df['Type']
         uniqueIDs = []
@@ -662,6 +756,11 @@ class HPSpreadsheet(Toplevel):
         return errors, cancelPressed
 
     def parse_process_errors(self, row):
+        """
+        Parse dictionary-formatted process errors into workable list for ErrorWindow
+        :param row: int, current row in spreadsheet
+        :return: list of process errors
+        """
         errors = []
         invalid_errors = []
         imageName = self.pt.model.df['OriginalImageName'][row]
@@ -672,6 +771,11 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def check_process_errors(self):
+        """
+        Check sheet for process errors. These are exif mismatches, where a file's exif data does not match the record
+        for that device ID. These fields will be highlighted red once color-coded.
+        :return: dictionary containing an entry for each row, with what columns to highlight, and an error messages.
+        """
         errors = {}
         self.master.reload_ids()
         for row in range(0, self.pt.rows):
@@ -708,12 +812,21 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def get_val(self, item):
+        """
+        Handles NaN results from pandas df indexing.
+        :param item: pandas df index result
+        :return: string representation of item - empty string if NaN
+        """
         if pd.isnull(item):
             return ''
         else:
             return item
 
     def check_save(self):
+        """
+        Prompts user to save sheet if edits have been made
+        :return: None. Closes spreadsheet.
+        """
         if self.saveState == False:
             message = 'Would you like to save before closing this sheet?'
             confirm = tkMessageBox.askyesnocancel(title='Save On Close', message=message, default=tkMessageBox.YES, parent=self)
@@ -729,6 +842,10 @@ class HPSpreadsheet(Toplevel):
             self.destroy()
 
     def load_kinematics(self):
+        """
+        Load kinematics from file
+        :return: list of kinematics
+        """
         try:
             df = pd.read_csv(data_files._KINEMATICS)
         except IOError:
@@ -737,6 +854,11 @@ class HPSpreadsheet(Toplevel):
         return [x.strip() for x in df['Camera Kinematics']]
 
     def check_collections(self, row):
+        """
+        Checks for valid Collection column entry
+        :param row: row to check
+        :return: list containing error message, if available
+        """
         errors = []
         collection = self.pt.model.df['HP-Collection'][row]
         if collection not in self.collections and pd.notnull(collection):
@@ -744,6 +866,11 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def check_kinematics(self, row):
+        """
+        Checks for valid Kinematics column entry
+        :param row: row to check
+        :return: list containing error message, if available
+        """
         errors = []
         kinematic = self.pt.model.df['HP-CameraKinematics'][row]
         type = self.pt.model.df['Type'][row]
@@ -756,6 +883,10 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def load_apps(self):
+        """
+        Load camera apps from file
+        :return: alphabetically sorted list of apps
+        """
         try:
             df = pd.read_csv(data_files._APPS)
         except IOError:
@@ -765,6 +896,10 @@ class HPSpreadsheet(Toplevel):
         return sorted(list(set(apps)))
 
     def load_lens_filters(self):
+        """
+        Load lens filter list from file
+        :return: alphabetically sorted list of lens filters
+        """
         try:
             df = pd.read_csv(data_files._LENSFILTERS)
         except IOError:
@@ -774,6 +909,11 @@ class HPSpreadsheet(Toplevel):
         return sorted(list(set(filters)))
 
     def check_model(self, row):
+        """
+        Checks for valid HP camera model column entry
+        :param row: row to check
+        :return: list containing error message, if available
+        """
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
         if pd.isnull(model) or model.lower() == 'nan' or model == '':
@@ -785,6 +925,11 @@ class HPSpreadsheet(Toplevel):
         return errors
 
     def check_localID(self, row):
+        """
+        Checks for valid Local ID column entry
+        :param row: row to check
+        :return: list containing error message, if available
+        """
         errors = []
         localID = self.pt.model.df['HP-DeviceLocalID'][row]
         if localID.lower() == 'nan' or localID == '':
@@ -795,37 +940,15 @@ class HPSpreadsheet(Toplevel):
             errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
         return errors
 
-class NewCameraPrompt(tkSimpleDialog.Dialog):
-    def __init__(self, master, invalids, valids=None, token=None):
-        self.invalids = invalids
-        self.master = master
-        self.valids = valids if valids is not None else []
-        self.pathVars = {}
-        tkSimpleDialog.Dialog.__init__(self, master)
-        self.token = token
-        self.title('New Devices')
-
-    def body(self, master):
-        r=0
-        Label(self, text='The following device local IDs are invalid. Please provide a text file with the completed "New Camera" form.').grid(row=r, columnspan=3)
-        for newDevice in self.invalids:
-            r+=1
-            self.pathVars[newDevice] = StringVar()
-            Label(self, text=newDevice).grid(row=r, column=0)
-            e = Entry(self, textvar=self.pathVars[newDevice])
-            e.grid(row=r, column=1)
-            # b = Button(self, text='Complete form', command=lambda: self.open_form(self.pathVars[newDevice]))
-            # b.grid(row=r, column=2)
-
-    def open_form(self, pathVar):
-        h = HP_Device_Form(self, self.valids, pathvar=pathVar, token=self.token)
-
 
 class TrelloSignInPrompt(tkSimpleDialog.Dialog):
-    def __init__(self, master, key='dcb97514b94a98223e16af6e18f9f99e'):
+    """
+    Prompt user for their trello credentials, showing button to get trello token.
+    """
+    def __init__(self, master):
         self.master=master
         self.token = StringVar()
-        self.trello_key = key
+        self.trello_key = data_files._TRELLO['app_key']
         tkSimpleDialog.Dialog.__init__(self, master)
 
     def body(self, master):
@@ -866,6 +989,9 @@ class ProgressPercentage(object):
 
 
 class CustomTable(pandastable.Table):
+    """
+    Backend for pandastable. Modify this to change shortcuts, right-click menus, cell movement, etc.
+    """
     def __init__(self, master, **kwargs):
         pandastable.Table.__init__(self, parent=master, **kwargs)
         self.copied_val = None

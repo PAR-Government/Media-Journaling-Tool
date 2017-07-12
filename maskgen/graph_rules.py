@@ -195,8 +195,7 @@ def check_graph_rules(graph,node,external=False, prefLoader=None):
     """
     errors = []
     nodeData = graph.get_node(node)
-    category = graph.getDataItem('manipulationcategory')
-    multiplebaseok =  category.lower() == 'provenance' if category is not None else False
+    multiplebaseok = graph.getDataItem('provenance',default_value='no') == 'yes'
 
     if 'file' not in nodeData:
         errors.append('Missing file information.')
@@ -214,9 +213,10 @@ def check_graph_rules(graph,node,external=False, prefLoader=None):
                 if hashname not in nodeData['file']:
                     errors.append("[Warning] Final image {} is not composed of its MD5.".format( nodeData['file']))
 
+    isHP = ('cgi' not in nodeData or nodeData['cgi'] == 'no') and ('HP' not in nodeData or nodeData['HP'] == 'yes')
     checked_nodes = graph.getDataItem('api_validated_node',[])
     if nodeData['file'] not in checked_nodes:
-        if nodeData['nodetype'] == 'base' and external and \
+        if nodeData['nodetype'] == 'base' and external and isHP and \
                 prefLoader.get_key('apitoken') is not None:
                     fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
                     if len(fields)  == 0:

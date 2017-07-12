@@ -373,6 +373,13 @@ def validateTimeString(v):
     if v.count(':') > 3:
         return False
 
+    if v.count(':') == 0:
+        try:
+            int(v)
+        except:
+            return False
+        return True
+
     framecount = 0
     if v.count(':') > 2:
         try:

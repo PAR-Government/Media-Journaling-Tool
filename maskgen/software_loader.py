@@ -202,7 +202,8 @@ def loadOperationJSON(fileName):
                                         compareparameters=op[
                                             'compareparameters'] if 'compareparameters' in op else dict(),
                                         maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
-    return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc'
+    return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
+         ops['node_properties'] if 'node_properties' in ops else {}
 
 customRuleFunc = {}
 def loadCustomRules():
@@ -261,12 +262,13 @@ def getFilters(filtertype):
 
 
 class MetaDataLoader:
-    verison = ''
+    version = ''
     softwareset = {}
     operations = {}
     filters = {}
     operationsByCategory = {}
     projectProperties = {}
+    nodePropertiesByFileType = {}
 
     def __init__(self):
         self.operations , self.filters, self.operationsByCategory = self.loadOperations('operations.json')
@@ -306,7 +308,7 @@ class MetaDataLoader:
         return self.projectProperties
 
     def loadOperations(self,fileName):
-        self.operations, self.filters, self.version = loadOperationJSON(fileName)
+        self.operations, self.filters, self.version, self.node_properties = loadOperationJSON(fileName)
         logging.getLogger('maskgen').info('Loaded operation version ' + self.version)
         self.operationsByCategory = {}
         for op, data in self.operations.iteritems():

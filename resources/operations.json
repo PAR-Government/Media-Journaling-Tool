@@ -1,5 +1,5 @@
 {
-  "version": "v04.0621.a474f3b799",
+  "version": "v04.0710.200a7826e9",
   "operations": [
      {
       "category": "Audio",
@@ -13,6 +13,11 @@
             "type": "list",
             "values" : ["replace", "overlay"],
              "description": "Replacing or overlaying."
+        },
+        "synchronization" : {
+            "type": "list",
+            "values" : ["none", "spacing", "compressing"],
+             "description": "If additional track alignment changes occurred with the addition."
         },
         "Copy Stream" : {
           "type" : "list",
@@ -29,11 +34,6 @@
           "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Copy End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "Insertion Time": {
           "type": "time",
           "source": "video",
@@ -46,6 +46,11 @@
         "checkFileTypeChange"
       ],
       "optionalparameters": {
+        "Copy End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
@@ -61,12 +66,10 @@
       "mandatoryparameters": {
         "Copy Start Time": {
           "type": "time",
-          "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy Stream" : {
@@ -138,6 +141,11 @@
             "values" : ["replace", "overlay"],
              "description": "Replacing or overlaying."
         },
+        "synchronization" : {
+            "type": "list",
+            "values" : ["none", "spacing", "compressing"],
+             "description": "If additional track alignment changes occurred with the addition."
+        },
         "Insertion Start Time": {
           "type": "time",
           "source": "video",
@@ -167,7 +175,8 @@
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio"
       ]
     },
     {
@@ -3536,6 +3545,55 @@
       "PasteOverlay",
       "CopyBlended"
     ]
+  },
+  "node_properties": {
+    "audio": {
+      "HP" : {
+        "type": "yesno",
+        "description" : "Is High Provenance?"
+      },
+      "In Door" : {
+        "type": "yesno",
+        "description" : "Is Indoor Sample?"
+      },
+      "Source Type": {
+        "type": "list",
+        "values" : ["background", "voice"],
+        "description" : "Prominent audio signal"
+      },
+      "Device ID": {
+        "type": "string",
+        "description" : "Valid Microphone Device ID"
+      },
+      "Proximity": {
+        "type": "list",
+        "values" : ["short", "medium", "far"],
+        "description" : "Microphone distance to subject"
+      },
+      "cgi" : {
+        "type": "yesno",
+        "description" : "Is CGI?"
+      }
+    },
+    "video": {
+      "HP" : {
+        "type": "yesno",
+        "description" : "Is High Provenance?"
+      },
+      "cgi" : {
+        "type": "yesno",
+        "description" : "Is CGI?"
+      }
+    },
+    "image": {
+      "HP" : {
+        "type": "yesno",
+        "description" : "Is High Provenance?"
+      },
+      "cgi" : {
+        "type": "yesno",
+        "description" : "Is CGI?"
+      }
+    }
   }
-
 }
