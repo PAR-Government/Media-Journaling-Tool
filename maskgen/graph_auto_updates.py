@@ -1,4 +1,4 @@
-from image_graph import current_version
+from image_graph import current_version,getPathValues
 import tool_set
 import os
 import logging
@@ -52,6 +52,10 @@ def updateJournal(scModel):
     if '04.0621.3a5c9635ef' not in upgrades:
         _fixProvenanceCategory(scModel)
         upgrades.append('04.0621.3a5c9635ef')
+    if '04.0720.415b6a5cc4' not in upgrades:
+        _fixRANSAC(scModel)
+        _fixHP(scModel)
+        upgrades.append('04.0720.415b6a5cc4')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -72,6 +76,34 @@ def _fixProvenanceCategory(scModel):
     else:
         scModel.setProjectData('provenance', 'no')
     scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
+
+
+def _updateEdgeHomography(edge):
+    if 'RANSAC' in edge:
+        value = edge.pop('RANSAC')
+        if value == 'None' or value == 0 or value == '0':
+            edge['homography'] = 'None'
+        else:
+            edge['homography'] = 'RANSAC-' + str(value)
+        if 'Transform Selection' in edge and edge['Transform Selection'] == 'Skip':
+            edge['homography'] = 'None'
+        if 'sift_max_matches' in edge:
+            edge['homography max matches'] = edge.pop('sift_max_matches')
+
+def _fixHP(scModel):
+    for nodename in scModel.getNodeNames():
+        node= scModel.G.get_node(nodename)
+        if 'HP' in node:
+            node['Registered'] = node.pop('HP')
+
+def _fixRANSAC(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        args = edge['arguments'] if 'arguments' in edge else dict()
+        _updateEdgeHomography(edge)
+        _updateEdgeHomography(args)
+        if edge['op'] == 'Donor':
+            edge['homography max matches'] = 20
 
 def _operationsChange1(scModel):
     projecttype = scModel.G.getDataItem('projecttype')

@@ -1,6 +1,14 @@
 from maskgen.segmentation.segmanage import select_region, convert_color,find_segmentation_classifier,segmentation_classification
 """
-Use a presegmented image descriptor
+Selected a region using a presegmented image descriptor.
+A directory contains PNG images, each with the same name (different suffix) as the source image (md5 name).
+Each PNG contains pixels with colors associated their assigned classification, as determined another algorithm.
+A classifications.csv file in the same directory contains the mapping of color to classification.
+Example contents:
+"[200,100,200]",house
+
+Pick one color of all colors in the image, create a mask with the pixels associated with the chosen color set to white.
+Save the mask as the target image.  The result of the transform includes a variable 'subject' set to the classification of the chosen color.
 """
 
 def transform(img,source,target,**kwargs):
@@ -12,14 +20,14 @@ def transform(img,source,target,**kwargs):
         return None, 'Cannot find segmentation mask'
     newimg, segmentation_color = select_region(img,segment_mask,segmentation_color)
     newimg.save(target)
-    return {'purpose' : segmentation_classification(segmentation_directory,segmentation_color)}, None
+    return {'subject' : segmentation_classification(segmentation_directory,segmentation_color)}, None
 
 # the actual link name to be used. 
 # the category to be shown
 def operation():
   return {'name':'SelectRegion',
           'category':'Select',
-          'description':'Use a set of presegmented images to pick a select region and purpose ',
+          'description':'Use a set of presegmented images to pick a select region and purpose. ',
           'software':'OpenCV',
           'version':'2.4.13',
           'arguments':

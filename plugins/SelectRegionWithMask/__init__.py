@@ -5,7 +5,7 @@ from maskgen import tool_set
 from maskgen.image_wrap import ImageWrapper
 
 """
-Convenience plugin to perform select region given a mask.
+Convenience plugin to perform select region given a mask.  The output image sets the alpha channel to the mask.
 """
 
 def transform(img,source,target, **kwargs):
@@ -39,11 +39,11 @@ def operation():
                     "description": "An image file containing a mask describing the areas affected."
                 }
            },
-           'description':'Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.',
+           'description':'Create a limited selection in a donor image.  The provided inputmask is placed as the alpha channel of the result image',
            'transitions': [
                 'image.image'
             ]
          }
 
 def suffix():
-    return None
+    return '.png'
