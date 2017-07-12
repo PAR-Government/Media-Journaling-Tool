@@ -607,6 +607,16 @@ def checkForDonor(graph, frm, to):
         return 'donor image/video missing'
     return None
 
+def checkForDonorAudio(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge else {}
+    if 'Direct from PC' in args and args['Direct from PC'] == 'yes':
+        return None
+    pred = graph.predecessors(to)
+    if len(pred) < 2:
+        return 'donor image/video missing'
+    return None
+
 
 def checkLengthSame(graph, frm, to):
     """ the length of video should not change

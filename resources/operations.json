@@ -145,10 +145,14 @@
           "type" : "list",
           "values": ["left", "right", "all"],
           "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "Direct from PC" : {
+          "type" : "yesno",
+          "description" : "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
       "rules": [
-        "checkForDonor",
+        "checkForDonorAudio",
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes"

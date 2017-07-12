@@ -94,7 +94,7 @@ def _fixHP(scModel):
     for nodename in scModel.getNodeNames():
         node= scModel.G.get_node(nodename)
         if 'HP' in node:
-            node['Registered'] = node['HP']
+            node['Registered'] = node.pop('HP')
 
 def _fixRANSAC(scModel):
     for frm, to in scModel.G.get_edges():
