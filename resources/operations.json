@@ -2594,7 +2594,12 @@
     {
       "category": "Select",
       "name": "SelectFromFrames",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "chroma key insertion" :{
+           "type" : "yesno",
+           "description": "Was a chroma-key inserted into the video?"
+        }
+      },
       "rules": [
         "checkSize",
         "checkFrameTimes"
@@ -2609,7 +2614,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "description": "Select a region from a series of frames for the intent of pasting (creating a donor).",
+      "description": "Select a region from a series of frames for the intent of pasting (creating a donor), including addition of chroma key.",
       "includeInMask": true,
       "transitions": [
         "video.video"
@@ -3613,9 +3618,9 @@
   },
   "node_properties": {
     "audio": {
-      "HP" : {
+      "Registered" : {
         "type": "yesno",
-        "description" : "Is High Provenance?"
+        "description" : "Is Registered?"
       },
       "In Door" : {
         "type": "yesno",
@@ -3641,20 +3646,12 @@
       }
     },
     "video": {
-      "HP" : {
-        "type": "yesno",
-        "description" : "Is High Provenance?"
-      },
       "cgi" : {
         "type": "yesno",
         "description" : "Is CGI?"
       }
     },
     "image": {
-      "HP" : {
-        "type": "yesno",
-        "description" : "Is High Provenance?"
-      },
       "cgi" : {
         "type": "yesno",
         "description" : "Is CGI?"

@@ -54,6 +54,7 @@ def updateJournal(scModel):
         upgrades.append('04.0621.3a5c9635ef')
     if '04.0720.415b6a5cc4' not in upgrades:
         _fixRANSAC(scModel)
+        _fixHP(scModel)
         upgrades.append('04.0720.415b6a5cc4')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
@@ -88,6 +89,12 @@ def _updateEdgeHomography(edge):
             edge['homography'] = 'None'
         if 'sift_max_matches' in edge:
             edge['homography max matches'] = edge.pop('sift_max_matches')
+
+def _fixHP(scModel):
+    for nodename in scModel.getNodeNames():
+        node= scModel.G.get_node(nodename)
+        if 'HP' in node:
+            node['Registered'] = node['HP']
 
 def _fixRANSAC(scModel):
     for frm, to in scModel.G.get_edges():
