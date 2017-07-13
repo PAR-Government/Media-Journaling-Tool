@@ -142,7 +142,7 @@ def test_api(apitoken, url):
         url = url[:-1] if url.endswith('/') else url
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
-        data = '{ "file_name": {"type": "contains", "value": "' + 'test' + '" }}'
+        data = '{ "file_name": {"type": "exact", "value": "' + 'test' + '" }}'
         response = requests.post(url, data=data, headers=headers)
         if response.status_code != requests.codes.ok:
             return "Error calling external service {} : {}".format(baseurl,str(response.content))
@@ -543,9 +543,10 @@ def check_pastemask(graph,frm, to):
 
 def check_local_warn(graph, frm, to):
     edge = graph.get_edge(frm,to)
+    opObj = getOperationWithGroups(edge['op'])
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] =='yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
-    if not is_global and not included_in_composite:
+    if not is_global and not included_in_composite and opObj.category not in ['Output', 'Transform']:
         return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
     return None
 
@@ -602,6 +603,16 @@ def checkForDonorWithRegion(graph, frm, to):
     return None
 
 def checkForDonor(graph, frm, to):
+    pred = graph.predecessors(to)
+    if len(pred) < 2:
+        return 'donor image/video missing'
+    return None
+
+def checkForDonorAudio(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge else {}
+    if 'Direct from PC' in args and args['Direct from PC'] == 'yes':
+        return None
     pred = graph.predecessors(to)
     if len(pred) < 2:
         return 'donor image/video missing'

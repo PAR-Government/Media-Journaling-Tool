@@ -310,10 +310,45 @@ def seam_transform(edge,
     else:
         res = tool_set.applyInterpolateToCompositeImage(compositeMask if compositeMask is not None else donorMask,
                                               graph.get_image(source)[0],
-                                                   targetImage,
+                                              targetImage,
+                                              edgeMask,
                                               inverse=donorMask is not None,
                                               arguments=edge['arguments'] if 'arguments' in edge else {},
                                               defaultTransform=transformMatrix)
+    if res is None or len(np.unique(res)) == 1:
+        return defaultMaskTransform(edge,
+                                    source,
+                                    target,
+                                    edgeMask,
+                                    compositeMask=compositeMask,
+                                    directory=directory,
+                                    level=level,
+                                    donorMask=donorMask,
+                                    pred_edges=pred_edges,
+                                    graph=graph)
+    return res
+
+def warp_transform(edge,
+                   source,
+                   target,
+                   edgeMask,
+                   compositeMask=None,
+                   directory='.',
+                   level=None,
+                   donorMask=None,
+                   pred_edges=None,
+                   graph=None,
+                   top=False):
+    res = None
+    if compositeMask is not None:
+        tm = tool_set.deserializeMatrix(edge['transform matrix']) if 'transform matrix' in edge  else None
+        res = tool_set.applyInterpolateToCompositeImage(compositeMask,
+                                              graph.get_image(source)[0],
+                                              graph.get_image(target)[0],
+                                              edgeMask,
+                                              inverse=donorMask is not None,
+                                              arguments=edge['arguments'] if 'arguments' in edge else {},
+                                              defaultTransform=tm)
     if res is None or len(np.unique(res)) == 1:
         return defaultMaskTransform(edge,
                                     source,
@@ -345,6 +380,7 @@ def cas_transform(edge,
         res = tool_set.applyInterpolateToCompositeImage(compositeMask,
                                               graph.get_image(source)[0],
                                               targetImage,
+                                              edgeMask,
                                               inverse=donorMask is not None,
                                               arguments=edge['arguments'] if 'arguments' in edge else {},
                                               defaultTransform=tm)

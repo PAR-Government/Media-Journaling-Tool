@@ -7,7 +7,6 @@ def transform(img,source,target,**kwargs):
     x = int(kwargs['crop_x'])
     y = int(kwargs['crop_y'])
     cv_image = numpy.array(img)
-    #new_img = numpy.zeros((cv_image.shape[0]-pixelWidth, cv_image.shape[1]-pixelHeight,cv_image.shape[2])).astype('uint8')
     new_img = cv_image[y:-(pixelHeight-y), x:-(pixelWidth-x),:]
     ImageWrapper(new_img).save(target)
     return None,None

@@ -126,6 +126,14 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(withouttolerance < withtolerance)
         self.assertTrue(withtolerance <= withtoleranceandqu)
 
+    def test_map(self):
+            img1 = np.random.randint(0,255,size=(100,120)).astype('uint8')
+            mask = np.ones((100,120))
+            src_pts = [(x, y) for x in xrange(20, 30, 1) for y in xrange(50, 60, 1)]
+            dst_pts = [(x, y) for x in xrange(55, 65, 1) for y in xrange(15, 25, 1)]
+            result =tool_set._remap(img1,mask,src_pts,dst_pts)
+            self.assertTrue(np.all(result[55:65,15:25] == img1[20:30,50:60]))
+
     def test_timeparse(self):
         self.assertTrue(tool_set.validateTimeString('03:10:10.434'))
         t,f = tool_set.getMilliSecondsAndFrameCount('03:10:10.434')

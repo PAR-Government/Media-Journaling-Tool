@@ -8,13 +8,13 @@
     "technicalSummary" : "Automated",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
-    "semanticrefabrication" : "no"
+    "semanticrefabrication" : "no",
     "recompress": false
   },
   "nodes": [
     {
       "op_type": "BaseSelection",
-      "permute": true,
+      "permutegroup": "image",
       "image_directory": "tests/images",
       "picklist": "imageset",
       "id": "0"
@@ -24,7 +24,7 @@
       "plugin": "OutputPNG",
       "plugin": "OutputPNG",
       "picklist": "imageset",
-      "id": "2",
+      "id": "1",
       "arguments": {
         "Image Rotated" : {
           "type" : "value",
@@ -35,37 +35,47 @@
         }
       }
     },
-     {
-      "op_type": "ImagePluginOperation",
-      "plugin": "CropSelection",
-      "id": "1",
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "CropPermutations",
+      "id": "2",
       "arguments": {
-        "inputmaskname" : {
-          "type" : "mask",
-          "source" :"2",
-          "target": "5"
-
+        "percentage_width" : {
+          "type" : "value",
+          "value" :0.2
         },
-        "invertmask": {
-          "type":"value",
-          "value":true
+        "percentage_height" : {
+          "permutegroup" : "image",
+          "type" : "float[0.04:0.2:0.02]"
         }
       }
     },
-    {
+     {
       "op_type": "PluginOperation",
-      "plugin": "GaussianLocalBlur",
+      "plugin": "Crop",
       "id": "3",
-      "arguments": {
-        "inputmaskname" : {
-          "type" : "mask",
-          "source" :"2",
-          "target": "5"
-
+       "arguments": {
+        "pixel_width" : {
+          "type" : "variable",
+          "source":"2",
+          "name" :"crop_width"
         },
-        "invertmask": {
-          "type":"value",
-          "value":true
+        "pixel_height" : {
+           "type" : "variable",
+          "source":"2",
+          "name" :"crop_height"
+        },
+         "crop_x" : {
+           "permutegroup" : "image",
+           "type" : "variable",
+          "source":"2",
+          "name" :"crop_x"
+        },
+         "crop_y" : {
+           "permutegroup" : "image",
+           "type" : "variable",
+           "source":"2",
+           "name" :"crop_y"
         }
       }
     }
@@ -76,7 +86,7 @@
       "target": 1
     },
     {
-      "source": 0,
+      "source": 1,
       "target": 2
     },
     {

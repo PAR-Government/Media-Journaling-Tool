@@ -1111,7 +1111,7 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     detector = cv2.FeatureDetector_create("SIFT")
     extractor = cv2.DescriptorExtractor_create("SIFT")
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
-    maxmatches = arguments['sift_max_matches'] if 'sift_max_matches' in arguments else 20
+    maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
     kp1a = detector.detect(img1)
     kp2a = detector.detect(img2)
@@ -1134,7 +1134,7 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     matches = matcher(d1,d2)
 
     # store all the good matches as per Lowe's ratio test.
-    good = [m for m, n in matches if m.distance < 0.8 * n.distance]
+    good = [m for m, n in matches if m.distance < 0.75 * n.distance]
     good = sorted(good, lambda g1,g2: -int(max(g1.distance,g2.distance)*1000))
     good = good[0:min(maxmatches, len(good))]
 
@@ -1143,6 +1143,53 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
          dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
          return (src_pts, dst_pts) if src_pts is not None else None
     return None
+
+
+def _remap(img,mask,src_pts,dst_pts):
+    from scipy.interpolate import griddata
+    long = mask.reshape(mask.shape[0]*mask.shape[1])
+    grid_x, grid_y = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
+    grid_z = griddata(np.array(dst_pts),
+                      np.array(src_pts), (grid_x, grid_y), method='cubic', rescale=True)
+    map_x = np.append([], [ar[:, 0] for ar in grid_z])
+    map_y = np.append([], [ar[:, 1] for ar in grid_z])
+    default_x = np.append([], [ar for ar in grid_x])
+    default_y = np.append([], [ar for ar in grid_y])
+    # remove remaps outside the mask
+    map_x[long == 0] = default_x[long == 0]
+    map_y[long == 0] = default_y[long == 0]
+    # fix nan's with no mapping
+    jj = np.where(np.isnan(map_x))
+    map_x[jj] = default_x[jj]
+    jj = np.where(np.isnan(map_y))
+    map_y[jj] = default_y[jj]
+    map_x_32 = map_x.astype('float32').reshape(mask.shape)
+    map_y_32 = map_y.astype('float32').reshape(mask.shape)
+    return cv2.remap(img, map_y_32, map_x_32, cv2.INTER_NEAREST)
+
+def __grid(img1, img2, compositeMask, edgeMask=None,  arguments=None):
+    from scipy.interpolate import griddata
+    """
+    Compute sparse maps from points between img1 to img2
+    :param img1:
+    :param img2:
+    :param mask1:
+    :param mask2:
+    @type img1: ImageWrapper
+    @type img2: ImageWrapper
+    :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
+    """
+    src_dts_pts = getMatchedSIFeatures(img1, img2, mask1=edgeMask, mask2=None, arguments=arguments)
+    if src_dts_pts is None:
+        return compositeMask
+    newMask = _remap(compositeMask,edgeMask,
+                [[x[0][1],x[0][0]] for x in src_dts_pts[0].astype('int')],
+                [[x[0][1],x[0][0]] for x in src_dts_pts[1].astype('int')])
+    #r = np.zeros(r.shape).astype('uint8')
+    #for x in range(len(src_dts_pts[1])):
+      #  cv2.line(r,tuple(src_dts_pts[0][x][0]),tuple(src_dts_pts[1][x][0]),255)
+        #r[int(x[0][1]),int(x[0][0])] = 255
+    return newMask
 
 def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     """
@@ -1156,40 +1203,33 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     @type img2: ImageWrapper
     :return: None if a matrix cannot be constructed, otherwise a 3x3 transform matrix
     """
+    arguments = dict(arguments)
+    homography = arguments['homography'] if arguments is not None and 'homography' in arguments else 'RANSAC-4'
+    if homography in ['None','Map']:
+        return None
+    elif homography in ['All'] and 'homography max matches' in arguments:
+        # need as many as possible
+        arguments.pop('homography max matches')
     src_dts_pts =  getMatchedSIFeatures(img1,img2,mask1=mask1,mask2=mask2,arguments=arguments)
     if src_dts_pts is not None:
-        # new_src_pts = cv2.convexHull(src_pts)
         new_src_pts = src_dts_pts[0]
-        # positions = __indexOf(src_pts,new_src_pts)
-        # new_dst_pts = dst_pts[positions]
         new_dst_pts = src_dts_pts[1]
-        RANSAC_THRESHOLD = 4.0
-        if arguments is not None and 'RANSAC' in arguments:
-            if arguments['RANSAC'] == 'None':
-                return None, None
+        matches = None
+        if homography == 'LMEDS':
+             M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.LMEDS)
+        elif homography == 'All':
+             M1, matches = cv2.findHomography(new_src_pts, new_dst_pts)
+        elif homography.find('-') > 0:
             try:
-                RANSAC_THRESHOLD = float(arguments['RANSAC'])
+                RANSAC_THRESHOLD = float(homography[homography.find('-')+1])
             except:
-                logging.getLogger('maskgen').error('invalid RANSAC ' + arguments['RANSAC'])
-        M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
+                RANSAC_THRESHOLD = 10.0
+            if matches is None:
+                M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
         matchCount = sum(sum(matches))
         if float(matchCount) / len(src_dts_pts) < 0.15 and matchCount < 30 :
             return None,None
-        # M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-        # matchesMask = mask.ravel().tolist()
-
-        # y,x = img1.shape
-        # pts = np.float32([ [0,0],[0,y-1],[x-1,y-1],[x-1,0] ]).reshape(-1,1,2)
-        # dst = cv2.perspectiveTransform(pts,M)
-        # mask = np.zeros((img1.shape[0],img1.shape[1]))
-        # new_src_pts1 = [point[0] for point in new_src_pts.astype('int32')]
-        # new_src_pts1 = [__calc_alpha2(0.3,new_src_pts1)]
-        # cv2.fillPoly(mask, np.int32([new_src_pts1]), 255)
-        ##img1 = cv2.polylines(img1, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
-        return M1,matchCount  # mask.astype('uint8')
-
-        # img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
-    # Sort them in the order of their distance.
+        return M1,matchCount
     return None,None
 
 
@@ -1286,7 +1326,23 @@ def applyToComposite(compositeMask, func, shape=None):
             newMask[newLevelMask > 100] = level
     return newMask
 
-def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,arguments={}, defaultTransform=None):
+def applyGridTransformCompositeImage(compositeMask,startIm,destIm,edgeMask=None,arguments={}):
+    newMask = np.zeros((destIm.image_array.shape[0], destIm.image_array.shape[1]), dtype=np.uint8)
+    arguments = dict(arguments)
+    if 'homography max matches' in arguments:
+        arguments.pop('homography max matches')
+    levels = list(np.unique(compositeMask))
+    for level in levels:
+        if level == 0:
+            continue
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 255
+        newlevelmask = __grid(startIm, destIm, levelMask, edgeMask=255-edgeMask, arguments=arguments)
+        if newlevelmask is not None:
+            newMask[newlevelmask > 100] = level
+    return newMask
+
+def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,edgeMask,inverse=False,arguments={}, defaultTransform=None):
     """
        Loop through each level add apply SIFT to transform the mask
        :param compositeMask:
@@ -1297,38 +1353,38 @@ def applyInterpolateToCompositeImage(compositeMask,startIm,destIm,inverse=False,
        @type startIm: ImageWrapper
        """
     newMask = np.zeros((destIm.image_array.shape[0],destIm.image_array.shape[1]),dtype=np.uint8)
-    TMs = {}
-    matchtype = arguments['Transform Selection'] if 'Transform Selection' in arguments else 'Skip'
-    matchcount = int(arguments['Match Count']) if 'Match Count' in arguments else 0
-    if matchtype == 'Skip':
-        return None
+    if 'homography' in arguments and arguments['homography'] == 'Map':
+        return applyGridTransformCompositeImage(compositeMask,
+                                                         startIm,
+                                                         destIm,
+                                                         edgeMask=edgeMask,
+                                                         arguments=arguments)
+    if 'homography' in arguments and arguments['homography'] == 'None':
+        return compositeMask
     levels = list(np.unique(compositeMask))
-    for level in levels:
-        if level == 0:
-            continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint16')
-        levelMask[compositeMask == level] = 255
-        TM,matchCountResult = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
-        if TM is not None and matchCountResult > matchcount:
-            TMs[level] =TM
-        else:
-            TMs[level] = defaultTransform
     flags = cv2.WARP_INVERSE_MAP if inverse else cv2.INTER_LINEAR
     borderValue = 0
     for level in levels:
         if level == 0:
             continue
-        TM = TMs[level]
-        if TM is None:
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 255
+        if defaultTransform is None or ('composite homography' in arguments and arguments['composite homography'] == 'Multiple'):
+            TM,matchCountResult = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
+        else:
+            TM = None
+            matchCountResult = 0
+        if TM is not None:
+            newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
+                                               borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
+        elif defaultTransform is None:
             newLevelMask = cv2.resize(levelMask, (destIm.size[0], destIm.size[1]))
         else:
-            levelMask = np.zeros(compositeMask.shape).astype('uint16')
-            levelMask[compositeMask == level] = 255
-            # NOTE: size mirrors IM shape
-            newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
-                                          borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
+            newLevelMask = cv2.warpPerspective(levelMask, defaultTransform, (destIm.size[0], destIm.size[1]), flags=flags,
+                                               borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
         if newLevelMask is not None:
             newMask[newLevelMask > 100] = level
+
     return newMask
 
 
@@ -2419,6 +2475,34 @@ class GrayFrameWriter:
 
     def release(self):
         self.close()
+
+def widthandheight(img):
+    a = np.where(img != 0)
+    if len(a[0]) == 0:
+        return 0,0,0,0
+    bbox = np.min(a[0]), np.max(a[0]), np.min(a[1]), np.max(a[1])
+    h,w = bbox[1] - bbox[0], bbox[3] - bbox[2]
+    return bbox[2],bbox[0],w,h
+
+def place_in_image(mask,image_to_place,image_to_cover, placement_center):
+    x,y,w, h = widthandheight(mask)
+    w += w%2
+    h += h%2
+    x_offset = int(placement_center[0]) - int(math.floor(w/2))
+    y_offset = int(placement_center[1]) - int(math.floor(h/2))
+    if y_offset < 0:
+        return None
+    if x_offset < 0:
+        return None
+    image_to_cover = np.copy(image_to_cover)
+    flipped_mask = 255 - mask
+    for c in range(0, 3):
+        image_to_cover[y_offset:y_offset + h,x_offset:x_offset + w,  c] = \
+        image_to_cover[y_offset:y_offset + h,x_offset:x_offset + w,  c] * \
+        (flipped_mask[y:y+h,x:x+w]/255) + \
+        image_to_place[y:y + h,x:x+ w, c] * \
+        (mask[y:y + h,x:x + w]/255)
+    return image_to_cover
 
 def selfVideoTest():
     logging.getLogger('maskgen').info('Checking opencv and ffmpeg, this may take a minute.')
