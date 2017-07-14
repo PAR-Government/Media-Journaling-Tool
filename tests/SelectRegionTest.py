@@ -42,7 +42,7 @@ class SegmentedMaskSelectorTestCase(unittest.TestCase):
         self.assertTrue(sum(sum(output[y+h+1:,x+w+1:])) == 0)
         self.assertEqual(output.shape[0], img.shape[0])
         self.assertEqual(output.shape[1], img.shape[1])
-        self.assertTrue('paste_x' in args and args['paste_x'] > 0)
+        self.assertTrue('paste_x' in args and args['paste_x'] >= 0)
         self.assertTrue('paste_y' in args and args['paste_y'] >= 0)
 
     def test_rgb(self):
