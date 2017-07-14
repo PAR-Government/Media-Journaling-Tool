@@ -13,6 +13,7 @@ import ttk
 import tkFileDialog
 import tkMessageBox
 import tkSimpleDialog
+from PIL import Image
 from hp_data import *
 from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt, ProgressPercentage
 from KeywordsSheet import KeywordsSheet
@@ -308,6 +309,7 @@ class PRNU_Uploader(Frame):
         print('Verifying PRNU directory')
         self.localID.set(os.path.basename(os.path.normpath(self.root_dir.get())))
         msgs = []
+        luminance_folders = []
 
         for path, dirs, files in os.walk(self.root_dir.get()):
             p, last = os.path.split(path)
@@ -348,7 +350,7 @@ class PRNU_Uploader(Frame):
                     if sub.lower() not in self.vocab:
                         msgs.append('Invalid reference type: ' + sub)
                     elif sub.lower().startswith('rgb_no_lens'):
-                        msgs.extend(self.check_luminance(os.path.join(path, sub)))
+                        luminance_folders.append(os.path.join(path, sub))
                 if files:
                     for f in files:
                         if f.startswith('.') or f.lower() == 'thumbs.db':
@@ -374,6 +376,11 @@ class PRNU_Uploader(Frame):
                 else:
                     msgs.append('There are no images or videos in: ' + path + '. If this is intentional, delete the folder.')
 
+        for folder in luminance_folders:
+            res = self.check_luminance(folder)
+            if res is not None:
+                msgs.append(res)
+
         if not self.newCam.get() and not self.local_id_used():
             msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
             if tkMessageBox.askyesno(title='Unrecognized Local ID', message=msgs):
@@ -383,8 +390,22 @@ class PRNU_Uploader(Frame):
         if msgs == 'hide':
             pass
         elif msgs:
+            enable = True
+            for msg in msgs:
+                if not msg.lower().startswith('warning'):
+                    enable = False
+                    break
             ErrorWindow(self, errors=msgs)
-            self.master.statusBox.println('PRNU directory validation failed for ' + self.root_dir.get())
+            if enable:
+                self.uploadButton.config(state=NORMAL)
+                self.rootEntry.config(state=DISABLED)
+                tkMessageBox.showwarning(title='Complete',
+                                         message='Since only warnings were generated, upload will be enabled. Make sure'
+                                                 ' that your data is correct.')
+                self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
+            else:
+                tkMessageBox.showerror(title='Complete', message='Correct the errors and re-verify to enable upload.')
+                self.master.statusBox.println('PRNU directory validation failed for ' + self.root_dir.get())
         else:
             tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
@@ -397,39 +418,46 @@ class PRNU_Uploader(Frame):
         :param foldername: Full absolute path of folder to check. Last 
         :return: list of error messages
         """
-        results = []
-        standard_files = ['png', 'jpg', 'jpeg', 'tif', 'tiff']
-        raw_files = ['cr2', 'nef', 'raf', 'crw', 'dng', 'arw', 'srf', 'raf']
+        standard_files = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
+        raw_files = ['.cr2', '.nef', '.raf', '.crw', '.dng', '.arw', '.srf', '.raf']
         reds = []
         greens = []
         blues = []
 
-        target = int(foldername.split("_")[-1])
+        try:
+            target = int(foldername.split("_")[-1])
+        except ValueError:
+            return 'Warning: Luminance of ' + foldername + ' could not be verified.'
         min_value = target-5
         max_value = target+5
 
         for f in os.listdir(foldername):
-            if f.lower().split(".")[-1] in standard_files:
+            ext = os.path.splitext(f.lower())[1]
+            if ext in standard_files:
                 with Image.open(os.path.join(foldername, f)) as image:
                     data = np.asarray(image)
-            if f.lower().split(".")[-1] in raw_files:
+            elif ext in raw_files:
                 with rawpy.imread(os.path.join(foldername, f)) as image:
                     data = image.postprocess()
+            else:
+                continue
+
             red = data[:, :, 0]
             green = data[:, :, 1]
             blue = data[:, :, 2]
             reds.append((np.mean(red) / 255) * 100)
             greens.append((np.mean(green) / 255) * 100)
             blues.append((np.mean(blue) / 255) * 100)
-        red_per = int(np.mean(reds))
-        green_per = int(np.mean(greens))
-        blue_per = int(np.mean(blues))
 
-        if (red_per, green_per, blue_per) not in range(min_value, max_value):
-            relative_path = foldername.split("\\")[-3:]
-            results.append("{0} has incorrect luminance values of R:{1}, G:{2}, B:{3} where the target was {4}".format(foldername, red_per, green_per, blue_per, target))
+        if reds and greens and blues:
+            red_per = int(np.mean(reds))
+            green_per = int(np.mean(greens))
+            blue_per = int(np.mean(blues))
 
-        return results
+            if not all(rgb in range(min_value, max_value) for rgb in (red_per, green_per, blue_per)):
+                results = "Warning: {0} has incorrect luminance values of R:{1}, G:{2}, B:{3} where it appears " \
+                          "the target was {4}".format(foldername, red_per, green_per, blue_per, target)
+                return results
 
 
     def has_same_contents(self, list1, list2):
