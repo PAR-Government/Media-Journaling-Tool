@@ -137,8 +137,11 @@ def pasteAnywhere(img, img_to_paste,mask_of_image_to_paste, simple):
         w, h, area, x, y = minimum_bounding_box(mask_of_image_to_paste)
     else:
         rot_mat = np.array([[1,0,0],[0,1,0]]).astype('float')
-    xplacement = random.randint(w/2+1, img.size[0]-w/2-1)
-    yplacement = random.randint(h/2+1,img.size[1]-h/2-1)
+    try:
+        xplacement = random.randint(w/2+1, img.size[0]-w/2-1)
+        yplacement = random.randint(h/2+1,img.size[1]-h/2-1)
+    except:
+        raise ValueError('paste selection is too large for destination image')
     return rot_mat, tool_set.place_in_image(
                           ImageWrapper(img_to_paste).to_mask().to_array(),
                           img_to_paste,

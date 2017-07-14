@@ -32,7 +32,7 @@ class SegmentedMaskSelectorTestCase(unittest.TestCase):
                            filename,
                            filename_output)
         wrapper = image_wrap.openImageFile(filename_output)
-        output = wrapper.to_array()
+        output = wrapper.to_array()[:,:,3]
         self.assertTrue(sum(sum(output)) > 255)
         x,y,w,h = widthandheight (output)
         if x>1:
@@ -42,8 +42,8 @@ class SegmentedMaskSelectorTestCase(unittest.TestCase):
         self.assertTrue(sum(sum(output[y+h+1:,x+w+1:])) == 0)
         self.assertEqual(output.shape[0], img.shape[0])
         self.assertEqual(output.shape[1], img.shape[1])
-        self.assertTrue('paste_x' in args and args['paste_x'] > 0)
-        self.assertTrue('paste_y' in args and args['paste_y'] > 0)
+        self.assertTrue('paste_x' in args and args['paste_x'] >= 0)
+        self.assertTrue('paste_y' in args and args['paste_y'] >= 0)
 
     def test_rgb(self):
         img_wrapper = image_wrap.openImageFile('tests/images/test_project5.jpg')

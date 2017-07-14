@@ -86,10 +86,14 @@ def transform(img,source,target,**kwargs):
         W=largew
         H=largeh
     cv_image = np.asarray(img.to_array())
+    imgsize = cv_image.shape[0] * cv_image.shape[1]
+    area = W * H
+    if area < (imgsize/2):
+        W=smallw
+        H=smallh
     if op == 'box':
       new_position_x,new_position_y,mask= build_mask_box(W,H,cv_image.shape)
     else:
-      area = W*H
       new_position_x,new_position_y,mask= build_mask_slic(cv_image,area,W,H)
 
     if 'alpha' in kwargs and kwargs['alpha'] == 'yes':

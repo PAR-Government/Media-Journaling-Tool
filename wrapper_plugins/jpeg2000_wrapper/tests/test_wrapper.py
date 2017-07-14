@@ -1,4 +1,5 @@
 import unittest
+import os
 
 import numpy as np
 
@@ -9,6 +10,7 @@ class TestToolSet(unittest.TestCase):
         opener.writeJPeg2000File('foo.jp2',img)
         newimg = opener.openJPeg2000File('foo.jp2')
         self.assertTrue(np.all(img == newimg[0]))
+        os.remove('foo.jp2')
 
 
 if __name__ == '__main__':

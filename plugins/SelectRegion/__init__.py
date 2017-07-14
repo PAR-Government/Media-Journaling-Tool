@@ -73,7 +73,7 @@ def transform(img,source,target,**kwargs):
         ImageWrapper(mask.astype('uint8')).save(target)
 
     shape = mask.shape
-    x, y, w, h = cv2.boundingRect(cnt[0])
+    x, y, w, h = cv2.boundingRect(cnt)
     trial_boxes = [
         [0, 0, x, shape[0] - h],
         [0, 0, shape[1] - w, y],
