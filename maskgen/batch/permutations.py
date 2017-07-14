@@ -1,5 +1,4 @@
-from threading import Lock
-import random
+from threading import Lock, local
 import logging
 
 """
@@ -41,13 +40,15 @@ class PermuteGroupElement:
         self.factory = toIteratorFunction
         self.iterator = toIteratorFunction()
         self.dependent = dependent
-        self.current = self.iterator.next()
+        self.current = local()
+        #self.current = self.iterator.next()
 
     def next(self,chained=False):
         """
         :param chained: if True, increase dependents first
         :return:
         """
+
         if self.dependent is not None and chained:
             try:
                 self.dependent.next(chained=chained)
@@ -55,15 +56,25 @@ class PermuteGroupElement:
                 # first reset since fetching next may cause this element to throw an end of resource exception
                 self.dependent.reset()
                 # throws an exception to caller
-                self.current = self.iterator.next()
-
+                self.current.item = self.iterator.next()
+            try:
+                self.current.item
+            except:
+                self.current.item = self.iterator.next()
         else:
-            self.current = self.iterator.next()
-        return self.current
+            self.current.item = self.iterator.next()
+        return self.current.item
 
     def reset(self):
         self.iterator = self.factory()
-        self.current = self.iterator.next()
+        self.current.item = self.iterator.next()
+
+    def getCurrent(self):
+        try:
+            return self.current.item
+        except:
+            self.current.item = self.iterator.next()
+            return self.current.item
 
 
 class PermuteGroup:
@@ -112,18 +123,21 @@ class PermuteGroup:
                     self.completed.add(name)
                     # keep going to all resources have been used
                     try:
+                        logging.getLogger('maskgen').info('reseting ' + name)
                         it.reset()
                     except Exception as eor:
                         logging.getLogger('maskgen').info(str(eor))
                         # at this point, a resource cannot be reset (exhausted) or something else bad happened
                         self.completed = set(self.iterators.keys())
+                        raise eor
         else:
             try:
                 self.first_created.next(chained=True)
-            except:
+            except Exception as e:
                 self.first_created.reset()
                 # at this point, all are exhausted
                 self.completed = set(self.iterators.keys())
+
 
     def has_specification(self, name):
         return name  in self.iterators
@@ -132,7 +146,7 @@ class PermuteGroup:
         if name not in self.iterators:
             raise ValueError('Undefined specifiction {} in permute group {}'.format(name, self.name))
         element = self.iterators[name]
-        return element.current
+        return element.getCurrent()
 
     def hasNext(self):
         return len(self.completed) != len(self.iterators)
@@ -147,13 +161,11 @@ class PermuteGroup:
 
 class PermuteGroupManager:
 
-
     """
     @type groups: Dict[string, PermuteGroup]
     """
 
-    def __init__(self,resets=False):
-        self.resets = resets
+    def __init__(self):
         self.groups = dict()
         self.lock = Lock()
 
@@ -162,7 +174,9 @@ class PermuteGroupManager:
         with self.lock:
             if name not in self.groups:
                 self.groups[name] = PermuteGroup(name,chained=name!='__global__')
-            self.groups[name].addIteratorFactory(spec_name, iterator_factory)
+            if not self.groups[name].has_specification(spec_name):
+                self.groups[name].addIteratorFactory(spec_name, iterator_factory)
+
 
     def next(self):
         """
@@ -197,7 +211,8 @@ class PermuteGroupManager:
         if name not in self.groups:
             raise ValueError('Undefined permutation group ' + name)
         group = self.groups[name]
-        return group.current(spec_name)
+        with self.lock:
+            return group.current(spec_name)
 
     def hasNext(self):
         for grp in self.groups.values():
