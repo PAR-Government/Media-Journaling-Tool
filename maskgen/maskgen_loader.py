@@ -1,9 +1,8 @@
 from os.path import expanduser
-import csv
-import platform
+import shutil
 import os
 import json
-import argparse
+
 
 global_image = {}
 imageLoaded = False
@@ -28,9 +27,26 @@ class MaskGenLoader:
         global global_image
         return global_image[image_id] if image_id in global_image else default_value
 
+    def _backup(self):
+        mainfile = os.path.join(expanduser("~"), ".maskgen2")
+        backup  = os.path.join(expanduser("~"), ".maskgen2.bak")
+        if os.path.exists(mainfile):
+            if os.path.exists(backup):
+                # A mild protection against backing-up a corrupted file. These files do not shrink much normally
+                mainsize = os.path.getsize(mainfile)
+                backupsize = os.path.getsize(backup)
+                okToBackup = mainsize >= 0.8*(backupsize)
+            else:
+                okToBackup= True
+        else:
+            okToBackup = False
+        if (okToBackup):
+            shutil.copy(mainfile,backup)
+
     def save(self, image_id, data):
         global global_image
         global_image[image_id] = data
+        self._backup()
         file_path = os.path.join(expanduser("~"), ".maskgen2")
         with open(file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
@@ -40,9 +56,9 @@ class MaskGenLoader:
         for image_id, data in idanddata:
             global_image[image_id] = data
         file_path = os.path.join(expanduser("~"), ".maskgen2")
+        self._backup()
         with open(file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
-
 
 def main():
     import sys

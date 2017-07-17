@@ -785,6 +785,9 @@ class ImageGraph:
 
     def save(self):
         filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
+        backup = filename + '.bak'
+        if os.path.exists(filename):
+            shutil.copy(filename,backup)
         with open(filename, 'w') as f:
             jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
         for f in self.filesToRemove:
