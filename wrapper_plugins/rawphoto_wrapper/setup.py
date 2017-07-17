@@ -11,8 +11,9 @@ setup(name='rawphoto_wrapper',
       install_requires=['rawkit'],
       entry_points=
        {'maskgen_image': [
-            'cr2 = rawphoto_wrapper.opener:openRawFile'
-            'raf = rawphoto_wrapper.opener:openRawFile'
+            'cr2 = rawphoto_wrapper.opener:openRawFile',
+            'raf = rawphoto_wrapper.opener:openRawFile',
+            'arw = rawphoto_wrapper.opener:openRawFile'
         ]
        },
       zip_safe=False)
