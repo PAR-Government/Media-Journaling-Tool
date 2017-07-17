@@ -156,7 +156,16 @@ class MakeGenUI(Frame):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
                                            filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])
         if (val != None and len(val) > 0):
-            self._open_project(val)
+            try:
+                self._open_project(val)
+            except Exception as e:
+                backup = val + '.bak'
+                if os.path.exists(backup):
+                    if tkMessageBox.askquestion('Project Corruption Error',str(e) + ".  Do you want to restore from the backup?") == 'yes':
+                        shutil.copy(backup, val)
+                        self._open_project(val)
+                else:
+                    tkMessageBox.showerror('Project Corruption Error',str(e))
 
     def addcgi(self):
         self.add(cgi=True)
