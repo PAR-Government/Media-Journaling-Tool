@@ -13,6 +13,7 @@ from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
 import loghandling
+import cv2api
 
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"),("tiff files", "*.tif"), ("Raw NEF", "*.nef"),
@@ -611,7 +612,7 @@ def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
         return newMask, analysis
     else:
         try:
-            contours, hier = cv2.findContours(255 - mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, hier = cv2api.findContours(255 - mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             minpoint = None
             maxpoint = None
             for contour in contours:
@@ -870,7 +871,7 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
         kernel = np.ones((5, 5), np.uint8)
         erosion = cv2.erode(mask, kernel, iterations=2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         p = np.asarray([item[0] for sublist in contours for item in sublist])
         if len(p) > 0:
             area = cv2.contourArea(cv2.convexHull(p))
@@ -956,7 +957,7 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
 def boundingRegion (mask):
         minregion = list(mask.shape)
         maxregion = list((0, 0))
-        contours, hierarchy = cv2.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for i in range(0, len(contours)):
             try:
                 cnt = contours[i]
@@ -977,7 +978,7 @@ def boundingRegion (mask):
 
 def boundingRectange(mask):
     allpoints = []
-    contours, hierarchy = cv2.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for i in range(0, len(contours)):
             cnt = contours[i]
             allpoints.extend(cnt)
@@ -1786,7 +1787,7 @@ def composeCloneMask(changemask, startimage, finalimage):
     startimagearray = np.array(startimage)
     finalimgarray = np.array(finalimage)
     newmask = np.zeros(startimagearray.shape).astype('uint8')
-    contours, hierarchy = cv2.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for i in range(0, len(contours)):
         try:
             cnt = contours[i]
@@ -2484,8 +2485,15 @@ def widthandheight(img):
     h,w = bbox[1] - bbox[0], bbox[3] - bbox[2]
     return bbox[2],bbox[0],w,h
 
-def place_in_image(mask,image_to_place,image_to_cover, placement_center):
-    x,y,w, h = widthandheight(mask)
+def place_in_image(mask,image_to_place,image_to_cover, placement_center, rect = None):
+    x,y,w,h = widthandheight(mask)
+    if rect:
+        if w > rect[2]:
+            x = x + (w - rect[2]) / 2
+            w = rect[2]
+        if h > rect[3]:
+            y = y + (h - rect[3]) / 2
+            h = rect[3]
     w += w%2
     h += h%2
     x_offset = int(placement_center[0]) - int(math.floor(w/2))
