@@ -245,6 +245,8 @@ class MakeGenUI(Frame):
                                              }
                                          },
                                          'Mask Reconstruct')
+        if d.argvalues is None:
+            return
         skipDonorAnalysis =  'homography' in d.argvalues and d.argvalues['homography'] == 'None'
         self.scModel.reproduceMask(skipDonorAnalysis=skipDonorAnalysis,analysis_params=d.argvalues)
         nim = self.scModel.nextImage()

@@ -1,4 +1,4 @@
-from maskgen import image_wrap
+from maskgen import image_wrap,cv2api
 import numpy as np
 import cv2
 
@@ -28,6 +28,8 @@ def segmentation_classification(segmentation_directory, color):
 
 def convert_color(color):
     import re
+    if color is None  or color == 'None':
+        return None
     strcolor = str(color)
     strcolor = re.sub('[\[\]\,]', ' ',strcolor)
     strcolor.replace('[]',' ')
@@ -56,7 +58,7 @@ def select_region(img, mask, color=None):
         color = colors[np.random.randint(0,len(colors)-1)]
 
     channel[np.all(mask==[color[0],color[1],color[2]],axis=2)] = 255
-    (contours, _) = cv2.findContours(channel.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    (contours, _) = cv2api.findContours(channel.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         if len(cnt) > 3:
             channel = np.zeros((mask.shape[0], mask.shape[1])).astype('uint8')
