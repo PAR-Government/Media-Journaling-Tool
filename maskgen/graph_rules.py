@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
-from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple
+from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,getDurationStringFromMilliseconds
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
@@ -9,6 +9,7 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
+from video_tools import getFrameRate
 import numpy as np
 
 rules = {}
@@ -416,15 +417,60 @@ def rotationCheck(graph, frm, to):
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 
+def checkFrameTimeAlignment(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge  else {}
+    st = None
+    et = None
+    for k, v in args.iteritems():
+        if k.endswith('End Time'):
+            et = getMilliSecondsAndFrameCount(v)
+        elif k.endswith('Start Time'):
+            st = getMilliSecondsAndFrameCount(v)
+    masks = edge['videomasks'] if 'videomasks' in edge else []
+    start = 2147483647
+    end = 0
+    rate = 0
+    dir = graph.dir
+    file = os.path.join(dir,graph.get_node(frm)['file'])
+    for mask in masks:
+        start = min(start,mask['starttime'])
+        rate = mask['rate'] if 'rate' in mask else (rate if rate > 0 else getFrameRate(file, default=29.97) /1000.0)
+        end = max(end, mask['endtime'])
+    if st is not None and abs(start-(st[1]/rate + st[0])) >= rate:
+        return 'Start time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
+    if et is not None and abs(end-(et[1]/rate + et[0])) >= rate:
+        return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
+
+def checkAddFrameTime(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge  else {}
+    it = None
+    for k, v in args.iteritems():
+        if k.endswith('Insertion Time') or k.endswith('Insertion Start Time'):
+            it = getMilliSecondsAndFrameCount(v)
+    masks = edge['videomasks'] if 'videomasks' in edge else []
+    start = 2147483647
+    end = 0
+    rate = 0
+    dir = graph.dir
+    file = os.path.join(dir,graph.get_node(frm)['file'])
+    for mask in masks:
+        start = min(start,mask['starttime'])
+        rate = mask['rate'] if 'rate' in mask else (getFrameRate(file, default=29.97) /1000.0)
+        end = max(end, mask['endtime'])
+    if it is not None and abs(start-(it[1]/rate + it[0])) >= rate:
+        return 'Insertion time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
+
 def checkFrameTimes(graph, frm, to):
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
     st = None
     et = None
     for k,v in args.iteritems():
-        if k.endswith('End Time'):
+        if k.endswith('Time'):
             et = getMilliSecondsAndFrameCount(v)
-        elif k.endswith('Start Time'):
+        elif k.endswith('Time'):
             st = getMilliSecondsAndFrameCount(v)
     if st is None and et is None:
         return None

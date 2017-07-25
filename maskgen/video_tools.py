@@ -177,6 +177,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
                          'startframe':startFrame,
                          'endframe': time_manager.frameSinceBeginning,
                          'frames': count,
+                         'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS)/1000.0,
                          'mask': sample,
                          'videosegment': os.path.split(capOut.filename)[1]})
                     capOut.release()
@@ -188,6 +189,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
                            'startframe': startFrame,
                            'endframe': time_manager.frameSinceBeginning,
                            'frames': count,
+                           'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS) / 1000.0,
                            'mask': sample,
                            'videosegment': os.path.split(capOut.filename)[1]})
             capOut.release()
@@ -623,6 +625,50 @@ def _vid_compress(filename, expressions, criteria,outputname=None,remove_video=F
     except OSError as e:
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
+def _runCommand(command,outputCollector=None):
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    errors = []
+    if p.returncode == 0:
+        if outputCollector is not None:
+            for line in stdout.splitlines():
+                outputCollector.append(line)
+    if p.returncode != 0:
+        try:
+            if stderr is not None:
+                for line in stderr.splitlines():
+                    if len(line) > 2:
+                        errors.append(line)
+        except OSError as e:
+            errors.append(str(e))
+    return errors
+
+def getFrameRate(fileOne, default=None):
+    ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
+    results = []
+    errors = _runCommand([ffmpegcommand,
+                          '-v' ,'0', '-of', 'compact=p=0','-show_entries','stream=r_frame_rate',
+                          fileOne],
+                         outputCollector=results)
+    if len(results) > 0:
+        for result in results:
+            rate = result.split('=')[1].strip().split('/')
+            if len(rate) == 1 and float(rate[0]) > 0:
+                return float(rate[0])
+            if len(rate) == 2 and float(rate[1]) > 0:
+                return float(rate[0]) / float(rate[1])
+    return default
+
+def _toAudio(fileOne):
+        """
+        Consruct wav files
+        """
+        name = fileOne + '.wav'
+        ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+        if os.path.exists(name):
+            os.remove(name)
+        errors = _runCommand([ffmpegcommand, '-ac', '1', '-i', fileOne, '-vn',name])
+        return name if len(errors) == 0 else None, errors
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
 def _formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
@@ -661,10 +707,8 @@ def _formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
         result = buildMasksFromCombinedVideo(outFileName, time_manager)
     else:
         result = []
-
     try:
-        #os.remove(outFileName)
-        print outFileName
+        os.remove(outFileName)
     except IOError:
         print 'video diff process failed'
 
@@ -704,6 +748,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         cut = {}
         cut['starttime'] = vidAnalysisComponents.elapsed_time_one
         cut['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        cut['rate'] =  vidAnalysisComponents.fps_one / 1000.0,
         end_time = None
         count = 1
         cut['mask'] = vidAnalysisComponents.mask
@@ -743,6 +788,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         addition = {}
         addition['starttime'] = vidAnalysisComponents.elapsed_time_one
         addition['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        addition['rate'] = vidAnalysisComponents.fps_one / 1000.0
         end_time = None
         count = 1
         addition['mask'] = vidAnalysisComponents.mask
@@ -786,6 +832,7 @@ def addChange(vidAnalysisComponents, ranges=list(),arguments={}):
             change = dict()
             change['mask'] = vidAnalysisComponents.mask
             change['starttime'] = vidAnalysisComponents.elapsed_time_one
+            change['rate'] = vidAnalysisComponents.fps_one/1000.0
             change['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
             change['frames'] = 1
             ranges.append(change)
@@ -795,6 +842,7 @@ def addChange(vidAnalysisComponents, ranges=list(),arguments={}):
         change = ranges[-1]
         change['videosegment'] = os.path.split(vidAnalysisComponents.writer.filename)[1]
         change['endtime'] = vidAnalysisComponents.elapsed_time_one
+        change['rate'] = vidAnalysisComponents.fps/1000.0
         change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         vidAnalysisComponents.writer.release()
 
@@ -805,16 +853,94 @@ def formMaskDiff(fileOne,
                  startSegment=None,
                  endSegment=None,
                  analysis=None,
+                 alternateFunction=None,
                  arguments= {}):
     preferences = MaskGenLoader()
     diffPref = preferences.get_key('vid_diff')
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
-    result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager,arguments=arguments)
+    result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager,alternateFunction=alternateFunction,arguments=arguments)
     analysis['startframe'] = time_manager.getStartFrame()
     analysis['stopframe'] = time_manager.getEndFrame()
     return result
 
-def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,arguments={}):
+
+def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
+    """
+    :param fileOne:
+    :param fileTwo:
+    :param name_prefix:
+    :param time_manager:
+    :param arguments:
+    :return:
+    @type time_manager: VidTimeManager
+    """
+    import wave
+    fileOneAudio,errorsone = _toAudio(fileOne)
+    fileTwoAudio,errorstwo = _toAudio(fileTwo)
+    if len(errorsone) > 0:
+        return list(),errorsone
+    if len(errorstwo) > 0:
+        return list(),errorstwo
+    try:
+        fone = wave.open(fileOneAudio,'rb')
+        try:
+            ftwo = wave.open(fileTwoAudio,'rb')
+            countone = fone.getnframes()
+            counttwo = ftwo.getnframes()
+            framerateone = fone.getframerate()/1000
+            frameratetwo = ftwo.getframerate()/1000
+            if framerateone != frameratetwo:
+                time_manager.updateToNow(float(countone) / float(framerateone))
+                return [{'startframe': 1,
+                         'starttime': float(1) / float(framerateone),
+                         'rate':framerateone,
+                         'endframe': countone,
+                         'endtime': float(countone) / float(framerateone),
+                         'frames': countone}], []
+            start = None
+            totalonecount = 0
+            while countone > 0 and counttwo > 0:
+                toRead = min([64, counttwo,countone])
+                framesone = fone.readframes( toRead)
+                framestwo = ftwo.readframes( toRead)
+                countone -= toRead
+                counttwo -= toRead
+                for i in range(toRead):
+                    totalonecount+=1
+                    diff = ord(framesone[i]) - ord(framestwo[i])
+                    time_manager.updateToNow(totalonecount/float(framerateone))
+                    if diff != 0:
+                        if start is None:
+                            start  =totalonecount
+                        end = totalonecount
+            return [{'startframe':start,
+                         'starttime': float(start)/float(framerateone),
+                         'endframe':end,
+                         'endtime':float(end)/float(framerateone),
+                         'rate':framerateone,
+                         'frames':end-start}],[]
+        finally:
+            ftwo.close()
+    finally:
+        fone.close()
+
+
+def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alternateFunction=None,arguments={}):
+    """
+
+    :param fileOne:
+    :param fileTwo:
+    :param name_prefix:
+    :param opName:
+    :param diffPref:
+    :param time_manager:
+    :param alternativeFunction:
+    :param arguments:
+    :return:
+    @type time_manager: VidTimeManager
+    """
+    if alternateFunction is not None:
+        return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments)
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
     if opFunc == addChange and (diffPref is None or diffPref == '2'):
         return _formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName,time_manager)
@@ -895,6 +1021,7 @@ def interpolateMask(mask_file_name_prefix,
         image = tool_set.openImage(start_file_name)
         new_mask_set = []
         for mask_set in video_masks:
+            rate = reader.fps/1000.0
             change = dict()
             reader = tool_set.GrayBlockReader(os.path.join(directory,
                                                                     mask_set['videosegment']))
@@ -924,6 +1051,7 @@ def interpolateMask(mask_file_name_prefix,
                         if first_mask is None:
                             change['mask'] = new_mask
                             change['starttime'] = frame_time
+                            change['rate'] = rate
                             change['startframe'] = count
                             first_mask = new_mask
                     count+=1
@@ -933,6 +1061,7 @@ def interpolateMask(mask_file_name_prefix,
                 change['endtime'] = vid_frame_time
                 change['endframe'] = count
                 change['frames'] = count
+                change['rate'] = rate
                 change['videosegment'] = os.path.split(writer.filename)[1]
                 if first_mask is not None:
                     new_mask_set.append(change)

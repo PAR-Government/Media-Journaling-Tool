@@ -627,7 +627,8 @@ class VideoVideoLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8')), {}
-        if op != 'Donor' and not getOperationWithGroups(op,fake=True).generateMask:
+        operation = getOperationWithGroups(op, fake=True)
+        if op != 'Donor' and not operation.generateMask:
             maskSet = list()
             errors = list()
         elif op == 'Donor':
@@ -643,9 +644,10 @@ class VideoVideoLinkTool(LinkTool):
                                                        endSegment=getMilliSecondsAndFrameCount(arguments[
                                                                                                'End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
+                                                       alternateFunction=operation.getCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
         # for now, just save the first mask
-        if len(maskSet) > 0:
+        if len(maskSet) > 0 and 'mask' in maskSet[0]:
             mask = ImageWrapper(maskSet[0]['mask'])
             for item in maskSet:
                 item.pop('mask')
