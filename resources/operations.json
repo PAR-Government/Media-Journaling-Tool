@@ -1773,7 +1773,7 @@
       "mandatoryparameters": {
         "Direction" : {
           "type": "list",
-          "values" : ["increase","decrease"],
+          "values" : ["increase","decrease", "match to video frames"],
           "description": "Shift midtone luminance in the desired direction"
         }
       },
