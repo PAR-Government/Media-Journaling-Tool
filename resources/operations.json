@@ -31,19 +31,18 @@
         },
         "Copy Start Time": {
           "type": "time",
-          "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Insertion Time": {
           "type": "time",
-          "source": "video",
           "description": "Replace insertion time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
         "checkFrameTimes",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkAddFrameTime"
       ],
       "optionalparameters": {
         "Copy End Time": {
@@ -52,10 +51,13 @@
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
+       "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "video.video"
       ]
@@ -165,7 +167,8 @@
         "checkForDonorAudio",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
         "Insertion End Time": {
@@ -174,10 +177,13 @@
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "video.video",
         "audio.audio"
@@ -197,10 +203,14 @@
           "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction"],
           "source": "video",
           "description": "Type of filter"
+        },
+         "Smoothing": {
+          "type": "yesno",
+          "description": "If noise smoothing algorithms were applied"
         }
       },
       "rules": [
-        "checkFileTypeChange","checkFrameTimes"
+        "checkFileTypeChange","checkFrameTimes","checkFrameTimeAlignment"
       ],
       "optionalparameters": {
         "Stream" : {
@@ -217,12 +227,27 @@
           "type": "time",
           "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        },
+        "Noise Reduction": {
+          "type": "int[0:100]",
+          "description": "Percentage of Noise Reduction"
+        },
+        "Amplitude Reduction": {
+          "type": "int[0:40]",
+          "description": "In Decibals"
+        },
+        "Spectral Decay Rate": {
+          "type": "int[0:100]",
+          "description": "Percentage of frequencies processed for noise below analyzed noise floor"
         }
       },
       "analysisOperations": [],
       "description": "Apply filter to audio stream",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
+      "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      },
       "transitions": [
         "video.video",
         "audio.audio"
@@ -233,7 +258,7 @@
       "name": "AudioAmplify",
       "mandatoryparameters": {
         "PreGain": {
-          "type": "int[0:100000]",
+          "type": "int[-100000:100000]",
           "source": "video",
           "description": "How much to raise volume"
         }
@@ -261,11 +286,14 @@
       "analysisOperations": [],
       "description": "Amplify Audio Signal",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "audio.audio",
         "video.video"
-      ]
+      ],
+      "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      }
     },
      {
       "category": "Audio",
@@ -299,7 +327,8 @@
       },
       "rules": [
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
          "Stream" : {
@@ -321,11 +350,14 @@
       "analysisOperations": [],
       "description": "Compress Audio Signal",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "audio.audio",
         "video.video"
-      ]
+      ],
+       "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      }
     },
     {
       "category": "Audio",
@@ -355,7 +387,8 @@
         "checkForDonor",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkAddFrameTime"
       ],
       "optionalparameters": {
         "Insertion End Time": {
@@ -367,10 +400,13 @@
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : true,
       "transitions": [
         "video.video"
-      ]
+      ],
+      "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      }
     },
      {
       "category": "AdditionalEffect",
@@ -1737,7 +1773,7 @@
       "mandatoryparameters": {
         "Direction" : {
           "type": "list",
-          "values" : ["increase","decrease"],
+          "values" : ["increase","decrease", "match to video frames"],
           "description": "Shift midtone luminance in the desired direction"
         }
       },
@@ -1880,7 +1916,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1911,7 +1948,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2331,7 +2369,8 @@
         "checkForDonor",
         "checkLengthSame",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2383,7 +2422,8 @@
         "checkSize",
         "checkForDonorWithRegion",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
         "Start Time": {

@@ -348,6 +348,14 @@ def getFrameDurationString(st, et):
         ss = sec - (hr * 3600) - mi * 60
         return '{:=02d}:{:=02d}:{:=02d}'.format(hr, mi, ss)
 
+def getDurationStringFromMilliseconds(millis):
+    sec = int(millis/1000)
+    ms = int(millis - (sec*1000))
+    hr = sec / 3600
+    mi = sec / 60 - (hr * 60)
+    ss = sec - (hr * 3600) - mi * 60
+    return '{:=02d}:{:=02d}:{:=02d}.{:=03d}'.format(hr, mi, ss,ms)
+
 def getMilliSecondsAndFrameCount(v):
     dt = None
     framecount = 0

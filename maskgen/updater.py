@@ -40,7 +40,7 @@ class UpdaterGitAPI:
                 return  item['merge_commit_sha']
         return None
 
-    def _hasPassed(self,  merge_sha):
+    def _hasNotPassed(self,  merge_sha):
         if merge_sha is None:
             return True
         currentversion = maskgen.__version__
@@ -63,6 +63,6 @@ class UpdaterGitAPI:
 
     def isOutdated(self):
         merge_sha = self._get_version_file()
-        if self._hasPassed( merge_sha):
+        if self._hasNotPassed( merge_sha):
             return (merge_sha, self._getCommitMessage(merge_sha))
         return None,None
