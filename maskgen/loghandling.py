@@ -28,7 +28,7 @@ class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
             return 1
         return 0
 
-def set_logging():
+def set_logging(directory=None):
     logger = logging.getLogger('maskgen')
     logger.setLevel(logging.INFO)
     ch = logging.StreamHandler()
@@ -42,7 +42,8 @@ def set_logging():
     # add ch to logger
     logger.addHandler(ch)
 
-    logfile = os.path.join(os.getenv("HOME"),'maskgen.log') if not os.access('.', os.W_OK) else 'maskgen.log'
+    dir = directory if directory is not None and os.path.isdir(directory) else '.'
+    logfile = os.path.join(os.getenv("HOME"),'maskgen.log') if not os.access(dir,os.W_OK) else os.path.join(dir,'maskgen.log')
 
     fh = MaskGenTimedRotatingFileHandler(logfile)
 

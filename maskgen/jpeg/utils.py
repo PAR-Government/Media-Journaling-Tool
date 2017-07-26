@@ -4,6 +4,7 @@ import tempfile
 from bitstring import BitArray
 from maskgen import exif
 from PIL import Image
+import numpy as np
 
 def check_rotate(im, jpg_file_name):
     return Image.fromarray(exif.rotateAccordingToExif(np.asarray(im),exif.getOrientationFromExif(jpg_file_name)))

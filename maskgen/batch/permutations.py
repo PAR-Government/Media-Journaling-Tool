@@ -87,12 +87,12 @@ class PermuteGroup:
     @type iterators : dict[String, PermuteGroupElement]
     """
 
-    def __init__(self, group_name, chained=False):
+    def __init__(self, group_name, chained=False, dir ='.'):
         self.name = group_name
         self.iterators = dict()
         self.completed = set()
         self.chained = chained
-
+        self.dir = dir
 
     def addIteratorFactory(self, spec_name, factory_function):
         """
@@ -165,7 +165,7 @@ class PermuteGroupManager:
     @type groups: Dict[string, PermuteGroup]
     """
 
-    def __init__(self):
+    def __init__(self,dir='.'):
         self.groups = dict()
         self.lock = Lock()
 
@@ -173,7 +173,7 @@ class PermuteGroupManager:
         name = group_name if group_name is not None else '__global__'
         with self.lock:
             if name not in self.groups:
-                self.groups[name] = PermuteGroup(name,chained=name!='__global__')
+                self.groups[name] = PermuteGroup(name,chained=name!='__global__',dir=dir)
             if not self.groups[name].has_specification(spec_name):
                 self.groups[name].addIteratorFactory(spec_name, iterator_factory)
 
