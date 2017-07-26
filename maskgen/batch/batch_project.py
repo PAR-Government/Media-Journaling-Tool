@@ -16,6 +16,8 @@ from threading import Thread, local, currentThread
 import numpy as np
 from maskgen.batch.permutations import *
 import time
+from datetime import datetime
+from maskgen.loghandling import set_logging
 
 class IntObject:
     value = 0
@@ -128,7 +130,8 @@ def callPluginSpec(specification, local_state):
     if 'state_name' in specification:
         if specification['state_name'] not in local_state:
             local_state[specification['state_name']] = dict()
-        return pluginSpecFuncs[specification['name']](specification['parameters'],state=local_state[specification['state_name']])
+        return pluginSpecFuncs[specification['name']](specification['parameters'],
+                                                      state=local_state[specification['state_name']])
     return pluginSpecFuncs[specification['name']](specification['parameters'])
 
 def executeParamSpec(specification_name, specification, global_state, local_state, node_name, predecessors):
@@ -145,7 +148,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     if specification['type'] == 'mask':
        source = getNodeState(specification['source'], local_state)['node']
        target = getNodeState(specification['target'], local_state)['node']
-       return os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source, target, 'maskname')[1])
+       return os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source,
+                                                                                                          target,
+                                                                                                          'maskname')[1])
     elif specification['type'] == 'value':
         return specification['value']
     elif specification['type'] == 'variable':
@@ -217,6 +222,9 @@ def getNodeState(node_name,local_state):
         local_state[node_name] = my_state
     return my_state
 
+def working_abs_file(global_state,filename):
+    return os.path.join(global_state['workdir'] if 'workdir' in global_state else '.',filename)
+
 def nextRandomImageFile(dir, name, global_state):
     listing = global_state[name]
     if len(listing) == 0:
@@ -226,7 +234,7 @@ def nextRandomImageFile(dir, name, global_state):
     logging.getLogger('maskgen').info('Thread {} picking file {} '.format(currentThread().getName() , pick))
     if name not in global_state['picklists_files']:
         global_state['picklists_files'][name] = \
-            open(name + '.txt', 'a')
+            open(working_abs_file(global_state,name + '.txt'), 'a')
     global_state['picklists_files'][name].write(pick + '\n')
     global_state['picklists_files'][name].flush()
     return os.path.join(dir, pick)
@@ -237,18 +245,21 @@ def pickImageIterator(specification, global_state={}, permutegroup=None):
                 raise ValueError("ImageSelection missing valid image_directory: " + specification['image_directory'])
             listing = os.listdir(specification['image_directory'])
             global_state[specification['picklist']] = listing
-            if os.path.exists(specification['picklist'] + '.txt'):
-               with open(specification['picklist'] + '.txt', 'r') as fp:
+            filename = working_abs_file(global_state,specification['picklist'] + '.txt')
+            if os.path.exists(filename):
+               with open(filename, 'r') as fp:
                   for line in fp.readlines():
                       line = line.strip()
                       if line in listing:
                           listing.remove(line)
         else:
             listing = global_state[specification['picklist']]
-        logging.getLogger('maskgen').info('Initialized pick list {} with {} files'.format(specification['picklist'],len(listing)))
-
+        logging.getLogger('maskgen').info('Initialized pick list {} with {} files'.format(specification['picklist'],
+                                                                                          len(listing)))
         if permutegroup is None:
-            return randomGeneratorFactory(lambda : nextRandomImageFile(specification['image_directory'],specification['picklist'],global_state))
+            return randomGeneratorFactory(lambda : nextRandomImageFile(specification['image_directory'],
+                                                                       specification['picklist'],
+                                                                       global_state))
         else:
             return [os.path.join(specification['image_directory'],file) for file in listing].__iter__
 
@@ -326,12 +337,19 @@ class BaseSelectionOperation(BatchOperation):
         pick_file = os.path.split(pick)[1]
         name = pick_file[0:pick_file.rfind('.')]
         dir = os.path.join(global_state['projects'],name)
+        now = datetime.now()
         if os.path.exists(dir):
-            dir = dir + str(time.time())
+            suffix = '_' + now.strftime("%Y%m%d-%H%M%S")
+            dir = dir + suffix
+            name = name + suffix
         os.mkdir(dir)
-        shutil.copy2(pick, os.path.join(dir,pick_file))
+        file_path_in_project = os.path.join(dir,pick_file)
+        shutil.copy2(pick, file_path_in_project)
         logging.getLogger('maskgen').info("Thread {} build project {}".format(currentThread().getName(),pick_file))
-        local_state['model'] = scenario_model.createProject(dir,suffixes=tool_set.suffixes)[0]
+        local_state['model'] = scenario_model.createProject(dir,
+                                                            name=name,
+                                                            base=file_path_in_project,
+                                                            suffixes=tool_set.suffixes)[0]
         for prop, val in local_state['project'].iteritems():
             local_state['model'].setProjectData(prop, val)
         getNodeState(node_name, local_state)['node'] = local_state['model'].getNodeNames()[0]
@@ -372,12 +390,20 @@ class PluginOperation(BatchOperation):
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
-        args = pickArgs(local_state, global_state, node_name, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        args = pickArgs(local_state,
+                        global_state,
+                        node_name,
+                        node['arguments'] if 'arguments' in node else None,
+                        op,
+                        predecessors)
         if 'experiment_id' in node:
             args['experiment_id'] = node['experiment_id']
         args['skipRules'] = True
         args['sendNotifications'] = False
-        self.logger.debug('Thread {} Execute plugin {} on {} with {}'.format(currentThread().getName(),plugin_name , filename  ,str(args)))
+        self.logger.debug('Thread {} Execute plugin {} on {} with {}'.format(currentThread().getName(),
+                                                                             plugin_name ,
+                                                                             filename  ,
+                                                                             str(args)))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or  (type(errors) is list and len (errors) > 0 ):
             raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
@@ -423,7 +449,8 @@ class InputMaskPluginOperation(PluginOperation):
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'],fake=True)
-        args = pickArgs(local_state, global_state,node_name, node['arguments'] if 'arguments' in node else None, op,predecessors)
+        args = pickArgs(local_state, global_state,node_name, node['arguments'] if 'arguments' in node else None, op,
+                        predecessors)
         args['skipRules'] = True
         args['sendNotifications'] = False
         targetfile,params = self.imageFromPlugin(plugin_name, im, filename, **args)
@@ -503,7 +530,8 @@ class BatchProject:
         local_state = self._buildLocalState()
         mydata = local()
         mydata.current_local_state = local_state
-        self.logger.info('Thread {} building project with global state: {} '.format(currentThread().getName (), str(global_state)))
+        self.logger.info('Thread {} building project with global state: {} '.format(currentThread().getName (),
+                                                                                    str(global_state)))
         base_node = self._findBase()
         try:
             self._execute_node(base_node, None, local_state, global_state)
@@ -542,8 +570,8 @@ class BatchProject:
         return local_state['model'].get_dir()
 
 
-    def dump(self):
-        filename = self.getName() + '.png'
+    def dump(self, global_state):
+        filename = working_abs_file(global_state,self.getName() + '.png')
         self._draw().write_png(filename)
         filename = self.getName() + '.csv'
         position = 0
@@ -607,7 +635,9 @@ class BatchProject:
                 permutegroup = node['permutegroup'] if 'permutegroup' in node else None
                 permuteGroupManager.loadParameter(permutegroup,
                                                   node_name,
-                                                  pickImageIterator(node,global_state=global_state,permutegroup=permutegroup))
+                                                  pickImageIterator(node,
+                                                                    global_state=global_state,
+                                                                    permutegroup=permutegroup))
 
     def _findTops(self):
         """
@@ -638,7 +668,8 @@ class BatchProject:
         @rtype: maskgen.scenario_model.ImageProjectModel
         """
         try:
-            self.logger.debug('_execute_node {}  by {} connect to {}'.format(  node_name ,currentThread().getName (), str (connect_to_node_name)))
+            self.logger.debug('_execute_node {}  by {} connect to {}'.format(  node_name ,currentThread().getName (),
+                                                                               str (connect_to_node_name)))
             return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G,
                                                                                node_name,
                                                                                self.G.node[node_name],
@@ -669,14 +700,17 @@ def thread_worker(**kwargs):
     count = globalState['count']
     permutegroupsmanager = globalState['permutegroupsmanager']
     if count is not None:
-        logging.getLogger('maskgen').info('Starting worker thread {}. Current count is {}'.format(currentThread().getName(),count.value))
+        logging.getLogger('maskgen').info(
+            'Starting worker thread {}. Current count is {}'.format(currentThread().getName(), count.value))
     while ((count and count.decrement() > 0) or (count is None and permutegroupsmanager.hasNext())):
         try:
             project_directory = globalState['project'].executeOnce(globalState)
             if project_directory is not None:
-                logging.getLogger('maskgen').info( 'Thread {} Completed {}'.format(currentThread().getName (), project_directory))
+                logging.getLogger('maskgen').info( 'Thread {} Completed {}'.format(currentThread().getName (),
+                                                                                   project_directory))
             else:
-                logging.getLogger('maskgen').error( 'Exiting thread {} due to failure to create project'.format(currentThread().getName()))
+                logging.getLogger('maskgen').error(
+                    'Exiting thread {} due to failure to create project'.format(currentThread().getName()))
                 break
         except Exception as e:
             logging.getLogger('maskgen').info('Completed thread: ' + str(e))
@@ -688,6 +722,7 @@ def main():
     parser.add_argument('--json',             required=True,         help='JSON File')
     parser.add_argument('--count', required=False, help='number of projects to build')
     parser.add_argument('--threads', required=False, help='number of projects to build')
+    parser.add_argument('--workdir',required=False,help='directory to maintain and look for lock list, logging and permutation files')
     parser.add_argument('--results', required=True, help='project results directory')
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--graph', required=False, action='store_true',help='create graph PNG file')
@@ -698,16 +733,18 @@ def main():
     loadCustomFunctions()
     batchProject =getBatch(args.json, loglevel=args.loglevel)
     picklists_files = {}
-
+    workdir = '.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir
+    set_logging(workdir)
     threadGlobalState = {'projects': args.results,
                    'picklists_files': picklists_files,
                    'project': batchProject,
+                   'workdir': workdir,
                    'count': IntObject(int(args.count )) if args.count else None,
-                   'permutegroupsmanager' : PermuteGroupManager()
+                   'permutegroupsmanager' : PermuteGroupManager(dir=workdir)
     }
     batchProject.loadPermuteGroups(threadGlobalState)
     if args.graph is not None:
-        batchProject.dump()
+        batchProject.dump(threadGlobalState)
     threads_count = args.threads if args.threads else 1
     threads = []
     name = 1

@@ -75,6 +75,7 @@ class TestBatchProcess(unittest.TestCase):
           'projects': 'test_projects',
           'project': batchProject,
           'picklists_files': {},
+          'workdir': '.',
           'count': batch_project.IntObject(20),
           'permutegroupsmanager':PermuteGroupManager()
       }
@@ -89,7 +90,7 @@ class TestBatchProcess(unittest.TestCase):
       except EndOfResource:
           pass
 
-   def xtest_runwithpermutation(self):
+   def test_runwithpermutation(self):
        if os.path.exists('imageset.txt'):
            os.remove('imageset.txt')
        with open('imageset.txt', 'w') as fp:

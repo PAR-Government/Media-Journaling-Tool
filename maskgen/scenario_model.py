@@ -54,7 +54,7 @@ def consolidate(dict1, dict2):
 
 EdgeTuple = collections.namedtuple('EdgeTuple', ['start','end','edge'])
 
-def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
+def createProject(path, notify=None, base=None, name=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
                   organization=None):
     """
         This utility function creates a ProjectModel given a directory.
@@ -84,7 +84,7 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
             return projectModelFactory(os.path.join('.', 'Untitled.json'), notify=notify), True
     else:
         if (path.endswith(".json")):
-         return projectModelFactory(os.path.abspath(path), notify=notify), False
+            return projectModelFactory(os.path.abspath(path), notify=notify), False
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if  len(selectionSet) != 0 and base is not None:
         logging.getLogger('maskgen').warning('Cannot add base image/video to an existing project')
@@ -114,7 +114,10 @@ def createProject(path, notify=None, base=None, suffixes=[], projectModelFactory
     existingProject = projectFile.endswith(".json")
     if not existingProject:
         image = projectFile
-        projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
+        if name is None:
+            projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
+        else:
+            projectFile = os.path.abspath(os.path.join(path,name + ".json"))
     model = projectModelFactory(projectFile, notify=notify, baseImageFileName=image)
     if organization is not None:
         model.setProjectData('organization', organization)
