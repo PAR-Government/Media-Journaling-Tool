@@ -1,5 +1,6 @@
-from threading import Lock, local
+from threading import Lock, local,currentThread
 import logging
+import os
 
 """
    This package manages permutaitons of parameters for the batch process.  Basically, each permutation is an iterator.
@@ -27,6 +28,7 @@ def randomGenerator(function):
 def randomGeneratorFactory(function):
     return lambda : randomGenerator(function)
 
+
 class PermuteGroupElement:
 
     """
@@ -41,6 +43,7 @@ class PermuteGroupElement:
         self.iterator = toIteratorFunction()
         self.dependent = dependent
         self.current = local()
+        self.toSave = False
         #self.current = self.iterator.next()
 
     def next(self,chained=False):
@@ -48,7 +51,6 @@ class PermuteGroupElement:
         :param chained: if True, increase dependents first
         :return:
         """
-
         if self.dependent is not None and chained:
             try:
                 self.dependent.next(chained=chained)
@@ -57,17 +59,21 @@ class PermuteGroupElement:
                 self.dependent.reset()
                 # throws an exception to caller
                 self.current.item = self.iterator.next()
+                self.toSave = True
             try:
                 self.current.item
             except:
                 self.current.item = self.iterator.next()
+                self.toSave= True
         else:
             self.current.item = self.iterator.next()
+            self.toSave = True
         return self.current.item
 
     def reset(self):
         self.iterator = self.factory()
         self.current.item = self.iterator.next()
+        self.toSave = True
 
     def getCurrent(self):
         try:
@@ -76,6 +82,132 @@ class PermuteGroupElement:
             self.current.item = self.iterator.next()
             return self.current.item
 
+    def _save(self, dir, item):
+        pass
+
+    def save(self,dir):
+        try:
+            if self.toSave:
+                self._save(dir, self.current.item)
+                self.toSave = False
+        except AttributeError:
+            pass
+
+    def restore(self,dir):
+        pass
+
+
+class PersistentPermuteGroupElement(PermuteGroupElement):
+
+    def __init__(self, name, iterator_of_values, dependent=None):
+        PermuteGroupElement.__init__(self, name, iterator_of_values, dependent=dependent)
+
+
+    def getSaveFileName(self):
+        return self.name + '.txt'
+
+    def _save(self,dir,item):
+        path = os.path.join(dir,self.getSaveFileName())
+        try:
+            with open(path,'w') as f:
+                f.write(str(item))
+        except:
+            # occurs on first initialization
+            pass
+
+    def restore(self,dir):
+        path = os.path.join(dir, self.getSaveFileName())
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    line = f.readline().strip()
+                    self.current.item = self.iterator.next()
+                    while str(self.current.item) != line:
+                        self.current.item = self.iterator.next()
+            except:
+                self.iterator = self.factory()
+
+
+class IteratorPermuteGroupElement(PersistentPermuteGroupElement):
+
+    def __init__(self, name, iterator_of_values, dependent=None):
+        PersistentPermuteGroupElement.__init__(self,name,iterator_of_values,dependent=dependent)
+
+
+class LinkedPermuteGroupElement(PersistentPermuteGroupElement):
+    """
+    Need to share an iterator and share the saved results.
+    """
+    def __init__(self, name, linked_element):
+        """
+        :param name:
+        :param linked_element:
+        @type linked_element: PermuteGroupElement
+        """
+        self.linked_element = linked_element
+        PersistentPermuteGroupElement.__init__(self, name, linked_element.factory)
+        self.iterator = linked_element.iterator
+
+    def reset(self):
+        raise EndOfResource(self.name)
+
+    def save(self,dir):
+        try:
+            self.linked_element._save(dir,self.current.item)
+        except AttributeError:
+            # occurs on first initialization
+            pass
+
+class FilePermuteGroupElement(PersistentPermuteGroupElement):
+    """
+        Iterate through a list of files in a directory, excluding files in the provided
+        tracking file (tracking_filename).  Reset not supported.
+    """
+    def __init__(self, name, directory, tracking_filename=None):
+        self.directory = directory
+        self.tracking_filename  = tracking_filename if tracking_filename is not None else self.name
+        if not os.path.exists(directory):
+            raise ValueError("ImageSelection missing valid image_directory: " + directory)
+        self.listing = [os.path.join(self.directory,item) for item in os.listdir(directory)]
+        PersistentPermuteGroupElement.__init__(self, name, self.listing.__iter__)
+
+    def getSaveFileName(self):
+        return self.tracking_filename
+
+    def reset(self):
+        raise EndOfResource(self.name)
+
+    def _save(self,dir,item):
+        path = os.path.join(dir,self.getSaveFileName())
+        try:
+            with open(path,'a') as f:
+                f.write(os.path.split(item)[1] + '\n')
+        except:
+            # occurs on first initialization
+            pass
+
+    def restore(self,dir):
+        path = os.path.join(dir, self.getSaveFileName())
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as fp:
+                    for line in fp.readlines():
+                        line = os.path.join(self.directory,line.strip())
+                        if line in self.listing:
+                           self.listing.remove(line)
+            except Exception as e:
+                print e
+                pass
+            finally:
+                self.factory=self.listing.__iter__
+                self.iterator = self.factory()
+        logging.getLogger('maskgen').info('Initialized pick list {} with {} files'.format(self.name,
+                                                                                            len(self.listing)))
+class ListPermuteGroupElement(IteratorPermuteGroupElement):
+
+    def __init__(self, name, list_of_values, dependent=None):
+        self.list_of_values = list_of_values
+        IteratorPermuteGroupElement.__init__(self,name,list_of_values.__iter__,dependent=dependent)
 
 class PermuteGroup:
     """
@@ -94,21 +226,21 @@ class PermuteGroup:
         self.chained = chained
         self.dir = dir
 
-    def addIteratorFactory(self, spec_name, factory_function):
+    def add(self, permuteGroupElement):
         """
-        :param spec_name:
-        :param factory_function: creates an iterator
+        :param permuteGroupElement: creates an iterator
         :return:
-        @type spec_name: str
+        @type permuteGroupElement: PermuteGroupElement
         """
-        if spec_name not in self.iterators:
-            element = PermuteGroupElement(spec_name, factory_function)
+        if permuteGroupElement.name not in self.iterators:
+            element = permuteGroupElement
             if self.last_created is not None:
                self.last_created.dependent = element
             if self.first_created is  None:
                self.first_created = element
-            self.iterators[spec_name] = element
+            self.iterators[permuteGroupElement.name] = element
             self.last_created = element
+            element.restore(self.dir)
 
     def next(self):
         """
@@ -123,7 +255,7 @@ class PermuteGroup:
                     self.completed.add(name)
                     # keep going to all resources have been used
                     try:
-                        logging.getLogger('maskgen').info('reseting ' + name)
+                        logging.getLogger('maskgen').info('resetting ' + name)
                         it.reset()
                     except Exception as eor:
                         logging.getLogger('maskgen').info(str(eor))
@@ -157,7 +289,8 @@ class PermuteGroup:
         self.completed.clear()
 
     def save(self):
-        pass
+        for element in self.iterators.values():
+            element.save(self.dir)
 
 class PermuteGroupManager:
 
@@ -167,15 +300,23 @@ class PermuteGroupManager:
 
     def __init__(self,dir='.'):
         self.groups = dict()
+        self.dir = dir
         self.lock = Lock()
 
-    def loadParameter(self, group_name, spec_name, iterator_factory):
+    def loadParameter(self, group_name, permuteGroupElement):
+        """
+
+        :param group_name:
+        :param permuteGroupElement:
+        :return:
+        @type permuteGroupElement : PermuteGroupElement
+        """
         name = group_name if group_name is not None else '__global__'
         with self.lock:
             if name not in self.groups:
-                self.groups[name] = PermuteGroup(name,chained=name!='__global__',dir=dir)
-            if not self.groups[name].has_specification(spec_name):
-                self.groups[name].addIteratorFactory(spec_name, iterator_factory)
+                self.groups[name] = PermuteGroup(name,chained=name!='__global__',dir=self.dir)
+            if not self.groups[name].has_specification(permuteGroupElement.name):
+                self.groups[name].add(permuteGroupElement)
 
 
     def next(self):
