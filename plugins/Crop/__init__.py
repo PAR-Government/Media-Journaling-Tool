@@ -11,6 +11,9 @@ def transform(img,source,target,**kwargs):
     ImageWrapper(new_img).save(target)
     return None,None
 
+def suffix():
+    return None
+
 def operation():
   return {
           'category': 'Transform',
