@@ -50,7 +50,7 @@ def loadJSONGraph(pathname):
         return BatchProject(G,json_data)
     return None
 
-def buildIterator(param_spec, global_state, random_selection=False):
+def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     """
     :param param_spec: argument specification
     :param random_selection: produce a continuous stream of random selections
@@ -58,9 +58,9 @@ def buildIterator(param_spec, global_state, random_selection=False):
     """
     if param_spec['type'] == 'list':
         if not random_selection:
-            return param_spec['values'].__iter__
+            return ListPermuteGroupElement(spec_name, param_spec['values'])
         else:
-            return randomGeneratorFactory(lambda: random.choice(param_spec['values']))
+            return PermuteGroupElement(spec_name,randomGeneratorFactory(lambda: random.choice(param_spec['values'])))
     elif 'int' in param_spec['type']  :
         v = param_spec['type']
         vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
@@ -70,9 +70,9 @@ def buildIterator(param_spec, global_state, random_selection=False):
             increment = 1
             if len(vals) > 2:
                 increment = vals[2]
-            return lambda : xrange(beg, end+1,increment).__iter__()
+            return IteratorPermuteGroupElement(spec_name,lambda : xrange(beg, end+1,increment).__iter__())
         else:
-            return randomGeneratorFactory(lambda: random.randint(beg, end))
+            return PermuteGroupElement(spec_name,randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type'] :
         v = param_spec['type']
         vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
@@ -82,24 +82,25 @@ def buildIterator(param_spec, global_state, random_selection=False):
             increment = 1
             if len(vals) > 2:
                 increment = vals[2]
-            return lambda: np.arange(beg, end,increment).__iter__()
+            return IteratorPermuteGroupElement(spec_name,lambda: np.arange(beg, end,increment).__iter__())
         else:
-            return randomGeneratorFactory(lambda: beg+ random.random()* (end-beg))
+            return PermuteGroupElement(spec_name,randomGeneratorFactory(lambda: beg+ random.random()* (end-beg)))
     elif param_spec['type'] == 'yesno':
         if not random_selection:
-            return ['yes','no'].__iter__
+            return ListPermuteGroupElement(spec_name,['yes','no'])
         else:
-            return randomGeneratorFactory(lambda: random.choice(['yes', 'no']))
+            return PermuteGroupElement(spec_name,randomGeneratorFactory(lambda: random.choice(['yes', 'no'])))
     elif param_spec['type'].startswith('donor'):
         mydata = local()
         local_state = mydata.current_local_state
         choices = [node for node in local_state.getGraph().nodes() \
                    if len(local_state.getGraph().predecessors(node)) == 0]
         if not random_selection:
-            return choices.__iter__
+            # do not think we can save this state since it is tied to the local project
+            return PermuteGroupElement(spec_name,choices.__iter__)
         else:
-            lambda: randomGeneratorFactory(lambda: random.choice(choices))
-    return randomGeneratorFactory(lambda: None)
+            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(choices)))
+    return PermuteGroupElement(spec_name,randomGeneratorFactory(lambda: None))
 
 def pickArg(param_spec, node_name, spec_name, global_state, local_state):
     """
@@ -113,8 +114,7 @@ def pickArg(param_spec, node_name, spec_name, global_state, local_state):
     permutegroup = param_spec['permutegroup'] if 'permutegroup' in param_spec else None
     if not manager.has_specification(permutegroup, node_name + '.' + spec_name):
         manager.loadParameter(permutegroup,
-                              node_name + '.' + spec_name,
-                              buildIterator(param_spec, global_state, random_selection=permutegroup is None))
+                              buildIterator(node_name + '.' + spec_name,param_spec, global_state, random_selection=permutegroup is None))
     return manager.current(permutegroup, node_name + '.' + spec_name)
 
 pluginSpecFuncs = {}
@@ -225,43 +225,19 @@ def getNodeState(node_name,local_state):
 def working_abs_file(global_state,filename):
     return os.path.join(global_state['workdir'] if 'workdir' in global_state else '.',filename)
 
-def nextRandomImageFile(dir, name, global_state):
-    listing = global_state[name]
-    if len(listing) == 0:
-        raise EndOfResource("Picklist {} of Image Files".format(name))
-    pick = random.choice(listing)
-    listing.remove(pick)
-    logging.getLogger('maskgen').info('Thread {} picking file {} '.format(currentThread().getName() , pick))
-    if name not in global_state['picklists_files']:
-        global_state['picklists_files'][name] = \
-            open(working_abs_file(global_state,name + '.txt'), 'a')
-    global_state['picklists_files'][name].write(pick + '\n')
-    global_state['picklists_files'][name].flush()
-    return os.path.join(dir, pick)
-
-def pickImageIterator(specification, global_state={}, permutegroup=None):
-        if specification['picklist'] not in global_state:
-            if not os.path.exists(specification['image_directory']):
-                raise ValueError("ImageSelection missing valid image_directory: " + specification['image_directory'])
-            listing = os.listdir(specification['image_directory'])
-            global_state[specification['picklist']] = listing
-            filename = working_abs_file(global_state,specification['picklist'] + '.txt')
-            if os.path.exists(filename):
-               with open(filename, 'r') as fp:
-                  for line in fp.readlines():
-                      line = line.strip()
-                      if line in listing:
-                          listing.remove(line)
+def pickImageIterator(specification, spec_name, global_state):
+        if 'picklists' not in global_state:
+            global_state['picklists'] = dict()
+        picklist_name = specification['picklist'] if 'picklist' in specification else spec_name
+        if picklist_name not in global_state['picklists']:
+            element= FilePermuteGroupElement(spec_name,
+                                       specification['image_directory'],
+                                        tracking_filename=picklist_name + '.txt')
+            global_state['picklists'][picklist_name] = element
         else:
-            listing = global_state[specification['picklist']]
-        logging.getLogger('maskgen').info('Initialized pick list {} with {} files'.format(specification['picklist'],
-                                                                                          len(listing)))
-        if permutegroup is None:
-            return randomGeneratorFactory(lambda : nextRandomImageFile(specification['image_directory'],
-                                                                       specification['picklist'],
-                                                                       global_state))
-        else:
-            return [os.path.join(specification['image_directory'],file) for file in listing].__iter__
+            link_element =global_state['picklists'][picklist_name]
+            element = LinkedPermuteGroupElement(spec_name,link_element)
+        return element
 
 class BatchOperation:
 
@@ -307,6 +283,7 @@ class ImageSelectionOperation(BatchOperation):
         manager = global_state['permutegroupsmanager']
         pick = manager.current( node['permutegroup'] if 'permutegroup' in node else None,
                                 node_name)
+        logging.getLogger('maskgen').info('Thread {} picking file {}'.format(currentThread().getName(), pick))
         getNodeState(node_name,local_state)['node'] = local_state['model'].addImage(pick)
         return local_state['model']
 
@@ -334,12 +311,13 @@ class BaseSelectionOperation(BatchOperation):
         manager = global_state['permutegroupsmanager']
         pick = manager.current(node['permutegroup'] if 'permutegroup' in node else None,
                                node_name)
+        logging.getLogger('maskgen').info('Thread {} picking file {}'.format(currentThread().getName(), pick))
         pick_file = os.path.split(pick)[1]
         name = pick_file[0:pick_file.rfind('.')]
         dir = os.path.join(global_state['projects'],name)
         now = datetime.now()
         if os.path.exists(dir):
-            suffix = '_' + now.strftime("%Y%m%d-%H%M%S")
+            suffix = '_' + now.strftime("%Y%m%d-%H%M%S-%f")
             dir = dir + suffix
             name = name + suffix
         os.mkdir(dir)
@@ -524,8 +502,8 @@ class BatchProject:
 
     def executeOnce(self, global_state=dict()):
         #print 'next ' + currentThread().getName()
-        global_state['permutegroupsmanager'].next()
         global_state['permutegroupsmanager'].save()
+        global_state['permutegroupsmanager'].next()
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         local_state = self._buildLocalState()
         mydata = local()
@@ -629,15 +607,13 @@ class BatchProject:
                 for name,spec in node['arguments'].iteritems():
                     if 'permutegroup' in spec and spec['type'] != 'variable':
                         permuteGroupManager.loadParameter(spec['permutegroup'],
-                                                          node_name + '.' + name,
-                                                          buildIterator(spec,global_state))
+                                                          buildIterator( node_name + '.' + name,spec,global_state))
             if 'op_type' in node and node['op_type'] in ['BaseSelection','ImageSelection']:
                 permutegroup = node['permutegroup'] if 'permutegroup' in node else None
                 permuteGroupManager.loadParameter(permutegroup,
-                                                  node_name,
                                                   pickImageIterator(node,
-                                                                    global_state=global_state,
-                                                                    permutegroup=permutegroup))
+                                                                    node_name,
+                                                                    global_state))
 
     def _findTops(self):
         """

@@ -260,13 +260,22 @@
         "PreGain": {
           "type": "int[-100000:100000]",
           "source": "video",
-          "description": "How much to raise volume"
+          "description": "How much to raise or lower volume"
+        },
+        "Fading": {
+          "type": "list",
+          "values" : ["fade in","fade out","both","cross", "none"],
+          "description": "Fading effect"
         }
       },
       "rules": [
         "checkFileTypeChange","checkFrameTimes"
       ],
       "optionalparameters": {
+        "Final Fade Level": {
+          "type": "int[-100000:100000]",
+          "description": "Final fade level in Db, if applicable"
+        },
         "Stream" : {
           "type" : "list",
           "values": ["left", "right", "all"],
