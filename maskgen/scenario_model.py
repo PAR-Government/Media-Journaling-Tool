@@ -706,44 +706,35 @@ class AudioVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
+        operation = getOperationWithGroups(op, fake=True)
+
+        if op != 'Donor' and operation.generateMask:
+            maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+                                                       os.path.join(scModel.G.dir, start + '_' + destination),
+                                                       op,
+                                                       startSegment=getMilliSecondsAndFrameCount(arguments[
+                                                                                                     'Start Time']) if 'Start Time' in arguments else None,
+                                                       endSegment=getMilliSecondsAndFrameCount(arguments[
+                                                                                                   'End Time']) if 'End Time' in arguments else None,
+                                                       analysis=analysis,
+                                                       alternateFunction=operation.getCompareFunction(),
+                                                       arguments=consolidate(arguments, analysis_params))
+
+            analysis['masks count'] = len(maskSet)
+            analysis['videomasks'] = maskSet
         self._addAnalysis(startIm, destIm, op, analysis, None,linktype='audio.audio',
                           arguments=consolidate(arguments,analysis_params),
                           start=start, end=destination, scModel=scModel)
+
         return mask, analysis, list()
 
-class AudioAudioLinkTool(LinkTool):
+class AudioAudioLinkTool(AudioVideoLinkTool):
     """
      Supports mask construction and meta-data comparison when linking audio to audio.
      """
     def __init__(self):
-        LinkTool.__init__(self)
+        AudioVideoLinkTool.__init__(self)
 
-    def compare(self, start, end, scModel, arguments={}):
-        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
-            Return both images, the mask set and the meta-data diff results
-        """
-        analysis = dict()
-        if 'metadatadiff' in analysis:
-            analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
-        if 'errors' in analysis:
-            analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
-        return None, None, None, analysis
-
-    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
-                      skipDonorAnalysis=False,analysis_params={}):
-        startIm, startFileName = scModel.getImageAndName(start)
-        destIm, destFileName = scModel.getImageAndName(destination)
-        analysis =  dict()
-        analysis['masks count'] = 0
-        analysis['videomasks'] = list()
-        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
-        analysis = analysis if analysis is not None else {}
-        analysis['metadatadiff'] = metaDataDiff
-        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0],startIm.image_array.shape[1])).astype('uint8'))
-        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='audio.audio',
-                          arguments=consolidate(arguments,analysis_params),
-                          start=start, end=destination, scModel=scModel)
-        return mask, analysis, list()
 
 class VideoAudioLinkTool(LinkTool):
     """

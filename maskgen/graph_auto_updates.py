@@ -56,6 +56,9 @@ def updateJournal(scModel):
         _fixRANSAC(scModel)
         _fixHP(scModel)
         upgrades.append('04.0720.415b6a5cc4')
+    if '04.0720.b0ec584b4e' not in upgrades:
+        _fixInsertionST(scModel)
+        upgrades.append('04.0720.b0ec584b4e')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -104,6 +107,15 @@ def _fixRANSAC(scModel):
         _updateEdgeHomography(args)
         if edge['op'] == 'Donor':
             edge['homography max matches'] = 20
+
+def _fixInsertionST(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        args = edge['arguments'] if 'arguments' in edge else dict()
+        if 'Insertion Start Time' in args:
+            args['Start Time'] = args.pop('Insertion Start Time')
+        if 'Insertion End Time' in args:
+            args['End Time'] = args.pop('Insertion End Time')
 
 def _operationsChange1(scModel):
     projecttype = scModel.G.getDataItem('projecttype')
