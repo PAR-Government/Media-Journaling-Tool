@@ -887,9 +887,13 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
             ftwo = wave.open(fileTwoAudio,'rb')
             countone = fone.getnframes()
             counttwo = ftwo.getnframes()
+            onechannels = fone.getnchannels()
+            twochannels = ftwo.getnchannels()
+            onewidth =fone.getsampwidth()
+            twowidth = ftwo.getsampwidth()
             framerateone = fone.getframerate()/1000
-            frameratetwo = ftwo.getframerate()/1000
-            if framerateone != frameratetwo:
+            if fone.getframerate() != ftwo.getframerate() or onewidth != twowidth or \
+                    onechannels != twochannels:
                 time_manager.updateToNow(float(countone) / float(framerateone))
                 return [{'startframe': 1,
                          'starttime': float(1) / float(framerateone),
@@ -899,26 +903,43 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
                          'frames': countone}], []
             start = None
             totalonecount = 0
+            sections = []
+            section = None
             while countone > 0 and counttwo > 0:
-                toRead = min([64, counttwo,countone])
+                toRead = min([128, counttwo,countone])
                 framesone = fone.readframes( toRead)
                 framestwo = ftwo.readframes( toRead)
                 countone -= toRead
                 counttwo -= toRead
+                framesize = onewidth * onechannels
                 for i in range(toRead):
                     totalonecount+=1
-                    diff = ord(framesone[i]) - ord(framestwo[i])
+                    startbyte = i*framesize
+                    endbyte = startbyte + framesize
+                    diff = framesone[startbyte:endbyte] != framestwo[startbyte:endbyte]
                     time_manager.updateToNow(totalonecount/float(framerateone))
-                    if diff != 0:
-                        if start is None:
-                            start  =totalonecount
+                    if diff :
+                        if section is not None and totalonecount-end >= framerateone:
+                            section['endframe'] = end
+                            section['endtime'] = float(end) / float(framerateone)
+                            section['frames'] = end - start
+                            sections.append(section)
+                            section = None
                         end = totalonecount
-            return [{'startframe':start,
-                         'starttime': float(start)/float(framerateone),
-                         'endframe':end,
-                         'endtime':float(end)/float(framerateone),
-                         'rate':framerateone,
-                         'frames':end-start}],[]
+                        if section is None:
+                            start = totalonecount
+                            section = {'startframe': start,
+                             'starttime': float(start) / float(framerateone),
+                             'endframe': end,
+                             'endtime': float(end) / float(framerateone),
+                             'rate': framerateone,
+                             'frames': 1}
+            if section is not None:
+                section['endframe'] = end
+                section['endtime'] = float(end) / float(framerateone)
+                section['frames'] = end - start + 1
+                sections.append(section)
+            return sections,[]
         finally:
             ftwo.close()
     finally:

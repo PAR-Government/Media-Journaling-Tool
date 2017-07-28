@@ -47,7 +47,6 @@
       "optionalparameters": {
         "Copy End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -59,7 +58,8 @@
       "includeInMask": false,
       "generateMask" : true,
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio"
       ]
     },
     {
@@ -87,7 +87,8 @@
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [
-        "video.audio"
+        "video.audio",
+        "audio.audio"
       ]
     },
     {
@@ -96,12 +97,10 @@
       "mandatoryparameters": {
        "Start Time": {
           "type": "time",
-          "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -148,9 +147,8 @@
             "values" : ["none", "spacing", "compressing"],
              "description": "If additional track alignment changes occurred with the addition."
         },
-        "Insertion Start Time": {
+        "Start Time": {
           "type": "time",
-          "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -171,9 +169,8 @@
         "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
-        "Insertion End Time": {
+        "End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -195,14 +192,16 @@
       "mandatoryparameters": {
          "Frequency": {
           "type": "int[0:10000000]",
-          "source": "video",
           "description": "Frequency"
         },
         "Filter Type": {
           "type": "list",
           "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction"],
-          "source": "video",
           "description": "Type of filter"
+        },
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
          "Smoothing": {
           "type": "yesno",
@@ -218,14 +217,8 @@
           "values": ["left", "right", "all"],
           "description" : "all includes mono and stereo, depending on available streams"
         },
-        "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Noise Reduction": {
@@ -259,7 +252,6 @@
       "mandatoryparameters": {
         "PreGain": {
           "type": "int[-100000:100000]",
-          "source": "video",
           "description": "How much to raise or lower volume"
         },
         "Fading": {
@@ -283,12 +275,10 @@
         },
         "Start Time": {
           "type": "time",
-          "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -310,28 +300,27 @@
       "mandatoryparameters": {
          "Attack": {
           "type": "float[0:100]",
-          "source": "video",
           "description": "Length of time to react to reducing gain "
         },
          "Release": {
           "type": "float[0:100]",
-          "source": "video",
           "description": "Length of time to return to normal gain reduction"
         },
         "Threshold": {
           "type": "int[-240:240]",
-          "source": "video",
           "description": "Decibel Range"
         },
         "Ratio": {
           "type": "float[0:100]",
-          "source": "video",
           "description": "How much to curb the output, in decibels (2:1) for example 2.0"
         },
         "Gain": {
           "type": "int[0:100000]",
-          "source": "video",
           "description": "How much to raise volume"
+        },
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -345,14 +334,8 @@
           "values": ["left", "right", "all"],
           "description" : "all includes mono and stereo, depending on available streams"
         },
-        "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -381,9 +364,8 @@
             "values" : ["EQ Match", "Other"],
              "description": "Replacing or overlaying."
         },
-        "Insertion Start Time": {
+        "Start Time": {
           "type": "time",
-          "source": "video",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -400,9 +382,8 @@
         "checkAddFrameTime"
       ],
       "optionalparameters": {
-        "Insertion End Time": {
+        "End Time": {
           "type": "time",
-          "source": "video",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -411,7 +392,8 @@
       "includeInMask": false,
       "generateMask" : true,
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio"
       ],
       "compareparameters": {
           "function" :"maskgen.video_tools.audioCompare"
