@@ -1,4 +1,8 @@
-﻿# WHAT IS THIS?
+﻿# Detailed Document
+
+For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.pdf. This README is a summary.
+
+# WHAT IS THIS?
 
 This tool is used to journal image, video and audio manipulations applied to high provenance media to produce manipulated media.  The intent is to capture all the steps for the purpose of evaluating effectiveness and accuracy of manipulation detection algorithms, training detectors and evaluating manipulation software for their effectiveness and correctness.  The tool has numerous pluggable components including validation rules, mask generation rules, summarization rules, image readers, and image manipulation plugins.
 
@@ -6,7 +10,7 @@ This tool is used to journal image, video and audio manipulations applied to hig
 
 Install exiftool
 
-Install ffmpeg and ffmprobe for video processing.
+Install ffmpeg and ffprobe for video processing.
 
 Install graphviz
 
@@ -46,7 +50,7 @@ conda install -c https://conda.binstar.org/menpo opencv
 For Anaconda users wishing to use FFMPEG:
 
 *	Dowload and install FFMPEG 3.1.1.
-*	Download and install opencv 2.4.13 fro opencv.org using the appropriate architecture (x86 or x64).  Make sure it is built with FFMPEG.  This is confirmed by looking for opencv/build/x64/vc11/opencv_ffmpeg2413_64.dll.  Follow build-from-source instructions for opencv to include FFMPEG.
+*	Download and install opencv 2.4.13 from opencv.org using the appropriate architecture (x86 or x64).  Make sure it is built with FFMPEG.  This is confirmed by looking for opencv/build/x64/vc11/opencv_ffmpeg2413_64.dll.  Follow build-from-source instructions for opencv to include FFMPEG.
 *	Copy opencv/build/python/2.7/x64/cv2.pyd (or x86/cv2.pyd for the x86 architecture) to Anaconda2/Lib/site-packages
 *	Set environment variables:
 *	32-bit: Set OPENCV_DIR to the absolute path of opencv/x86/vc11
@@ -91,7 +95,7 @@ See http://www.graphviz.org/Download..php for other options.
 2.	Run the graphviz msi installer, and walk through the steps to install.
 3.	Add the graphviz “bin” directory to PATH variable. Most likely will be C:\Program Files (x86)\Graphviz2.38\bin
 4.	Restart computer to complete the install
-5.	Pull down the correct wheel fro http://www.lfd.uci.edu/~gohlke/pythonlibs/#pygraphviz and perform:
+5.	Pull down the correct wheel from http://www.lfd.uci.edu/~gohlke/pythonlibs/#pygraphviz and perform:
 ```
 pip install pygraphviz-1.3.1-cp27-none-win_amd64.whl 
 ```
@@ -179,6 +183,3 @@ Links record a single action taken on one image to produce another.  An image no
 
 ![Alt](doc/UIView.jpg "UI View")
 
-# Detailed Document
-
-For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.docx. This README is a summary. 

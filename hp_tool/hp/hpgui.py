@@ -428,8 +428,8 @@ class PRNU_Uploader(Frame):
             target = int(foldername.split("_")[-1])
         except ValueError:
             return 'Warning: Luminance of ' + foldername + ' could not be verified.'
-        min_value = target-5
-        max_value = target+5
+        min_value = target-10
+        max_value = target+10
 
         for f in os.listdir(foldername):
             ext = os.path.splitext(f.lower())[1]
