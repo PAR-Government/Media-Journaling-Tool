@@ -916,9 +916,11 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
                     totalonecount+=1
                     startbyte = i*framesize
                     endbyte = startbyte + framesize
-                    diff = framesone[startbyte:endbyte] != framestwo[startbyte:endbyte]
+                    allone = sum([ord(c) for c in framesone[startbyte:endbyte]])
+                    alltwo = sum([ord(c) for c in framestwo[startbyte:endbyte]])
+                    diff = abs(allone-alltwo)
                     time_manager.updateToNow(totalonecount/float(framerateone))
-                    if diff :
+                    if diff > 1:
                         if section is not None and totalonecount-end >= framerateone:
                             section['endframe'] = end
                             section['endtime'] = float(end) / float(framerateone)

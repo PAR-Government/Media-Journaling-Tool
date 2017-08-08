@@ -2100,6 +2100,7 @@ class ImageProjectModel:
         self._executeSkippedComparisons()
         total_errors = list()
 
+        finalNodes = list()
         if len(self.G.get_nodes()) == 0:
             return total_errors
 
@@ -2110,6 +2111,14 @@ class ImageProjectModel:
             if len(predecessors) == 1 and self.G.get_edge(predecessors[0],node)['op'] == 'Donor':
                 total_errors.append((str(predecessors[0]), str(node), str(node) +
                                       ' donor links must coincide with another link to the same destintion node'))
+            successors = self.G.successors(node)
+            if len(successors)  == 0:
+                finalNodes.append(node)
+
+        project_type = self.G.get_project_type()
+        matchedType = [ node for node in finalNodes if fileType(os.path.join(self.get_dir(),self.G.get_node(node)['file'])) == project_type ]
+        if len(matchedType) == 0 and len(finalNodes) > 0:
+            self.G.setDataItem('projecttype', fileType(os.path.join(self.get_dir(),self.G.get_node(finalNodes[0])['file'])))
 
         nodes = self.G.get_nodes()
         anynode = nodes[0]

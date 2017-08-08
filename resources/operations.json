@@ -296,6 +296,44 @@
     },
      {
       "category": "Audio",
+      "name": "AudioPan",
+      "mandatoryparameters": {
+        "Left": {
+          "type": "int[-100:100]",
+          "description": "Percentage Decrease/Increase from -100 to 100"
+        },
+        "Right": {
+          "type": "int[-100:100]",
+          "description": "Percentage Decrease/Increase from -100 to 100"
+        }
+      },
+      "rules": [
+        "checkFileTypeChange","checkFrameTimes"
+      ],
+      "optionalparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "analysisOperations": [],
+      "description": "Pan Audio Signal",
+      "includeInMask": false,
+      "generateMask" : true,
+      "transitions": [
+        "audio.audio",
+        "video.video"
+      ],
+      "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      }
+    },
+     {
+      "category": "Audio",
       "name": "AudioCompress",
       "mandatoryparameters": {
          "Attack": {
