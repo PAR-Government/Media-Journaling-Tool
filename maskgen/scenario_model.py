@@ -726,7 +726,7 @@ class AudioVideoLinkTool(LinkTool):
                           arguments=consolidate(arguments,analysis_params),
                           start=start, end=destination, scModel=scModel)
 
-        return mask, analysis, list()
+        return mask, analysis, errors
 
 class AudioAudioLinkTool(AudioVideoLinkTool):
     """
@@ -1695,6 +1695,7 @@ class ImageProjectModel:
                                                                analysis_params=analysis_params,
                                                                force=True)
         self.G.update_mask(self.start, self.end, mask=mask,errors=errors,**consolidate(analysis,analysis_params))
+        return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
                           skipDonorAnalysis=False,

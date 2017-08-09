@@ -87,12 +87,12 @@ def save_as_video(source, target, donor, matchcolor=False):
 
     maskgen.video_tools.runffmpeg(ffargs)
 
-    maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
-    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
-    maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=', target])
+    maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target],ignoreError=True)
+    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target],ignoreError=True)
+    maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=', target],ignoreError=True)
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
-        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
+        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target],ignoreError=True)
     return {'rotated':rotated}
 
 def transform(img,source,target, **kwargs):

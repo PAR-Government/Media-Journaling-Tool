@@ -97,7 +97,7 @@ def toolCheck():
     except:
         return exifcommand + ' is not installed'
 
-def runexif(args, fix=True):
+def runexif(args, fix=True, ignoreError=False):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     command = [exifcommand]
     command.extend(args)
@@ -116,7 +116,8 @@ def runexif(args, fix=True):
                 runexif(newsetofargs, fix=False)
     except OSError as e:
         logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
-        raise e
+        if not ignoreError:
+            raise e
 
 exif_lock = RLock()
 exif_cache = LRUCache(maxsize=12)

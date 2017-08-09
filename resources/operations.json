@@ -2041,6 +2041,45 @@
         "image.image"
       ]
     },
+     {
+      "category": "Output",
+      "name": "OutputWAV",
+      "mandatoryparameters": {
+
+      },
+      "rules": [
+         "checkLengthSame"
+      ],
+       "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      },
+      "optionalparameters": {
+      },
+      "description": "Export the image in the WAV format.",
+      "includeInMask": false,
+      "transitions": [
+        "audio.audio"
+      ]
+    },
+     {
+      "category": "Output",
+      "name": "OutputAIF",
+      "mandatoryparameters": {
+      },
+      "rules": [
+         "checkLengthSame"
+      ],
+       "compareparameters": {
+          "function" :"maskgen.video_tools.audioCompare"
+      },
+      "optionalparameters": {
+      },
+      "description": "Export the image in the AIF format.",
+      "includeInMask": false,
+      "transitions": [
+        "audio.audio"
+      ]
+    },
     {
       "category": "Output",
       "name": "OutputDng",

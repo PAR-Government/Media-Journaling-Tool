@@ -211,11 +211,13 @@ class MakeGenUI(Frame):
             #val.close()
 
     def recomputeedgemask(self):
-        self.scModel.reproduceMask()
+        errors = self.scModel.reproduceMask()
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
         self.maskvar.set(self.scModel.maskStats())
+        if errors is not None and len(errors) > 0:
+            tkMessageBox.showerror('Recompute Mask Error','\n'.join(errors[(max(0,len(errors)-5)):]))
 
     def recomputedonormask(self):
 
@@ -248,10 +250,12 @@ class MakeGenUI(Frame):
         if d.argvalues is None:
             return
         skipDonorAnalysis =  'homography' in d.argvalues and d.argvalues['homography'] == 'None'
-        self.scModel.reproduceMask(skipDonorAnalysis=skipDonorAnalysis,analysis_params=d.argvalues)
+        errors = self.scModel.reproduceMask(skipDonorAnalysis=skipDonorAnalysis,analysis_params=d.argvalues)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
+        if errors is not None and len(errors) > 0:
+            tkMessageBox.showerror('Recompute Mask Error','\n'.join(errors[(max(0,len(errors)-5)):]))
 
     def _preexport(self):
         errorList = self.scModel.validate(external=True)
