@@ -3254,9 +3254,9 @@
       "category": "Transform",
       "name": "TransformMove",
       "mandatoryparameters": {
-        "inputmaskname": {
+      "inputmaskname": {
           "type": "file:image",
-          "description": "An image file containing a mask describing the component that was moved"
+          "description": "An image file containing a mask describing the component that was moved. "
         }
       },
       "rules": [
@@ -3266,6 +3266,7 @@
         "check_local_warn"
       ],
       "optionalparameters": {
+
         "homography": {
           "type": "list",
           "source": "image",
@@ -3283,6 +3284,11 @@
         "homography max matches" : {
             "type": "int[20:10000]",
            "description": "Maximum number of matched feature points used to compute the homography."
+        },
+        "use input mask for composites": {
+          "type":"list",
+          "values":["JT decides", "yes", "no"],
+          "description" : "Override JT decision to use the input mask in composite generation"
         }
       },
       "analysisOperations": [
