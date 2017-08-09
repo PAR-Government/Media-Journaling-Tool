@@ -400,6 +400,26 @@ def cas_transform(edge,
 def move_pixels(frommask, tomask, image, isComposite=False):
     lowerm, upperm = tool_set.boundingRegion(frommask)
     lowerd, upperd = tool_set.boundingRegion(tomask)
+    #if lowerm == lowerd:
+    #    M = cv2.getAffineTransform(np.asarray([
+    #                                                [upperm[0], lowerm[1]],
+    #                                                [upperm[0], upperm[1]],
+    #                                                [lowerm[0], upperm[1]]]
+    #                                               ).astype(
+    #        'float32'),
+    #       np.asarray([
+    #                   [upperd[0], lowerd[1]],
+    #                   [upperd[0], upperd[1]],
+    #                    [lowerd[0], upperd[1]]]).astype(
+    #            'float32'))
+    #    if isComposite:
+    #        transformedImage = tool_set.applyAffineToComposite(image, M, tomask.shape)
+    #        transformedImage = transformedImage.astype('uint8')
+    #    else:
+    #        transformedImage = cv2.warpAffine(image, M, (tomask.shape[1], tomask.shape[0]))
+    #        transformedImage = transformedImage.astype('uint8')
+    #    return transformedImage
+
     M = cv2.getPerspectiveTransform(np.asarray([[lowerm[0], lowerm[1]],
                                                 [upperm[0], lowerm[1]],
                                                 [upperm[0], upperm[1]],
@@ -435,6 +455,13 @@ def move_transform(edge, source, target, edgeMask,
         inputmask =  \
             tool_set.openImageFile(os.path.join(directory,edge['inputmaskname'])).to_mask().invert().to_array() \
             if 'inputmaskname' in edge and edge['inputmaskname'] is not None else edgeMask
+        # cdf29bf86e41c26c1247aa7952338ac0
+        # 25% seems arbitrary.  How much overlap is needed before the inputmask stops providing useful information?
+        decision = _getInputMaskDecision(edge)
+        if decision == 'no' or \
+            (decision != 'yes' and \
+             sum(sum(abs(((255-edgeMask) - (255-inputmask))/255))) / float(sum(sum((255-edgeMask)/255))) <= 0.25):
+            inputmask = edgeMask
     except:
         inputmask = edgeMask
 
@@ -533,6 +560,14 @@ def donor(edge, source, target, edgeMask,
             #donorMask = ImageWrapper(edgeMask).invert().to_array()
             donorMask = np.zeros(donorMask.shape,dtype=np.uint8)
     return donorMask
+
+
+def _getInputMaskDecision(edge):
+    tag = "use input mask for composites"
+    if ('arguments' in edge and \
+                (tag in edge['arguments'])):
+        return edge['arguments']['tag']
+    return None
 
 def _getOrientation(edge):
     if ('arguments' in edge and \

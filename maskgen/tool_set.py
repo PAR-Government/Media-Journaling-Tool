@@ -926,10 +926,16 @@ def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, 
         return
     if 'inputmaskname' in arguments:
         inputmask = openImageFile(os.path.join(directory, arguments['inputmaskname'])).to_mask().to_array()
-        # want mask2 to be the region moved to
-        mask2 = mask - inputmask
-        # mask1 to be the region moved from
-        mask = inputmask
+        # a bit arbitrary.  If there is a less than  50% overlap, then isolate the regions highlighted by the inputmask
+        # otherwise just use the change mask for the transform.  The change mask should be the full set of the pixels
+        # changed and the input mask a subset of those pixels
+        if sum(sum(abs((mask.image_array - inputmask)/255))) / float(sum(sum(mask.image_array/255))) >= 0.75:
+            # want mask2 to be the region moved to
+            mask2 = mask - inputmask
+            # mask1 to be the region moved from
+            mask = inputmask
+        else:
+            mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
     else:
         mask2 =  mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
     matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
@@ -1215,7 +1221,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     arguments = dict(arguments)
     homography = arguments['homography'] if arguments is not None and 'homography' in arguments else 'RANSAC-4'
     if homography in ['None','Map']:
-        return None
+        return None,None
     elif homography in ['All'] and 'homography max matches' in arguments:
         # need as many as possible
         arguments.pop('homography max matches')
@@ -1430,6 +1436,12 @@ def applyPerspectiveToComposite(compositeMask, transform_matrix, shape):
     func = partial(perspectiveChange, M=transform_matrix,shape=shape)
     return applyToComposite(compositeMask, func, shape=shape)
 
+def applyAffineToComposite(compositeMask, transform_matrix, shape):
+    def perspectiveChange(compositeMask, M=None,shape=None):
+        return cv2.warpAffine(compositeMask, M, (shape[1],shape[0]))
+    from functools import partial
+    func = partial(perspectiveChange, M=transform_matrix,shape=shape)
+    return applyToComposite(compositeMask, func, shape=shape)
 
 def applyRotateToComposite(rotation, compositeMask, expectedDims):
     """
