@@ -709,7 +709,7 @@ def _formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
         result = []
     try:
         os.remove(outFileName)
-    except IOError:
+    except OSError:
         print 'video diff process failed'
 
     return result, errors if sendErrors  else []
