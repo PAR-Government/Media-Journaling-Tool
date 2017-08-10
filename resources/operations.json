@@ -1,5 +1,5 @@
 {
-  "version": "v04.0710.200a7826e9",
+  "version": "04.0810.546e996a36",
   "operations": [
      {
       "category": "Audio",
@@ -258,6 +258,14 @@
           "type": "list",
           "values" : ["fade in","fade out","both","cross", "none"],
           "description": "Fading effect"
+        },
+        "Left Pan": {
+          "type": "int[-100:100]",
+          "description": "Percentage Decrease/Increase from -100 to 100"
+        },
+        "Right Pan": {
+          "type": "int[-100:100]",
+          "description": "Percentage Decrease/Increase from -100 to 100"
         }
       },
       "rules": [
@@ -296,21 +304,35 @@
     },
      {
       "category": "Audio",
-      "name": "AudioPan",
+      "name": "AudioReverb",
       "mandatoryparameters": {
-        "Left": {
-          "type": "int[-100:100]",
-          "description": "Percentage Decrease/Increase from -100 to 100"
+        "Room Size Change": {
+          "type": "list",
+          "values" : ["small","medium","large"],
+          "description": "How much change is being applied to the original signal"
         },
-        "Right": {
-          "type": "int[-100:100]",
-          "description": "Percentage Decrease/Increase from -100 to 100"
+        "Damping": {
+          "type": "yesno",
+          "description": "Damping rather than increasing reverb."
+        },
+        "Damping Filters": {
+          "type": "list",
+          "values" : ["high","low","both","none"],
+          "description": "Damping filters applied."
         }
       },
       "rules": [
         "checkFileTypeChange","checkFrameTimes"
       ],
       "optionalparameters": {
+        "Pre-Delay": {
+          "type": "int[0:1000000]",
+          "description": "Milliseconds recording difference between signal and reverb"
+        },
+        "Reverb Time" : {
+         "type": "int[-1000000:1000000]",
+          "description": "Milliseconds based on RT60 value."
+        },
         "Start Time": {
           "type": "time",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
@@ -321,7 +343,7 @@
         }
       },
       "analysisOperations": [],
-      "description": "Pan Audio Signal",
+      "description": "Add Reverb or Dampen an Audio Signal to alter the perception of the room size.",
       "includeInMask": false,
       "generateMask" : true,
       "transitions": [
@@ -1306,7 +1328,7 @@
     },
     {
       "category": "Color",
-      "name": "ColorInterpolation",
+      "name": "ColorLUT",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
@@ -1318,10 +1340,14 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "lookuptable": {
+          "type": "string",
+          "description": "Name of the lookup table (LUT) to color grade layers of footage"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
-      "description": "Fill of transparent areas of a current layer with a smooth mix of the colors from the opaque areas.",
+      "description": "Changing color space or changing based on a lut.",
       "includeInMask": false,
       "transitions": [
         "image.image",
@@ -1694,23 +1720,6 @@
       "includeInMask": false,
       "transitions": [
         "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Filter",
-      "name": "ColorLUT",
-      "mandatoryparameters": {},
-      "rules": [],
-      "optionalparameters": {
-        "lookuptable": {
-          "type": "string",
-          "description": "Name of the lookup table"
-        }
-      },
-      "description": "Uses a look up table to color grade layers of footage.",
-      "includeInMask": false,
-      "transitions": [
         "video.video"
       ]
     },
@@ -2642,7 +2651,8 @@
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
       "includeInMask": false,
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {
@@ -2705,39 +2715,14 @@
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "description": "Create a limited selection,removing background,from a donor video.  The result should be a black back ground.",
-      "includeInMask": false,
-      "transitions": [
-        "video.video"
-      ]
-    },
-    {
-      "category": "Select",
-      "name": "SelectFromFrames",
-      "mandatoryparameters": {
-        "chroma key insertion" :{
-           "type" : "yesno",
-           "description": "Was a chroma-key inserted into the video?"
-        }
-      },
-      "rules": [
-        "checkSize",
-        "checkFrameTimes"
-      ],
-      "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        "key insertion" :{
+           "type" : "yesno",
+           "description": "Was a chroma or luminance key inserted into the video?"
         }
       },
-      "description": "Select a region from a series of frames for the intent of pasting (creating a donor), including addition of chroma key.",
-      "includeInMask": true,
+      "description": "Create a limited selection,removing background,from a donor video,for the intent of pasting.  The result should be a black back ground for non-keyed manipulations.",
+      "includeInMask": false,
       "transitions": [
         "video.video"
       ]
