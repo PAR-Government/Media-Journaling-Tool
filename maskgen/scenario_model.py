@@ -1810,10 +1810,12 @@ class ImageProjectModel:
             fp_writer = csv.writer(fp)
             for edge_id in self.G.get_edges():
                 edge = self.G.get_edge(edge_id[0],edge_id[1])
-                if 'compositecolor' not in edge and not includeAllEdges:
+                if 'compositeid' not in edge and not includeAllEdges:
                     continue
-                row = [self.G.get_name(),edge_id[0],edge_id[1],edge['op'],
-                       edge['compositecolor'] if 'compositecolor' in edge else '']
+                self.G.get_node(edge_id[0])
+                baseNodes = self._findBaseNodes(edge_id[0])
+                row = [self.G.get_name(),edge_id[0],edge_id[1],edge['op'],baseNodes[0],
+                       edge['compositeid'] if 'compositeid' in edge else '']
                 for path in additionalpaths:
                     values = getPathValues(edge, path)
                     if len(values) > 0:
