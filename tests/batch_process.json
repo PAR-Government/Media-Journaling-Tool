@@ -9,7 +9,6 @@
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
-    "manipulationcategory":"2-Unit",
     "recompress": false
   },
   "nodes": [
@@ -28,8 +27,6 @@
     {
       "op_type": "PluginOperation",
       "plugin": "OutputPNG",
-      "plugin": "OutputPNG",
-      "picklist": "imageset",
       "id": "2",
       "arguments": {
         "Image Rotated" : {

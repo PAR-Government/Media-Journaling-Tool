@@ -6,6 +6,21 @@ import bulk_export
 from maskgen import graph_rules
 import csv
 import os
+from maskgen.batch import pick_projects
+
+def validate_export(error_writer,project, sm):
+    """
+    Save error report, project properties, composites, and donors
+    :param sm: scenario model
+    """
+    errorList = sm.validate()
+    name = os.path.basename(project)
+    sm.constructCompositesAndDonors()
+    graph_rules.processProjectProperties(sm)
+    sm.save()
+    for err in errorList:
+        error_writer.writerow((name, str(err)))
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -14,18 +29,13 @@ def main():
 
     graph_rules.setup()
 
-    project_list = bulk_export.pick_projects(args.projects)
+    project_list = pick_projects(args.projects)
 
     with open(os.path.join(args.projects,'ErrorReport_' + str(os.getpid()) + '.csv'), 'wb') as csvfile:
         error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for project in project_list:
             try:
-                name = os.path.basename(project)
-                sm = scenario_model.loadProject(project)
-                error_list = sm.validate()
-                sm.getProbeSet()
-                for err in error_list:
-                    error_writer.writerow((name, str(err)))
+                validate_export(error_writer, project, scenario_model.loadProject(project))
             except Exception as e:
                 print project
                 print e

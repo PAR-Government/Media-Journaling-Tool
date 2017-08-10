@@ -4,45 +4,7 @@ import argparse
 import maskgen.scenario_model
 from maskgen.graph_rules import processProjectProperties
 import csv
-
-def pick_projects(directory):
-    """
-    Finds all subdirectories in directory containing a .json file
-    :param directory: string containing directory of subdirectories to search
-    :return: list projects found under the given directory
-    """
-    ext = '.json'
-    subs = [x[0] for x in os.walk(directory)]
-    projects = []
-
-    for sub in subs:
-        files = []
-        for f in os.listdir(sub):
-            if f.endswith(ext):
-                files.append(f)
-        if len(files) > 0:
-            sizes = [os.stat(os.path.join(sub, pick)).st_size for pick in files]
-            max_size = max(sizes)
-            index = sizes.index(max_size)
-            projects.append(os.path.join(sub, files[index]))
-    return projects
-
-def pick_zipped_projects(directory):
-    """
-    Finds all subdirectories in directory containing a .json file
-    :param directory: string containing directory of subdirectories to search
-    :return: list projects found under the given directory
-    """
-    ext = '.tgz'
-    subs = [x[0] for x in os.walk(directory)]
-    projects = []
-
-    for sub in subs:
-        for f in os.listdir(sub):
-            if f.endswith(ext):
-                projects.append(os.path.join(sub,f))
-    return projects
-
+from maskgen.batch import pick_projects
 
 def upload_projects(s3dir, dir, error_writer):
     """
