@@ -569,19 +569,6 @@ def _getInputMaskDecision(edge):
         return edge['arguments']['tag']
     return None
 
-def _getOrientation(edge):
-    if ('arguments' in edge and \
-                ('Image Rotated' in edge['arguments'] and \
-                             edge['arguments']['Image Rotated'] == 'yes')) and \
-                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-        return edge['exifdiff']['Orientation'][1]
-    if ('arguments' in edge and \
-                ('rotate' in edge['arguments'] and \
-                             edge['arguments']['rotate'] == 'yes')) and \
-                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-        return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
-            edge['exifdiff']['Orientation'][1]
-    return ''
 
 def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     # change the mask to reflect the output image
@@ -599,7 +586,7 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', lev
         args['interpolation']) > 0 else 'nearest'
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     flip = args['flip direction'] if 'flip direction' in args else None
-    orientflip, orientrotate = exif.rotateAmount(_getOrientation(edge))
+    orientflip, orientrotate = exif.rotateAmount(graph_rules.getOrientationForEdge(edge))
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
     cut = edge['op'] in ('SelectRemove')
@@ -636,7 +623,7 @@ def defaultAlterDonor(edge, edgeMask, compositeMask=None, directory='.', level=N
     rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     flip = args['flip direction'] if 'flip direction' in args else None
-    orientflip, orientrotate = exif.rotateAmount(_getOrientation(edge))
+    orientflip, orientrotate = exif.rotateAmount(graph_rules.getOrientationForEdge(edge))
     orientrotate = -orientrotate if orientrotate is not None else None
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm

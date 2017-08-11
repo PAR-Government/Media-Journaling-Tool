@@ -304,6 +304,9 @@ def _pasteSpliceBlend(scModel):
             scModel.imageFromGroup(grp, software=mod.software, **args)
 
 
+def _fixColors(scModel):
+    scModel.assignColors(scModel)
+
 def _fixLabels(scModel):
     for node in scModel.getNodeNames():
         scModel.labelNodes(node)

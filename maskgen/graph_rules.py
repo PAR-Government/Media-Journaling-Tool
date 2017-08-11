@@ -1,16 +1,18 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
-from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,getDurationStringFromMilliseconds
+from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,\
+    getDurationStringFromMilliseconds, IntObject
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
 import numpy
-from image_wrap import ImageWrapper
+from maskgen import Probe
 from image_graph import ImageGraph
 import os
 import exif
 import logging
 from video_tools import getFrameRate
 import numpy as np
+
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -1218,3 +1220,101 @@ def getNodeSummary(scModel, node_id):
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
 
+
+
+def getOrientationForEdge(edge):
+    if ('arguments' in edge and \
+                ('Image Rotated' in edge['arguments'] and \
+                             edge['arguments']['Image Rotated'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][1]
+    if ('arguments' in edge and \
+                ('rotate' in edge['arguments'] and \
+                             edge['arguments']['rotate'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
+            edge['exifdiff']['Orientation'][1]
+    return ''
+
+class GraphCompositeIdAssigner:
+
+    """
+        Each edge and final node is associated with a compositeid.
+        Each file node is associated with a file id.
+        composite ids associated with a file id are unique.
+        Composite ids reset to there start if the edge qualifies for a reset
+        A reset also increments the file id.
+
+    """
+
+    def __init__(self, graph, probes):
+        """
+        :param graph:
+        :param probes:
+        @type graph: ImageGraph
+        @type probes : list of Probe
+        """
+        self.graph = graph
+        self.repository = dict()
+        for probe in probes:
+            self.repository[probe.edgeId] = dict()
+        self.buildProbeEdgeIds(set([probe.targetBaseNodeId for probe in probes]))
+        for probe in probes:
+            idsPerFinalNode = self.repository[probe.edgeId]
+            idtuple = idsPerFinalNode[probe.finalNodeId]
+            probe.groupid = idtuple[0]
+            probe.targetid = idtuple[1]
+        self.probes = probes
+
+    def __qualifiesForReset(self, edge):
+        op = getOperationWithGroups(edge['op'],fake=True)
+        text,amount= exif.rotateAmount(getOrientationForEdge(edge))
+        isrotated =  text is not None or amount != 0
+        sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+        return op.category in ['PostProcessing','Transform'] or isrotated or sizeChange != (0,0)
+
+    def __recurseDFSProbeEdgeIds(self, nodename,  compositeid, fileid):
+        """
+        Each edge and final node is associated with a compositeid.
+        Each file node is associated with a file id.
+        composite ids associated with a file id are unique.
+        Composite ids reset to there start if the edge qualifies for a reset
+        A reset also increments the file id.
+        :param nodename:
+        :param repository: nested dictionary of edge id -> file node name -> (file id, composite id)
+        :param compositeid: holds the current id value for composite id
+        :param fileid: holds the current id value for file id
+        :return:
+        @type nodename: str
+        @type repository: dict
+        @type compositeid: IntObject
+        @type fileid: IntObject
+        """
+        successors = self.graph.successors(nodename)
+        start = compositeid.value
+        if successors is None or len(successors) == 0:
+            return [(nodename, fileid.value)]
+        finalNodes = set()
+        for successor in self.graph.successors(nodename):
+            edge = self.graph.get_edge(nodename, successor)
+            qualifies = self.__qualifiesForReset(edge)
+            if qualifies:
+                fileid.increment()
+            if (nodename, successor) in self.repository:
+                current = compositeid.increment()
+            childFinalNodes =  self.__recurseDFSProbeEdgeIds(successor,  compositeid, fileid)
+            for finalNodeNameTuple in childFinalNodes:
+                if (nodename, successor) in self.repository:
+                    self.repository[(nodename, successor)][finalNodeNameTuple[0]] = (finalNodeNameTuple[1], current)
+                finalNodes.add(finalNodeNameTuple)
+            if qualifies:
+                compositeid.set(start)
+        return finalNodes
+
+    def buildProbeEdgeIds(self, baseNodes):
+        fileid = IntObject()
+        for node_name in self.graph.get_nodes():
+            node = self.graph.get_node(node_name)
+            if node['nodetype'] == 'base' or node_name in baseNodes:
+                self.__recurseDFSProbeEdgeIds(node_name, IntObject(),fileid)
+                fileid.increment()

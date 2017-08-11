@@ -18,7 +18,7 @@ class TestToolSet(unittest.TestCase):
         scModel = ImageProjectModel('images/sample.json')
         processProjectProperties(scModel)
         scModel.getProbeSet(compositeBuilders=[tool_set.Jpeg2000CompositeBuilder])
-        scModel.toCSV('test_composite.csv')
+        scModel.toCSV('test_composite.csv',additionalpaths=['basenode'])
         with open('test_composite.csv','rb') as fp:
             reader = csv.reader(fp)
             for row in reader:

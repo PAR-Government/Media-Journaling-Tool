@@ -176,6 +176,9 @@ class IntObject:
     def __init__(self):
         pass
 
+    def set(self,value):
+        self.value = value
+
     def increment(self):
         self.value += 1
         return self.value
@@ -767,7 +770,7 @@ class CompositeBuilder:
         self.passes = passes
         self.composite_type = composite_type
 
-    def build(self, passcount, probe, edge, skipComputation=False):
+    def build(self, passcount, probe, edge):
         pass
 
     def getComposite(self, finalNodeId):
@@ -775,20 +778,36 @@ class CompositeBuilder:
 
 class Jpeg2000CompositeBuilder(CompositeBuilder):
     composites = dict()
+    # used to make sure a bit is not used twice in the same group
+    group_bit_check = dict()
 
     def __init__(self):
         CompositeBuilder.__init__(self,1,'jp2')
 
-    def _to_jp2_target_name(self,name):
-        return name[0:name.rfind('.png')] + '_c.jp2'
+    #def _to_jp2_target_name(self,name):
+    #    return name[0:name.rfind('.png')] + '_c.jp2'
 
-    def build(self, passcount, probe, edge, skipComputation=False):
+    def build(self, passcount, probe, edge):
+        """
+
+        :param passcount:
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: Probe
+        """
         if passcount > 0:
             return
-        bit = edge['compositeid'] -1
-        if probe.finalNodeId not in self.composites:
-            self.composites[probe.finalNodeId] = []
-        composite_list = self.composites[probe.finalNodeId]
+        # check to see if the bit is already assigned in the group
+        if probe.groupid not in self.group_bit_check:
+            self.group_bit_check[probe.groupid] = [probe.targetid]
+        else:
+            assert probe.targetid not in self.group_bit_check[probe.groupid]
+            self.group_bit_check[probe.groupid].append(probe.targetid)
+        bit = probe.targetid -1
+        if probe.groupid not in self.composites:
+            self.composites[probe.groupid] = []
+        composite_list = self.composites[probe.groupid]
         composite_mask_id = (bit / 8)
         imarray = np.asarray(probe.targetMaskImage)
         while (composite_mask_id+1) > len(composite_list):
@@ -797,21 +816,36 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         thisbit[imarray == 0] = math.pow(2,bit%8)
         composite_list[composite_mask_id] = composite_list[composite_mask_id] + thisbit
 
-    def getComposite(self,finalNodeId):
-       compositeMaskList  = self.composites[finalNodeId]
-       third_dimension  = len(compositeMaskList)
-       analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
-       if third_dimension == 1:
-           result = compositeMaskList[0]
-           analysis_mask[compositeMaskList[0] > 0] = 255
-       else:
-           result = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
-           for dim in range(third_dimension):
-               result[:,:,dim] = compositeMaskList[dim]
-               analysis_mask[compositeMaskList[dim]>0] = 255
-       globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
+    def finalize(self, probes):
+        results = {}
+        dir = [os.path.split(probe.targetMaskFileName)[0] for probe in probes][0]
+        for groupid, compositeMaskList in self.composites.iteritems():
+            third_dimension = len(compositeMaskList)
+            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
+            if third_dimension == 1:
+                result = compositeMaskList[0]
+                analysis_mask[compositeMaskList[0] > 0] = 255
+            else:
+                result = np.zeros(
+                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
+                for dim in range(third_dimension):
+                    result[:, :, dim] = compositeMaskList[dim]
+                    analysis_mask[compositeMaskList[dim] > 0] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
                                                                      globalAnalysis=True)
-       return finalNodeId + '_composite_mask.jp2', ImageWrapper(result,mode='JP2'),globalchange, changeCategory, ratio
+            img = ImageWrapper(result, mode='JP2')
+            results[groupid] = (img,globalchange, changeCategory, ratio)
+            img.save(os.path.join(dir,str(groupid) + '_c.jp2'))
+
+        for probe in probes:
+            finalResult = results[probe.groupid]
+            probe.compositeMasks[self.composite_type] = finalResult[0]
+            #targetJP2MaskImageName = self._to_jp2_target_name(probe.targetMaskFileName)
+            targetJP2MaskImageName=os.path.join(dir,str(groupid) + '_c.jp2')
+            probe.compositeFileNames[self.composite_type] = targetJP2MaskImageName
+            #finalResult[0].save(targetJP2MaskImageName)
+        return results
+
 
 class ColorCompositeBuilder(CompositeBuilder):
     composites = dict()
@@ -822,50 +856,53 @@ class ColorCompositeBuilder(CompositeBuilder):
     def _to_color_target_name(self,name):
         return name[0:name.rfind('.png')] + '_c.png'
 
-    def build(self, passcount, probe, edge, skipComputation=False):
+    def build(self, passcount, probe, edge):
         if passcount == 0:
-            return self.pass1(probe, edge, skipComputation=skipComputation)
-        elif passcount == 2:
-            return self.pass2(probe, edge, skipComputation=skipComputation)
+            return self.pass1(probe, edge)
+        elif passcount == 1:
+            return self.pass2(probe, edge)
 
-    def pass1(self,probe,edge, skipComputation=False):
-        targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
-        if os.path.exists(targetColorMaskImageName) and skipComputation:
-            return
-        color = [int(x) for x in edge['compositecolor'].split(' ')]
+    def pass1(self,probe,edge):
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
         colorMask = maskToColorArray(probe.targetMaskImage, color=color)
         if probe.finalNodeId in self.composites:
                 self.composites[probe.finalNodeId] = mergeColorMask(self.composites[probe.finalNodeId], colorMask)
         else:
             self.composites[probe.finalNodeId] = colorMask
 
-    def pass2(self,probe,edge, skipComputation=False):
+    def pass2(self,probe,edge):
+        """
+
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: graph_rules.
+        """
         # now reconstruct the probe target to be color coded and obscured by overlaying operations
-        targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
-        probe.targetColorMaskFileName = targetColorMaskImageName
-        if os.path.exists(targetColorMaskImageName) and skipComputation:
-            probe.targetColorMaskImage = openImageFile(targetColorMaskImageName)
-            if probe.finalNodeId in self.composites:
-                self.composites.pop(probe.finalNodeId)
-            return
-        color = [int(x) for x in edge['compositecolor'].split(' ')]
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
         composite_mask_array = self.composites[probe.finalNodeId]
         result = np.ones(composite_mask_array.shape).astype('uint8') * 255
         matches = np.all(composite_mask_array == color, axis=2)
         #  only contains visible color in the composite
         result[matches] = color
-        probe.targetColorMaskImage = ImageWrapper(result)
-        probe.targetColorMaskImage.save(targetColorMaskImageName)
 
-    def getComposite(self,finalNodeId):
-       compositeMask  = self.composites[finalNodeId]
-       result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
-       matches = np.any(compositeMask != [255, 255, 255], axis=2)
-       result[matches] = 255
-       globalchange, changeCategory, ratio = maskChangeAnalysis(result,
-                                                                     globalAnalysis=True)
-       return finalNodeId + '_composite_mask.png',\
-                      ImageWrapper(compositeMask),globalchange, changeCategory, ratio
+
+    def finalize(self, probes):
+        results = {}
+        for finalNodeId, compositeMask in self.composites.iteritems():
+            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
+            matches = np.any(compositeMask != [255, 255, 255], axis=2)
+            result[matches] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
+                                                                             globalAnalysis=True)
+            results[finalNodeId] = (ImageWrapper(compositeMask),globalchange, changeCategory, ratio)
+        for probe in probes:
+            finalResult = results[probe.finalNodeId]
+            probe.compositeMasks[self.composite_type] = finalResult[0]
+            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
+            probe.compositeFileNames[self.composite_type] = targetColorMaskImageName
+            finalResult[0].save(targetColorMaskImageName)
+        return results
 
 
 def maskChangeAnalysis(mask, globalAnalysis=False):

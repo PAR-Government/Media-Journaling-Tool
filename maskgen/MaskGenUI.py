@@ -267,7 +267,6 @@ class MakeGenUI(Frame):
         self.scModel.executeFinalNodeRules()
         processProjectProperties(self.scModel)
         self.getproperties()
-        self.scModel.removeCompositesAndDonors()
 
     def export(self):
         self._preexport()
@@ -705,7 +704,7 @@ class MakeGenUI(Frame):
         return error_count == 0
 
     def viewdonor(self):
-        im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
+        im,baseIm = self.scModel.getDonorAndBaseImage()
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
 

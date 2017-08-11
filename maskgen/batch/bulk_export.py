@@ -57,9 +57,7 @@ def upload_projects(s3dir, dir, error_writer):
 
     for project in projects:
         scModel = maskgen.scenario_model.loadProject(project)
-        scModel.constructCompositesAndDonors()
         processProjectProperties(scModel)
-        scModel.removeCompositesAndDonors()
         error_list = scModel.exporttos3(s3dir)
         if len(error_list) > 0:
             for err in error_list:
