@@ -1,5 +1,5 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
-from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,getDurationStringFromMilliseconds
+from tool_set import getFileMeta,validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,getDurationStringFromMilliseconds
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
@@ -64,6 +64,7 @@ def missing_donor_inputmask(edge,dir):
             'purpose' in edge['arguments'] and \
             edge['arguments']['purpose'] == 'clone') or
             edge['op'] == 'TransformMove')
+
 
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
@@ -445,6 +446,7 @@ def checkFrameTimeAlignment(graph, frm, to):
     if et is not None and abs(end-(et[1]/rate + et[0])) >= max(1000,rate):
         return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
 
+
 def checkAddFrameTime(graph, frm, to):
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
@@ -501,6 +503,42 @@ def checkResizeInterpolation(graph, frm, to):
         sizeChange = (changeTuple[0], changeTuple[1])
         if( sizeChange[0] < 0 or sizeChange[1] < 0) and 'none' in interpolation:
             return interpolation + ' interpolation is not permitted with a decrease in size'
+
+
+def checkSameChannels(graph, frm, to):
+    vidBefore = graph.get_image_path(frm)
+    vidAfter = graph.get_image_path(to)
+    metaBefore = getFileMeta(vidBefore)
+    metaAfter = getFileMeta(vidAfter)
+    if len(metaBefore) != len(metaAfter):
+        return 'change in the number of streams occurred'
+
+def checkHasVideoChannel(graph, frm, to):
+    vid = graph.get_image_path(to)
+    meta = getFileMeta(vid)
+    if 'video' not in meta:
+        return 'video channel missing in file'
+
+def checkAudioChannels(graph, frm, to):
+    vid = graph.get_image_path(to)
+    meta = getFileMeta(vid)
+    if 'video' in meta:
+        return 'video channel present in audio file'
+
+def checkFileTypeChangeForDonor(graph, frm, to):
+    frm_file = graph.get_image(frm)[1]
+    to_file = graph.get_image(to)[1]
+    if fileTypeChanged(to_file, frm_file):
+        predecessors = graph.predecessors(to)
+        if len(predecessors) >= 2:
+            return 'donor image missing'
+        for pred in predecessors:
+            edge = graph.get_edge(pred, to)
+            if edge['op'] == 'Donor':
+                donor_file = graph.get_image(pred)[1]
+                if fileTypeChanged(donor_file, to_file):
+                    return 'operation not permitted to change the type of image or video file'
+    return None
 
 def checkFileTypeChange(graph, frm, to):
     frm_file = graph.get_image(frm)[1]
@@ -688,6 +726,26 @@ def checkLengthSmaller(graph, frm, to):
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] < getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
         return "Length of video is not shorter"
 
+def checkResolution(graph,frm,to):
+    edge = graph.get_edge(frm, to)
+    width = getValue(edge, 'metadatadiff[0].0:width')
+    if width is None:
+        width = getValue(edge, 'metadatadiff[0].1:width')
+    height = getValue(edge, 'metadatadiff[0].0:height')
+    if height is None:
+        height = getValue(edge, 'metadatadiff[0].1:height')
+    resolution = getValue(edge, 'arguments.resolution')
+    split = resolution.split('X')
+    if len(split) < 2:
+        split = resolution.split('x')
+        if len(split) < 2:
+            return 'resolution is not in correct format'
+    res_width = split[0]
+    res_height = split[1]
+    if width is not None and width[2] != res_width:
+        return 'resolution width does not match video'
+    if height is not None and height[2] != res_height:
+        return 'resolution height does not match video'
 
 def checkPasteFrameLength(graph,frm,to):
     edge = graph.get_edge(frm, to)

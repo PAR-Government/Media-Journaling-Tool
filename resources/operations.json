@@ -42,7 +42,8 @@
         "checkFrameTimes",
         "checkSize",
         "checkFileTypeChange",
-        "checkAddFrameTime"
+        "checkAddFrameTime",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Copy End Time": {
@@ -66,11 +67,11 @@
       "category": "Audio",
       "name": "AudioSample",
       "mandatoryparameters": {
-        "Copy Start Time": {
+        "Start Time": {
           "type": "time",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Copy End Time": {
+        "End Time": {
           "type": "time",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
@@ -88,7 +89,8 @@
       "generateMask" : false,
       "transitions": [
         "video.audio",
-        "audio.audio"
+        "audio.audio",
+        "video.video"
       ]
     },
     {
@@ -116,6 +118,7 @@
       },
       "rules": [
         "checkSize",
+        "checkHasVideoChannel",
         "checkFileTypeChange",
         "checkFrameTimes"
       ],
@@ -166,7 +169,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkAudioChannels"
       ],
       "optionalparameters": {
         "End Time": {
@@ -209,7 +213,10 @@
         }
       },
       "rules": [
-        "checkFileTypeChange","checkFrameTimes","checkFrameTimeAlignment"
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "checkFrameTimeAlignment",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Stream" : {
@@ -269,7 +276,9 @@
         }
       },
       "rules": [
-        "checkFileTypeChange","checkFrameTimes"
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -322,7 +331,9 @@
         }
       },
       "rules": [
-        "checkFileTypeChange","checkFrameTimes"
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Pre-Delay": {
@@ -386,7 +397,8 @@
       "rules": [
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkSameChannels"
       ],
       "optionalparameters": {
          "Stream" : {
@@ -439,7 +451,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkAddFrameTime"
+        "checkAddFrameTime",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "End Time": {
@@ -485,7 +498,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
       },
@@ -516,7 +530,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -562,7 +577,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
       },
@@ -592,7 +608,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -631,7 +648,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -676,7 +694,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -728,7 +747,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "analysisOperations": [ ],
@@ -759,7 +779,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -790,7 +811,8 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": ["checkFrameTimes"],
+      "rules": ["checkFrameTimes",
+        "checkSameChannels"],
       "optionalparameters": {},
       "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
       "includeInMask": false,
@@ -804,7 +826,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChangeForDonor",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Copy metadata information from a source.",
@@ -820,7 +843,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Alter image metadata.",
@@ -1049,7 +1073,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1074,7 +1099,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1098,7 +1124,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1131,7 +1158,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1170,7 +1198,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1210,7 +1239,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1256,7 +1286,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
       },
@@ -1290,7 +1321,8 @@
       },
       "rules": [
         "checkLengthSame",
-        "checkSize"
+        "checkSize",
+        "checkSameChannels"
       ],
       "optionalparameters": {
       },
@@ -1310,7 +1342,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1334,7 +1367,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1379,7 +1413,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1409,7 +1444,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1439,7 +1475,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1469,7 +1506,8 @@
         "checkLengthSame",
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1492,7 +1530,8 @@
       "rules": [
         "checkLengthSame",
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1538,7 +1577,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1577,7 +1617,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1624,7 +1665,8 @@
         "checkFrameTimes",
         "checkInputMask",
         "check_local",
-        "sampledInputMask"
+        "sampledInputMask",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1655,7 +1697,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "type":{
@@ -1680,7 +1723,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1703,7 +1747,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "checkForRawFile"
+        "checkForRawFile",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1728,7 +1773,8 @@
       "name": "FilterKeying",
       "mandatoryparameters": {},
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Remove a color from a layer of video.",
@@ -1745,7 +1791,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
          "gamma": {
@@ -1774,7 +1821,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1794,7 +1842,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkLevelsVsCurves"
+        "checkLevelsVsCurves",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1819,7 +1868,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1843,7 +1893,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1867,7 +1918,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1892,7 +1944,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1923,7 +1976,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "check_local"
+        "check_local",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1955,7 +2009,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1987,7 +2042,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2015,7 +2071,8 @@
       "mandatoryparameters": {
       },
       "rules": [
-        "checkSize"
+        "checkSize",
+        "checkSameChannels"
       ],
       "optionalparameters": {
       },
@@ -2217,6 +2274,7 @@
         }
       },
       "rules": [
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
@@ -2252,6 +2310,7 @@
         }
       },
       "rules": [
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
@@ -2287,6 +2346,7 @@
         }
       },
       "rules": [
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
@@ -2301,6 +2361,8 @@
       "name": "OutputAVI",
       "mandatoryparameters": {},
       "rules": [
+        "checkSameChannels",
+        "checkResolution"
       ],
       "optionalparameters": {
         "resolution": {
@@ -2416,7 +2478,8 @@
       "rules": [
         "checkForDonor",
         "checkPasteFrameLength",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Adding a series of frames from a video clip",
@@ -2447,7 +2510,8 @@
         "checkLengthSame",
         "checkFrameTimes",
         "check_local",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2500,7 +2564,8 @@
         "checkForDonorWithRegion",
         "checkFrameTimes",
         "check_local",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2537,7 +2602,8 @@
         }
       },
       "rules": [
-        "checkLengthBigger"
+        "checkLengthBigger",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Copy & Paste a series of frames within the same video",
@@ -2564,7 +2630,8 @@
         }
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame",
+        "checkSameChannels"
       ],
       "optionalparameters": {},
       "description": "Cut & Paste a series of frames within the same video",
@@ -2706,7 +2773,8 @@
       "category": "Select",
       "name": "SelectRegionFromFrames",
       "mandatoryparameters": {},
-      "rules": ["checkFrameTimes"],
+      "rules": ["checkFrameTimes",
+        "checkSameChannels"],
       "optionalparameters": {
         "Start Time": {
           "type": "time",
@@ -2733,7 +2801,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSmaller",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2765,7 +2834,8 @@
         }
       },
       "rules": [
-        "checkLengthSmaller","checkFrameTimes"
+        "checkLengthSmaller","checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
       },
@@ -2864,7 +2934,8 @@
         }
       },
       "rules": [
-        "checkLengthSame","checkFrameTimes"
+        "checkLengthSame","checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2892,7 +2963,8 @@
         }
       },
       "rules": [
-        "checkLengthSame","checkFrameTimes"
+        "checkLengthSame","checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2941,7 +3013,8 @@
       },
       "rules": [
         "checkLengthSame",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2974,7 +3047,8 @@
         }
       },
       "rules": [
-        "checkLengthSame","checkFrameTimes"
+        "checkLengthSame","checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -3011,7 +3085,8 @@
           "description": "Determine how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
         }
       },
-      "rules": ["checkFrameTimes"],
+      "rules": ["checkFrameTimes",
+        "checkSameChannels"],
       "optionalparameters": {
         "Smoothing": {
           "type": "list",
@@ -3065,7 +3140,8 @@
         "checkSize",
         "checkLengthSame",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3088,7 +3164,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "homography": {
@@ -3125,7 +3202,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "homography": {
@@ -3174,7 +3252,8 @@
       "rules": [
         "checkFileTypeChange",
         "checkCropSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "location": {
@@ -3204,7 +3283,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3255,7 +3335,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3287,7 +3368,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkInputMask",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
 
@@ -3349,7 +3431,8 @@
       "rules": [
         "checkFileTypeChange",
         "checkResizeInterpolation",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
          "inputmaskname": {
@@ -3396,7 +3479,8 @@
       },
       "rules": [
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "homography": {
@@ -3435,7 +3519,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "homography": {
@@ -3477,7 +3562,8 @@
       },
       "rules": [
         "seamCarvingCheck",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "homography": {
@@ -3528,7 +3614,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3570,7 +3657,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3612,7 +3700,8 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "check_local_warn"
+        "check_local_warn",
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3675,7 +3764,9 @@
            "description": "."
         }
       },
-      "rules": [],
+      "rules": [
+        "checkSameChannels"
+      ],
       "optionalparameters": {
         "interlacing": {
           "type": "list",
@@ -3696,7 +3787,9 @@
       "name": "TransformReverse",
       "mandatoryparameters": {
       },
-      "rules": [],
+      "rules": [
+        "checkSameChannels"
+      ],
       "optionalparameters": {
         "Homography": {
           "type": "list",
