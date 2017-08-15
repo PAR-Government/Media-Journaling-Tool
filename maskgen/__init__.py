@@ -15,10 +15,7 @@ class Probe:
     finalNodeId = None
     targetMaskImage = None
     targetMaskFileName = None
-    targetid = 0
-    groupid = 0
-    compositeFileNames = dict()
-    compositeMasks = dict()
+    composites = None
     targetChangeSizeInPixels = 0
     donorBaseNodeId = None
     donorMaskImage = None
@@ -58,6 +55,7 @@ class Probe:
         self.donorMaskFileName = donorMaskFileName
         self.targetChangeSizeInPixels = targetChangeSizeInPixels
         self.level = level
+        self.composites = dict()
 
 import graph_rules
 graph_rules.setup()

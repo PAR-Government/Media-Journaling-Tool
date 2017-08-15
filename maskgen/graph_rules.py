@@ -1,11 +1,12 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,\
-    getDurationStringFromMilliseconds, IntObject
+    getDurationStringFromMilliseconds, IntObject,getFileMeta,mergeColorMask,maskToColorArray,maskChangeAnalysis
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
 import numpy
 from maskgen import Probe
+from image_wrap import ImageWrapper
 from image_graph import ImageGraph
 import os
 import exif
@@ -66,6 +67,7 @@ def missing_donor_inputmask(edge,dir):
             'purpose' in edge['arguments'] and \
             edge['arguments']['purpose'] == 'clone') or
             edge['op'] == 'TransformMove')
+
 
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
@@ -447,6 +449,7 @@ def checkFrameTimeAlignment(graph, frm, to):
     if et is not None and abs(end-(et[1]/rate + et[0])) >= max(1000,rate):
         return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
 
+
 def checkAddFrameTime(graph, frm, to):
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
@@ -503,6 +506,42 @@ def checkResizeInterpolation(graph, frm, to):
         sizeChange = (changeTuple[0], changeTuple[1])
         if( sizeChange[0] < 0 or sizeChange[1] < 0) and 'none' in interpolation:
             return interpolation + ' interpolation is not permitted with a decrease in size'
+
+
+def checkSameChannels(graph, frm, to):
+    vidBefore = graph.get_image_path(frm)
+    vidAfter = graph.get_image_path(to)
+    metaBefore = getFileMeta(vidBefore)
+    metaAfter = getFileMeta(vidAfter)
+    if len(metaBefore) != len(metaAfter):
+        return 'change in the number of streams occurred'
+
+def checkHasVideoChannel(graph, frm, to):
+    vid = graph.get_image_path(to)
+    meta = getFileMeta(vid)
+    if 'video' not in meta:
+        return 'video channel missing in file'
+
+def checkAudioChannels(graph, frm, to):
+    vid = graph.get_image_path(to)
+    meta = getFileMeta(vid)
+    if 'video' in meta:
+        return 'video channel present in audio file'
+
+def checkFileTypeChangeForDonor(graph, frm, to):
+    frm_file = graph.get_image(frm)[1]
+    to_file = graph.get_image(to)[1]
+    if fileTypeChanged(to_file, frm_file):
+        predecessors = graph.predecessors(to)
+        if len(predecessors) >= 2:
+            return 'donor image missing'
+        for pred in predecessors:
+            edge = graph.get_edge(pred, to)
+            if edge['op'] == 'Donor':
+                donor_file = graph.get_image(pred)[1]
+                if fileTypeChanged(donor_file, to_file):
+                    return 'operation not permitted to change the type of image or video file'
+    return None
 
 def checkFileTypeChange(graph, frm, to):
     frm_file = graph.get_image(frm)[1]
@@ -690,6 +729,26 @@ def checkLengthSmaller(graph, frm, to):
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] < getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
         return "Length of video is not shorter"
 
+def checkResolution(graph,frm,to):
+    edge = graph.get_edge(frm, to)
+    width = getValue(edge, 'metadatadiff[0].0:width')
+    if width is None:
+        width = getValue(edge, 'metadatadiff[0].1:width')
+    height = getValue(edge, 'metadatadiff[0].0:height')
+    if height is None:
+        height = getValue(edge, 'metadatadiff[0].1:height')
+    resolution = getValue(edge, 'arguments.resolution')
+    split = resolution.split('X')
+    if len(split) < 2:
+        split = resolution.split('x')
+        if len(split) < 2:
+            return 'resolution is not in correct format'
+    res_width = split[0]
+    res_height = split[1]
+    if width is not None and width[2] != res_width:
+        return 'resolution width does not match video'
+    if height is not None and height[2] != res_height:
+        return 'resolution height does not match video'
 
 def checkPasteFrameLength(graph,frm,to):
     edge = graph.get_edge(frm, to)
@@ -1259,12 +1318,16 @@ class GraphCompositeIdAssigner:
         for probe in probes:
             self.repository[probe.edgeId] = dict()
         self.buildProbeEdgeIds(set([probe.targetBaseNodeId for probe in probes]))
+
+    def updateProbes(self, probes,builder):
         for probe in probes:
             idsPerFinalNode = self.repository[probe.edgeId]
             idtuple = idsPerFinalNode[probe.finalNodeId]
-            probe.groupid = idtuple[0]
-            probe.targetid = idtuple[1]
-        self.probes = probes
+            probe.composites[builder] = {
+                 'groupid': idtuple[0],
+                 'bit number': idtuple[1]
+            }
+        return probes
 
     def __qualifiesForReset(self, edge):
         op = getOperationWithGroups(edge['op'],fake=True)
@@ -1318,3 +1381,168 @@ class GraphCompositeIdAssigner:
             if node['nodetype'] == 'base' or node_name in baseNodes:
                 self.__recurseDFSProbeEdgeIds(node_name, IntObject(),fileid)
                 fileid.increment()
+
+class CompositeBuilder:
+    passes = 0
+    composite_type = 'none'
+
+    def __init__(self,passes,composite_type):
+        self.passes = passes
+        self.composite_type = composite_type
+
+    def initialize(self, graph, probes):
+        pass
+
+    def finalize(self, probes):
+        pass
+
+    def build(self, passcount, probe, edge):
+        pass
+
+    def getComposite(self, finalNodeId):
+        return None
+
+class Jpeg2000CompositeBuilder(CompositeBuilder):
+    composites = dict()
+    # used to make sure a bit is not used twice in the same group
+    group_bit_check = dict()
+
+    def __init__(self):
+        CompositeBuilder.__init__(self,1,'jp2')
+
+    #def _to_jp2_target_name(self,name):
+    #    return name[0:name.rfind('.png')] + '_c.jp2'
+
+    def initialize(self, graph, probes):
+        compositeIdAssigner = GraphCompositeIdAssigner(graph, probes)
+        return compositeIdAssigner.updateProbes(probes,self.composite_type)
+
+    def build(self, passcount, probe, edge):
+        import math
+        """
+
+        :param passcount:
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: Probe
+        """
+        if passcount > 0:
+            return
+        groupid = probe.composites[self.composite_type]['groupid']
+        targetid = probe.composites[self.composite_type]['bit number']
+        # check to see if the bit is already assigned in the group
+        if (probe.donorBaseNodeId,groupid) not in self.group_bit_check:
+            self.group_bit_check[(probe.donorBaseNodeId,groupid)] = [targetid]
+        else:
+            assert targetid not in self.group_bit_check[(probe.donorBaseNodeId,groupid)]
+            self.group_bit_check[(probe.donorBaseNodeId,groupid)].append(targetid)
+        bit = targetid -1
+        if groupid not in self.composites:
+            self.composites[groupid] = []
+        composite_list = self.composites[groupid]
+        composite_mask_id = (bit / 8)
+        imarray = np.asarray(probe.targetMaskImage)
+        while (composite_mask_id+1) > len(composite_list):
+            composite_list.append(np.zeros((imarray.shape[0],imarray.shape[1])).astype('uint8'))
+        thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
+        thisbit[imarray == 0] = math.pow(2,bit%8)
+        composite_list[composite_mask_id] = composite_list[composite_mask_id] + thisbit
+
+    def finalize(self, probes):
+        results = {}
+        dir = [os.path.split(probe.targetMaskFileName)[0] for probe in probes][0]
+        for groupid, compositeMaskList in self.composites.iteritems():
+            third_dimension = len(compositeMaskList)
+            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
+            if third_dimension == 1:
+                result = compositeMaskList[0]
+                analysis_mask[compositeMaskList[0] > 0] = 255
+            else:
+                result = np.zeros(
+                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
+                for dim in range(third_dimension):
+                    result[:, :, dim] = compositeMaskList[dim]
+                    analysis_mask[compositeMaskList[dim] > 0] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
+                                                                     globalAnalysis=True)
+            img = ImageWrapper(result, mode='JP2')
+            results[groupid] = (img,globalchange, changeCategory, ratio)
+            img.save(os.path.join(dir,str(groupid) + '_c.jp2'))
+
+        for probe in probes:
+            groupid = probe.composites[self.composite_type]['groupid']
+            finalResult = results[groupid]
+            targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
+            probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName
+            probe.composites[self.composite_type]['image'] = finalResult[0]
+        return results
+
+
+class ColorCompositeBuilder(CompositeBuilder):
+    composites = dict()
+    colors = dict()
+
+    def __init__(self):
+        CompositeBuilder.__init__(self, 2,'color')
+
+    def initialize(self, graph, probes):
+        for probe in probes:
+            edge = graph.get_edge(probe.edgeId[0],probe.edgeId[1])
+            color = [int(x) for x in edge['linkcolor'].split(' ')]
+            self.colors[probe.edgeId] =color
+
+    def _to_color_target_name(self,name):
+        return name[0:name.rfind('.png')] + '_c.png'
+
+    def build(self, passcount, probe, edge):
+        if passcount == 0:
+            return self.pass1(probe, edge)
+        elif passcount == 1:
+            return self.pass2(probe, edge)
+
+    def pass1(self,probe,edge):
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
+        colorMask = maskToColorArray(probe.targetMaskImage, color=color)
+        if probe.finalNodeId in self.composites:
+                self.composites[probe.finalNodeId] = mergeColorMask(self.composites[probe.finalNodeId], colorMask)
+        else:
+            self.composites[probe.finalNodeId] = colorMask
+
+    def pass2(self,probe,edge):
+        """
+
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: graph_rules.
+        """
+        # now reconstruct the probe target to be color coded and obscured by overlaying operations
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
+        composite_mask_array = self.composites[probe.finalNodeId]
+        result = np.ones(composite_mask_array.shape).astype('uint8') * 255
+        matches = np.all(composite_mask_array == color, axis=2)
+        #  only contains visible color in the composite
+        result[matches] = color
+
+
+    def finalize(self, probes):
+        results = {}
+        for finalNodeId, compositeMask in self.composites.iteritems():
+            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
+            matches = np.any(compositeMask != [255, 255, 255], axis=2)
+            result[matches] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
+                                                                             globalAnalysis=True)
+            results[finalNodeId] = (ImageWrapper(compositeMask),globalchange, changeCategory, ratio)
+        for probe in probes:
+            finalResult = results[probe.finalNodeId]
+            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
+            probe.composites[self.composite_type] =  {
+                'file name': targetColorMaskImageName,
+                'image':finalResult[0],
+                'color':self.colors[probe.edgeId]
+            }
+            finalResult[0].save(targetColorMaskImageName)
+        return results
+

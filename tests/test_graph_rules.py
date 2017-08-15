@@ -62,14 +62,16 @@ class TestToolSet(unittest.TestCase):
                   ]
         graphCompositeIdAssigner = graph_rules.GraphCompositeIdAssigner(g, probes)
         targets = {}
-        for probe in graphCompositeIdAssigner.probes:
-            self.assertTrue(probe.targetid > 0)
-            self.assertTrue(probe.edgeId != ('11','12') or probe.groupid==0)
-            self.assertTrue(probe.edgeId != ('1', '2') or probe.groupid in [1,2])
-            if (probe.groupid,probe.targetid) not in targets:
-                targets[(probe.groupid,probe.targetid)] = probe.edgeId
+        for probe in graphCompositeIdAssigner.updateProbes(probes,'builder'):
+            groupid = probe.composites['builder']['groupid']
+            targetid = probe.composites['builder']['bit number']
+            self.assertTrue(targetid > 0)
+            self.assertTrue(probe.edgeId != ('11','12') or probe.composites['builder']['groupid']==0)
+            self.assertTrue(probe.edgeId != ('1', '2') or probe.composites['builder']['groupid'] in [1,2])
+            if (groupid,targetid) not in targets:
+                targets[(groupid,targetid)] = probe.edgeId
             else:
-                self.assertTrue(targets[(probe.groupid,probe.targetid)] == probe.edgeId)
+                self.assertTrue(targets[(groupid,targetid)] == probe.edgeId)
 
 
     def test_aproject(self):

@@ -9,7 +9,7 @@ from software_loader import Software, getProjectProperties, ProjectProperty, Mas
 import tempfile
 import plugins
 import graph_rules
-from graph_rules import Probe
+from graph_rules import Probe, ColorCompositeBuilder
 from image_wrap import ImageWrapper
 from PIL import Image
 from group_filter import getOperationWithGroups, buildFilterOperation,GroupFilterLoader, injectGroup
@@ -1071,8 +1071,7 @@ class ImageProjectModel:
                     target_mask.save(target_mask_filename, format='PNG')
                     self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
                                                      target_mask_filename, edge_id[1],level,donors)
-        compositeIdAssigner = graph_rules.GraphCompositeIdAssigner(self.G, probes)
-        return compositeIdAssigner.probes
+        return probes
 
     def _to_color_target_name(self,name):
         return name[0:name.rfind('.png')] + '_c.png'
@@ -1134,6 +1133,8 @@ class ImageProjectModel:
         probes = self.getProbeSetWithoutComposites(otherCondition=otherCondition)
         probes = sorted(probes,key=lambda probe: probe.level)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
+        for compositeBuilder in localCompositeBuilders:
+            compositeBuilder.initialize(self.G,probes)
         maxpass = max([compositeBuilder.passes for compositeBuilder in localCompositeBuilders])
         composite_bases = dict()
         for passcount in range(maxpass):

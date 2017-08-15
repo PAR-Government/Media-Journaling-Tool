@@ -62,6 +62,10 @@ def updateJournal(scModel):
     if '04.0810.546e996a36' not in upgrades:
         _fixVideoAudioOps(scModel)
         upgrades.append('04.0810.546e996a36')
+    if '04.0810.9381e76724' not in upgrades:
+        _fixCopyST(scModel)
+        _addColor(scModel)
+        upgrades.append('04.0810.9381e76724')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -95,6 +99,9 @@ def _updateEdgeHomography(edge):
             edge['homography'] = 'None'
         if 'sift_max_matches' in edge:
             edge['homography max matches'] = edge.pop('sift_max_matches')
+
+def _addColor(scModel):
+    scModel.assignColors()
 
 def _fixHP(scModel):
     for nodename in scModel.getNodeNames():
@@ -150,6 +157,15 @@ def _fixInsertionST(scModel):
             args['Start Time'] = args.pop('Insertion Start Time')
         if 'Insertion End Time' in args:
             args['End Time'] = args.pop('Insertion End Time')
+
+def _fixCopyST(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        args = edge['arguments'] if 'arguments' in edge else dict()
+        if 'Copy Start Time' in args:
+            args['Start Time'] = args.pop('Copy Start Time')
+        if 'Copy End Time' in args:
+            args['End Time'] = args.pop('Copy End Time')
 
 def _operationsChange1(scModel):
     projecttype = scModel.G.getDataItem('projecttype')
