@@ -36,7 +36,8 @@ def save_as_video(source, target, donor, matchcolor=False):
     """
     source_data = maskgen.video_tools.getMeta(source, show_streams=True)[0]
     donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)[0]
-    video_settings = {'-codec:v':'codec_name', '-b:v':'bit_rate', '-r':'r_frame_rate', '-pix_fmt':'pix_fmt', '-profile:v':'profile'}
+    video_settings = {'-codec:v':'codec_name', '-b:v':'bit_rate', '-r':'r_frame_rate', '-pix_fmt':'pix_fmt'}
+    #profile_map {''}
     if matchcolor:
         video_settings.update(
             {'-color_primaries':'color_primaries', '-color_trc':'color_transfer', '-colorspace':'color_space'})
@@ -49,6 +50,8 @@ def save_as_video(source, target, donor, matchcolor=False):
                 for option, setting in video_settings.iteritems():
                     if setting in data and data[setting] != 'unknown':
                         ffargs.extend([option, data[setting]])
+                    #if setting == 'profile' and data[setting] == 'Constrained Baseline':
+                        #ffargs.extend([option,'baseline')
                 try:
                     width = data['width']
                     height = data['height']
