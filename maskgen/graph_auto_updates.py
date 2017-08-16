@@ -215,6 +215,7 @@ def _operationsChange1(scModel):
     }
     op_mapping = {
         'AdditionalEffectAddLightSource':'ArtificialLighting',
+        'ArtifactsCGIArtificialLighting':'ArtificialLighting',
         'AdditionalEffectFading':'Fading',
         'AdditionalEffectMosaic':'Mosaic',
         'AdditionalEffectReduceInterlaceFlicker':'ReduceInterlaceFlicker',
