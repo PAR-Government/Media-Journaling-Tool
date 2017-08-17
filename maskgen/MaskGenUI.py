@@ -258,6 +258,10 @@ class MakeGenUI(Frame):
             tkMessageBox.showerror('Recompute Mask Error','\n'.join(errors[(max(0,len(errors)-5)):]))
 
     def _preexport(self):
+        if self.scModel.hasSkippedEdges():
+            if not tkMessageBox.askokcancel('Skipped Link Masks','Some link are missing edge masks and analysis. \n' +
+                                                          'The link analysis will begin now and may take a while.'):
+                return
         errorList = self.scModel.validate(external=True)
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
@@ -270,7 +274,8 @@ class MakeGenUI(Frame):
         self.scModel.removeCompositesAndDonors()
 
     def export(self):
-        self._preexport()
+        if not self._preexport():
+            return
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
@@ -283,7 +288,8 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
-        self._preexport()
+        if not self._preexport():
+            return
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')

@@ -1125,7 +1125,8 @@
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1159,7 +1160,8 @@
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1414,7 +1416,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1666,7 +1669,8 @@
         "checkInputMask",
         "check_local",
         "sampledInputMask",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1945,7 +1949,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1977,7 +1982,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2010,7 +2016,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2043,7 +2050,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2511,7 +2519,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2565,7 +2574,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {

@@ -447,6 +447,15 @@ def checkFrameTimeAlignment(graph, frm, to):
         return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
 
 
+def checkVideoMasks(graph,frm,to):
+    node = graph.get_node(to)
+    if 'filetype' not in node or node['filetype'] != 'video':
+        return
+    edge = graph.get_edge(frm, to)
+    if 'videomasks' not in edge or edge['videomasks'] is None or \
+        len(edge['videomasks']) == 0:
+        return 'Edge missing video masks'
+
 def checkAddFrameTime(graph, frm, to):
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
