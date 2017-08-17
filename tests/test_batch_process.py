@@ -90,6 +90,28 @@ class TestBatchProcess(unittest.TestCase):
       except EndOfResource:
           pass
 
+   def test_image_selection(self):
+       if os.path.exists('imageset.txt'):
+           os.remove('imageset.txt')
+       with open('imageset.txt', 'w') as fp:
+           fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
+                          not filename.startswith('test_project')])
+       if os.path.exists('test_projects'):
+           shutil.rmtree('test_projects')
+       os.mkdir('test_projects')
+       batch_project.loadCustomFunctions()
+       batchProject = batch_project.loadJSONGraph('tests/simple_image_selector_plugin.json')
+       global_state = {
+           'projects': 'test_projects',
+           'project': batchProject,
+           'picklists_files': {},
+           'workdir': '.',
+           'count': batch_project.IntObject(20),
+           'permutegroupsmanager': PermuteGroupManager()
+       }
+       batchProject.loadPermuteGroups(global_state)
+       batchProject.executeOnce(global_state)
+
    def test_runwithpermutation(self):
        if os.path.exists('imageset.txt'):
            os.remove('imageset.txt')

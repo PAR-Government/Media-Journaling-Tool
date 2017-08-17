@@ -394,6 +394,7 @@ class PluginOperation(BatchOperation):
             local_state['model'].selectImage(my_state['node'])
         return local_state['model']
 
+
 class InputMaskPluginOperation(PluginOperation):
     logger = logging.getLogger('maskgen')
 
@@ -431,14 +432,14 @@ class InputMaskPluginOperation(PluginOperation):
                         predecessors)
         args['skipRules'] = True
         args['sendNotifications'] = False
-        targetfile,params = self.imageFromPlugin(plugin_name, im, filename, **args)
+        targetfile,params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, **args)
         my_state['output'] = targetfile
         if params is not None and type(params) == type({}):
             for k, v in params.iteritems():
                 my_state[k] = v
         return local_state['model']
 
-    def imageFromPlugin(self, filter, im, filename, **kwargs):
+    def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
         import tempfile
         """
           @type filter: str
@@ -462,9 +463,47 @@ class InputMaskPluginOperation(PluginOperation):
             raise ValueError("Plugin " + filter + " failed:" + msg)
         return target,params
 
+class ImageSelectionPluginOperation(InputMaskPluginOperation):
+    logger = logging.getLogger('maskgen')
 
-batch_operations = {'BaseSelection': BaseSelectionOperation(),'ImageSelection':ImageSelectionOperation(),
-                    'PluginOperation' : PluginOperation(),'InputMaskPluginOperation' : InputMaskPluginOperation()}
+
+    def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
+        import tempfile
+        """
+          @type filter: str
+          @type im: ImageWrapper
+          @type filename: str
+          @rtype: list of (str, list (str,str))
+        """
+        file = os.path.split(filename)[1]
+        file = file[0:file.rfind('.')]
+        target = os.path.join(tempfile.gettempdir(),  file+ '_' + filter + '.png')
+        shutil.copy2(filename, target)
+        params = {}
+        try:
+            extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
+            if 'file' not in extra_args:
+                raise ValueError('file key expected in result to identify chosen file')
+            else:
+                pick = extra_args.pop('file')
+                logging.getLogger('maskgen').info('Thread {} picking file {}'.format(currentThread().getName(), pick))
+                getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick)
+            if extra_args is not None and type(extra_args) == type({}):
+                for k, v in extra_args.iteritems():
+                    if k not in kwargs:
+                        params[k] = v
+            os.remove(target)
+        except Exception as e:
+            msg = str(e)
+            raise ValueError("Plugin " + filter + " failed:" + msg)
+        return target,params
+
+
+batch_operations = {'BaseSelection': BaseSelectionOperation(),
+                    'ImageSelection':ImageSelectionOperation(),
+                    'ImageSelectionPluginOperation':ImageSelectionPluginOperation(),
+                    'PluginOperation' : PluginOperation(),
+                    'InputMaskPluginOperation' : InputMaskPluginOperation()}
 
 def getOperationGivenDescriptor(descriptor):
     """
