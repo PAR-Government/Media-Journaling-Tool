@@ -168,9 +168,15 @@ def get_subsampling(image_file):
     ss = exif.getexif(image_file, ['-f', '-n', '-args', '-YCbCrSubsampling'], separator='=')
     # can only handle 4:4:4, 4:2:2, or 4:1:1
     yyval = ss['-YCbCrSubSampling'] if '-YCbCrSubSampling' in ss else ''
-    if yyval == '2 1':
-        return '4:2:2'
-    elif yyval in ['4 1','2 2']:
-        return '4:1:1'
+    mapping ={'2 1':1,
+             '4 1':2,
+             '4 2':2,
+             '2 4':1,
+             '2 2':2,
+             '1 1':0,
+             '1 2':0,
+             '1 4':0}
+    if yyval in mapping:
+        return mapping[yyval]
     else:
-        return '4:4:4'
+        return 0
