@@ -64,8 +64,10 @@ def updateJournal(scModel):
         upgrades.append('04.0810.546e996a36')
     if '04.0810.9381e76724' not in upgrades:
         _fixCopyST(scModel)
-        _addColor(scModel)
         upgrades.append('04.0810.9381e76724')
+    if '04.0820.cd74ff8bc8' not in upgrades:
+        _addColor(scModel)
+        upgrades.append('04.0820.cd74ff8bc8')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
