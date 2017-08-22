@@ -1439,8 +1439,9 @@ class ImageProjectModel:
                     else:
                        donorsToNodes[baseNode] = donor_mask.astype('uint8')
                 for baseNode, donor_mask in donorsToNodes.iteritems():
-                    fname = self._saveDonorToFile(edge_id[1], baseNode, ImageWrapper(donor_mask).invert())
-                    donors.append((edge_id[1],baseNode, ImageWrapper(donor_mask), fname))
+                    wrapper = ImageWrapper(donor_mask).invert()
+                    fname = self._saveDonorToFile(edge_id[1], baseNode, wrapper)
+                    donors.append((edge_id[1],baseNode, wrapper, fname))
         return donors
 
     def fixInputMasks(self):

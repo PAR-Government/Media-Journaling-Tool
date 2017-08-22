@@ -5,12 +5,17 @@ Convenience plugin to combine donation and splice connecting in one operation.
 """
 
 def transform(img,source,target, **kwargs):
-    shutil.copy(kwargs['Final Image'], target)
-    return {'rename_target':os.path.split(kwargs['Final Image'])[1]},None
+    if 'Final Image ' in kwargs:
+        shutil.copy(kwargs['Final Image'], target)
+        return {'rename_target':os.path.split(kwargs['Final Image'])[1]},None
+    else:
+        return None,None
     
 def operation():
     return {'name':'PasteSplice',
             'category':'Paste',
+            'software':'maskgen',
+            'version' : '1.0',
             'arguments':{
                 'donor': {
                     "type": "donor",
