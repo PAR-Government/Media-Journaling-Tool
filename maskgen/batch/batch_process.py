@@ -104,7 +104,7 @@ def create_image_list(fileList):
     return [i for i in os.listdir(fileList) if len ([e for e in ext if i.lower().endswith(e)])>0]
 
 def parseRules(extensionRules):
-    return extensionRules.split(',')
+    return extensionRules.split(',') if extensionRules is not None else []
 
 def findNodesToExtend(sm, rules):
     """
@@ -129,9 +129,12 @@ def findNodesToExtend(sm, rules):
         ops = []
         isOutput= False
         isAntiForensic = False
+        op = None
         if not isBaseNode:
             for predecessor in sm.getGraph().predecessors(nodename):
                 edge = sm.getGraph().get_edge(predecessor,nodename)
+                if edge['op'] == 'Donor':
+                    continue
                 op = getOperationWithGroups(edge['op'],fake=True)
                 ops.append(edge['op'])
                 isOutput |= op.category == 'Output'
@@ -140,6 +143,13 @@ def findNodesToExtend(sm, rules):
             continue
         if isAntiForensic and 'antiforensicop' not in rules:
             continue
+        for rule in rules:
+            if rule.startsWith('~'):
+                catname,opname  = rule[1:].split(':')[0:2]
+                if op is not None:
+                    if op.category == catname and \
+                        len(opname) == '' or opname == op.name:
+                        continue
         nodes.append(nodename)
     return nodes
 
