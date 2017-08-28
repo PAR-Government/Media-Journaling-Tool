@@ -47,7 +47,7 @@ def operation():
     return {'name':'AddAudioSample',
             'category':'Audio',
             'description':'Add Audio Stream to Video.  The Start time is insertion point over the original video',
-            'software':'FFMPEG',
+            'software':'ffmpeg',
             'version':'3.2',
             'arguments': {
                 'donor': {

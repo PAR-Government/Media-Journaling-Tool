@@ -14,7 +14,7 @@ def operation():
     return {'name': 'OutputWAV',
             'category': 'Output',
             'description': 'Extract Audio Stream from Video',
-            'software': 'FFMPEG',
+            'software': 'ffmpeg',
             'version': '3.2',
             'arguments': {
             },

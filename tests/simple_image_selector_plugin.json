@@ -10,7 +10,7 @@
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
     "manipulationcategory":"2-Unit",
-    "recompress": true
+    "recompress": false
   },
   "nodes": [
    {
@@ -49,6 +49,18 @@
       "op_type": "PluginOperation",
       "plugin": "PasteSpliceDonor",
       "id": "3",
+      "source": "2",
+      "arguments": {
+        "donor": {
+           "type": "donor",
+           "source": "1"
+        }
+       }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "4",
       "arguments": {
         "donor": {
            "type": "donor",
@@ -73,6 +85,10 @@
     {
       "source": 1,
       "target": 3
+    },
+    {
+      "source": 3,
+      "target": 4
     }
   ],
   "multigraph": false
