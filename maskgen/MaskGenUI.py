@@ -140,6 +140,11 @@ class MakeGenUI(Frame):
                               ' \nProject Version: ' + self.scModel.getGraph().getProjectVersion() +
                               ' \nOperations: ' + operationVersion() )
 
+    def _merge_project(self, path):
+        model = ImageProjectModel(path)
+        self.scModel.mergeProject(model)
+        self.canvas.reformat()
+
     def _open_project(self, path):
         self.scModel.load(path)
         if self.scModel.getProjectData('typespref') is None:
@@ -639,6 +644,23 @@ class MakeGenUI(Frame):
     def operationsgroupmanager(self):
         d = GroupManagerDialog(self, groupOpLoader)
 
+    def merge(self):
+        val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
+                                           filetypes=[("json files", "*.json"), ("tgz files", "*.tgz")])
+        if val is None or val == '':
+            return
+        try:
+            self._merge_project(val)
+        except Exception as e:
+            backup = val + '.bak'
+            if os.path.exists(backup):
+                if tkMessageBox.askquestion('Project Corruption Error',
+                                            str(e) + ".  Do you want to restore from the backup?") == 'yes':
+                    shutil.copy(backup, val)
+                    self._merge_project(val)
+            else:
+                tkMessageBox.showerror('Project Corruption Error', str(e))
+
     def quit(self):
         self.save()
         Frame.quit(self)
@@ -861,6 +883,7 @@ class MakeGenUI(Frame):
         filemenu.add_command(label="About", command=self.about)
         filemenu.add_command(label="Open", command=self.open, accelerator="Ctrl+O")
         filemenu.add_command(label="Open S3", command=self.openS3, accelerator="Ctrl+O")
+        filemenu.add_command(label="Merge", command=self.merge)
         filemenu.add_command(label="New", command=self.new, accelerator="Ctrl+N")
         filemenu.add_command(label="Save", command=self.save, accelerator="Ctrl+S")
         filemenu.add_command(label="Save As", command=self.saveas)

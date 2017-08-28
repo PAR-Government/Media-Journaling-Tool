@@ -542,6 +542,16 @@ def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileNam
             img.save(snapshotFileName)
         return img
 
+def md5offile(filename,raiseError=True):
+    import hashlib
+    try:
+        with open(filename, 'rb') as rp:
+            return hashlib.md5(rp.read()).hexdigest()
+    except Exception as e:
+        if raiseError:
+            raise e
+        return ''
+
 def shortenName(name, postfix):
     import hashlib
     middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])

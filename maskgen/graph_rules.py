@@ -522,8 +522,8 @@ def checkHasVideoChannel(graph, frm, to):
 def checkAudioChannels(graph, frm, to):
     vid = graph.get_image_path(to)
     meta = getFileMeta(vid)
-    if 'video' in meta:
-        return 'video channel present in audio file'
+    if 'audio' not in meta:
+        return 'audio channel not present'
 
 def checkFileTypeChangeForDonor(graph, frm, to):
     frm_file = graph.get_image(frm)[1]

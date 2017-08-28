@@ -187,7 +187,8 @@
       "generateMask" : true,
       "transitions": [
         "video.video",
-        "audio.audio"
+        "audio.audio",
+        "audio.video"
       ]
     },
     {
