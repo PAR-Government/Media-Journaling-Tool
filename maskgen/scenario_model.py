@@ -1033,6 +1033,7 @@ class ImageProjectModel:
                     'compressor.audio': None,
                     'compressor.image': None}
         node = self.G.get_node(start)
+
         ftype = self.getNodeFileType(start)
         # cannot finish the action since the edge analysis was skipped
         for skipped_edge in self.G.getDataItem('skipped_edges', []):
@@ -1048,8 +1049,12 @@ class ImageProjectModel:
             if op.category == 'Audio':
                 props['remove_video'] = True
 
-        func = getRule(prefLoader.get_key('compressor.' + ftype,
-                                          default_value=defaults['compressor.' + ftype]))
+        compressor  = prefLoader.get_key('compressor.' + ftype,
+                                          default_value=defaults['compressor.' + ftype])
+        if ('compressed' in node and node['compressed'] == compressor):
+            return
+
+        func = getRule(compressor)
         newfile = None
         if func is not None:
             newfilename = func(os.path.join(self.get_dir(),node['file']), **props)
@@ -1639,6 +1644,9 @@ class ImageProjectModel:
         @rtype : AddTool
         """
         return addTools[fileType(media)]
+
+    def hasSkippedEdges(self):
+       return len( self.G.getDataItem('skipped_edges', [])) >  0
 
     def _executeSkippedComparisons(self):
         allErrors = []

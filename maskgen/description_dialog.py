@@ -893,10 +893,13 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
         Label(master, text="Node Name:", anchor=W, justify=LEFT).grid(row=0, column=0, sticky=W)
         self.box = AutocompleteEntryInText(master, values=self.scModel.getNodeNames(), takefocus=True)
         self.box.grid(row=1, column=0,sticky=EW)
+        self.name_var = StringVar('')
+        self.node_name = Label(master, textvariable= self.name_var, anchor=W, justify=LEFT)
+        self.node_name.grid(row=2, column=0, sticky=W)
         self.c = Canvas(master, width=500, height=500)
         self.photo = ImageTk.PhotoImage(ImageWrapper(np.zeros((500, 500,3))).toPIL())
         self.imc = self.c.create_image(250, 250, image=self.photo, tag='imgd')
-        self.c.grid(row=2, column=0)
+        self.c.grid(row=3, column=0)
         self.box.bind("<Return>", self.newimage)
         self.box.bind("<<ComboboxSelected>>", self.newimage)
 
@@ -904,6 +907,7 @@ class ImageNodeCaptureDialog(tkSimpleDialog.Dialog):
         im = self.scModel.getImage(self.box.get())
         self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (500, 500))).toPIL())
         self.c.itemconfig(self.imc, image=self.photo)
+        self.name_var.set(self.scModel.getGraph().get_node(self.box.get())['file'])
 
     def cancel(self):
         tkSimpleDialog.Dialog.cancel(self)
