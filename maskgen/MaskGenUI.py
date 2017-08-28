@@ -261,7 +261,7 @@ class MakeGenUI(Frame):
         if self.scModel.hasSkippedEdges():
             if not tkMessageBox.askokcancel('Skipped Link Masks','Some link are missing edge masks and analysis. \n' +
                                                           'The link analysis will begin now and may take a while.'):
-                return
+                return False
         errorList = self.scModel.validate(external=True)
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
@@ -272,6 +272,7 @@ class MakeGenUI(Frame):
         processProjectProperties(self.scModel)
         self.getproperties()
         self.scModel.removeCompositesAndDonors()
+        return True
 
     def export(self):
         if not self._preexport():
