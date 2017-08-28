@@ -360,12 +360,12 @@ def getMeta(file, with_frames=False, show_streams=False):
         p.stderr.close()
     return meta, frames
 
-def runffmpeg(args):
+def runffmpeg(args, noOutput=True):
     ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
     command = [ffcommand]
     command.extend(args)
     try:
-        pcommand =  Popen(command, stdout=PIPE, stderr=PIPE)
+        pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
         stdout, stderr =  pcommand.communicate()
         if pcommand.returncode != 0:
             error =  str(stdout) + (str(stderr) if stderr is not None else '')
@@ -740,11 +740,11 @@ def getFrameRate(fileOne, default=None):
                 return float(rate[0]) / float(rate[1])
     return default
 
-def _toAudio(fileOne):
+def toAudio(fileOne,outputName=None):
         """
         Consruct wav files
         """
-        name = fileOne + '.wav'
+        name = fileOne + '.wav' if outputName is None else outputName
         ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
         if os.path.exists(name):
             os.remove(name)
@@ -978,8 +978,8 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
     @type time_manager: VidTimeManager
     """
     import wave
-    fileOneAudio,errorsone = _toAudio(fileOne)
-    fileTwoAudio,errorstwo = _toAudio(fileTwo)
+    fileOneAudio,errorsone = toAudio(fileOne)
+    fileTwoAudio,errorstwo = toAudio(fileTwo)
     if len(errorsone) > 0:
         return list(),errorsone
     if len(errorstwo) > 0:
