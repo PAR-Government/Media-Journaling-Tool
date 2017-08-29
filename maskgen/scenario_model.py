@@ -1637,6 +1637,50 @@ class ImageProjectModel:
     def getLinkTool(self, start, end):
         return linkTools[self.getLinkType(start, end)]
 
+    def mergeProject(self, project):
+        """
+        Merge projects.  Does not support updating edges or nodes.
+        Instead, it only adds new edges and nodes.
+        Should be used with caution.
+        :param project:
+        :return:
+        @type project: ImageProjectModel
+        """
+        # link from their node id to my node id
+        merge_point = dict()
+        myfiles = dict()
+        for nodeid in self.getGraph().get_nodes():
+            mynode = self.getGraph().get_node(nodeid)
+            myfiles[mynode['file']] = (nodeid, md5offile(os.path.join(self.G.dir, mynode['file']),
+                                                         raiseError=False))
+        for nodeid in project.getGraph().get_nodes():
+            theirnode = project.getGraph().get_node(nodeid)
+            theirfilemd5 = md5offile(os.path.join(project.get_dir(), theirnode['file']),
+                                     raiseError=False)
+            if theirnode['file'] in myfiles:
+                if myfiles[theirnode['file']][1] != theirfilemd5:
+                    logging.getLogger('maskgen').warn(
+                        'file {} is in both projects but MD5 is different'.format(theirnode['file']))
+                else:
+                    merge_point[nodeid] =  myfiles[theirnode['file']][0]
+        if len(merge_point) == 0:
+            return 'No merge points found'
+        for nodeid in project.getGraph().get_nodes():
+            theirnode = project.getGraph().get_node(nodeid)
+            if nodeid not in merge_point:
+                merge_point[nodeid] = self.getGraph().add_node(os.path.join(project.get_dir(),theirnode['file']),
+                                         **theirnode)
+        for start,end in project.getGraph().get_edges():
+            mystart = merge_point[start]
+            myend = merge_point[end]
+            edge = self.getGraph().get_edge(mystart,myend)
+            if edge is  None:
+                self.getGraph().copy_edge(mystart,
+                                          myend,
+                                          dir=project.get_dir(),
+                                          edge=project.getGraph().get_edge(start,end))
+
+
     def getAddTool(self, media):
         """"
         :param media:
@@ -2202,8 +2246,7 @@ class ImageProjectModel:
                 suffix = nodeData['file'][suffix_pos:].lower()
                 file_path_name = os.path.join(self.G.dir, nodeData['file'])
                 try:
-                    with open(os.path.join(self.G.dir, nodeData['file']),'rb') as rp:
-                        new_file_name = hashlib.md5(rp.read()).hexdigest() + suffix
+                    new_file_name = md5offile(os.path.join(self.G.dir, nodeData['file'])) + suffix
                     fullname = os.path.join(self.G.dir, new_file_name)
                 except:
                     logging.getLogger('maskgen').error( 'Missing file or invalid permission: {} '.format( nodeData['file']))

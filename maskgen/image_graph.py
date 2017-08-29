@@ -352,10 +352,10 @@ class ImageGraph:
         fname = nname + suffix
         return fname
 
-    def __filter_args(self,args):
+    def __filter_args(self,args, exclude=[]):
         result = {}
         for k, v in args.iteritems():
-            if v is not None:
+            if v is not None and k not in exclude:
                 result[k] = v
         return result
 
@@ -364,7 +364,7 @@ class ImageGraph:
             return
         self.arg_checker_callback(op, args)
 
-    def add_node(self, pathname, seriesname=None, **kwargs):
+    def add_node(self, pathname, nodeid=None, seriesname=None, **kwargs):
         proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
@@ -372,6 +372,8 @@ class ImageGraph:
         suffix = get_suffix(fname)
         newfname = self.new_name(fname, suffix.lower())
         nname = get_pre_name(newfname)
+        if nodeid is not None:
+            nname = nodeid
         oldpathname = os.path.join(self.dir, fname)
         if os.path.abspath(self.dir) != origdir and os.path.exists(oldpathname):
             fname = newfname
@@ -391,7 +393,7 @@ class ImageGraph:
                         ownership=('yes' if includePathInUndo else 'no'),
                         username=get_username(),
                         ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                        **self.__filter_args(kwargs))
+                        **self.__filter_args(kwargs, exclude=['seriesname','username','ctime','ownership','file']))
 
         self.__scan_args('node', kwargs)
 
@@ -532,6 +534,25 @@ class ImageGraph:
             if v is None and k in edge:
                 edge.pop(k)
             edge[k] = v
+
+    def copy_edge(self,start,end,dir='.', edge=dict()):
+        import copy
+        self._setUpdate((start, end), update_type='edge')
+        edge = copy.deepcopy(edge)
+        if 'maskname' in edge:
+            newmaskpathname = os.path.join(self.dir, edge['maskname'])
+            if os.path.exists(newmaskpathname):
+                newmaskpathname = newmaskpathname[0:-4] + '_{:=02d}'.format(self.nextId()) + newmaskpathname[-4:]
+            shutil.copy( os.path.join(dir, edge['maskname']),newmaskpathname)
+            edge['maskname'] = os.path.split(newmaskpathname)[1]
+        for k, v in edge.iteritems():
+            if v is not None:
+                self._copyEdgePathValue(edge, k, v,dir)
+        self.G.add_edge(start,
+                        end,
+                        **edge)
+        self.U = []
+        self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
 
     def add_edge(self, start, end, maskname=None, mask=None, op='Change', description='', **kwargs):
         import copy
@@ -986,18 +1007,31 @@ class ImageGraph:
             pos = path.find('[')
         return path == pathTemplate
 
+    def _copyEdgePathValue(self, edge, path, value, dir):
+        setPathValue(edge, path, value)
+        for edgePath in self.G.graph['edgeFilePaths']:
+            struct = self._buildStructure(path, value)
+            for revisedPath in buildPath(struct, edgePath.split('.')):
+                if self._matchPath(revisedPath, edgePath):
+                    ownershippath = self.G.graph['edgeFilePaths'][edgePath]
+                    for pathValue in getPathValues(struct, revisedPath):
+                        filenamevalue, ownershipvalue = self._handle_inputfile(os.path.join(dir,pathValue))
+                        setPathValue(edge, revisedPath, filenamevalue)
+                        if len(ownershippath)>0:
+                            setPathValue(edge, ownershippath, ownershipvalue)
+
     def _updateEdgePathValue(self, edge, path, value):
         setPathValue(edge, path, value)
         for edgePath in self.G.graph['edgeFilePaths']:
             struct = self._buildStructure(path, value)
             for revisedPath in buildPath(struct, edgePath.split('.')):
                 if self._matchPath(revisedPath, edgePath):
-                    ownership = self.G.graph['edgeFilePaths'][edgePath]
+                    ownershippath = self.G.graph['edgeFilePaths'][edgePath]
                     for pathValue in getPathValues(struct, revisedPath):
                         filenamevalue, ownershipvalue = self._handle_inputfile(pathValue)
                         setPathValue(edge, revisedPath, filenamevalue)
-                        if len(ownership)>0:
-                            setPathValue(edge, ownership, ownershipvalue)
+                        if len(ownershippath)>0:
+                            setPathValue(edge, ownershippath, ownershipvalue)
 
     def create_path_archive(self, location, end):
         self.save()
