@@ -2367,7 +2367,12 @@
     {
       "category": "Output",
       "name": "OutputAVI",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Video Rotated": {
+          "type": "yesno",
+          "description": "Enter yes if the video is rotated during the conversion operation"
+        }
+      },
       "rules": [
         "checkSameChannels",
         "checkResolution"
