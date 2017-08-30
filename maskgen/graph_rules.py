@@ -1461,15 +1461,11 @@ class CompositeBuilder:
         return None
 
 class Jpeg2000CompositeBuilder(CompositeBuilder):
-    composites = dict()
-    # used to make sure a bit is not used twice in the same group
-    group_bit_check = dict()
 
     def __init__(self):
+        self.composites = dict()
+        self.group_bit_check = dict()
         CompositeBuilder.__init__(self,1,'jp2')
-
-    #def _to_jp2_target_name(self,name):
-    #    return name[0:name.rfind('.png')] + '_c.jp2'
 
     def initialize(self, graph, probes):
         compositeIdAssigner = GraphCompositeIdAssigner(graph, probes)
@@ -1537,10 +1533,10 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
 
 
 class ColorCompositeBuilder(CompositeBuilder):
-    composites = dict()
-    colors = dict()
 
     def __init__(self):
+        self.composites = dict()
+        self.colors = dict()
         CompositeBuilder.__init__(self, 2,'color')
 
     def initialize(self, graph, probes):
