@@ -30,7 +30,7 @@ def operation():
           'name': 'Blur',
           'description':'Median Filter',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments': { 
               'kernelSize': {
                 'type': 'int[1:100]',

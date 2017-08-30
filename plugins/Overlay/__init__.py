@@ -21,7 +21,7 @@ def operation():
           'category':'Paste',
           'description':'Overlay image',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments':{
               'donor':{
                   'type':'donor',

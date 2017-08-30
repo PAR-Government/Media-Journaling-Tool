@@ -11,6 +11,7 @@ from PIL import Image
 import numpy as np
 from maskgen.jpeg.utils import get_subsampling,parse_tables,sort_tables,check_rotate
 import maskgen.exif
+import maskgen
 
 
 
@@ -114,8 +115,8 @@ def operation():
     return {'name':'AntiForensicExifQuantizationTable',
             'category':'AntiForensic',
             'description':'Save as a JPEG using original tables and EXIF',
-            'software':'PIL',
-            'version':'1.1.7',
+            'software':'maskgen',
+            'version':maskgen.__version__[0:2],
             'arguments':{
                 'donor':{
                     'type':'donor',

@@ -1,3 +1,4 @@
+import PIL
 from PIL import Image
 import numpy
 
@@ -19,8 +20,8 @@ def operation():
   return {'name':'SelectRegion',
           'category':'Select',
           'description':'Apply a mask to create an alpha channel',
-          'software':'OpenCV',
-          'version':'2.4.13',
+          'software':'PIL',
+          'version':PIL.__version__,
           'arguments':{
               'inputmaskname':{
                   'type':'inputmaskname',

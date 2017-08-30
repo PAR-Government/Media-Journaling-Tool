@@ -1,5 +1,6 @@
 from maskgen.image_wrap import ImageWrapper, openImageFile
 import numpy as np
+import maskgen
 
 """
 Create an intermediate image given the final image, after a paste splice blend, source image and a mask.
@@ -25,6 +26,8 @@ def transform(img,source,target, **kwargs):
 def operation():
     return {'name':'PasteSplice',
             'category':'Paste',
+            'software': 'maskgen',
+            'version': maskgen.__version__[0:2],
             'arguments':{
                 'inputmaskname': {
                     "type": "file:image",

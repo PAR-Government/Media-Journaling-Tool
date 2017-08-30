@@ -48,7 +48,7 @@ def operation():
             'category':'Audio',
             'description':'Add Audio Stream to Video.  The Start time is insertion point over the original video',
             'software':'ffmpeg',
-            'version':'3.2',
+            'version':maskgen.video_tools.get_ffmpeg_version(),
             'arguments': {
                 'donor': {
                     'type': 'donor'

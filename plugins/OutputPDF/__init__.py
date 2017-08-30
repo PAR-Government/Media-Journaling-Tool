@@ -1,6 +1,7 @@
 from PIL import Image
 from maskgen import exif
 import numpy as np
+import PIL
 
 """
 Save the image as PDF. If the image has a orientation and 'Image Rotated', rotate the image according to the EXIF.
@@ -20,7 +21,7 @@ def operation():
             'category':'Output',
             'description':'Save an image as .pdf',
             'software':'PIL',
-            'version':'1.1.7',
+            'version':PIL.__version__,
             'arguments':{
                 'resolution':{
                     'type':'int',

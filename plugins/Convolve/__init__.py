@@ -42,7 +42,7 @@ def operation():
             'category':'Filter',
             'description':'Apply a custom convolution kernel to an image.',
             'software':'OpenCV',
-            'version':'2.4.13',
+            'version':cv2.__version__,
             'arguments':{},
             'transitions':[
                 'image.image'
