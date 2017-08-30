@@ -659,6 +659,7 @@ class VideoVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
+        analysis['shape change'] = sizeDiff(startIm, destIm)
         self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video',
                           arguments=consolidate(arguments,analysis_params),
                               start=start, end=destination, scModel=scModel)

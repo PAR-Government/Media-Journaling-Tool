@@ -188,7 +188,7 @@ def openImageFile(filename,isMask=False):
     with image_lock:
         if filename in image_cache:
             wrapper, update_time = image_cache[filename]
-            if current_time - update_time <= 0:
+            if current_time - update_time <= 0 and wrapper is not None:
                 return wrapper
 
     wrap = openFromRegistry(filename, isMask=isMask)
