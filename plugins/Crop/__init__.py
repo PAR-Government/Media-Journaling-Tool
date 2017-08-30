@@ -1,5 +1,6 @@
 import numpy
 from maskgen.image_wrap import ImageWrapper
+import cv2
 
 def transform(img,source,target,**kwargs):
     pixelWidth = int(kwargs['pixel_width'])
@@ -20,7 +21,7 @@ def operation():
           'name': 'TransformCrop',
           'description':'Crop',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments':{'crop_x': {'type': "int[0:100000]", 'description':'upper left corner vertical position'},
                        'crop_y': {'type': "int[0:100000]", 'description':'upper left corner horizontal position'},
                        'pixel_width': {'type': "int[0:100000]", 'description':'amount of pixels to remove horizontal'},

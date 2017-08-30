@@ -360,6 +360,21 @@ def getMeta(file, with_frames=False, show_streams=False):
         p.stderr.close()
     return meta, frames
 
+def get_ffmpeg_version():
+    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
+    command = [ffcommand,'-version']
+    try:
+        pcommand = Popen(command, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = pcommand.communicate()
+        if pcommand.returncode != 0:
+            logging.getLogger('maskgen').error(str(stderr) if stderr is not None else '')
+        else:
+            return stdout.split()[2][0:3]
+    except OSError as e:
+        logging.getLogger('maskgen').error("FFmpeg not installed")
+        logging.getLogger('maskgen').error(str(e))
+    return '?'
+
 def runffmpeg(args, noOutput=True):
     ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
     command = [ffcommand]

@@ -1,6 +1,4 @@
-from PIL import Image
-from maskgen import exif
-import numpy as np
+
 
 """
 Export the image or video in the in the same format. Used to branch off a final image  node
@@ -12,8 +10,8 @@ def operation():
     return {'name':'OutputCopy',
             'category':'Output',
             'description':'Export the image in the in the same format. Used to branch off a final image  node"',
-            'software':'PIL',
-            'version':'1.1.7',
+            'software':'maskgen',
+            'version':'04',
             'arguments':{
             },
             'transitions': [

@@ -2,6 +2,7 @@ import shutil
 import os
 import numpy
 from maskgen import tool_set
+import maskgen
 from maskgen.image_wrap import ImageWrapper
 
 """
@@ -33,6 +34,8 @@ def transform(img,source,target, **kwargs):
 def operation():
     return {'name':'SelectRegion',
             'category':'Select',
+            'software': 'maskgen',
+            'version': maskgen.__version__[0:2],
             'arguments':{
                 'inputmaskname': {
                     "type": "file:image",

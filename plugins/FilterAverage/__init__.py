@@ -17,7 +17,7 @@ def operation():
           'category':'Color',
           'description':'Average convolution over the RGB values of an image given a 5x5 convolution',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments': None,
           'transitions': [
               'image.image'

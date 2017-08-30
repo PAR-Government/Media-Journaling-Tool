@@ -51,7 +51,7 @@ def operation():
           'name': 'SelectRegion',
           'description':'Mask Selector: ',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments':{'percentage_width': {'type': "float[0.01:0.9]", 'description':'percentage of width to crop'},
                        'percentage_height': {'type': "float[0.01:0.9]", 'description':'percentage of width to crop'}},
           'transitions': [

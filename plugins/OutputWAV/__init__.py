@@ -15,7 +15,7 @@ def operation():
             'category': 'Output',
             'description': 'Extract Audio Stream from Video',
             'software': 'ffmpeg',
-            'version': '3.2',
+            'version': maskgen.video_tools.get_ffmpeg_version(),
             'arguments': {
             },
             'transitions': [

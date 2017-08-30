@@ -127,7 +127,7 @@ def operation():
             'category':'AntiForensic',
             'description':'Convert video to donor filetype and copy metadata.',
             'software':'ffmpeg',
-            'version':'3.2.2',
+            'version':maskgen.video_tools.get_ffmpeg_version(),
             'arguments':{
                 'donor':{
                     'type':'donor',

@@ -18,7 +18,7 @@ def operation():
           'category':'Intensity',
           'description':'Equalize Colors using Histogram over the Chrominance Channel',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments':None,
           'transitions': [
               'image.image'
