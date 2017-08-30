@@ -1097,7 +1097,7 @@ def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,
     mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,
                                    alternativeFunction=alternativeFunction,
                                    convertFunction=convertFunction)
-    analysis['shape change'] = __sizeDiff(img1, img2)
+    analysis['shape change'] =sizeDiff(img1, img2)
     return ImageWrapper(mask), analysis
 
 
@@ -1862,7 +1862,7 @@ def __colorPSNR(z1, z2, size=None):
     return 0.0 if mse == 0.0 else 20.0 * math.log10(255.0 / math.sqrt(mse))
 
 
-def __sizeDiff(z1, z2):
+def sizeDiff(z1, z2):
     """
        z1 and z2 are expected to be PIL images
     """

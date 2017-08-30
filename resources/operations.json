@@ -825,11 +825,17 @@
       "name": "AntiForensicCopyExif",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize",
+        "checkSizeAndExif",
         "checkFileTypeChangeForDonor",
         "checkSameChannels"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "rotate": {
+          "type":"yesno",
+          "description": "Was video rotated"
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
       "includeInMask": false,
       "transitions": [
@@ -2370,7 +2376,7 @@
       "mandatoryparameters": {
         "Video Rotated": {
           "type": "yesno",
-          "description": "Enter yes if the video is rotated during the conversion operation"
+          "description": "Enter yes if the donor is rotated during the paste operation"
         }
       },
       "rules": [

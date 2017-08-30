@@ -76,8 +76,8 @@ def save_as_video(source, target, donor, matchcolor=False):
                         rotation_filter = get_rotation_filter(diff_rotation)
                         rotation = str(orient_rotation_positive(donor_rotation)) if donor_rotation != 0 else None
                     else:
-                        rotation_filter = None #get_rotation_filter(donor_rotation)
-                        rotation = None# str(orient_rotation_positive(donor_rotation)) if donor_rotation != 0 else None
+                        rotation_filter = get_rotation_filter(donor_rotation)
+                        rotation = str(orient_rotation_positive(donor_rotation)) if donor_rotation != 0 else None
                     filters = ''
                     # do we only include these settings IF there is a difference?
                     if (abs(diff_rotation) == 90 and (source_height != width or source_width != height)) or \
@@ -114,10 +114,11 @@ def save_as_video(source, target, donor, matchcolor=False):
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
         maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target],ignoreError=True)
-    return {'rotated':rotated}
+    return {'rotate':rotated}
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
+    rotate = 'rotate' in kwargs and kwargs['rotate'] == 'yes'
     matchcolor = 'match color characteristics' in kwargs and kwargs['match color characteristics'] == 'yes'
     return  save_as_video(source, target, donor, matchcolor =matchcolor),None
     

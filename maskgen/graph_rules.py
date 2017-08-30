@@ -821,6 +821,8 @@ def checkSizeAndExif(graph, frm, to):
     if change is not None and (change[0] != 0 or change[1] != 0):
         edge = graph.get_edge(frm, to)
         orientation = getValue(edge, 'exifdiff.Orientation')
+        if orientation is None:
+            orientation = getOrientationFromMetaData(edge)
         if orientation is not None:
             orientation = str(orientation)
             if '270' in orientation or '90' in orientation:
@@ -851,8 +853,15 @@ def _getSizeChange(edge):
 def getSizeChange(graph, frm, to):
     return _getSizeChange(graph.get_edge(frm, to))
 
+def getOrientationFromMetaData(edge):
+    if 'metadatadiff' in edge:
+        for item in edge['metadatadiff']:
+            for k,v in item.iteritems():
+                if k.find ('rotate') > 0:
+                    return v[-1]
+    return ''
 
-def getValue(obj, path, convertFunction=None):
+def getValue(obj, path, defaultValue=None, convertFunction=None):
     """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
         obj is a node or edge
         path is a dictionary path: a.b.c
@@ -887,12 +896,12 @@ def getValue(obj, path, convertFunction=None):
             else:
                 result = []
                 for item in current:
-                    v = getValue(item, path, convertFunction)
+                    v = getValue(item, path, defaultValue= defaultValue, convertFunction=convertFunction)
                     if v:
                         result.append(v)
                 return result
-        return getValue(current, path, convertFunction)
-    return None
+        return getValue(current, path, defaultValue= defaultValue, convertFunction=convertFunction)
+    return defaultValue
 
 
 def blurLocalRule( scModel,edgeTuples):

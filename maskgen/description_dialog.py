@@ -6,7 +6,7 @@ from group_filter import GroupFilter, GroupFilterLoader
 import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
+from tool_set import imageResize, imageResizeRelative, openImage, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
@@ -1722,7 +1722,7 @@ class QAViewDialog(Toplevel):
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
         self.operationVar.set(self._compose_label(edge))
-        final = image_wrap.openImageFile(finalFile)
+        final = openImage(finalFile)
         finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
