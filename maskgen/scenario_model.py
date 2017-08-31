@@ -1179,11 +1179,11 @@ class ImageProjectModel:
                     return pred
         return self.start
 
-    def getBaseImage(self,node):
+    def getBaseNode(self,node):
         for pred in self.G.predecessors(node):
             edge = self.G.get_edge(pred, node)
             if edge['op'] != 'Donor':
-                return self.getBaseImage(pred)
+                return self.getBaseNode(pred)
         return node
 
     def getDonorAndBaseImage(self):

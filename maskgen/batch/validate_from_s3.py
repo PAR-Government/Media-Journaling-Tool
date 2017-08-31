@@ -14,7 +14,7 @@ import time
 from functools import partial
 
 
-def rebuild_masks(scModel):
+def reproduceMask(scModel):
     """
     Rebuild all edge masks
     :param scModel: scenario model
@@ -54,47 +54,25 @@ def select_region(imfile, prev):
 def isRGBA(im):
     return im.mode == 'RGBA'
 
-def replace_oldops(scModel):
-    """
-    Replace selected operations
-    :param scModel: Opened project model
-    :return: None. Updates JSON.
-    """
-    for edge in scModel.getGraph().get_edges():
-        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
-        oldOp = currentLink['op']
-        if oldOp == 'ColorBlendDissolve':
-            currentLink['op'] = 'Blend'
-            if 'arguments' not in currentLink:
-                currentLink['arguments'] = {}
-            currentLink['arguments']['mode'] = 'Dissolve'
-        elif oldOp == 'ColorBlendMultiply':
-            currentLink['op'] = 'Blend'
-            if 'arguments' not in currentLink:
-                currentLink['arguments'] = {}
-            currentLink['arguments']['mode'] = 'Multiply'
-        elif oldOp == 'ColorColorBalance':
-            currentLink['op'] = 'ColorBalance'
-        elif oldOp == 'ColorMatchColor':
-            currentLink['op'] = 'ColorMatch'
-        elif oldOp == 'ColorReplaceColor':
-            currentLink['op'] = 'ColorReplace'
-        elif oldOp == 'IntensityHardlight':
-            currentLink['op'] = 'BlendHardlight'
-        elif oldOp == 'IntensitySoftlight':
-            currentLink['op'] = 'BlendSoftlight'
-        elif oldOp == 'FillImageInterpolation':
-            currentLink['op'] = 'ImageInterpolation'
-        elif oldOp == 'ColorBlendColorBurn':
-            currentLink['op'] = 'IntensityBurn'
-        elif oldOp == 'FillInPainting':
-            currentLink['op'] = 'MarkupDigitalPenDraw'
-        elif oldOp == 'FillLocalRetouching':
-            currentLink['op'] = 'PasteSampled'
-            if 'arguments' not in currentLink:
-                currentLink['arguments'] = {}
-            currentLink['recordMaskInComposite'] = 'true'
-            currentLink['arguments']['purpose'] = 'heal'
+mod_functions=globals()
+def getFunction(name, function_mappings={}):
+    if name is None:
+        return None
+    import importlib
+    if name in function_mappings:
+        return function_mappings[name]
+    elif name in mod_functions:
+        function_mappings[name] = mod_functions[name]
+    else:
+        mod_name, func_name = name.rsplit('.', 1)
+        try:
+            mod = importlib.import_module(mod_name)
+            func = getattr(mod, func_name)
+            function_mappings[name] = func
+            return func
+        except Exception as e:
+            logging.getLogger('maskgen').error('Unable to load rule {}: {}'.format(name,str(e)))
+            raise e
 
 def update_rotation(scModel):
     """
@@ -134,13 +112,33 @@ def validate_by(scModel, person):
     scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
     scModel.save()
 
-def toCSV(scModel,args):
-    scModel.assignColors()
-    processProjectProperties(scModel)
-    scModel.toCSV(os.path.join(scModel.get_dir(),'colors.csv'))
-    scModel.export(args.tempfolder,include=['colors.csv'])
+def recompressAsVideo(scModel):
+    """
+    :param scModel:
+    :return:
+    @type scModel: maskgen.scenario_model.ImageProjectModel
+    """
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        successors = scModel.getGraph().successors(edge[1])
+        predecessors = scModel.getGraph().predecessors(edge[1])
+        # should we consider video nodes just to be sure?
+        #finalNode = scModel.getGraph().get_node(edge[1])
+        if currentLink['op'] == 'AntiForensicCopyExif' and \
+            len(successors) == 0 and \
+            currentLink['softwareName'].lower() == 'ffmpeg':
+            predecessors = [pred for pred in predecessors if pred != edge[0]]
+            if len (predecessors) == 0:
+                donor = scModel.getBaseNode(edge[1])
+            else:
+                donor = predecessors[0]
+            scModel.selectImage(edge[1])
+            scModel.remove()
+            scModel.selectImage(edge[0])
+            scModel.imageFromPlugin('CompressAsVideo',donor=donor)
 
-def perform_update(project,args,   tempdir):
+
+def perform_update(project,args, functions,  tempdir):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
     print 'User: ' + scModel.getGraph().getDataItem('username')
     validator = scModel.getProjectData('validatedby')
@@ -149,11 +147,8 @@ def perform_update(project,args,   tempdir):
             setPwdX(CustomPwdX(validator))
         else:
             setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
-
-    if args.composites:
-        toCSV(scModel)
-    if args.redomasks:
-        rebuild_masks(scModel)
+    for function in functions.values():
+        function(scModel)
     if args.validate:
         scModel.set_validation_properties('yes', get_username(), 'QA redone via Batch Updater')
     scModel.save()
@@ -175,13 +170,13 @@ def fetchfromS3(dir, location, file):
     my_bucket = s3.Bucket(BUCKET)
     my_bucket.download_file(DIR + file, os.path.join(dir, file))
 
-def processProject(args, file_to_process):
+def processProject(args, functions, file_to_process):
     dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
     try:
-        fetchfromS3(args.downloadfolder,file_to_process)
+        fetchfromS3(dir, args.downloadfolder,file_to_process)
         extract_archive(os.path.join(dir, file_to_process), dir)
         for project in pick_projects(dir):
-            perform_update(project, args, dir)
+            perform_update(project, args,functions, dir)
     finally:
         shutil.rmtree(dir)
 
@@ -191,20 +186,23 @@ def main():
     parser.add_argument('-df', '--downloadfolder', required=True, help='Download folder')
     parser.add_argument('-ug', '--updategraph', required=False, help='Upload Graph',action='store_true')
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
-    parser.add_argument('-c',  '--composites', help='Reconstruct composite images',action='store_true')
     parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')
     parser.add_argument('-tf', '--tempfolder', required=False, help='Temp Holder')
-    parser.add_argument('-rc', '--redomasks', help='Rebuild link masks',action='store_true')
+    parser.add_argument('-e',  '--functions', required=False, help='List of function')
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
     args = parser.parse_args()
-    maskgen.tool_set.set_logging()
+
+    functions = dict()
+    if args.functions is not None:
+        for name in args.functions.split(','):
+            getFunction(name, functions)
 
     with open(args.file, 'r') as input_file:
         files_to_process = input_file.readlines()
     files_to_process = [x.strip() for x in files_to_process]
 
     processor = BatchProcessor(args.completefile,files_to_process)
-    func = partial(processProject,args)
+    func = partial(processProject,args,functions)
     processor.process(func)
 
 if __name__ == '__main__':
