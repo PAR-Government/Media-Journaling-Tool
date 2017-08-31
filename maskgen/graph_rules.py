@@ -1136,7 +1136,7 @@ def provenanceRule(scModel, edgeTuples):
     for node in scModel.getNodeNames():
         nodedata = scModel.getGraph().get_node(node)
         if nodedata['nodetype'] == 'final':
-            bases.add(scModel.getBaseImage(node))
+            bases.add(scModel.getBaseNode(node))
     return 'yes' if len(bases) > 1 else 'no'
 
 
