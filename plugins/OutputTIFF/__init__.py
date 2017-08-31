@@ -8,6 +8,7 @@ Two TIFF images, and compresses the first with the configuration from the second
 import maskgen.exif
 from maskgen.tool_set import *
 import numpy as np
+import PIL
 
 def check_rotate(im, donor_img, jpg_file_name):
     return ImageWrapper(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
@@ -48,7 +49,7 @@ def operation():
             'category':'Output',
             'description':'Save as a TIFF using original metadata, if donor provided',
             'software':'PIL',
-            'version':'1.1.7',
+            'version':PIL.__version__,
             'arguments':{
                 'donor':{
                     'type':'donor',

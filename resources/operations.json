@@ -187,7 +187,8 @@
       "generateMask" : true,
       "transitions": [
         "video.video",
-        "audio.audio"
+        "audio.audio",
+        "audio.video"
       ]
     },
     {
@@ -825,11 +826,17 @@
       "name": "AntiForensicCopyExif",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize",
+        "checkSizeAndExif",
         "checkFileTypeChangeForDonor",
         "checkSameChannels"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "rotate": {
+          "type":"yesno",
+          "description": "Was video rotated"
+        }
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
       "includeInMask": false,
       "transitions": [
@@ -1125,7 +1132,8 @@
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1159,7 +1167,8 @@
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1414,7 +1423,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1666,7 +1676,8 @@
         "checkInputMask",
         "check_local",
         "sampledInputMask",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1945,7 +1956,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -1977,7 +1989,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2010,7 +2023,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2043,7 +2057,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2359,7 +2374,12 @@
     {
       "category": "Output",
       "name": "OutputAVI",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Video Rotated": {
+          "type": "yesno",
+          "description": "Enter yes if the donor is rotated during the paste operation"
+        }
+      },
       "rules": [
         "checkSameChannels",
         "checkResolution"
@@ -2511,7 +2531,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2565,7 +2586,8 @@
         "checkFrameTimes",
         "check_local",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkVideoMasks"
       ],
       "optionalparameters": {
         "Start Time": {

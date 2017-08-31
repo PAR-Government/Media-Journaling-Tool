@@ -11,6 +11,8 @@ def transform(img,source,target, **kwargs):
 def operation():
     return {'name':'Blend',
             'category':'Layer',
+            'software':'maskgen',
+            'version':'04',
             'arguments':{
                 'Final Image': {
                     "type": "file:image",

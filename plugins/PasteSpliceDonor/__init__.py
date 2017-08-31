@@ -1,5 +1,7 @@
 import shutil
 import os
+import maskgen
+
 """
 Convenience plugin to combine donation and splice connecting in one operation.
 """
@@ -15,7 +17,7 @@ def operation():
     return {'name':'PasteSplice',
             'category':'Paste',
             'software':'maskgen',
-            'version' : '1.0',
+            'version' :  maskgen.__version__[0:2],
             'arguments':{
                 'donor': {
                     "type": "donor",

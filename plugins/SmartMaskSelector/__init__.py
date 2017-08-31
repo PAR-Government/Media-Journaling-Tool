@@ -2,6 +2,7 @@ from maskgen import image_wrap
 import numpy as np
 from random import randint
 from skimage import segmentation
+import skimage
 
 """
 Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.
@@ -111,7 +112,7 @@ def operation():
           'name': 'SelectRegion',
           'description':'Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.  In the later case, paste_x and paste_y variables are returned indicating a suitable  upper left corner paste position in the source image. ',
           'software':'skimage',
-          'version':'2.4.13',
+          'version':skimage.__version__,
           'arguments':{'smallw': {'type': "int[32:64]", 'description':'small mask width size'},
                        'smallh': {'type': "int[32:64]", 'description':'small mask height size'},
                        'mediumw': {'type': "int[64:128]", 'description':'medium mask width size'},

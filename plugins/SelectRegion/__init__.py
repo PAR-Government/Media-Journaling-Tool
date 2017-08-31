@@ -100,7 +100,7 @@ def operation():
           'category':'Select',
           'description':'Denoise and segment (felzenszwalb) the image to find selection from the image. Output the image using the alpha channel indicating the selection.',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments': {'alpha': {'type' : "yesno",
                                       "defaultvalue": "yes",
                                       'description': "If yes, save the image with an alpha channel instead of the mask."}},

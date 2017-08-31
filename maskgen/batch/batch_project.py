@@ -539,6 +539,26 @@ def getOperationGivenDescriptor(descriptor):
     """
     return batch_operations[descriptor['op_type']]
 
+def findBaseNodes(graph, node):
+    predecessors = graph.predecessors(node)
+    if len(predecessors) == 0:
+        return [node]
+    nodes = []
+    for pred in predecessors:
+        nodes.extend(findBaseNodes(graph,pred))
+    return nodes
+
+def findBaseImageNodes(graph,node):
+    """
+
+    :param graph:
+    :param node:
+    :return:
+    @type graph: nx.DiGraph
+    """
+    return [node for node in findBaseNodes(graph,node) if
+            graph.node[node]['op_type'] == 'BaseSelection']
+
 class BatchProject:
     logger = logging.getLogger('maskgen')
 
@@ -640,9 +660,12 @@ class BatchProject:
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
                     continue
                 connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
-                            if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
-
-                connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
+                                  if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
+                node = self.G.node[op_node_name]
+                if len(connecttonodes) > 0 and 'source' in node:
+                    connect_to_node_name = node['source']
+                else:
+                    connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                 completed.append(op_node_name)
                 self.logger.debug('{} Completed: {}'.format(currentThread().getName (),op_node_name))

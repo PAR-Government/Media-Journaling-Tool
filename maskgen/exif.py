@@ -44,7 +44,10 @@ def rotateAmount( orientation):
         return 'horizontal', 90.0
     elif rotation == 'Rotate 270 CW':
         return None, 270.0
-    return None,0
+    try:
+        return None, float (orientation)
+    except:
+        return None,0
 
 def rotateAccordingToExif(img_array, orientation, counter=False):
     rotation = orientation

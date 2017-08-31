@@ -64,6 +64,7 @@ def updateJournal(scModel):
         upgrades.append('04.0810.546e996a36')
     if '04.0810.9381e76724' not in upgrades:
         _fixCopyST(scModel)
+        _fixCompression(scModel)
         upgrades.append('04.0810.9381e76724')
     if '04.0820.cd74ff8bc8' not in upgrades:
         _addColor(scModel)
@@ -159,6 +160,12 @@ def _fixInsertionST(scModel):
             args['Start Time'] = args.pop('Insertion Start Time')
         if 'Insertion End Time' in args:
             args['End Time'] = args.pop('Insertion End Time')
+
+def _fixCompression(scModel):
+    for nname in scModel.G.get_nodes():
+        node = scModel.G.get_node(nname)
+        if node['file'].endswith('_compressed.avi'):
+            node['compressed'] = 'maskgen.video_tools.x264'
 
 def _fixCopyST(scModel):
     for frm, to in scModel.G.get_edges():

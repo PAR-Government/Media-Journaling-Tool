@@ -569,6 +569,21 @@ def _getInputMaskDecision(edge):
         return edge['arguments']['tag']
     return None
 
+def _getOrientation(edge):
+    if ('arguments' in edge and \
+            ('Image Rotated' in edge['arguments'] and \
+                             edge['arguments']['Image Rotated'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][1]
+    if ('arguments' in edge and \
+            ('rotate' in edge['arguments'] and \
+                             edge['arguments']['rotate'] == 'yes')):
+        if 'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+              return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
+            edge['exifdiff']['Orientation'][1]
+        else:
+            return graph_rules.getOrientationFromMetaData(edge)
+    return ''
 
 def defaultAlterComposite(edge, edgeMask, compositeMask=None, directory='.', level=None,donorMask=None,pred_edges=None):
     # change the mask to reflect the output image

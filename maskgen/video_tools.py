@@ -127,38 +127,41 @@ def buildMasksFromCombinedVideo(filename,time_manager):
         count = 0
         THRESH=16
         HISYORY=10
-        fgbg = cv2.BackgroundSubtractorMOG2(varThreshold=THRESH,history=HISYORY,bShadowDetection=False)
-        LEARN_RATE = 0.03
-        first = True
+        #fgbg = cv2.BackgroundSubtractorMOG2(varThreshold=THRESH,history=HISYORY,bShadowDetection=False)
+        #LEARN_RATE = 0.03
+        #first = True
         sample = None
+        baseline = None
         kernel = np.ones((3, 3), np.uint8)
         while capIn.isOpened():
             ret, frame = capIn.read()
             if not ret:
                 break
             if sample is None:
-                sample = np.ones(frame[:, :, 0].shape) * 255
+                sample = np.ones(frame[:, :, 0].shape).astype('uint8')
+                baseline = np.ones(frame[:, :, 0].shape).astype('uint8') * 135
             elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
             time_manager.updateToNow(elapsed_time)
             if time_manager.isBeforeTime():
                 continue
             if time_manager.isPastTime():
                 break
-            thresh = fgbg.apply(frame, learningRate=LEARN_RATE)
-            if first:
-                first = False
-                continue
+            #thresh = fgbg.apply(frame, learningRate=LEARN_RATE)
+            #if first:
+            #    first = False
+           #     continue
             #      gray = frame[:,:,1]
             #      laplacian = cv2.Laplacian(frame,cv2.CV_64F)
             #      thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 11, 1)
             #      ret, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+            thresh = frame[:,:,1] - baseline
             result = thresh.copy()
             result[:, :] = 0
-            result[abs(thresh) > 0.000001] = 255
-            opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
-            closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
-            totalMatch = sum(sum(closing))
-            result = closing
+            result[abs(thresh) > 1] = 255
+            #opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
+            #closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+            totalMatch = sum(sum(result))
+            #result = result
             if totalMatch > 0:
                 count += 1
                 result = result.astype('uint8')
@@ -357,12 +360,27 @@ def getMeta(file, with_frames=False, show_streams=False):
         p.stderr.close()
     return meta, frames
 
-def runffmpeg(args):
+def get_ffmpeg_version():
+    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
+    command = [ffcommand,'-version']
+    try:
+        pcommand = Popen(command, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = pcommand.communicate()
+        if pcommand.returncode != 0:
+            logging.getLogger('maskgen').error(str(stderr) if stderr is not None else '')
+        else:
+            return stdout.split()[2][0:3]
+    except OSError as e:
+        logging.getLogger('maskgen').error("FFmpeg not installed")
+        logging.getLogger('maskgen').error(str(e))
+    return '?'
+
+def runffmpeg(args, noOutput=True):
     ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
     command = [ffcommand]
     command.extend(args)
     try:
-        pcommand =  Popen(command, stdout=PIPE, stderr=PIPE)
+        pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
         stdout, stderr =  pcommand.communicate()
         if pcommand.returncode != 0:
             error =  str(stdout) + (str(stderr) if stderr is not None else '')
@@ -617,6 +635,7 @@ def removeVideoFromAudio(filename,outputname=None):
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
 
+
 def x265(filename ,outputname=None, crf=0, remove_video=False):
     return _vid_compress(filename,
                          ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
@@ -624,12 +643,28 @@ def x265(filename ,outputname=None, crf=0, remove_video=False):
                          outputname=outputname,
                          remove_video=remove_video)
 
-def x264(filename, outputname=None, crf=0,remove_video=False):
+def lossy(filename, outputname=None, crf=0,remove_video=False):
+    return _vid_compress(filename,
+                         ['-loglevel','error'],
+                         'h264',
+                         outputname=outputname,
+                         suffix = 'mov',
+                         remove_video=remove_video)
+
+def x264fast(filename, outputname=None, crf=0,remove_video=False):
     return _vid_compress(filename,
                          ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
                          'h264',
                          outputname=outputname,
                          remove_video=remove_video)
+
+def x264(filename, outputname=None, crf=0,remove_video=False):
+    return _vid_compress(filename,
+                         ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)],
+                         'h264',
+                         outputname=outputname,
+                         remove_video=remove_video)
+
 
 def vid_md5(filename):
     ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
@@ -648,7 +683,7 @@ def vid_md5(filename):
     except OSError as e:
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
-def _vid_compress(filename, expressions, criteria,outputname=None,remove_video=False):
+def _vid_compress(filename, expressions, criteria,suffix='avi',outputname=None, remove_video=False):
     #md5 = vid_md5(filename)
     one_meta, one_frames = getMeta(filename, with_frames=False)
     execute_remove= False
@@ -661,7 +696,9 @@ def _vid_compress(filename, expressions, criteria,outputname=None,remove_video=F
             if 'Stream' in k and criteria in v:
                 execute_compress = False
     prefix = filename[0:filename.rfind('.')]
-    outFileName = prefix + '_compressed.avi' if outputname is None else outputname
+    if not filename.endswith(suffix):
+        execute_compress = True
+    outFileName = prefix + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
     if  execute_remove:
         filename = removeVideoFromAudio(filename, outputname=outFileName if not execute_compress else None)
@@ -718,11 +755,11 @@ def getFrameRate(fileOne, default=None):
                 return float(rate[0]) / float(rate[1])
     return default
 
-def _toAudio(fileOne):
+def toAudio(fileOne,outputName=None):
         """
         Consruct wav files
         """
-        name = fileOne + '.wav'
+        name = fileOne + '.wav' if outputName is None else outputName
         ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
         if os.path.exists(name):
             os.remove(name)
@@ -956,8 +993,8 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
     @type time_manager: VidTimeManager
     """
     import wave
-    fileOneAudio,errorsone = _toAudio(fileOne)
-    fileTwoAudio,errorstwo = _toAudio(fileTwo)
+    fileOneAudio,errorsone = toAudio(fileOne)
+    fileTwoAudio,errorstwo = toAudio(fileTwo)
     if len(errorsone) > 0:
         return list(),errorsone
     if len(errorstwo) > 0:

@@ -28,8 +28,8 @@ def operation():
     return {'name':'OutputBmp',
             'category':'Output',
             'description':'Output as BMP and copy metadata, if supplied.',
-            'software':'PIL',
-            'version':'1.1.7',
+            'software':'maskgen',
+            'version':'04',
             'arguments':{
                 'donor':{
                     'type':'donor',

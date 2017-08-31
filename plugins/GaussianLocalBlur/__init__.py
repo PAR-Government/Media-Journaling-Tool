@@ -42,7 +42,7 @@ def operation():
           'category':'Filter',
           'description':'Gaussian Blur',
           'software':'OpenCV',
-          'version':'2.4.13',
+          'version':cv2.__version__,
           'arguments':{
               'inputmaskname':{
                   'type':'imagefile',
