@@ -170,7 +170,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
-        "checkAudioChannels"
+        "checkAudioChannels",
+        "checkForAudio"
       ],
       "optionalparameters": {
         "End Time": {

@@ -1,4 +1,4 @@
-from maskgen import tool_set
+from maskgen import tool_set,graph_rules
 import unittest
 from maskgen import graph_output
 import os
@@ -17,12 +17,15 @@ class TestToolSet(unittest.TestCase):
     def test_composite(self):
         scModel = ImageProjectModel('images/sample.json')
         processProjectProperties(scModel)
-        scModel.getProbeSet(compositeBuilders=[tool_set.Jpeg2000CompositeBuilder])
-        scModel.toCSV('test_composite.csv')
+        scModel.assignColors()
+        ps = scModel.getProbeSet(compositeBuilders=[graph_rules.Jpeg2000CompositeBuilder])
+        self.assertTrue(len(ps) == 1)
+        scModel.toCSV('test_composite.csv',additionalpaths=['linkcolor', 'basenode'])
         with open('test_composite.csv','rb') as fp:
             reader = csv.reader(fp)
             for row in reader:
                 self.assertEqual(6, len(row))
+                self.assertTrue((row[3]!='PasteSplice' and row[4] == '') or (row[3]=='PasteSplice' and row[5] != ''))
 
     def tearDown(self):
         if os.path.exists('test_composite.csv'):

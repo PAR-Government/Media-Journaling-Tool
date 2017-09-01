@@ -276,7 +276,6 @@ class MakeGenUI(Frame):
         self.scModel.executeFinalNodeRules()
         processProjectProperties(self.scModel)
         self.getproperties()
-        self.scModel.removeCompositesAndDonors()
         return True
 
     def export(self):
@@ -696,7 +695,7 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        #ps  = self.scModel.getProbeSet()
+        ps  = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder,graph_rules.Jpeg2000CompositeBuilder])
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
@@ -734,7 +733,7 @@ class MakeGenUI(Frame):
         return error_count == 0
 
     def viewdonor(self):
-        im,baseIm = self.scModel.getDonorAndBaseImages(force=True)
+        im,baseIm = self.scModel.getDonorAndBaseImage()
         if im is not None:
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
 

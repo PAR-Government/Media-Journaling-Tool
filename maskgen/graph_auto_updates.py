@@ -66,6 +66,9 @@ def updateJournal(scModel):
         _fixCopyST(scModel)
         _fixCompression(scModel)
         upgrades.append('04.0810.9381e76724')
+    if '04.0820.cd74ff8bc8' not in upgrades:
+        _addColor(scModel)
+        upgrades.append('04.0820.cd74ff8bc8')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -99,6 +102,9 @@ def _updateEdgeHomography(edge):
             edge['homography'] = 'None'
         if 'sift_max_matches' in edge:
             edge['homography max matches'] = edge.pop('sift_max_matches')
+
+def _addColor(scModel):
+    scModel.assignColors()
 
 def _fixHP(scModel):
     for nodename in scModel.getNodeNames():
@@ -218,6 +224,7 @@ def _operationsChange1(scModel):
     }
     op_mapping = {
         'AdditionalEffectAddLightSource':'ArtificialLighting',
+        'ArtifactsCGIArtificialLighting':'ArtificialLighting',
         'AdditionalEffectFading':'Fading',
         'AdditionalEffectMosaic':'Mosaic',
         'AdditionalEffectReduceInterlaceFlicker':'ReduceInterlaceFlicker',
@@ -322,6 +329,9 @@ def _pasteSpliceBlend(scModel):
             mod = scModel.getModificationForEdge(frm,to,edge)
             scModel.imageFromGroup(grp, software=mod.software, **args)
 
+
+def _fixColors(scModel):
+    scModel.assignColors(scModel)
 
 def _fixLabels(scModel):
     for node in scModel.getNodeNames():

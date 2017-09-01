@@ -1,16 +1,19 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
-from tool_set import getFileMeta,validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,getDurationStringFromMilliseconds
+from tool_set import validateAndConvertTypedValue,openImageFile, fileTypeChanged, fileType,getMilliSecondsAndFrameCount,toIntTuple,\
+    getDurationStringFromMilliseconds, IntObject,getFileMeta,mergeColorMask,maskToColorArray,maskChangeAnalysis
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
 import numpy
+from maskgen import Probe
 from image_wrap import ImageWrapper
 from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate
+from video_tools import getFrameRate, getMeta
 import numpy as np
+
 
 rules = {}
 global_loader = SoftwareLoader()
@@ -756,6 +759,38 @@ def checkResolution(graph,frm,to):
     if height is not None and height[2] != res_height:
         return 'resolution height does not match video'
 
+
+def checkForAudio(graph,frm,to):
+    def isSuccessor(graph, successors, node, ops):
+        """
+          :param scModel:
+          :return:
+          @type successors: list of str
+          @type scModel: ImageProjectModel
+          """
+        for successor in successors:
+            edge = graph.get_edge(node, successor)
+            if edge['op'] not in ops:
+                return False
+        return True
+
+    currentLink = graph.get_edge(frm, to)
+    successors = graph.successors(to)
+    if currentLink['op'] == 'AddAudioSample':
+        sourceim, source = graph.get_image(frm)
+        im, dest = graph.get_image(to)
+        sourcemetadata = getMeta(source, show_streams=True)[0]
+        destmetadata = getMeta(dest, show_streams=True)[0]
+        if len(sourcemetadata) > 0:
+            sourcevidcount = len([idx for idx, val in enumerate(sourcemetadata) if val['codec_type'] != 'audio'])
+        if len(destmetadata) > 0:
+            destvidcount = len(
+                [x for x in (idx for idx, val in enumerate(destmetadata) if val['codec_type'] != 'audio')])
+    if sourcevidcount != destvidcount:
+        if not isSuccessor(graph, successors, to, ['AntiForensicCopyExif', 'OutputMP4', 'Donor']):
+            return 'Video is missing from audio sample'
+    return None
+
 def checkPasteFrameLength(graph,frm,to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type')
@@ -1133,7 +1168,7 @@ def provenanceRule(scModel, edgeTuples):
     for node in scModel.getNodeNames():
         nodedata = scModel.getGraph().get_node(node)
         if nodedata['nodetype'] == 'final':
-            bases.add(scModel.getBaseImage(node))
+            bases.add(scModel.getBaseNode(node))
     return 'yes' if len(bases) > 1 else 'no'
 
 
@@ -1293,4 +1328,322 @@ def getNodeSummary(scModel, node_id):
     """
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
+
+
+
+def getOrientationForEdge(edge):
+    if ('arguments' in edge and \
+                ('Image Rotated' in edge['arguments'] and \
+                             edge['arguments']['Image Rotated'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][1]
+    if ('arguments' in edge and \
+                ('rotate' in edge['arguments'] and \
+                             edge['arguments']['rotate'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
+            edge['exifdiff']['Orientation'][1]
+    return ''
+
+class GraphCompositeIdAssigner:
+
+    """
+        Each edge and final node is associated with a compositeid.
+        Each file node is associated with a group id.
+        target ids associated with a group id are unique.
+        A reset also increments the file id.
+        Reset points are algorithmically determined by detected pixel
+        changes for an on more than one path.
+        In the future, the algorithm should get the reset points
+        from the probe constuction where transforms themselves communicate
+        pixel changes along a path.  HOWEVER, that interjects responsibility
+        in that transformation code.  So, instead, post analysis is done here
+        to maintain some abstraction over efficiency.
+
+    """
+
+    def __init__(self, graph, probes):
+        """
+        :param graph:
+        :param probes:
+        @type graph: ImageGraph
+        @type probes : list of Probe
+        """
+        self.graph = graph
+        self.repository = dict()
+        self.probe_target = dict()
+        for probe in probes:
+            self.repository[probe.edgeId] = dict()
+            if (probe.edgeId[0], probe.edgeId[1]) not in self.probe_target:
+                self.probe_target[(probe.edgeId[0], probe.edgeId[1])] = dict()
+            self.probe_target[(probe.edgeId[0], probe.edgeId[1])][probe.finalNodeId] = np.asarray(probe.targetMaskImage)
+        self.buildProbeEdgeIds(set([probe.targetBaseNodeId for probe in probes]))
+
+    def updateProbes(self, probes,builder):
+        for probe in probes:
+            idsPerFinalNode = self.repository[probe.edgeId]
+            idtuple = idsPerFinalNode[probe.finalNodeId]
+            probe.composites[builder] = {
+                 'groupid': idtuple[0],
+                 'bit number': idtuple[1]
+            }
+        return probes
+
+    def __recurseDFSLavelResetPoints(self, nodename, probe_resets):
+        """
+        Determine reset points.  A reset point the first node from a final where
+         two final node masks diverge for the same edge.
+        :param nodename:
+        :param probe_masks: dictionary edgeId -> mask array of the last mask produced by the image
+        :return: paths from final node up to the current provided node
+        @type nodename: str
+        @type probe_masks: dict
+        """
+        successors = self.graph.successors(nodename)
+        if successors is None or len(successors) == 0:
+            return [[nodename]]
+        finalPaths = list()
+        for successor in self.graph.successors(nodename):
+            edge = self.graph.get_edge(nodename, successor)
+            if edge['op'] == 'Donor':
+                continue
+            edgeId = (nodename, successor)
+            childFinalPaths = self.__recurseDFSLavelResetPoints(successor, probe_resets)
+            last_array = None
+            last_path = None
+            for path in childFinalPaths:
+                current_path = path + [nodename]
+                finalPaths.append(current_path)
+                if edgeId in self.probe_target:
+                    imarray = self.probe_target[edgeId][path[0]]
+                    if last_array is not None and (last_array.shape != imarray.shape or sum(sum(abs(last_array - imarray))) != 0):
+                        probe_resets.add([i for i in current_path if i in last_path][0])
+                    last_array = imarray
+                last_path= current_path
+        return finalPaths
+
+    def __incementGroup(self,group, group_counters, local_counters):
+        """
+        Managed target id counters per each group.
+        Increment the targetid if target it is not already associated with the given group,
+        thus inforcing that a target id used one per each group.
+        :param group:
+        :param group_counters: group associated with IntObject counter
+        :param local_counters: group associated last target id
+        :return:
+        @type group: int
+        @type group_counters: dict int:IntObject
+        @type local_counters: dict int:int
+        """
+        if group in local_counters:
+            return local_counters[group]
+        if group not in group_counters:
+            group_counters[group] = IntObject()
+        local_counters[group] =  group_counters[group].increment()
+        return local_counters[group]
+
+    def __recurseDFSProbeEdgeIds(self, nodename, group_counters,groupid, probe_resets):
+        """
+        Each edge and final node is associated with a target id and a group id.
+        target ids associated with a group id are unique.
+        group ids ids reset if the current node participates in a reset
+        :param nodename:
+        :param group_counters: association of gruoup ids to target id counters
+        :param groupid: holds the current id value for group id
+        :param probe_resets: set of reset nodes
+        :return: list of (final node name, group id)
+        @type nodename: str
+        @type group_counters: dict of int:IntObject
+        @type groupid: IntObject
+        @type probe_resets: set of str
+        @retypr list of (str,int)
+        """
+        successors = self.graph.successors(nodename)
+        if successors is None or len(successors) == 0:
+            return [(nodename, groupid.value)]
+        finalNodes = set()
+        qualifies = nodename in probe_resets
+        for successor in self.graph.successors(nodename):
+            local_counters = {}
+            edge = self.graph.get_edge(nodename, successor)
+            if edge['op'] == 'Donor':
+                continue
+            if qualifies:
+                groupid.increment()
+            childFinalNodes =  self.__recurseDFSProbeEdgeIds(successor, group_counters,groupid, probe_resets)
+            for finalNodeNameTuple in childFinalNodes:
+                if (nodename, successor) in self.repository:
+                    self.repository[(nodename, successor)][finalNodeNameTuple[0]] = \
+                        (finalNodeNameTuple[1],
+                         self.__incementGroup(finalNodeNameTuple[1],group_counters,local_counters))
+                finalNodes.add(finalNodeNameTuple)
+        return finalNodes
+
+    def buildProbeEdgeIds(self, baseNodes):
+        fileid = IntObject()
+        for node_name in self.graph.get_nodes():
+            node = self.graph.get_node(node_name)
+            if node['nodetype'] == 'base' or node_name in baseNodes:
+                reset_points = set()
+                group_counters = {}
+                self.__recurseDFSLavelResetPoints(node_name, reset_points)
+                self.__recurseDFSProbeEdgeIds(node_name, group_counters,fileid,reset_points)
+                fileid.increment()
+
+class CompositeBuilder:
+
+    def __init__(self,passes,composite_type):
+        self.passes = passes
+        self.composite_type = composite_type
+
+    def initialize(self, graph, probes):
+        pass
+
+    def finalize(self, probes):
+        pass
+
+    def build(self, passcount, probe, edge):
+        pass
+
+    def getComposite(self, finalNodeId):
+        return None
+
+class Jpeg2000CompositeBuilder(CompositeBuilder):
+
+    def __init__(self):
+        self.composites = dict()
+        self.group_bit_check = dict()
+        CompositeBuilder.__init__(self,1,'jp2')
+
+    def initialize(self, graph, probes):
+        compositeIdAssigner = GraphCompositeIdAssigner(graph, probes)
+        return compositeIdAssigner.updateProbes(probes,self.composite_type)
+
+    def build(self, passcount, probe, edge):
+        import math
+        """
+
+        :param passcount:
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: Probe
+        """
+        if passcount > 0:
+            return
+        groupid = probe.composites[self.composite_type]['groupid']
+        targetid = probe.composites[self.composite_type]['bit number']
+        bit = targetid -1
+        if groupid not in self.composites:
+            self.composites[groupid] = []
+        composite_list = self.composites[groupid]
+        composite_mask_id = (bit / 8)
+        imarray = np.asarray(probe.targetMaskImage)
+        # check to see if the bits are in fact the same for a group
+        if (groupid, targetid) not in self.group_bit_check:
+            self.group_bit_check[(groupid, targetid)] = imarray
+        else:
+            assert sum(sum(self.group_bit_check[(groupid, targetid)]-imarray)) == 0
+        while (composite_mask_id+1) > len(composite_list):
+            composite_list.append(np.zeros((imarray.shape[0],imarray.shape[1])).astype('uint8'))
+        thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
+        thisbit[imarray == 0] = math.pow(2,bit%8)
+        composite_list[composite_mask_id] = composite_list[composite_mask_id] + thisbit
+
+    def finalize(self, probes):
+        results = {}
+        dir = [os.path.split(probe.targetMaskFileName)[0] for probe in probes][0]
+        for groupid, compositeMaskList in self.composites.iteritems():
+            third_dimension = len(compositeMaskList)
+            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
+            if third_dimension == 1:
+                result = compositeMaskList[0]
+                analysis_mask[compositeMaskList[0] > 0] = 255
+            else:
+                result = np.zeros(
+                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
+                for dim in range(third_dimension):
+                    result[:, :, dim] = compositeMaskList[dim]
+                    analysis_mask[compositeMaskList[dim] > 0] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
+                                                                     globalAnalysis=True)
+            img = ImageWrapper(result, mode='JP2')
+            results[groupid] = (img,globalchange, changeCategory, ratio)
+            img.save(os.path.join(dir,str(groupid) + '_c.jp2'))
+
+        for probe in probes:
+            groupid = probe.composites[self.composite_type]['groupid']
+            finalResult = results[groupid]
+            targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
+            probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName
+            probe.composites[self.composite_type]['image'] = finalResult[0]
+        return results
+
+
+class ColorCompositeBuilder(CompositeBuilder):
+
+    def __init__(self):
+        self.composites = dict()
+        self.colors = dict()
+        CompositeBuilder.__init__(self, 2,'color')
+
+    def initialize(self, graph, probes):
+        for probe in probes:
+            edge = graph.get_edge(probe.edgeId[0],probe.edgeId[1])
+            color = [int(x) for x in edge['linkcolor'].split(' ')]
+            self.colors[probe.edgeId] =color
+
+    def _to_color_target_name(self,name):
+        return name[0:name.rfind('.png')] + '_c.png'
+
+    def build(self, passcount, probe, edge):
+        if passcount == 0:
+            return self.pass1(probe, edge)
+        elif passcount == 1:
+            return self.pass2(probe, edge)
+
+    def pass1(self,probe,edge):
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
+        colorMask = maskToColorArray(probe.targetMaskImage, color=color)
+        if probe.finalNodeId in self.composites:
+                self.composites[probe.finalNodeId] = mergeColorMask(self.composites[probe.finalNodeId], colorMask)
+        else:
+            self.composites[probe.finalNodeId] = colorMask
+
+    def pass2(self,probe,edge):
+        """
+
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: graph_rules.
+        """
+        # now reconstruct the probe target to be color coded and obscured by overlaying operations
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
+        composite_mask_array = self.composites[probe.finalNodeId]
+        result = np.ones(composite_mask_array.shape).astype('uint8') * 255
+        matches = np.all(composite_mask_array == color, axis=2)
+        #  only contains visible color in the composite
+        result[matches] = color
+
+
+    def finalize(self, probes):
+        results = {}
+        for finalNodeId, compositeMask in self.composites.iteritems():
+            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
+            matches = np.any(compositeMask != [255, 255, 255], axis=2)
+            result[matches] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
+                                                                             globalAnalysis=True)
+            results[finalNodeId] = (ImageWrapper(compositeMask),globalchange, changeCategory, ratio)
+        for probe in probes:
+            finalResult = results[probe.finalNodeId]
+            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
+            probe.composites[self.composite_type] =  {
+                'file name': targetColorMaskImageName,
+                'image':finalResult[0],
+                'color':self.colors[probe.edgeId]
+            }
+            finalResult[0].save(targetColorMaskImageName)
+        return results
 

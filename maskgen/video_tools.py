@@ -120,6 +120,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
     capIn = cv2.VideoCapture(filename)
     capOut = tool_set.GrayBlockWriter(filename[0:filename.rfind('.')],
                              capIn.get(cv2.cv.CV_CAP_PROP_FPS))
+    amountRead = 0
     try:
         ranges = []
         startTime = None
@@ -137,6 +138,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
             ret, frame = capIn.read()
             if not ret:
                 break
+            amountRead+=1
             if sample is None:
                 sample = np.ones(frame[:, :, 0].shape).astype('uint8')
                 baseline = np.ones(frame[:, :, 0].shape).astype('uint8') * 135
@@ -199,6 +201,8 @@ def buildMasksFromCombinedVideo(filename,time_manager):
     finally:
         capIn.release()
         capOut.close()
+    if amountRead == 0:
+        raise ValueError('Mask Computation Failed to a read videos.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.')
     return ranges
 
 
@@ -831,16 +835,21 @@ class VidAnalysisComponents:
     """
 
     def __init__(self):
-        pass
+        self.one_count = 0
+        self.two_count = 0
 
     def grabOne(self):
         res = self.vid_one.grab()
         self.grabbed_one = res
+        if res:
+            self.one_count+=1
         return res
 
     def grabTwo(self):
         res = self.vid_two.grab()
         self.grabbed_two = res
+        if res:
+            self.two_count += 1
         return res
 
     def retrieveOne(self):
@@ -1141,6 +1150,9 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
         analysis_components.vid_one.release()
         analysis_components.vid_two.release()
         analysis_components.writer.close()
+    if analysis_components.one_count == 0:
+        raise ValueError(
+            'Mask Computation Failed to a read videos.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.')
     return ranges,[]
 
 def _getVideoFrame(video,frame_time):

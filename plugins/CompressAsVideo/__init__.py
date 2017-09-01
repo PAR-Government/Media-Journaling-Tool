@@ -69,7 +69,7 @@ def save_as_video(source, target, donor, matchcolor=False):
                     source_channel_data = get_channel_data(source_data, 'video')
                     source_width = source_channel_data['width']
                     source_height = source_channel_data['height']
-                    source_aspect = source_channel_data['display_aspect_ratio']
+                    #source_aspect = source_channel_data['display_aspect_ratio']
                     donor_rotation = int(get_item(data, 'rotation', 0))
                     diff_rotation = donor_rotation - int(get_item(source_channel_data, 'rotation', 0))
                     if diff_rotation != 0:
@@ -84,7 +84,10 @@ def save_as_video(source, target, donor, matchcolor=False):
                        (abs(diff_rotation) != 90 and (source_height != height or source_width != width)):
                         video_size = width + ':' + height
                         try:
-                            aspect_ratio = ',setdar=' + data['display_aspect_ratio']
+                            if 'display_aspect_ratio' in data:
+                                aspect_ratio = ',setdar=' + data['display_aspect_ratio']
+                            else:
+                                aspect_ratio = ''
                         except KeyError:
                             aspect_ratio = ''
                         filters+=('scale=' + video_size + aspect_ratio)
