@@ -2,7 +2,9 @@ import argparse
 import os
 import maskgen.scenario_model
 from maskgen.tool_set import *
+from maskgen import video_tools
 import tempfile
+from maskgen.scenario_model import ImageProjectModel
 from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
 from maskgen.batch import BatchProcessor, pick_projects
@@ -12,6 +14,7 @@ import sys
 import csv
 import time
 from functools import partial
+from maskgen import plugins
 
 
 def reproduceMask(scModel):
@@ -63,6 +66,7 @@ def getFunction(name, function_mappings={}):
         return function_mappings[name]
     elif name in mod_functions:
         function_mappings[name] = mod_functions[name]
+        return function_mappings[name]
     else:
         mod_name, func_name = name.rsplit('.', 1)
         try:
@@ -112,6 +116,53 @@ def validate_by(scModel, person):
     scModel.setProjectData('validationdate', time.strftime("%m/%d/%Y"))
     scModel.save()
 
+def isSuccessor(scModel, successors, node, ops):
+    """
+      :param scModel:
+      :return:
+      @type successors: list of str
+      @type scModel: ImageProjectModel
+      """
+    for successor in successors:
+        edge = scModel.getGraph().get_edge(node,successor)
+        if edge['op'] not in ops:
+            return False
+    return True
+
+def missingVideo(scModel):
+    import copy
+    """
+    :param scModel:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        successors = scModel.getGraph().successors(edge[1])
+        predecessors = scModel.getGraph().predecessors(edge[1])
+        if currentLink['op'] == 'AddAudioSample':
+            sourceim, source = scModel.getGraph().get_image(edge[0])
+            im, dest = scModel.getGraph().get_image(edge[1])
+            sourcemetadata = video_tools.getMeta(source,show_streams=True)[0]
+            destmetadata = video_tools.getMeta(dest,show_streams=True)[0]
+            if len(sourcemetadata) > 0:
+                sourcevidcount = len([idx for idx, val in enumerate(sourcemetadata) if val['codec_type'] != 'audio'])
+            if len(destmetadata) > 0:
+                destvidcount = len([x for x in (idx for idx, val in enumerate(destmetadata) if val['codec_type'] != 'audio')])
+            if sourcevidcount != destvidcount:
+                if not isSuccessor(scModel, successors, edge[1], ['AntiForensicCopyExif', 'OutputMP4', 'Donor']):
+                    raise ValueError('Cannot correct AddAudioSample for edge {} to {} due to successor node'.format(
+                        edge[0], edge[1]
+                    ))
+                predecessors = [pred for pred in predecessors if pred != edge[0]]
+                if len(predecessors) == 0:
+                    donor = scModel.getBaseNode(edge[1])
+                else:
+                    donor = predecessors[0]
+                args= dict() if 'arguments' not  in currentLink else copy.copy(currentLink['arguments'])
+                args['donor'] = donor
+                plugins.callPlugin('OverwriteAudioStream',sourceim,source,dest,donor=donor)
+
 def recompressAsVideo(scModel):
     """
     :param scModel:
@@ -147,7 +198,7 @@ def perform_update(project,args, functions,  tempdir):
             setPwdX(CustomPwdX(validator))
         else:
             setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
-    for function in functions.values():
+    for function in functions:
         function(scModel)
     if args.validate:
         scModel.set_validation_properties('yes', get_username(), 'QA redone via Batch Updater')
@@ -171,14 +222,29 @@ def fetchfromS3(dir, location, file):
     my_bucket.download_file(DIR + file, os.path.join(dir, file))
 
 def processProject(args, functions, file_to_process):
-    dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
+    """
+
+    :param args:
+    :param functions:
+    :param file_to_process:
+    :return:
+    @type file_to_process : str
+    """
+    if not file_to_process.endswith('tgz') and os.path.exists(os.path.join(args.tempfolder,file_to_process)):
+        dir = os.path.join(args.tempfolder,file_to_process)
+        fetch = False
+    else:
+        dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
+        fetch = True
     try:
-        fetchfromS3(dir, args.downloadfolder,file_to_process)
-        extract_archive(os.path.join(dir, file_to_process), dir)
+        if fetch:
+            fetchfromS3(dir, args.downloadfolder,file_to_process)
+            extract_archive(os.path.join(dir, file_to_process), dir)
         for project in pick_projects(dir):
             perform_update(project, args,functions, dir)
     finally:
-        shutil.rmtree(dir)
+        if fetch:
+            shutil.rmtree(dir)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -192,10 +258,10 @@ def main():
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
     args = parser.parse_args()
 
-    functions = dict()
+    functions_map = {}
+    functions = []
     if args.functions is not None:
-        for name in args.functions.split(','):
-            getFunction(name, functions)
+        functions = [getFunction(name, function_mappings=functions_map) for name in args.functions.split(',')]
 
     with open(args.file, 'r') as input_file:
         files_to_process = input_file.readlines()

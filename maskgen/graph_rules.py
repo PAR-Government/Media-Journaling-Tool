@@ -11,7 +11,7 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate
+from video_tools import getFrameRate, getMeta
 import numpy as np
 
 
@@ -759,6 +759,38 @@ def checkResolution(graph,frm,to):
     if height is not None and height[2] != res_height:
         return 'resolution height does not match video'
 
+
+def checkForAudio(graph,frm,to):
+    def isSuccessor(graph, successors, node, ops):
+        """
+          :param scModel:
+          :return:
+          @type successors: list of str
+          @type scModel: ImageProjectModel
+          """
+        for successor in successors:
+            edge = graph.get_edge(node, successor)
+            if edge['op'] not in ops:
+                return False
+        return True
+
+    currentLink = graph.get_edge(frm, to)
+    successors = graph.successors(to)
+    if currentLink['op'] == 'AddAudioSample':
+        sourceim, source = graph.get_image(frm)
+        im, dest = graph.get_image(to)
+        sourcemetadata = getMeta(source, show_streams=True)[0]
+        destmetadata = getMeta(dest, show_streams=True)[0]
+        if len(sourcemetadata) > 0:
+            sourcevidcount = len([idx for idx, val in enumerate(sourcemetadata) if val['codec_type'] != 'audio'])
+        if len(destmetadata) > 0:
+            destvidcount = len(
+                [x for x in (idx for idx, val in enumerate(destmetadata) if val['codec_type'] != 'audio')])
+    if sourcevidcount != destvidcount:
+        if not isSuccessor(graph, successors, to, ['AntiForensicCopyExif', 'OutputMP4', 'Donor']):
+            return 'Video is missing from audio sample'
+    return None
+
 def checkPasteFrameLength(graph,frm,to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type')
@@ -1459,8 +1491,6 @@ class GraphCompositeIdAssigner:
                 fileid.increment()
 
 class CompositeBuilder:
-    passes = 0
-    composite_type = 'none'
 
     def __init__(self,passes,composite_type):
         self.passes = passes
