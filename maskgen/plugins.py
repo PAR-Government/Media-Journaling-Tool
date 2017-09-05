@@ -5,6 +5,10 @@ import json
 import subprocess
 import logging
 
+"""
+Manage and invoke all JT plugins that support operations on node media (images, video and audio)
+"""
+
 MainModule = "__init__"
 
 loaded = None

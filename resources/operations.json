@@ -840,6 +840,7 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
       "includeInMask": false,
+      "generateMask" : false,
       "transitions": [
         "image.image",
         "video.video"
@@ -2367,7 +2368,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
       "includeInMask": false,
-      "generateMask" : true,
+      "generateMask" : false,
       "transitions": [
         "video.video"
       ]

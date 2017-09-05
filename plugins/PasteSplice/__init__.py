@@ -4,8 +4,8 @@ import cv2
 import random
 import os
 from maskgen.image_wrap import ImageWrapper, openImageFile
-from maskgen import tool_set,image_wrap
-from skimage import  segmentation, color,measure,feature
+from maskgen import tool_set, image_wrap
+from skimage import segmentation, color, measure, feature
 from skimage.future import graph
 import numpy as np
 import math
@@ -13,12 +13,15 @@ from skimage.restoration import denoise_tv_bregman
 from maskgen import cv2api
 
 from sys import platform as sys_pf
+
 if sys_pf == 'darwin':
     import matplotlib
+
     matplotlib.use("TkAgg")
 
 from matplotlib import transforms
 from matplotlib.patches import Ellipse
+
 
 class TransformedEllipse(Ellipse):
     def __init__(self, xy, width, height, angle=0.0, fix_x=1.0, **kwargs):
@@ -47,15 +50,16 @@ def minimum_bounding_box(image):
             x = int(M['m10'] / M['m00'])
             y = int(M['m01'] / M['m00'])
             x1, y1, w, h = cv2.boundingRect(cnt)
-            selected.append((w,h,w*h,x,y))
+            selected.append((w, h, w * h, x, y))
         except:
             continue
     selected = sorted(selected, key=lambda cnt: cnt[2], reverse=True)
     if len(selected) == 0:
         print 'cannot determine contours'
         x, y, w, h = tool_set.widthandheight(image)
-        selected = [ (w,h,w*h,x+w/2,y+h/2)]
+        selected = [(w, h, w * h, x + w / 2, y + h / 2)]
     return selected[0]
+
 
 def minimum_bounding_ellipse_of_points(points):
     M = cv2.moments(points)
@@ -69,6 +73,7 @@ def minimum_bounding_ellipse_of_points(points):
         (x1, y1), (MA, ma), angle = cv2.fitEllipse(points)
     return (x, y, MA, ma, angle, cv2.contourArea(points), points)
 
+
 def minimum_bounding_ellipse(image):
     """
     :param image:
@@ -81,7 +86,7 @@ def minimum_bounding_ellipse(image):
         try:
             bounded_info = minimum_bounding_ellipse_of_points(cnt)
             if bounded_info is not None:
-               selected.append(bounded_info)
+                selected.append(bounded_info)
         except:
             continue
     if len(selected) == 0:
@@ -89,62 +94,66 @@ def minimum_bounding_ellipse(image):
     selected = sorted(selected, key=lambda cnt: cnt[5], reverse=True)
     return selected[0] if len(selected) > 0 else None
 
+
 def minimum_bounded_ellipse(image):
-    image = feature.canny(image).astype(np.uint8)*255
+    image = feature.canny(image).astype(np.uint8) * 255
     coords = np.column_stack(np.nonzero(image))
     # find the embedded circle using random sample consensus
     try:
-       model, inliers = measure.ransac(coords, measure.EllipseModel,
-                                    min_samples=3, residual_threshold=1,
-                                    max_trials=500)
+        model, inliers = measure.ransac(coords, measure.EllipseModel,
+                                        min_samples=3, residual_threshold=1,
+                                        max_trials=500)
     except Exception as ex:
-       print ex
-       raise ex
+        print ex
+        raise ex
     return model.params
 
-def build_transform_matrix(placement_ellipse,mask_ellipse):
-    width_diff = placement_ellipse[2]-mask_ellipse[2]
+
+def build_transform_matrix(placement_ellipse, mask_ellipse):
+    width_diff = placement_ellipse[2] - mask_ellipse[2]
     height_diff = placement_ellipse[3] - mask_ellipse[3]
-    scale_factor = 1.0 + (float(width_diff)/mask_ellipse[2])
-    height_scale = 1.0 + (float(height_diff)/mask_ellipse[3])
+    scale_factor = 1.0 + (float(width_diff) / mask_ellipse[2])
+    height_scale = 1.0 + (float(height_diff) / mask_ellipse[3])
     scale_factor = height_scale if height_scale < scale_factor else scale_factor
     if scale_factor < 0.2 or scale_factor > 1.5:
         return None
-    rotation_angle = mask_ellipse[4]-placement_ellipse[4]
-    return cv2.getRotationMatrix2D((mask_ellipse[0],mask_ellipse[1]),
-                                   rotation_angle,scale_factor)
+    rotation_angle = mask_ellipse[4] - placement_ellipse[4]
+    return cv2.getRotationMatrix2D((mask_ellipse[0], mask_ellipse[1]),
+                                   rotation_angle, scale_factor)
 
-def transform_image(image,transform_matrix):
+
+def transform_image(image, transform_matrix):
     """
     :param image:
     :param transform_matrix:
     :return:
     @rtype array
     """
-    return cv2.warpAffine(image,transform_matrix,(image.shape[1],image.shape[0]))
+    return cv2.warpAffine(image, transform_matrix, (image.shape[1], image.shape[0]))
 
 
 def build_random_transform(img_to_paste, mask_of_image_to_paste, image_center):
-    scale = 0.5 +  random.random()
-    angle = 180.0*random.random() - 90.0
+    scale = 0.5 + random.random()
+    angle = 180.0 * random.random() - 90.0
     return cv2.getRotationMatrix2D(image_center, angle, scale)
+
 
 def pasteAnywhere(img, img_to_paste, mask_of_image_to_paste, simple):
     w, h, area, x, y = minimum_bounding_box(mask_of_image_to_paste)
     if not simple:
-        rot_mat = build_random_transform(img_to_paste,mask_of_image_to_paste,(x,y))
+        rot_mat = build_random_transform(img_to_paste, mask_of_image_to_paste, (x, y))
         img_to_paste = cv2.warpAffine(img_to_paste, rot_mat, (img_to_paste.shape[1], img_to_paste.shape[0]))
-        mask_of_image_to_paste= cv2.warpAffine(mask_of_image_to_paste, rot_mat, (img_to_paste.shape[1], img_to_paste.shape[0]))
+        mask_of_image_to_paste = cv2.warpAffine(mask_of_image_to_paste, rot_mat,
+                                                (img_to_paste.shape[1], img_to_paste.shape[0]))
         w, h, area, x, y = minimum_bounding_box(mask_of_image_to_paste)
     else:
-        rot_mat = np.array([[1,0,0],[0,1,0]]).astype('float')
+        rot_mat = np.array([[1, 0, 0], [0, 1, 0]]).astype('float')
 
     if img.size[0] < w + 4:
         w = img.size[0] - 2
         xplacement = w / 2 + 1
     else:
         xplacement = random.randint(w / 2 + 1, img.size[0] - w / 2 - 1)
-
 
     if img.size[1] < h + 4:
         h = img.size[1] - 2
@@ -161,16 +170,17 @@ def pasteAnywhere(img, img_to_paste, mask_of_image_to_paste, simple):
             output_matrix[1, 2] = rot_mat[1, 2] + yplacement - y
 
     return output_matrix, tool_set.place_in_image(
-                          ImageWrapper(img_to_paste).to_mask().to_array(),
-                          img_to_paste,
-                          np.asarray(img),
-                          (xplacement, yplacement),
-                          rect=(x, y, w, h))
+        ImageWrapper(img_to_paste).to_mask().to_array(),
+        img_to_paste,
+        np.asarray(img),
+        (xplacement, yplacement),
+        rect=(x, y, w, h))
 
-def transform(img,source,target,**kwargs):
-    img_to_paste =openImageFile(kwargs['donor'])
-    approach = kwargs['approach']  if 'approach' in kwargs else 'simple'
-    segment_algorithm =  kwargs['segment'] if 'segment' in kwargs else 'felzenszwalb'
+
+def transform(img, source, target, **kwargs):
+    img_to_paste = openImageFile(kwargs['donor'])
+    approach = kwargs['approach'] if 'approach' in kwargs else 'simple'
+    segment_algorithm = kwargs['segment'] if 'segment' in kwargs else 'felzenszwalb'
     mask_of_image_to_paste = img_to_paste.to_mask().to_array()
     out2 = None
     if approach == 'texture':
@@ -184,15 +194,16 @@ def transform(img,source,target,**kwargs):
             dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0, math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
             sigma = max(1.0, math.log10(dims[0] * dims[1] / 10000.0) - 0.5)
             min_size = max(100.0, math.ceil(sigma * 10.0) * 10)
-            while out2 is None and sigma<5:
+            while out2 is None and sigma < 5:
                 if segment_algorithm == 'slic':
-                    masksize = float(sum(sum(mask_of_image_to_paste))/255)
+                    masksize = float(sum(sum(mask_of_image_to_paste)) / 255)
                     imgsize = float(img.size[0] * img.size[1])
-                    labels1 = segmentation.slic(gray, compactness=5, n_segments=min(500, int(imgsize/(sigma*2*masksize))))
+                    labels1 = segmentation.slic(gray, compactness=5,
+                                                n_segments=min(500, int(imgsize / (sigma * 2 * masksize))))
                 else:
-                    labels1= segmentation.felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
+                    labels1 = segmentation.felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
 
-                #Compute the Region Adjacency Graph using mean colors.
+                # Compute the Region Adjacency Graph using mean colors.
                 #
                 # Given an image and its initial segmentation, this method constructs the corresponding  RAG.
                 # Each node represents a set of pixels  within image with the same label in labels.
@@ -202,15 +213,15 @@ def transform(img,source,target,**kwargs):
                 labelset = np.unique(labels1)
                 while len(labels1) > 100000 or len(labelset) > 500:
                     g = graph.rag_mean_color(denoise_img, labels1, mode='similarity')
-                    labels1 = graph.cut_threshold(labels1, g,cutThresh)
+                    labels1 = graph.cut_threshold(labels1, g, cutThresh)
                     labelset = np.unique(labels1)
                     cutThresh += 0.00000001
                 labelset = np.unique(labels1)
                 for label in labelset:
                     if label == 0:
                         continue
-                    mask  = np.zeros(labels1.shape)
-                    mask[labels1==label] = 255
+                    mask = np.zeros(labels1.shape)
+                    mask[labels1 == label] = 255
                     mask = mask.astype('uint8')
                     ret, thresh = cv2.threshold(mask, 127, 255, 0)
                     (contours, _) = cv2api.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -223,61 +234,66 @@ def transform(img,source,target,**kwargs):
                             try:
                                 placement_ellipse = minimum_bounding_ellipse_of_points(contour[0])
                                 if placement_ellipse is not None:
-                                    transform_matrix = build_transform_matrix(placement_ellipse,mask_of_image_to_paste_ellipse)
+                                    transform_matrix = build_transform_matrix(placement_ellipse,
+                                                                              mask_of_image_to_paste_ellipse)
                                     if transform_matrix is None:
                                         continue
                                     transformed_image = transform_image(img_to_paste.to_array(), transform_matrix)
                                 else:
                                     transformed_image = img_to_paste.to_array()
                                 out2 = tool_set.place_in_image(
-                                                      ImageWrapper(transformed_image).to_mask().to_array(),
-                                                      transformed_image,
-                                                      np.asarray(img),
-                                                      (placement_ellipse[0], placement_ellipse[1]))
+                                    ImageWrapper(transformed_image).to_mask().to_array(),
+                                    transformed_image,
+                                    np.asarray(img),
+                                    (placement_ellipse[0], placement_ellipse[1]))
                                 if out2 is not None:
                                     break
                             except Exception as e:
-                                #print e
+                                # print e
                                 continue
                     if out2 is not None:
                         break
-                sigma+=0.5
+                sigma += 0.5
     if out2 is None:
-        transform_matrix, out2 = pasteAnywhere(img, img_to_paste.to_array(),mask_of_image_to_paste, approach=='simple')
+        transform_matrix, out2 = pasteAnywhere(img, img_to_paste.to_array(), mask_of_image_to_paste,
+                                               approach == 'simple')
     ImageWrapper(out2).save(target)
-    return {'transform matrix':tool_set.serializeMatrix(transform_matrix)} if transform_matrix is not None else None,None
+    return {'transform matrix': tool_set.serializeMatrix(
+        transform_matrix)} if transform_matrix is not None else None, None
 
-# the actual link name to be used. 
+
+# the actual link name to be used.
 # the category to be shown
 def operation():
-  return {'name':'PasteSplice',
-          'category':'Paste',
-          'description':'Apply a mask to create an alpha channel',
-          'software':'OpenCV',
-          'version':cv2.__version__,
-          'arguments':{
-              'donor':{
-                  'type':'donor',
-                  'defaultvalue':None,
-                  'description':'Mask to set alpha channel to 0'
-              },
-              'approach': {
-                  'type': 'list',
-                  'values': ['texture', 'simple', 'random'],
-                  'defaultvalue': 'random',
-                  'description': "The approach to find the placement. Option 'random' includes random selection scale and rotation"
-              },
-              'segment': {
-                  'type': 'list',
-                  'values' : ['felzenszwalb','slic'],
-                  'defaultvalue': 'felzenszwalb',
-                  'description': 'Segmentation algorithm for determiming paste region with simple set to no'
-              }
-          },
-          'transitions': [
-              'image.image'
-          ]
-  }
+    return {'name': 'PasteSplice',
+            'category': 'Paste',
+            'description': 'Apply a mask to create an alpha channel',
+            'software': 'OpenCV',
+            'version': cv2.__version__,
+            'arguments': {
+                'donor': {
+                    'type': 'donor',
+                    'defaultvalue': None,
+                    'description': 'Mask to set alpha channel to 0'
+                },
+                'approach': {
+                    'type': 'list',
+                    'values': ['texture', 'simple', 'random'],
+                    'defaultvalue': 'random',
+                    'description': "The approach to find the placement. Option 'random' includes random selection scale and rotation"
+                },
+                'segment': {
+                    'type': 'list',
+                    'values': ['felzenszwalb', 'slic'],
+                    'defaultvalue': 'felzenszwalb',
+                    'description': 'Segmentation algorithm for determiming paste region with simple set to no'
+                }
+            },
+            'transitions': [
+                'image.image'
+            ]
+            }
+
 
 def suffix():
     return None

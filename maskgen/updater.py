@@ -3,6 +3,9 @@ import json
 import logging
 import maskgen
 
+"""
+Git API used to compare version of the tool with lastest on GitHub master
+"""
 
 class UpdaterGitAPI:
 
