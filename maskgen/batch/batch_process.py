@@ -116,7 +116,7 @@ def findNodesToExtend(sm, rules):
     """
     nodes = []
     for nodename in sm.getNodeNames():
-        baseNodeName =  sm.getBaseImage(nodename)
+        baseNodeName =  sm.getBaseNode(nodename)
         node = sm.getGraph().get_node(nodename)
         baseNode = sm.getGraph().get_node(baseNodeName)
         if (baseNode['nodetype'] != 'base') and 'donorpath' not in rules:
@@ -181,7 +181,8 @@ def processZippedProject(batchSpecification,extensionRules,project):
     finally:
         shutil.rmtree(dir)
 
-def processAnyProject(batchSpecification,extensionRules, project):
+def processAnyProject(batchSpecification,extensionRules,outputGraph, project):
+    from maskgen.graph_output import ImageGraphPainter
     """
     :param project:
     :return:
@@ -191,9 +192,15 @@ def processAnyProject(batchSpecification,extensionRules, project):
         processZippedProject(batchSpecification,extensionRules,project)
     else:
         sm = _processProject(batchSpecification,extensionRules,project)
+        if outputGraph:
+            summary_file = os.path.join(sm.get_dir(), '_overview_.png')
+            try:
+                ImageGraphPainter(sm.getGraph()).output(summary_file)
+            except Exception as e:
+                logging.getLogger('maskgen').error("Unable to create image graph: " + str(e))
     return []
 
-def processSpecification(specification, extensionRules, projects_directory, completeFile=None):
+def processSpecification(specification, extensionRules, projects_directory, completeFile=None, outputGraph=False):
     """
     Perform a plugin operation on all projects in directory
     :param projects_directory: directory of projects
@@ -209,7 +216,7 @@ def processSpecification(specification, extensionRules, projects_directory, comp
     iterator = pick_projects(projects_directory)
     iterator.extend(pick_zipped_projects(projects_directory))
     processor = BatchProcessor(completeFile,iterator)
-    func = partial(processAnyProject,batch,rules)
+    func = partial(processAnyProject,batch,rules,outputGraph)
     return processor.process(func)
 
 def process(sourceDir, endDir, projectDir, op, software, version, opDescr, inputMaskPath, arguments,
@@ -406,6 +413,7 @@ def main():
     parser.add_argument('--semanticEventFabrication',action='store_true',help='Include this argument if this project will include semantic event fabrication')
     parser.add_argument('--imageReformatting',    action='store_true',   help='Include this argument if this project will include image reformatting.')
     parser.add_argument('--s3',                   default=None,          help='S3 Bucket/Path to upload projects to')
+    parser.add_argument('--graph',                action='store_true',   help='Output Summary Graph')
 
     args = parser.parse_args()
 
@@ -450,7 +458,7 @@ def main():
         if args.projects is None:
             print 'projects is required'
             sys.exit(-1)
-        processSpecification(args.specification,args.extensionRules, args.projects, completeFile=args.completeFile)
+        processSpecification(args.specification,args.extensionRules, args.projects, completeFile=args.completeFile, outputGraph=args.graph)
     # perform the specified operation
     elif args.plugin:
         if args.projects is None:
