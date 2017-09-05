@@ -1563,22 +1563,67 @@ class ImageProjectModel:
     def hasSkippedEdges(self):
        return len( self.G.getDataItem('skipped_edges', [])) >  0
 
+
+    def _executeQueue(self,q,results):
+        from Queue import Queue,Empty
+        """
+        :param q:
+        :return:
+        @type q : Queue
+        @type failures: Queue
+        """
+        while not q.empty():
+            try:
+                edge_data = q.get_nowait()
+                if edge_data is None:
+                    break
+                logging.getLogger('maskgen').info('Recomputing mask for edge {} to {} using operation {}'.format(
+                    edge_data['start'],
+                    edge_data['end'],
+                    edge_data['opName']
+                ))
+                mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
+                    edge_data['start'],
+                    edge_data['end'],
+                    self,
+                    edge_data['opName'],
+                    arguments=edge_data['arguments'],
+                    skipDonorAnalysis=edge_data['skipDonorAnalysis'],
+                    invert=edge_data['invert'],
+                    analysis_params=edge_data['analysis_params'])
+                results.put(((edge_data['start'], edge_data['end']), True, errors))
+                self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
+                                   **consolidate(analysis, edge_data['analysis_params']))
+            except Empty:
+                break
+            except Exception as e:
+                results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
+        return
+
     def _executeSkippedComparisons(self):
+        from Queue import Queue
+        from threading import Thread
         allErrors = []
         completed = []
+        q = Queue()
+        results = Queue()
         skipped_edges = self.G.getDataItem('skipped_edges', [])
         for edge_data in skipped_edges:
-            mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(edge_data['start'],
-                                                                                 edge_data['end'],
-                                                                                 self,
-                                                                                 edge_data['opName'],
-                                                                                 arguments=edge_data['arguments'],
-                                                                                 skipDonorAnalysis=edge_data['skipDonorAnalysis'],
-                                                                                 invert=edge_data['invert'],
-                                                                                 analysis_params=edge_data['analysis_params'])
-            completed.append((edge_data['start'], edge_data['end']))
-            allErrors.extend(errors)
-            self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors, **consolidate(analysis, edge_data['analysis_params']))
+            q.put(edge_data)
+        skipped_threads = prefLoader.get_key('skipped_threads', 2)
+        logging.getLogger('maskgen').info('Recomputing {} masks with {} threads'.format(q.qsize(), skipped_threads))
+        threads = list()
+        for i in range(int(skipped_threads)):
+            t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results))
+            threads.append(t)
+            t.start()
+        for thread in threads:
+            thread.join()
+        while not results.empty():
+            result = results.get_nowait()
+            allErrors.extend(result[2])
+            if result[1]:
+                completed.append(result[0])
         self.G.setDataItem('skipped_edges',[edge_data for edge_data in skipped_edges if (edge_data['start'], edge_data['end']) not in completed])
         msg = os.linesep.join(allErrors).strip()
         return msg if len(msg) > 0 else None
@@ -2033,6 +2078,7 @@ class ImageProjectModel:
         """ Return the list of errors from all validation rules on the graph. """
 
         self._executeSkippedComparisons()
+        logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
         total_errors = list()
 
         finalNodes = list()
