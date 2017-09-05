@@ -1,0 +1,53 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "ericrobertson",
+    "name": "sample",
+    "organization": "PAR",
+    "projectDescription" : "test",
+    "technicalSummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "NodeAttachment",
+      "id": "0"
+    },
+    {
+      "id": "1",
+      "op_type": "PluginOperation",
+      "arguments": {
+        "quality": {
+          "type": "value",
+          "value": 83
+        }
+      },
+      "plugin": "OutputJpg"
+    },
+    {
+      "id": "2",
+      "op_type": "PluginOperation",
+      "arguments": {
+        "quality": {
+          "type": "value",
+          "value": 95
+        }
+      },
+      "plugin": "OutputJpg"
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1
+    },
+    {
+      "source": 0,
+      "target": 2
+    }
+  ],
+  "multigraph": false
+}
