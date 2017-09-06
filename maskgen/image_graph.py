@@ -11,6 +11,8 @@ from time import gmtime, strftime, strptime
 import logging
 import maskgen
 
+from threading import RLock
+
 igversion = maskgen.__version__
 
 
@@ -260,14 +262,8 @@ def createGraph(pathname, projecttype=None, nodeFilePaths={}, edgeFilePaths={}, 
 
 
 class ImageGraph:
-    G = nx.DiGraph(name="Empty")
-    U = []
-    idc = 0
     dir = os.path.abspath('.')
-    # permits a function to scan arguments and take action
-    # node arguments are labeled with 'op' = 'node'
-    arg_checker_callback = None
-    filesToRemove = set()
+
 
     def getUIGraph(self):
         return self.G
@@ -278,7 +274,12 @@ class ImageGraph:
     def __init__(self, pathname, graph=None, projecttype=None, nodeFilePaths={}, edgeFilePaths={},
                  arg_checker_callback=None):
         fname = os.path.split(pathname)[1]
+        self.filesToRemove = set()
+        self.U = list()
+        self.lock = RLock()
         name = get_pre_name(fname)
+        self.dir = os.path.abspath('.')
+        self.idc = 0
         self.arg_checker_callback = arg_checker_callback
         self.G = graph if graph is not None else nx.DiGraph(name=name)
         self._setup(pathname, projecttype, nodeFilePaths, edgeFilePaths)
@@ -397,33 +398,33 @@ class ImageGraph:
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
         self._setUpdate(nname, update_type='node')
+        with self.lock:
+            self.G.add_node(nname,
+                            seriesname=(origname if seriesname is None else seriesname),
+                            file=fname,
+                            ownership=('yes' if includePathInUndo else 'no'),
+                            username=get_username(),
+                            ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+                            **self.__filter_args(kwargs, exclude=['seriesname', 'username', 'ctime', 'ownership', 'file']))
 
-        self.G.add_node(nname,
-                        seriesname=(origname if seriesname is None else seriesname),
-                        file=fname,
-                        ownership=('yes' if includePathInUndo else 'no'),
-                        username=get_username(),
-                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                        **self.__filter_args(kwargs, exclude=['seriesname', 'username', 'ctime', 'ownership', 'file']))
+            self.__scan_args('node', kwargs)
 
-        self.__scan_args('node', kwargs)
+            if proxypathname is not None:
+                self.G.node[nname]['proxyfile'] = proxypathname
 
-        if proxypathname is not None:
-            self.G.node[nname]['proxyfile'] = proxypathname
-
-        self.U = []
-        self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
-        # adding back a file that was targeted for removal
-        if newpathname in self.filesToRemove:
-            self.filesToRemove.remove(newpathname)
-        for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
-            vals = getPathValues(kwargs, path)
-            if len(vals) > 0:
-                pathvalue, ownershipvalue = self._handle_inputfile(vals[0])
-                if vals[0]:
-                    kwargs[path] = pathvalue
-                    if len(ownership) > 0:
-                        kwargs[ownership] = ownershipvalue
+            self.U = []
+            self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
+            # adding back a file that was targeted for removal
+            if newpathname in self.filesToRemove:
+                self.filesToRemove.remove(newpathname)
+            for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
+                vals = getPathValues(kwargs, path)
+                if len(vals) > 0:
+                    pathvalue, ownershipvalue = self._handle_inputfile(vals[0])
+                    if vals[0]:
+                        kwargs[path] = pathvalue
+                        if len(ownership) > 0:
+                            kwargs[ownership] = ownershipvalue
         return nname
 
     def undo(self):
@@ -533,17 +534,18 @@ class ImageGraph:
             return None, None
         return filename, 'yes' if includePathInUndo else 'no'
 
-    def update_mask(self, start, end, mask=None, errors=None, **kwargs):
-        self._setUpdate((start, end), update_type='edge')
-        edge = self.G[start][end]
-        newmaskpathname = os.path.join(self.dir, edge['maskname'])
-        mask.save(newmaskpathname)
-        if errors is not None:
-            edge['errors'] = errors
-        for k, v in kwargs.iteritems():
-            if v is None and k in edge:
-                edge.pop(k)
-            edge[k] = v
+    def update_mask(self, start, end, mask=None, errors=None,  **kwargs):
+            self._setUpdate((start, end), update_type='edge')
+            edge = self.G[start][end]
+            newmaskpathname = os.path.join(self.dir, edge['maskname'])
+            mask.save(newmaskpathname)
+            with self.lock:
+                if errors is not None:
+                    edge['errors'] = errors
+                for k, v in kwargs.iteritems():
+                    if v is None and k in edge:
+                        edge.pop(k)
+                    edge[k] = v
 
     def copy_edge(self, start, end, dir='.', edge=dict()):
         import copy
@@ -579,15 +581,16 @@ class ImageGraph:
         if newmaskpathname in self.filesToRemove:
             self.filesToRemove.remove(newmaskpathname)
         kwargs = {k: v for k, v in kwargs.iteritems() if v is not None}
-        self.G.add_edge(start,
-                        end,
-                        maskname=maskname,
-                        op=op,
-                        ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                        description=description, username=get_username(), opsys=getOS(),
-                        **kwargs)
-        self.U = []
-        self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
+        with self.lock:
+            self.G.add_edge(start,
+                            end,
+                            maskname=maskname,
+                            op=op,
+                            ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+                            description=description, username=get_username(), opsys=getOS(),
+                            **kwargs)
+            self.U = []
+            self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
         return mask
 
     def get_masks(self, name, maskname):
@@ -670,28 +673,29 @@ class ImageGraph:
         self.G.remove_node(name)
 
     def remove(self, node, edgeFunc=None, children=False):
-        self.U = []
-        self.E = []
+        with self.lock:
+            self.U = []
+            self.E = []
 
-        self._setUpdate(node, update_type='node')
+            self._setUpdate(node, update_type='node')
 
-        def fileRemover(start, end, edge):
-            self._edgeFileRemover(self.E, edgeFunc, start, end, edge)
+            def fileRemover(start, end, edge):
+                self._edgeFileRemover(self.E, edgeFunc, start, end, edge)
 
-        # remove predecessor edges
-        for p in self.G.predecessors(node):
-            fileRemover(p, node, self.G.edge[p][node])
-        # remove edges or deep dive removal
-        nodes_to_remove = queue_nodes(self.G, [node], node, fileRemover) if children else \
-            remove_edges(self.G, [node], node, fileRemover)
-        for n in nodes_to_remove:
-            if (self.G.has_node(n)):
-                self._nodeFileRemover(n)
+            # remove predecessor edges
+            for p in self.G.predecessors(node):
+                fileRemover(p, node, self.G.edge[p][node])
+            # remove edges or deep dive removal
+            nodes_to_remove = queue_nodes(self.G, [node], node, fileRemover) if children else \
+                remove_edges(self.G, [node], node, fileRemover)
+            for n in nodes_to_remove:
+                if (self.G.has_node(n)):
+                    self._nodeFileRemover(n)
 
-        # edges always added after nodes to the undo list
-        for e in self.E:
-            self.U.append(e)
-        self.E = []
+            # edges always added after nodes to the undo list
+            for e in self.E:
+                self.U.append(e)
+            self.E = []
 
     def findRelationsToNode(self, node):
         nodeSet = set()

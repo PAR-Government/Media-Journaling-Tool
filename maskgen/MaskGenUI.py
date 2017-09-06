@@ -398,6 +398,15 @@ class MakeGenUI(Frame):
         skip_compare_status = d.choice if d.choice is not None else skip_compare_status
         self.prefLoader.save('skip_compare',skip_compare_status=='yes')
 
+    def setSkipThreads(self):
+        skipped_threads = self.prefLoader.get_key('skipped_threads',2)
+        d = SelectDialog(self,
+                         "Skip Link Threads",
+                         "Link Comparison threads used during validation",
+                         [2, 3, 4],
+                         initial_value=skipped_threads)
+        skipped_threads = d.choice if d.choice is not None else skipped_threads
+        self.prefLoader.save('skipped_threads',int(skipped_threads))
 
     def undo(self):
         self.scModel.undo()
@@ -738,7 +747,7 @@ class MakeGenUI(Frame):
             CompositeViewDialog(self, self.scModel.start, im, baseIm)
 
     def compress(self):
-        newnode = self.scModel.compress()
+        newnode = self.scModel.compress(force=True)
         if newnode is not None:
             tkMessageBox.showinfo("Compress","Compressed as file " + newnode  + ".")
             self.canvas.redrawNode(self.scModel.start)
@@ -881,6 +890,7 @@ class MakeGenUI(Frame):
         settingsmenu.add_command(label="System Properties", command=self.getsystemproperties)
         settingsmenu.add_command(label="File Types", command=self.setPreferredFileTypes)
         settingsmenu.add_command(label="Skip Link Compare", command=self.setSkipStatus)
+        settingsmenu.add_command(label="Skip Link Threads", command=self.setSkipThreads)
         settingsmenu.add_command(label="Autosave", command=self.setautosave)
         for k,v in self.notifiers.get_properties().iteritems():
             settingsmenu.add_command(label=v, command=partial(self.setproperty,k,v))
