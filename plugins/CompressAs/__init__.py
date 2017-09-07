@@ -15,9 +15,10 @@ import maskgen
 
 
 
-def cs_save_as(source, target, donor, qTables,rotate,quality):
+def cs_save_as(img,source, target, donor, qTables,rotate,quality):
     """
     Saves image file using quantization tables
+    :param ImageWrapper
     :param source: string filename of source image
     :param target: string filename of target (result)
     :param donor: string filename of donor JPEG
@@ -39,17 +40,18 @@ def cs_save_as(source, target, donor, qTables,rotate,quality):
     else:
         finalTable = qTables
 
-    # write jpeg with specified tables
-    with open(source,'rb') as fp:
-        im = Image.open(fp)
-        im.load()
-    if im.mode == 'RGBA':
-        im = im.convert('RGB')
+    if img.mode == 'RGBA':
+        im = Image.fromarray(np.asarray(img.convert('RGB')))
+    else:
+        im = Image.fromarray(np.asarray(img))
     if rotate:
       im = check_rotate(im,donor)
     sbsmp = get_subsampling(donor)
     try:
-        im.save(target, subsampling=sbsmp, qtables=finalTable,quality=quality)
+        if len(finalTable) > 0:
+            im.save(target, subsampling=sbsmp, qtables=finalTable,quality=quality)
+        else:
+            im.save(target, subsampling=sbsmp,quality=quality if quality > 0 else 100)
     except:
         im.save(target)
     width, height = im.size
@@ -112,7 +114,7 @@ def transform(img,source,target, **kwargs):
     
     tables_zigzag = parse_tables(donor)
     tables_sorted = sort_tables(tables_zigzag)
-    cs_save_as(source, target, donor, tables_sorted,rotate, quality)
+    cs_save_as(img,source, target, donor, tables_sorted,rotate, quality)
     
     return None,None
     

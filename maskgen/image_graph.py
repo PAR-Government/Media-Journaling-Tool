@@ -823,12 +823,13 @@ class ImageGraph:
         backup = filename + '.bak'
         if os.path.exists(filename):
             shutil.copy(filename, backup)
-        with open(filename, 'w') as f:
-            jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
-        for f in self.filesToRemove:
-            if os.path.exists(f):
-                os.remove(f)
-        self.filesToRemove.clear()
+        with self.lock:
+            with open(filename, 'w') as f:
+                jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
+            for f in self.filesToRemove:
+                if os.path.exists(f):
+                    os.remove(f)
+            self.filesToRemove.clear()
 
     def nextId(self):
         self.idc += 1

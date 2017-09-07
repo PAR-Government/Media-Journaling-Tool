@@ -30,7 +30,7 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
         maskgen.exif.runexif(['-q', '-all=', target])
         maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])
     else:
-        im = Image.open(source)
+        im = Image.fromarray(np.asarray(source_img))
         im.save(target, format='TIFF')
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:

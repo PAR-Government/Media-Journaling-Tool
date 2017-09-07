@@ -31,6 +31,10 @@
         "percentage_height": {
           "type": "value",
           "value": 0.5
+        },
+        "percentage_qf": {
+          "type": "value",
+          "value": 0.85
         }
       },
       "plugin": "DetermineImageParameters",

@@ -66,10 +66,14 @@ def parse_tables(imageFile):
     :return: list of lists of unsorted quantization tables
     """
 
+    if not (imageFile.lower().endswith('jpg') or imageFile.lower().endswith('jpeg')):
+        return []
+
     # open the image and scan for q table marker "FF DB"
     s = open(imageFile, 'rb')
     b = BitArray(s)
     ffdb = b.findall('0xffdb', bytealigned=True)
+
 
     # grab the tables, based on format
     tables = []
@@ -96,6 +100,39 @@ def parse_tables(imageFile):
         finalTable.append(tempTable)
     s.close()
     return finalTable
+
+
+def estimate_qf(imageFile):
+    """
+    Estimate Quality factor from JPEG image
+    :param imageFile: string containing jpg image filename
+    :return: integer QF from 1 to 100
+    """
+
+    tables=  parse_tables(imageFile)
+    qf = []
+    for table in tables:
+        totalnum = len(table)
+        if totalnum < 2 or len(qf) == 3:
+            break
+        total = sum ([table[i]for i in xrange(1,totalnum)])
+        qf.append(100 - total/(totalnum-1))
+    if len(qf) == 0:
+        return 100
+    if len(qf) == 1:
+        return qf[0]
+    """
+       The quantization tables are based on Y and CrCb and
+	   they mainly differ by a factor of 0.51 (from determining G).
+	   Thus, we compute the difference using 1 - 0.51 = 0.49.
+	"""
+    if len(qf) == 2:
+        diff = abs(qf[0] - qf[1]) * 0.49 * 2.0
+        return int(round((qf[0] + 2*qf[1])/3 + diff))
+    else:
+        diff = abs(qf[0] - qf[1]) * 0.49
+        diff += abs(qf[0] - qf[2]) * 0.49
+        return int(round((qf[0] + qf[1] + qf[2]) / 3 + diff))
 
 def sort_tables(tablesList):
     """

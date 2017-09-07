@@ -9,7 +9,7 @@ def transform(im, source, target, **kwargs):
     if 'donor' in kwargs and 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
         im = check_rotate(im, kwargs['donor'])
     else:
-        im = Image.open(source)
+        im = Image.fromarray(np.asarray(im))
     im.save(target, format='BMP')
 
     if 'donor' in kwargs:

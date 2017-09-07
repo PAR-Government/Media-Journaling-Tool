@@ -1618,9 +1618,14 @@ class ImageProjectModel:
                     skipDonorAnalysis=edge_data['skipDonorAnalysis'],
                     invert=edge_data['invert'],
                     analysis_params=edge_data['analysis_params'])
-                results.put(((edge_data['start'], edge_data['end']), True, errors))
                 self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
                                    **consolidate(analysis, edge_data['analysis_params']))
+                results.put(((edge_data['start'], edge_data['end']), True, errors))
+                # with self.G.lock:
+                #    results.put(((edge_data['start'], edge_data['end']), True, errors))
+                #    self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
+                #                                          (skip_data['start'], skip_data['end']) != (edge_data['start'], edge_data['end'])])
+                # self.G.save()
             except Empty:
                 break
             except Exception as e:
@@ -1690,6 +1695,9 @@ class ImageProjectModel:
                                                      analysis_params=analysis_params,
                                                      force=True)
         self.G.update_mask(self.start, self.end, mask=mask, errors=errors, **consolidate(analysis, analysis_params))
+        if len(errors) == 0:
+            self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
+                                                  (skip_data['start'], skip_data['end']) != (self.start, self.end)])
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
