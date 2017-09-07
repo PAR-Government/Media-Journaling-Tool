@@ -1030,12 +1030,11 @@ def cloneRule(scModel, edgeTuples):
 
 
 def unitCountRule(scModel, edgeTuples):
-    setofops = set()
+    setofops = set(['SelectRegion','SelectRegionFromFrames','SelectImageFromFrame','AudioSample'])
     count = 0
     for edgeTuple in edgeTuples:
         op = getOperationWithGroups(edgeTuple.edge['op'], fake=True)
-        count += 1 if op.category not in ['Filter', 'Output', 'Select', 'Donor'] and edgeTuple.edge[
-                                                                                         'op'] not in setofops else 0
+        count += 1 if op.category not in ['Output',  'Donor'] and edgeTuple.edge['op'] not in setofops else 0
         setofops.add(edgeTuple.edge['op'])
     return str(count) + '-Unit'
 

@@ -1525,7 +1525,7 @@ class ImageProjectModel:
         for k, v in self.getAddTool(pathname).getAdditionalMetaData(pathname).iteritems():
             params[k] = v
         destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
-        analysis_params = dict(edge_parameters)
+        analysis_params = dict({ k:v for k,v in edge_parameters.iteritems() if v is not None})
         msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules, analysis_params=analysis_params)
         return msg, status
@@ -2444,7 +2444,7 @@ class ImageProjectModel:
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
-                                         edge_parameters={'plugin_name': filter},
+                                         edge_parameters={'plugin_name': filter,'experiment_id': experiment_id},
                                          node_parameters={
                                              'experiment_id': experiment_id} if experiment_id is not None else {})
         pairs = list()

@@ -1,6 +1,7 @@
 import os
 import csv
 import sys
+import logging
 
 def pick_projects(directory):
     """
@@ -9,7 +10,7 @@ def pick_projects(directory):
     :return: list projects found under the given directory
     """
     ext = '.json'
-    subs = [x[0] for x in os.walk(directory)]
+    subs = [x[0] for x in os.walk(directory,followlinks=True)]
     projects = []
 
     for sub in subs:
@@ -54,6 +55,7 @@ class BatchProcessor:
             skips = [x.strip() for x in skips]
         count = 0
         total = len(self.itemsToProcess)
+        logging.getLogger('maskgen').info('Processing {} projects'.format(total))
         with open(self.completefile, 'a') as done_file:
             with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
                 error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)

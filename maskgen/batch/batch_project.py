@@ -162,6 +162,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             return getNodeState(specification['source'], local_state)[specification['name']]
     elif specification['type'] == 'donor':
         if 'source' in specification:
+            if specification['source'] == 'base':
+                #return  local_state['model'].getImageAndName(local_state['model'].getBaseNode(local_state['model'].start))[1]
+                return local_state['model'].getBaseNode(local_state['model'].start)
             return getNodeState(specification['source'], local_state)['node']
         return random.choice(predecessors)
     elif specification['type'] == 'imagefile':
@@ -462,6 +465,11 @@ class InputMaskPluginOperation(PluginOperation):
                 my_state[k] = v
         return local_state['model']
 
+    def resolveDonor(selfl,k,v,local_state):
+        if k.lower() == 'donor':
+            return local_state['model'].getImageAndName(v)[1]
+        return v
+
     def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
         import tempfile
         """
@@ -475,6 +483,7 @@ class InputMaskPluginOperation(PluginOperation):
         target = os.path.join(tempfile.gettempdir(),  file+ '_' + filter + '.png')
         shutil.copy2(filename, target)
         params = {}
+        kwargs = {k:self.resolveDonor(k,v,local_state) for k,v in kwargs.iteritems()}
         try:
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
             if extra_args is not None and type(extra_args) == type({}):

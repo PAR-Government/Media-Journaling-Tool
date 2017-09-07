@@ -48,6 +48,7 @@ then
 fi
 
 brew install python --with-tcl-tk
+export PATH=/usr/local/bin:$PATH
 pip install nose
 pip install pyparsing
 pip install pep8
@@ -86,5 +87,5 @@ cd ..
 python setup.py sdist
 pip install -e .
 
-echo "Make sure your path variable includes /usr/local/bin"
+echo "Make sure your path variable includes /usr/local/bin prior to /usr/bin"
 

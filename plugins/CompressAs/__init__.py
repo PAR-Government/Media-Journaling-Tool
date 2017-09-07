@@ -43,6 +43,8 @@ def cs_save_as(source, target, donor, qTables,rotate,quality):
     with open(source,'rb') as fp:
         im = Image.open(fp)
         im.load()
+    if im.mode == 'RGBA':
+        im = im.convert('RGB')
     if rotate:
       im = check_rotate(im,donor)
     sbsmp = get_subsampling(donor)
@@ -103,6 +105,9 @@ def cs_save_as(source, target, donor, qTables,rotate,quality):
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
+   # if 'quality' in kwargs:
+    #    quality = str(kwargs['quality'])
+    #    if quality.startswith('+'):
     quality = int(kwargs['quality']) if 'quality' in kwargs else 0
     
     tables_zigzag = parse_tables(donor)

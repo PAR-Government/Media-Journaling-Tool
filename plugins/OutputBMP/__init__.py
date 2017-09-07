@@ -2,10 +2,8 @@ from PIL import Image
 from maskgen import exif
 import numpy as np
 from maskgen.tool_set import *
+from maskgen.jpeg.utils import check_rotate
 
-
-def check_rotate(im, jpg_file_name):
-    return ImageWrapper(exif.rotateAccordingToExif(np.asarray(im),exif.getOrientationFromExif(jpg_file_name)))
 
 def transform(im, source, target, **kwargs):
     if 'donor' in kwargs and 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':

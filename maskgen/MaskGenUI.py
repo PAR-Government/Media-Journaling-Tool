@@ -704,7 +704,6 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        ps  = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder,graph_rules.Jpeg2000CompositeBuilder])
         composite = self.scModel.constructComposite()
         if composite is not None:
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
@@ -861,6 +860,9 @@ class MakeGenUI(Frame):
             self.scModel.updateSelectMask(d.selectMasks)
             self.scModel.update_edge(d.modification)
 
+    def createProbes(self):
+        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, graph_rules.Jpeg2000CompositeBuilder])
+
     def startQA(self):
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
@@ -945,6 +947,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="View Comments", command=self.comments)
         validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
         validationmenu.add_command(label="Final Image Analysis", command=self.finalimageanalysis)
+        validationmenu.add_command(label="Probes",command=self.createProbes)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
