@@ -137,8 +137,6 @@ def build_random_transform(img_to_paste, mask_of_image_to_paste, image_center):
 def pasteAnywhere(img, img_to_paste, mask_of_image_to_paste, simple):
     #get gravity center for rotation
     w, h, area, cx_gra, cy_gra = minimum_bounding_box(mask_of_image_to_paste)
-    #bounding box center for simple case.
-    x, y, w1, h1 = tool_set.widthandheight(mask_of_image_to_paste)
 
     if not simple:
         #use gravity center to rotate
@@ -147,10 +145,11 @@ def pasteAnywhere(img, img_to_paste, mask_of_image_to_paste, simple):
         mask_of_image_to_paste= cv2.warpAffine(mask_of_image_to_paste, rot_mat, (img_to_paste.shape[1], img_to_paste.shape[0]))
         #x,y is the Geometry center(gravity center), which can't align to the crop center(bounding box center)
         w, h, area, cx, cy = minimum_bounding_box(mask_of_image_to_paste)
-        #So we use this line to calculate the bbox centor
-        x, y, w1, h1 = tool_set.widthandheight(mask_of_image_to_paste)
     else:
         rot_mat = np.array([[1,0,0],[0,1,0]]).astype('float')
+
+    #To calculate the bbox center
+    x, y, w1, h1 = tool_set.widthandheight(mask_of_image_to_paste)
 
     if img.size[0] < w + 4:
         w = img.size[0] - 2
