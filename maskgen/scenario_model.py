@@ -1731,7 +1731,7 @@ class ImageProjectModel:
             if mod.recordMaskInComposite:
                 self.assignColors()
             return msg, True
-        except ValueError as e:
+        except Exception as e:
             return 'Exception (' + str(e) + ')', False
 
     def __scan_args_callback(self, opName, arguments):

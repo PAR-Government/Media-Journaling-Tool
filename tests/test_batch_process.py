@@ -65,6 +65,8 @@ class TestBatchProcess(unittest.TestCase):
     def test_extend(self):
         batch_project.loadCustomFunctions()
         import shutil
+        if os.path.exists('testimages'):
+            shutil.rmtree('testimages')
         shutil.copytree('./images','./testimages')
         self.assertTrue(processSpecification('tests/batch_extension_process.json','','./testimages') == 1)
         shutil.rmtree('./testimages')

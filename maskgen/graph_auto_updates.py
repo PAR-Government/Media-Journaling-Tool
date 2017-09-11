@@ -71,6 +71,7 @@ def updateJournal(scModel):
         upgrades.append('04.0810.9381e76724')
     if '04.0901.723277630c' not in upgrades:
         _addColor(scModel)
+        _fixFrameRate(scModel)
         upgrades.append('04.0901.723277630c')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
@@ -114,6 +115,15 @@ def _fixHP(scModel):
         node= scModel.G.get_node(nodename)
         if 'HP' in node:
             node['Registered'] = node.pop('HP')
+
+def _fixFrameRate(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        masks = edge['videomasks'] if 'videomasks' in edge else []
+        for mask in masks:
+            if 'rate' in mask:
+                mask['rate'] = float(mask['rate'])*1000.0
+
 
 def _fixRANSAC(scModel):
     for frm, to in scModel.G.get_edges():

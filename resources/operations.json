@@ -2859,7 +2859,7 @@
       },
       "rules": [
         "checkLengthSmaller","checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels","checkCropLength"
       ],
       "optionalparameters": {
       },

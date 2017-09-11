@@ -1,7 +1,8 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
-    getMilliSecondsAndFrameCount, toIntTuple, \
-    getDurationStringFromMilliseconds, IntObject, getFileMeta, mergeColorMask, maskToColorArray, maskChangeAnalysis
+    getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
+    getDurationStringFromMilliseconds, IntObject, getFileMeta, mergeColorMask, \
+    maskToColorArray, maskChangeAnalysis
 import new
 from types import MethodType
 from group_filter import getOperationWithGroups
@@ -451,11 +452,11 @@ def checkFrameTimeAlignment(graph, frm, to):
     file = os.path.join(dir, graph.get_node(frm)['file'])
     for mask in masks:
         start = min(start, mask['starttime'])
-        rate = mask['rate'] if 'rate' in mask else (rate if rate > 0 else getFrameRate(file, default=29.97) / 1000.0)
+        rate = mask['rate'] if 'rate' in mask else (rate if rate > 0 else getFrameRate(file, default=29.97))
         end = max(end, mask['endtime'])
     if st is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
-    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97) / 1000.0
+    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
     if st is not None and abs(start - (st[1] / rate + st[0])) >= max(1000, rate):
         return 'Start time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
     if et is not None and abs(end - (et[1] / rate + et[0])) >= max(1000, rate):
@@ -487,11 +488,11 @@ def checkAddFrameTime(graph, frm, to):
     file = os.path.join(dir, graph.get_node(frm)['file'])
     for mask in masks:
         start = min(start, mask['starttime'])
-        rate = mask['rate'] if 'rate' in mask else (getFrameRate(file, default=29.97) / 1000.0)
+        rate = mask['rate'] if 'rate' in mask else getFrameRate(file, default=29.97)
         end = max(end, mask['endtime'])
     if it is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
-    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97) / 1000.0
+    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
     if it is not None and abs(start - (it[1] / rate + it[0])) >= max(1000, rate):
         return 'Insertion time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
 
@@ -514,6 +515,44 @@ def checkFrameTimes(graph, frm, to):
         return 'Start Time occurs after End Time'
     return None
 
+
+def checkCropLength(graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge  else {}
+    st = None
+    et = None
+    for k, v in args.iteritems():
+        if k.endswith('Start Time'):
+            st = getMilliSecondsAndFrameCount(v)
+        elif k.endswith('End Time'):
+            et = getMilliSecondsAndFrameCount(v)
+    if st is None and et is None:
+        return None
+    st = st if st is not None else (0, 0)
+    et = et if et is not None else (0, 0)
+    if 'metadatadiff' not in edge:
+        return 'Edge missing change data.  Recompute Mask.'
+    file = os.path.join(graph.dir, graph.get_node(frm)['file'])
+    rate = getFrameRate(file, default=29.97)
+    givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
+    measuredDifference = None
+    for item in edge['metadatadiff']:
+        if 'duration'  in item:
+            #before = getMilliSecondsAndFrameCount(item['duration'][1])
+            after = getMilliSecondsAndFrameCount(item['duration'][2])
+            measuredDifference = after[0] + rate* after[1]
+        #if '0' in item:
+        #    if len(item['0'][0]) > 0 and item['0'][0] == 'change':
+        #        sumdeletes = (0,0)
+        #        for change in item['0'][1]:
+        #            if change[0] == 'delete':
+        #                sumdeletes = (sumdeletes[0] + (change[2]-change[1]), sumdeletes[1] + change[3])
+        #        sumdeletes = (sumdeletes[0]*1000, 0)
+    if measuredDifference is None:
+        return 'Could not validate difference.  Recompute Edge Mask'
+    if abs(measuredDifference - givenDifference) > 1:
+        return 'Actual amount of time cropped from video is {} in milliseconds'.format(measuredDifference)
+    return None
 
 def checkCropSize(graph, frm, to):
     edge = graph.get_edge(frm, to)

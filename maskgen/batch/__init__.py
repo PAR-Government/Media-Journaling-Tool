@@ -99,4 +99,4 @@ class BatchProcessor:
                     t.start()
                 for thread in threads:
                     thread.join()
-        return count
+        return self.count
