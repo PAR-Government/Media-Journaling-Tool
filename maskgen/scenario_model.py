@@ -1640,6 +1640,8 @@ class ImageProjectModel:
         q = Queue()
         results = Queue()
         skipped_edges = self.G.getDataItem('skipped_edges', [])
+        if len(skipped_edges) == 0:
+            return
         for edge_data in skipped_edges:
             q.put(edge_data)
         skipped_threads = prefLoader.get_key('skipped_threads', 2)

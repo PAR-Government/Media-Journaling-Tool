@@ -112,7 +112,7 @@ def save_as_video(source, target, donor, matchcolor=False):
                     ffargs.extend([option, data[setting]])
         if 'TAG:language' in data:
             ffargs.extend(['-metadata:s:v:' + str(streamid), 'language=' + data['TAG:language']])
-    ffargs.extend(['-y', target])
+    ffargs.extend(['-map_metadata', '0:g','-y', target])
 
     maskgen.video_tools.runffmpeg(ffargs)
 
