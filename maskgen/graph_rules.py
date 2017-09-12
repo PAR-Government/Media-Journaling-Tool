@@ -5,7 +5,6 @@ from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChange
     maskToColorArray, maskChangeAnalysis
 import new
 from types import MethodType
-from group_filter import getOperationWithGroups
 import numpy
 from maskgen import Probe
 from image_wrap import ImageWrapper
@@ -46,15 +45,27 @@ class GraphProxy(Proxy):
 
 
 def run_rules(op, graph, frm, to):
+    """
+
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     global rules
     if len(rules) == 0:
         setup()
     graph = GraphProxy(graph)
     results = initial_check(op, graph, frm, to)
-    for rule in (rules[op] if op in rules else []):
+    for rule in (rules[op.name] if op.name in rules else []):
         if rule is None:
             continue
-        res = rule(graph, frm, to)
+        res = rule(op, graph, frm, to)
         if res is not None:
             results.append(res)
     return results
@@ -87,6 +98,18 @@ def eligible_for_donor(edge):
 
 
 def initial_check(op, graph, frm, to):
+    """
+
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     operationResult = check_operation(edge, op, graph, frm, to)
     if operationResult is not None:
@@ -111,11 +134,24 @@ def initial_check(op, graph, frm, to):
 
 
 def check_operation(edge, op, graph, frm, to):
-    if op == 'Donor':
+    """
+
+    :param edge:
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+     @type edge: dict
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
+    if op.name == 'Donor':
         return None
-    opObj = getOperationWithGroups(op)
-    if opObj is None:
-        return ['Operation ' + op + ' is invalid']
+    if op.category == 'Bad':
+        return ['Operation ' + op.name + ' is invalid']
 
 
 def check_errors(edge, op, graph, frm, to):
@@ -268,33 +304,35 @@ def check_graph_rules(graph, node, external=False, prefLoader=None):
     return errors
 
 
-def check_mandatory(edge, op, graph, frm, to):
+def check_mandatory(edge, opInfo, graph, frm, to):
     """
-
     :param edge:
-    :param op:
+    :param opInfo:
     :param graph:
     :param frm:
     :param to:
     :return:
+    @type edge: dict
+    @type op: Operation
     @type graph: ImageGraph
+    @type frm: str
+    @type to: str
     """
-    if op == 'Donor':
+    if opInfo.name== 'Donor':
         return None
-    opObj = getOperationWithGroups(op)
-    if opObj is None:
-        return [op + ' is not a valid operation'] if op != 'Donor' else []
+    if opInfo.category == 'Bad':
+        return [opInfo.name + ' is not a valid operation'] if opInfo.name != 'Donor' else []
     args = edge['arguments'] if 'arguments' in edge  else []
     frm_file = graph.get_image(frm)[1]
     frm_file_type = fileType(frm_file)
-    missing = [param for param in opObj.mandatoryparameters.keys() if
+    missing = [param for param in opInfo.mandatoryparameters.keys() if
                (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname'
-               and ('source' not in opObj.mandatoryparameters[param] or opObj.mandatoryparameters[param][
+               and ('source' not in opInfo.mandatoryparameters[param] or opInfo.mandatoryparameters[param][
                    'source'] == frm_file_type)]
     ruleApplies = True  # graph.getVersion() > '0.3.1200'
-    inputmasks = [param for param in opObj.optionalparameters.keys() if param == 'inputmaskname' and
+    inputmasks = [param for param in opInfo.optionalparameters.keys() if param == 'inputmaskname' and
                   'purpose' in edge and edge['purpose'] == 'clone' and ruleApplies]
-    if ('inputmaskname' in opObj.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
+    if ('inputmaskname' in opInfo.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
                             'inputmaskname' not in edge or edge['inputmaskname'] is None or len(
                     edge['inputmaskname']) == 0 or
                 not os.path.exists(os.path.join(graph.dir, edge['inputmaskname']))):
@@ -303,8 +341,21 @@ def check_mandatory(edge, op, graph, frm, to):
 
 
 def check_version(edge, op, graph, frm, to):
+    """
+    :param edge:
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type edge: dict
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     global global_loader
-    if op == 'Donor':
+    if op.name == 'Donor':
         return None
     if 'softwareName' in edge and 'softwareVersion' in edge:
         sname = edge['softwareName']
@@ -315,17 +366,29 @@ def check_version(edge, op, graph, frm, to):
 
 
 def check_arguments(edge, op, graph, frm, to):
-    if op == 'Donor':
+    """
+    :param edge:
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type edge: dict
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
+    if op.name == 'Donor':
         return None
-    opObj = getOperationWithGroups(op, fake=True)
-    args = [(k, v) for k, v in opObj.mandatoryparameters.iteritems()]
-    args.extend([(k, v) for k, v in opObj.optionalparameters.iteritems()])
+    args = [(k, v) for k, v in op.mandatoryparameters.iteritems()]
+    args.extend([(k, v) for k, v in op.optionalparameters.iteritems()])
     results = []
     for argName, argDef in args:
         try:
             argValue = getValue(edge, 'arguments.' + argName)
             if argValue:
-                validateAndConvertTypedValue(argName, argValue, opObj)
+                validateAndConvertTypedValue(argName, argValue, op)
         except ValueError as e:
             results.append(argName + str(e))
     return results
@@ -336,6 +399,17 @@ def check_masks(edge, op, graph, frm, to):
       Validate a typed operation argument
       return the type converted argument if necessary
       raise a ValueError if invalid
+    :param edge:
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type edge: dict
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
     """
     if 'maskname' not in edge or edge['maskname'] is None or \
                     len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
@@ -415,7 +489,18 @@ def hasCommonParent(graph, node_id):
     return base1 == base2
 
 
-def rotationCheck(graph, frm, to):
+def rotationCheck(op,graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
     frm_img = graph.get_image(frm)[0]
@@ -434,7 +519,18 @@ def rotationCheck(graph, frm, to):
     return None
 
 
-def checkFrameTimeAlignment(graph, frm, to):
+def checkFrameTimeAlignment(op,graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
     st = None
@@ -464,7 +560,18 @@ def checkFrameTimeAlignment(graph, frm, to):
         return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
 
 
-def checkVideoMasks(graph, frm, to):
+def checkVideoMasks(op,graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     node = graph.get_node(to)
     if 'filetype' not in node or node['filetype'] != 'video':
         return
@@ -474,7 +581,18 @@ def checkVideoMasks(graph, frm, to):
         return 'Edge missing video masks'
 
 
-def checkAddFrameTime(graph, frm, to):
+def checkAddFrameTime(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
     it = None
@@ -499,7 +617,18 @@ def checkAddFrameTime(graph, frm, to):
         return 'Insertion time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
 
 
-def checkFrameTimes(graph, frm, to):
+def checkFrameTimes(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+     @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
     st = None
@@ -518,7 +647,18 @@ def checkFrameTimes(graph, frm, to):
     return None
 
 
-def checkCropLength(graph, frm, to):
+def checkCropLength(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+     @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
     st = None
@@ -556,7 +696,18 @@ def checkCropLength(graph, frm, to):
         return 'Actual amount of time cropped from video is {} in milliseconds'.format(measuredDifference)
     return None
 
-def checkCropSize(graph, frm, to):
+def checkCropSize(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     if 'shape change' in edge:
         changeTuple = toIntTuple(edge['shape change'])
@@ -564,7 +715,18 @@ def checkCropSize(graph, frm, to):
             return 'Crop cannot increase a dimension size of the image'
 
 
-def checkResizeInterpolation(graph, frm, to):
+def checkResizeInterpolation(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+    @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
     edge = graph.get_edge(frm, to)
     interpolation = edge['arguments']['interpolation']
     if 'shape change' in edge:
@@ -574,7 +736,18 @@ def checkResizeInterpolation(graph, frm, to):
             return interpolation + ' interpolation is not permitted with a decrease in size'
 
 
-def checkSameChannels(graph, frm, to):
+def checkSameChannels(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     vidBefore = graph.get_image_path(frm)
     vidAfter = graph.get_image_path(to)
     metaBefore = getFileMeta(vidBefore)
@@ -583,21 +756,54 @@ def checkSameChannels(graph, frm, to):
         return 'change in the number of streams occurred'
 
 
-def checkHasVideoChannel(graph, frm, to):
+def checkHasVideoChannel(op,graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     vid = graph.get_image_path(to)
     meta = getFileMeta(vid)
     if 'video' not in meta:
         return 'video channel missing in file'
 
 
-def checkAudioChannels(graph, frm, to):
+def checkAudioChannels(op,graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     vid = graph.get_image_path(to)
     meta = getFileMeta(vid)
     if 'audio' not in meta:
         return 'audio channel not present'
 
 
-def checkFileTypeChangeForDonor(graph, frm, to):
+def checkFileTypeChangeForDonor(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     frm_file = graph.get_image(frm)[1]
     to_file = graph.get_image(to)[1]
     if fileTypeChanged(to_file, frm_file):
@@ -613,7 +819,18 @@ def checkFileTypeChangeForDonor(graph, frm, to):
     return None
 
 
-def checkFileTypeChange(graph, frm, to):
+def checkFileTypeChange(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     frm_file = graph.get_image(frm)[1]
     to_file = graph.get_image(to)[1]
     if fileTypeChanged(to_file, frm_file):
@@ -635,7 +852,18 @@ def autocorr(wave):
     return lags, corrs
 
 
-def checkLevelsVsCurves(graph, frm, to):
+def checkLevelsVsCurves(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     edge = graph.get_edge(frm, to)
     frm_file = graph.get_image(frm)[0].convert('L').to_array()
     to_file = graph.get_image(to)[0].convert('L').to_array()
@@ -661,7 +889,18 @@ def checkLevelsVsCurves(graph, frm, to):
     return None
 
 
-def checkForRawFile(graph, frm, to):
+def checkForRawFile(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     snode = graph.get_node(frm)
     exifdata = exif.getexif(os.path.join(graph.dir, snode['file']))
     if 'File Type' in exifdata and exifdata['File Type'] in ['AA', 'AAX', 'ACR',
@@ -693,7 +932,18 @@ def checkForRawFile(graph, frm, to):
     return None
 
 
-def check_pastemask(graph, frm, to):
+def check_pastemask(op,graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     edge = graph.get_edge(frm, to)
     if 'arguments' in edge and edge['arguments'] is not None and 'pastemask' in edge['arguments']:
         from_img, from_file = graph.get_image(frm)
@@ -706,17 +956,38 @@ def check_pastemask(graph, frm, to):
     return None
 
 
-def check_local_warn(graph, frm, to):
+def check_local_warn(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     edge = graph.get_edge(frm, to)
-    opObj = getOperationWithGroups(edge['op'])
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
-    if not is_global and not included_in_composite and opObj.category not in ['Output', 'Transform']:
+    if not is_global and not included_in_composite and op.category not in ['Output', 'Transform']:
         return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
     return None
 
 
-def sampledInputMask(graph, frm, to):
+def sampledInputMask(op,graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     edge = graph.get_edge(frm, to)
     if 'arguments' in edge and \
             ('purpose' not in edge['arguments'] or \
@@ -728,7 +999,18 @@ def sampledInputMask(graph, frm, to):
     return None
 
 
-def check_local(graph, frm, to):
+def check_local(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     edge = graph.get_edge(frm, to)
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
@@ -737,7 +1019,18 @@ def check_local(graph, frm, to):
     return None
 
 
-def check_eight_bit(graph, frm, to):
+def check_eight_bit(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     from_img, from_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
     if from_img.size != to_img.size and \
@@ -758,7 +1051,18 @@ def getDonor(graph, node):
     return None
 
 
-def checkForDonorWithRegion(graph, frm, to):
+def checkForDonorWithRegion(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     pred = graph.predecessors(to)
     if len(pred) < 2:
         return 'donor image missing'
@@ -772,14 +1076,36 @@ def checkForDonorWithRegion(graph, frm, to):
     return None
 
 
-def checkForDonor(graph, frm, to):
+def checkForDonor(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     pred = graph.predecessors(to)
     if len(pred) < 2:
         return 'donor image/video missing'
     return None
 
 
-def checkForDonorAudio(graph, frm, to):
+def checkForDonorAudio(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge else {}
     if 'Direct from PC' in args and args['Direct from PC'] == 'yes':
@@ -790,8 +1116,18 @@ def checkForDonorAudio(graph, frm, to):
     return None
 
 
-def checkLengthSame(graph, frm, to):
-    """ the length of video should not change
+def checkLengthSame(op, graph, frm, to):
+    """
+     the length of video should not change
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
     """
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
@@ -799,7 +1135,18 @@ def checkLengthSame(graph, frm, to):
         return "Length of video has changed"
 
 
-def checkLengthSmaller(graph, frm, to):
+def checkLengthSmaller(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
     if durationChangeTuple is None or \
@@ -809,7 +1156,18 @@ def checkLengthSmaller(graph, frm, to):
         return "Length of video is not shorter"
 
 
-def checkResolution(graph, frm, to):
+def checkResolution(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
     edge = graph.get_edge(frm, to)
     width = getValue(edge, 'metadatadiff[0].0:width')
     if width is None:
@@ -833,7 +1191,18 @@ def checkResolution(graph, frm, to):
         return 'resolution height does not match video'
 
 
-def checkForAudio(graph, frm, to):
+def checkForAudio(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     def isSuccessor(graph, successors, node, ops):
         """
           :param scModel:
@@ -865,7 +1234,18 @@ def checkForAudio(graph, frm, to):
     return None
 
 
-def checkPasteFrameLength(graph, frm, to):
+def checkPasteFrameLength(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type')
     from_node = graph.get_node(frm)
@@ -893,7 +1273,18 @@ def checkPasteFrameLength(graph, frm, to):
         return checkLengthBigger(graph, frm, to)
 
 
-def checkLengthBigger(graph, frm, to):
+def checkLengthBigger(op, graph, frm, to):
+    """
+             :param op:
+             :param graph:
+             :param frm:
+             :param to:
+             :return:
+             @type op: Operation
+             @type graph: ImageGraph
+             @type frm: str
+             @type to: str
+    """
     edge = graph.get_edge(frm, to)
 
     durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
@@ -904,14 +1295,25 @@ def checkLengthBigger(graph, frm, to):
         return "Length of video is not longer"
 
 
-def seamCarvingCheck(graph, frm, to):
+def seamCarvingCheck(op, graph, frm, to):
+    """
+             :param op:
+             :param graph:
+             :param frm:
+             :param to:
+             :return:
+             @type op: Operation
+             @type graph: ImageGraph
+             @type frm: str
+             @type to: str
+    """
     change = getSizeChange(graph, frm, to)
     if change is not None and change[0] != 0 and change[1] != 0:
         return 'seam carving should not alter both dimensions of an image'
     return None
 
 
-def checkSIFT(graph, frm, to):
+def checkSIFT(op, graph, frm, to):
     """
     Currently a marker for SIFT.
     TODO: This operation should check SIFT transform matrix for images and video in the edge
@@ -923,14 +1325,36 @@ def checkSIFT(graph, frm, to):
     return None
 
 
-def sizeChanged(graph, frm, to):
+def sizeChanged(op, graph, frm, to):
+    """
+             :param op:
+             :param graph:
+             :param frm:
+             :param to:
+             :return:
+             @type op: Operation
+             @type graph: ImageGraph
+             @type frm: str
+             @type to: str
+    """
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] == 0 and change[1] == 0):
         return 'operation should change the size of the image'
     return None
 
 
-def checkSizeAndExif(graph, frm, to):
+def checkSizeAndExif(op, graph, frm, to):
+    """
+             :param op:
+             :param graph:
+             :param frm:
+             :param to:
+             :return:
+             @type op: Operation
+             @type graph: ImageGraph
+             @type frm: str
+             @type to: str
+    """
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] != 0 or change[1] != 0):
         edge = graph.get_edge(frm, to)
@@ -948,7 +1372,18 @@ def checkSizeAndExif(graph, frm, to):
     return None
 
 
-def checkSize(graph, frm, to):
+def checkSize(op, graph, frm, to):
+    """
+             :param op:
+             :param graph:
+             :param frm:
+             :param to:
+             :return:
+             @type op: Operation
+             @type graph: ImageGraph
+             @type frm: str
+             @type to: str
+    """
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] != 0 or change[1] != 0):
         return 'operation is not permitted to change the size of the image'
@@ -1052,9 +1487,15 @@ def contrastGlobalRule(scModel, edgeTuples):
 
 
 def colorGlobalRule(scModel, edgeTuples):
+    """
+
+    :param scModel:
+    :param edgeTuples:
+    :return:
+    """
     found = False
     for edgeTuple in edgeTuples:
-        op = getOperationWithGroups(edgeTuple.edge['op'], fake=True)
+        op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         if op.category == 'Color' or (op.groupedCategories is not None and 'Color' in op.groupedCategories):
             found = True
             break
@@ -1074,7 +1515,7 @@ def unitCountRule(scModel, edgeTuples):
     setofops = set(['SelectRegion','SelectRegionFromFrames','SelectImageFromFrame','AudioSample'])
     count = 0
     for edgeTuple in edgeTuples:
-        op = getOperationWithGroups(edgeTuple.edge['op'], fake=True)
+        op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         count += 1 if op.category not in ['Output',  'Donor'] and edgeTuple.edge['op'] not in setofops else 0
         setofops.add(edgeTuple.edge['op'])
     return str(count) + '-Unit'
@@ -1232,7 +1673,7 @@ def semanticRestageRule(scModel, edgeTuples):
 
 def audioactivityRule(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
-        op = getOperationWithGroups(edgeTuple.edge['op'], fake=True)
+        op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         found = (op.category == 'Audio')
         if not found and op.groupedOperations is not None:
             for imbedded_op in op.groupedOperations:
@@ -1290,11 +1731,11 @@ def otherEnhancementRule(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
         if scModel.getNodeFileType(edgeTuple.start) != 'image':
             continue
-        op = getOperationWithGroups(edgeTuple.edge['op'], fake=True)
+        op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         found = _checkOpOther(op)
         if not found and op.groupedOperations is not None:
             for imbedded_op in op.groupedOperations:
-                found |= _checkOpOther(getOperationWithGroups(imbedded_op, fake=True))
+                found |= _checkOpOther(scModel.getGroupOperationLoader().getOperationWithGroups(imbedded_op, fake=True))
         if found:
             break
     return 'yes' if found else 'no'
@@ -1305,11 +1746,11 @@ def videoOtherEnhancementRule(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
             continue
-        op = getOperationWithGroups(edgeTuple.edge['op'], fake=True)
+        op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         found = _checkOpOther(op)
         if not found and op.groupedOperations is not None:
             for imbedded_op in op.groupedOperations:
-                found |= _checkOpOther(getOperationWithGroups(imbedded_op, fake=True))
+                found |= _checkOpOther(scModel.getGroupOperationLoader().getOperationWithGroups(imbedded_op, fake=True))
         if found:
             break
     return 'yes' if found else 'no'

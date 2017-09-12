@@ -261,7 +261,24 @@ class GroupFilterLoader:
         maskgenloader.save(self.getLoaderKey(), image)
 
 
+    def injectGroup(self, name, ops):
+        self.groups[name] = OperationGroupFilter(name, ops)
 
+    def getOperationWithGroups(self, name, fake=False, warning=True):
+        op = getOperation(name, fake=False, warning=False)
+        if op is None:
+            op = self.getOperation(name)
+        if op is None and fake:
+            return getOperation(name, fake=True, warning=warning)
+        return op
+
+    def getOperationsByCategoryWithGroups(self, sourcetype, targettype):
+        res = dict(getOperationsByCategory(sourcetype, targettype))
+        items = self.getOperations(sourcetype, targettype)
+        if items is not None:
+            for k, v in items.iteritems():
+                res[k] = v
+        return res
 
 
 """
@@ -269,7 +286,6 @@ Rules needed:
    Only one generateMask allowed
    Transitions must be checked to be valid
 """
-
 
 class GroupOperationsLoader(GroupFilterLoader):
     def getLoaderKey(self):
@@ -286,17 +302,25 @@ class GroupOperationsLoader(GroupFilterLoader):
 
     def getAvailableFilters(self, operations_used=list()):
         has_generate_mask = False
+        groups_used = set([getOperation(op_name, fake=True).category for op_name in operations_used])
         for op_name in operations_used:
             real_op = getOperation(op_name, fake=True)
             has_generate_mask |= real_op.generateMask
         ops = getOperations()
         return [op_name for op_name in ops if op_name not in operations_used and not \
-            (has_generate_mask and ops[op_name].generateMask)]
+            (has_generate_mask and ops[op_name].generateMask) and not \
+              getOperation(op_name, fake=True).category in groups_used]
 
     def getCategoryForGroup(self, groupName):
         if groupName in self.getGroupNames():
             return "Groups"
         return None
+
+    def getCategoryForOperation(self, name):
+        ops = getOperations()
+        if name in ops:
+            return ops[name].category
+        return self.getCategoryForGroup(name)
 
     def getOperations(self,fileType):
         import copy
@@ -336,36 +360,6 @@ class GroupOperationsLoader(GroupFilterLoader):
         return cat
 
 
-groupOpLoader = GroupOperationsLoader()
 
 
-def injectGroup(name, ops):
-    global groupOpLoader
-    groupOpLoader.groups[name] = OperationGroupFilter(name, ops)
 
-def getCategoryForOperation(name):
-    global groupOpLoader
-    ops = getOperations()
-    if name in ops:
-        return ops[name].category
-    return groupOpLoader.getCategoryForGroup(name)
-
-
-def getOperationWithGroups(name, fake=False, warning=True):
-    global groupOpLoader
-    op = getOperation(name, fake=False, warning=False)
-    if op is None:
-        op = groupOpLoader.getOperation(name)
-    if op is None and fake:
-        return getOperation(name, fake=True, warning=warning)
-    return op
-
-
-def getOperationsByCategoryWithGroups(sourcetype, targettype):
-    global groupOpLoader
-    res = dict(getOperationsByCategory(sourcetype, targettype))
-    items = groupOpLoader.getOperations(sourcetype, targettype)
-    if items is not None:
-        for k, v in items.iteritems():
-            res[k] = v
-    return res

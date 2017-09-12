@@ -15,7 +15,6 @@ import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import getBatch, BatchProject
 from maskgen.image_graph import extract_archive
-from maskgen.group_filter import getOperationWithGroups
 
 
 def args_to_map(args, op):
@@ -141,7 +140,7 @@ def findNodesToExtend(sm, rules):
                 edge = sm.getGraph().get_edge(predecessor, nodename)
                 if edge['op'] == 'Donor':
                     continue
-                op = getOperationWithGroups(edge['op'], fake=True)
+                op = sm.getGroupOperationLoader().getOperationWithGroups(edge['op'], fake=True)
                 ops.append(edge['op'])
                 isOutput |= op.category == 'Output'
                 isAntiForensic |= op.category == 'AntiForensic'

@@ -2,8 +2,6 @@ from tool_set import toIntTuple, alterMask, alterReverseMask
 import exif
 import graph_rules
 from image_wrap import ImageWrapper
-from group_filter import getOperationWithGroups
-from software_loader import Operation
 import tool_set
 import numpy as np
 import cv2
@@ -693,8 +691,7 @@ def defaultMaskTransform(edge,
                                  level=level, donorMask=donorMask, pred_edges=pred_edges)
 
 
-def alterComposite(edge, source, target, compositeMask, edgeMask, directory, level=255, graph=None, top=False):
-    op = getOperationWithGroups(edge['op'], fake=True)
+def alterComposite(edge,  op, source, target, compositeMask, edgeMask, directory, level=255, graph=None, top=False):
     if op.maskTransformFunction is not None:
         return graph_rules.getRule(op.maskTransformFunction)(edge, source, target, edgeMask, level=level,
                                                              compositeMask=compositeMask,
@@ -707,7 +704,7 @@ def alterComposite(edge, source, target, compositeMask, edgeMask, directory, lev
                                  directory=directory)
 
 
-def alterDonor(donorMask, source, target, edge, edgeMask, directory='.', pred_edges=[], graph=None):
+def alterDonor(donorMask, op, source, target, edge, edgeMask, directory='.', pred_edges=[], graph=None):
     """
 
     :param self:
@@ -723,7 +720,6 @@ def alterDonor(donorMask, source, target, edge, edgeMask, directory='.', pred_ed
         raise ValueError('Missing edge mask from ' + source + ' to ' + target)
 
     edgeMask = edgeMask.to_array()
-    op = getOperationWithGroups(edge['op'], fake=True)
     if op.maskTransformFunction is not None:
         return graph_rules.getRule(op.maskTransformFunction)(edge,
                                                              source,
