@@ -10,7 +10,7 @@ from maskgen.tool_set import *
 import numpy as np
 import PIL
 
-def check_rotate(im, donor_img, jpg_file_name):
+def check_tiff_rotate(im, donor_img, jpg_file_name):
     return ImageWrapper(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
 def tiff_save_as(source_img, source, target, donor_file, rotate):
@@ -24,13 +24,13 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
     if donor_file is not None:
         donor_img = openImageFile(donor_file)
         if rotate:
-            source_img = check_rotate(source_img, donor_img,donor_file)
+            source_img = check_tiff_rotate(source_img, donor_img,donor_file)
         source_img.save(target, format='TIFF', **donor_img.info)
         maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         maskgen.exif.runexif(['-q', '-all=', target])
         maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])
     else:
-        im = Image.open(source)
+        im = Image.fromarray(np.asarray(source_img))
         im.save(target, format='TIFF')
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:

@@ -1,5 +1,9 @@
 import cv2
 
+"""
+Wrapper class around CV2 to support different API versions (opencv 2 and 3)
+"""
+
 class CV2Api:
     def findContours(self,image):
         pass

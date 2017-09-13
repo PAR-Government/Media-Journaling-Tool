@@ -1,6 +1,8 @@
 import os
 import csv
 import sys
+import logging
+from threading import RLock, Thread
 
 def pick_projects(directory):
     """
@@ -9,7 +11,7 @@ def pick_projects(directory):
     :return: list projects found under the given directory
     """
     ext = '.json'
-    subs = [x[0] for x in os.walk(directory)]
+    subs = [x[0] for x in os.walk(directory,followlinks=True)]
     projects = []
 
     for sub in subs:
@@ -42,11 +44,36 @@ def pick_zipped_projects(directory):
 
 class BatchProcessor:
 
-    def __init__(self, completeFile, itemsToProcess):
+    def __init__(self, completeFile, itemsToProcess, threads=1):
         self.completefile = completeFile if completeFile is not None else str(os.getpid()) + '.txt'
         self.itemsToProcess = itemsToProcess
+        self.threads=threads
+        self.count = 0
+        self.lock = RLock()
+
+    def _thread_worker(self, total, func_to_run,done_file,error_writer):
+        while not self.q.empty():
+            try:
+                item_to_process = self.q.get_nowait()
+                if item_to_process is None:
+                    break
+                logging.getLogger('maskgen').info('Project updating: ' + item_to_process)
+                errors = func_to_run(item_to_process)
+                for error in errors:
+                    error_writer.write((item_to_process, error))
+                with self.lock:
+                    self.count += 1
+                    logging.getLogger('maskgen').info(
+                        'Project updated [' + str(self.count) + '/' + str(total) + '] ' + item_to_process)
+                    done_file.write(item_to_process + '\n')
+                    done_file.flush()
+            except Exception as e:
+                logging.getLogger('maskgen').error(str(e))
+                logging.getLogger('maskgen').error('Project skipped: ' + item_to_process)
 
     def process(self, func):
+        from Queue import Queue
+        from functools import partial
         skips = []
         if  os.path.exists(self.completefile):
             with open(self.completefile, 'r') as skip:
@@ -54,25 +81,22 @@ class BatchProcessor:
             skips = [x.strip() for x in skips]
         count = 0
         total = len(self.itemsToProcess)
+        logging.getLogger('maskgen').info('Processing {} projects'.format(total))
+        name=0
+        threads=[]
+        self.q = Queue()
+        for item_to_process in self.itemsToProcess:
+            if item_to_process not in skips:
+                self.q.put(item_to_process)
         with open(self.completefile, 'a') as done_file:
             with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
                 error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                for item_to_process in self.itemsToProcess:
-                    try:
-                        if item_to_process in skips:
-                            count += 1
-                            continue
-                        print 'Project updating: ' + item_to_process
-                        errors = func(item_to_process)
-                        for error in errors:
-                            error_writer.write((item_to_process, error))
-                        print 'Project updated [' + str(count) + '/' + str(total) + '] ' + item_to_process
-                        done_file.write(item_to_process + '\n')
-                        done_file.flush()
-                        csvfile.flush()
-                    except Exception as e:
-                        print e
-                        print 'Project skipped: ' + item_to_process
-                    sys.stdout.flush()
-                    count += 1
-        return count
+                thread_func = partial(self._thread_worker, total, func, done_file, error_writer)
+                for i in range(int(self.threads)):
+                    name += 1
+                    t = Thread(target=thread_func, name=str(name))
+                    threads.append(t)
+                    t.start()
+                for thread in threads:
+                    thread.join()
+        return self.count

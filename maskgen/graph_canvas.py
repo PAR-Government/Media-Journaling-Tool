@@ -6,6 +6,10 @@ from math import atan2, pi, cos, sin
 from description_dialog import DescriptionCaptureDialog, createCompareDialog
 import collections
 
+"""
+Class and support for the graph view canvas of the JT
+"""
+
 EventTuple = collections.namedtuple('EventTuple', ['x_root','y_root','items'])
 
 def restrictPosition(position):

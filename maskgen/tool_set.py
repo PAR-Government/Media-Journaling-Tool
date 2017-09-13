@@ -364,6 +364,9 @@ def getDurationStringFromMilliseconds(millis):
     ss = sec - (hr * 3600) - mi * 60
     return '{:=02d}:{:=02d}:{:=02d}.{:=03d}'.format(hr, mi, ss,ms)
 
+def differenceBetweeMillisecondsAndFrame(mandf1, mandf2, rate):
+    return mandf1[0] - mandf2[0]  + (rate * (mandf1[1] - mandf2[1]))
+
 def getMilliSecondsAndFrameCount(v):
     dt = None
     framecount = 0
@@ -2413,6 +2416,7 @@ def widthandheight(img):
     bbox = np.min(a[0]), np.max(a[0]), np.min(a[1]), np.max(a[1])
     h,w = bbox[1] - bbox[0], bbox[3] - bbox[2]
     return bbox[2],bbox[0],w,h
+
 
 def place_in_image(mask,image_to_place,image_to_cover, placement_center, rect = None):
     x,y,w,h = widthandheight(mask)

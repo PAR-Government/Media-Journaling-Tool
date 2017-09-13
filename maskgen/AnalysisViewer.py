@@ -154,10 +154,12 @@ class AnalsisViewDialog(tkSimpleDialog.Dialog):
     analytic_frames = {}
     def __init__(self, parent, name, scenarioModel, nodes=None):
         self.scenarioModel= scenarioModel
+        self.mappings = {}
         if nodes is not None:
             self.finalNodes =nodes
         else:
             self.finalNodes = self.scenarioModel.finalNodes()
+        self.mappings = {self.scenarioModel.getFileName(node):node for node in self.finalNodes}
         self.analytic_frames = {}
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
@@ -178,8 +180,8 @@ class AnalsisViewDialog(tkSimpleDialog.Dialog):
                 analysis_frame.tkraise()
 
     def load_image(self, event, initialize=False):
-        node = self.item.get()
-        im,filename = self.scenarioModel.getGraph().get_image(node)
+        filename = self.item.get()
+        im,filename = self.scenarioModel.getGraph().get_image(self.mappings[filename])
         self.currentFileName = filename
         imResized = imageResizeRelative(im, (400, 400), im.size)
         self.photo = ImageTk.PhotoImage(imResized.toPIL())
@@ -206,10 +208,11 @@ class AnalsisViewDialog(tkSimpleDialog.Dialog):
         self.analytic.set(self.first.screenName())
         row = 0
         self.image_frame = master
-        self.item.set(self.finalNodes[0] if len(self.finalNodes) > 0 else '')
+        self.item.set(self.scenarioModel.getFileName(self.finalNodes[0]) if len(self.finalNodes) > 0 else '')
         optionsBox = ttk.Combobox(master,
-                                       values=list(self.finalNodes),
-                                       textvariable=self.item)
+                                       values=self.mappings.keys(),
+                                       textvariable=self.item,
+                                  width=60)
         self.analyticBox = ttk.Combobox(master,
                                   values=list(),
                                   textvariable=self.analytic)

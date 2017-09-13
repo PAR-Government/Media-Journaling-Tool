@@ -5,10 +5,15 @@
     "description": "Resize using ImageMagick.",
     "version": "7.0",
     "arguments": {
-      "WIDTHxHEIGHT": {
+      "WIDTH": {
         "type": "string",
         "defaultvalue": null,
-        "description": "Desired size, with an x in between (e.g. 1024x768). Add ! to ignore aspect ratio on Windows, \\! on unix (e.g. 1024x768!)"
+        "description": "Desired width size"
+      },
+      "HEIGHT": {
+        "type": "string",
+        "defaultvalue": null,
+        "description": "Desired height"
       },
       "interpolation": {
         "type": "list",
@@ -34,7 +39,7 @@
       "convert",
       "{inputimage}",
       "-resize",
-      "{WIDTHxHEIGHT}!",
+      "{WIDTH}x{HEIGHT}!",
       "-interpolate",
       "{interpolation}",
       "{outputimage}"
@@ -44,7 +49,7 @@
       "convert",
       "{inputimage}",
       "-resize",
-      "{WIDTHxHEIGHT}!",
+      "{WIDTH}x{HEIGHT}!",
       "-interpolate",
       "{interpolation}",
       "{outputimage}"
@@ -53,7 +58,7 @@
       "convert",
       "{inputimage}",
       "-resize",
-      "{WIDTHxHEIGHT}!",
+      "{WIDTH}x{HEIGHT}!",
       "-interpolate",
       "{interpolation}",
       "{outputimage}"
@@ -62,7 +67,7 @@
       "convert",
       "{inputimage}",
       "-resize",
-      "{WIDTHxHEIGHT}!",
+      "{WIDTH}x{HEIGHT}!",
       "-interpolate",
       "{interpolation}",
       "{outputimage}"

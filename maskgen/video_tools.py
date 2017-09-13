@@ -182,7 +182,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
                          'startframe':startFrame,
                          'endframe': time_manager.frameSinceBeginning,
                          'frames': count,
-                         'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS)/1000.0,
+                         'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS),
                          'mask': sample,
                          'videosegment': os.path.split(capOut.filename)[1]})
                     capOut.release()
@@ -194,7 +194,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
                            'startframe': startFrame,
                            'endframe': time_manager.frameSinceBeginning,
                            'frames': count,
-                           'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS) / 1000.0,
+                           'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS),
                            'mask': sample,
                            'videosegment': os.path.split(capOut.filename)[1]})
             capOut.release()
@@ -875,7 +875,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         cut = {}
         cut['starttime'] = vidAnalysisComponents.elapsed_time_one
         cut['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
-        cut['rate'] =  vidAnalysisComponents.fps_one / 1000.0,
+        cut['rate'] =  vidAnalysisComponents.fps_one,
         end_time = None
         count = 1
         cut['mask'] = vidAnalysisComponents.mask
@@ -915,7 +915,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         addition = {}
         addition['starttime'] = vidAnalysisComponents.elapsed_time_one
         addition['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
-        addition['rate'] = vidAnalysisComponents.fps_one / 1000.0
+        addition['rate'] = vidAnalysisComponents.fps_one
         end_time = None
         count = 1
         addition['mask'] = vidAnalysisComponents.mask
@@ -959,7 +959,7 @@ def addChange(vidAnalysisComponents, ranges=list(),arguments={}):
             change = dict()
             change['mask'] = vidAnalysisComponents.mask
             change['starttime'] = vidAnalysisComponents.elapsed_time_one
-            change['rate'] = vidAnalysisComponents.fps_one/1000.0
+            change['rate'] = vidAnalysisComponents.fps_one
             change['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
             change['frames'] = 1
             ranges.append(change)
@@ -969,7 +969,7 @@ def addChange(vidAnalysisComponents, ranges=list(),arguments={}):
         change = ranges[-1]
         change['videosegment'] = os.path.split(vidAnalysisComponents.writer.filename)[1]
         change['endtime'] = vidAnalysisComponents.elapsed_time_one
-        change['rate'] = vidAnalysisComponents.fps/1000.0
+        change['rate'] = vidAnalysisComponents.fps
         change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         vidAnalysisComponents.writer.release()
 
@@ -1018,7 +1018,7 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
             twochannels = ftwo.getnchannels()
             onewidth =fone.getsampwidth()
             twowidth = ftwo.getsampwidth()
-            framerateone = fone.getframerate()/1000
+            framerateone = fone.getframerate()
             if fone.getframerate() != ftwo.getframerate() or onewidth != twowidth or \
                     onechannels != twochannels:
                 time_manager.updateToNow(float(countone) / float(framerateone))
@@ -1184,7 +1184,7 @@ def interpolateMask(mask_file_name_prefix,
         image = tool_set.openImage(start_file_name)
         new_mask_set = []
         for mask_set in video_masks:
-            rate = reader.fps/1000.0
+            rate = reader.fps
             change = dict()
             reader = tool_set.GrayBlockReader(os.path.join(directory,
                                                                     mask_set['videosegment']))

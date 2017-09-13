@@ -2044,7 +2044,7 @@ class RotateDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         row = 0
         Label(master, text="Base").grid(row=row, column=0, sticky=W + S + N)
-        Label(master, text="Final without rotation").grid(row=row, column=1, sticky=E + S + N)
+        Label(master, text="Final w/rotation").grid(row=row, column=1, sticky=E + S + N)
         row = 1
         self.donor_photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.donor_im, (250, 250))).toPIL())
         self.donor_canvas = Canvas(master, width=125, height=125)

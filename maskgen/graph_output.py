@@ -67,15 +67,20 @@ class ImageGraphPainter:
         pygraph = pydot.Dot(graph_type='digraph')
         for node_id in self.graph.get_nodes():
             node = self.graph.get_node(node_id)
+            if node['nodetype'] == 'final':
+                shape = 'ellipse'
+            else:
+                shape ='plain'
+            fillcolor = 'turquoise' if 'experiment_id' in node  else 'white'
             im,filename= self.graph.get_image(node_id)
             im = imageResizeRelative(im, self.max_size, self.max_size)
             im.touint8()
             prefix = os.path.split(filename)[0]
             fn = self._node_id_filename(node_id)
             im.save(os.path.join(prefix , fn))
-            html = '<<TABLE border="0" cellborder="0"><TR><TD ><IMG SRC="' + \
+            html = '<<TABLE border="0" cellborder="0" bgcolor="' + fillcolor + '"><TR><TD ><IMG SRC="' + \
                    os.path.join(prefix, fn) + '" scale="true"/></TD></TR><TR><td><font point-size="10">' + cgi.escape( node['file']) + '</font></td></TR></TABLE>>'
-            pydot_nodes[node_id] = pydot.Node(node_id,label=html,shape='plain')#,labelloc='t', image=prefix + '_thb.png',imagescale=True)
+            pydot_nodes[node_id] = pydot.Node(node_id,label=html,bgcolor=fillcolor,shape=shape)#,labelloc='t', image=prefix + '_thb.png',imagescale=True)
             pygraph.add_node(pydot_nodes[node_id])
         for edge_id in self.graph.get_edges():
             edge = self.graph.get_edge(edge_id[0],edge_id[1])
