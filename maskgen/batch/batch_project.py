@@ -185,6 +185,8 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         return getNodeState(specification['source'], local_state)['output']
     elif specification['type'] == 'plugin':
         return callPluginSpec(specification, local_state)
+    elif specification['type'].startswith('global'):
+        return global_state[specification['name']]
     return pickArg(specification, node_name, specification_name, global_state, local_state)
 
 
@@ -333,7 +335,8 @@ class BaseSelectionOperation(BatchOperation):
         name = pick_file[0:pick_file.rfind('.')]
         dir = os.path.join(global_state['projects'], name)
         now = datetime.now()
-        if os.path.exists(dir):
+        timestampname = 'timestamp name' in node and node['timestamp name']
+        if os.path.exists(dir) or timestampname:
             suffix = '_' + now.strftime("%Y%m%d-%H%M%S-%f")
             dir = dir + suffix
             name = name + suffix
@@ -504,8 +507,8 @@ class InputMaskPluginOperation(PluginOperation):
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
-                    if k not in kwargs:
-                        params[k] = v
+                    #if k not in kwargs:
+                    params[k] = v
         except Exception as e:
             msg = str(e)
             raise ValueError("Plugin " + filter + " failed:" + msg)
@@ -834,13 +837,8 @@ def getBatch(jsonFile, loglevel=50):
     return loadJSONGraph(jsonFile)
 
 
-threadGlobalState = {}
-
-
-def thread_worker(**kwargs):
+def thread_worker(globalState=dict()):
     # import copy
-    global threadGlobalState
-    globalState = threadGlobalState
     count = globalState['count']
     permutegroupsmanager = globalState['permutegroupsmanager']
     if count is not None:
@@ -859,6 +857,19 @@ def thread_worker(**kwargs):
         except Exception as e:
             logging.getLogger('maskgen').info('Completed thread: ' + str(e))
 
+def loadGlobalStateInitialers(global_state, initializers):
+    import importlib
+    if initializers is None:
+        return global_state
+    for initializer in initializers.split(','):
+        mod_name, func_name = initializer.rsplit('.', 1)
+        try:
+            mod = importlib.import_module(mod_name)
+            initializer_func = getattr(mod, func_name)
+            global_state.update(initializer_func(global_state))
+        except Exception as e:
+            logging.getLogger('maskgen').error('Unable to load initializer {}: {}'.format(initializer, str(e)))
+    return global_state
 
 def main():
     global threadGlobalState
@@ -871,6 +882,8 @@ def main():
     parser.add_argument('--results', required=True, help='project results directory')
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--graph', required=False, action='store_true', help='create graph PNG file')
+    parser.add_argument('--global_variables', required=False, help='global state initialization')
+    parser.add_argument('--initializers', required=False, help='global state initialization')
     args = parser.parse_args()
     if not os.path.exists(args.results) or not os.path.isdir(args.results):
         logging.getLogger('maskgen').error('invalid directory for results: ' + args.results)
@@ -887,15 +900,20 @@ def main():
                          'count': IntObject(int(args.count)) if args.count else None,
                          'permutegroupsmanager': PermuteGroupManager(dir=workdir)
                          }
+    gv = args.global_variables if args.global_variables is not None else ''
+    threadGlobalState.update({ pair[0]:pair[1] for pair in [pair.split('=') for pair in  gv.split(',')]})
+    loadGlobalStateInitialers(threadGlobalState,args.initializers)
+
     batchProject.loadPermuteGroups(threadGlobalState)
     if args.graph is not None:
         batchProject.dump(threadGlobalState)
     threads_count = args.threads if args.threads else 1
     threads = []
     name = 1
+    kwargs = {'global_state':threadGlobalState}
     for i in range(int(threads_count)):
         name += 1
-        t = Thread(target=thread_worker, name=str(name))
+        t = Thread(target=thread_worker, name=str(name),kwargs=kwargs)
         threads.append(t)
         t.start()
     for thread in threads:

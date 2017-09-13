@@ -69,10 +69,10 @@ def updateJournal(scModel):
         _fixCopyST(scModel)
         _fixCompression(scModel)
         upgrades.append('04.0810.9381e76724')
-    if '04.0901.723277630c' not in upgrades:
+    if '0.4.0901.723277630c' not in upgrades:
         _addColor(scModel)
         _fixFrameRate(scModel)
-        upgrades.append('04.0901.723277630c')
+        upgrades.append('0.4.0901.723277630c')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -93,7 +93,6 @@ def _fixProvenanceCategory(scModel):
     else:
         scModel.setProjectData('provenance', 'no')
     scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
-
 
 def _updateEdgeHomography(edge):
     if 'RANSAC' in edge:
