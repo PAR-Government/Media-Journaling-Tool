@@ -7,8 +7,16 @@ import PIL
 Save te image as PNG. If the image has a orientation and 'Image Rotated', rotate the image according to the EXIF.
 """
 def transform(img,source,target, **kwargs):
-
     im = Image.open(source)
+    im = np.array(im)
+    #deal with grayscale image
+    if len(im.shape)==2:
+        w, h = im.shape
+        ret = np.empty((w, h, 3), dtype=np.uint8)
+        ret[:, :, :] = im[:, :, np.newaxis]
+        im = ret
+    im = Image.fromarray(im)
+
     if 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
         orientation = exif.getOrientationFromExif(source)
         if orientation is not None:

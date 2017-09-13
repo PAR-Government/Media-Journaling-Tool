@@ -16,7 +16,7 @@ def build_mask_box(pixelWidth, pixelHeight, shape):
 
     if pixelHeight> shape[0]/2:
        pixelHeight=shape[0]/2-1
-
+    
     r_x = randint(1, abs(shape[1] - pixelWidth)-1)
     r_y = randint(1, abs(shape[0] - pixelHeight)-1)
 
@@ -50,6 +50,12 @@ def build(img, segment_labels, unique_labels, label_counts, size_constraint):
     pixelWidth = abs(max(indices[1]) - min(indices[1]))
     pixelHeight = abs(max(indices[0]) - min(indices[0]))
 
+    if pixelWidth> shape[1]/2:
+       pixelWidth=shape[1]/2-1
+
+    if pixelHeight> shape[0]/2:
+       pixelHeight=shape[0]/2-1
+
     new_position_x = randint(1, abs(shape[1] - pixelWidth))
     new_position_y = randint(1, abs(shape[0] - pixelHeight))
     return new_position_x, new_position_y, mask
@@ -58,13 +64,13 @@ def build_mask_slic(img, size,W,H):
     shape = img.shape
     imgsize=img.shape[0]*img.shape[1]
     numsegments = imgsize / size
+    numsegments = max(numsegments,1)
     segment_labels = segmentation.slic(img, compactness=5, n_segments=numsegments)
     unique_labels, label_counts = np.unique(segment_labels,return_counts=True)
     if len(unique_labels) < 10:
         new_position_x,new_position_y ,mask =  build_mask_box(W,H,shape)
     else:
         new_position_x, new_position_y, mask =  build(img, segment_labels, unique_labels,label_counts,size)
-
     return new_position_x, new_position_y, mask
 
 def transform(img,source,target,**kwargs):
@@ -76,7 +82,6 @@ def transform(img,source,target,**kwargs):
     largeh = int(kwargs['largeh'])
     size = int(kwargs['size'])
     op = kwargs['op'] if 'op' in kwargs else 'box'
-
     if size ==1:
         W=smallw
         H=smallh
@@ -88,15 +93,17 @@ def transform(img,source,target,**kwargs):
         H=largeh
     cv_image = np.asarray(img.to_array())
     imgsize = cv_image.shape[0] * cv_image.shape[1]
+    
     area = W * H
     if area < (imgsize/2):
         W=smallw
         H=smallh
+    
     if op == 'box':
-      new_position_x,new_position_y,mask= build_mask_box(W,H,cv_image.shape)
+        new_position_x,new_position_y,mask= build_mask_box(W,H,cv_image.shape)
     else:
-      new_position_x,new_position_y,mask= build_mask_slic(cv_image,area,W,H)
-
+        new_position_x,new_position_y,mask= build_mask_slic(cv_image,area,W,H)
+    
     if 'alpha' in kwargs and kwargs['alpha'] == 'yes':
         rgba = np.asarray(img.convert('RGBA'))
         rgba = np.copy(rgba)
