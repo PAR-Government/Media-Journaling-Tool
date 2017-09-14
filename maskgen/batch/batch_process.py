@@ -210,7 +210,7 @@ def processAnyProject(batchSpecification, extensionRules, outputGraph, project):
 
 
 def processSpecification(specification, extensionRules, projects_directory, completeFile=None, outputGraph=False,
-                         threads=1):
+                         threads=1, loglevel=None):
     """
     Perform a plugin operation on all projects in directory
     :param projects_directory: directory of projects
@@ -219,7 +219,7 @@ def processSpecification(specification, extensionRules, projects_directory, comp
     :return: None
     """
     from functools import partial
-    batch = getBatch(specification)
+    batch = getBatch(specification,loglevel=loglevel)
     rules = parseRules(extensionRules)
     if batch is None:
         return
@@ -279,7 +279,7 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
         new = not os.path.exists(project)
         sm = maskgen.scenario_model.ImageProjectModel(project)
         if new:
-            print 'Creating...' + project
+            logging.getLogger('maskgen').info( 'Creating {}'.format(project))
             lastNodeName = sm.addImage(os.path.join(sourceDir, sImg))
             # lastNodeName = sImgName
             for prop, val in props.iteritems():
@@ -311,9 +311,10 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
             # create link
             sm.addNextImage(eImg, mod=opDetails,
                             sendNotifications=False, position=position)
-            print 'Operation ' + op + ' complete on project (' + str(processNo) + '/' + str(total) + '): ' + project
+            logging.getLogger('maskgen').info(
+                'Operation {} complete on project ({}/{}): {}'.format( op,str(processNo), str(total),project))
         elif eImg is not None:
-            print 'Operation, Software and Version need to be defined to complete the link.'
+            logging.getLogger('maskgen').error( 'Operation, Software and Version need to be defined to complete the link.')
         sm.save()
         processNo += 1
 
@@ -349,10 +350,11 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
         sm.selectImage(lastNode)
         errors, pairs = sm.imageFromPlugin(plugin, **arguments)
         if errors is not None and len(errors) > 0:
-            print 'Plugin Failed: ' + errors
+            logging.getLogger('maskgen').error( 'Plugin {} on project {} failed: {}'.format(plugin,sm.getName(), errors))
         sm.save()
         if errors is None or len(errors) == 0:
-            print 'Plugin operation complete on project (' + str(processNo) + '/' + str(total) + '): ' + i
+            logging.getLogger('maskgen').info('Plugin operation {} on project {} complete ({}{})'.format(
+                plugin,sm.getName(),str(processNo),str(total)))
         processNo += 1
 
 
@@ -371,7 +373,7 @@ def process_jpg(projects):
         op = maskgen.group_operations.CopyCompressionAndExifGroupOperation(sm)
         op.performOp()
         sm.save()
-        print 'Completed JPG operation on project (' + str(processNo) + '/' + str(total) + '): ' + project
+        logging.getLogger('maskgen').info('Completed compression operation on project ({}/{}) {}'.format( str(processNo), str(total), + project))
         processNo += 1
 
 
@@ -434,6 +436,7 @@ def main():
     parser.add_argument('--s3', default=None, help='S3 Bucket/Path to upload projects to')
     parser.add_argument('--graph', action='store_true', help='Output Summary Graph')
     parser.add_argument('--threads', default='1', help='Number of Threads')
+    parser.add_argument('--loglevel', required=False, help='log level')
 
     args = parser.parse_args()
 
@@ -483,7 +486,7 @@ def main():
             print 'projects is required'
             sys.exit(-1)
         processSpecification(args.specification, args.extensionRules, args.projects, completeFile=args.completeFile,
-                             outputGraph=args.graph, threads=int(args.threads))
+                             outputGraph=args.graph, threads=int(args.threads), loglevel=args.loglevel)
     # perform the specified operation
     elif args.plugin:
         if args.projects is None:
