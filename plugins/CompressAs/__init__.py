@@ -123,7 +123,7 @@ def operation():
             'category':'AntiForensic',
             'description':'Save as a JPEG using original tables and EXIF',
             'software':'maskgen',
-            'version':maskgen.__version__[0:2],
+            'version':maskgen.__version__[0:3],
             'arguments':{
                 'donor':{
                     'type':'donor',

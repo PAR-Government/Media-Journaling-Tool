@@ -2,13 +2,19 @@ import tkSimpleDialog
 import os
 import json
 import software_loader
-from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
+from group_filter import GroupOperationsLoader
 from autocomplete_it import *
 import plugins
 import collections
 
 class PluginBuilder(tkSimpleDialog.Dialog):
-    def __init__(self, master):
+    def __init__(self, master, gopLoader):
+        """
+        :param master:
+        :param gopLoader:
+        @type gopLoader: GroupOperationsLoader
+        """
+        self.gopLoader = gopLoader
         self.softwareLoader = software_loader.SoftwareLoader()
         self.sourcefiletype = 'image'
         self.targetfiletype = 'image'
@@ -233,10 +239,10 @@ class PluginBuilder(tkSimpleDialog.Dialog):
             self.opNameEntry.set_completion_list([])
 
     def newcommand(self, event):
-        op = getOperationWithGroups(self.opNameEntry.get())
+        op = self.gopLoader.getOperationWithGroups(self.opNameEntry.get())
 
     def organizeOperationsByCategory(self):
-        return getOperationsByCategoryWithGroups(self.sourcefiletype, self.targetfiletype)
+        return self.gopLoader.getOperationsByCategoryWithGroups(self.sourcefiletype, self.targetfiletype)
 
     def newsoftware(self, event):
         sname = self.softwareNameEntry.get()

@@ -1,5 +1,5 @@
 from Tkinter import *
-from group_filter import GroupFilter,getOperationWithGroups
+from group_filter import GroupFilter
 import tkSimpleDialog
 from tool_set import get_icon
 from PIL import ImageTk

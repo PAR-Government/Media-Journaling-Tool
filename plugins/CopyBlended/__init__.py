@@ -1,4 +1,5 @@
 import shutil
+import maskgen
 
 """
 Simply copy of the blended image passed in as an argument.
@@ -12,7 +13,7 @@ def operation():
     return {'name':'Blend',
             'category':'Layer',
             'software':'maskgen',
-            'version':'04',
+            'version':maskgen.__version__[0:3],
             'arguments':{
                 'Final Image': {
                     "type": "file:image",

@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
-from group_filter import groupOpLoader, GroupFilterLoader
+from group_filter import  GroupFilterLoader
 from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from tool_set import *
 from group_manager import GroupManagerDialog
@@ -651,13 +651,13 @@ class MakeGenUI(Frame):
         d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
 
     def pluginbuilder(self):
-        d = PluginBuilder(self)
+        d = PluginBuilder(self,self.scModel.getGroupOperationLoader())
 
     def groupmanager(self):
         d = GroupManagerDialog(self,GroupFilterLoader())
 
     def operationsgroupmanager(self):
-        d = GroupManagerDialog(self, groupOpLoader)
+        d = GroupManagerDialog(self, self.scModel.getGroupOperationLoader())
 
     def merge(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
