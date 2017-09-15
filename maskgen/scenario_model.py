@@ -1630,27 +1630,34 @@ class ImageProjectModel:
                     edge_data['end'],
                     edge_data['opName']
                 ))
-                mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
-                    edge_data['start'],
-                    edge_data['end'],
-                    self,
-                    edge_data['opName'],
-                    arguments=edge_data['arguments'],
-                    skipDonorAnalysis=edge_data['skipDonorAnalysis'],
-                    invert=edge_data['invert'],
-                    analysis_params=edge_data['analysis_params'])
-                self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
-                                   **consolidate(analysis, edge_data['analysis_params']))
+                if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']):
+                    mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
+                        edge_data['start'],
+                        edge_data['end'],
+                        self,
+                        edge_data['opName'],
+                        arguments=edge_data['arguments'],
+                        skipDonorAnalysis=edge_data['skipDonorAnalysis'],
+                        invert=edge_data['invert'],
+                        analysis_params=edge_data['analysis_params'])
+                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
+                                       **consolidate(analysis, edge_data['analysis_params']))
                 results.put(((edge_data['start'], edge_data['end']), True, errors))
-                # with self.G.lock:
+                #with self.G.lock:
                 #    results.put(((edge_data['start'], edge_data['end']), True, errors))
                 #    self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                 #                                          (skip_data['start'], skip_data['end']) != (edge_data['start'], edge_data['end'])])
-                # self.G.save()
             except Empty:
                 break
             except Exception as e:
-                results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
+                if edge_data is not None:
+                    logging.getLogger('maskgen').error('Failure to generate mask for edge {} to {} using operation {}: {}'.format(
+                        edge_data['start'],
+                        edge_data['end'],
+                        edge_data['opName'],
+                        str(e)
+                    ))
+                    results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
         return
 
     def _executeSkippedComparisons(self):
@@ -1668,6 +1675,7 @@ class ImageProjectModel:
         skipped_threads = prefLoader.get_key('skipped_threads', 2)
         logging.getLogger('maskgen').info('Recomputing {} masks with {} threads'.format(q.qsize(), skipped_threads))
         threads = list()
+        self._executeQueue(q, results)
         for i in range(int(skipped_threads)):
             t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results))
             threads.append(t)

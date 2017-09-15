@@ -72,12 +72,14 @@ def updateJournal(scModel):
     if '04.0901.723277630c' not in upgrades:
         _addColor(scModel)
         _fixFrameRate(scModel)
+        _fixRaws(scModel)
         upgrades.append('04.0901.723277630c')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
+
 
 def _fixValidationTime(scModel):
     import time
@@ -88,7 +90,7 @@ def _fixValidationTime(scModel):
 def _fixProvenanceCategory(scModel):
     from maskgen.graph_rules import  manipulationCategoryRule
     cat = scModel.getProjectData('manipulationcategory',default_value='')
-    if cat.lower() == 'provenance':
+    if cat is not None and cat.lower() == 'provenance':
         scModel.setProjectData('provenance','yes')
     else:
         scModel.setProjectData('provenance', 'no')
@@ -133,6 +135,25 @@ def _fixRANSAC(scModel):
         _updateEdgeHomography(args)
         if edge['op'] == 'Donor':
             edge['homography max matches'] = 20
+
+def _fixRaws(scModel):
+    if scModel.G.get_project_type()!= 'image':
+        return
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] in [ 'OutputPng', 'Recapture'] and \
+             'shape change' in edge and tool_set.toIntTuple(edge['shape change']) != (0,0):
+            node = scModel.G.get_node(frm)
+            file = os.path.join(scModel.get_dir(), node['file'])
+            redo =  tool_set.fileType(file) == 'image' and \
+                file.lower()[-3:] not in ['iff','tif','png','peg','jpeg','gif','pdf','bmp']
+            node = scModel.G.get_node(to)
+            file = os.path.join(scModel.get_dir(),node['file'])
+            redo |= tool_set.fileType(file) == 'image' and \
+                file.lower()[-3:] not in ['iff','tif','png','peg','jpeg','gif','pdf','bmp']
+            if redo:
+                scModel.select((frm,to))
+                scModel.reproduceMask()
 
 def _fixVideoAudioOps(scModel):
     groups = scModel.G.getDataItem('groups')

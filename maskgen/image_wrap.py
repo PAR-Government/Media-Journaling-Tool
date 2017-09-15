@@ -35,17 +35,32 @@ except ImportError:
             return []
 
 
-def openRaw(filename, isMask=False):
+def openRaw(filename, isMask=False, args=None):
     try:
         import rawpy
         with rawpy.imread(filename) as raw:
+            if args is not None and 'Demosaic Algorithm' in args and  args['Demosaic Algorithm'] != 'default':
+                v = args['Demosaic Algorithm']
+                mapping = {'AAHD':rawpy.DemosaicAlgorithm.AAHD,
+                           'AFD':rawpy.DemosaicAlgorithm.AFD,
+                           'AMAZE': rawpy.DemosaicAlgorithm.AMAZE,
+                           'DCB': rawpy.DemosaicAlgorithm.DCB,
+                           'DHT': rawpy.DemosaicAlgorithm.DHT,
+                           'LMMSE': rawpy.DemosaicAlgorithm.LMMSE,
+                           'MODIFIED_AHD': rawpy.DemosaicAlgorithm.MODIFIED_AHD,
+                           'PPG': rawpy.DemosaicAlgorithm.PPG,
+                           'VCD': rawpy.DemosaicAlgorithm.VCD,
+                           'LINEAR': rawpy.DemosaicAlgorithm.LINEAR,
+                           'VCD_MODIFIED_AHD':rawpy.DemosaicAlgorithm.VCD_MODIFIED_AHD,
+                           'VNG': rawpy.DemosaicAlgorithm.VNG }
+                return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v]), to_mask=isMask)
             return ImageWrapper(raw.postprocess(), to_mask=isMask)
     except:
         return None
 
 
-def openTiff(filename, isMask=False):
-    raw = openRaw(filename, isMask=isMask)
+def openTiff(filename, isMask=False, args=None):
+    raw = openRaw(filename, isMask=isMask, args=args)
     info = {}
     if filename.lower().find('tif') >= 0:
         try:
@@ -159,13 +174,20 @@ for entry_point in iter_entry_points(group='maskgen_image_writer', name=None):
 def getFromWriterRegistry(format):
     return file_write_registry[format] if format in file_write_registry else None
 
-
-def openFromRegistry(filename, isMask=False):
+import inspect
+def openFromRegistry(filename, isMask=False, args=None):
     for suffixList in file_registry:
         if suffixList[0] in filename.lower():
             for func in suffixList[1]:
                 try:
-                    result = func(filename, isMask=isMask)
+                    if args is not None:
+                        try:
+                            inspect.getcallargs(func,filename, isMask=isMask,args=args)
+                            result = func(filename, isMask=isMask,args=args)
+                        except Exception as e:
+                            result = func(filename, isMask=isMask)
+                    else:
+                        result = func(filename, isMask=isMask)
                     if result is not None and result.__class__ is not ImageWrapper:
                         result = ImageWrapper(result[0], mode=result[1])
                     if result is not None and result.size != (0, 0):
@@ -188,7 +210,7 @@ def deleteImage(filename):
             image_cache.pop(filename)
 
 
-def openImageFile(filename, isMask=False):
+def openImageFile(filename, isMask=False, args=None):
     """
     :param filename:
     :param isMask:
@@ -212,7 +234,7 @@ def openImageFile(filename, isMask=False):
             if current_time - update_time <= 0 and wrapper is not None:
                 return wrapper
 
-    wrap = openFromRegistry(filename, isMask=isMask)
+    wrap = openFromRegistry(filename, isMask=isMask, args=args)
     with image_lock:
         image_cache[filename] = (wrap, current_time)
     return wrap

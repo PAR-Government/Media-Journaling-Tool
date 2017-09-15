@@ -2,12 +2,13 @@ from PIL import Image
 from maskgen import exif
 import numpy as np
 import PIL
+from maskgen.image_wrap import openImageFile
 
 """
 Save te image as PNG. If the image has a orientation and 'Image Rotated', rotate the image according to the EXIF.
 """
 def transform(img,source,target, **kwargs):
-    im = Image.open(source)
+    im = openImageFile(source,args=kwargs)
     im = np.array(im)
     #deal with grayscale image
     if len(im.shape)==2:
@@ -36,6 +37,13 @@ def operation():
                     'type':'yesno',
                     'defaultvalue':'no',
                     'description':'Rotate image according to EXIF'
+                },
+                'Demosaic Algorithm': {
+                    'type': 'list',
+                    'values' : ['default','AAHD','AFD','AMAZE','DCB','DCB','DHT','LMMSE','LINEAR','MODIFIED_AHD','PPG','VCD',
+                                'VCD_MODIFIED_AHD','VNG'],
+                    'defaultvalue': 'default',
+                    'description': 'Rotate image according to EXIF'
                 }
             },
             'transitions': [

@@ -11,7 +11,7 @@ def operation():
             'category':'Output',
             'description':'Export the image in the in the same format. Used to branch off a final image  node"',
             'software':'maskgen',
-            'version':'04',
+            'version':'0.4',
             'arguments':{
             },
             'transitions': [

@@ -808,7 +808,7 @@ def checkFileTypeChangeForDonor(op, graph, frm, to):
     to_file = graph.get_image(to)[1]
     if fileTypeChanged(to_file, frm_file):
         predecessors = graph.predecessors(to)
-        if len(predecessors) >= 2:
+        if len(predecessors) < 2:
             return 'donor image missing'
         for pred in predecessors:
             edge = graph.get_edge(pred, to)
@@ -1676,7 +1676,8 @@ def audioactivityRule(scModel, edgeTuples):
         op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         found = (op.category == 'Audio')
         if not found and op.groupedOperations is not None:
-            for imbedded_op in op.groupedOperations:
+            for imbedded_op_name in op.groupedOperations:
+                imbedded_op = scModel.getGroupOperationLoader().getOperationWithGroups(imbedded_op_name,fake=True)
                 found |= imbedded_op.category == 'Audio'
     return 'yes' if found else 'no'
 

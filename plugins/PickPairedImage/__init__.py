@@ -29,7 +29,7 @@ def operation():
             'category': 'Select',
             'description': 'Select image based on a pairing to an existing image.',
             'software': 'maskgen',
-            'version': maskgen.__version__[0:2],
+            'version': maskgen.__version__[0:3],
             'arguments': {'pairing': {'type': "text",
                                       'description': "name of CSV file containing the pairs image to image"},
                           'directory': {'type': "text",
