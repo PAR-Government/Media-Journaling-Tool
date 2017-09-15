@@ -33,7 +33,7 @@ def operation():
         'name': 'SelectRegion',
         'description': 'Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.  In the later case, paste_x and paste_y variables are returned indicating a suitable  upper left corner paste position in the source image. ',
         'software': 'maskgen',
-        'version': maskgen.__version__,
+        'version': maskgen.__version__[0:3],
         'arguments': {'percentage_width': {'type': "float[0.01:2]", 'description': 'percentage change'},
                       'percentage_height': {'type': "float[0.01:2]", 'description': 'percentage change'},
                       'percentage_qf': {'type': "float[0.7:1]", 'description': 'percentage change  in quality factory'},

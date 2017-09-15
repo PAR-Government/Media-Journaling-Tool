@@ -344,6 +344,10 @@ class ImageGraph:
     def get_project_type(self):
         return self.G.graph['projecttype'] if 'projecttype' in self.G.graph else None
 
+
+    def set_project_type(self,projecttype):
+        self.G.graph['projecttype'] = projecttype
+
     def get_pathname(self, name):
         return os.path.join(self.dir, self.G.node[name]['file'])
 

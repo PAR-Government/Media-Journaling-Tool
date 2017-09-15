@@ -808,7 +808,7 @@ def checkFileTypeChangeForDonor(op, graph, frm, to):
     to_file = graph.get_image(to)[1]
     if fileTypeChanged(to_file, frm_file):
         predecessors = graph.predecessors(to)
-        if len(predecessors) >= 2:
+        if len(predecessors) < 2:
             return 'donor image missing'
         for pred in predecessors:
             edge = graph.get_edge(pred, to)

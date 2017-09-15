@@ -27,7 +27,7 @@ def operation():
     return {'name':'PasteSplice',
             'category':'Paste',
             'software': 'maskgen',
-            'version': maskgen.__version__[0:2],
+            'version': maskgen.__version__[0:3],
             'arguments':{
                 'inputmaskname': {
                     "type": "file:image",
