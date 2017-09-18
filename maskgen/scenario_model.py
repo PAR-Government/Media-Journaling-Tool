@@ -12,7 +12,7 @@ import graph_rules
 from graph_rules import Probe, ColorCompositeBuilder
 from image_wrap import ImageWrapper
 from PIL import Image
-from group_filter import getOperationWithGroups, buildFilterOperation, GroupFilterLoader, injectGroup
+from group_filter import  buildFilterOperation, GroupFilter, GroupOperationsLoader
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
@@ -274,14 +274,16 @@ class Modification:
                  username=None,
                  ctime=None,
                  errors=list(),
-                 semanticGroups=None):
+                 semanticGroups=None,
+                 category=None,
+                 generateMask=False):
         self.start = start
         self.end = end
         self.additionalInfo = additionalInfo
         self.maskSet = maskSet
         self.automated = automated if automated else 'no'
         self.errors = errors if errors else list()
-        self.setOperationName(operationName)
+        self.operationName = operationName
         self.setArguments(arguments)
         self.semanticGroups = semanticGroups
         if inputMaskName is not None:
@@ -292,6 +294,8 @@ class Modification:
         self.software = software
         if recordMaskInComposite is not None:
             self.recordMaskInComposite = recordMaskInComposite
+        self.category = category
+        self.generateMask = generateMask
 
     def setSemanticGroups(self, groups):
         self.semanticGroups = groups
@@ -334,12 +338,17 @@ class Modification:
 
     def setOperationName(self, name):
         self.operationName = name
-        if name is None or name == '':
-            return
-        op = getOperationWithGroups(self.operationName, warning=False)
-        self.category = op.category if op is not None else None
-        self.recordMaskInComposite = 'yes' if op is not None and op.includeInMask else 'no'
-        self.generateMask = op.generateMask if op is not None else True
+
+    def setFromOperation(self,op):
+        """
+        :param op:
+        :return:
+        @type op: Operation
+        """
+        self.category = op.category
+        self.generateMask = op.generateMask
+        self.recordMaskInComposite = op.recordMaskInComposite()
+
 
 
 class LinkTool:
@@ -369,7 +378,7 @@ class LinkTool:
         """
         import importlib
         directory = scModel.get_dir()
-        opData = getOperationWithGroups(op)
+        opData = scModel.gopLoader.getOperationWithGroups(op)
         if opData is None:
             return
         arguments = dict(arguments)
@@ -405,7 +414,7 @@ class ImageImageLinkTool(LinkTool):
         edge = scModel.G.get_edge(start, end)
         compareFunction = None
         if edge is not None:
-            operation = getOperationWithGroups(edge['op'] if edge is not None else 'NA', fake=True)
+            operation = scModel.gopLoader.getOperationWithGroups(edge['op'] if edge is not None else 'NA', fake=True)
             compareFunction = operation.getCompareFunction()
         mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=compareFunction)
@@ -429,7 +438,7 @@ class ImageImageLinkTool(LinkTool):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
-        operation = getOperationWithGroups(op)
+        operation = scModel.gopLoader.getOperationWithGroups(op)
         if op == 'Donor':
             predecessors = scModel.G.predecessors(destination)
             mask = None
@@ -438,7 +447,7 @@ class ImageImageLinkTool(LinkTool):
                 errors = list()
                 for pred in predecessors:
                     pred_edge = scModel.G.get_edge(pred, destination)
-                    edge_op = getOperationWithGroups(pred_edge['op'])
+                    edge_op = scModel.gopLoader.getOperationWithGroups(pred_edge['op'])
                     expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
                     if expect_donor_mask:
                         mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')[0]
@@ -498,7 +507,7 @@ class VideoImageLinkTool(ImageImageLinkTool):
         im1, startFileName = scModel.getImageAndName(start, arguments=arguments)
         im2, destFileName = scModel.getImageAndName(end)
         edge = scModel.G.get_edge(start, end)
-        operation = getOperationWithGroups(edge['op'])
+        operation = scModel.gopLoader.getOperationWithGroups(edge['op'])
         mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=operation.getCompareFunction())
         return im1, im2, mask, analysis
@@ -510,7 +519,7 @@ class VideoImageLinkTool(ImageImageLinkTool):
         startIm, startFileName = scModel.getImageAndName(start, arguments=args)
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
-        operation = getOperationWithGroups(op)
+        operation = scModel.gopLoader.getOperationWithGroups(op)
         if op == 'Donor':
             errors = [
                 "An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
@@ -562,7 +571,7 @@ class VideoVideoLinkTool(LinkTool):
         errors = []
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
-            op = getOperationWithGroups(edge['op'])
+            op = scModel.gopLoader.getOperationWithGroups(edge['op'])
             if op is not None and 'checkSIFT' in op.rules:
                 return video_tools.interpolateMask(
                     os.path.join(scModel.G.dir, shortenName(start + '_' + destination, '_mask')),
@@ -598,7 +607,7 @@ class VideoVideoLinkTool(LinkTool):
         destIm, destFileName = scModel.getImageAndName(destination)
         mask, analysis = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
-        operation = getOperationWithGroups(op, fake=True)
+        operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         if op != 'Donor' and not operation.generateMask:
             maskSet = list()
             errors = list()
@@ -677,7 +686,7 @@ class AudioVideoLinkTool(LinkTool):
         metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
-        operation = getOperationWithGroups(op, fake=True)
+        operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
 
         if op != 'Donor' and operation.generateMask:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
@@ -840,10 +849,18 @@ class ImageProjectModel:
         self.notify = notify
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
+        # Group Operations are tied to models since
+        # group operations are created by a local instance and stored in the graph model
+        # when used.
+        self.gopLoader = GroupOperationsLoader()
         self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName)
+
 
     def get_dir(self):
         return self.G.dir
+
+    def getGroupOperationLoader(self):
+        return self.gopLoader
 
     def addImagesFromDir(self, dir, baseImageFileName=None, xpos=100, ypos=30, suffixes=list(),
                          sortalg=lambda s: s.lower()):
@@ -1043,7 +1060,7 @@ class ImageProjectModel:
                 node['file'] = newfile
         return newfile
 
-    def connect(self, destination, mod=Modification('Donor', ''), invert=False, sendNotifications=True,
+    def connect(self, destination, mod=Modification('Donor', '',category='Donor'), invert=False, sendNotifications=True,
                 skipDonorAnalysis=False):
         """ Given a image node name, connect the new node to the end of the currently selected node.
              Create the mask, inverting the mask if requested.
@@ -1083,6 +1100,7 @@ class ImageProjectModel:
                 selectMasks = self._getUnresolvedSelectMasksForEdge(edge)
                 composite = edgeMask.invert().to_array()
                 composite = mask_rules.alterComposite(edge,
+                                                      self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
                                                       edge_id[0],
                                                       edge_id[1],
                                                       composite, edgeMask.to_array(),
@@ -1298,7 +1316,9 @@ class ImageProjectModel:
             if edgeMask is None:
                 raise ValueError('Missing edge mask from ' + source + ' to ' + target)
             edgeMask = edgeMask.to_array()
-            newMask = mask_rules.alterComposite(edge, source, target, mask, edgeMask, self.get_dir(), graph=self.G)
+            newMask = mask_rules.alterComposite(edge,
+                                                self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
+                                                source, target, mask, edgeMask, self.get_dir(), graph=self.G)
             results.extend(self._constructTransformedMask((source, target), newMask))
         return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
 
@@ -1314,6 +1334,7 @@ class ImageProjectModel:
         for pred in preds:
             edge = self.G.get_edge(pred, node)
             donorMask = mask_rules.alterDonor(mask,
+                                              self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
                                               pred,
                                               node,
                                               edge,
@@ -1609,27 +1630,34 @@ class ImageProjectModel:
                     edge_data['end'],
                     edge_data['opName']
                 ))
-                mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
-                    edge_data['start'],
-                    edge_data['end'],
-                    self,
-                    edge_data['opName'],
-                    arguments=edge_data['arguments'],
-                    skipDonorAnalysis=edge_data['skipDonorAnalysis'],
-                    invert=edge_data['invert'],
-                    analysis_params=edge_data['analysis_params'])
-                self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
-                                   **consolidate(analysis, edge_data['analysis_params']))
+                if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']):
+                    mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
+                        edge_data['start'],
+                        edge_data['end'],
+                        self,
+                        edge_data['opName'],
+                        arguments=edge_data['arguments'],
+                        skipDonorAnalysis=edge_data['skipDonorAnalysis'],
+                        invert=edge_data['invert'],
+                        analysis_params=edge_data['analysis_params'])
+                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
+                                       **consolidate(analysis, edge_data['analysis_params']))
                 results.put(((edge_data['start'], edge_data['end']), True, errors))
-                # with self.G.lock:
+                #with self.G.lock:
                 #    results.put(((edge_data['start'], edge_data['end']), True, errors))
                 #    self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                 #                                          (skip_data['start'], skip_data['end']) != (edge_data['start'], edge_data['end'])])
-                # self.G.save()
             except Empty:
                 break
             except Exception as e:
-                results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
+                if edge_data is not None:
+                    logging.getLogger('maskgen').error('Failure to generate mask for edge {} to {} using operation {}: {}'.format(
+                        edge_data['start'],
+                        edge_data['end'],
+                        edge_data['opName'],
+                        str(e)
+                    ))
+                    results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
         return
 
     def _executeSkippedComparisons(self):
@@ -1647,6 +1675,7 @@ class ImageProjectModel:
         skipped_threads = prefLoader.get_key('skipped_threads', 2)
         logging.getLogger('maskgen').info('Recomputing {} masks with {} threads'.format(q.qsize(), skipped_threads))
         threads = list()
+        self._executeQueue(q, results)
         for i in range(int(skipped_threads)):
             t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results))
             threads.append(t)
@@ -1676,7 +1705,7 @@ class ImageProjectModel:
                                                                                                 }])
             return None, {}, []
         try:
-            for k, v in getOperationWithGroups(opName).compareparameters.iteritems():
+            for k, v in self.gopLoader.getOperationWithGroups(opName).compareparameters.iteritems():
                 arguments[k] = v
         except:
             pass
@@ -1721,7 +1750,8 @@ class ImageProjectModel:
                     analysis[k] = v
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-            edgeErrors = [] if skipRules else graph_rules.run_rules(mod.operationName, self.G, self.start, destination)
+            edgeErrors = [] if skipRules else graph_rules.run_rules(
+                self.gopLoader.getOperationWithGroups(mod.operationName, fake=True), self.G, self.start, destination)
             msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 else ''
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start, destination), 'connect')
@@ -1747,7 +1777,7 @@ class ImageProjectModel:
         :return:
         """
         if len(arguments) > 0 and opName != 'node':
-            self.__addEdgeFilePaths(getOperationWithGroups(opName, fake=True))
+            self.__addEdgeFilePaths(self.gopLoader.getOperationWithGroups(opName, fake=True))
 
     def __addEdgeFilePaths(self, op):
         for k, v in op.mandatoryparameters.iteritems():
@@ -1782,7 +1812,7 @@ class ImageProjectModel:
         self._save_group(mod.operationName)
 
     def _save_group(self, operation_name):
-        op = getOperationWithGroups(operation_name, fake=True)
+        op = self.gopLoader.getOperationWithGroups(operation_name, fake=True)
         if op.groupedOperations is not None and len(op.groupedOperations) > 0:
             groups = self.G.getDataItem('groups')
             if groups is None:
@@ -1918,8 +1948,9 @@ class ImageProjectModel:
                 if len(p) > 0:
                     self.start = p[0]
                     self.end = n[0]
+        # inject loaded groups into the group operations manager
         for group, ops in self.G.getDataItem('groups', default_value={}).iteritems():
-            injectGroup(group, ops)
+            self.gopLoader.injectGroup(group, ops)
 
     def getStartType(self):
         return self.getNodeFileType(self.start) if self.start is not None else 'image'
@@ -2176,7 +2207,7 @@ class ImageProjectModel:
         for frm, to in self.G.get_edges():
             edge = self.G.get_edge(frm, to)
             op = edge['op']
-            errors = graph_rules.run_rules(op, self.G, frm, to)
+            errors = graph_rules.run_rules(self.gopLoader.getOperationWithGroups(op, fake=True), self.G, frm, to)
             if len(errors) > 0:
                 total_errors.extend([(str(frm), str(to), str(frm) + ' => ' + str(to) + ': ' + err) for err in errors])
         return total_errors
@@ -2369,7 +2400,7 @@ class ImageProjectModel:
         :param software:
         :param kwargs:
         :return:
-        @type grp GroupFilterLoader
+        @type grp GroupFilter
         @type software Software
         """
         pairs_composite = []
@@ -2435,7 +2466,11 @@ class ImageProjectModel:
             for name, value in file_params.iteritems():
                 extra_args[name] = value
                 self.G.addEdgeFilePath('arguments.' + name, '')
-        description = Modification(op['name'], filter + ':' + op['description'])
+        opInfo = self.gopLoader.getOperationWithGroups(op['name'], fake=True)
+        description = Modification(op['name'], filter + ':' + op['description'],
+                                   category=opInfo.category,
+                                   generateMask=opInfo.generateMask,
+                                   recordMaskInComposite=opInfo.recordMaskInComposite())
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         if software is None:
@@ -2647,12 +2682,13 @@ class ImageProjectModel:
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x) for x in edge['linkcolor'].split(' ')] if 'linkcolor' in edge else [0, 0, 0]
             colorMap[level.value] = color
-        return mask_rules.alterComposite(edge, source, target, compositeMask, edgeMask, self.get_dir(),
+        return mask_rules.alterComposite(edge,
+                                         self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
+                                         source, target, compositeMask, edgeMask, self.get_dir(),
                                          level=level.value, graph=self.G)
 
     def getModificationForEdge(self, start, end, edge):
         """
-
         :param start:
         :param end:
         :param edge:
@@ -2663,6 +2699,7 @@ class ImageProjectModel:
         """
         end_node = self.G.get_node(end)
         default_ctime = end_node['ctime'] if 'ctime' in end_node else None
+        op = self.gopLoader.getOperationWithGroups(edge['op'], warning=False)
         return Modification(edge['op'],
                             edge['description'],
                             start=start,
@@ -2682,7 +2719,9 @@ class ImageProjectModel:
                             ctime=edge['ctime'] if 'ctime' in edge else default_ctime,
                             errors=edge['errors'] if 'errors' in edge else list(),
                             maskSet=(VideoMaskSetInfo(edge['videomasks']) if (
-                                'videomasks' in edge and len(edge['videomasks']) > 0) else None))
+                                'videomasks' in edge and len(edge['videomasks']) > 0) else None),
+                            category=op.category,
+                            generateMask=op.generateMask)
 
     def getSemanticGroups(self, start, end):
         edge = self.getGraph().get_edge(start, end)

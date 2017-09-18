@@ -29,7 +29,7 @@ def operation():
           'name': 'SelectRegion',
           'description':'Select a region to crop',
           'software':'OpenCV',
-          'version':cv2.__version__,
+          'version':'2.4.13',
           'arguments':{'percentage_width':
                            {'type': "float[0:0.5]", 'description':'the percentage of pixels to remove horizontal'},
                        'percentage_height':

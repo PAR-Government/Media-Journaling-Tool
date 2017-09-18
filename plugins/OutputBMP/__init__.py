@@ -27,7 +27,7 @@ def operation():
             'category':'Output',
             'description':'Output as BMP and copy metadata, if supplied.',
             'software':'maskgen',
-            'version':'04',
+            'version':'0.4',
             'arguments':{
                 'donor':{
                     'type':'donor',

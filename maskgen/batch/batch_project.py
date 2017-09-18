@@ -352,6 +352,8 @@ class BaseSelectionOperation(BatchOperation):
 
 
 class BaseAttachmentOperation(BatchOperation):
+    logger = logging.getLogger('maskgen')
+
     def execute(self, graph, node_name, node, connect_to_node_name, local_state={}, global_state={}):
         """
         Represent the attachment node, attaching its name to the graph
@@ -371,6 +373,8 @@ class BaseAttachmentOperation(BatchOperation):
         @rtype: scenario_model.ImageProjectModel
         """
         getNodeState(node_name, local_state)['node'] = local_state['start node name']
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Thread {} attaching to node {}'.format(currentThread().getName(), local_state['start node name']))
         return local_state['model']
 
 
@@ -419,7 +423,8 @@ class PluginOperation(BatchOperation):
             args['experiment_id'] = node['experiment_id']
         args['skipRules'] = True
         args['sendNotifications'] = False
-        self.logger.debug('Thread {} Execute plugin {} on {} with {}'.format(currentThread().getName(),
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Thread {} Execute plugin {} on {} with {}'.format(currentThread().getName(),
                                                                              plugin_name,
                                                                              filename,
                                                                              str(args)))
@@ -429,6 +434,11 @@ class PluginOperation(BatchOperation):
         my_state['node'] = pairs[0][1]
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                self.logger.debug('Thread {} project {} connect {} to {}'.format(currentThread().getName(),
+                                                                                 local_state['model'].getName(),
+                                                                                 predecessor,
+                                                                                 node_name))
             local_state['model'].connect(my_state['node'],
                                          sendNotifications=False,
                                          skipDonorAnalysis='skip_donor_analysis' in node and node[
@@ -501,6 +511,11 @@ class InputMaskPluginOperation(PluginOperation):
         params = {}
         kwargs = {k: self.resolveDonor(k, v, local_state) for k, v in kwargs.iteritems()}
         try:
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                    self.logger.debug('Thread {} calling plugin {} for {} with args {}'.format(currentThread().getName(),
+                                                                                        filter,
+                                                                                        filename,
+                                                                                       str(kwargs)))
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
@@ -620,10 +635,13 @@ class BatchProject:
                         'count': None,
                         'permutegroupsmanager': PermuteGroupManager(dir=project.get_dir())
                         }
+        self.logger.info('Thread {} building project {} with local state'.format(currentThread().getName(),
+                                                                                   project.getName()))
         local_state = self._buildLocalState()
         mydata = local()
         mydata.current_local_state = local_state
-        self.logger.info('Thread {} building project with global state: {} '.format(currentThread().getName(),
+        self.logger.info('Thread {} building project {} with global state: {} '.format(currentThread().getName(),
+                                                                                       project.getName(),
                                                                                     str(global_state)))
         local_state['model'] = project
         base_node = self._findBase()
@@ -646,6 +664,7 @@ class BatchProject:
                                       if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
 
                     connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
+                    self.logger.debug('{} Starting: {}'.format(currentThread().getName(), op_node_name))
                     self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                     completed.append(op_node_name)
                     self.logger.debug('{} Completed: {}'.format(currentThread().getName(), op_node_name))
@@ -696,7 +715,8 @@ class BatchProject:
                     connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                 completed.append(op_node_name)
-                self.logger.debug('{} Completed: {}'.format(currentThread().getName(), op_node_name))
+                if (self.logger.isEnabledFor(logging.DEBUG)):
+                    self.logger.debug('{} Completed: {}'.format(currentThread().getName(), op_node_name))
                 queue.extend(self.G.successors(op_node_name))
             if recompress:
                 self.logger.debug("Run Save As")
@@ -810,7 +830,8 @@ class BatchProject:
         @rtype: maskgen.scenario_model.ImageProjectModel
         """
         try:
-            self.logger.debug('_execute_node {}  by {} connect to {}'.format(node_name, currentThread().getName(),
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                self.logger.debug('_execute_node {}  by {} connect to {}'.format(node_name, currentThread().getName(),
                                                                              str(connect_to_node_name)))
             return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G,
                                                                                node_name,
@@ -831,6 +852,7 @@ def getBatch(jsonFile, loglevel=50):
     """
     FORMAT = '%(asctime)-15s %(message)s'
     logging.basicConfig(format=FORMAT, level=50 if loglevel is None else int(loglevel))
+    logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
     return loadJSONGraph(jsonFile)
 
 

@@ -100,6 +100,9 @@ class Operation:
         self.groupedCategories = groupedCategories
         self.maskTransformFunction = maskTransformFunction
 
+    def recordMaskInComposite(self):
+        return 'yes' if self.includeInMask else 'no'
+
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
                 funcName = self.compareparameters['convert_function']
