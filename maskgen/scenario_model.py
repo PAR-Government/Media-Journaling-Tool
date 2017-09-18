@@ -134,15 +134,6 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
     return model, not existingProject
 
 
-def constructCompositesGivenProbes(probes):
-    """
-
-    :param probes:
-    :return:
-    @type probes: list of Probe
-    """
-
-
 class MetaDiff:
     diffData = None
 

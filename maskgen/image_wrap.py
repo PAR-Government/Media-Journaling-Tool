@@ -9,6 +9,8 @@ from cachetools import cached
 from threading import RLock
 import logging
 import os
+import png
+import exif
 
 image_lock = RLock()
 image_cache = LRUCache(maxsize=24)
@@ -39,6 +41,27 @@ def openRaw(filename, isMask=False, args=None):
     try:
         import rawpy
         with rawpy.imread(filename) as raw:
+            if args is not None and 'Bits per Channel' in args:
+                bits = int(args['Bits per Channel'])
+            else:
+                bits = 8
+            use_camera_wb = args is not None and \
+                            'White Balance' in args and \
+                            args['White Balance'] == 'camera'
+            use_auto_wb = args is not None and \
+                            'White Balance' in args and \
+                            args['White Balance'] == 'auto'
+            colorspace=rawpy.ColorSpace.raw
+            if args is not None and 'Color Space' in args:
+                v = args['Color Space']
+                cs_mapping = {'Adobe': rawpy.ColorSpace.Adobe,
+                           'sRGB': rawpy.ColorSpace.sRGB,
+                           'XYZ': rawpy.ColorSpace.XYZ,
+                           'Wide': rawpy.ColorSpace.Wide,
+                           'ProPhoto': rawpy.ColorSpace.ProPhoto,
+                           'default': rawpy.ColorSpace.raw
+                            }
+                colorspace = cs_mapping[v]
             if args is not None and 'Demosaic Algorithm' in args and  args['Demosaic Algorithm'] != 'default':
                 v = args['Demosaic Algorithm']
                 mapping = {'AAHD':rawpy.DemosaicAlgorithm.AAHD,
@@ -53,9 +76,19 @@ def openRaw(filename, isMask=False, args=None):
                            'LINEAR': rawpy.DemosaicAlgorithm.LINEAR,
                            'VCD_MODIFIED_AHD':rawpy.DemosaicAlgorithm.VCD_MODIFIED_AHD,
                            'VNG': rawpy.DemosaicAlgorithm.VNG }
-                return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v]), to_mask=isMask)
-            return ImageWrapper(raw.postprocess(), to_mask=isMask)
-    except:
+                return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v],
+                                                    output_bps=bits,
+                                                    use_camera_wb=use_camera_wb,
+                                                    use_auto_wb=use_auto_wb,
+                                                    output_color=colorspace), to_mask=isMask)
+
+
+            return ImageWrapper(raw.postprocess(output_bps=bits,
+                                                use_camera_wb=use_camera_wb,
+                                                use_auto_wb=use_auto_wb,
+                                                output_color=colorspace), to_mask=isMask)
+    except Exception as e:
+        logging.getLogger('maskgen').error('Raw Open: ' + str(e))
         return None
 
 
@@ -152,6 +185,22 @@ def defaultOpen(filename, isMask=False):
     return None if result.size == (0, 0) else result
 
 
+def readPNG(filename, isMask=False):
+    import itertools
+    with open(filename,'rb') as f:
+        exifdata = exif.getexif(filename)
+        if 'Bit Depth' in exifdata and exifdata['Bit Depth'] == '16':
+            pngdata = png.Reader(file=f).asDirect()
+            image_2d = np.vstack(itertools.imap(np.uint16, pngdata[2]))
+            image_3d = np.reshape(image_2d,
+                                     (pngdata[1], pngdata[0], image_2d.shape[1]/pngdata[0]))
+            result = ImageWrapper(image_3d, to_mask=isMask)
+        else:
+            im = Image.open(f)
+            im.load()
+            result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
+    return result
+
 def proxyOpen(filename, isMask=False):
     proxyname = getProxy(filename)
     if proxyname is not None:
@@ -160,7 +209,7 @@ def proxyOpen(filename, isMask=False):
 
 
 # openTiff supports raw files as well
-file_registry = [('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]), ('', [defaultOpen]),
+file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]), ('', [defaultOpen]),
                  ('', [openTiff]), ('', [proxyOpen])]
 file_write_registry = {}
 
@@ -355,8 +404,7 @@ class ImageWrapper:
         elif getFromWriterRegistry(self.mode.lower()):
             format = self.mode.lower()
         else:
-            format = 'PNG'
-        format = 'TIFF' if self.image_array.dtype == 'uint16' else format
+            format = 'TIFF' if self.image_array.dtype == 'uint16' else 'PNG'
         newargs = dict(kwargs)
         newargs['format'] = format
         img_array = self.image_array
@@ -374,7 +422,12 @@ class ImageWrapper:
                 Image.fromarray(img_array).save(filename, **newargs)
             return
         newargs.pop('format')
-        imsave(filename, self.image_array, **newargs)
+        if format == 'PNG' and self.image_array.dtype == 'uint16':
+            with open(filename, 'w') as f:
+                w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
+                w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
+        else:
+            imsave(filename, self.image_array, **newargs)
         if os.path.exists(filename):
             with image_lock:
                 image_cache[filename] = (self, os.stat(filename).st_mtime)

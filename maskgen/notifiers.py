@@ -16,7 +16,7 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
 
     notifiers = []
     def __init__(self,notifiers):
-        self.notifiers = notifiers
+        self.notifiers = [notifier for notifier in notifiers if notifier is not None]
 
     def update_journal_status(self, journalid, user, comment, typeofjournal):
         ok  = True
@@ -42,10 +42,19 @@ class CompositeMaskgenNotifer(MaskgenNotifer):
 
 
 def getNotifier(loader):
+    import logging
     """
     Get notifiers attached to entry point maskgen_notifiers
     :param loader:
     :return:
     @type loader: MaskGenLoader
     """
-    return CompositeMaskgenNotifer([entry_point.load()(loader) for entry_point in iter_entry_points(group='maskgen_notifiers', name=None)])
+    def loadEntryPoint(entry_point, loader):
+        try:
+            p = entry_point.load()(loader)
+            logging.getLogger('maskgen').info('loaded ' +str(entry_point))
+            return p
+        except Exception as e:
+            logging.getLogger('maskgen').error('Cannot load ' + str(entry_point) + ': ' + str(e))
+
+    return CompositeMaskgenNotifer([loadEntryPoint(entry_point,loader) for entry_point in iter_entry_points(group='maskgen_notifiers', name=None)])
