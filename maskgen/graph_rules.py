@@ -1072,7 +1072,7 @@ def checkForDonorWithRegion(op, graph, frm, to):
                     'purpose' in edge['arguments'] and edge['arguments']['purpose'] == 'blend':
         return None
     if not findOp(graph, donor, 'SelectRegion'):
-        return 'SelectRegion missing on path to donor'
+        return '[Warning] SelectRegion missing on path to donor'
     return None
 
 

@@ -155,11 +155,11 @@ class GroupFilterLoader:
     def getGroupNames(self):
         return self.groups.keys()
 
-    def _getOperation(self,name):
-        pluginOp =  plugins.getOperation(name)
+    def _getOperation(self,name, filter=True):
+        pluginOp =  plugins.getOperation(name) if filter else self.getOperation(name)
         return buildFilterOperation(pluginOp)
 
-    def _buildGroupOperation(self,grp, name):
+    def _buildGroupOperation(self,grp, name, filter=True):
         from functools import partial
         if grp is not None:
             includeInMask = False
@@ -171,7 +171,7 @@ class GroupFilterLoader:
             grp_categories = set()
             customFunctions = []
             ops = []
-            if not grp.isValid():
+            if filter and not grp.isValid():
                 return None
             for op in grp.filters:
                 operation = self._getOperation(op)
@@ -210,7 +210,7 @@ class GroupFilterLoader:
 
     def getOperation(self, name):
         grp = self.getGroup(name)
-        return self._buildGroupOperation(grp, name)
+        return self._buildGroupOperation(grp, name) if grp is not None else getOperation(name)
 
     def __init__(self):
         self.load()
@@ -328,6 +328,10 @@ class GroupOperationsLoader(GroupFilterLoader):
         for grp,v in self.groups.iteritems():
             p[grp] = v.getOperation()
         return p
+
+    def getOperation(self, name):
+        grp = self.getGroup(name)
+        return self._buildGroupOperation(grp, name, filter=False) if grp is not None else getOperation(name)
 
     def getOperations(self, startType, endType):
         cat = dict()

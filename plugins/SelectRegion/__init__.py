@@ -6,6 +6,7 @@ from skimage.restoration import denoise_tv_bregman
 from skimage.segmentation import felzenszwalb
 import math
 from random import choice, randint
+from maskgen import cv2api
 
 """
 Select region from the image.
@@ -52,7 +53,7 @@ def transform(img, source, target, **kwargs):
     for label in unique_labels:
         mask = numpy.zeros(gray.shape, dtype="uint8")
         mask[segments_fz == label] = 255
-        cnts.extend(cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+        cnts.extend(cv2api.findContours(mask.copy(), cv2.RETR_EXTERNAL,
                                      cv2.CHAIN_APPROX_SIMPLE)[-2])
 
     areas = [(cnt, cv2.contourArea(cnt)) for cnt in cnts]

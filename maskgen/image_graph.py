@@ -768,7 +768,7 @@ class ImageGraph:
         if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
         versionlen = min(8, len(self.G.graph['igversion']))
-        if self.G.graph['igversion'][0:versionlen] > igversion[0:versionlen]:
+        if self.G.graph['igversion'][0:versionlen] > igversion[0:versionlen] and self.G.graph['igversion'][1] == '.':
             logging.getLogger('maskgen').error('UPGRADE JOURNALING TOOL!')
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']
