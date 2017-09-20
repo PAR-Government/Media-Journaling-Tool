@@ -22,7 +22,7 @@ class CV2ApiV2(CV2Api):
     def __init__(self):
         CV2Api.__init__(self)
         self.prop_pos_msec = cv2.cv.CV_CAP_PROP_POS_MSEC
-        self.prop_buffer_size = cv2.cv.CV_CAP_PROP_BUFFERSIZE
+        #self.prop_buffer_size = cv2.cv.CV_CAP_PROP_BUFFERSIZE
         self.prop_frame_height = cv2.cv.CV_CAP_PROP_FRAME_HEIGHT
         self.prop_frame_width = cv2.cv.CV_CAP_PROP_FRAME_WIDTH
         self.prop_fps = cv2.cv.CV_CAP_PROP_FPS
@@ -49,7 +49,7 @@ class CV2ApiV3(CV2Api):
     def __init__(self):
         CV2Api.__init__(self)
         self.prop_pos_msec = cv2.CAP_PROP_POS_MSEC
-        self.prop_buffer_size = cv2.CAP_PROP_BUFFERSIZE
+        #self.prop_buffer_size = cv2.CAP_PROP_BUFFERSIZE
         self.prop_frame_height = cv2.CAP_PROP_FRAME_HEIGHT
         self.prop_frame_width = cv2.CAP_PROP_FRAME_WIDTH
         self.prop_fps = cv2.CAP_PROP_FPS
