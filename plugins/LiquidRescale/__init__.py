@@ -1,29 +1,43 @@
 from __future__ import division
 from maskgen.image_wrap import ImageWrapper,openImageFile
 import subprocess
+import platform
+import os
+import logging
 
 """
 Convert donor to png and resize to fit source dimensions
 using Liquid Rescale plugin of GIMP.
 """
+gimpfile = os.getenv('MASKGEN_GIMP')
+if gimpfile is None:
+    if "Darwin" in platform.platform():
+        gimpfile = "DYLD_LIBRARY_PATH=/Applications/GIMP.app/Contents/Resources/lib:$DYLD_LIBRARY_PATH /Applications/GIMP.app/Contents/MacOS/GIMP-bin"
+    else:
+        gimpfile = "gimp-2.8"
 
-gimpfile = "gimp-2.8"
-quitstring = '"(gimp-quit 0)"'
-
+lqr_command = "batch-gimp-lqr"
 
 def resizeUsingLQR(fpn, sizeNew):
     # Compose command line string that calls GIMP plugin Liquid Rescale
-    commandLineInterior = '{} -i -f -b (batch-gimp-lqr {} {} {})' -b
-    commandLineInterior += '\\\" ' + sizeNew[0].__str__() + ' ' + sizeNew[1].__str__()
-    commandLineInterior += ' \\"\\"\\"\\"\\"\\")\"'
-    LQRCommandLine = [gimpfile, '-i', '-f', '-b', commandLineInterior, '-b', quitstring]
-    subprocess.call(" ".join(LQRCommandLine), shell=True)
+    lqrCommandLine = [gimpfile,
+                           "-i",
+                           "-f",
+                           "-b",
+                           "\"({} \\\"{}\\\" {} {})\"".format(lqr_command, fpn, str(sizeNew[0]),str(sizeNew[1])),
+                           "-b",
+                           "\"(gimp-quit -0)\""]
+    pcommand= subprocess.Popen(" ".join(lqrCommandLine), shell=True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    stdout, stderr = pcommand.communicate()
+    if stderr is not None and 'Error' in stderr:
+        logging.getLogger('maskgen').error(stderr)
+        raise IOError('Failed to execute plugin')
+
 
 
 def valtestExcludeSameSize(sizSource=(0, 0), sizDonor=(0, 0)):
     if sizSource == sizDonor:
         raise ValueError('LQR images are the same size')
-
 
 def valtestExcludeSizeNotWithinPercent(sizSource=(0, 0), sizDonor=(0, 0), nPercent=20):
     if abs((sizSource[0] - sizDonor[0]) / sizSource[0]) > nPercent / 100.0:
