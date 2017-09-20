@@ -476,12 +476,16 @@ def _processFileMeta(stream):
 
 def getFileMeta(file):
     ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
-    stdout,stderr = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE).communicate()
-    if stderr is not None:
-        meta = _processFileMeta(stderr)
-    if stdout is not None:
-        meta.extend(_processFileMeta(stdout))
-    return meta
+    try:
+        stdout,stderr = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE).communicate()
+        if stderr is not None:
+            meta = _processFileMeta(stderr)
+        if stdout is not None:
+            meta.extend(_processFileMeta(stdout))
+        return meta
+    except Exception as e:
+        logging.getLogger('maskgen').error('FFMPEG error (is it installed?): ' + str(e))
+    return {}
 
 def millisec2time(millisec):
     ''' Convert milliseconds to 'HH:MM:SS.FFF' '''
@@ -564,9 +568,11 @@ def md5offile(filename,raiseError=True):
             raise e
         return ''
 
-def shortenName(name, postfix):
+def shortenName(name, postfix,id = None):
     import hashlib
     middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])
+    if id is not None:
+        middle = middle + '_' + str(id)
     return hashlib.md5(name+postfix).hexdigest() + '_' +  middle + '_' + postfix
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):

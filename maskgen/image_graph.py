@@ -836,9 +836,10 @@ class ImageGraph:
             self.filesToRemove.clear()
 
     def nextId(self):
-        self.idc += 1
-        self.G.graph['idcount'] = self.idc
-        return self.idc
+        with self.lock:
+            self.idc += 1
+            self.G.graph['idcount'] = self.idc
+            return self.idc
 
     def _copy_contents(self, currentdir):
         def moveFile(newdir, currentdir, name):

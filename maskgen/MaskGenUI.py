@@ -1060,7 +1060,7 @@ class MakeGenUI(Frame):
         self.vscrollbar.grid(row=0, column=1, sticky=N + S)
         self.hscrollbar.grid(row=1, column=0, sticky=E + W)
         self.canvas = MaskGraphCanvas(mframe, self.uiProfile, self.scModel, self.graphCB, width=768, height=512,
-                                      scrollregion=(0, 0, 10000, 10000), yscrollcommand=self.vscrollbar.set,
+                                      scrollregion=(0, 0, 20000, 20000), yscrollcommand=self.vscrollbar.set,
                                       xscrollcommand=self.hscrollbar.set)
         self.canvas.grid(row=0, column=0, sticky=N + S + E + W)
         self.vscrollbar.config(command=self.canvas.yview)

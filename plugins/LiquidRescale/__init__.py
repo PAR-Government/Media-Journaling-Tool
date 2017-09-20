@@ -24,7 +24,7 @@ def resizeUsingLQR(fpn, sizeNew):
                            "-i",
                            "-f",
                            "-b",
-                           "\"({} \\\"{}\\\" {} {})\"".format(lqr_command, fpn, str(sizeNew[0]),str(sizeNew[1])),
+                           "\"({} \\\"{}\\\" {} {})\"".format(lqr_command, fpn.replace("\\","\\\\"), str(sizeNew[0]),str(sizeNew[1])),
                            "-b",
                            "\"(gimp-quit -0)\""]
     pcommand= subprocess.Popen(" ".join(lqrCommandLine), shell=True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -64,7 +64,7 @@ def transform(img, source, target, **kwargs):
 def operation():
     return {'name': 'TransformSeamCarving',
             'category': 'Transform',
-            'description': 'Resize donor to size of Input using LQR',
+            'description': 'Resize donor to size of Input using LQR. Requires GIMP.  Set environment variable MASKGEN_GIMP to the gimp binary',
             'software': 'GIMP',
             'version': '2.8.20',
             'arguments': {
