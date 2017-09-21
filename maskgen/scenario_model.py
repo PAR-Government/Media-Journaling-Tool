@@ -1108,7 +1108,7 @@ class ImageProjectModel:
                             logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
                     target_mask_filename = os.path.join(self.get_dir(),
                                                         shortenName(edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId,
-                                                                    '_ps.png'),id=self.G.nextId())
+                                                                    '_ps.png',id=self.G.nextId()))
                     target_mask.save(target_mask_filename, format='PNG')
                     self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
                                                      target_mask_filename, edge_id[1], level, donors)
