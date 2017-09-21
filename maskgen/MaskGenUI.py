@@ -625,6 +625,12 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             self._open_project(fetchbyS3URL(val))
 
+    def installPluginFromS3(self):
+        val = tkSimpleDialog.askstring("S3 File URL", "URL",
+                                       initialvalue='')
+        if (val is not None and len(val) > 0):
+            plugins.installPlugin(fetchbyS3URL(val))
+
     def fetchS3(self):
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
@@ -909,6 +915,7 @@ class MakeGenUI(Frame):
         filemenu.add_separator()
         filemenu.add_cascade(label="Export", menu=exportmenu)
         filemenu.add_command(label="Fetch Meta-Data(S3)", command=self.fetchS3)
+        filemenu.add_command(label="Fetch Plugin from S3",command=self.installPluginFromS3)
         filemenu.add_command(label="Build Plugin...", command=self.pluginbuilder)
         filemenu.add_command(label="Filter Group Manager", command=self.groupmanager)
         filemenu.add_command(label="Operations Group Manager", command=self.operationsgroupmanager)
@@ -1053,7 +1060,7 @@ class MakeGenUI(Frame):
         self.vscrollbar.grid(row=0, column=1, sticky=N + S)
         self.hscrollbar.grid(row=1, column=0, sticky=E + W)
         self.canvas = MaskGraphCanvas(mframe, self.uiProfile, self.scModel, self.graphCB, width=768, height=512,
-                                      scrollregion=(0, 0, 10000, 10000), yscrollcommand=self.vscrollbar.set,
+                                      scrollregion=(0, 0, 20000, 20000), yscrollcommand=self.vscrollbar.set,
                                       xscrollcommand=self.hscrollbar.set)
         self.canvas.grid(row=0, column=0, sticky=N + S + E + W)
         self.vscrollbar.config(command=self.canvas.yview)

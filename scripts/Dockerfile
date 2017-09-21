@@ -91,7 +91,7 @@ RUN ./configure --prefix="/usr/local" --disable-examples --disable-unit-tests &&
 RUN make install &&  make clean
 
 WORKDIR ..
-RUN wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 && tar xjvf ffmpeg-snapshot.tar.bz2
+RUN wget http://ffmpeg.org/releases/ffmpeg-3.2.8.tar.bz2  && tar xjvf ffmpeg-3.2.8.tar.bz2
 WORKDIR ffmpeg
 ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 RUN CFLAGS=-fPIC ./configure \

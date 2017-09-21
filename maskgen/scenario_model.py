@@ -1108,7 +1108,7 @@ class ImageProjectModel:
                             logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
                     target_mask_filename = os.path.join(self.get_dir(),
                                                         shortenName(edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId,
-                                                                    '_ps.png'))
+                                                                    '_ps.png'),id=self.G.nextId())
                     target_mask.save(target_mask_filename, format='PNG')
                     self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
                                                      target_mask_filename, edge_id[1], level, donors)
@@ -1204,7 +1204,7 @@ class ImageProjectModel:
         a donor link
         """
         if self.G.has_node(recipientNode):
-            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png')
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png',id=self.G.nextId())
             try:
                 mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
             except IOError:
@@ -1726,7 +1726,7 @@ class ImageProjectModel:
                           skipDonorAnalysis=False,
                           analysis_params={}):
         try:
-            maskname = shortenName(self.start + '_' + destination, '_mask.png')
+            maskname = shortenName(self.start + '_' + destination, '_mask.png',id=self.G.nextId())
             if mod.inputMaskName is not None:
                 mod.arguments['inputmaskname'] = mod.inputMaskName
             mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,

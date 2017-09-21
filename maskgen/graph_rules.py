@@ -750,11 +750,14 @@ def checkSameChannels(op, graph, frm, to):
     """
     vidBefore = graph.get_image_path(frm)
     vidAfter = graph.get_image_path(to)
+    if fileType(vidAfter) == 'image' or fileType(vidBefore) == 'image':
+        return
     metaBefore = getFileMeta(vidBefore)
     metaAfter = getFileMeta(vidAfter)
     if len(metaBefore) != len(metaAfter):
         return 'change in the number of streams occurred'
-
+    if len(metaBefore) == 0:
+        return 'streams are not detected or missing'
 
 def checkHasVideoChannel(op,graph, frm, to):
     """
