@@ -984,7 +984,8 @@ def formMaskDiff(fileOne,
                  alternateFunction=None,
                  arguments= {}):
     preferences = MaskGenLoader()
-    diffPref = preferences.get_key('vid_diff')
+    diffPref = preferences.get_key('video compare')
+    diffPref = arguments['video compare'] if 'video compare' in arguments else diffPref
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
     result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager,alternateFunction=alternateFunction,arguments=arguments)
     analysis['startframe'] = time_manager.getStartFrame()
@@ -1093,7 +1094,7 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
     if alternateFunction is not None:
         return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments)
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
-    if opFunc == addChange and (diffPref is None or diffPref == '2'):
+    if opFunc == addChange and (diffPref is None or diffPref in ['2','ffmpeg']):
         return _formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName,time_manager)
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2api_delegate.videoCapture(fileOne)

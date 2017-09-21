@@ -2,7 +2,7 @@ from software_loader import getOperations, SoftwareLoader, getProjectProperties,
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, IntObject, getFileMeta, mergeColorMask, \
-    maskToColorArray, maskChangeAnalysis
+    maskToColorArray, maskChangeAnalysis, openImage
 import new
 from types import MethodType
 import numpy
@@ -420,7 +420,9 @@ def check_masks(edge, op, graph, frm, to):
         return ["Input mask file {} is missing".format(inputmasknanme)]
     if inputmasknanme is not None and len(inputmasknanme) > 0 and \
             os.path.exists(os.path.join(graph.dir, inputmasknanme)):
-        inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme))
+        if fileType(os.path.join(graph.dir, inputmasknanme)) == 'audio':
+            return
+        inputmask = openImage(os.path.join(graph.dir, inputmasknanme))
         if inputmask is None:
             return ["Input mask file {} is missing".format(inputmasknanme)]
         inputmask = inputmask.to_mask().to_array()
