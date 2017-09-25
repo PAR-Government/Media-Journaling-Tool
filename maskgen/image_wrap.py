@@ -11,6 +11,7 @@ import logging
 import os
 import png
 import exif
+from numpngw import write_png
 
 image_lock = RLock()
 image_cache = LRUCache(maxsize=24)
@@ -423,9 +424,10 @@ class ImageWrapper:
             return
         newargs.pop('format')
         if format == 'PNG' and self.image_array.dtype == 'uint16':
-            with open(filename, 'w') as f:
-                w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
-                w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
+            write_png(filename,self.image_array)
+            #with open(filename, 'w') as f:
+            #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
+            #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
         else:
             imsave(filename, self.image_array, **newargs)
         if os.path.exists(filename):
