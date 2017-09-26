@@ -2,7 +2,7 @@ from Tkinter import *
 import ttk
 import tkMessageBox
 from maskgen import image_wrap
-from group_filter import GroupFilter, GroupFilterLoader
+from group_filter import GroupFilterLoader
 import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
@@ -15,7 +15,7 @@ import numpy as np
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
-from group_filter import getOperationWithGroups,getOperationsByCategoryWithGroups,getCategoryForOperation
+from group_filter import GroupOperationsLoader
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import  Chord, Accordion
@@ -23,9 +23,19 @@ from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
 
 
-def checkMandatory(operationName, sourcefiletype, targetfiletype, argvalues):
+def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
+    """
+
+    :param grpLoader:
+    :param operationName:
+    :param sourcefiletype:
+    :param targetfiletype:
+    :param argvalues:
+    :return:
+    @type grpLoader: GroupOperationsLoader
+    """
     ok = True
-    op = getOperationWithGroups(operationName,fake=True)
+    op = grpLoader.getOperationWithGroups(operationName,fake=True)
     for k, v in op.mandatoryparameters.iteritems():
         if 'source' in v and v['source'] != sourcefiletype:
             continue
@@ -259,10 +269,18 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     return res
 
 
-def getCategory(mod):
+def getCategory(grpLoader,mod):
+    """
+
+    :param grpLoader:
+    :param mod:
+    :return:
+     @type grpLoader: GroupOperationsLoader
+     @mod mod: Operation
+    """
     if mod.category is not None and len(mod.category) > 0:
         return mod.category
-    return getCategoryForOperation(mod.operationName)
+    return grpLoader.getCategoryForOperation(mod.operationName)
 
 def tupletostring(tuple):
     strv = ''
@@ -431,7 +449,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.argBox.grid_propagate(1)
 
     def newcommand(self, event):
-        op = getOperationWithGroups(self.e2.get())
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
         self.arginfo = []
         if op is not None:
             for k, v in op.mandatoryparameters.iteritems():
@@ -451,7 +469,7 @@ class DescriptionCaptureDialog(Toplevel):
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def organizeOperationsByCategory(self):
-        return getOperationsByCategoryWithGroups(self.sourcefiletype, self.targetfiletype)
+        return self.scModel.getGroupOperationLoader().getOperationsByCategoryWithGroups(self.sourcefiletype, self.targetfiletype)
 
     def newcategory(self, event):
         opByCat = self.organizeOperationsByCategory()
@@ -557,7 +575,7 @@ class DescriptionCaptureDialog(Toplevel):
             if (self.description.inputMaskName is not None):
                 self.inputMaskName = self.description.inputMaskName
             if self.description.operationName is not None and len(self.description.operationName) > 0:
-                selectCat = getCategory(self.description)
+                selectCat = getCategory(self.scModel.getGroupOperationLoader(),self.description)
                 self.e1.set_completion_list(catlist, initialValue=selectCat)
                 oplist = cats[selectCat] if selectCat in cats else []
                 self.e2.set_completion_list(oplist, initialValue=self.description.operationName)
@@ -598,7 +616,7 @@ class DescriptionCaptureDialog(Toplevel):
             cv,error = checkValue(k,info['type'],v)
             if v is not None and cv is None:
                 ok = False
-        ok &= checkMandatory(self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
+        ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
         return ok
 
     def buttonbox(self):
@@ -628,7 +646,7 @@ class DescriptionCaptureDialog(Toplevel):
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def help(self):
-        op = getOperationWithGroups(self.e2.get())
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
         if op is not None:
             tkMessageBox.showinfo(op.name, op.description if op.description is not None and len(
                 op.description) > 0 else 'No description')
@@ -643,6 +661,7 @@ class DescriptionCaptureDialog(Toplevel):
 
     def apply(self):
         self.cancelled = False
+        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True))
         self.description.setOperationName(self.e2.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
@@ -803,6 +822,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         """
         self.dir = scModel.get_dir()
         self.parent = parent
+        self.scModel = scModel
         self.description = description if description is not None else Modification('', '')
         self.metadiff = metadiff
         tkSimpleDialog.Dialog.__init__(self, parent, name)
@@ -812,7 +832,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         Label(master, text="Operation:", anchor=W, justify=LEFT).grid(row=0, column=0, sticky=W)
         Label(master, text="Description:", anchor=W, justify=LEFT).grid(row=1, column=0, sticky=W)
         Label(master, text="Software:", anchor=W, justify=LEFT).grid(row=2, column=0, sticky=W)
-        Label(master, text=getCategory(self.description), anchor=W, justify=LEFT).grid(row=0, column=1, sticky=W)
+        Label(master, text=getCategory(self.scModel.getGroupOperationLoader(),self.description), anchor=W, justify=LEFT).grid(row=0, column=1, sticky=W)
         Label(master, text=self.description.operationName, anchor=W, justify=LEFT).grid(row=0, column=2, sticky=W)
         Label(master, text=self.description.additionalInfo, anchor=W, justify=LEFT).grid(row=1, column=1, columnspan=3,
                                                                                          sticky=W)
@@ -1002,10 +1022,10 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
     cancelled = True
     okButton = None
 
-    def __init__(self, parent,  groupFilterLoader,  scModel):
+    def __init__(self, parent, groupFilterLoader, scModel):
         im, filename = scModel.currentImage()
         self.gfl = groupFilterLoader
-        self.pluginOps = groupFilterLoader.getOperations(scModel.getStartType(),None)
+        self.pluginOps = self.gfl.getOperations(scModel.getStartType(),None)
         self.im = im
         self.dir = scModel.get_dir()
         self.parent = parent
@@ -1075,7 +1095,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
             cv, error = checkValue(k, info['type'], v)
             if v is not None and cv is None:
                 ok = False
-        ok &= checkMandatory(self.opvar.get(), self.sourcefiletype, self.sourcefiletype, self.argvalues)
+        ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.opvar.get(), self.sourcefiletype, self.sourcefiletype, self.argvalues)
         return ok
 
     def __buildTuple(self, argument, arginfo, operation):

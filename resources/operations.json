@@ -2541,7 +2541,8 @@
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [
-        "video.video"
+        "video.video",
+        "image.video"
       ]
     },
     {
@@ -2583,7 +2584,8 @@
       "includeInMask": false,
       "generateMask" : false,
       "transitions": [
-        "video.video"
+        "video.video",
+        "image.video"
       ]
     },
     {

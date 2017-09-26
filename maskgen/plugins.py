@@ -4,6 +4,7 @@ import os
 import json
 import subprocess
 import logging
+import tarfile
 
 """
 Manage and invoke all JT plugins that support operations on node media (images, video and audio)
@@ -12,6 +13,54 @@ Manage and invoke all JT plugins that support operations on node media (images, 
 MainModule = "__init__"
 
 loaded = None
+
+def installPlugin(zippedFile):
+    global loaded
+    def extract_archive(fname, dir):
+        try:
+            archive = tarfile.open(fname, "r:gz", errorlevel=2)
+        except Exception as e:
+            try:
+                archive = tarfile.open(fname, "r", errorlevel=2)
+            except Exception as e:
+                if archive is not None:
+                    archive.close()
+                logging.getLogger('maskgen').critical(
+                    "Cannot open archive {}; it may be corrupted ".format(fname))
+                logging.getLogger('maskgen').error(str(e))
+                return []
+        pluginnames = set([name.split('/')[0] for name in archive.getnames()])
+        archive.extractall(dir)
+        archive.close()
+        return list(pluginnames)
+
+    pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
+    pluginFolders.extend([os.path.join(x, 'plugins') for x in sys.path if 'maskgen' in x])
+    for folder in pluginFolders:
+        if os.path.exists(folder):
+            for name in  extract_archive(zippedFile, folder):
+                location = os.path.join(folder, name)
+                info = _findPluginModule(location)
+                if info is not None:
+                    _loadPluginModule(info,name,loaded)
+            break
+
+def _loadPluginModule(info,name,loaded):
+    logging.getLogger('maskgen').info("Loading plugin " + name)
+    try:
+        plugin = imp.load_module(MainModule, *info)
+        op = plugin.operation()
+        loaded[name] = {}
+        loaded[name]['function'] = plugin.transform
+        loaded[name]['operation'] = op
+        loaded[name]['suffix'] = plugin.suffix() if hasattr(plugin, 'suffix') else None
+    except Exception as e:
+        logging.getLogger('maskgen').error("Failed loading plugin " + name + ": " + str(e))
+
+def _findPluginModule(location):
+    if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
+        return None
+    return imp.find_module(MainModule, [location])
 
 def getPlugins():
     plugins = {}
@@ -28,19 +77,16 @@ def getPlugins():
                 if i == 'Custom':
                     continue
                 location = os.path.join(folder, i)
-                if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
-                    continue
-                info = imp.find_module(MainModule, [location])
-                plugins[i] = {"info": info}
+                mod = _findPluginModule(location)
+                if mod is not None:
+                   plugins[i] = {"info": mod}
+
 
             for j in customplugins:
                 location = os.path.join(folder, 'Custom', j)
                 plugins[os.path.splitext(j)[0]] = {"custom": location}
-
     return plugins
 
-def loadPlugin(plugin):
-    return imp.load_module(plugin['name'], *plugin["info"])
 
 def loadCustom(plugin, path):
     """
@@ -48,15 +94,19 @@ def loadCustom(plugin, path):
     """
     global loaded
     logging.getLogger('maskgen').info("Loading plugin " + plugin)
-    with open(path) as jfile:
-        data = json.load(jfile)
-    loaded[plugin] = {}
-    loaded[plugin]['function'] = 'custom'
-    loaded[plugin]['operation'] = data['operation']
-    loaded[plugin]['command'] = data['command']
-    loaded[plugin]['group'] = None
-    loaded[plugin]['mapping'] = data['mapping'] if 'mapping' in data else None
-    loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
+    try:
+        with open(path) as jfile:
+            data = json.load(jfile)
+        loaded[plugin] = {}
+        loaded[plugin]['function'] = 'custom'
+        loaded[plugin]['operation'] = data['operation']
+        loaded[plugin]['command'] = data['command']
+        loaded[plugin]['group'] = None
+        loaded[plugin]['mapping'] = data['mapping'] if 'mapping' in data else None
+        loaded[plugin]['suffix'] = data['suffix'] if 'suffix' in data else None
+    except Exception as e:
+        logging.getLogger('maskgen').error("Failed to load plugin {}: {} ".format(plugin, str(e)))
+
 
 def loadPlugins():
    global loaded
@@ -70,13 +120,7 @@ def loadPlugins():
           path = ps[i]['custom']
           loadCustom(i, path)
       else:
-          logging.getLogger('maskgen').info("Loading plugin " + i)
-          plugin = imp.load_module(MainModule, *ps[i]["info"])
-          loaded[i] = {}
-          loaded[i]['function'] = plugin.transform
-          loaded[i]['operation'] = plugin.operation()
-          # loaded[i]['arguments'] = plugin.args()
-          loaded[i]['suffix'] = plugin.suffix() if hasattr(plugin,'suffix') else None
+          _loadPluginModule(ps[i]['info'],i,loaded)
    return loaded
 
 def getOperations(fileType=None):

@@ -100,6 +100,9 @@ class Operation:
         self.groupedCategories = groupedCategories
         self.maskTransformFunction = maskTransformFunction
 
+    def recordMaskInComposite(self):
+        return 'yes' if self.includeInMask else 'no'
+
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
                 funcName = self.compareparameters['convert_function']
@@ -396,6 +399,8 @@ class SoftwareLoader:
 
     def get_names(self, software_type):
         global metadataLoader
+        if software_type is None:
+            return []
         return list(metadataLoader.softwareset[software_type].keys())
 
     def get_versions(self, name, software_type=None, version=None):

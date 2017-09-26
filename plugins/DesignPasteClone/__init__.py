@@ -37,7 +37,7 @@ def operation():
         'name': "PasteSampled",
         'description': 'Local Clone the pixels as indicated in the provided input mask to the location indicated',
         'software': 'OpenCV',
-        'version': cv2.__version__,
+        'version': '2.4.13',
         'arguments': {
             "purpose": {
                 "type": "list",
