@@ -547,7 +547,9 @@ def donor(edge, source, target, edgeMask,
           level=None,
           donorMask=None,
           pred_edges=None,
-          graph=None):
+          graph=None,
+          top=False
+          ):
     if compositeMask is not None:
         return compositeMask
     else:
