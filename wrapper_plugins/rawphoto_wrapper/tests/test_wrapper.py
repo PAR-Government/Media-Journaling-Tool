@@ -11,7 +11,19 @@ class TestToolSet(unittest.TestCase):
 
     def test_ref(self):
         ar, mode = opener.openRawFile('fujifilm_x_t1_20.raf')
-        self.assertEquals((ar.shape[0], ar.shape[1]), (4936, 3296))
+        self.assertEquals((ar.shape[0], ar.shape[1]), (3296,4934))
+        self.assertEquals(mode, 'RGB')
+
+    def test_ref_16(self):
+        import numpy
+        ar, mode = opener.openRawFile('fujifilm_x_t1_20.raf', args = {
+            'White Balance':'camera',
+            'Bits per Channel':'16',
+            'Color Space':'ProPhoto',
+            'Demosaic Algorithm':'LINEAR'
+        })
+        self.assertEquals((ar.shape[0], ar.shape[1]), (3296,4934))
+        self.assertEquals(ar.dtype, numpy.dtype('uint16'))
         self.assertEquals(mode, 'RGB')
 
 
