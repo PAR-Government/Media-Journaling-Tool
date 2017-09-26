@@ -55,6 +55,22 @@ class TestImageWrap(unittest.TestCase):
         wrapper.to_float()
         wrapper.to_rgb()
 
+    # raw file not checked in
+    def xtest_check_raw(self):
+        args = {'Bits per Channel':'16'}
+        res = image_wrap.openRaw(
+            'tests/images/e957166e3eb7fd535567fc478dc506d4.arw',
+            args=args)
+        if os.path.exists('test_16.png'):
+            os.remove('test_16.png')
+        res.save('test_16.png',format='PNG')
+        self.assertTrue(os.path.exists('test_16.png'))
+        image_wrap.deleteImage('test_16.png')
+        res1 = image_wrap.openImageFile('test_16.png')
+        self.assertTrue(res.image_array.shape == res1.image_array.shape)
+        self.assertTrue(np.all(res.image_array == res1.image_array))
+        os.remove('test_16.png')
+
     def check_save(self, wrapper,foarmat):
         fname = 'tests/images/foo.' + ('tif' if foarmat != 'PNG' else 'png')
         wrapper.save(fname, format=foarmat)

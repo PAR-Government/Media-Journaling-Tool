@@ -476,12 +476,16 @@ def _processFileMeta(stream):
 
 def getFileMeta(file):
     ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
-    stdout,stderr = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE).communicate()
-    if stderr is not None:
-        meta = _processFileMeta(stderr)
-    if stdout is not None:
-        meta.extend(_processFileMeta(stdout))
-    return meta
+    try:
+        stdout,stderr = Popen([ffmpegcommand, file], stdout=PIPE, stderr=PIPE).communicate()
+        if stderr is not None:
+            meta = _processFileMeta(stderr)
+        if stdout is not None:
+            meta.extend(_processFileMeta(stdout))
+        return meta
+    except Exception as e:
+        logging.getLogger('maskgen').error('FFMPEG error (is it installed?): ' + str(e))
+    return {}
 
 def millisec2time(millisec):
     ''' Convert milliseconds to 'HH:MM:SS.FFF' '''
@@ -519,7 +523,8 @@ def outputVideoFrame(filename,outputName=None,videoFrameTime=None,isMask=False):
     return openImage(outfilename,isMask=isMask)
 
 def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileName=None):
-    cap = cv2.VideoCapture(filename)
+    cap = cv2api.cv2api_delegate.videoCapture(filename)
+
     bestSoFar = None
     bestVariance = -1
     maxTry = 20
@@ -530,7 +535,7 @@ def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileNam
             if not ret:
                 break
             frame = np.roll(frame, 1, axis=-1)
-            elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            elapsed_time = cap.get(cv2api.cv2api_delegate.prop_pos_msec)
             time_manager.updateToNow(elapsed_time)
             if time_manager.isPastTime():
                 bestSoFar = frame
@@ -563,9 +568,11 @@ def md5offile(filename,raiseError=True):
             raise e
         return ''
 
-def shortenName(name, postfix):
+def shortenName(name, postfix,id = None):
     import hashlib
     middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])
+    if id is not None:
+        middle = middle + '_' + str(id)
     return hashlib.md5(name+postfix).hexdigest() + '_' +  middle + '_' + postfix
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
@@ -1035,16 +1042,11 @@ def __flannMatcher(d1, d2):
 def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), matcher=__flannMatcher):
     img1 = img1.to_rgb().apply_mask(mask1).to_array()
     img2 = img2.to_rgb().apply_mask(mask2).to_array()
-    detector = cv2.FeatureDetector_create("SIFT")
-    extractor = cv2.DescriptorExtractor_create("SIFT")
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
     maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
-    kp1a = detector.detect(img1)
-    kp2a = detector.detect(img2)
-
-    (kp1, d1) = extractor.compute(img1, kp1a)
-    (kp2, d2) = extractor.compute(img2, kp2a)
+    (kp1, d1) =cv2api.cv2api_delegate.computeSIFT(img1)
+    (kp2, d2) = cv2api.cv2api_delegate.computeSIFT(img2)
 
     if kp2 is None or len(kp2) == 0:
         return None
@@ -1655,7 +1657,7 @@ def __findBestMatch(big, small):
         small = newsmall
     if np.any(np.asarray([(x[1] - x[0]) for x in zip(small.shape, big.shape)]) < 0):
         return None
-    result = cv2.matchTemplate(big.astype('float32'), small.astype('float32'), cv2.cv.CV_TM_SQDIFF_NORMED)
+    result = cv2.matchTemplate(big.astype('float32'), small.astype('float32'), cv2api.cv2api_delegate.tm_sqdiff_normed)
     mn, _, mnLoc, _ = cv2.minMaxLoc(result)
     tuple = (mnLoc[1], mnLoc[0], mnLoc[1] + small.shape[0], mnLoc[0] + small.shape[1])
     if (tuple[2] > big.shape[0] or tuple[3] > big.shape[1]):
@@ -2386,7 +2388,7 @@ class GrayFrameWriter:
         elif t_codec is not None:
             self.codec = str(t_codec)
         print self.codec
-        self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec)
 
     def write(self, mask, mask_time):
         if self.capOut is None:

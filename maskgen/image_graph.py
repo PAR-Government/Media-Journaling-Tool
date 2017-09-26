@@ -344,6 +344,10 @@ class ImageGraph:
     def get_project_type(self):
         return self.G.graph['projecttype'] if 'projecttype' in self.G.graph else None
 
+
+    def set_project_type(self,projecttype):
+        self.G.graph['projecttype'] = projecttype
+
     def get_pathname(self, name):
         return os.path.join(self.dir, self.G.node[name]['file'])
 
@@ -764,7 +768,7 @@ class ImageGraph:
         if 'igversion' not in self.G.graph:
             self.G.graph['igversion'] = igversion
         versionlen = min(8, len(self.G.graph['igversion']))
-        if self.G.graph['igversion'][0:versionlen] > igversion[0:versionlen]:
+        if self.G.graph['igversion'][0:versionlen] > igversion[0:versionlen] and self.G.graph['igversion'][1] == '.':
             logging.getLogger('maskgen').error('UPGRADE JOURNALING TOOL!')
         if 'idcount' in self.G.graph:
             self.idc = self.G.graph['idcount']
@@ -832,9 +836,10 @@ class ImageGraph:
             self.filesToRemove.clear()
 
     def nextId(self):
-        self.idc += 1
-        self.G.graph['idcount'] = self.idc
-        return self.idc
+        with self.lock:
+            self.idc += 1
+            self.G.graph['idcount'] = self.idc
+            return self.idc
 
     def _copy_contents(self, currentdir):
         def moveFile(newdir, currentdir, name):

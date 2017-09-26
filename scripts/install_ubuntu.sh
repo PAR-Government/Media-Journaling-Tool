@@ -88,7 +88,7 @@ cd ./libvpx-1.6.0
 sudo make install &&  make clean
 
 cd ..
-wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 && tar xjvf ffmpeg-snapshot.tar.bz2
+wget http://ffmpeg.org/releases/ffmpeg-3.2.8.tar.bz2  && tar xjvf ffmpeg-3.2.8.tar.bz2 
 cd ffmpeg
 export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 export CFLAGS=-fPIC

@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 from subprocess import call, Popen, PIPE
 import os
 import json
@@ -9,6 +8,8 @@ import time
 from image_wrap import ImageWrapper
 from maskgen_loader import  MaskGenLoader
 import logging
+from cv2api import cv2api_delegate
+import cv2
 
 def otsu(hist):
     total = sum(hist)
@@ -66,7 +67,7 @@ def otsu(hist):
 #  return bottomRange,topRange
 
 def _buildHist(filename):
-    cap = cv2.VideoCapture(filename)
+    cap = cv2api_delegate.videoCapture(filename)
     hist = np.zeros(256).astype('int64')
     bins = np.asarray(range(257))
     pixelCount = 0.0
@@ -85,7 +86,7 @@ def _buildMasks(filename, histandcount):
     maskprefix = filename[0:filename.rfind('.')]
     histnorm = histandcount[0] / histandcount[1]
     values = np.where((histnorm <= 0.95) & (histnorm > (256 / histandcount[1])))[0]
-    cap = cv2.VideoCapture(filename)
+    cap = cv2api_delegate.videoCapture(filename)
     while (cap.isOpened()):
         ret, frame = cap.read()
         if not ret:
@@ -98,7 +99,7 @@ def _buildMasks(filename, histandcount):
             totalMatch += sum(sum(matches))
             result[matches] = 0
         if totalMatch > 0:
-            elapsed_time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            elapsed_time = cap.get(cv2api_delegate.prop_pos_msec)
             cv2.imwrite(maskprefix + '_mask_' + str(elapsed_time) + '.png', gray)
             break
     cap.release()
@@ -117,9 +118,9 @@ def buildMasksFromCombinedVideo(filename,time_manager):
     :param time_manager: tool_set.VidTimeManager
     :return:
     """
-    capIn = cv2.VideoCapture(filename)
+    capIn = cv2api_delegate.videoCapture(filename)
     capOut = tool_set.GrayBlockWriter(filename[0:filename.rfind('.')],
-                             capIn.get(cv2.cv.CV_CAP_PROP_FPS))
+                             capIn.get(cv2api_delegate.prop_fps))
     amountRead = 0
     try:
         ranges = []
@@ -142,7 +143,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
             if sample is None:
                 sample = np.ones(frame[:, :, 0].shape).astype('uint8')
                 baseline = np.ones(frame[:, :, 0].shape).astype('uint8') * 135
-            elapsed_time = capIn.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            elapsed_time = capIn.get(cv2api_delegate.prop_pos_msec)
             time_manager.updateToNow(elapsed_time)
             if time_manager.isBeforeTime():
                 continue
@@ -182,7 +183,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
                          'startframe':startFrame,
                          'endframe': time_manager.frameSinceBeginning,
                          'frames': count,
-                         'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS),
+                         'rate': capIn.get(cv2api_delegate.prop_fps),
                          'mask': sample,
                          'videosegment': os.path.split(capOut.filename)[1]})
                     capOut.release()
@@ -194,7 +195,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
                            'startframe': startFrame,
                            'endframe': time_manager.frameSinceBeginning,
                            'frames': count,
-                           'rate': capIn.get(cv2.cv.CV_CAP_PROP_FPS),
+                           'rate': capIn.get(cv2api_delegate.prop_fps),
                            'mask': sample,
                            'videosegment': os.path.split(capOut.filename)[1]})
             capOut.release()
@@ -886,7 +887,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             if not ret_one:
                 vidAnalysisComponents.vid_one.release()
                 break
-            end_time = vidAnalysisComponents.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            end_time = vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_pos_msec)
             vidAnalysisComponents.time_manager.updateToNow(end_time)
             diff = 0 if vidAnalysisComponents.frame_two is None else np.abs(frame_one - vidAnalysisComponents.frame_two)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_two.isOpened():
@@ -906,8 +907,8 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     :param ranges: collection of meta-data describing then range of add frames
     :return:
     """
-    frame_count_diff = vidAnalysisComponents.vid_one.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT) - \
-       vidAnalysisComponents.vid_two.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)
+    frame_count_diff = vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count) - \
+       vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_frame_count)
 
     diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
     if (__changeCount(vidAnalysisComponents.mask) > 0 and
@@ -926,7 +927,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             if not ret_two:
                 vidAnalysisComponents.vid_two.release()
                 break
-            end_time = vidAnalysisComponents.vid_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            end_time = vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_pos_msec)
             vidAnalysisComponents.time_manager.updateToNow(end_time)
 
             diff = 0 if vidAnalysisComponents.frame_one is None else np.abs(vidAnalysisComponents.frame_one - frame_two)
@@ -983,7 +984,8 @@ def formMaskDiff(fileOne,
                  alternateFunction=None,
                  arguments= {}):
     preferences = MaskGenLoader()
-    diffPref = preferences.get_key('vid_diff')
+    diffPref = preferences.get_key('video compare')
+    diffPref = arguments['video compare'] if 'video compare' in arguments else diffPref
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
     result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager,alternateFunction=alternateFunction,arguments=arguments)
     analysis['startframe'] = time_manager.getStartFrame()
@@ -1092,22 +1094,22 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
     if alternateFunction is not None:
         return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments)
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
-    if opFunc == addChange and (diffPref is None or diffPref == '2'):
+    if opFunc == addChange and (diffPref is None or diffPref in ['2','ffmpeg']):
         return _formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName,time_manager)
     analysis_components = VidAnalysisComponents()
-    analysis_components.vid_one = cv2.VideoCapture(fileOne)
-    analysis_components.vid_two = cv2.VideoCapture(fileTwo)
-    analysis_components.fps = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS)
+    analysis_components.vid_one = cv2api_delegate.videoCapture(fileOne)
+    analysis_components.vid_two = cv2api_delegate.videoCapture(fileTwo)
+    analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
     analysis_components.frame_one_mask = \
-        np.zeros((int(analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)),
-                  int(analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)))).astype('uint8')
+        np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
+                  int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
     analysis_components.frame_two_mask = \
-        np.zeros((int(analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)),
-                  int(analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)))).astype('uint8')
-    analysis_components.fps_one = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS)
-    analysis_components.fps_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_FPS)
+        np.zeros((int(analysis_components.vid_two.get(cv2api_delegate.prop_frame_height)),
+                  int(analysis_components.vid_two.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
+    analysis_components.fps_one = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
+    analysis_components.fps_two = analysis_components.vid_two.get(cv2api_delegate.prop_fps)
     analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
-                                                  analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_FPS))
+                                                  analysis_components.vid_one.get(cv2api_delegate.prop_fps))
     analysis_components.time_manager = time_manager
     analysis_components.elapsed_time_one = 0
     analysis_components.elapsed_time_two = 0
@@ -1118,7 +1120,7 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
             if not ret_one:
                 analysis_components.vid_one.release()
                 break
-            elapsed_time = analysis_components.vid_one.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            elapsed_time = analysis_components.vid_one.get(cv2api_delegate.prop_pos_msec)
             ret_two = analysis_components.grabTwo()
             if not ret_two:
                 analysis_components.vid_two.release()
@@ -1131,7 +1133,7 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
             if time_manager.isPastTime():
                 break
             analysis_components.elapsed_time_one = elapsed_time
-            analysis_components.elapsed_time_two = analysis_components.vid_two.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            analysis_components.elapsed_time_two = analysis_components.vid_two.get(cv2api_delegate.prop_pos_msec)
             diff = np.abs(frame_one - frame_two)
             analysis_components.mask = np.zeros((frame_one.shape[0],frame_one.shape[1])).astype('uint8')
             diff  = cv2.cvtColor(diff,cv2.COLOR_RGBA2GRAY)
@@ -1160,7 +1162,7 @@ def _getVideoFrame(video,frame_time):
         ret = video.grab()
         if not ret:
             break
-        elapsed_time = video.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+        elapsed_time = video.get(cv2api_delegate.prop_pos_msec)
         if elapsed_time >= frame_time:
             ret,frame = video.retrieve()
             return frame,elapsed_time
@@ -1190,7 +1192,7 @@ def interpolateMask(mask_file_name_prefix,
                                                                     mask_set['videosegment']))
             writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
                                               reader.fps)
-            destination_video = cv2.VideoCapture(dest_file_name)
+            destination_video = cv2api_delegate.videoCapture(dest_file_name)
             try:
                 first_mask = None
                 count = 0
@@ -1245,14 +1247,14 @@ def pullFrameNumber(video_file, frame_number):
     """
 
     frame = None
-    video_capture = cv2.VideoCapture(video_file)
+    video_capture = cv2api_delegate.videoCapture(video_file)
     while (video_capture.isOpened() and frame_number > 0):
         ret = video_capture.grab()
         if not ret:
             break
         frame_number-=1
     ret, frame = video_capture.retrieve()
-    elapsed_time = video_capture.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+    elapsed_time = video_capture.get(cv2api_delegate.prop_pos_msec)
     video_capture.release()
     ImageWrapper(frame).save(video_file[0:video_file.rfind('.')] + '.png')
     return time.strftime("%H:%M:%S", time.gmtime(elapsed_time / 1000)) + '.%03d' % (elapsed_time % 1000)

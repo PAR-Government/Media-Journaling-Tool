@@ -1,7 +1,6 @@
 from subprocess import call, Popen, PIPE
 import os
 import numpy as np
-import tool_set
 import logging
 from cachetools import cached
 from cachetools import LRUCache

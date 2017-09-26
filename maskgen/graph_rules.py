@@ -2,7 +2,7 @@ from software_loader import getOperations, SoftwareLoader, getProjectProperties,
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, IntObject, getFileMeta, mergeColorMask, \
-    maskToColorArray, maskChangeAnalysis
+    maskToColorArray, maskChangeAnalysis, openImage
 import new
 from types import MethodType
 import numpy
@@ -420,7 +420,9 @@ def check_masks(edge, op, graph, frm, to):
         return ["Input mask file {} is missing".format(inputmasknanme)]
     if inputmasknanme is not None and len(inputmasknanme) > 0 and \
             os.path.exists(os.path.join(graph.dir, inputmasknanme)):
-        inputmask = openImageFile(os.path.join(graph.dir, inputmasknanme))
+        if fileType(os.path.join(graph.dir, inputmasknanme)) == 'audio':
+            return
+        inputmask = openImage(os.path.join(graph.dir, inputmasknanme))
         if inputmask is None:
             return ["Input mask file {} is missing".format(inputmasknanme)]
         inputmask = inputmask.to_mask().to_array()
@@ -750,11 +752,14 @@ def checkSameChannels(op, graph, frm, to):
     """
     vidBefore = graph.get_image_path(frm)
     vidAfter = graph.get_image_path(to)
+    if fileType(vidAfter) == 'image' or fileType(vidBefore) == 'image':
+        return
     metaBefore = getFileMeta(vidBefore)
     metaAfter = getFileMeta(vidAfter)
     if len(metaBefore) != len(metaAfter):
         return 'change in the number of streams occurred'
-
+    if len(metaBefore) == 0:
+        return 'streams are not detected or missing'
 
 def checkHasVideoChannel(op,graph, frm, to):
     """
@@ -808,7 +813,7 @@ def checkFileTypeChangeForDonor(op, graph, frm, to):
     to_file = graph.get_image(to)[1]
     if fileTypeChanged(to_file, frm_file):
         predecessors = graph.predecessors(to)
-        if len(predecessors) >= 2:
+        if len(predecessors) < 2:
             return 'donor image missing'
         for pred in predecessors:
             edge = graph.get_edge(pred, to)
@@ -1072,7 +1077,7 @@ def checkForDonorWithRegion(op, graph, frm, to):
                     'purpose' in edge['arguments'] and edge['arguments']['purpose'] == 'blend':
         return None
     if not findOp(graph, donor, 'SelectRegion'):
-        return 'SelectRegion missing on path to donor'
+        return '[Warning] SelectRegion missing on path to donor'
     return None
 
 
@@ -1676,7 +1681,8 @@ def audioactivityRule(scModel, edgeTuples):
         op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         found = (op.category == 'Audio')
         if not found and op.groupedOperations is not None:
-            for imbedded_op in op.groupedOperations:
+            for imbedded_op_name in op.groupedOperations:
+                imbedded_op = scModel.getGroupOperationLoader().getOperationWithGroups(imbedded_op_name,fake=True)
                 found |= imbedded_op.category == 'Audio'
     return 'yes' if found else 'no'
 

@@ -353,7 +353,7 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
             logging.getLogger('maskgen').error( 'Plugin {} on project {} failed: {}'.format(plugin,sm.getName(), errors))
         sm.save()
         if errors is None or len(errors) == 0:
-            logging.getLogger('maskgen').info('Plugin operation {} on project {} complete ({}{})'.format(
+            logging.getLogger('maskgen').info('Plugin operation {} on project {} complete ({}/{})'.format(
                 plugin,sm.getName(),str(processNo),str(total)))
         processNo += 1
 
@@ -373,7 +373,7 @@ def process_jpg(projects):
         op = maskgen.group_operations.CopyCompressionAndExifGroupOperation(sm)
         op.performOp()
         sm.save()
-        logging.getLogger('maskgen').info('Completed compression operation on project ({}/{}) {}'.format( str(processNo), str(total), + project))
+        logging.getLogger('maskgen').info('Completed compression operation on project ({}/{}) {}'.format( str(processNo), str(total), project))
         processNo += 1
 
 

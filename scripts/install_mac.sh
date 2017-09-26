@@ -58,6 +58,10 @@ brew install homebrew/science/hdf5
 brew tap homebrew/science
 brew install matplotlib
 brew install scipy
+cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core
+git -C "$(brew --repo homebrew/core)" fetch --unshallow
+brew unlink ffmpeg
+git checkout e1b6557c45bdbf85060f35c3ed8e34e3d1b0248 Formula/ffmpeg.rb 
 brew install ffmpeg --with-fdk-aac --with-sdl2 --with-freetype --with-libass --with-libvorbis --with-libvpx --with-opus --with-x265 --with-xvid --with-openh264
 brew install homebew/science/opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --HEAD
 brew install homebew/science/opencv3 --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --HEAD

@@ -134,15 +134,6 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
     return model, not existingProject
 
 
-def constructCompositesGivenProbes(probes):
-    """
-
-    :param probes:
-    :return:
-    @type probes: list of Probe
-    """
-
-
 class MetaDiff:
     diffData = None
 
@@ -1117,7 +1108,7 @@ class ImageProjectModel:
                             logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
                     target_mask_filename = os.path.join(self.get_dir(),
                                                         shortenName(edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId,
-                                                                    '_ps.png'))
+                                                                    '_ps.png',id=self.G.nextId()))
                     target_mask.save(target_mask_filename, format='PNG')
                     self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
                                                      target_mask_filename, edge_id[1], level, donors)
@@ -1213,7 +1204,7 @@ class ImageProjectModel:
         a donor link
         """
         if self.G.has_node(recipientNode):
-            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png')
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png',id=self.G.nextId())
             try:
                 mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
             except IOError:
@@ -1630,27 +1621,34 @@ class ImageProjectModel:
                     edge_data['end'],
                     edge_data['opName']
                 ))
-                mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
-                    edge_data['start'],
-                    edge_data['end'],
-                    self,
-                    edge_data['opName'],
-                    arguments=edge_data['arguments'],
-                    skipDonorAnalysis=edge_data['skipDonorAnalysis'],
-                    invert=edge_data['invert'],
-                    analysis_params=edge_data['analysis_params'])
-                self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
-                                   **consolidate(analysis, edge_data['analysis_params']))
+                if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']):
+                    mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
+                        edge_data['start'],
+                        edge_data['end'],
+                        self,
+                        edge_data['opName'],
+                        arguments=edge_data['arguments'],
+                        skipDonorAnalysis=edge_data['skipDonorAnalysis'],
+                        invert=edge_data['invert'],
+                        analysis_params=edge_data['analysis_params'])
+                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
+                                       **consolidate(analysis, edge_data['analysis_params']))
                 results.put(((edge_data['start'], edge_data['end']), True, errors))
-                # with self.G.lock:
+                #with self.G.lock:
                 #    results.put(((edge_data['start'], edge_data['end']), True, errors))
                 #    self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                 #                                          (skip_data['start'], skip_data['end']) != (edge_data['start'], edge_data['end'])])
-                # self.G.save()
             except Empty:
                 break
             except Exception as e:
-                results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
+                if edge_data is not None:
+                    logging.getLogger('maskgen').error('Failure to generate mask for edge {} to {} using operation {}: {}'.format(
+                        edge_data['start'],
+                        edge_data['end'],
+                        edge_data['opName'],
+                        str(e)
+                    ))
+                    results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
         return
 
     def _executeSkippedComparisons(self):
@@ -1668,6 +1666,7 @@ class ImageProjectModel:
         skipped_threads = prefLoader.get_key('skipped_threads', 2)
         logging.getLogger('maskgen').info('Recomputing {} masks with {} threads'.format(q.qsize(), skipped_threads))
         threads = list()
+        self._executeQueue(q, results)
         for i in range(int(skipped_threads)):
             t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results))
             threads.append(t)
@@ -1727,7 +1726,7 @@ class ImageProjectModel:
                           skipDonorAnalysis=False,
                           analysis_params={}):
         try:
-            maskname = shortenName(self.start + '_' + destination, '_mask.png')
+            maskname = shortenName(self.start + '_' + destination, '_mask.png',id=self.G.nextId())
             if mod.inputMaskName is not None:
                 mod.arguments['inputmaskname'] = mod.inputMaskName
             mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
