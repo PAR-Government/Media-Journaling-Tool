@@ -13,7 +13,8 @@ def emc_update_size(size,imageFile):
 
 def update_modifytime(imageFile):
     createtime = maskgen.exif.getexif(imageFile, args=['-args', '-System:FileCreateDate'], separator='=')
-    maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], imageFile])
+    if '-FileCreateDate' in createtime:
+        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], imageFile])
 
 def transform(img,source,target, **kwargs):
     donor = kwargs['donor']

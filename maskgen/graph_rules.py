@@ -555,7 +555,7 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     if st is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
     rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
-    rate = rate / 1000.0
+    #rate = rate / 1000.0
     if st is not None and abs(start - (st[1] / rate + st[0])) >= max(1000, rate):
         return 'Start time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
     if et is not None and abs(end - (et[1] / rate + et[0])) >= max(1000, rate):

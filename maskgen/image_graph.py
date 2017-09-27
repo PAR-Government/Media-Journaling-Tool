@@ -540,13 +540,21 @@ class ImageGraph:
 
     def update_mask(self, start, end, mask=None, errors=None,  **kwargs):
             self._setUpdate((start, end), update_type='edge')
-            edge = self.G[start][end]
-            newmaskpathname = os.path.join(self.dir, edge['maskname'])
-            mask.save(newmaskpathname)
+            edge = self.get_edge(start,end)
+            if mask is not None:
+                maskname =  edge['maskname'] if 'maskname' in edge else \
+                    (kwargs['maskname'] if 'maskname' in kwargs else None)
+                if maskname is not None:
+                    newmaskpathname = os.path.join(self.dir, maskname)
+                    mask.save(newmaskpathname)
+            elif  'maskname' in edge:
+                    edge.pop('maskname')
             with self.lock:
                 if errors is not None:
                     edge['errors'] = errors
                 for k, v in kwargs.iteritems():
+                    if k == 'maskname' and mask is None:
+                        continue
                     if v is None and k in edge:
                         edge.pop(k)
                     edge[k] = v
@@ -575,9 +583,11 @@ class ImageGraph:
         self._setUpdate((start, end), update_type='edge')
         self.__scan_args(op, kwargs)
         newmaskpathname = None
-        if maskname is not None and mask is not None:
+        if maskname is not None and len(maskname) > 0 and mask is not None:
             newmaskpathname = os.path.join(self.dir, maskname)
             mask.save(newmaskpathname)
+        else:
+            maskname = None
         for k, v in copy.deepcopy(kwargs).iteritems():
             if v is not None:
                 self._updateEdgePathValue(kwargs, k, v)
@@ -729,6 +739,9 @@ class ImageGraph:
 
     def successors(self, node):
         return self.G.successors(node) if self.G.has_node(node) else []
+
+    def has_edge(self,start,end):
+        return self.get_edge(start,end) != None
 
     def has_node(self, name):
         return self.G.has_node(name)

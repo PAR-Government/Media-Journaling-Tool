@@ -41,7 +41,7 @@ class CV2ApiV2(CV2Api):
         return extractor.compute(img, kp)
 
     def fourcc(self,codec):
-        return cv2.cv.CV_FOURCC(*self.codec)
+        return cv2.cv.CV_FOURCC(*codec)
 
 
 class CV2ApiV3(CV2Api):
