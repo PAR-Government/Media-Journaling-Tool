@@ -845,7 +845,7 @@ class ImageGraph:
         def moveFile(newdir, currentdir, name):
             oldpathname = os.path.join(currentdir, name)
             newpathname = os.path.join(newdir, name)
-            if (os.path.exists(oldpathname) and not os.path.exists(newpathname)):
+            if (os.path.exists(oldpathname)):
                 shutil.copy2(oldpathname, newpathname)
 
         for nname in self.G.nodes():
