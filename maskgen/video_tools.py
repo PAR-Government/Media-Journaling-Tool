@@ -66,7 +66,7 @@ def otsu(hist):
 #  topRange = i
 #  return bottomRange,topRange
 
-def _buildHist(filename):
+def __buildHist(filename):
     cap = cv2api_delegate.videoCapture(filename)
     hist = np.zeros(256).astype('int64')
     bins = np.asarray(range(257))
@@ -82,7 +82,7 @@ def _buildHist(filename):
     return hist, pixelCount
 
 
-def _buildMasks(filename, histandcount):
+def __buildMasks(filename, histandcount):
     maskprefix = filename[0:filename.rfind('.')]
     histnorm = histandcount[0] / histandcount[1]
     values = np.where((histnorm <= 0.95) & (histnorm > (256 / histandcount[1])))[0]
@@ -106,9 +106,9 @@ def _buildMasks(filename, histandcount):
 
 
 def buildMasksFromCombinedVideoOld(filename):
-    h, pc = _buildHist(filename)
+    h, pc = __buildHist(filename)
     hist = h / pc
-    return _buildMasks(filename, hist)
+    return __buildMasks(filename, hist)
 
 
 def buildMasksFromCombinedVideo(filename,time_manager):
@@ -207,7 +207,7 @@ def buildMasksFromCombinedVideo(filename,time_manager):
     return ranges
 
 
-def _invertSegment(segmentFileName, prefix):
+def __invertSegment(segmentFileName, prefix):
     """
      Invert a single video file (gray scale)
      """
@@ -237,7 +237,7 @@ def invertVideoMasks(dir, videomasks, start, end):
     result = []
     for maskdata in videomasks:
         maskdata = maskdata.copy()
-        maskdata['videosegment'] = _invertSegment(maskdata['videosegment'], prefix)
+        maskdata['videosegment'] = __invertSegment(maskdata['videosegment'], prefix)
         result.append(maskdata)
     return result
 
@@ -305,7 +305,7 @@ def sortFrames(frames):
         frames[k] = sorted(v, key=lambda meta: meta['pkt_pts_time'])
 
 
-def _addMetaToFrames(frames, meta):
+def __addMetaToFrames(frames, meta):
     if len(meta) > 0 and 'stream_index' in meta:
         index = meta['stream_index']
         if index not in frames:
@@ -322,13 +322,13 @@ def processFrames(stream):
         if line is None or len(line) == 0:
             break
         if '[/FRAME]' in line:
-            _addMetaToFrames(frames, meta)
+            __addMetaToFrames(frames, meta)
             meta = {}
         else:
             parts = line.split('=')
             if len(parts) > 1:
                 meta[parts[0].strip()] = parts[1].strip()
-    _addMetaToFrames(frames, meta)
+    __addMetaToFrames(frames, meta)
     return frames
 
 
@@ -395,7 +395,7 @@ def runffmpeg(args, noOutput=True):
         logging.getLogger('maskgen').error(str(e))
         raise e
 
-def _aggregate(k, oldValue, newValue, summary):
+def __aggregate(k, oldValue, newValue, summary):
     """
     Apply to numeric values, aummarize the diffence
     :param k:
@@ -428,7 +428,7 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None, streamId=0,  meta_diff=None, su
                 meta_diff[meta_key] = ('change', v, twoMeta[k])
             elif meta_diff is not None:
                 if meta_diff[meta_key][2] != twoMeta[k]:
-                    if not _aggregate(k,v, twoMeta[k],summary):
+                    if not __aggregate(k, v, twoMeta[k], summary):
                         diff[k] = ('change', v, twoMeta[k])
             else:
                 diff[k] = ('change', v, twoMeta[k])
@@ -439,7 +439,7 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None, streamId=0,  meta_diff=None, su
             diff[k] = ('add', v)
     return diff
 
-def _getOrder(packet, orderAttr, lasttime, pkt_duration_time='pkt_duration_time'):
+def __getOrder(packet, orderAttr, lasttime, pkt_duration_time='pkt_duration_time'):
     try:
         if packet[orderAttr][0] == 'N':
             if packet['pkt_dts_time'][0] != 'N':
@@ -462,7 +462,7 @@ def getIntFromPacket(key, packet):
             pass
     return 0
 
-def _updateSummary(summary,streamId,apos, bpos, aptime):
+def __updateSummary(summary, streamId, apos, bpos, aptime):
     diff = {}
     for k, v in summary.iteritems():
         diff[str(streamId) + ':' + k + '.total'] = ('change',0,v[0])
@@ -497,18 +497,18 @@ def compareStream(a, b, orderAttr='pkt_pts_time', streamId=0, meta_diff=dict(), 
         if orderAttr not in apacket:
             apos += 1
             continue
-        aptime  =  _getOrder(apacket, orderAttr,aptime)
+        aptime  =  __getOrder(apacket, orderAttr, aptime)
         bpacket = b[bpos]
         if orderAttr not in bpacket:
             bpos += 1
             continue
-        bptime = _getOrder(bpacket, orderAttr, bptime)
+        bptime = __getOrder(bpacket, orderAttr, bptime)
         for k in counters.keys():
             counters[k][0] = counters[k][0] + getIntFromPacket(k,apacket)
             counters[k][1] = counters[k][1] + getIntFromPacket(k,bpacket)
         if aptime == bptime or \
-                (aptime < bptime and (apos+1) < len(a) and _getOrder(a[apos+1], orderAttr,aptime) > bptime) or \
-                (aptime > bptime and (bpos+1) < len(b) and _getOrder(b[bpos+1], orderAttr,bptime) < aptime):
+                (aptime < bptime and (apos+1) < len(a) and __getOrder(a[apos+1], orderAttr, aptime) > bptime) or \
+                (aptime > bptime and (bpos+1) < len(b) and __getOrder(b[bpos+1], orderAttr, bptime) < aptime):
             summary_start_time = aptime if summary_start is None else summary_start_time
             summary_start = apos if summary_start is None else summary_start
             summary_end = apos
@@ -526,7 +526,7 @@ def compareStream(a, b, orderAttr='pkt_pts_time', streamId=0, meta_diff=dict(), 
                 c += 1
                 if apos < len(a):
                     apacket = a[apos]
-                    aptime = _getOrder(apacket, orderAttr,aptime)
+                    aptime = __getOrder(apacket, orderAttr, aptime)
             #diff.append(('delete', start, end, c))
         elif aptime > bptime:
             start = bptime
@@ -537,27 +537,27 @@ def compareStream(a, b, orderAttr='pkt_pts_time', streamId=0, meta_diff=dict(), 
                 bpos += 1
                 if bpos < len(b):
                     bpacket = b[bpos]
-                    bptime = _getOrder(bpacket, orderAttr,bptime)
+                    bptime = __getOrder(bpacket, orderAttr, bptime)
             # diff.append(('add', start, end, c))
         else:
-            diff.append(_updateSummary(summary,streamId, summary_start,summary_end,summary_start_time))
+            diff.append(__updateSummary(summary, streamId, summary_start, summary_end, summary_start_time))
             summary_start_time = None
             summary_start = None
             summary_end = None
             summary.clear()
 
-    diff.append(_updateSummary(summary,streamId, summary_start,summary_end,summary_start_time))
+    diff.append(__updateSummary(summary, streamId, summary_start, summary_end, summary_start_time))
     if apos < len(a):
-        aptime = start = _getOrder(a[apos], orderAttr,aptime)
+        aptime = start = __getOrder(a[apos], orderAttr, aptime)
         c = len(a) - apos
         apacket = a[len(a) - 1]
-        aptime = _getOrder(apacket, orderAttr,aptime)
+        aptime = __getOrder(apacket, orderAttr, aptime)
         diff.append(('delete', start, aptime, c))
     elif bpos < len(b):
-        bptime = start = _getOrder(b[bpos], orderAttr,bptime)
+        bptime = start = __getOrder(b[bpos], orderAttr, bptime)
         c = len(b) - bpos
         bpacket = b[len(b) - 1]
-        bptime = _getOrder(bpacket, orderAttr, bptime)
+        bptime = __getOrder(bpacket, orderAttr, bptime)
         diff.append(('add', start, bptime, c))
 
     return diff
@@ -642,33 +642,33 @@ def removeVideoFromAudio(filename,outputname=None):
 
 
 def x265(filename ,outputname=None, crf=0, remove_video=False):
-    return _vid_compress(filename,
-                         ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
+    return __vid_compress(filename,
+                          ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
                          'hvec',
-                         outputname=outputname,
-                         remove_video=remove_video)
+                          outputname=outputname,
+                          remove_video=remove_video)
 
 def lossy(filename, outputname=None, crf=0,remove_video=False):
-    return _vid_compress(filename,
-                         ['-loglevel','error'],
+    return __vid_compress(filename,
+                          ['-loglevel','error'],
                          'h264',
-                         outputname=outputname,
-                         suffix = 'mov',
-                         remove_video=remove_video)
+                          outputname=outputname,
+                          suffix = 'mov',
+                          remove_video=remove_video)
 
 def x264fast(filename, outputname=None, crf=0,remove_video=False):
-    return _vid_compress(filename,
-                         ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
+    return __vid_compress(filename,
+                          ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
                          'h264',
-                         outputname=outputname,
-                         remove_video=remove_video)
+                          outputname=outputname,
+                          remove_video=remove_video)
 
 def x264(filename, outputname=None, crf=0,remove_video=False):
-    return _vid_compress(filename,
-                         ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)],
+    return __vid_compress(filename,
+                          ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)],
                          'h264',
-                         outputname=outputname,
-                         remove_video=remove_video)
+                          outputname=outputname,
+                          remove_video=remove_video)
 
 
 def vid_md5(filename):
@@ -688,7 +688,7 @@ def vid_md5(filename):
     except OSError as e:
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
-def _vid_compress(filename, expressions, criteria,suffix='avi',outputname=None, remove_video=False):
+def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=None, remove_video=False):
     #md5 = vid_md5(filename)
     one_meta, one_frames = getMeta(filename, with_frames=False)
     execute_remove= False
@@ -772,7 +772,7 @@ def toAudio(fileOne,outputName=None):
         return name if len(errors) == 0 else None, errors
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
-def _formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
+def __formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager):
     """
     Construct a diff video.  The FFMPEG provides degrees of difference by intensity variation in the green channel.
     The normal intensity is around 98.
@@ -987,7 +987,7 @@ def formMaskDiff(fileOne,
     diffPref = preferences.get_key('video compare')
     diffPref = arguments['video compare'] if 'video compare' in arguments else diffPref
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
-    result = _runDiff(fileOne,fileTwo, name_prefix, opName, diffPref, time_manager,alternateFunction=alternateFunction,arguments=arguments)
+    result = __runDiff(fileOne, fileTwo, name_prefix, opName, diffPref, time_manager, alternateFunction=alternateFunction, arguments=arguments)
     analysis['startframe'] = time_manager.getStartFrame()
     analysis['stopframe'] = time_manager.getEndFrame()
     return result
@@ -1077,7 +1077,7 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
         fone.close()
 
 
-def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alternateFunction=None,arguments={}):
+def __runDiff(fileOne, fileTwo, name_prefix, opName, diffPref, time_manager, alternateFunction=None, arguments={}):
     """
 
     :param fileOne:
@@ -1095,7 +1095,7 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
         return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments)
     opFunc = cutDetect if opName == 'SelectCutFrames' else (addDetect  if opName == 'PasteFrames' else addChange)
     if opFunc == addChange and (diffPref is None or diffPref in ['2','ffmpeg']):
-        return _formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName,time_manager)
+        return __formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName, time_manager)
     analysis_components = VidAnalysisComponents()
     analysis_components.vid_one = cv2api_delegate.videoCapture(fileOne)
     analysis_components.vid_two = cv2api_delegate.videoCapture(fileTwo)
@@ -1157,7 +1157,7 @@ def _runDiff(fileOne, fileTwo,  name_prefix, opName, diffPref, time_manager,alte
             'Mask Computation Failed to a read videos.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.')
     return ranges,[]
 
-def _getVideoFrame(video,frame_time):
+def __getVideoFrame(video, frame_time):
     while video.isOpened():
         ret = video.grab()
         if not ret:
@@ -1205,7 +1205,7 @@ def interpolateMask(mask_file_name_prefix,
                         break
                     if frame_time < vid_frame_time:
                         continue
-                    frame,vid_frame_time = _getVideoFrame(destination_video,frame_time)
+                    frame,vid_frame_time = __getVideoFrame(destination_video, frame_time)
                     if frame is None:
                          new_mask = np.ones(mask.shape) * 255
                     else:

@@ -1,4 +1,4 @@
-from tool_set import toIntTuple, alterMask, alterReverseMask
+from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openImageFile, sizeOfChange, convertToMask
 import exif
 import graph_rules
 from image_wrap import ImageWrapper
@@ -6,6 +6,9 @@ import tool_set
 import numpy as np
 import cv2
 import logging
+from image_graph import ImageGraph
+import os
+from maskgen import Probe
 
 
 def recapture_transform(edge, source, target, edgeMask,
@@ -14,8 +17,7 @@ def recapture_transform(edge, source, target, edgeMask,
                         level=None,
                         donorMask=None,
                         pred_edges=None,
-                        graph=None,
-                        top=False):
+                        graph=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     position_str = edge['arguments']['Position Mapping'] if 'arguments' in edge and \
@@ -118,8 +120,7 @@ def resize_transform(edge, source, target, edgeMask,
                      level=None,
                      donorMask=None,
                      pred_edges=None,
-                     graph=None,
-                     top=False):
+                     graph=None):
     import os
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
@@ -143,7 +144,7 @@ def resize_transform(edge, source, target, edgeMask,
                 # local resize
                 res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm))
             elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
-                inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
+                inputmask = openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
                     res = move_pixels(mask, 255 - edgeMask, res, isComposite=True)
@@ -163,7 +164,7 @@ def resize_transform(edge, source, target, edgeMask,
                 res = tool_set.applyTransform(res, mask=edgeMask, transform_matrix=tool_set.deserializeMatrix(tm),
                                               invert=True, returnRaw=False)
             elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
-                inputmask = tool_set.openImageFile(os.path.join(directory, edge['inputmaskname']))
+                inputmask = openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
                     res = move_pixels(255 - edgeMask, mask, res)
@@ -179,8 +180,7 @@ def rotate_transform(edge, source, target, edgeMask,
                      level=None,
                      donorMask=None,
                      pred_edges=None,
-                     graph=None,
-                     top=False):
+                     graph=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
     rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else 0)
@@ -215,8 +215,7 @@ def select_remove(edge, source, target, edgeMask,
                   level=None,
                   donorMask=None,
                   pred_edges=None,
-                  graph=None,
-                  top=False):
+                  graph=None):
     sizeChange = (0, 0)
     if 'shape change' in edge:
         changeTuple = toIntTuple(edge['shape change'])
@@ -248,8 +247,7 @@ def crop_transform(edge, source, target, edgeMask,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None,
-                   top=False):
+                   graph=None):
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     sizeChange = (-location[0], -location[1]) if location != (0, 0) and sizeChange == (0, 0) else sizeChange
@@ -284,8 +282,7 @@ def seam_transform(edge,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None,
-                   top=False):
+                   graph=None):
     targetImage = graph.get_image(target)[0]
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
@@ -343,8 +340,7 @@ def warp_transform(edge,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None,
-                   top=False):
+                   graph=None):
     res = None
     if compositeMask is not None:
         tm = tool_set.deserializeMatrix(edge['transform matrix']) if 'transform matrix' in edge  else None
@@ -378,8 +374,7 @@ def cas_transform(edge,
                   level=None,
                   donorMask=None,
                   pred_edges=None,
-                  graph=None,
-                  top=False):
+                  graph=None):
     res = None
     tm = tool_set.deserializeMatrix(edge['transform matrix']) if 'transform matrix' in edge  else None
     if compositeMask is not None:
@@ -455,18 +450,17 @@ def move_transform(edge, source, target, edgeMask,
                    level=None,
                    donorMask=None,
                    pred_edges=None,
-                   graph=None,
-                   top=False):
+                   graph=None):
     import os
     returnRaw = False
     try:
         # returnRaw = True
         inputmask = \
-            tool_set.openImageFile(os.path.join(directory, edge['inputmaskname'])).to_mask().invert().to_array() \
+            openImageFile(os.path.join(directory, edge['inputmaskname'])).to_mask().invert().to_array() \
                 if 'inputmaskname' in edge and edge['inputmaskname'] is not None else edgeMask
         # cdf29bf86e41c26c1247aa7952338ac0
         # 25% seems arbitrary.  How much overlap is needed before the inputmask stops providing useful information?
-        decision = _getInputMaskDecision(edge)
+        decision = __getInputMaskDecision(edge)
         if decision == 'no' or \
                 (decision != 'yes' and \
                                  sum(sum(abs(((255 - edgeMask) - (255 - inputmask)) / 255))) / float(
@@ -523,8 +517,7 @@ def pastesplice(edge, source, target,
                 level=None,
                 donorMask=None,
                 pred_edges=None,
-                graph=None,
-                top=False):
+                graph=None):
     import os
     if compositeMask is not None:
         # pastemask = edge['arguments']['pastemask'] if 'arguments' in edge and 'pastemask' in edge['arguments'] else None
@@ -574,7 +567,7 @@ def donor(edge, source, target, edgeMask,
     return donorMask
 
 
-def _getInputMaskDecision(edge):
+def __getInputMaskDecision(edge):
     tag = "use input mask for composites"
     if ('arguments' in edge and \
                 (tag in edge['arguments'])):
@@ -582,7 +575,7 @@ def _getInputMaskDecision(edge):
     return None
 
 
-def _getOrientation(edge):
+def __getOrientation(edge):
     if ('arguments' in edge and \
                 ('Image Rotated' in edge['arguments'] and \
                              edge['arguments']['Image Rotated'] == 'yes')) and \
@@ -691,27 +684,18 @@ def defaultMaskTransform(edge,
                                  level=level, donorMask=donorMask, pred_edges=pred_edges)
 
 
-def alterComposite(edge,  op, source, target, compositeMask, edgeMask, directory, level=255, graph=None, top=False):
-    if op.maskTransformFunction is not None:
-        return graph_rules.getRule(op.maskTransformFunction)(edge, source, target, edgeMask, level=level,
-                                                             compositeMask=compositeMask,
-                                                             directory=directory,
-                                                             graph=graph,
-                                                             top=top)
-    return defaultAlterComposite(edge, edgeMask,
-                                 level=level,
-                                 compositeMask=compositeMask,
-                                 directory=directory)
-
-
 def alterDonor(donorMask, op, source, target, edge, edgeMask, directory='.', pred_edges=[], graph=None):
     """
 
-    :param self:
-    :param donorMask: The mask to alter and return
+    :param donorMask:
+    :param op:  operation name
     :param source:
     :param target:
-    :param edge: the edge the provides the instructions for alteration
+    :param edge: edge dictionary
+    :param edgeMask:  composite
+    :param directory:
+    :param pred_edges:
+    :param graph:
     :return:
     """
     if donorMask is None:
@@ -731,3 +715,308 @@ def alterDonor(donorMask, op, source, target, edge, edgeMask, directory='.', pre
                                                              graph=graph)
 
     return defaultAlterDonor(edge, edgeMask, directory=directory, donorMask=donorMask, pred_edges=pred_edges)
+
+def _getUnresolvedSelectMasksForEdge(edge):
+    """
+    A selectMask is a mask the is used in composite mask production, overriding the default link mask
+    @rtype: dict
+    """
+    images = edge['selectmasks'] if 'selectmasks' in edge  else []
+    sms = {}
+    for image in images:
+        sms[image['node']] = image['mask']
+    return sms
+
+
+def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
+    preds = graph.predecessors(node)
+    res = [(node, 0, list())] if len(preds) == 0 else list()
+    for pred in preds:
+        if graph.get_edge(pred, node)['op'] == 'Donor' and excludeDonor:
+            continue
+        for item in findBaseNodesWithCycleDetection(graph,pred, excludeDonor=excludeDonor):
+            res.append((item[0], item[1] + 1, item[2]))
+    for item in res:
+        item[2].append(node)
+    return res
+
+class CompositeDelegate:
+
+    def __init__(self,edge_id, graph, gopLoader):
+        """
+         :param gopLoader:
+         @type composite: np.ndarry
+         @type gopLoader: GroupFilterLoader
+        """
+        self.gopLoader = gopLoader
+        self.edge_id = edge_id
+        self.graph = graph
+        baseNodeIdsAndLevels = findBaseNodesWithCycleDetection(self.graph, edge_id[0])
+        self.baseNodeId, self.level, self.path = baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels) > 0 else (None, None)
+
+    def _find_donor_edges(self):
+        donors = [(pred, self.edge_id[1]) for pred in self.graph.predecessors(self.edge_id[1])
+            if pred != self.edge_id[0] or self.graph.get_edge(pred, self.edge_id[1])['op'] == 'Donor']
+        donors.append(self.edge_id)
+
+    def _add_final_node_with_donors(self,
+                                    probes,
+                                    edge_id,
+                                    finalNodeId,
+                                    baseNodeId,
+                                    target_mask,
+                                    target_mask_filename,
+                                    level,
+                                    donors):
+
+        donormasks = [donor for donor in donors if donor[0] == edge_id[1]]
+        if len(donormasks) > 0:
+            for image_node, donorbase, donor_mask_image, donor_mask_file_name in donormasks:
+                probes.append(Probe(edge_id,
+                                    finalNodeId,
+                                    baseNodeId,
+                                    target_mask,
+                                    os.path.join(self.G.dir, target_mask_filename) if target_mask_filename is not None else None,
+                                    # ERIC: what to do here
+                                    sizeOfChange(np.asarray(target_mask).astype('uint8')),
+                                    donorbase,
+                                    donor_mask_image,
+                                    os.path.join(self.G.dir, donor_mask_file_name),
+                                    level=level))
+        else:
+            probes.append(Probe(edge_id,
+                                finalNodeId,
+                                baseNodeId,
+                                target_mask,
+                                os.path.join(self.G.dir, target_mask_filename) if target_mask_filename is not None else None,
+                                sizeOfChange(np.asarray(target_mask).astype('uint8')),
+                                None,
+                                None,
+                                None,
+                                level=level))
+
+    def constructDonors(self, saveImage=True):
+        return []
+
+    def constructComposites(self):
+        return self._constructTransformedMask(self.edge_id, self.composite)
+
+    def _constructTransformedMask(self, edge_id, compositeMask):
+        return []
+
+    def constructProbes(self,saveTargets=True):
+        return []
+
+
+class ImageCompositeDelegate(CompositeDelegate):
+
+    def __init__(self,edge_id, graph, gopLoader):
+        """
+        :param edge_id
+        :param graph:
+        :param gopLoader:
+        @type edge_id : (str,str)
+        @type graph: ImageGraph
+        @type gopLoader: GroupFilterLoader
+        """
+        CompositeDelegate.__init__(self,edge_id,graph, gopLoader)
+        edge = graph.get_edge(edge_id[0], edge_id[1])
+        edgeMask = graph.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
+        self.composite = self.__alterComposite(edge,
+                                        gopLoader.getOperationWithGroups(edge['op'], fake=True),
+                                        edge_id[0],
+                                        edge_id[1],
+                                        edgeMask.invert().to_array(),
+                                        edgeMask.to_array())
+
+
+
+
+    def constructProbes(self, saveTargets=True):
+        selectMasks = _getUnresolvedSelectMasksForEdge(self.graph.get_edge(self.edge_id[0], self.edge_id[1]))
+        finaNodeIdMasks = self.__constructTransformedMask(self.edge_id, self.composite)
+        probes = []
+        for target_mask, finalNodeId in finaNodeIdMasks:
+            target_mask = target_mask.invert()
+            if finalNodeId in selectMasks:
+                try:
+                    tm = openImageFile(os.path.join(self.get_dir(), selectMasks[finalNodeId]), isMask=True)
+                    target_mask = tm
+                except Exception as e:
+                    logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
+
+            target_mask_filename = os.path.join(self.get_dir(),
+                                                    shortenName(self.edge_id[0] + '_' + self.edge_id[1] + '_' + finalNodeId,
+                                                                '_ps.png',
+                                                                id=self.G.nextId()))
+            if saveTargets:
+                target_mask.save(target_mask_filename, format='PNG')
+            donors = self.constructDonor()
+            self._add_final_node_with_donors(probes, self.edge_id, finalNodeId, self.baseNodeId, target_mask,
+                                             target_mask_filename, self.level, donors)
+        return probes
+
+    def _constructTransformedMask(self, edge_id, compositeMask):
+        """
+        walks up down the tree from base nodes, assemblying composite masks
+        return: list of tuples (transformed mask, final image id)
+        @rtype:  list of (ImageWrapper,str))
+        """
+        results = []
+        successors = self.graph.successors(edge_id[1])
+        for successor in successors:
+            source = edge_id[1]
+            target = successor
+            edge = self.graph.get_edge(source, target)
+            if edge['op'] == 'Donor':
+                continue
+            edgeMask = self.graph.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)[0]
+            if edgeMask is None:
+                raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+            edgeMask = edgeMask.to_array()
+            newMask = self.__alterComposite(edge,
+                                            self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
+                                            source,
+                                            target,
+                                            compositeMask,
+                                            edgeMask)
+            results.extend(self._constructTransformedMask((source, target), newMask))
+        return results if len(successors) > 0 else [(ImageWrapper(np.copy(compositeMask)), edge_id[1])]
+
+    def _saveDonorToFile(self, recipientNode, baseNode, mask):
+        """
+        Add mask to interim node and save mask to disk that has a input mask or
+        a donor link
+        """
+        if self.graph.has_node(recipientNode):
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png', id=self.G.nextId())
+            try:
+                mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
+            except IOError:
+                donorMask = convertToMask(mask)
+                donorMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
+        return fname
+
+    def _constructDonor(self, node, mask):
+        """
+          Walks up  the tree assembling donor masks"
+        """
+        result = []
+        preds = self.G.predecessors(node)
+        if len(preds) == 0:
+            return [(node, mask)]
+        pred_edges = [self.G.get_edge(pred, node) for pred in preds]
+        for pred in preds:
+            edge = self.G.get_edge(pred, node)
+            donorMask = alterDonor(mask,
+                                              self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
+                                              pred,
+                                              node,
+                                              edge,
+                                              self.G.get_edge_image(pred, node, 'maskname', returnNoneOnMissing=True)[
+                                                  0],
+                                              directory=self.get_dir(),
+                                              pred_edges=[p for p in pred_edges if p != edge],
+                                              graph=self.G)
+            result.extend(self._constructDonor(pred, donorMask))
+        return result
+
+    def constructDonors(self,saveImage = True):
+
+        """
+          Construct donor images
+          Find all valid base node, leaf node tuples
+          :return computed donors in the form of tuples
+          (image node id donated to, base image node, ImageWrapper mask, filename)
+          @rtype list of (str,str,ImageWapper,str)
+        """
+
+        donors = list()
+        for edge_id in self._find_donor_edges():
+            edge = self.G.get_edge(edge_id[0], edge_id[1])
+            startMask = None
+            if edge['op'] == 'Donor':
+                startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
+                if startMask is None:
+                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
+            elif 'inputmaskname' in edge and \
+                            edge['inputmaskname'] is not None and \
+                            len(edge['inputmaskname']) > 0 and \
+                            edge['recordMaskInComposite'] == 'yes':
+                fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
+                if not os.path.exists(fullpath):
+                    raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                    # invert because these masks are white=Keep(unchanged), Black=Remove (changed)
+                    # we want to capture the 'unchanged' part, where as the other type we capture the changed part
+                startMask = self.G.openImage(fullpath, mask=False).to_mask().invert()
+                if startMask is None:
+                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
+            if startMask is not None:
+                startMask = startMask.invert().to_array()
+                donorsToNodes = {}
+                donor_masks = self._constructDonor(edge_id[0], np.asarray(startMask))
+                for donor_mask_tuple in donor_masks:
+                    donor_mask = donor_mask_tuple[1].astype('uint8')
+                    if sum(sum(donor_mask > 1)) == 0:
+                        continue
+                    baseNode = donor_mask_tuple[0]
+                    if baseNode in donorsToNodes:
+                        # same donor image, multiple paths to the image.
+                        donorsToNodes[baseNode][donor_mask > 1] = 255
+                    else:
+                        donorsToNodes[baseNode] = donor_mask.astype('uint8')
+                for baseNode, donor_mask in donorsToNodes.iteritems():
+                    wrapper = ImageWrapper(donor_mask).invert()
+                    if saveImage:
+                        fname = self._saveDonorToFile(edge_id[1], baseNode, wrapper)
+                    else:
+                        fname = None
+                    donors.append(baseNode, wrapper, fname)
+        return donors
+
+class VideoCompositeDelegate(CompositeDelegate):
+
+    def __init__(self, composite,gopLoader):
+        """
+               :param composite:
+               :param gopLoader:
+               @type composite: list()
+               @type gopLoader: GroupFilterLoader
+        """
+        CompositeDelegate.__init__(self, composite, gopLoader)
+
+
+    def alterComposite(self,edge, op, source, target, edgeMask, directory, level=255, graph=None):
+        if op.maskTransformFunction is not None:
+            return graph_rules.getRule(op.maskTransformFunction)(edge,
+                                                                 source,
+                                                                 target,
+                                                                 edgeMask,
+                                                                 level=level,
+                                                                 compositeMask=self.composite,
+                                                                 directory=directory,
+                                                                 graph=graph)
+        return defaultAlterComposite(edge,
+                                     edgeMask,
+                                     level=level,
+                                     compositeMask=self.composite,
+                                     directory=directory)
+
+
+def prepareComposite(edge_id, graph, gopLoader):
+    import os
+    """
+    Depending on the edge properties, construct the composite mask
+    :param graph
+    :param edge_id: edge
+    :param edge:  dictionary of edge
+    :return: CompositeDelegate
+    @type graph: ImageGraph
+    @type edge_id: (str, str)
+    @type edge: dict
+    """
+    edge = graph.get_edge(edge_id[0], edge_id[1])
+    if 'videomasks' in edge:
+        return VideoCompositeDelegate(edge['videomasks'])
+    return ImageCompositeDelegate(edge_id, graph, gopLoader)
+

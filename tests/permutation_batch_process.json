@@ -31,7 +31,7 @@
           "value" :"yes"
         },
         "foo" : {
-          "type" : "int[10:100]"
+          "type" : "int[70:85]"
         }
       }
     },
