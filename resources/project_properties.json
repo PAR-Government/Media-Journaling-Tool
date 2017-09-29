@@ -544,6 +544,13 @@
       "semanticgroup" : true,
       "information": "Change lighting to indicate a different time of day"
     },
+ {
+      "description": "Date Burn-in",
+      "name": "dateburnin",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Adding or changing a time stamp on an image"
+    },
     {
       "description": "Data Embedding Steganography",
       "name": "dataembeddingsteganography",
