@@ -119,8 +119,8 @@ def openTiff(filename, isMask=False, args=None):
 
 
 def wand_image_extractor(filename, isMask=False):
-    import PythonMagick
-    im = PythonMagick.Image(filename)
+    import pgmagick
+    im = pgmagick.Image(filename)
     myPilImage = Image.new('RGB', (im.GetWidth(), im.GetHeight()))
     myPilImage.fromstring(im.GetData())
     return ImageWrapper(np.asarray(myPilImage), mode=myPilImage.mode, info=myPilImage.info, to_mask=isMask)
