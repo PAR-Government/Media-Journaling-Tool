@@ -90,10 +90,9 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                 # do we only include these settings IF there is a difference?
                 if skipRotate:
                     rotated = 'no'
-                    logging.getLogger('maskgen').error(
-                        'FFMPEG version {} does no support setting rotation meta-data. {}'.format(
-                        ffmpeg_version,
-                       'The video will not match the characteristcs of the donor. '))
+                    if rotation_filter is not None:
+                        logging.getLogger('maskgen').warn(
+                            'The donated video has rotation meta-data. The target video will not match the characteristcs of the donor.')
                     if abs(diff_rotation) == 90:
                         old_width = width
                         width= height
@@ -126,6 +125,11 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                     if rotation_filter is not None:
                         filters += (',' + rotation_filter if len(filters) > 0 else rotation_filter)
                         rotated = 'yes'
+                        if ffmpeg_version[0:3] == '3.3':
+                            logging.getLogger('maskgen').error(
+                                'FFMPEG version {} does no support setting rotation meta-data. {}'.format(
+                                ffmpeg_version,
+                                'The target video will not match the characteristcs of the donor. '))
                     if len(filters) > 0:
                         ffargs.extend(['-vf'])
                         ffargs.append(filters)
