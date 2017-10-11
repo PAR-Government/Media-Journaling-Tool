@@ -1921,134 +1921,58 @@ class GraphCompositeIdAssigner:
 
     """
 
-    def __init__(self, graph, probes):
+    def __init__(self, graph):
         """
         :param graph:
-        :param probes:
         @type graph: ImageGraph
-        @type probes : list of Probe
         """
         self.graph = graph
-        self.repository = dict()
-        self.probe_target = dict()
-        for probe in probes:
-            self.repository[probe.edgeId] = dict()
-            if (probe.edgeId[0], probe.edgeId[1]) not in self.probe_target:
-                self.probe_target[(probe.edgeId[0], probe.edgeId[1])] = dict()
-            self.probe_target[(probe.edgeId[0], probe.edgeId[1])][probe.finalNodeId] = np.asarray(probe.targetMaskImage)
-        self.buildProbeEdgeIds(set([probe.targetBaseNodeId for probe in probes]))
 
-    def updateProbes(self, probes, builder):
-        for probe in probes:
-            idsPerFinalNode = self.repository[probe.edgeId]
-            idtuple = idsPerFinalNode[probe.finalNodeId]
-            probe.composites[builder] = {
-                'groupid': idtuple[0],
-                'bit number': idtuple[1]
-            }
+    def updateProbes(self,probes, builder):
+        """
+        @type probes : list of Probe
+        :param builder:
+        :return:
+        """
+        self.__buildProbeEdgeIds(probes, builder)
         return probes
 
-    def __recurseDFSLavelResetPoints(self, nodename, probe_resets):
+    def __buildProbeEdgeIds(self, probes,builder):
         """
-        Determine reset points.  A reset point the first node from a final where
-         two final node masks diverge for the same edge.
-        :param nodename:
-        :param probe_masks: dictionary edgeId -> mask array of the last mask produced by the image
-        :return: paths from final node up to the current provided node
-        @type nodename: str
-        @type probe_masks: dict
-        """
-        successors = self.graph.successors(nodename)
-        if successors is None or len(successors) == 0:
-            return [[nodename]]
-        finalPaths = list()
-        for successor in self.graph.successors(nodename):
-            edge = self.graph.get_edge(nodename, successor)
-            if edge['op'] == 'Donor':
-                continue
-            edgeId = (nodename, successor)
-            childFinalPaths = self.__recurseDFSLavelResetPoints(successor, probe_resets)
-            last_array = None
-            last_path = None
-            for path in childFinalPaths:
-                current_path = path + [nodename]
-                finalPaths.append(current_path)
-                if edgeId in self.probe_target:
-                    imarray = self.probe_target[edgeId][path[0]]
-                    if last_array is not None and (
-                            last_array.shape != imarray.shape or sum(sum(abs(last_array - imarray))) != 0):
-                        probe_resets.add([i for i in current_path if i in last_path][0])
-                    last_array = imarray
-                last_path = current_path
-        return finalPaths
-
-    def __incementGroup(self, group, group_counters, local_counters):
-        """
-        Managed target id counters per each group.
-        Increment the targetid if target it is not already associated with the given group,
-        thus inforcing that a target id used one per each group.
-        :param group:
-        :param group_counters: group associated with IntObject counter
-        :param local_counters: group associated last target id
+         @type probes : list of Probe
+        :param probes:
+        :param baseNodes:
         :return:
-        @type group: int
-        @type group_counters: dict int:IntObject
-        @type local_counters: dict int:int
         """
-        if group in local_counters:
-            return local_counters[group]
-        if group not in group_counters:
-            group_counters[group] = IntObject()
-        local_counters[group] = group_counters[group].increment()
-        return local_counters[group]
-
-    def __recurseDFSProbeEdgeIds(self, nodename, group_counters, groupid, probe_resets):
-        """
-        Each edge and final node is associated with a target id and a group id.
-        target ids associated with a group id are unique.
-        group ids ids reset if the current node participates in a reset
-        :param nodename:
-        :param group_counters: association of gruoup ids to target id counters
-        :param groupid: holds the current id value for group id
-        :param probe_resets: set of reset nodes
-        :return: list of (final node name, group id)
-        @type nodename: str
-        @type group_counters: dict of int:IntObject
-        @type groupid: IntObject
-        @type probe_resets: set of str
-        @retypr list of (str,int)
-        """
-        successors = self.graph.successors(nodename)
-        if successors is None or len(successors) == 0:
-            return [(nodename, groupid.value)]
-        finalNodes = set()
-        qualifies = nodename in probe_resets
-        for successor in self.graph.successors(nodename):
-            local_counters = {}
-            edge = self.graph.get_edge(nodename, successor)
-            if edge['op'] == 'Donor':
-                continue
-            if qualifies:
-                groupid.increment()
-            childFinalNodes = self.__recurseDFSProbeEdgeIds(successor, group_counters, groupid, probe_resets)
-            for finalNodeNameTuple in childFinalNodes:
-                if (nodename, successor) in self.repository:
-                    self.repository[(nodename, successor)][finalNodeNameTuple[0]] = \
-                        (finalNodeNameTuple[1],
-                         self.__incementGroup(finalNodeNameTuple[1], group_counters, local_counters))
-                finalNodes.add(finalNodeNameTuple)
-        return finalNodes
-
-    def buildProbeEdgeIds(self, baseNodes):
+        import hashlib
         fileid = IntObject()
-        for node_name in self.graph.get_nodes():
-            node = self.graph.get_node(node_name)
-            if node['nodetype'] == 'base' or node_name in baseNodes:
-                reset_points = set()
-                group_counters = {}
-                self.__recurseDFSLavelResetPoints(node_name, reset_points)
-                self.__recurseDFSProbeEdgeIds(node_name, group_counters, fileid, reset_points)
+        target_groups = dict()
+        group_bits = {}
+        # targets associated with different base nodes and shape are in a different groups
+        # note: target mask images will have the same shape as their final node
+        for probe in probes:
+            r = np.asarray(probe.targetMaskImage)
+            key = (probe.targetBaseNodeId, r.shape)
+            probeid = hashlib.sha384(r).hexdigest()
+            if key not in target_groups:
+                target_groups[key] = {}
+                target_groups[key] = (fileid.value, {})
+                group_bits[fileid.value] = IntObject()
                 fileid.increment()
+            if probe.edgeId not in target_groups[key][1]:
+                target_groups[key][1][probe.edgeId] = {}
+            if probeid not in target_groups[key][1][probe.edgeId]:
+                group_bits[target_groups[key][0]].increment()
+                probe.composites[builder] = {
+                    'groupid': target_groups[key][0],
+                    'bit number': group_bits[target_groups[key][0]].value
+                }
+                target_groups[key][1][probe.edgeId][probeid] = group_bits[target_groups[key][0]].value
+            else:
+                probe.composites[builder] = {
+                    'groupid': target_groups[key][0],
+                    'bit number': target_groups[key][1][probe.edgeId][probeid]
+                }
 
 
 class CompositeBuilder:
@@ -2076,7 +2000,7 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         CompositeBuilder.__init__(self, 1, 'jp2')
 
     def initialize(self, graph, probes):
-        compositeIdAssigner = GraphCompositeIdAssigner(graph, probes)
+        compositeIdAssigner = GraphCompositeIdAssigner(graph)
         return compositeIdAssigner.updateProbes(probes, self.composite_type)
 
     def build(self, passcount, probe, edge):

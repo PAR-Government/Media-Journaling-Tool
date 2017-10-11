@@ -76,7 +76,7 @@ class TestToolSet(unittest.TestCase):
                   Probe(('8', '10'), '10', '1', probe810, None, None, None, None, None),
                   Probe(('11', '12'), '13', '1', probe1112, None, None, None, None, None)
                   ]
-        graphCompositeIdAssigner = graph_rules.GraphCompositeIdAssigner(g, probes)
+        graphCompositeIdAssigner = graph_rules.GraphCompositeIdAssigner(g)
         probes =  graphCompositeIdAssigner.updateProbes(probes,'builder')
         index = {}
         targets = {}
