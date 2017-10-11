@@ -1360,7 +1360,7 @@
       "mandatoryparameters": {
         "type": {
            "type":"list",
-           "values" : ["Facebook", "Instagram"],
+           "values" : ["Facebook", "Instagram", "Youtube"],
            "description":"Service"
          },
          "upload": {

@@ -1,0 +1,37 @@
+{
+    "name": "MagickSaveAsPNG",
+    "operation": {
+      "name": "OutputPng",
+      "category": "Output",
+      "description": "Save Input file as PNG",
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments":{
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".png",
+    "command": {
+      "default": [
+        "convert",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+       "darwin": [
+        "convert",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+       "linux": [
+        "convert",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
+}
