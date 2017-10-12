@@ -119,8 +119,8 @@ def openTiff(filename, isMask=False, args=None):
 
 
 def wand_image_extractor(filename, isMask=False):
-    import PythonMagick
-    im = PythonMagick.Image(filename)
+    import pgmagick
+    im = pgmagick.Image(filename)
     myPilImage = Image.new('RGB', (im.GetWidth(), im.GetHeight()))
     myPilImage.fromstring(im.GetData())
     return ImageWrapper(np.asarray(myPilImage), mode=myPilImage.mode, info=myPilImage.info, to_mask=isMask)
@@ -174,12 +174,12 @@ def getProxy(filename):
     return None
 
 
-def defaultOpen(filename, isMask=False):
+def defaultOpen(filename, isMask=False, args=None):
     with open(filename, 'rb') as f:
         im = Image.open(f)
         im.load()
         if im.format == 'TIFF' and filename.lower().find('tif') < 0:
-            raw = openTiff(filename, isMask=isMask)
+            raw = openTiff(filename, isMask=isMask,args=args)
             if raw is not None and raw.size[0] > im.size[0] and raw.size[1] > im.size[1]:
                 return raw
     result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)

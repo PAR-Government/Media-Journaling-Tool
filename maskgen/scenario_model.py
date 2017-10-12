@@ -679,6 +679,7 @@ class AudioVideoLinkTool(LinkTool):
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
+        errors = []
 
         if op != 'Donor' and operation.generateMask:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
@@ -1439,7 +1440,8 @@ class ImageProjectModel:
                     edge_data['end'],
                     edge_data['opName']
                 ))
-                if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']):
+                if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']) and \
+                    self.getGraph().has_edge(edge_data['start'],edge_data['end']):
                     mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
                         edge_data['start'],
                         edge_data['end'],
@@ -1451,6 +1453,8 @@ class ImageProjectModel:
                         analysis_params=edge_data['analysis_params'])
                     self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
                                        **consolidate(analysis, edge_data['analysis_params']))
+                else:
+                    errors = []
                 results.put(((edge_data['start'], edge_data['end']), True, errors))
                 #with self.G.lock:
                 #    results.put(((edge_data['start'], edge_data['end']), True, errors))

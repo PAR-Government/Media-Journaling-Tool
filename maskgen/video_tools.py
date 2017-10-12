@@ -1006,8 +1006,18 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={}):
     import wave
     fileOneAudio,errorsone = toAudio(fileOne)
     fileTwoAudio,errorstwo = toAudio(fileTwo)
-    if len(errorsone) > 0:
-        return list(),errorsone
+    if len(errorsone) > 0 and len(errorstwo) == 0:
+        try:
+            ftwo = wave.open(fileTwoAudio,'rb')
+            counttwo = ftwo.getnframes()
+            return [{'startframe': 1,
+                         'starttime': float(1) / float(ftwo.getframerate()),
+                         'rate':ftwo.getframerate(),
+                         'endframe': counttwo,
+                         'endtime': float(counttwo) / float(ftwo.getframerate()),
+                         'frames': counttwo}], []
+        finally:
+            ftwo.close()
     if len(errorstwo) > 0:
         return list(),errorstwo
     try:

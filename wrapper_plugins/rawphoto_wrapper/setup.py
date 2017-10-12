@@ -8,12 +8,13 @@ setup(name='rawphoto_wrapper',
       author_email='eric_robertson@partech.com',
       license='APL',
       packages=find_packages(exclude=["tests"]),
-      install_requires=['rawkit'],
+      install_requires=['rawkit','rawpy'],
       entry_points=
        {'maskgen_image': [
             'cr2 = rawphoto_wrapper.opener:openRawFile',
             'raf = rawphoto_wrapper.opener:openRawFile',
-            'arw = rawphoto_wrapper.opener:openRawFile'
+            'arw = rawphoto_wrapper.opener:openRawFile',
+            'nef = rawphoto_wrapper.opener:openRawFile'
         ]
        },
       zip_safe=False)

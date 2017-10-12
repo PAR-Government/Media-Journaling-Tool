@@ -64,6 +64,7 @@ brew unlink ffmpeg
 git checkout e1b6557c45bdbf85060f35c3ed8e34e3d1b0248 Formula/ffmpeg.rb 
 brew install ffmpeg --with-fdk-aac --with-sdl2 --with-freetype --with-libass --with-libvorbis --with-libvpx --with-opus --with-x265 --with-xvid --with-openh264
 brew install homebew/science/opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --HEAD
+brew install homebew/science/opencv3 --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --HEAD
 brew install hdf5
 
 wget http://www.sno.phy.queensu.ca/~phil/exiftool/ExifTool-10.50.dmg

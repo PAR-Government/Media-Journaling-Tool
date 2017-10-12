@@ -1,0 +1,171 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "ericrobertson",
+    "name": "sample",
+    "organization": "PAR",
+    "projectDescription" : "test",
+    "technicalSummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "tests/images",
+      "picklist": "imageset",
+      "id": "0"
+    },
+     {
+      "op_type": "ImageSelection",
+       "image_directory": "test_coco_images",
+      "picklist": "test_coco_imageset.txt",
+      "id": "1"
+    },
+    {
+      "op_type": "InputMaskPluginOperation",
+      "id": "2",
+      "arguments" : {
+         "coco": {
+          "type": "global",
+          "name": "coco"
+        },
+        "coco.index": {
+          "type": "global",
+          "name": "coco.index"
+        }
+      },
+      "plugin": "CocoMaskSelector",
+      "experiment_id": "MFC18"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "3",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        },
+        "foo" : {
+          "type" : "int[10:100]"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "4",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    },
+    {
+      "id": "5",
+      "op_type": "PluginOperation",
+      "arguments": {
+        "inputmaskname": {
+          "type": "input",
+          "source": "2"
+        },
+        "subject": {
+          "type": "variable",
+          "source": "2",
+          "name": "subject"
+        }
+      },
+      "plugin": "SelectRegionWithMask"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PasteSplice",
+      "id": "6",
+      "arguments": {
+        "approach": {
+           "type":"value",
+           "value": "random"
+         },
+        "segment": {
+           "type":"value",
+           "value": "slic"
+         },
+         "donor" : {
+           "type": "donor"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "GaussianLocalBlur",
+      "id": "7",
+      "arguments": {
+        "inputmaskname" : {
+          "type" : "mask",
+          "source" :"3",
+          "target": "6"
+
+        },
+        "invertmask": {
+          "type":"value",
+          "value":true
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "8",
+      "experiment_id":"1a",
+      "arguments": {
+         "donor" : {
+           "type": "donor",
+           "source": "0"
+         },
+        "rotate" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 3
+    },
+    {
+      "source": 1,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 4
+    },
+    {
+      "source": 4,
+      "target": 5
+    },
+    {
+      "source": 3,
+      "target": 6
+    },
+    {
+      "source": 5,
+      "target": 6
+    },
+     {
+      "source": 6,
+      "target": 7
+    },
+     {
+      "source": 7,
+      "target": 8
+    }
+  ],
+  "multigraph": false
+}

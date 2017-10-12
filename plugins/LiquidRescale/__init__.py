@@ -12,7 +12,7 @@ using Liquid Rescale plugin of GIMP.
 gimpfile = os.getenv('MASKGEN_GIMP')
 if gimpfile is None:
     if "Darwin" in platform.platform():
-        gimpfile = "DYLD_LIBRARY_PATH=/Applications/GIMP.app/Contents/Resources/lib:$DYLD_LIBRARY_PATH /Applications/GIMP.app/Contents/MacOS/GIMP-bin"
+        gimpfile = "DYLD_LIBRARY_PATH=/Applications/GIMP.app/Contents/Resources/lib:$DYLD_LIBRARY_PATH /Applications/GIMP.app/Contents/MacOS/GIMP"
     else:
         gimpfile = "gimp-2.8"
 
