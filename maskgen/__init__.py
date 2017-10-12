@@ -16,16 +16,16 @@ class Probe:
     composites = None
     donorBaseNodeId = None
     level = 0
+    targetMaskFileName = None
+    donorMaskFileName = None
 
     """
     @type edgeId: tuple
     @type targetBaseNodeId: str
     @type targetMaskFileName: str
-    @type targetMaskImage: ImageWrapper
     @type finalNodeId: str
     @type compositeFileNames: dict of str:str
     @type donorBaseNodeId: str
-    @type donorMaskImage : ImageWrapper
     @type donorMaskFileName: str
     @type level: int
 
@@ -57,8 +57,6 @@ class ImageProbe(Probe):
     targetMaskImage = None
     donorMaskImage = None
     targetChangeSizeInPixels = 0
-    targetMaskFileName = None
-    donorMaskFileName = None
 
     """
     @type targetChangeSizeInPixels: int
@@ -66,17 +64,15 @@ class ImageProbe(Probe):
     @type donorMaskImage: ImageWrapper
     """
 
-
     def __init__(self, edgeId, finalNodeId, targetBaseNodeId, targetMaskImage, targetMaskFileName,
                  targetChangeSizeInPixels,
                  donorBaseNodeId, donorMaskImage, donorMaskFileName, level=0):
-        Probe.__init__(self,edgeId, finalNodeId, targetBaseNodeId,
-                 donorBaseNodeId,  level=level)
+        Probe.__init__(self, edgeId, finalNodeId, targetBaseNodeId,
+                       targetMaskFileName,
+                       donorBaseNodeId, donorMaskFileName, level=level)
         self.targetChangeSizeInPixels = targetChangeSizeInPixels
-        self.targeMaskImage = targetMaskImage
+        self.targetMaskImage = targetMaskImage
         self.donorMaskImage = donorMaskImage
-        self.donorMaskFileName = donorMaskFileName
-        self.targetMaskFileName = targetMaskFileName
 
 class VideoSegment:
     """
@@ -135,16 +131,11 @@ class VideoProbe(Probe):
     @type donorMasks: list (VideoSegment)
     """
 
-    def __init__(self,
-                 edgeId,
-                 finalNodeId,
-                 targetBaseNodeId,
-                 targetMasks,
-                 donorBaseNodeId,
-                 donorMasks,
-                 level=0):
+    def __init__(self, edgeId, finalNodeId, targetBaseNodeId, targetMasks, targetMaskFileName,
+                 donorBaseNodeId, donorMasks, donorMaskFileName, level=0):
         Probe.__init__(self, edgeId, finalNodeId, targetBaseNodeId,
-                       donorBaseNodeId,  level=level)
+                       targetMaskFileName,
+                       donorBaseNodeId, donorMaskFileName, level=level)
         self.targetMasks = targetMasks
         self.donorMasks = donorMasks
 

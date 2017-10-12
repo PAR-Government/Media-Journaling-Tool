@@ -1085,7 +1085,7 @@ class ImageProjectModel:
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
             if edge['recordMaskInComposite'] == 'yes' or (otherCondition is not None and otherCondition(edge)):
-                composite_generator =  mask_rules.prepareComposite(self.G, edge_id, edge)
+                composite_generator =  mask_rules.prepareComposite(edge_id,self.G,  self.gopLoader)
                 probes.extend(composite_generator.constructProbes(saveTargets=saveTargets))
         return probes
 
@@ -1225,7 +1225,6 @@ class ImageProjectModel:
 
     def extendCompositeByOne(self, compositeMask, level=None, replacementEdgeMask=None, colorMap={}, override_args={}):
         """
-
         :param compositeMask:
         :param level:
         :param replacementEdgeMask:
@@ -2476,10 +2475,15 @@ class ImageProjectModel:
             compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
             color = [int(x) for x in edge['linkcolor'].split(' ')] if 'linkcolor' in edge else [0, 0, 0]
             colorMap[level.value] = color
-        return mask_rules.alterComposite(edge,
+        return mask_rules.alterComposite(self.G,
+                                         edge,
                                          self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                                         source, target, compositeMask, edgeMask, self.get_dir(),
-                                         level=level.value, graph=self.G)
+                                         source,
+                                         target,
+                                         compositeMask,
+                                         edgeMask,
+                                         self.get_dir(),
+                                         level=level.value)
 
     def getModificationForEdge(self, start, end, edge):
         """
