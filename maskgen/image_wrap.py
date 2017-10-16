@@ -37,61 +37,78 @@ except ImportError:
         def __enter__(self):
             return []
 
+def _processRaw(raw, isMask=False,args=None):
+    import rawpy
+    try:
+        if args is not None and 'Bits per Channel' in args:
+            bits = int(args['Bits per Channel'])
+        else:
+            bits = 8
+        use_camera_wb = args is not None and \
+                        'White Balance' in args and \
+                        args['White Balance'] == 'camera'
+        use_auto_wb = args is not None and \
+                      'White Balance' in args and \
+                      args['White Balance'] == 'auto'
+        colorspace = rawpy.ColorSpace.raw
+        if args is not None and 'Color Space' in args:
+            v = args['Color Space']
+            cs_mapping = {'Adobe': rawpy.ColorSpace.Adobe,
+                          'sRGB': rawpy.ColorSpace.sRGB,
+                          'XYZ': rawpy.ColorSpace.XYZ,
+                          'Wide': rawpy.ColorSpace.Wide,
+                          'ProPhoto': rawpy.ColorSpace.ProPhoto,
+                          'default': rawpy.ColorSpace.raw
+                          }
+            colorspace = cs_mapping[v]
+        if args is not None and 'Demosaic Algorithm' in args and args['Demosaic Algorithm'] != 'default':
+            v = args['Demosaic Algorithm']
+            mapping = {'AAHD': rawpy.DemosaicAlgorithm.AAHD,
+                       'AFD': rawpy.DemosaicAlgorithm.AFD,
+                       'AMAZE': rawpy.DemosaicAlgorithm.AMAZE,
+                       'DCB': rawpy.DemosaicAlgorithm.DCB,
+                       'DHT': rawpy.DemosaicAlgorithm.DHT,
+                       'LMMSE': rawpy.DemosaicAlgorithm.LMMSE,
+                       'MODIFIED_AHD': rawpy.DemosaicAlgorithm.MODIFIED_AHD,
+                       'PPG': rawpy.DemosaicAlgorithm.PPG,
+                       'VCD': rawpy.DemosaicAlgorithm.VCD,
+                       'LINEAR': rawpy.DemosaicAlgorithm.LINEAR,
+                       'VCD_MODIFIED_AHD': rawpy.DemosaicAlgorithm.VCD_MODIFIED_AHD,
+                       'VNG': rawpy.DemosaicAlgorithm.VNG}
+            return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v],
+                                                output_bps=bits,
+                                                use_camera_wb=use_camera_wb,
+                                                use_auto_wb=use_auto_wb,
+                                                output_color=colorspace), to_mask=isMask)
+
+        return ImageWrapper(raw.postprocess(output_bps=bits,
+                                            use_camera_wb=use_camera_wb,
+                                            use_auto_wb=use_auto_wb,
+                                            output_color=colorspace), to_mask=isMask)
+    except Exception as e:
+        logging.getLogger('maskgen').error('Raw Open: ' + str(e))
+        return None
+
 
 def openRaw(filename, isMask=False, args=None):
     try:
         import rawpy
         with rawpy.imread(filename) as raw:
-            if args is not None and 'Bits per Channel' in args:
-                bits = int(args['Bits per Channel'])
-            else:
-                bits = 8
-            use_camera_wb = args is not None and \
-                            'White Balance' in args and \
-                            args['White Balance'] == 'camera'
-            use_auto_wb = args is not None and \
-                            'White Balance' in args and \
-                            args['White Balance'] == 'auto'
-            colorspace=rawpy.ColorSpace.raw
-            if args is not None and 'Color Space' in args:
-                v = args['Color Space']
-                cs_mapping = {'Adobe': rawpy.ColorSpace.Adobe,
-                           'sRGB': rawpy.ColorSpace.sRGB,
-                           'XYZ': rawpy.ColorSpace.XYZ,
-                           'Wide': rawpy.ColorSpace.Wide,
-                           'ProPhoto': rawpy.ColorSpace.ProPhoto,
-                           'default': rawpy.ColorSpace.raw
-                            }
-                colorspace = cs_mapping[v]
-            if args is not None and 'Demosaic Algorithm' in args and  args['Demosaic Algorithm'] != 'default':
-                v = args['Demosaic Algorithm']
-                mapping = {'AAHD':rawpy.DemosaicAlgorithm.AAHD,
-                           'AFD':rawpy.DemosaicAlgorithm.AFD,
-                           'AMAZE': rawpy.DemosaicAlgorithm.AMAZE,
-                           'DCB': rawpy.DemosaicAlgorithm.DCB,
-                           'DHT': rawpy.DemosaicAlgorithm.DHT,
-                           'LMMSE': rawpy.DemosaicAlgorithm.LMMSE,
-                           'MODIFIED_AHD': rawpy.DemosaicAlgorithm.MODIFIED_AHD,
-                           'PPG': rawpy.DemosaicAlgorithm.PPG,
-                           'VCD': rawpy.DemosaicAlgorithm.VCD,
-                           'LINEAR': rawpy.DemosaicAlgorithm.LINEAR,
-                           'VCD_MODIFIED_AHD':rawpy.DemosaicAlgorithm.VCD_MODIFIED_AHD,
-                           'VNG': rawpy.DemosaicAlgorithm.VNG }
-                return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v],
-                                                    output_bps=bits,
-                                                    use_camera_wb=use_camera_wb,
-                                                    use_auto_wb=use_auto_wb,
-                                                    output_color=colorspace), to_mask=isMask)
-
-
-            return ImageWrapper(raw.postprocess(output_bps=bits,
-                                                use_camera_wb=use_camera_wb,
-                                                use_auto_wb=use_auto_wb,
-                                                output_color=colorspace), to_mask=isMask)
+            if type(args) == list:
+                result = {}
+                for argitem in args:
+                    rawim = _processRaw(raw, isMask=isMask,args=argitem)
+                    if rawim is not None:
+                        if 'outputname' in argitem:
+                            rawim.save(argitem['outputname'], format='PNG')
+                            result[argitem['outputname']] = rawim
+                        else:
+                            result[str(argitem)] = rawim
+                return result
+            return _processRaw(raw)
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))
         return None
-
 
 def openTiff(filename, isMask=False, args=None):
     raw = openRaw(filename, isMask=isMask, args=args)

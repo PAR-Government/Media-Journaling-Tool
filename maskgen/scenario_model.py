@@ -572,6 +572,11 @@ class VideoVideoLinkTool(LinkTool):
                     startFileName,
                     destFileName,
                     arguments=arguments)
+            else:
+                if 'videomasks' in edge:
+                    return 'videomasks', errors
+                else:
+                    return
         return [], errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -2286,6 +2291,7 @@ class ImageProjectModel:
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
                          msg2 if msg2 else '']).strip()
+        os.remove(target)
         if status:
             pairs.append((self.start, self.end))
             for donor in donors:
@@ -2299,7 +2305,7 @@ class ImageProjectModel:
                 # really need to classify rules and skip certain categories
                 if 'donor' in msg:
                     msg = None
-        os.remove(target)
+
         return self._pluginError(filter, msg), pairs
 
     def _resolvePluginValues(self, args, operation):
@@ -2437,7 +2443,8 @@ class ImageProjectModel:
         return ((startNode['xpos'] if startNode.has_key('xpos') else 50) + augment[0],
                 (startNode['ypos'] if startNode.has_key('ypos') else 50) + augment[1])
 
-    def _extendComposite(self, compositeMask,
+    def _extendComposite(self,
+                         compositeMask,
                          edge,
                          source,
                          target,
@@ -2481,8 +2488,8 @@ class ImageProjectModel:
                                          source,
                                          target,
                                          compositeMask,
-                                         edgeMask,
                                          self.get_dir(),
+                                         replacementEdgeMask= edgeMask,
                                          level=level.value)
 
     def getModificationForEdge(self, start, end, edge):

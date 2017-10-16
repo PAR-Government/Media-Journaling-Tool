@@ -225,6 +225,23 @@ def __invertSegment(segmentFileName, prefix):
         capOut.close()
     return capOut.filename
 
+def getStartAndEndTimesFromEdge(edge):
+    if 'videomasks' in edge and \
+        edge['videomasks'] is not None and \
+        len(edge['videomasks']) > 0:
+            start = tool_set.getDurationStringFromMilliseconds(edge['videomasks'][0]['starttime'])
+            end = tool_set.getDurationStringFromMilliseconds(edge['videomasks'][-1]['endtime'])
+    else:
+        if 'Start Time' in edge:
+            start =edge['Start Time']
+        else:
+            start = '00:00:00.000'
+        if 'End Time' in edge:
+            end = edge['End Time']
+        else:
+            # TODO: Need to get the actual end time
+            end = None
+    return start,end
 
 def invertVideoMasks(dir, videomasks, start, end):
     """
@@ -693,6 +710,7 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
     one_meta, one_frames = getMeta(filename, with_frames=False)
     execute_remove= False
     execute_compress = True
+    input_filename = filename
     #see if already compressed
     if one_meta is not None:
         for k,v in one_meta.iteritems():
@@ -700,20 +718,20 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
                 execute_remove= True
             if 'Stream' in k and criteria in v:
                 execute_compress = False
-    prefix = filename[0:filename.rfind('.')]
-    if not filename.endswith(suffix):
+    prefix = input_filename[0:filename.rfind('.')]
+    if not input_filename.endswith(suffix):
         execute_compress = True
     outFileName = prefix + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
     if  execute_remove:
-        filename = removeVideoFromAudio(filename, outputname=outFileName if not execute_compress else None)
-    elif filename == outFileName:
-        return filename
+        input_filename = removeVideoFromAudio(input_filename, outputname=outFileName if not execute_compress else None)
+    elif input_filename == outFileName:
+        return input_filename
 
     if not execute_compress:
-        return filename
+        return input_filename
 
-    command = [ffmpegcommand, '-y','-i', filename]
+    command = [ffmpegcommand, '-y','-i', input_filename]
     command.extend(expressions)
     command.append(outFileName)
     p = Popen(command, stdout=PIPE, stderr=PIPE)
@@ -725,6 +743,10 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
         return outFileName if p.returncode == 0 else None
     except OSError as e:
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
+    finally:
+        if input_filename != filename:
+            os.remove(input_filename)
+
 
 def _runCommand(command,outputCollector=None):
     p = Popen(command, stdout=PIPE, stderr=PIPE)
@@ -877,7 +899,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         cut['starttime'] = vidAnalysisComponents.elapsed_time_one
         cut['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         cut['rate'] =  vidAnalysisComponents.fps_one,
-        end_time = None
+        end_time = 0
         count = 1
         cut['mask'] = vidAnalysisComponents.mask
         if type(cut['mask']) == int:
@@ -1247,6 +1269,455 @@ def interpolateMask(mask_file_name_prefix,
         return new_mask_set,[]
     # Masks cannot be generated for video to video....yet
     return [],[]
+
+
+def dropFramesFromMask(start_time,
+                       end_time,
+                       directory,
+                       video_masks,
+                       keepTime = False):
+    """
+    slide frames back given start and end removal times
+    :param start_time: start time of removed frames
+    :param end_time: end time of removed frmes
+    :param directory:
+    :param video_masks:
+    :param keepTime: If True, then frame times and counts do not change ( in the case of an overlay ).  Essentially
+    just dropping intersecting masks
+    :return: new set of video masks
+    """
+    import math
+
+    drop_st = tool_set.getMilliSecondsAndFrameCount(start_time)
+    drop_et = tool_set.getMilliSecondsAndFrameCount(end_time)
+    new_mask_set = []
+    for mask_set in video_masks:
+        mask_st = (mask_set['starttime'], 0)
+        mask_et = (mask_set['endtime'], 0)
+        rate = mask_set['rate']
+        if  drop_st[0] is not None and tool_set.differenceBetweeMillisecondsAndFrame(drop_st, mask_et, rate) > 0:
+            new_mask_set.append(mask_set)
+            continue
+        if (drop_et[0] is None or tool_set.differenceBetweeMillisecondsAndFrame(drop_et, mask_et, rate) >= 0) and \
+                (drop_st[0] is None or tool_set.differenceBetweeMillisecondsAndFrame(drop_st, mask_st, rate) <= 0):
+            # started after drop and subsummed by drop
+            continue
+        #occurs after drop region and time is not alterered
+        if keepTime and drop_et[0] is not None and tool_set.differenceBetweeMillisecondsAndFrame(drop_et, mask_st, rate) < 0:
+            new_mask_set.append(mask_set)
+            continue
+        reader = tool_set.GrayBlockReader(os.path.join(directory,
+                                                    mask_set['videosegment']))
+        mask_file_name_prefix = mask_set['videosegment'][0:mask_set['videosegment'].rfind('.')] + '_c'
+        writer = tool_set.GrayBlockWriter(os.path.join(directory, mask_file_name_prefix),
+                                              reader.fps)
+        if keepTime:
+            elapsed_count = 0
+            elapsed_time = 0
+        else:
+            if drop_st[0] is None:
+                elapsed_time = tool_set.differenceBetweeMillisecondsAndFrame(drop_et, (0,0), rate)
+            elif drop_et[0] is not None:
+                elapsed_time = tool_set.differenceBetweeMillisecondsAndFrame(drop_et, drop_st, rate)
+            else:
+                elapsed_time = 0
+            elapsed_count = int(math.ceil(elapsed_time/1000.0 * rate))
+        try:
+            startcount = mask_set['startframe']
+            starttime = mask_set['starttime']
+            skipRead = False
+            written_count = 0
+            # if mask starts before drop, then write out some of the mask
+            if drop_st[0] is not None and tool_set.differenceBetweeMillisecondsAndFrame(drop_st, mask_st, rate) > 0:
+                while True:
+                    frame_time = reader.current_frame_time()
+                    mask = reader.read()
+                    if mask is None:
+                        break
+                    diff_st = tool_set.differenceBetweeMillisecondsAndFrame(drop_st, (frame_time, 0),reader.fps)
+                    if diff_st < 0:
+                        skipRead = True
+                        break
+                    writer.write(mask, frame_time)
+                    written_count += 1
+                if written_count > 0:
+                        change = dict()
+                        change['starttime'] = starttime
+                        change['startframe'] = startcount
+                        change['endtime'] = frame_time
+                        change['endframe'] = startcount + written_count
+                        change['frames'] = written_count
+                        change['rate'] = rate
+                        change['videosegment'] = os.path.split(writer.filename)[1]
+                        new_mask_set.append(change)
+                        writer.release()
+                        startcount = startcount + written_count
+                        starttime = None
+                        written_count = 0
+            else:
+                # covers the case of start occuring before OR after the end of the drop
+                starttime = None
+            while True and drop_et[0] is not None:
+                if skipRead:
+                    skipRead = False
+                else:
+                    frame_time = reader.current_frame_time()
+                    mask = reader.read()
+                if mask is None:
+                    break
+                diff_et = tool_set.differenceBetweeMillisecondsAndFrame(drop_et, (frame_time, 0),reader.fps)
+                # if diff_et > 0, then the start occured before the drop
+                if diff_et <= 0:
+                    if starttime is None:
+                        starttime = frame_time - elapsed_time
+                    writer.write(mask, frame_time - elapsed_time)
+                    written_count+=1
+            if written_count > 0:
+                change = dict()
+                change['endframe'] = mask_set['endframe'] - elapsed_count
+                change['starttime'] = starttime
+                change['startframe'] = change['endframe'] - written_count
+                change['endtime'] = mask_set['endtime'] - elapsed_time
+                change['frames'] = written_count
+                change['rate'] = rate
+                change['videosegment'] = os.path.split(writer.filename)[1]
+                new_mask_set.append(change)
+                writer.release()
+        finally:
+            reader.close()
+            writer.close()
+    return new_mask_set
+
+def dropFramesWithoutMask(start_time,
+                       end_time,
+                       directory,
+                       video_masks,
+                       keepTime = False):
+    """
+    slide frames back given start and end removal times
+    :param start_time: start time of removed frames
+    :param end_time: end time of removed frmes
+    :param directory:
+    :param video_masks:
+    :param keepTime: If True, then frame times and counts do not change ( in the case of an overlay ).  Essentially
+    just dropping intersecting masks
+    :return: new set of video masks
+    """
+    import math
+
+    drop_st = tool_set.getMilliSecondsAndFrameCount(start_time)
+    drop_et = tool_set.getMilliSecondsAndFrameCount(end_time)
+    new_mask_set = []
+    for mask_set in video_masks:
+        mask_st = (mask_set['starttime'], 0)
+        mask_et = (mask_set['endtime'], 0)
+        rate = mask_set['rate']
+        # before remove region
+        if  drop_st[0] is not None and tool_set.differenceBetweeMillisecondsAndFrame(drop_st, mask_et, rate) > 0:
+            new_mask_set.append(mask_set)
+            continue
+            # at the end and time is not change
+        if keepTime and drop_et[0] is not None and tool_set.differenceBetweeMillisecondsAndFrame(drop_et, mask_st, rate) <= 0:
+            new_mask_set.append(mask_set)
+            continue
+        if (drop_et[0] is None or tool_set.differenceBetweeMillisecondsAndFrame(drop_et, mask_et, rate) >= 0) and \
+                (drop_st[0] is None or tool_set.differenceBetweeMillisecondsAndFrame(drop_st, mask_st, rate) <= 0):
+            # started after drop and subsummed by drop
+            continue
+        #occurs after drop region
+        start_diff_time = tool_set.differenceBetweeMillisecondsAndFrame(drop_st, mask_st, rate)
+        if start_diff_time > 0:
+            change = dict()
+            change['starttime'] = mask_set['starttime']
+            change['startframe'] = mask_set['startframe']
+            change['endtime'] = mask_set['starttime'] + abs(start_diff_time)
+            change['endframe'] = mask_set['startframe'] + int(abs(start_diff_time) / 1000.0 * rate)
+            change['frames'] = change['endframe'] - change['startframe']
+            change['rate'] = rate
+            new_mask_set.append(change)
+        if drop_et[0] is not None:
+             end_diff_time = tool_set.differenceBetweeMillisecondsAndFrame(drop_et, mask_et, rate)
+             if end_diff_time < 0:
+                end_adjust_time =  tool_set.differenceBetweeMillisecondsAndFrame(drop_et, drop_st, rate)
+                change = dict()
+                if keepTime:
+                    change['starttime'] =drop_et[0] + drop_et[1] * rate
+                    change['startframe'] = int(drop_et[0] / 1000.0 * rate) + drop_et[1]
+                    change['endtime'] = mask_set['endtime']
+                    change['endframe'] = mask_set['endframe']
+                    change['frames'] = change['endframe'] - change['startframe']
+                    change['rate'] = rate
+                else:
+                    if tool_set.differenceBetweeMillisecondsAndFrame(drop_et, mask_st, rate) < 0:
+                        change['starttime'] = mask_set['starttime'] -  end_adjust_time
+                        change['startframe'] =  mask_set['startframe'] -  int((end_adjust_time) / 1000.0 * rate)
+                    else:
+                        change['starttime']  = drop_st[0] + drop_st[1] * rate
+                        change['startframe'] = int(drop_st[0] / 1000.0 * rate) + drop_st[1]
+                    change['endtime'] = mask_set['endtime'] -  end_adjust_time
+                    change['endframe'] = mask_set['endframe'] -  int((end_adjust_time) / 1000.0 * rate)
+                    change['frames'] = change['endframe'] - change['startframe']
+                change['rate'] = rate
+                new_mask_set.append(change)
+    return new_mask_set
+
+def insertFramesToMask(start_time,
+                       end_time,
+                       directory,
+                       video_masks):
+    """
+    Slide mask frames forward to accomodate inserted frames given the insertion start and end time
+    :param start_time: insertion start time.
+    :param end_time:insertion end time.
+    :param directory:
+    :param video_masks:
+    :return: new set of video masks
+    """
+    import math
+    add_st = tool_set.getMilliSecondsAndFrameCount(start_time)
+    add_et = tool_set.getMilliSecondsAndFrameCount(end_time)
+    new_mask_set = []
+    for mask_set in video_masks:
+        mask_st = (mask_set['starttime'], 0)
+        mask_et = (mask_set['endtime'], 0)
+        rate = mask_set['rate']
+        if  (tool_set.differenceBetweeMillisecondsAndFrame(add_st, mask_et, rate) > 0):
+            new_mask_set.append(mask_set)
+            continue
+        reader = tool_set.GrayBlockReader(os.path.join(directory,
+                                                    mask_set['videosegment']))
+        mask_file_name_prefix = mask_set['videosegment'][0:mask_set['videosegment'].rfind('.')] + '_c'
+        writer = tool_set.GrayBlockWriter(os.path.join(directory, mask_file_name_prefix),
+                                              reader.fps)
+        if add_et[0] is None:
+            elapsed_time = 0
+            elapsed_count = 0
+        else:
+            elapsed_time = tool_set.differenceBetweeMillisecondsAndFrame(add_et,add_st,rate)
+            elapsed_count = int(math.ceil(elapsed_time/1000.0 * rate))
+        try:
+            # deal with the case where the mask starts before the added section and end after
+            count = mask_set['startframe']
+            written_count = 0
+            skipread = False
+            startcount = count
+            if tool_set.differenceBetweeMillisecondsAndFrame(add_st, mask_st, rate) > 0:
+                starttime = mask_set['starttime']
+                while True:
+                    frame_time = reader.current_frame_time()
+                    mask = reader.read()
+                    if mask is None:
+                        break
+                    diff_st = tool_set.differenceBetweeMillisecondsAndFrame(add_st, (frame_time, 0), reader.fps)
+                    if diff_st < 0:
+                        skipread = True
+                        break
+                    writer.write(mask, frame_time)
+                    written_count += 1
+                    count += 1
+                if written_count > 0:
+                    change = dict()
+                    change['starttime'] = starttime
+                    change['startframe'] = startcount
+                    change['endtime'] = frame_time
+                    change['endframe'] = startcount + written_count
+                    change['frames'] = written_count
+                    change['rate'] = rate
+                    change['videosegment'] = os.path.split(writer.filename)[1]
+                    new_mask_set.append(change)
+                    writer.release()
+                written_count = 0
+            starttime = None
+            while True:
+                if not skipread:
+                     frame_time = reader.current_frame_time()
+                     mask = reader.read()
+                else:
+                    skipread = False
+                if starttime is None:
+                    starttime = frame_time + elapsed_time
+                    startcount = count + elapsed_count
+                if mask is None:
+                    break
+                writer.write(mask, frame_time + elapsed_time)
+                written_count += 1
+            if written_count > 0:
+                change = dict()
+                change['starttime'] = starttime
+                change['startframe'] = startcount
+                change['endtime'] = mask_et[0] + elapsed_time
+                change['endframe'] = startcount + written_count
+                change['frames'] = written_count
+                change['rate'] = rate
+                change['videosegment'] = os.path.split(writer.filename)[1]
+                new_mask_set.append(change)
+                writer.release()
+        finally:
+            reader.close()
+            writer.close()
+    return new_mask_set
+
+def _maskTransform(directory, video_masks, func):
+    """
+    Crop masks
+    :param start_time: insertion start time.
+    :param end_time:insertion end time.
+    :param directory:
+    :param video_masks:
+    :return: new set of video masks
+    """
+    import math
+    new_mask_set = []
+    for mask_set in video_masks:
+        change = dict()
+        change['starttime'] = mask_set['starttime']
+        change['startframe'] = mask_set['startframe']
+        change['endtime'] = mask_set['endtime']
+        change['endframe'] =mask_set['endframe']
+        change['frames'] = mask_set['frames']
+        change['rate'] = mask_set['rate']
+        try:
+            reader = tool_set.GrayBlockReader(os.path.join(directory,
+                                                           mask_set['videosegment']))
+            mask_file_name_prefix = mask_set['videosegment'][0:mask_set['videosegment'].rfind('.')] + '_c'
+            writer = tool_set.GrayBlockWriter(os.path.join(directory, mask_file_name_prefix),
+                                                  reader.fps)
+            while True:
+                frame_time = reader.current_frame_time()
+                mask = reader.read()
+                if mask is None:
+                    break
+                mask = func(mask)
+                writer.write(mask, frame_time)
+            change['videosegment'] = os.path.split(writer.filename)[1]
+            new_mask_set.append(change)
+        finally:
+            reader.close()
+            writer.close()
+    return new_mask_set
+
+def insertMask(directory, video_masks,box, size):
+    """
+    Insert mask insize larger mask
+    :param directory
+    :param video_masks
+    :param box - tuple (upper left x, upper left y, lower right x , lower right y)
+    :param size of the new mask
+    :return: new set of video masks
+    """
+    from functools import partial
+    def insertMaskWithBox(box,size,mask):
+        newRes = np.zeros(size).astype('uint8')
+        newRes[box[0]:box[2], box[1]:box[3]] = mask[0:(box[2] - box[0]), 0:(box[3] - box[1])]
+        return newRes
+    return _maskTransform(directory,video_masks,partial(insertMaskWithBox,box,size))
+
+def cropMask(directory, video_masks,box):
+    """
+    Crop masks
+    :param directory
+    :param video_masks
+    :param box - tuple (upper left x, upper left y, lower right x , lower right y)
+    """
+    from functools import partial
+    def croptMaskWithBox(box, mask):
+        return mask[box[0]:box[2], box[1]:box[3]]
+
+    return _maskTransform(directory, video_masks, partial(croptMaskWithBox, box))
+
+
+def resizeMask(directory, video_masks, size):
+    """
+    resize mask
+    :param directory
+    :param video_masks
+    :param size of the new mask
+    :return: new set of video masks
+    """
+    from functools import partial
+    def resizeMaskGivenSize(size, mask):
+         return cv2.resize(mask, size)
+    return _maskTransform(directory, video_masks, partial(resizeMaskGivenSize, size))
+
+def rotateMask(directory, video_masks, degrees, expectedDims=None,cval = 0):
+    """
+    resize mask
+    :param directory
+    :param video_masks
+    :param size of the new mask
+    :return: new set of video masks
+    """
+    from functools import partial
+    def rotateMaskGivenDegrees(degrees, cval, expectedDims, mask):
+         return tool_set.__rotateImage(degrees, mask,expectedDims=expectedDims,cval=cval)
+    return _maskTransform(directory, video_masks, partial(rotateMaskGivenDegrees,degrees,cval,expectedDims))
+
+def insertFramesWithoutMask(start_time,
+                       end_time,
+                       directory,
+                       video_masks):
+    """
+       slide frames back given start and end removal times
+       :param start_time: start time of removed frames
+       :param end_time: end time of removed frmes
+       :param directory:
+       :param video_masks:
+       :param keepTime: If True, then frame times and counts do not change ( in the case of an overlay ).  Essentially
+       just dropping intersecting masks
+       :return: new set of video masks
+    """
+    add_st = tool_set.getMilliSecondsAndFrameCount(start_time)
+    add_et = tool_set.getMilliSecondsAndFrameCount(end_time)
+    new_mask_set = []
+    for mask_set in video_masks:
+        mask_st = (mask_set['starttime'], 0)
+        mask_et = (mask_set['endtime'], 0)
+        rate = mask_set['rate']
+        #before addition
+        if tool_set.differenceBetweeMillisecondsAndFrame(add_st, mask_et, rate) > 0:
+            new_mask_set.append(mask_set)
+            continue
+        start_diff_time= tool_set.differenceBetweeMillisecondsAndFrame(add_st, mask_st, rate)
+        #end_diff_time = tool_set.differenceBetweeMillisecondsAndFrame(add_et, mask_et, rate)
+        end_adjust_time = tool_set.differenceBetweeMillisecondsAndFrame(add_et, add_st, rate) if add_et[0] is not None else -1
+        if start_diff_time > 0:
+            change = dict()
+            change['starttime'] = mask_set['starttime']
+            change['startframe'] = mask_set['startframe']
+            change['endtime'] = mask_set['starttime'] + abs(start_diff_time)
+            change['endframe'] = mask_set['startframe'] + int(abs(start_diff_time) / 1000.0 * rate) + 1
+            change['frames'] = change['endframe'] - change['startframe']
+            change['rate'] = rate
+            new_mask_set.append(change)
+            if end_adjust_time >= 0:
+                change = dict()
+                change['starttime'] = add_et[0] + add_et[1] * rate
+                change['startframe'] = int(add_et[0] / 1000.0 * rate) + add_et[1]
+                change['endtime'] = mask_set['endtime'] + abs(end_adjust_time)
+                change['endframe'] = mask_set['endframe'] + int(abs(end_adjust_time) / 1000.0 * rate)
+                change['frames'] = change['endframe'] - change['startframe']
+                change['rate'] = rate
+                new_mask_set.append(change)
+        elif end_adjust_time >= 0:
+            #if tool_set.differenceBetweeMillisecondsAndFrame(add_et, mask_st, rate) > 0:
+            #    change = dict()
+            ##    change['starttime'] = add_et[0] + add_et[1] * rate
+            #    change['startframe'] = int(add_et[0] / 1000.0 * rate) + add_et[1]
+            #    change['endtime'] = mask_set['endtime'] + abs(end_diff_time)
+            #    change['endframe'] = change['startframe'] + mask_set['frames']
+            #    change['frames'] = mask_set['frames']
+            #    change['rate'] = rate
+            #    new_mask_set.append(change)
+            #else:
+            change = dict()
+            change['starttime'] = mask_set['starttime'] + end_adjust_time
+            change['startframe'] = mask_set['startframe'] + int(abs(end_adjust_time) / 1000.0 * rate)
+            change['endtime'] = mask_set['endtime'] + abs(end_adjust_time)
+            change['endframe'] = mask_set['endframe'] + int(abs(end_adjust_time) / 1000.0 * rate)
+            change['frames'] = change['endframe'] - change['startframe']
+            change['rate'] = rate
+            new_mask_set.append(change)
+    return new_mask_set
 
 def pullFrameNumber(video_file, frame_number):
     """

@@ -9,71 +9,6 @@ import software_loader
 from image_graph import igversion
 logging.getLogger('maskgen').info('Version ' + igversion)
 
-class Probe:
-    edgeId = None
-    targetBaseNodeId = None
-    finalNodeId = None
-    composites = None
-    donorBaseNodeId = None
-    level = 0
-    targetMaskFileName = None
-    donorMaskFileName = None
-
-    """
-    @type edgeId: tuple
-    @type targetBaseNodeId: str
-    @type targetMaskFileName: str
-    @type finalNodeId: str
-    @type compositeFileNames: dict of str:str
-    @type donorBaseNodeId: str
-    @type donorMaskFileName: str
-    @type level: int
-
-    The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
-    The targetBaseNodeId is the id of the base node that supplies the base image for the target.
-    The level is level from top to bottom in the tree.  Top is level 0
-    """
-
-
-    def __init__(self,
-                 edgeId,
-                 finalNodeId,
-                 targetBaseNodeId,
-                 targetMaskFileName,
-                 donorBaseNodeId,
-                 donorMaskFileName,
-                 level=0):
-        self.edgeId = edgeId
-        self.finalNodeId = finalNodeId
-        self.targetBaseNodeId = targetBaseNodeId
-        self.targetMaskFileName = targetMaskFileName
-        self.donorBaseNodeId = donorBaseNodeId
-        self.donorMaskFileName = donorMaskFileName
-        self.level = level
-        self.composites = dict()
-
-class ImageProbe(Probe):
-
-    targetMaskImage = None
-    donorMaskImage = None
-    targetChangeSizeInPixels = 0
-
-    """
-    @type targetChangeSizeInPixels: int
-    @type targeMaskImage: ImageWrapper
-    @type donorMaskImage: ImageWrapper
-    """
-
-    def __init__(self, edgeId, finalNodeId, targetBaseNodeId, targetMaskImage, targetMaskFileName,
-                 targetChangeSizeInPixels,
-                 donorBaseNodeId, donorMaskImage, donorMaskFileName, level=0):
-        Probe.__init__(self, edgeId, finalNodeId, targetBaseNodeId,
-                       targetMaskFileName,
-                       donorBaseNodeId, donorMaskFileName, level=level)
-        self.targetChangeSizeInPixels = targetChangeSizeInPixels
-        self.targetMaskImage = targetMaskImage
-        self.donorMaskImage = donorMaskImage
-
 class VideoSegment:
     """
       USED FOR AUDIO.
@@ -121,23 +56,72 @@ class VideoSegment:
         self.frames = frames
         self.filename = filename
 
-class VideoProbe(Probe):
-    targetMasks = None
-    donorMasks = None
-    """
-    Each item of the two lists is a dictionary containing information about the segment
+class Probe:
+    edgeId = None
+    targetBaseNodeId = None
+    finalNodeId = None
+    composites = None
+    donorBaseNodeId = None
+    donorVideoMasks = None
+    targetMaskImage = None
+    donorMaskImage= None
+    targetMaskFileName = None
+    donorMaskFileName = None
+    targetVideoMasks = None
+    donorMask = None
 
-    @type targetMasks: list (VideoSegment)
-    @type donorMasks: list (VideoSegment)
+    targetChangeSizeInPixels = 0
+    level = 0
+
+    """
+    @type edgeId: tuple
+    @type targetBaseNodeId: str
+    @type targetMaskFileName: str
+    #type targetChangeSizeInPixels: size
+    @type targetMaskImage: ImageWrapper
+    @type finalNodeId: str
+    @type compositeFileNames: dict of str:str
+    @type donorBaseNodeId: str
+    @type donorMaskFileName: str
+    @type donorMaskImage: ImageWrapper
+    @type donorVideoMasks: list (VideoSegment)
+    @type level: int
+    @type targetVideoMasks: list (VideoSegment)
+
+    The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
+    The targetBaseNodeId is the id of the base node that supplies the base image for the target.
+    The level is level from top to bottom in the tree.  Top is level 0
     """
 
-    def __init__(self, edgeId, finalNodeId, targetBaseNodeId, targetMasks, targetMaskFileName,
-                 donorBaseNodeId, donorMasks, donorMaskFileName, level=0):
-        Probe.__init__(self, edgeId, finalNodeId, targetBaseNodeId,
-                       targetMaskFileName,
-                       donorBaseNodeId, donorMaskFileName, level=level)
-        self.targetMasks = targetMasks
-        self.donorMasks = donorMasks
+
+    def __init__(self,
+                 edgeId,
+                 finalNodeId,
+                 targetBaseNodeId,
+                 donorBaseNodeId,
+                 targetMaskImage = None,
+                 donorMaskFileName=None,
+                 targetMaskFileName=None,
+                 targetVideoMasks=None,
+                 donorMask=None,
+                 donorMaskImage=None,
+                 donorVideoMasks=None,
+                 targetChangeSizeInPixels=0,
+                 level=0):
+        self.edgeId = edgeId
+        self.finalNodeId = finalNodeId
+        self.targetBaseNodeId = targetBaseNodeId
+        self.targetMaskFileName = targetMaskFileName
+        self.donorBaseNodeId = donorBaseNodeId
+        self.donorMaskFileName = donorMaskFileName
+        self.donorMaskImage=donorMaskImage
+        self.donorVideoMasks = donorVideoMasks
+        self.targetVideoMasks = targetVideoMasks
+        self.donorMask = donorMask
+        self.targetMaskImage = targetMaskImage
+        self.targetChangeSizeInPixels = targetChangeSizeInPixels
+        self.level = level
+
 
 
 import graph_rules

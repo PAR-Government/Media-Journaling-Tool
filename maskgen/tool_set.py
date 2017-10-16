@@ -372,6 +372,8 @@ def differenceBetweeMillisecondsAndFrame(mandf1, mandf2, rate):
     return mandf1[0] - mandf2[0]  + (rate * (mandf1[1] - mandf2[1]))
 
 def getMilliSecondsAndFrameCount(v):
+    if v is None:
+        return None, 0
     dt = None
     framecount = 0
     coloncount = v.count(':')
@@ -2264,7 +2266,7 @@ class GrayBlockReader:
                                       preferences=preferences) if self.convert else DummyWriter()
 
     def current_frame_time(self):
-        return self.start_time + (self.pos * self.fps)
+        return self.start_time + (self.pos * (1000/self.fps))
 
     def read(self):
         if self.dset is None:

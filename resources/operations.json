@@ -45,6 +45,7 @@
         "checkAddFrameTime",
         "checkSameChannels"
       ],
+      "maskTransformFunction": {"image": "maskgen.mask_rules.add_audio"},
       "optionalparameters": {
         "Copy End Time": {
           "type": "time",
@@ -124,6 +125,7 @@
       ],
       "optionalparameters": {
       },
+      "maskTransformFunction": {"image": "maskgen.mask_rules.delete_audio"},
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
       "includeInMask": false,
@@ -173,6 +175,10 @@
         "checkAudioChannels",
         "checkForAudio"
       ],
+      "maskTransformFunction": {
+        "video" : "maskgen.mask_rules.add_audio",
+        "audio" : "maskgen.mask_rules.add_audio"
+      },
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -461,6 +467,10 @@
           "type": "time",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "maskTransformFunction": {
+          "audio": "maskgen.mask_rules.replace_audio",
+          "video": "maskgen.mask_rules.replace_audio"
       },
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
@@ -2644,7 +2654,9 @@
            "rule" : {"purpose": "blend"}
          }
       },
-      "maskTransformFunction": "maskgen.mask_rules.pastesplice",
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.pastesplice"
+      },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,
@@ -2676,6 +2688,10 @@
         "checkFrameTimes",
         "checkSameChannels"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.paste_add_frames",
+        "audio": "maskgen.mask_rules.paste_add_audio_frames"
+      },
       "optionalparameters": {},
       "description": "Adding a series of frames from a video clip",
       "includeInMask": true,
@@ -2911,7 +2927,9 @@
           "description": "Maps the bounding regions of each image"
         }
       },
-      "maskTransformFunction": "maskgen.mask_rules.recapture_transform",
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.recapture_transform"
+      },
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
       "includeInMask": false,
       "transitions": [
@@ -3011,6 +3029,10 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.select_cut_frames",
+        "audio": "maskgen.mask_rules.delete_audio"
+      },
       "description": "Remove a series of frames from a video clip.",
       "includeInMask": false,
       "transitions": [
@@ -3039,6 +3061,9 @@
       "description": "Remove all frames before and after the selected video clip.",
       "includeInMask": false,
       "generateMask": false,
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.select_crop_frames"
+      },
       "transitions": [
         "video.video"
       ]
@@ -3057,7 +3082,9 @@
           "description": "How much influence a pixel change has on the resulting mask."
         }
       },
-      "maskTransformFunction": "maskgen.mask_rules.select_remove",
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.select_remove"
+      },
       "description": "Remove a limited selection within an image.",
       "includeInMask": true,
       "transitions": [
@@ -3459,7 +3486,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
-      "maskTransformFunction": "maskgen.mask_rules.cas_transform",
+      "maskTransformFunction": {"image": "maskgen.mask_rules.cas_transform"},
       "description": "Resize an image without changing important visual content.",
       "includeInMask": false,
       "transitions": [
@@ -3492,7 +3519,10 @@
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
       "includeInMask": false,
       "generateMask" : false,
-      "maskTransformFunction": "maskgen.mask_rules.crop_transform",
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.crop_transform",
+        "video":"maskgen.mask_rules.video_crop_transform"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3651,7 +3681,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftWithInputAnalysis"
       ],
-      "maskTransformFunction": "maskgen.mask_rules.move_transform",
+      "maskTransformFunction": {"image": "maskgen.mask_rules.move_transform"},
       "description": "Reposition a selection within a larger composition.",
       "includeInMask": false,
       "transitions": [
@@ -3717,7 +3747,10 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
-      "maskTransformFunction": "maskgen.mask_rules.resize_transform",
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.resize_transform",
+        "video": "maskgen.mask_rules.video_resize_transform"
+       },
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
       "generateMask" : false,
@@ -3774,7 +3807,10 @@
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": false,
-      "maskTransformFunction": "maskgen.mask_rules.rotate_transform",
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.rotate_transform",
+        "video": "maskgen.mask_rules.video_rotate_transform"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3881,7 +3917,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
-      "maskTransformFunction": "maskgen.mask_rules.seam_transform",
+      "maskTransformFunction": {"image": "maskgen.mask_rules.seam_transform"},
       "description": "Resize an image while preserving the integrity of content.",
       "includeInMask": false,
       "transitions": [
@@ -4048,7 +4084,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
-      "maskTransformFunction" :"maskgen.mask_rules.warp_transform",
+      "maskTransformFunction": {"image": "maskgen.mask_rules.warp_transform"},
       "description": "Freely alter the shape or dimensions of a given selection or image.",
       "includeInMask": false,
       "transitions": [

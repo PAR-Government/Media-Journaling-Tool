@@ -129,7 +129,11 @@ def getOperation(name, fake = False, warning=True):
     """
     global metadataLoader
     if name == 'Donor':
-        return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
+        return Operation(name='Donor', category='Donor',maskTransformFunction=
+        {'image':'maskgen.mask_rules.donor',
+         'video':'maskgen.mask_rules.video_donor',
+         'audio': 'maskgen.mask_rules.audio_donor',
+         })
     if name not in metadataLoader.operations and warning:
         logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
     return metadataLoader.operations[name] if name in metadataLoader.operations else (Operation(name='name', category='Bad') if fake else None)
