@@ -235,16 +235,18 @@ def imageResize(img, dim):
     return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
 
 
-def imageResizeRelative(img, dim, otherIm):
+def imageResizeRelative(img, dim, otherImDim):
     """
     Preserves the dimension ratios_
     :param dim:
-    :param otherIm:
+    :param otherImDim: dimensions of other image
     :return: Resized relative to width given the maximum constraints
      @rtype: ImageWrapper
     """
-    wmax = max(img.size[0], otherIm[0])
-    hmax = max(img.size[1], otherIm[1])
+    if img is None:
+        img =  ImageWrapper(np.zeros((otherImDim[1],otherImDim[0]),dtype=np.uint8))
+    wmax = max(img.size[0], otherImDim[0])
+    hmax = max(img.size[1], otherImDim[1])
     wpercent = float(dim[0]) / float(wmax)
     hpercent = float(dim[1]) / float(hmax)
     perc = min(wpercent, hpercent)

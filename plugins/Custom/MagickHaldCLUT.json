@@ -1,0 +1,37 @@
+{
+    "operation": {
+        "category": "Color",
+        "name": "ColorLUT",
+        "description": "Changing color space or changing based on a Hald Color LUT using ImageMagick.",
+        "version": "7.0", 
+        "arguments": {
+            "clut image file": {
+                "defaultvalue": "",
+                "type": "file:image",
+                "description": "CLUT image file"
+            }
+        }, 
+        "transitions": [
+            "image.image"
+        ], 
+        "software": "ImageMagick"
+    },
+    "command": {
+        "default": [
+            "convert", 
+            "{inputimage}",
+            "{clut image file}",
+            "-hald-clut",
+            "{outputimage}"
+        ], 
+        "win32": [
+            "magick", 
+            "convert", 
+            "{inputimage}",
+            "{clut image file}",
+            "-hald-clut",
+            "{outputimage}"
+        ]
+    }, 
+    "name": "MagickHaldCLUT"
+}
