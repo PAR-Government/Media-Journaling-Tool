@@ -509,8 +509,12 @@ class InputMaskPluginOperation(PluginOperation):
         """
         file = os.path.split(filename)[1]
         file = file[0:file.rfind('.')]
-        target = os.path.join(tempfile.gettempdir(), file + '_' + filter + '.png')
-        shutil.copy2(filename, target)
+        target = os.path.join(tempfile.gettempdir(), file + '_' + filter + '_' + node_name + '.png')
+        if file.endswith('.png'):
+            shutil.copy2(filename, target)
+        else:
+            tool_set.openImageFile(filename).save(target, format='PNG')
+        local_state['cleanup'].append(target)
         params = {}
         kwargs = {k: self.resolveDonor(k, v, local_state) for k, v in kwargs.iteritems()}
         try:
@@ -543,8 +547,12 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
         """
         file = os.path.split(filename)[1]
         file = file[0:file.rfind('.')]
-        target = os.path.join(tempfile.gettempdir(), file + '_' + filter + '.png')
-        shutil.copy2(filename, target)
+        target = os.path.join(tempfile.gettempdir(), file + '_' + filter+ '_' + node_name + '.png')
+        if filename.endswith('.png'):
+            shutil.copy2(filename, target)
+        else:
+            tool_set.openImageFile(filename).save(target, format='PNG')
+        local_state['cleanup'].append(target)
         params = {}
         try:
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
@@ -558,7 +566,6 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
                 for k, v in extra_args.iteritems():
                     if k not in kwargs:
                         params[k] = v
-            os.remove(target)
         except Exception as e:
             msg = str(e)
             raise ValueError("Plugin " + filter + " failed:" + msg)
@@ -620,7 +627,7 @@ class BatchProject:
         tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
 
     def _buildLocalState(self):
-        local_state = {}
+        local_state = {'cleanup' :list()}
         local_state['project'] = {}
         for k in self.G.graph:
             if k not in ['recompress', 'name']:
@@ -683,6 +690,10 @@ class BatchProject:
             project_name = project.getName()
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             return False
+        finally:
+            for file in local_state['cleanup']:
+                if os.path.exists(file):
+                    os.remove(file)
         return True
 
     def executeOnce(self, global_state=dict()):
@@ -734,6 +745,10 @@ class BatchProject:
             if 'model' in local_state:
                 shutil.rmtree(local_state['model'].get_dir())
             return None
+        finally:
+            for file in local_state['cleanup']:
+                if os.path.exists(file):
+                    os.remove(file)
         return local_state['model'].get_dir()
 
     def dump(self, global_state):

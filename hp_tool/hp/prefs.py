@@ -238,7 +238,7 @@ class SettingsWindow(Toplevel):
 
     def show_default_types(self):
         imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
-        vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf']
+        vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf', '.mxf']
         audExts = ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']
         tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
                                                     'Image: ' + ', '.join(imExts) + '\n' +

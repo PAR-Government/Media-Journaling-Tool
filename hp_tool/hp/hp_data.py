@@ -15,7 +15,8 @@ import subprocess
 import json
 import data_files
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'], 'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf'],
+exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
+        'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf','.mxf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 RVERSION = '#@version=01.10'
@@ -127,12 +128,13 @@ def grab_dir(inpath, outdir=None, r=False):
     if outdir:
         repeated = []
         ritCSV = None
-        for f in os.listdir(outdir):
-            if f.endswith('.csv') and 'rit' in f:
-                ritCSV = os.path.join(outdir, f)
-                rit = pd.read_csv(ritCSV, dtype=str)
-                repeated = rit['OriginalImageName'].tolist()
-                break
+        if  os.path.exists(outdir):
+            for f in os.listdir(outdir):
+                if f.endswith('.csv') and 'rit' in f:
+                    ritCSV = os.path.join(outdir, f)
+                    rit = pd.read_csv(ritCSV, dtype=str)
+                    repeated = rit['OriginalImageName'].tolist()
+                    break
         removeList = []
         for name in imageList:
             for repeatedName in repeated:
@@ -152,6 +154,8 @@ def find_rit_file(outdir):
     :return: string w/ rit filename, None if not found
     """
     rit_file = None
+    if not os.path.exists(outdir):
+        return None
     for f in os.listdir(outdir):
         if f.endswith('rit.csv'):
             rit_file = os.path.join(outdir, f)
