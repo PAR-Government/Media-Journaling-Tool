@@ -1633,7 +1633,8 @@ class ImageProjectModel:
                         skipDonorAnalysis=edge_data['skipDonorAnalysis'],
                         invert=edge_data['invert'],
                         analysis_params=edge_data['analysis_params'])
-                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
+                    maskname = shortenName(edge_data['start'] + '_' + edge_data['end'], '_mask.png', id=self.G.nextId())
+                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, maskname=maskname, errors=errors,
                                        **consolidate(analysis, edge_data['analysis_params']))
                 else:
                     errors = []
@@ -1720,7 +1721,8 @@ class ImageProjectModel:
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
-        self.G.update_mask(self.start, self.end, mask=mask, errors=errors, **consolidate(analysis, analysis_params))
+        maskname = shortenName(self.start + '_' + self.end, '_mask.png', id=self.G.nextId())
+        self.G.update_mask(self.start, self.end, mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                                                   (skip_data['start'], skip_data['end']) != (self.start, self.end)])
@@ -1948,17 +1950,13 @@ class ImageProjectModel:
             self.gopLoader.injectGroup(group, ops)
 
     def getStartType(self):
-        return self.getNodeFileType(self.start) if self.start is not None else 'image'
+        return self.G.getNodeFileType(self.start) if self.start is not None else 'image'
 
     def getEndType(self):
-        return self.getNodeFileType(self.end) if self.end is not None else 'image'
+        return self.G.getNodeFileType(self.end) if self.end is not None else 'image'
 
     def getNodeFileType(self, nodeid):
-        node = self.G.get_node(nodeid)
-        if node is not None and 'filetype' in node:
-            return node['filetype']
-        else:
-            return fileType(self.G.get_image_path(nodeid))
+        return self.G.getNodeFileType(nodeid)
 
     def saveas(self, pathname):
         with self.lock:

@@ -486,6 +486,13 @@ class ImageGraph:
             return im, value
         return None, None
 
+    def getNodeFileType(self, nodeid):
+        node = self.get_node(nodeid)
+        if node is not None and 'filetype' in node:
+            return node['filetype']
+        else:
+            return fileType(self.get_image_path(nodeid))
+
     def set_name(self, name):
         currentjsonfile = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
         self.G.name = name
@@ -538,15 +545,19 @@ class ImageGraph:
             return None, None
         return filename, 'yes' if includePathInUndo else 'no'
 
-    def update_mask(self, start, end, mask=None, errors=None,  **kwargs):
+    def update_mask(self, start, end, mask=None, maskname=None, errors=None,  **kwargs):
             self._setUpdate((start, end), update_type='edge')
             edge = self.get_edge(start,end)
             if mask is not None:
-                maskname =  edge['maskname'] if 'maskname' in edge else \
+                oldmaskname =  edge['maskname'] if 'maskname' in edge else \
                     (kwargs['maskname'] if 'maskname' in kwargs else None)
-                if maskname is not None:
+                if oldmaskname is not None:
+                    newmaskpathname = os.path.join(self.dir, oldmaskname)
+                    mask.save(newmaskpathname)
+                else:
                     newmaskpathname = os.path.join(self.dir, maskname)
                     mask.save(newmaskpathname)
+                    edge['maskname'] = maskname
             elif  'maskname' in edge:
                     edge.pop('maskname')
             with self.lock:

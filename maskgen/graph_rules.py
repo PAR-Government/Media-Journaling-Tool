@@ -411,6 +411,8 @@ def check_masks(edge, op, graph, frm, to):
     @type frm: str
     @type to: str
     """
+    if not op.generateMask and graph.getNodeFileType(frm) != 'image':
+        return []
     if 'maskname' not in edge or edge['maskname'] is None or \
                     len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
         return ['Link mask is missing. Recompute the link mask.']
