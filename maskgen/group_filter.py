@@ -265,6 +265,14 @@ class GroupFilterLoader:
         self.groups[name] = OperationGroupFilter(name, ops)
 
     def getOperationWithGroups(self, name, fake=False, warning=True):
+        """
+        Search groups for operaiton name, as the name may be a group operation
+        :param name:
+        :param fake:
+        :param warning:
+        :return:
+        @rtype: Operation
+        """
         op = getOperation(name, fake=False, warning=False)
         if op is None:
             op = self.getOperation(name)
@@ -273,6 +281,13 @@ class GroupFilterLoader:
         return op
 
     def getOperationsByCategoryWithGroups(self, sourcetype, targettype):
+        """
+        :param name:
+        :param fake:
+        :param warning:
+        :return:
+        @rtype: Operation
+        """
         res = dict(getOperationsByCategory(sourcetype, targettype))
         items = self.getOperations(sourcetype, targettype)
         if items is not None:

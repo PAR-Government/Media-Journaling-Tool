@@ -2590,6 +2590,9 @@
           "description": "."
         }
       },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.image_to_video"
+      },
       "description": "Export the image in the AVI format.",
       "includeInMask": false,
       "generateMask" : false,
@@ -2975,6 +2978,9 @@
       "analysisOperations": [
          "maskgen.tool_set.optionalSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.select_region"
+      },
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
       "includeInMask": false,
       "compareparameters" : {
@@ -3003,6 +3009,9 @@
            "type" : "yesno",
            "description": "Was a chroma or luminance key inserted into the video?"
         }
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.select_region_frames"
       },
       "description": "Create a limited selection,removing background,from a donor video,for the intent of pasting.  The result should be a black back ground for non-keyed manipulations.",
       "includeInMask": false,
@@ -3617,6 +3626,9 @@
       "analysisOperations": [
         "maskgen.tool_set.globalTransformAnalysis"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.video_flip_transform"
+      },
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": false,
       "generateMask" : false,

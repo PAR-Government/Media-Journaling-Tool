@@ -239,16 +239,18 @@ def imageResize(img, dim):
     return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
 
 
-def imageResizeRelative(img, dim, otherIm):
+def imageResizeRelative(img, dim, otherImDim):
     """
     Preserves the dimension ratios_
     :param dim:
-    :param otherIm:
+    :param otherImDim: dimensions of other image
     :return: Resized relative to width given the maximum constraints
      @rtype: ImageWrapper
     """
-    wmax = max(img.size[0], otherIm[0])
-    hmax = max(img.size[1], otherIm[1])
+    if img is None:
+        img =  ImageWrapper(np.zeros((otherImDim[1],otherImDim[0]),dtype=np.uint8))
+    wmax = max(img.size[0], otherImDim[0])
+    hmax = max(img.size[1], otherImDim[1])
     wpercent = float(dim[0]) / float(wmax)
     hpercent = float(dim[1]) / float(hmax)
     perc = min(wpercent, hpercent)
@@ -2247,6 +2249,30 @@ def execute_every(interval, worker_func, start=True, **kwargs):
     if not start:
         worker_func(**kwargs)
 
+def getSingleFrameFromMask(video_masks,directory=None):
+        """
+        Read a single frame
+        :param start_time: insertion start time.
+        :param end_time:insertion end time.
+        :param directory:
+        :param video_masks:
+        :return: new set of video masks
+        """
+        mask = None
+        for mask_set in video_masks:
+            if 'videosegment' not in mask_set:
+                continue
+            try:
+                reader = GrayBlockReader( os.path.join(directory,
+                                                               mask_set['videosegment']) if directory is not None else mask_set['videosegment'])
+                while True:
+                    mask = reader.read()
+                    break
+            finally:
+                reader.close()
+            if mask is not None:
+                break
+        return ImageWrapper(mask) if mask is not None else None
 
 class GrayBlockReader:
     pos = 0

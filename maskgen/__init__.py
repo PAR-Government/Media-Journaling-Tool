@@ -29,8 +29,9 @@ class VideoSegment:
     endframe = 0
     frames = 0
     filename = None
+    media_type = None
 
-    def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename):
+    def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename, media_type):
         """
 
         :param rate:
@@ -38,8 +39,9 @@ class VideoSegment:
         :param startframe:
         :param endtime:
         :param endframe:
-        :param frames:
-        :param filename:
+        :param frames: number frames affected by manipulation in this segment
+        :param filename: may not be present without mask, otherwise this is an HDF5 file
+        :param media_type: one of 'audio','video'
         @type rate : float
         @type starttime : float
         @type startframe : int
@@ -47,6 +49,7 @@ class VideoSegment:
         @type endframe : int
         @type frames : int
         @type filename : str
+        @type media_type : str
         """
         self.rate = rate
         self.startframe = startframe
@@ -55,6 +58,7 @@ class VideoSegment:
         self.endframe = endframe
         self.frames = frames
         self.filename = filename
+        self.media_type = media_type
 
 class Probe:
     edgeId = None
@@ -62,14 +66,13 @@ class Probe:
     finalNodeId = None
     composites = None
     donorBaseNodeId = None
-    donorVideoMasks = None
+    donorVideoSegments = None
     targetMaskImage = None
     donorMaskImage= None
     targetMaskFileName = None
     donorMaskFileName = None
-    targetVideoMasks = None
+    targetVideoSegments = None
     donorMask = None
-
     targetChangeSizeInPixels = 0
     level = 0
 
@@ -84,15 +87,14 @@ class Probe:
     @type donorBaseNodeId: str
     @type donorMaskFileName: str
     @type donorMaskImage: ImageWrapper
-    @type donorVideoMasks: list (VideoSegment)
+    @type donorVideoSegments: list (VideoSegment)
     @type level: int
-    @type targetVideoMasks: list (VideoSegment)
+    @type targetVideoSegments: list (VideoSegment)
 
     The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
     The targetBaseNodeId is the id of the base node that supplies the base image for the target.
     The level is level from top to bottom in the tree.  Top is level 0
     """
-
 
     def __init__(self,
                  edgeId,
@@ -102,10 +104,10 @@ class Probe:
                  targetMaskImage = None,
                  donorMaskFileName=None,
                  targetMaskFileName=None,
-                 targetVideoMasks=None,
+                 targetVideoSegments=None,
                  donorMask=None,
                  donorMaskImage=None,
-                 donorVideoMasks=None,
+                 donorVideoSegments=None,
                  targetChangeSizeInPixels=0,
                  level=0):
         self.edgeId = edgeId
@@ -115,14 +117,13 @@ class Probe:
         self.donorBaseNodeId = donorBaseNodeId
         self.donorMaskFileName = donorMaskFileName
         self.donorMaskImage=donorMaskImage
-        self.donorVideoMasks = donorVideoMasks
-        self.targetVideoMasks = targetVideoMasks
+        self.donorVideoSegments = donorVideoSegments
+        self.targetVideoSegments = targetVideoSegments
         self.donorMask = donorMask
         self.targetMaskImage = targetMaskImage
         self.targetChangeSizeInPixels = targetChangeSizeInPixels
         self.level = level
-
-
+        self.composites = dict()
 
 import graph_rules
 graph_rules.setup()

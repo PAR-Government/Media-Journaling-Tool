@@ -1731,7 +1731,10 @@ class QAViewDialog(Toplevel):
             n = self.parent.scModel.G.get_node(probe.finalNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
-            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500), probe.targetMaskImage.size)
+            final = openImage(finalFile)
+            finalResized = imageResizeRelative(final, (500, 500), final.size)
+            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500),
+                                            probe.targetMaskImage.size if probe.targetMaskImage is not None else finalResized.size)
         else:
             edgeTuple = tuple(self.optionsBox.get().split('<-'))
             probe = \
@@ -1739,11 +1742,12 @@ class QAViewDialog(Toplevel):
             n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
-            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
+            final = openImage(finalFile)
+            finalResized = imageResizeRelative(final, (500, 500), final.size)
+            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
+                                            probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
         self.operationVar.set(self._compose_label(edge))
-        final = openImage(finalFile)
-        finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize is True:

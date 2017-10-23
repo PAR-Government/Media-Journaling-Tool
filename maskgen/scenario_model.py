@@ -20,6 +20,7 @@ import shutil
 import collections
 from threading import Lock
 import mask_rules
+from mask_rules import DonorImage
 from maskgen.image_graph import ImageGraph
 import copy
 
@@ -574,9 +575,7 @@ class VideoVideoLinkTool(LinkTool):
                     arguments=arguments)
             else:
                 if 'videomasks' in edge:
-                    return 'videomasks', errors
-                else:
-                    return
+                    return edge['videomasks'], errors
         return [], errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -799,8 +798,9 @@ class AddTool:
 
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
-        return video_tools.getMeta(media)[0]
-
+        meta = video_tools.getMeta(media)[0]
+        meta['shape'] = video_tools.getShape(media)
+        return meta
 
 class OtherAddTool(AddTool):
     def getAdditionalMetaData(self, media):
@@ -1079,9 +1079,8 @@ class ImageProjectModel:
 
     def getProbeSetWithoutComposites(self, otherCondition=None, saveTargets=True):
         """
-         Calls constructDonors()
-        :param skipComputation: If True, will skip computation of masks where possible
         :param otherCondition: filter out edges to not include in the probe set
+        :param saveTargets: save the result images as files
         :return: The set of probes
         @rtype: list of Probe
         """
@@ -1120,6 +1119,8 @@ class ImageProjectModel:
         composite_bases = dict()
         for passcount in range(maxpass):
             for probe in probes:
+                if probe.targetMaskImage is None:
+                    continue
                 composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
                 if (operationTypes is not None and edge['op'] not in operationTypes) or \
@@ -1130,20 +1131,6 @@ class ImageProjectModel:
         for compositeBuilder in localCompositeBuilders:
             compositeBuilder.finalize(probes)
         return probes
-
-    def _saveDonorToFile(self, recipientNode, baseNode, mask):
-        """
-        Add mask to interim node and save mask to disk that has a input mask or
-        a donor link
-        """
-        if self.G.has_node(recipientNode):
-            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png',id=self.G.nextId())
-            try:
-                mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
-            except IOError:
-                donorMask = convertToMask(mask)
-                donorMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
-        return fname
 
     def getPredecessorNode(self):
         if self.end is None:
@@ -1171,9 +1158,14 @@ class ImageProjectModel:
             if nodeName == x[0][1]:
                 baseImage, _ = self.G.get_image(x[1])
                 donors = self.constructDonors()
-                for target, base, mask_wrapper, mask_file_name in donors:
-                    if base == x[1]:
-                        return mask_wrapper, baseImage
+                for donortuple in donors:
+                    if donortuple.base == x[1]:
+                        if donortuple.media_type == 'video':
+                            return getSingleFrameFromMask(donortuple.mask_wrapper), baseImage
+                        elif donortuple.media_type == 'audio':
+                            return None, None
+                        else:
+                            return donortuple.mask_wrapper, baseImage
         return None, None
 
     def _constructComposites(self, nodeAndMasks, stopAtNode=None, colorMap=dict(), level=IntObject(),
@@ -1303,7 +1295,7 @@ class ImageProjectModel:
           Find all valid base node, leaf node tuples
           :return computed donors in the form of tuples
           (image node id donated to, base image node, ImageWrapper mask, filename)
-          @rtype list of (str,str,ImageWapper,str)
+          @rtype list of DonorImage
         """
         self._executeSkippedComparisons()
         for edge_id in self.G.get_edges():
@@ -1455,7 +1447,8 @@ class ImageProjectModel:
                         skipDonorAnalysis=edge_data['skipDonorAnalysis'],
                         invert=edge_data['invert'],
                         analysis_params=edge_data['analysis_params'])
-                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, errors=errors,
+                    maskname = shortenName(edge_data['start'] + '_' + edge_data['end'], '_mask.png', id=self.G.nextId())
+                    self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, maskname=maskname, errors=errors,
                                        **consolidate(analysis, edge_data['analysis_params']))
                 else:
                     errors = []
@@ -1542,7 +1535,8 @@ class ImageProjectModel:
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
-        self.G.update_mask(self.start, self.end, mask=mask, errors=errors, **consolidate(analysis, analysis_params))
+        maskname = shortenName(self.start + '_' + self.end, '_mask.png', id=self.G.nextId())
+        self.G.update_mask(self.start, self.end, mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                                                   (skip_data['start'], skip_data['end']) != (self.start, self.end)])
@@ -1770,17 +1764,13 @@ class ImageProjectModel:
             self.gopLoader.injectGroup(group, ops)
 
     def getStartType(self):
-        return self.getNodeFileType(self.start) if self.start is not None else 'image'
+        return self.G.getNodeFileType(self.start) if self.start is not None else 'image'
 
     def getEndType(self):
-        return self.getNodeFileType(self.end) if self.end is not None else 'image'
+        return self.G.getNodeFileType(self.end) if self.end is not None else 'image'
 
     def getNodeFileType(self, nodeid):
-        node = self.G.get_node(nodeid)
-        if node is not None and 'filetype' in node:
-            return node['filetype']
-        else:
-            return fileType(self.G.get_image_path(nodeid))
+        return self.G.getNodeFileType(nodeid)
 
     def saveas(self, pathname):
         with self.lock:
@@ -2489,8 +2479,7 @@ class ImageProjectModel:
                                          target,
                                          compositeMask,
                                          self.get_dir(),
-                                         replacementEdgeMask= edgeMask,
-                                         level=level.value)
+                                         replacementEdgeMask= edgeMask)
 
     def getModificationForEdge(self, start, end, edge):
         """

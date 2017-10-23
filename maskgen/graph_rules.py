@@ -411,6 +411,8 @@ def check_masks(edge, op, graph, frm, to):
     @type frm: str
     @type to: str
     """
+    if not op.generateMask and graph.getNodeFileType(frm) != 'image':
+        return []
     if 'maskname' not in edge or edge['maskname'] is None or \
                     len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
         return ['Link mask is missing. Recompute the link mask.']
@@ -2038,7 +2040,9 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         results = {}
         if len(probes) == 0:
             return
-        dir = [os.path.split(probe.targetMaskFileName)[0] for probe in probes][0]
+        dirs = [os.path.split(probe.targetMaskFileName)[0] for probe in probes if
+                probe.targetMaskFileName is not None]
+        dir = dirs[0] if len(dirs) > 0 else '.'
         for groupid, compositeMaskList in self.composites.iteritems():
             third_dimension = len(compositeMaskList)
             analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
@@ -2122,11 +2126,12 @@ class ColorCompositeBuilder(CompositeBuilder):
             results[finalNodeId] = (ImageWrapper(compositeMask), globalchange, changeCategory, ratio)
         for probe in probes:
             finalResult = results[probe.finalNodeId]
-            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
-            probe.composites[self.composite_type] = {
-                'file name': targetColorMaskImageName,
-                'image': finalResult[0],
-                'color': self.colors[probe.edgeId]
-            }
-            finalResult[0].save(targetColorMaskImageName)
+            if probe.targetMaskFileName is not None:
+                targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
+                probe.composites[self.composite_type] = {
+                    'file name': targetColorMaskImageName,
+                    'image': finalResult[0],
+                    'color': self.colors[probe.edgeId]
+                }
+                finalResult[0].save(targetColorMaskImageName)
         return results
