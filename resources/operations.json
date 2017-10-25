@@ -852,6 +852,9 @@
           "description": "Was video rotated"
         }
       },
+       "maskTransformFunction": {
+          "video": "maskgen.mask_rules.copy_exif"
+      },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
       "includeInMask": false,

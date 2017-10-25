@@ -1335,7 +1335,7 @@ def dropFramesFromMask(start_time,
     :return: new set of video masks
     """
     import math
-
+    import time
     drop_st = tool_set.getMilliSecondsAndFrameCount(start_time)
     drop_et = tool_set.getMilliSecondsAndFrameCount(end_time)
     new_mask_set = []
@@ -1362,7 +1362,7 @@ def dropFramesFromMask(start_time,
             continue
         mask_file_name = mask_set['videosegment']
         reader = tool_set.GrayBlockReader(mask_set['videosegment'])
-        mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + '_c'
+        mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
         writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
                                               reader.fps)
         if keepTime:
@@ -1535,6 +1535,7 @@ def insertFramesToMask(start_time,
     :param video_masks:
     :return: new set of video masks
     """
+    import time
     import math
     add_st = tool_set.getMilliSecondsAndFrameCount(start_time)
     add_et = tool_set.getMilliSecondsAndFrameCount(end_time)
@@ -1554,7 +1555,7 @@ def insertFramesToMask(start_time,
             continue
         mask_file_name = mask_set['videosegment']
         reader = tool_set.GrayBlockReader(mask_set['videosegment'])
-        mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + '_c'
+        mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
         writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
                                               reader.fps)
         if add_et[0] is None:
@@ -1636,7 +1637,7 @@ def _maskTransform( video_masks, func, expectedType='video'):
     :param video_masks:
     :return: new set of video masks
     """
-    import math
+    import time
     new_mask_set = []
     for mask_set in video_masks:
         if 'type' in mask_set and mask_set['type'] != expectedType:
@@ -1650,10 +1651,11 @@ def _maskTransform( video_masks, func, expectedType='video'):
         change['frames'] = mask_set['frames']
         change['type'] = mask_set['type']
         change['rate'] = mask_set['rate']
+        change['videosegment'] = mask_set['videosegment']
         try:
             mask_file_name = mask_set['videosegment']
             reader = tool_set.GrayBlockReader(mask_set['videosegment'])
-            mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + '_c'
+            mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
             writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
                                                   reader.fps)
             while True:
@@ -1665,10 +1667,39 @@ def _maskTransform( video_masks, func, expectedType='video'):
                 writer.write(mask, frame_time)
             change['videosegment'] = writer.filename
             new_mask_set.append(change)
+        except Exception as e:
+            logging.getLogger('maskgen').error('Failed to transform {} using {}'.format(mask_set['videosegment'],
+                                                                                        str(func)))
+            logging.getLogger('maskgen').error(e)
         finally:
             reader.close()
             writer.close()
     return new_mask_set
+
+def get_video_orientation_change(source, target):
+    source_data = getMeta(source, show_streams=True)[0]
+    donor_data = getMeta(target, show_streams=True)[0]
+
+    def get_channel_data(source_data, codec_type):
+        for data in source_data:
+            if data['codec_type'] == codec_type:
+                return data
+
+    def orient_rotation_positive(rotate):
+        rotate = -rotate
+        if rotate < 0:
+            rotate = 360 + rotate
+        return rotate
+
+    def get_item(data, item, default_value):
+        if item not in data:
+            return default_value
+        return data[item]
+
+    source_channel_data = get_channel_data(source_data, 'video')
+    target_channel_data = get_channel_data(donor_data, 'video')
+
+    return int(get_item(target_channel_data, 'rotation', 0)) - int(get_item(source_channel_data, 'rotation', 0))
 
 def insertMask(video_masks,box, size):
     """
@@ -1726,7 +1757,7 @@ def resizeMask(video_masks, size):
          return cv2.resize(mask, size)
     return _maskTransform(video_masks, partial(resizeMaskGivenSize, size))
 
-def rotateMask(video_masks, degrees, expectedDims=None,cval = 0):
+def rotateMask(degrees,video_masks, expectedDims=None,cval = 0):
     """
     resize mask
     :param directory

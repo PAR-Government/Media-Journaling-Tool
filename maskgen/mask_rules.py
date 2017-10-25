@@ -309,6 +309,31 @@ def rotate_transform(edge, source, target, edgeMask,
     return res
 
 
+def copy_exif(edge, source, target, edgeMask,
+                           compositeMask=None,
+                           directory='.',
+                           donorMask=None,
+                           pred_edges=None,
+                           graph=None):
+    orientrotate = video_tools.get_video_orientation_change(getNodeFile(graph,source),getNodeFile(graph,target))
+    if compositeMask is not None:
+        if orientrotate == 0:
+            return compositeMask
+        targetSize = getNodeSize(graph, target)
+        return CompositeImage(compositeMask.source,
+                              compositeMask.target,
+                              compositeMask.media_type,
+                              video_tools.rotateMask(orientrotate, compositeMask.videomasks, expectedDims=targetSize, cval=0))
+    elif donorMask is not None:
+        targetSize = getNodeSize(graph, source)
+        if orientrotate == 0:
+            return donorMask
+        return CompositeImage(donorMask.source,
+                              donorMask.target,
+                              donorMask.media_type,
+                              video_tools.rotateMask(-orientrotate, donorMask.videomasks, expectedDims=targetSize, cval=0))
+    return None
+
 def video_rotate_transform(edge, source, target, edgeMask,
                            compositeMask=None,
                            directory='.',
@@ -320,10 +345,16 @@ def video_rotate_transform(edge, source, target, edgeMask,
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else 0
     if compositeMask is not None:
         targetSize = getNodeSize(graph, target)
-        return video_tools.rotateMask(rotation, compositeMask, expectedDims=targetSize, cval=0)
+        return CompositeImage(compositeMask.source,
+                              compositeMask.target,
+                              compositeMask.media_type,
+                              video_tools.rotateMask(rotation, compositeMask.videomasks, expectedDims=targetSize, cval=0))
     elif donorMask is not None:
         targetSize = getNodeSize(graph, source)
-        return video_tools.rotateMask(-rotation, donorMask, expectedDims=targetSize, cval=0)
+        return CompositeImage(donorMask.source,
+                              donorMask.target,
+                              donorMask.media_type,
+                              video_tools.rotateMask(-rotation, donorMask.videomasks, expectedDims=targetSize, cval=0))
     return None
 
 
@@ -911,6 +942,9 @@ def getNodeSize(graph, nodeid):
         return video_tools.getShape(graph.get_image_path(nodeid))
 
 
+def getNodeFile(graph, nodeid):
+    return graph.get_image_path(nodeid)
+
 def getNodeFileType(graph, nodeid):
     node = graph.get_node(nodeid)
     if node is not None and 'filetype' in node:
@@ -1032,6 +1066,7 @@ def __getOrientation(edge):
         else:
             return graph_rules.getOrientationFromMetaData(edge)
     return ''
+
 
 
 def defaultAlterComposite(edge, edgeMask, compositeMask=None):

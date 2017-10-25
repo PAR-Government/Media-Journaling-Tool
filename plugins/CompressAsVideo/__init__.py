@@ -59,6 +59,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     audio_settings = {'-codec:a': 'codec_name', '-b:a': 'bit_rate', '-channel_layout': 'channel_layout'}
     ffargs = ['-i', source]
     rotated = 'no'
+    diff_rotation = 0
     for streamid in range(len(donor_data)):
         data = donor_data[streamid]
         if data['codec_type'] == 'video':
@@ -154,7 +155,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     if '-FileCreateDate' in createtime:
         maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target],
                              ignoreError=True)
-    return {'rotate': rotated}
+    return {'rotate': rotated, 'rotation':diff_rotation}
 
 
 def transform(img, source, target, **kwargs):
