@@ -4,9 +4,11 @@ import logging
 
 
 def get_channel_data(source_data, codec_type):
+    pos = 0
     for data in source_data:
         if data['codec_type'] == codec_type:
-            return data
+            return data,pos
+        pos+=1
 
 
 def orient_rotation_positive(rotate):
@@ -59,6 +61,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     audio_settings = {'-codec:a': 'codec_name', '-b:a': 'bit_rate', '-channel_layout': 'channel_layout'}
     ffargs = ['-i', source]
     rotated = 'no'
+    diff_rotation = 0
     for streamid in range(len(donor_data)):
         data = donor_data[streamid]
         if data['codec_type'] == 'video':
@@ -74,7 +77,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
             try:
                 width = data['width']
                 height = data['height']
-                source_channel_data = get_channel_data(source_data, 'video')
+                source_channel_data, source_streamid = get_channel_data(source_data, 'video')
                 source_width = source_channel_data['width']
                 source_height = source_channel_data['height']
                 # source_aspect = source_channel_data['display_aspect_ratio']
@@ -134,18 +137,20 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                         ffargs.extend(['-vf'])
                         ffargs.append(filters)
                     if rotation is not None:
-                        ffargs.extend(['-metadata:s:v:' + str(streamid), 'rotate=' + rotation])
+                        ffargs.extend(['-metadata:s:v:' + str(source_streamid), 'rotate=' + rotation])
             except KeyError:
                 continue
+            if 'TAG:language' in data:
+                ffargs.extend(['-metadata:s:v:' + str(source_streamid), 'language=' + data['TAG:language']])
         elif data['codec_type'] == 'audio':
             for option, setting in audio_settings.iteritems():
                 if setting in data and data[setting] != 'unknown':
                     ffargs.extend([option, data[setting]])
-        if 'TAG:language' in data:
-            ffargs.extend(['-metadata:s:v:' + str(streamid), 'language=' + data['TAG:language']])
+
     ffargs.extend(['-map_metadata', '0:g','-y', target])
 
     maskgen.video_tools.runffmpeg(ffargs)
+    logging.getLogger('masken').info(str(ffargs))
 
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target], ignoreError=True)
     maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target], ignoreError=True)
@@ -154,7 +159,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     if '-FileCreateDate' in createtime:
         maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target],
                              ignoreError=True)
-    return {'rotate': rotated}
+    return {'rotate': rotated, 'rotation':diff_rotation}
 
 
 def transform(img, source, target, **kwargs):

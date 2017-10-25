@@ -105,6 +105,19 @@ def loadCustom(plugin, path):
         logging.getLogger('maskgen').error("Failed to load plugin {}: {} ".format(plugin, str(e)))
 
 
+def pluginSummary():
+    import csv
+    csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    loaded = loadPlugins()
+    with open('plugin.csv','w') as fp:
+        csv_fp = csv.writer(fp)
+        for plugin_name,plugin_def in loaded.iteritems():
+            csv_fp.writerow([plugin_name,plugin_def['operation']['name'],
+                         plugin_def['operation']['category'],
+                         plugin_def['operation']['software'],
+                             plugin_def['operation']['description']])
+
+
 def loadPlugins(reload=False):
    global loaded
    if loaded is not None and not reload:
