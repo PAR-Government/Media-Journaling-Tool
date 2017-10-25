@@ -679,6 +679,9 @@ class MakeGenUI(Frame):
     def pluginbuilder(self):
         d = PluginBuilder(self,self.scModel.getGroupOperationLoader())
 
+    def reloadplugins(self):
+        plugins.loadPlugins(reload=True)
+
     def groupmanager(self):
         d = GroupManagerDialog(self,GroupFilterLoader())
 
@@ -944,6 +947,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Properties", command=self.getproperties)
         filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
         filemenu.add_cascade(label="System Check", command=self.systemcheck)
+        filemenu.add_cascade(label="Reload Plugins", command=self.reloadplugins)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)
