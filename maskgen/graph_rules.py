@@ -522,6 +522,15 @@ def rotationCheck(op,graph, frm, to):
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 
+def checkUncompressed(op,graph, frm, to):
+    def match(start,stop,edge):
+        if edge['op'] == 'Donor':
+            return 'skip'
+        elif edge['op'].startswith('Output'):
+            return 'return'
+        return 'continue'
+    if graph.findAncestor(match,frm) is None:
+        return 'Check to see if the starting node is compressed'
 
 def checkFrameTimeAlignment(op,graph, frm, to):
     """
