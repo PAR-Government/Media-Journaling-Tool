@@ -1,6 +1,8 @@
 RequestExecutionLevel admin
 
 !include EnvVarUpdate.nsh
+!include WordFunc.nsh
+!insertmacro WordReplace
 
 Outfile "jt_installer.exe"
 name "JT Installer"
@@ -10,6 +12,8 @@ InstallDir $DESKTOP
 Var CONDA 
 Var PIP
 Var PYTHON 
+Var USERDIR 
+Var BRANCH 
 
 Section -Prerequisites
 	
@@ -87,48 +91,64 @@ Section -Prerequisites
 	Delete "$INSTDIR\pygraphviz-1.3.1-cp27-none-win_amd64.whl"
 	
 	prereqs_installed:
-	IfFileExists "$DESKTOP\maskgen\*.*" 0 +1
-	RMDir /r $DESKTOP\maskgen
+
 SectionEnd
 
 Section "Maskgen"
 
-    SetOutPath $INSTDIR
+	IfFileExists "$DESKTOP\install_options.txt" +4
+	FileOpen $9 "$DESKTOP\install_options.txt" w
+	FileWrite $9 "$DESKTOP$\r$\n"
+	FileWrite $9 "master"
+    FileClose $9
+	MessageBox MB_OK "To change the installation directory, change line 1 of the text file.$\nTo change the branch change the second line of the text file."
+    
+    ExecWait "notepad.exe $DESKTOP\install_options.txt"
+    FileOpen $9 "$DESKTOP\install_options.txt" r
+    FileRead $9 $USERDIR
+    FileRead $9 $BRANCH
+    FileClose $9
+    
+    ${WordReplace} $USERDIR "$\r$\n" "" "+" $USERDIR
+    ${WordReplace} $BRANCH "$\r$\n" "" "+" $BRANCH
 
+	IfFileExists "$USERDIR\maskgen\*.*" 0 +1
+	RMDir /r $USERDIR\maskgen
+
+    SetOutPath $USERDIR
 	StrCpy $CONDA "$PROFILE\Anaconda2\Scripts\conda.exe"
 	StrCpy $PIP "$PROFILE\Anaconda2\Scripts\pip.exe"
 	StrCpy $PYTHON "$PROFILE\Anaconda2\python.exe"
 	
-    inetc::get /POPUP "" /CAPTION "master.zip" "https://github.com/rwgdrummer/maskgen/archive/master.zip" "$INSTDIR\master.zip"
+    inetc::get /POPUP "" /CAPTION "master.zip" "https://github.com/rwgdrummer/maskgen/archive/$BRANCH.zip" "$USERDIR\$BRANCH.zip"
     Pop $0 # return value = exit code, "OK" if OK
     MessageBox MB_OK "Download Status: $0" 
 
     DetailPrint "Extracting Maskgen..."
-    NsUnzip::Extract "$INSTDIR\master.zip" /END
+    NsUnzip::Extract "$USERDIR\$BRANCH.zip" /END
 	Sleep 5000
-	Rename "$INSTDIR\maskgen-master" "$INSTDIR\maskgen"
+	Rename "$USERDIR\maskgen-$BRANCH" "$USERDIR\maskgen"
 
-    SetOutPath  "$DESKTOP\maskgen"
+    SetOutPath  "$USERDIR\maskgen"
 	ExecWait "$PIP install setuptools"
-	SetOutPath "$DESKTOP\maskgen\setuptools-version"
+	SetOutPath "$USERDIR\maskgen\setuptools-version"
     ExecWait "$PYTHON setup.py install"
 
-    SetOutPath  "$DESKTOP\maskgen\wrapper_plugins\rawphoto_wrapper"
+    SetOutPath  "$USERDIR\maskgen\wrapper_plugins\rawphoto_wrapper"
     ExecWait "$PYTHON setup.py sdist"
     ExecWait "$PIP install -e ."
 
-    SetOutPath  "$DESKTOP\maskgen"
+    SetOutPath  "$USERDIR\maskgen"
     ExecWait "$PYTHON setup.py sdist"
     ExecWait "$PIP install -e ."
 
-	SetOutPath "$DESKTOP\maskgen\hp_tool"
+	SetOutPath "$USERDIR\maskgen\hp_tool"
 	ExecWait "$PYTHON setup.py install"
 
-	SetOutPath "$DESKTOP"
+	SetOutPath "$USERDIR"
 	File "Prerequisites\jtprefs.py"
 	ExecWait "$PYTHON jtprefs.py"
-	Delete "$DESKTOP\jtprefs.py"
+	Delete "$USERDIR\jtprefs.py"
 
-	Delete "$DESKTOP\master.zip"
-
+	Delete "$USERDIR\$BRANCH.zip"
 SectionEnd
