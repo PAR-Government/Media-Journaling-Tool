@@ -10,7 +10,7 @@ setup(name='hptool',
 
       packages = find_packages(),
       package_data = {'':['*.json', '*.csv', '*.png', '*.txt']},
-      install_requires=['pandas','pandastable','pillow', 'requests', 'boto3', 'botocore'],
+      install_requires=['pandas','pandastable','pillow', 'requests', 'boto3'],
       entry_points=
        {'gui_scripts': [
             'hpguiw = hp.hpgui:main',
