@@ -780,11 +780,27 @@ class ImageGraph:
     def getProjectVersion(self):
         return self.G.graph['igversion'] if 'igversion' in self.G.graph else ''
 
+    def subgraph(self, nodes):
+        return ImageGraph(os.path.join(self.dir,self.get_name() + '_sub'),
+                   graph=nx.DiGraph(self.G.subgraph(nodes)),
+                   projecttype=self.get_project_type())
+
     def getVersion(self):
         return igversion
 
     def getCreator(self):
         return self.G.graph['creator'] if 'creator' in self.G.graph else get_username()
+
+    def findAncestor(self,match, start):
+        for pred in self.predecessors(start):
+            command = match(pred, start, self.G.get_edge_data(pred,start))
+            if command == 'return':
+                return self.G.get_edge_data(pred,start)
+            elif command != 'skip':
+                ret = self.findAncestor(match, pred)
+                if ret is not None:
+                    return ret
+        return None
 
     def _setup(self, pathname, projecttype, nodeFilePaths, edgeFilePaths):
         global igversion

@@ -62,7 +62,7 @@ def _findPluginModule(location):
         return None
     return imp.find_module(MainModule, [location])
 
-def getPlugins():
+def getPlugins(reload=False):
     plugins = {}
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
     pluginFolders.extend([os.path.join(x,'plugins') for x in sys.path if 'maskgen' in x])
@@ -80,13 +80,10 @@ def getPlugins():
                 mod = _findPluginModule(location)
                 if mod is not None:
                    plugins[i] = {"info": mod}
-
-
             for j in customplugins:
                 location = os.path.join(folder, 'Custom', j)
                 plugins[os.path.splitext(j)[0]] = {"custom": location}
     return plugins
-
 
 def loadCustom(plugin, path):
     """
@@ -108,9 +105,22 @@ def loadCustom(plugin, path):
         logging.getLogger('maskgen').error("Failed to load plugin {}: {} ".format(plugin, str(e)))
 
 
-def loadPlugins():
+def pluginSummary():
+    import csv
+    csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    loaded = loadPlugins()
+    with open('plugin.csv','w') as fp:
+        csv_fp = csv.writer(fp)
+        for plugin_name,plugin_def in loaded.iteritems():
+            csv_fp.writerow([plugin_name,plugin_def['operation']['name'],
+                         plugin_def['operation']['category'],
+                         plugin_def['operation']['software'],
+                             plugin_def['operation']['description']])
+
+
+def loadPlugins(reload=False):
    global loaded
-   if loaded is not None:
+   if loaded is not None and not reload:
        return loaded
 
    loaded = {}

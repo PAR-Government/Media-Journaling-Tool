@@ -43,7 +43,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkAddFrameTime",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.add_audio"},
       "optionalparameters": {
@@ -53,12 +54,12 @@
         }
       },
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "transitions": [
         "video.video",
         "audio.audio"
@@ -72,22 +73,26 @@
           "type": "time",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "Copy Stream" : {
           "type" : "list",
           "values": ["left", "right", "all"],
           "description" : "all includes mono and stereo, depending on available streams"
         }
       },
-      "rules": ["checkFrameTimes"],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": ["checkFrameTimes","checkAudioChannels"],
       "analysisOperations": [],
       "description": "Extract audio stream(s) from a video",
-      "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "all",
+      "compareparameters": {
+          "video_function" :"maskgen.video_tools.audioSample"
+      },
+      "includeInMask": true,
       "transitions": [
         "video.audio",
         "audio.audio",
@@ -101,10 +106,6 @@
        "Start Time": {
           "type": "time",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
           "type" : "list",
@@ -124,12 +125,16 @@
         "checkFrameTimes"
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "maskTransformFunction": {"image": "maskgen.mask_rules.delete_audio"},
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -173,7 +178,9 @@
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkAudioChannels",
-        "checkForAudio"
+        "checkForAudio",
+        "checkUncompressed",
+        "checkChannelLoss"
       ],
       "maskTransformFunction": {
         "video" : "maskgen.mask_rules.add_audio",
@@ -186,12 +193,12 @@
         }
       },
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "transitions": [
         "video.video",
         "audio.audio",
@@ -224,7 +231,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Stream" : {
@@ -251,10 +259,10 @@
       },
       "analysisOperations": [],
       "description": "Apply filter to audio stream",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "transitions": [
         "video.video",
@@ -286,7 +294,8 @@
       "rules": [
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -307,16 +316,17 @@
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "includeInMask": true,
       "analysisOperations": [],
       "description": "Amplify Audio Signal",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "transitions": [
         "audio.audio",
         "video.video"
       ],
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
      {
@@ -341,7 +351,8 @@
       "rules": [
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Pre-Delay": {
@@ -363,14 +374,14 @@
       },
       "analysisOperations": [],
       "description": "Add Reverb or Dampen an Audio Signal to alter the perception of the room size.",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "transitions": [
         "audio.audio",
         "video.video"
       ],
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
      {
@@ -406,7 +417,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
          "Stream" : {
@@ -421,14 +433,14 @@
       },
       "analysisOperations": [],
       "description": "Compress Audio Signal",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "transitions": [
         "audio.audio",
         "video.video"
       ],
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
     {
@@ -460,7 +472,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkAddFrameTime",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "End Time": {
@@ -474,14 +487,14 @@
       },
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
-      "includeInMask": false,
-      "generateMask" : true,
+      "includeInMask": true,
+      "generateMask" : "all",
       "transitions": [
         "video.video",
         "audio.audio"
       ],
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
      {
@@ -492,11 +505,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Camera Effect": {
           "type": "list",
@@ -511,13 +519,19 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make it appear is if the camera is moving or not moving",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "video.video"
       ]
@@ -530,11 +544,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -543,17 +552,23 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Decrease opacity of an image or a layer.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "video.video"
       ]
@@ -566,11 +581,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Vertical Block Number": {
           "type": "int[1:400000]",
@@ -590,13 +600,19 @@
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Create a mosaic pattern and then reassemble",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -610,6 +626,19 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFrameTimes",
+        "checkSameChannels",
+        "checkUncompressed"
+      ],
+      "optionalparameters": {
+        "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the areas affected."
         },
         "End Time": {
           "type": "time",
@@ -617,21 +646,9 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": [
-        "checkLengthSame",
-        "checkSize",
-        "checkFrameTimes",
-        "checkSameChannels"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        }
-      },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Smooth the artifacts resultant from interlacing.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "video.video"
       ]
@@ -645,11 +662,6 @@
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "Noise Type": {
           "type" : "list",
           "values" : ["salt-pepper", "shot", "uniform", "random", "gaussian", "periodic", "other" ],
@@ -662,17 +674,23 @@
         "checkFrameTimes",
         "check_local",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add random variations of brightness or color information.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -686,11 +704,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Blur Type": {
           "type": "list",
@@ -709,9 +722,15 @@
         "checkFrameTimes",
         "check_local",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
@@ -763,13 +782,14 @@
         "checkSize",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {},
       "analysisOperations": [ ],
       "description": "Distort and/or crop video layers in order to remove camera shake",
-      "includeInMask": false,
-      "generateMask" : false,
+      "includeInMask": true,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -782,11 +802,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -796,17 +811,23 @@
         "checkFrameTimes",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Enhance edge definition within an image.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -820,19 +841,21 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
+        }
+      },
+      "rules": ["checkFrameTimes",
+        "checkSameChannels",
+        "checkFrameTimeAlignment",
+        "checkUncompressed"],
+      "optionalparameters": {
         "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": ["checkFrameTimes",
-        "checkSameChannels",
-        "checkFrameTimeAlignment"],
-      "optionalparameters": {},
       "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "video.video"
       ]
@@ -858,7 +881,7 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "image.image",
         "video.video"
@@ -1075,7 +1098,7 @@
       ],
       "optionalparameters": {},
       "description": "Chromatic Aberration Correction",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image"
       ]
@@ -1097,7 +1120,8 @@
         "checkFrameTimes",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1135,7 +1159,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1173,7 +1198,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1219,7 +1245,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1252,11 +1279,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1265,17 +1287,23 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Change the transparency of a given color overlay.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1293,11 +1321,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1307,17 +1330,23 @@
         "checkFrameTimes",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Change the fill using a solid color or gradient.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1331,11 +1360,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "mode": {
            "type":"list",
@@ -1355,9 +1379,15 @@
         "checkFrameTimes",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
@@ -1388,8 +1418,6 @@
          }
       },
       "rules": [
-        "checkLengthSame",
-        "checkSize",
         "checkSameChannels"
       ],
       "optionalparameters": {
@@ -1417,7 +1445,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1432,7 +1461,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1453,7 +1482,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1472,7 +1502,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Changing color space or changing based on a lut.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1486,11 +1516,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Fill Category": {
           "type": "list",
@@ -1506,17 +1531,23 @@
         "check_local_warn",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Uniformly alter the color of an image within a given selection.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1543,7 +1574,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1558,7 +1590,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the color of a selection or image without adjusting saturation or luminance.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1585,7 +1617,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1600,7 +1633,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the color intensity of a given hue.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1621,7 +1654,8 @@
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1631,7 +1665,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Visually change brightness and saturation",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1648,7 +1682,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1658,7 +1693,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Filter to alter visual impact of the image.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1682,11 +1717,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1696,12 +1726,18 @@
         "checkFrameTimes",
         "check_local",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1737,7 +1773,8 @@
         "checkFrameTimes",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1747,7 +1784,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1770,11 +1807,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -1786,7 +1818,8 @@
         "check_local",
         "sampledInputMask",
         "checkSameChannels",
-        "checkVideoMasks"
+        "checkVideoMasks",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1794,6 +1827,11 @@
           "source": "image",
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule" : {"purpose": "clone"}
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
@@ -1818,7 +1856,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "type":{
@@ -1829,7 +1868,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Convolve an image with a custom convolution kernel.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1843,11 +1882,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }},
       "rules": [
         "checkSize",
@@ -1855,17 +1889,23 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Modify an image or image selection to create the illusion of motion.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "video.video"
       ]
@@ -1893,7 +1933,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make edits to raw imagery in a raw processor.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1909,7 +1949,7 @@
       ],
       "optionalparameters": {},
       "description": "Remove a color from a layer of video.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "video.video"
       ]
@@ -1930,7 +1970,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
          "gamma": {
@@ -1939,7 +1980,7 @@
         },
          "selection type": {
           "type": "list",
-          "values": ["auto","manual"],
+          "values": ["auto","manual","NA"],
           "description": "Gamma Correction, if applicable"
         },
         "End Time": {
@@ -1950,7 +1991,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Normalize using histograms.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -1972,7 +2013,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
          "End Time": {
@@ -1983,7 +2025,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -2006,7 +2048,8 @@
         "check_local_warn",
         "checkLevelsVsCurves",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2017,7 +2060,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift luminance values on a histogram with an editable and flexible curve.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -2038,7 +2081,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "check_local_warn",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2048,7 +2092,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift all luminance values on a histogram to higher or lower values.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -2070,7 +2114,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2085,7 +2130,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Adjust brightness, contrast, and tonal range by specifying the location of complete black, complete white, and midtones in a histogram.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -2107,7 +2152,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2122,7 +2168,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the values of a luminance histogram.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -2136,11 +2182,6 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2151,10 +2192,15 @@
         "check_local",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
-
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
@@ -2175,7 +2221,8 @@
         "checkFrameTimes",
         "check_local",
         "checkSameChannels",
-        "checkVideoMasks"
+        "checkVideoMasks",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2209,7 +2256,8 @@
         "check_local",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkVideoMasks"
+        "checkVideoMasks",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2249,7 +2297,8 @@
         "check_local",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkVideoMasks"
+        "checkVideoMasks",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2318,7 +2367,7 @@
          "checkLengthSame"
       ],
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
       },
@@ -2337,7 +2386,7 @@
          "checkLengthSame"
       ],
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
       },
@@ -2480,7 +2529,7 @@
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "meta",
       "transitions": [
         "video.video"
       ]
@@ -2516,7 +2565,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "meta",
       "transitions": [
         "video.video"
       ]
@@ -2552,7 +2601,7 @@
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "meta",
       "transitions": [
         "video.video",
         "image.video"
@@ -2598,7 +2647,7 @@
       },
       "description": "Export the image in the AVI format.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "meta",
       "transitions": [
         "video.video",
         "image.video"
@@ -2682,10 +2731,6 @@
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2698,7 +2743,14 @@
         "video": "maskgen.mask_rules.paste_add_frames",
         "audio": "maskgen.mask_rules.paste_add_audio_frames"
       },
-      "optionalparameters": {},
+      "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }},
+      "compareparameters" : {
+         "video_function": "maskgen.video_tools.pasteCompare"
+      },
       "description": "Adding a series of frames from a video clip",
       "includeInMask": true,
       "transitions": [
@@ -2729,7 +2781,8 @@
         "check_local",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkVideoMasks"
+        "checkVideoMasks",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -2784,7 +2837,8 @@
         "check_local",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkVideoMasks"
+        "checkVideoMasks",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -3025,21 +3079,25 @@
     {
       "category": "Select",
       "name": "SelectCutFrames",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
       "rules": [
         "checkLengthSmaller",
         "checkFrameTimes",
         "checkSameChannels"
       ],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters" : {
+         "video_function" :"maskgen.video_tools.cutCompare"
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_cut_frames",
@@ -3058,10 +3116,6 @@
          "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -3069,10 +3123,14 @@
         "checkSameChannels","checkCropLength"
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "description": "Remove all frames before and after the selected video clip.",
       "includeInMask": false,
-      "generateMask": false,
+      "generateMask": "frames",
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_crop_frames"
       },
@@ -3130,16 +3188,16 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
       ],
       "optionalparameters": {
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "analysisOperations": [ ""],
       "description": "Stitching video frames together to form a comprehensive view of the scene.",
@@ -3167,6 +3225,10 @@
         "Operator": {
           "type": "string",
           "description": "The operation used. For example: Add,Maximum,Minimum,Screen,Composite In Back,Composite In Front and Blend"
+        },
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -3174,10 +3236,6 @@
         "checkSameChannels"
       ],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3214,7 +3272,7 @@
       },
       "description": "Lock a layer to a specific frame rate.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -3264,7 +3322,7 @@
       },
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -3298,7 +3356,7 @@
       },
       "description": "Distorts the image by shifting pixels across time.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -3352,7 +3410,7 @@
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -3378,7 +3436,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3409,7 +3468,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "homography": {
@@ -3459,7 +3519,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "homography": {
@@ -3523,14 +3584,15 @@
         }
       },
       "compareparameters" : {
-         "function" :"maskgen.tool_set.cropCompare"
+         "function" :"maskgen.tool_set.cropCompare",
+         "video_function": "maskgen.video_tools.cropCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.crop_transform",
         "video":"maskgen.mask_rules.video_crop_transform"
@@ -3555,7 +3617,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3613,7 +3676,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3634,7 +3698,7 @@
       },
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "image.image",
         "video.video"
@@ -3768,7 +3832,7 @@
        },
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "image.image"
       ]
@@ -3846,7 +3910,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkUncompressed"
       ],
       "optionalparameters": {
         "homography": {
@@ -4145,7 +4210,7 @@
       },
       "description": "Down sample a video to a lower frame resolution.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]
@@ -4178,7 +4243,7 @@
       },
       "description": "Reverse the direction of video play.",
       "includeInMask": false,
-      "generateMask" : false,
+      "generateMask" : "frames",
       "transitions": [
         "video.video"
       ]

@@ -6,6 +6,12 @@ from maskgen.batch import batch_project
 from maskgen.batch.batch_process import processSpecification
 from maskgen.batch.permutations import *
 from threading import Lock
+from maskgen import plugins
+from maskgen.tool_set import openImageFile
+
+
+def saveAsPng(source, target):
+    openImageFile(source, args={'Bits per Channel': 16}).save(target, format='PNG')
 
 
 class TestBatchProcess(unittest.TestCase):
@@ -67,8 +73,8 @@ class TestBatchProcess(unittest.TestCase):
         import shutil
         if os.path.exists('testimages'):
             shutil.rmtree('testimages')
-        shutil.copytree('./images','./testimages')
-        self.assertTrue(processSpecification('tests/batch_extension_process.json','','./testimages') == 1)
+        shutil.copytree('./images', './testimages')
+        self.assertTrue(processSpecification('tests/batch_extension_process.json', '', './testimages') == 1)
         shutil.rmtree('./testimages')
 
     def test_run(self):
@@ -102,49 +108,84 @@ class TestBatchProcess(unittest.TestCase):
             pass
 
     def test_image_selection(self):
-       if os.path.exists('imageset.txt'):
-           os.remove('imageset.txt')
-       with open('imageset.txt', 'w') as fp:
-           fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
-                          not filename.startswith('test_project')])
-       if os.path.exists('test_projects'):
-           shutil.rmtree('test_projects')
-       os.mkdir('test_projects')
-       batch_project.loadCustomFunctions()
-       batchProject = batch_project.loadJSONGraph('tests/simple_image_selector_plugin.json')
-       global_state = {
-           'projects': 'test_projects',
-           'project': batchProject,
-           'picklists_files': {},
-           'workdir': '.',
-           'count': batch_project.IntObject(20),
-           'permutegroupsmanager': PermuteGroupManager()
-       }
-       batchProject.loadPermuteGroups(global_state)
-       batchProject.executeOnce(global_state)
+        if os.path.exists('imageset.txt'):
+            os.remove('imageset.txt')
+        with open('imageset.txt', 'w') as fp:
+            fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
+                           not filename.startswith('test_project')])
+        if os.path.exists('test_projects'):
+            shutil.rmtree('test_projects')
+        os.mkdir('test_projects')
+        batch_project.loadCustomFunctions()
+        batchProject = batch_project.loadJSONGraph('tests/simple_image_selector_plugin.json')
+        global_state = {
+            'projects': 'test_projects',
+            'project': batchProject,
+            'picklists_files': {},
+            'workdir': '.',
+            'count': batch_project.IntObject(20),
+            'permutegroupsmanager': PermuteGroupManager()
+        }
+        batchProject.loadPermuteGroups(global_state)
+        batchProject.executeOnce(global_state)
 
-    def test_runwithpermutation(self):
-       if os.path.exists('imageset.txt'):
-           os.remove('imageset.txt')
-       with open('imageset.txt', 'w') as fp:
-           fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
-                          not filename.startswith('test_project')])
-       if os.path.exists('test_projects'):
-           shutil.rmtree('test_projects')
-       os.mkdir('test_projects')
-       batch_project.loadCustomFunctions()
-       batchProject = batch_project.loadJSONGraph('tests/permutation_batch_process.json')
-       global_state = {
-           'projects': 'test_projects',
-           'project': batchProject,
-           'picklists_files': {},
-           'count': batch_project.IntObject(20),
-           'permutegroupsmanager': PermuteGroupManager()
-       }
-       batchProject.loadPermuteGroups(global_state)
-       for i in range(100):
-           batchProject.executeOnce(global_state)
-       self.assertTrue(global_state['permutegroupsmanager'].hasNext())
+    def test_external_image_selection(self):
+        if os.path.exists('imageset.txt'):
+            os.remove('imageset.txt')
+        with open('imageset.txt', 'w') as fp:
+            fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
+                           not filename.startswith('test_project1')])
+        if os.path.exists('results'):
+            shutil.rmtree('results')
+        if os.path.exists('test_projects'):
+            shutil.rmtree('test_projects')
+        os.mkdir('test_projects')
+        batch_project.loadCustomFunctions()
+        batchProject = batch_project.loadJSONGraph('tests/external_image_batch_process.json')
+        os.mkdir('results')
+        saveAsPng('tests/images/test_project1.jpg', 'results/test_project1.png')
+        with open('results/arguments.csv', 'w') as fp:
+            fp.write('test_project1.png,no,16')
+        global_state = {
+            'projects': 'test_projects',
+            'project': batchProject,
+            'picklists_files': {},
+            'workdir': '.',
+            'count': batch_project.IntObject(20),
+            'permutegroupsmanager': PermuteGroupManager()
+        }
+        batchProject.loadPermuteGroups(global_state)
+        batchProject.executeOnce(global_state)
+
+        if os.path.exists('results'):
+            shutil.rmtree('results')
+        if os.path.exists('test_projects'):
+            shutil.rmtree('test_projects')
+
+
+def test_runwithpermutation(self):
+    if os.path.exists('imageset.txt'):
+        os.remove('imageset.txt')
+    with open('imageset.txt', 'w') as fp:
+        fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
+                       not filename.startswith('test_project')])
+    if os.path.exists('test_projects'):
+        shutil.rmtree('test_projects')
+    os.mkdir('test_projects')
+    batch_project.loadCustomFunctions()
+    batchProject = batch_project.loadJSONGraph('tests/permutation_batch_process.json')
+    global_state = {
+        'projects': 'test_projects',
+        'project': batchProject,
+        'picklists_files': {},
+        'count': batch_project.IntObject(20),
+        'permutegroupsmanager': PermuteGroupManager()
+    }
+    batchProject.loadPermuteGroups(global_state)
+    for i in range(100):
+        batchProject.executeOnce(global_state)
+    self.assertTrue(global_state['permutegroupsmanager'].hasNext())
+
 
 if __name__ == '__main__':
     unittest.main()

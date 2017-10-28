@@ -75,7 +75,7 @@ class Operation:
     analysisOperations = []
     transitions = []
     compareparameters = {}
-    generateMask  = True
+    generateMask  = "all"
     groupedOperations = None
     groupedCategories = None
     maskTransformFunction = None
@@ -83,7 +83,7 @@ class Operation:
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
+                 compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
                  maskTransformFunction=None):
         self.name = name
         self.category = category
@@ -112,6 +112,12 @@ class Operation:
     def getCompareFunction(self):
         if 'function' in self.compareparameters:
             funcName = self.compareparameters['function']
+            return getRule(funcName)
+        return None
+
+    def getVideoCompareFunction(self):
+        if 'video_function' in self.compareparameters:
+            funcName = self.compareparameters['video_function']
             return getRule(funcName)
         return None
 
@@ -205,7 +211,7 @@ def loadOperationJSON(fileName):
                                         rules=op['rules'], optionalparameters=op['optionalparameters'],
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
-                                        generateMask=op['generateMask'] if 'generateMask' in op else True,
+                                        generateMask=op['generateMask'] if 'generateMask' in op else "all",
                                         analysisOperations=op[
                                             'analysisOperations'] if 'analysisOperations' in op else [],
                                         transitions=op['transitions'] if 'transitions' in op else [],

@@ -679,6 +679,9 @@ class MakeGenUI(Frame):
     def pluginbuilder(self):
         d = PluginBuilder(self,self.scModel.getGroupOperationLoader())
 
+    def reloadplugins(self):
+        plugins.loadPlugins(reload=True)
+
     def groupmanager(self):
         d = GroupManagerDialog(self,GroupFilterLoader())
 
@@ -730,8 +733,9 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        composite = self.scModel.constructComposite()
-        if composite is not None:
+        probes = self.scModel.constructPathProbes()
+        if probes is not None:
+            composite = probes[-1].composites['color']['image']
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewmaskoverlay(self):
@@ -944,6 +948,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Properties", command=self.getproperties)
         filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
         filemenu.add_cascade(label="System Check", command=self.systemcheck)
+        filemenu.add_cascade(label="Reload Plugins", command=self.reloadplugins)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)

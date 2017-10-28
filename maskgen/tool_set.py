@@ -1420,8 +1420,14 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
 
 
 def cropCompare(img1, img2, arguments=dict()):
+    from maskgen.image_wrap import  ImageWrapper
     if (sum(img1.shape) > sum(img2.shape)):
-        return __composeCropImageMask(img1, img2)
+        img1_m, img2_m = __alignChannels(ImageWrapper(img1), ImageWrapper(img2),
+                                         equalize_colors='equalize_colors' in arguments)
+        analysis= {'shape change':  sizeDiff(ImageWrapper(img1_m), ImageWrapper(img2_m))}
+        mask, analysis_d = __composeCropImageMask(img1_m, img2_m)
+        analysis.update(analysis)
+        return mask, analysis_d
     return None, {}
 
 def _composeLCS(img1, img2):
@@ -2286,6 +2292,7 @@ class GrayBlockReader:
         self.dset = self.h_file.get('masks').get('masks')
         self.fps = self.h_file.attrs['fps']
         self.start_time = self.h_file.attrs['start_time']
+        self.start_frame = self.h_file.attrs['start_frame']
         self.convert = convert
         self.writer = GrayFrameWriter(filename[0:filename.rfind('.')],
                                       self.fps,
@@ -2293,6 +2300,9 @@ class GrayBlockReader:
 
     def current_frame_time(self):
         return self.start_time + (self.pos * (1000/self.fps))
+
+    def current_frame(self):
+        return self.start_frame + self.pos
 
     def read(self):
         if self.dset is None:
@@ -2339,7 +2349,7 @@ class GrayBlockWriter:
         self.fps = fps
         self.mask_prefix = mask_prefix
 
-    def write(self, mask, mask_time):
+    def write(self, mask, mask_time, frame_number):
         import h5py
         if self.h_file is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
@@ -2349,6 +2359,7 @@ class GrayBlockWriter:
             self.h_file.attrs['fps'] = self.fps
             self.h_file.attrs['prefix'] = self.mask_prefix
             self.h_file.attrs['start_time'] = mask_time
+            self.h_file.attrs['start_frame'] = frame_number
             self.grp = self.h_file.create_group('masks')
             self.dset = self.grp.create_dataset("masks",
                                                 (10, mask.shape[0], mask.shape[1]),
@@ -2363,7 +2374,8 @@ class GrayBlockWriter:
             new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
             for i in range(mask.shape[2]):
                 new_mask[mask[:, :, i] > 0] = 0
-        self.dset[self.pos, :, :] = new_mask
+        self.dset[self.pos,:,:] = new_mask
+        #self.dset[self.pos, :, :] = new_mask
         self.pos += 1
 
     def get_file_name(self):
@@ -2388,7 +2400,7 @@ def preferredSuffix(preferences=None):
     if sys.platform.startswith('linux'):
         default_suffix = 'avi'
     if preferences is not None:
-        t_suffix = preferences.get_key('vid_suffix')
+        t_suffix = preferences['vid_suffix']
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 
@@ -2411,8 +2423,8 @@ class GrayFrameWriter:
         self.mask_prefix = mask_prefix
         self.suffix = preferredSuffix(preferences=preferences)
         t_codec = None
-        if preferences is not None:
-            t_codec = preferences.get_key('vid_codec')
+        if preferences is not None and 'vid_codec' in preferences:
+            t_codec = preferences['vid_codec']
         if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
 	elif t_codec is None and sys.platform.startswith('linux'):
@@ -2420,7 +2432,7 @@ class GrayFrameWriter:
         elif t_codec is not None:
             self.codec = str(t_codec)
         print self.codec
-        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec)
+        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec) if self.codec is not 'raw' else 0
 
     def write(self, mask, mask_time):
         if self.capOut is None:
@@ -2430,7 +2442,7 @@ class GrayFrameWriter:
                                           self.fourcc,
                                           self.fps,
                                           (mask.shape[1], mask.shape[0]),
-                                          False)
+                                          len(mask.shape) > 2 and mask.shape[2] > 1)
         if cv2.__version__.startswith('2.4.11'):
             mask = grayToRGB(mask)
         self.capOut.write(mask)
