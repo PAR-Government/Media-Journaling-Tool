@@ -2286,6 +2286,7 @@ class GrayBlockReader:
         self.dset = self.h_file.get('masks').get('masks')
         self.fps = self.h_file.attrs['fps']
         self.start_time = self.h_file.attrs['start_time']
+        self.start_frame = self.h_file.attrs['start_frame']
         self.convert = convert
         self.writer = GrayFrameWriter(filename[0:filename.rfind('.')],
                                       self.fps,
@@ -2293,6 +2294,9 @@ class GrayBlockReader:
 
     def current_frame_time(self):
         return self.start_time + (self.pos * (1000/self.fps))
+
+    def current_frame(self):
+        return self.start_frame + self.pos
 
     def read(self):
         if self.dset is None:
@@ -2339,7 +2343,7 @@ class GrayBlockWriter:
         self.fps = fps
         self.mask_prefix = mask_prefix
 
-    def write(self, mask, mask_time):
+    def write(self, mask, mask_time, frame_number):
         import h5py
         if self.h_file is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
@@ -2349,6 +2353,7 @@ class GrayBlockWriter:
             self.h_file.attrs['fps'] = self.fps
             self.h_file.attrs['prefix'] = self.mask_prefix
             self.h_file.attrs['start_time'] = mask_time
+            self.h_file.attrs['start_frame'] = frame_number
             self.grp = self.h_file.create_group('masks')
             self.dset = self.grp.create_dataset("masks",
                                                 (10, mask.shape[0], mask.shape[1]),
@@ -2363,7 +2368,8 @@ class GrayBlockWriter:
             new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
             for i in range(mask.shape[2]):
                 new_mask[mask[:, :, i] > 0] = 0
-        self.dset[self.pos, :, :] = new_mask
+        self.dset[self.pos,:,:] = new_mask
+        #self.dset[self.pos, :, :] = new_mask
         self.pos += 1
 
     def get_file_name(self):

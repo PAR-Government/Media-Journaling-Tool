@@ -119,6 +119,15 @@ class OperationGroupFilter(GroupFilter):
                 return False
         return True
 
+def rankGenerateMask(setting):
+    rank = 'metaframesall'
+    return rank.find(setting)
+
+def chooseHigherRank(setting1, setting2):
+    if rankGenerateMask(setting1) > rankGenerateMask(setting2):
+        return setting1
+    return setting1
+
 class GroupFilterLoader:
     groups = {}
 
@@ -167,7 +176,7 @@ class GroupFilterLoader:
             opt_params = dict()
             mandatory_params = dict()
             analysisOperations = set()
-            generateMask = False
+            generateMask = "meta"
             grp_categories = set()
             customFunctions = []
             ops = []
@@ -178,7 +187,7 @@ class GroupFilterLoader:
                 ops.append(operation)
                 grp_categories.add(operation.category)
                 includeInMask |= operation.includeInMask
-                generateMask |= operation.generateMask
+                generateMask = chooseHigherRank(generateMask, operation.generateMask)
                 addToSet(rules, operation.rules)
                 addToMap(mandatory_params, operation.mandatoryparameters)
                 addToMap(opt_params, operation.optionalparameters)
@@ -316,14 +325,14 @@ class GroupOperationsLoader(GroupFilterLoader):
         return  getOperation(name, fake=True)
 
     def getAvailableFilters(self, operations_used=list()):
-        has_generate_mask = False
+        has_generate_mask = set()
         groups_used = set([getOperation(op_name, fake=True).category for op_name in operations_used])
         for op_name in operations_used:
             real_op = getOperation(op_name, fake=True)
-            has_generate_mask |= real_op.generateMask
+            has_generate_mask.add(real_op.generateMask)
         ops = getOperations()
         return [op_name for op_name in ops if op_name not in operations_used and not \
-            (has_generate_mask and ops[op_name].generateMask) and not \
+            ("all" in has_generate_mask and ops[op_name].generateMask == "all") and not \
               getOperation(op_name, fake=True).category in groups_used]
 
     def getCategoryForGroup(self, groupName):

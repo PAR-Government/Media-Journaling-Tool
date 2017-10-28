@@ -786,6 +786,17 @@ class ImageGraph:
     def getCreator(self):
         return self.G.graph['creator'] if 'creator' in self.G.graph else get_username()
 
+    def findAncestor(self,match, start):
+        for pred in self.predecessors(start):
+            command = match(pred, start, self.G.get_edge_data(pred,start))
+            if command == 'return':
+                return self.G.get_edge_data(pred,start)
+            elif command != 'skip':
+                ret = self.findAncestor(match, pred)
+                if ret is not None:
+                    return ret
+        return None
+
     def _setup(self, pathname, projecttype, nodeFilePaths, edgeFilePaths):
         global igversion
         import logging

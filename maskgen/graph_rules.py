@@ -522,6 +522,15 @@ def rotationCheck(op,graph, frm, to):
         return 'Image was rotated. Parameter Image Rotated is set to "no"'
     return None
 
+def checkUncompressed(op,graph, frm, to):
+    def match(start,stop,edge):
+        if edge['op'] == 'Donor':
+            return 'skip'
+        elif edge['op'].startswith('Output'):
+            return 'return'
+        return 'continue'
+    if graph.findAncestor(match,frm) is None:
+        return 'Check to see if the starting node is compressed'
 
 def checkFrameTimeAlignment(op,graph, frm, to):
     """
@@ -738,6 +747,28 @@ def checkResizeInterpolation(op, graph, frm, to):
         sizeChange = (changeTuple[0], changeTuple[1])
         if (sizeChange[0] < 0 or sizeChange[1] < 0) and 'none' in interpolation:
             return interpolation + ' interpolation is not permitted with a decrease in size'
+
+
+def checkChannelLoss(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
+    vidBefore = graph.get_image_path(frm)
+    vidAfter = graph.get_image_path(to)
+    if fileType(vidAfter) == 'image' or fileType(vidBefore) == 'image':
+        return
+    metaBefore = getFileMeta(vidBefore)
+    metaAfter = getFileMeta(vidAfter)
+    if len(metaBefore) > len(metaAfter):
+        return 'change in the number of streams occurred'
 
 
 def checkSameChannels(op, graph, frm, to):

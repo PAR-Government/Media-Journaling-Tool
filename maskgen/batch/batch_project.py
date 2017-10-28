@@ -380,6 +380,120 @@ class BaseAttachmentOperation(BatchOperation):
             self.logger.debug('Thread {} attaching to node {}'.format(currentThread().getName(), local_state['start node name']))
         return local_state['model']
 
+class PreProcessedMediaOperation(BatchOperation):
+    logger = logging.getLogger('maskgen')
+
+    def __init__(self):
+        self.index = dict()
+
+    def _fetchArguments(self, directory, node, nodename, image_file_name, arguments):
+        import copy
+        import csv
+        argcopy = copy.deepcopy(arguments)
+        if 'argument file' in node:
+            if 'argument names' not in node:
+                raise ValueError("Cannot find argument names in node {}".format(nodename))
+            fullfilename = os.path.join(directory,node['argument file'])
+            if fullfilename not in self.index:
+                argnames = node['argument names']
+                if not os.path.exists(fullfilename):
+                    raise ValueError("Cannot find arguments file {}".format(fullfilename))
+                perfileindex = dict()
+                with open (fullfilename,'r') as fp:
+                    reader = csv.reader(fp,delimiter=',')
+                    for row in reader:
+                        imagename = row[0]
+                        args = { argnames[i]:row[i+1] for i in range(len(argnames))}
+                        perfileindex[imagename] = args
+                self.index[fullfilename] = perfileindex
+            argcopy.update(self.index[fullfilename][image_file_name])
+        return argcopy
+
+    def execute(self, graph, node_name, node, connect_to_node_name, local_state={}, global_state={}):
+        """
+        Load target media as it conforms the source image as if the this routine called the plugin.
+        In this case, the target media is the result of specific external operation
+        :param graph:
+        :param node_name:
+        :param node:
+        :param connect_to_node_name:
+        :param local_state:
+        :param global_state:
+        :return:
+        @type graph: nx.DiGraph
+        @type node_name : str
+        @type node: Dict
+        @type connect_to_node_name : str
+        @type global_state: Dict
+        @type global_state: Dict
+        @rtype: scenario_model.ImageProjectModel
+        """
+        import glob
+        my_state = getNodeState(node_name, local_state)
+        predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+        predecessor_state = getNodeState(connect_to_node_name, local_state)
+        local_state['model'].selectImage(predecessor_state['node'])
+        im, filename = local_state['model'].currentImage()
+        filename = os.path.basename(filename)
+        directory = node['directory']
+        if not os.path.exists(directory):
+            raise ValueError('Invalid directory "' + directory + '" with node ' + node_name)
+        results = glob.glob(directory + os.path.sep + filename[0:filename.rfind('.')] + '*')
+        if len(results) == 0:
+            results = glob.glob(directory + os.path.sep + local_state['model'].getName() + '*')
+        if len(results) == 1:
+            lastNode = local_state['model'].G.get_node(predecessor_state['node'])
+            softwareDetails = scenario_model.Software(node['software'], node['software version'])
+            op = software_loader.getOperation(node['op'], fake=True)
+            args = pickArgs(local_state,
+                            global_state,
+                            node_name,
+                            node['arguments'] if 'arguments' in node else None,
+                            op,
+                            predecessors)
+            if 'experiment_id' in node:
+                args['experiment_id'] = node['experiment_id']
+            args['skipRules'] = True
+            args['sendNotifications'] = False
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                self.logger.debug('Thread {} Execute image {} on {} with {}'.format(currentThread().getName(),
+                                                                                     node['description'],
+                                                                                     filename,
+                                                                                     str(args)))
+            opDetails = scenario_model.Modification(node['op'],
+                                                    node['description'],
+                                                    software=softwareDetails,
+                                                    arguments=self._fetchArguments(directory,
+                                                                                   node,
+                                                                                   node_name,
+                                                                                   os.path.basename(results[0]),
+                                                                                   args),
+                                                    automated='yes')
+            position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
+                             80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
+            local_state['model'].addNextImage(results[0], mod=opDetails,
+                            sendNotifications=False, position=position)
+            my_state['output'] = results[0]
+            my_state['node'] = local_state['model'].nextId()
+            for predecessor in predecessors:
+                local_state['model'].selectImage(predecessor)
+                if (self.logger.isEnabledFor(logging.DEBUG)):
+                    self.logger.debug('Thread {} project {} connect {} to {}'.format(currentThread().getName(),
+                                                                                     local_state['model'].getName(),
+                                                                                     predecessor,
+                                                                                     node_name))
+                local_state['model'].connect(my_state['node'],
+                                             sendNotifications=False,
+                                             skipDonorAnalysis='skip_donor_analysis' in node and node[
+                                                 'skip_donor_analysis'])
+                local_state['model'].selectImage(my_state['node'])
+        elif len(results) > 1:
+            raise ValueError('Directory {} contains more than one matching media for {}: {}'.format(
+                directory, filename, str([os.path.basename(r) for r in results])))
+        else:
+            raise ValueError('Directory {} does not contain a match media for {}'.format( directory, filename))
+        return local_state['model']
 
 class PluginOperation(BatchOperation):
     logger = logging.getLogger('maskgen')
@@ -577,7 +691,8 @@ batch_operations = {'BaseSelection': BaseSelectionOperation(),
                     'ImageSelectionPluginOperation': ImageSelectionPluginOperation(),
                     'PluginOperation': PluginOperation(),
                     'InputMaskPluginOperation': InputMaskPluginOperation(),
-                    'NodeAttachment': BaseAttachmentOperation()}
+                    'NodeAttachment': BaseAttachmentOperation(),
+                    'PreProcessedMediaOperation':PreProcessedMediaOperation()}
 
 
 def getOperationGivenDescriptor(descriptor):

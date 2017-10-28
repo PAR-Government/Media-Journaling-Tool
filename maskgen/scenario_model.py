@@ -247,7 +247,7 @@ class Modification:
     # errors
     errors = list()
     # generate mask
-    generateMask = True
+    generateMask = "all"
     username = ''
     ctime = ''
     start = ''
@@ -269,7 +269,7 @@ class Modification:
                  errors=list(),
                  semanticGroups=None,
                  category=None,
-                 generateMask=False):
+                 generateMask="all"):
         self.start = start
         self.end = end
         self.additionalInfo = additionalInfo
@@ -604,7 +604,7 @@ class VideoVideoLinkTool(LinkTool):
         mask, analysis = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
-        if op != 'Donor' and not operation.generateMask:
+        if op != 'Donor' and operation.generateMask != "all":
             maskSet = list()
             errors = list()
         elif op == 'Donor':
@@ -629,7 +629,8 @@ class VideoVideoLinkTool(LinkTool):
                 item.pop('mask')
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
-        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
+        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName,
+                                                    frames=operation.generateMask in ["all", "frames"])
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         analysis['shape change'] = sizeDiff(startIm, destIm)
@@ -685,7 +686,7 @@ class AudioVideoLinkTool(LinkTool):
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         errors = []
 
-        if op != 'Donor' and operation.generateMask:
+        if op != 'Donor' and operation.generateMask == 'all':
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
@@ -798,7 +799,7 @@ class AddTool:
 
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
-        meta = video_tools.getMeta(media)[0]
+        meta = video_tools.getMeta(media,show_streams=True)[0]
         meta['shape'] = video_tools.getShape(media)
         return meta
 

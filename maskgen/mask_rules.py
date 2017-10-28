@@ -15,6 +15,28 @@ from collections import namedtuple
 DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_file_name', 'media_type'], verbose=True)
 CompositeImage = namedtuple('CompositeImage', ['source', 'target', 'media_type', 'videomasks'])
 
+def getMasksFromEdge(graph, source, edge, media_types, channel=0):
+    #TODO
+    if 'videomasks' in edge and \
+        edge['videomasks'] is not None and \
+        len(edge['videomasks']) > 0:
+        return [ {
+            'starttime': edge['videomasks'][0]['starttime'],
+            'startframe': edge['videomasks'][0]['startframe'],
+            'endtime': edge['videomasks'][-1]['endtime'],
+            'endframe': edge['videomasks'][-1]['endframe'],
+            'rate': edge['videomasks'][0]['rate'],
+            'type': media_type
+        } for media_type in media_types]
+    else:
+       result = video_tools.getMaskSetForEntireVideo(getNodeFile(graph,source),
+                                             start_time = edge['Start Time'] if 'Start Time' in edge else '00:00:00.000',
+                                             end_time = edge['End Time'] if 'End Time' in edge else None,
+                                             media_types=media_types,
+                                             channel=channel)
+       if result is None or len(result) == 0:
+            return None
+    return result
 
 def _compositeImageToVideoSegment(compositeImage):
     """
@@ -364,17 +386,18 @@ def select_cut_frames(edge, source, target, edgeMask,
                       donorMask=None,
                       pred_edges=None,
                       graph=None):
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)
     if compositeMask is not None:
         return CompositeImage(compositeMask.source,
                               compositeMask.target,
                               compositeMask.media_type,
-                              video_tools.dropFramesFromMask(start, end, compositeMask.videomasks))
+                              video_tools.dropFramesFromMask(getMasksFromEdge(graph, source, edge, ['audio','video']),
+                                                             compositeMask.videomasks))
     elif donorMask is not None:
         return CompositeImage(donorMask.source,
                               donorMask.target,
                               donorMask.media_type,
-                              video_tools.insertFramesToMask(start, end, donorMask.videomasks))
+                              video_tools.insertFramesToMask(getMasksFromEdge(graph, source, edge, ['audio','video']),
+                                                             donorMask.videomasks))
     return None
 
 
@@ -384,19 +407,58 @@ def select_crop_frames(edge, source, target, edgeMask,
                        donorMask=None,
                        pred_edges=None,
                        graph=None):
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)
+    frame_bounds = getMasksFromEdge(graph, source, edge, ['audio','video'])
+    video_bound = [frame_bound for frame_bound in frame_bounds if frame_bound['type'] == 'video']
+    audio_bound = [frame_bound for frame_bound in frame_bounds if frame_bound['type'] == 'audio']
+    start = []
+    end = []
+    if len(video_bound) > 0:
+        start_vid = [{
+                'starttime': 0.0,
+                'startframe': 0,
+                'endtime': video_bound[0]['starttime'],
+                'endframe': video_bound[0]['startframe'],
+                'rate': video_bound[0]['rate'],
+                'type': video_bound[0]['type']
+            }]
+        end_vid = [{
+                'starttime': video_bound[0]['endtime'],
+                'startframe': video_bound[0]['endframe'],
+                'rate': video_bound[0]['rate'],
+                'type': video_bound[0]['type']
+            }]
+        start.append(start_vid)
+        end.append(end_vid)
+    if len(audio_bound) > 0:
+        start_audio = [{
+            'starttime': 0.0,
+            'startframe': 0,
+            'endtime': audio_bound[0]['starttime'],
+            'endframe': audio_bound[0]['startframe'],
+            'rate': audio_bound[0]['rate'],
+            'type': audio_bound[0]['type']
+        }]
+        end_audio = [{
+            'starttime': audio_bound[0]['endtime'],
+            'startframe': audio_bound[0]['endframe'],
+            'rate': audio_bound[0]['rate'],
+            'type': audio_bound[0]['type']
+        }]
+        start.append(start_audio)
+        end.append(end_audio)
     if compositeMask is not None:
+
         return CompositeImage(compositeMask.source,
                               compositeMask.target,
                               compositeMask.media_type,
-                              video_tools.dropFramesFromMask(end, None,
-                                                             video_tools.dropFramesFromMask('00:00:00.000', start,
+                              video_tools.dropFramesFromMask(end,
+                                                             video_tools.dropFramesFromMask(start,
                                                                                             compositeMask.videomasks)))
     elif donorMask is not None:
         return CompositeImage(donorMask.source,
                               donorMask.target,
                               donorMask.media_type,
-                              video_tools.insertFramesToMask('00:00:00.000', start, donorMask.videomasks))
+                              video_tools.insertFramesToMask(start, donorMask.videomasks))
     return None
 
 
@@ -406,13 +468,12 @@ def replace_audio(edge, source, target, edgeMask,
                   donorMask=None,
                   pred_edges=None,
                   graph=None):
-    args = edge['arguments'] if 'arguments' in edge else {}
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)  # overlay case, trim masks
     if compositeMask is not None:
         return CompositeImage(compositeMask.source,
                               compositeMask.target,
                               compositeMask.media_type,
-                              video_tools.dropFramesWithoutMask(start, end, compositeMask.videomasks, keepTime=True,
+                              video_tools.dropFramesWithoutMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                                compositeMask.videomasks, keepTime=True,
                                                                 expectedType='audio'))
     # in donor case, the donor was already trimmed
     else:
@@ -425,8 +486,6 @@ def add_audio(edge, source, target, edgeMask,
               donorMask=None,
               pred_edges=None,
               graph=None):
-    args = edge['arguments'] if 'arguments' in edge else {}
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)  # overlay case, trim masks
     if compositeMask is not None:
         # if there is a match the source and target, then this is 'seeded' composite mask
         # have to wonder if this is necessary, but I suppose it gives the transform
@@ -435,7 +494,9 @@ def add_audio(edge, source, target, edgeMask,
             return CompositeImage(compositeMask.source,
                                   compositeMask.target,
                                   compositeMask.media_type,
-                                  video_tools.dropFramesWithoutMask(start, end, compositeMask.videomasks, keepTime=True,
+                                  video_tools.dropFramesWithoutMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                                    compositeMask.videomasks,
+                                                                    keepTime=True,
                                                                     expectedType='audio'))
         return compositeMask
     # in donor case, the donor was already trimmed
@@ -449,18 +510,20 @@ def delete_audio(edge, source, target, edgeMask,
                  donorMask=None,
                  pred_edges=None,
                  graph=None):
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)  # overlay case, trim masks
     if compositeMask is not None:
         if compositeMask.source != source and compositeMask.target != target:
             return CompositeImage(compositeMask.source,
                                   compositeMask.target,
                                   compositeMask.media_type,
-                                  video_tools.dropFramesWithoutMask(start, end, compositeMask.videomasks,
+                                  video_tools.dropFramesWithoutMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                                    compositeMask.videomasks,
                                                                     expectedType='audio'))
         return compositeMask
     # in donor case, need to add the deleted frames back
     else:
-        return video_tools.insertFramesWithoutMask(start, end, compositeMask, expectedType='audio')
+        return video_tools.insertFramesWithoutMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                   compositeMask,
+                                                   expectedType='audio')
 
 
 def paste_add_frames(edge, source, target, edgeMask,
@@ -470,20 +533,21 @@ def paste_add_frames(edge, source, target, edgeMask,
                      pred_edges=None,
                      graph=None):
     args = edge['arguments'] if 'arguments' in edge else {}
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)
     if 'add type' in args and args['add type'] == 'insert':
         if compositeMask is not None:
             if compositeMask.source != source and compositeMask.target != target:
                 return CompositeImage(compositeMask.source,
                                       compositeMask.target,
                                       compositeMask.media_type,
-                                      video_tools.insertFramesToMask(start, end, compositeMask.videomasks))
+                                      video_tools.insertFramesToMask(getMasksFromEdge(graph,source, edge,['video']),
+                                                                     compositeMask.videomasks))
             return compositeMask
         elif donorMask is not None:
             return CompositeImage(donorMask.source,
                                   donorMask.target,
                                   donorMask.media_type,
-                                  video_tools.dropFramesFromMask(start, end, donorMask.videomasks))
+                                  video_tools.dropFramesFromMask(getMasksFromEdge(graph,source, edge,['video']),
+                                                                 donorMask.videomasks))
         return None
     else:
         # overlay case, trim masks
@@ -492,7 +556,8 @@ def paste_add_frames(edge, source, target, edgeMask,
                 return CompositeImage(compositeMask.source,
                                       compositeMask.target,
                                       compositeMask.media_type,
-                                      video_tools.dropFramesFromMask(start, end, compositeMask.videomasks,
+                                      video_tools.dropFramesFromMask(getMasksFromEdge(graph,source, edge,['video']),
+                                                                     compositeMask.videomasks,
                                                                      keepTime=True))
             return compositeMask
         # in donor case, the donor was already trimmed
@@ -508,20 +573,21 @@ def paste_add_audio_frames(edge, source, target, edgeMask,
                            pred_edges=None,
                            graph=None):
     args = edge['arguments'] if 'arguments' in edge else {}
-    start, end = video_tools.getStartAndEndTimesFromEdge(edge)
     if 'add type' in args and args['add type'] == 'insert':
         if compositeMask is not None:
             if compositeMask.source != source and compositeMask.target != target:
                 return CompositeImage(compositeMask.source,
                                       compositeMask.target,
                                       compositeMask.media_type,
-                                      video_tools.insertFramesToMask(start, end, compositeMask.videomasks))
+                                      video_tools.insertFramesToMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                                     compositeMask.videomasks))
             return compositeMask
         elif donorMask is not None:
             return CompositeImage(donorMask.source,
                                   donorMask.target,
                                   donorMask.media_type,
-                                  video_tools.dropFramesFromMask(start, end, donorMask.videomasks))
+                                  video_tools.dropFramesFromMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                                 donorMask.videomasks))
         return None
     else:
         # overlay case, trim masks
@@ -530,7 +596,8 @@ def paste_add_audio_frames(edge, source, target, edgeMask,
                 return CompositeImage(compositeMask.source,
                                       compositeMask.target,
                                       compositeMask.media_type,
-                                      video_tools.dropFramesFromMask(start, end, compositeMask.videomasks,
+                                      video_tools.dropFramesFromMask(getMasksFromEdge(graph,source, edge,['audio']),
+                                                                     compositeMask.videomasks,
                                                                      keepTime=True))
             return compositeMask
         # in donor case, the donor was already trimmed

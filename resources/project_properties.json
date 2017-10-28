@@ -587,11 +587,25 @@
       "information": "Manipulations to alter a shadows."
     },
     {
-      "description": "Time-Date Overlay",
-      "name": "timedateoverlay",
+      "description": "Ambience Audio Swap",
+      "name": "ambienceaudioswap",
       "type": "yesno",
       "semanticgroup" : true,
-      "information": "Add Time and Date stamps on images and videos."
+      "information": "Swap Ambience (e.g. environment sounds)."
+    },
+    {
+      "description": "Voice Audio Swap",
+      "name": "voiceaudioswap",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Voice Swap."
+    },
+    {
+      "description": "Dialog Change",
+      "name": "dialogchange",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Dialog of a voice is changed to not match speaker or context."
     },
     {
       "description": "Reflection Manipulations",
