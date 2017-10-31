@@ -36,13 +36,16 @@ def imageProjectModelFactory(name, **kwargs):
     return ImageProjectModel(name, **kwargs)
 
 
-def loadProject(projectFileName):
+def defaultNotify(edge, message, **kwargs):
+    return True
+
+def loadProject(projectFileName, notify=None):
     """
       Given JSON file name, open then the appropriate type of project
       @rtype: ImageProjectModel
     """
     graph = createGraph(projectFileName)
-    return ImageProjectModel(projectFileName, graph=graph)
+    return ImageProjectModel(projectFileName, graph=graph,notify=notify)
 
 
 def consolidate(dict1, dict2):
@@ -2621,7 +2624,7 @@ class ImageProjectModel:
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
                 s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
                 os.remove(path)
-                if not self.notify(self.getName(), 'export',
+                if self.notify is not None and not self.notify(self.getName(), 'export',
                                    location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1]):
                     errors = [('', '',
                                'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
