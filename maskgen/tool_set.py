@@ -290,18 +290,31 @@ class VidTimeManager:
         self.pastEndTime = False
         self.beforeStartTime = True if startTimeandFrame else False
 
+    def getExpectedStartFrameGiveRate(self, rate, defaultValue = None):
+        if not self.startTimeandFrame:
+            return defaultValue
+        return self.startTimeandFrame[1] + (self.startTimeandFrame[0] / 1000.0) * float(rate)
+
+    def getExpectedEndFrameGiveRate(self, rate):
+        if not self.stopTimeandFrame:
+            return None
+        val = int(self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate))
+        if val == 0:
+            return None
+        return self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate)
+
     def getStartFrame(self):
         return self.frameCountWhenStarted if self.startTimeandFrame else 1
 
     def getEndFrame(self):
         return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
 
-    def updateToNow(self, milliNow):
+    def updateToNow(self, milliNow, frames=1):
         self.milliNow = milliNow
-        self.frameSinceBeginning += 1
+        self.frameSinceBeginning += frames
         if self.stopTimeandFrame:
             if self.milliNow >= self.stopTimeandFrame[0]:
-                self.frameCountSinceStop += 1
+                self.frameCountSinceStop += frames
                 if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
                     if not self.pastEndTime:
                         self.pastEndTime = True
@@ -309,7 +322,7 @@ class VidTimeManager:
 
         if self.startTimeandFrame:
             if self.milliNow >= self.startTimeandFrame[0]:
-                self.frameCountSinceStart += 1
+                self.frameCountSinceStart += frames
                 if self.frameCountSinceStart >= self.startTimeandFrame[1]:
                     if self.beforeStartTime:
                         self.frameCountWhenStarted = self.frameSinceBeginning
@@ -326,6 +339,10 @@ class VidTimeManager:
 
     def isPastTime(self):
         return self.pastEndTime
+
+    def isPastStartTime(self):
+        return self.startTimeandFrame and self.milliNow  > self.startTimeandFrame[0] and \
+                self.frameCountSinceStart >  self.startTimeandFrame[1]
 
     def isBeforeTime(self):
         return self.beforeStartTime
@@ -1420,8 +1437,14 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
 
 
 def cropCompare(img1, img2, arguments=dict()):
+    from maskgen.image_wrap import  ImageWrapper
     if (sum(img1.shape) > sum(img2.shape)):
-        return __composeCropImageMask(img1, img2)
+        img1_m, img2_m = __alignChannels(ImageWrapper(img1), ImageWrapper(img2),
+                                         equalize_colors='equalize_colors' in arguments)
+        analysis= {'shape change':  sizeDiff(ImageWrapper(img1_m), ImageWrapper(img2_m))}
+        mask, analysis_d = __composeCropImageMask(img1_m, img2_m)
+        analysis.update(analysis)
+        return mask, analysis_d
     return None, {}
 
 def _composeLCS(img1, img2):
@@ -2394,7 +2417,7 @@ def preferredSuffix(preferences=None):
     if sys.platform.startswith('linux'):
         default_suffix = 'avi'
     if preferences is not None:
-        t_suffix = preferences.get_key('vid_suffix')
+        t_suffix = preferences['vid_suffix']
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 
@@ -2417,8 +2440,8 @@ class GrayFrameWriter:
         self.mask_prefix = mask_prefix
         self.suffix = preferredSuffix(preferences=preferences)
         t_codec = None
-        if preferences is not None:
-            t_codec = preferences.get_key('vid_codec')
+        if preferences is not None and 'vid_codec' in preferences:
+            t_codec = preferences['vid_codec']
         if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
 	elif t_codec is None and sys.platform.startswith('linux'):
@@ -2426,7 +2449,7 @@ class GrayFrameWriter:
         elif t_codec is not None:
             self.codec = str(t_codec)
         print self.codec
-        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec)
+        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec) if self.codec is not 'raw' else 0
 
     def write(self, mask, mask_time):
         if self.capOut is None:
@@ -2436,7 +2459,7 @@ class GrayFrameWriter:
                                           self.fourcc,
                                           self.fps,
                                           (mask.shape[1], mask.shape[0]),
-                                          False)
+                                          len(mask.shape) > 2 and mask.shape[2] > 1)
         if cv2.__version__.startswith('2.4.11'):
             mask = grayToRGB(mask)
         self.capOut.write(mask)

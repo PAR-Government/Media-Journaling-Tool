@@ -780,6 +780,11 @@ class ImageGraph:
     def getProjectVersion(self):
         return self.G.graph['igversion'] if 'igversion' in self.G.graph else ''
 
+    def subgraph(self, nodes):
+        return ImageGraph(os.path.join(self.dir,self.get_name() + '_sub'),
+                   graph=nx.DiGraph(self.G.subgraph(nodes)),
+                   projecttype=self.get_project_type())
+
     def getVersion(self):
         return igversion
 

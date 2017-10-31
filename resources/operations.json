@@ -54,7 +54,7 @@
         }
       },
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
@@ -79,6 +79,7 @@
           "description" : "all includes mono and stereo, depending on available streams"
         }
       },
+      "rules": ["checkFrameTimes"],
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -89,6 +90,9 @@
       "analysisOperations": [],
       "description": "Extract audio stream(s) from a video",
       "generateMask" : "all",
+      "compareparameters": {
+          "video_function" :"maskgen.video_tools.audioSample"
+      },
       "includeInMask": true,
       "transitions": [
         "video.audio",
@@ -170,7 +174,6 @@
       },
       "rules": [
         "checkForDonorAudio",
-        "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
@@ -190,7 +193,7 @@
         }
       },
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
@@ -212,7 +215,7 @@
         },
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction"],
+          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch"],
           "description": "Type of filter"
         },
         "Start Time": {
@@ -259,7 +262,7 @@
       "includeInMask": true,
       "generateMask" : "all",
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "transitions": [
         "video.video",
@@ -323,7 +326,7 @@
         "video.video"
       ],
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
      {
@@ -378,7 +381,7 @@
         "video.video"
       ],
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
      {
@@ -437,7 +440,7 @@
         "video.video"
       ],
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
     {
@@ -465,7 +468,6 @@
       },
       "rules": [
         "checkForDonor",
-        "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkAddFrameTime",
@@ -491,7 +493,7 @@
         "audio.audio"
       ],
       "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       }
     },
      {
@@ -2364,7 +2366,7 @@
          "checkLengthSame"
       ],
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
       },
@@ -2383,7 +2385,7 @@
          "checkLengthSame"
       ],
        "compareparameters": {
-          "function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
       },
@@ -2745,6 +2747,9 @@
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }},
+      "compareparameters" : {
+         "video_function": "maskgen.video_tools.pasteCompare"
+      },
       "description": "Adding a series of frames from a video clip",
       "includeInMask": true,
       "transitions": [
@@ -3089,6 +3094,9 @@
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters" : {
+         "video_function" :"maskgen.video_tools.cutCompare"
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_cut_frames",
@@ -3575,7 +3583,8 @@
         }
       },
       "compareparameters" : {
-         "function" :"maskgen.tool_set.cropCompare"
+         "function" :"maskgen.tool_set.cropCompare",
+         "video_function": "maskgen.video_tools.cropCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.globalTransformAnalysis"

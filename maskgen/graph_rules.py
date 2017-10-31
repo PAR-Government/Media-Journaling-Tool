@@ -2156,6 +2156,8 @@ class ColorCompositeBuilder(CompositeBuilder):
                                                                      globalAnalysis=True)
             results[finalNodeId] = (ImageWrapper(compositeMask), globalchange, changeCategory, ratio)
         for probe in probes:
+            if probe.finalNodeId not in results:
+                continue
             finalResult = results[probe.finalNodeId]
             if probe.targetMaskFileName is not None:
                 targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)

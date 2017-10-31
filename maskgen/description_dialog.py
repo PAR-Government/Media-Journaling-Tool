@@ -217,7 +217,7 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0], filetypes=filetypes)
         if (val != None and len(val) > 0):
             res = val
-    elif argumentTuple[1]['type'] == 'file:':
+    elif argumentTuple[1]['type'].startswith('file:'):
         prop = argumentTuple[1]['type']
         typematch = '*.' + prop[prop.find(':') + 1:]
         typename = prop[prop.find(':') + 1:].upper()
@@ -614,7 +614,7 @@ class DescriptionCaptureDialog(Toplevel):
             if info is None:
                 continue
             cv,error = checkValue(k,info['type'],v)
-            if v is not None and cv is None:
+            if v is not None and len(v) > 0 and cv is None:
                 ok = False
         ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
         return ok
@@ -1809,10 +1809,8 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
     def _newComposite(self):
         from PIL import Image
         if self.prior_composite is None:
-            self.prior_composite = \
-                self.scModel.constructCompositeForNode(self.scModel.start,
-                                                       level=self.level,
-                                                       colorMap=self.colorMap)
+            self.prior_probes = self.scModel.constructPathProbes(start=self.scModel.start)
+            self.prior_composite = composite = self.prior_probes[-1].composites['color']['image']
         override_args={
             'op' : self.op,
             'shape change': str((int(self.nextIM.size[1]-self.startIM.size[1]),
@@ -1822,10 +1820,9 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
             self.updateBox()
             override_args['arguments'] = {self.argument_name :
                                     self.getStringConfiguration()}
-        composite = self.scModel.extendCompositeByOne(self.prior_composite,
-                                                  level=self.level,
-                                                  colorMap=self.colorMap,
-                                                  override_args=override_args)
+        new_probes =  self.scModel.extendCompositeByOne(self.prior_probes,
+                                                       override_args=override_args)
+        composite = new_probes[-1].composites['color']['image']
         if composite.size != self.nextIM.size:
             composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
         return composite
@@ -2230,7 +2227,7 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
-           elif prop.type.startswith == 'file:':
+           elif prop.type.startswith('file:'):
                typematch = '*.' + prop[prop.find(':')+1:]
                typename =  prop[prop.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])

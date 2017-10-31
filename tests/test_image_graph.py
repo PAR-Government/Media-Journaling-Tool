@@ -13,6 +13,12 @@ class TestImageGraph(unittest.TestCase):
       graph = image_graph.createGraph('tests/video.json')
       self.assertTrue(graph.G.graph['projecttype'] == 'video')
 
+   def test_subgraph(self):
+       initial = image_graph.createGraph('images/sample.json','image')
+       graph = initial.subgraph(['sample','orig_input','input_mod_1'])
+       self.assertEqual(3,len(graph.get_nodes()))
+       self.assertEqual(2,len(graph.get_edges()))
+
    def test_build_graph(self):
         edgePaths = ['videomasks', 'videosegment']
         value = {'videomasks': [

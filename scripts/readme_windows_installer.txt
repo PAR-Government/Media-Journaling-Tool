@@ -3,6 +3,7 @@
 NSIS Requirements:
 NSIS 									https://downloads.sourceforge.net/project/nsis/NSIS%203/3.02.1/nsis-3.02.1-setup.exe
 EnvVarUpdate							http://nsis.sourceforge.net/mediawiki/images/a/ad/EnvVarUpdate.7z
+WordFunc                                http://forums.winamp.com/attachment.php?attachmentid=37933&d=1158992399
 INetC									http://nsis.sourceforge.net/Inetc_plug-in 
 nsUnzip									http://nsis.sourceforge.net/NsUnzip_plugin
 
@@ -31,6 +32,7 @@ Install NSIS and add it to your PATH
 Install INetC by copying Inetc.zip\Plugins\x86-ansi\INetC.dll to C:\Program Files (x86)\NSIS\Plugins\x86-ansi\
 Install NsUnzip by copying NsUnzip.zip\nsUnzip.dll to C:\Program Files (x86)\NSIS\Plugins\x86-ansi\
 Install EnvVarUpdate by copying EnvVarUpdate.7z\EnvVarUpdate.nsh to the directory you placed "windows_installer.nsh" in
+Install WordFunc by extracting all files in the zip to any folder and running the setup exe file
 Download all prerequisites and place them in a folder named "Prerequisites", placed in the same folder as "windows_installer.nsh"
 
 

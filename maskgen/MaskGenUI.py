@@ -733,8 +733,9 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        composite = self.scModel.constructComposite()
-        if composite is not None:
+        probes = self.scModel.constructPathProbes()
+        if probes is not None:
+            composite = probes[-1].composites['color']['image']
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewmaskoverlay(self):
