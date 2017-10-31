@@ -79,6 +79,7 @@
           "description" : "all includes mono and stereo, depending on available streams"
         }
       },
+      "rules": ["checkFrameTimes"],
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -215,7 +216,7 @@
         },
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction"],
+          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch"],
           "description": "Type of filter"
         },
         "Start Time": {
