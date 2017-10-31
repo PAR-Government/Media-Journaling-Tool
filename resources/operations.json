@@ -205,7 +205,7 @@
         },
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction"],
+          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch"],
           "description": "Type of filter"
         },
         "Start Time": {

@@ -266,6 +266,32 @@ def getFilters(filtertype):
     else:
         return {}
 
+def _loadSoftware( fileName):
+    fileName = getFileName(fileName)
+    softwareset = {'image': {}, 'video': {}, 'audio': {}}
+    with open(fileName) as f:
+        line_no = 0
+        for l in f.readlines():
+            line_no += 1
+            l = l.strip()
+            if len(l) == 0:
+                continue
+            columns = l.split(',')
+            if len(columns) < 3:
+                logging.getLogger('maskgen').error(
+                    'Invalid software description on line ' + str(line_no) + ': ' + l)
+            software_type = columns[0].strip()
+            software_name = columns[1].strip()
+            versions = [x.strip() for x in columns[2:] if len(x) > 0]
+            if software_type not in ['both', 'image', 'video', 'audio', 'all']:
+                logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
+            elif len(software_name) > 0:
+                types = ['image', 'video'] if software_type == 'both' else [software_type]
+                types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                types = ['video', 'audio'] if software_type == 'audio' else types
+                for stype in types:
+                    softwareset[stype][software_name] = versions
+    return softwareset
 
 class MetaDataLoader:
     version = ''
@@ -281,31 +307,36 @@ class MetaDataLoader:
         self.projectProperties = self.loadProjectProperties('project_properties.json')
 
     def loadSoftware(self, fileName):
-        fileName = getFileName(fileName)
-        self.softwareset = {'image': {}, 'video': {}, 'audio': {}}
-        with open(fileName) as f:
-            line_no = 0
-            for l in f.readlines():
-                line_no += 1
-                l = l.strip()
-                if len(l) == 0:
-                    continue
-                columns = l.split(',')
-                if len(columns) < 3:
-                    logging.getLogger('maskgen').error(
-                        'Invalid software description on line ' + str(line_no) + ': ' + l)
-                software_type = columns[0].strip()
-                software_name = columns[1].strip()
-                versions = [x.strip() for x in columns[2:] if len(x) > 0]
-                if software_type not in ['both', 'image', 'video', 'audio', 'all']:
-                    logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
-                elif len(software_name) > 0:
-                    types = ['image', 'video'] if software_type == 'both' else [software_type]
-                    types = ['image', 'video', 'audio'] if software_type == 'all' else types
-                    types = ['video', 'audio'] if software_type == 'audio' else types
-                    for stype in types:
-                        self.softwareset[stype][software_name] = versions
+        self.softwareset = _loadSoftware(fileName)
         return self.softwareset
+
+    def merge(self,fileName):
+        softwareset = _loadSoftware(fileName)
+        bytesOne = {}
+        bytesTwo = {}
+        namesOne = {}
+        namesTwo = {}
+        for atype,names in self.softwareset.iteritems():
+            for name in names:
+                bytesOne[name] = atype
+            for name,versions in names.iteritems():
+                namesOne[name] = versions
+        for atype,names in softwareset.iteritems():
+            for name in names:
+                bytesTwo[name] = atype
+            for name,versions in names.iteritems():
+                namesTwo[name] = versions
+        for name,versions in namesTwo.iteritems():
+            if name not in namesOne:
+                print 'missing ' + name
+            else:
+                for version in versions:
+                    if version not in namesOne[name]:
+                        print 'missing ' + str(version) + ' in ' + name
+        for name, atype in bytesTwo.iteritems():
+            if name  in bytesOne and atype != bytesOne[name]:
+                print 'missing ' + str(atype) + ' in ' + name
+
 
     def loadProjectProperties(self, fileName):
         loadCustomRules()
