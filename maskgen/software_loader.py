@@ -40,6 +40,7 @@ class ProjectProperty:
     readonly = False
     mandatory= False
     nodetype = None
+    defaultvalue = None
     """
     @type operations: list of str
     @type nodetype: str
@@ -47,7 +48,7 @@ class ProjectProperty:
 
     def __init__(self, name='', type='', operations=None, parameter=None, description=None,
                  information=None, value=None, values=None, rule=None, node=False, readonly=False,mandatory=True,
-                 nodetype=None,semanticgroup=False):
+                 nodetype=None,semanticgroup=False,defaultvalue = None):
         self.name = name
         self.type = type
         self.operations = operations
@@ -62,6 +63,7 @@ class ProjectProperty:
         self.mandatory = mandatory
         self.nodetype = nodetype
         self.semanticgroup = semanticgroup
+        self.defaultvalue = defaultvalue
 
 
 class Operation:
@@ -187,7 +189,8 @@ def loadProjectPropertyJSON(fileName):
                                                 readonly=prop['readonly'] if 'readonly' in prop else None,
                                                 mandatory=prop['mandatory'] if 'mandatory' in prop else False,
                                                 semanticgroup=prop['semanticgroup'] if 'semanticgroup' in prop else False,
-                                                nodetype=prop['nodetype'] if 'nodetype' in prop else None))
+                                                nodetype=prop['nodetype'] if 'nodetype' in prop else None,
+                                                defaultvalue=prop['defaultvalue'] if 'defaultvalue' in prop else None))
     return res
 
 
