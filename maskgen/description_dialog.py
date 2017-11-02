@@ -429,6 +429,10 @@ class DescriptionCaptureDialog(Toplevel):
     def buildArgBox(self, opname):
         if self.argBox is not None:
             self.argBox.destroy()
+        for argumentTuple in self.arginfo:
+            if argumentTuple[0] not in self.argvalues and \
+                'defaultvalue' in argumentTuple[1]:
+                self.argvalues[argumentTuple[0]] = argumentTuple[1]['defaultvalue']
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
@@ -614,7 +618,7 @@ class DescriptionCaptureDialog(Toplevel):
             if info is None:
                 continue
             cv,error = checkValue(k,info['type'],v)
-            if v is not None and len(v) > 0 and cv is None:
+            if v is not None and len(str(v)) > 0 and cv is None:
                 ok = False
         ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
         return ok
@@ -2195,7 +2199,7 @@ class PropertyFrame(VerticalScrolledFrame):
            p = partial(viewInfo, (prop.description, prop.information))
            Button(master, text=prop.description, takefocus=False, command=p).grid(row=row, sticky=E)
            v = self.propertyFunction.getValue(prop.name)
-           if v:
+           if v is not None:
                self.values[row].set(v)
            if prop.type == 'list':
                if prop.readonly:

@@ -295,7 +295,7 @@ class VidTimeManager:
             return defaultValue
         return self.startTimeandFrame[1] + (self.startTimeandFrame[0] / 1000.0) * float(rate)
 
-    def getExpectedEndFrameGiveRate(self, rate):
+    def getExpectedEndFrameGiveRate(self, rate, defaultValue=None):
         if not self.stopTimeandFrame:
             return None
         val = int(self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate))

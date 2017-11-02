@@ -2094,6 +2094,8 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
 
         for probe in probes:
             groupid = probe.composites[self.composite_type]['groupid']
+            if groupid not in results:
+                continue
             finalResult = results[groupid]
             targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
             probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName

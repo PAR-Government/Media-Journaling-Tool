@@ -1241,6 +1241,7 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
     @type time_manager: VidTimeManager
     """
     import wave
+    channel = arguments['Copy Stream'] if 'Copy Stream' in arguments else 'all'
     fileOneAudio,errorsone = toAudio(fileOne)
     fileTwoAudio,errorstwo = toAudio(fileTwo)
     maxdiff = None
@@ -1264,6 +1265,7 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
     if len(errorstwo) > 0:
         return list(),errorstwo
     try:
+
         fone = wave.open(fileOneAudio,'rb')
         try:
             ftwo = wave.open(fileTwoAudio,'rb')
@@ -1273,9 +1275,12 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
             twochannels = ftwo.getnchannels()
             onewidth =fone.getsampwidth()
             twowidth = ftwo.getsampwidth()
+            twoskipchannel = onewidth if onechannels < twochannels else 1
+            oneskipchannel = onewidth if onechannels > twochannels else 1
+            startonechannel = onewidth if channel == 'right' and oneskipchannel> 1 else 0
+            starttwochannel = onewidth if channel == 'right' and twoskipchannel > 1 else 0
             framerateone = fone.getframerate()
-            if fone.getframerate() != ftwo.getframerate() or onewidth != twowidth or \
-                    onechannels != twochannels:
+            if fone.getframerate() != ftwo.getframerate() or onewidth != twowidth:
                 time_manager.updateToNow(float(countone) / float(framerateone))
                 ftwo = wave.open(fileTwoAudio, 'rb')
                 counttwo = ftwo.getnframes()
@@ -1300,13 +1305,12 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
                 framestwo = ftwo.readframes( toRead)
                 countone -= toRead
                 counttwo -= toRead
-                framesize = onewidth * onechannels
+                framesizeone = onewidth * onechannels
+                framesizetwo = twowidth * twochannels
                 for i in range(toRead):
                     totalonecount+=1
-                    startbyte = i*framesize
-                    endbyte = startbyte + framesize
-                    allone = sum([ord(c) for c in framesone[startbyte:endbyte]])
-                    alltwo = sum([ord(c) for c in framestwo[startbyte:endbyte]])
+                    allone = sum([ord(c) for c in framesone[i*framesizeone + startonechannel:i*framesizeone + framesizeone:oneskipchannel]])
+                    alltwo = sum([ord(c) for c in framestwo[i*framesizetwo + starttwochannel:i*framesizetwo + framesizetwo:twoskipchannel]])
                     diff = abs(allone-alltwo)
                     time_manager.updateToNow(totalonecount/float(framerateone))
                     if diff > 1:
@@ -1337,7 +1341,7 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
                 sections.append(section)
             startframe = time_manager.getExpectedStartFrameGiveRate(float(framerateone))
             stopframe = time_manager.getExpectedEndFrameGiveRate(float(framerateone))
-            errors = []
+            errors = ['Channel selection is all however only one channel is provided.'] if channel == 'all' and onechannels > twochannels else []
             if len(sections) == 0: #or (startframe is not None and abs(sections[0]['startframe'] - startframe) > 2):
                 starttime = (startframe - 1) / float(framerateone) * 1000.0
                 if stopframe is None:

@@ -938,6 +938,8 @@ class ImageProjectModel:
         :return:
         @type mod: Modification
         """
+        mod_old = self.getModificationForEdge(self.start, self.end, self.G.get_edge(self.start, self.end))
+
         self.G.update_edge(self.start, self.end,
                            op=mod.operationName,
                            description=mod.additionalInfo,
@@ -951,6 +953,9 @@ class ImageProjectModel:
                            inputmaskname=mod.inputMaskName)
         self.notify((self.start, self.end), 'update_edge')
         self._save_group(mod.operationName)
+
+        if mod_old.recordMaskInComposite != mod.recordMaskInComposite and mod.recordMaskInComposite == 'yes':
+            self.assignColors()
 
     def compare(self, destination, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.

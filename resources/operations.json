@@ -71,6 +71,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "defaultvalue":0,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy Stream" : {
@@ -160,6 +161,7 @@
         },
         "Start Time": {
           "type": "time",
+          "defaultvalue":0,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -220,6 +222,7 @@
         },
         "Start Time": {
           "type": "time",
+          "defaultvalue":0,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
          "Smoothing": {
@@ -275,6 +278,7 @@
       "mandatoryparameters": {
         "PreGain": {
           "type": "int[-100000:100000]",
+          "defaultvalue":0,
           "description": "How much to raise or lower volume"
         },
         "Fading": {
@@ -289,6 +293,11 @@
         "Right Pan": {
           "type": "int[-100:100]",
           "description": "Percentage Decrease/Increase from -100 to 100"
+        },
+        "Start Time": {
+          "type": "time",
+          "defaultvalue":0,
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -306,10 +315,6 @@
           "type" : "list",
           "values": ["left", "right", "all"],
           "description" : "all includes mono and stereo, depending on available streams"
-        },
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
@@ -346,6 +351,11 @@
           "type": "list",
           "values" : ["high","low","both","none"],
           "description": "Damping filters applied."
+        },
+        "Start Time": {
+          "type": "time",
+          "defaultvalue":0,
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -362,10 +372,6 @@
         "Reverb Time" : {
          "type": "int[-1000000:1000000]",
           "description": "Milliseconds based on RT60 value."
-        },
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
@@ -408,8 +414,9 @@
           "type": "int[0:100000]",
           "description": "How much to raise volume"
         },
-        "Start Time": {
+       "Start Time": {
           "type": "time",
+          "defaultvalue":0,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -458,6 +465,7 @@
         },
         "Start Time": {
           "type": "time",
+          "defaultvalue":0,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
