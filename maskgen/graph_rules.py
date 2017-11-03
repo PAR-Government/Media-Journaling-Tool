@@ -2035,15 +2035,22 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         composite_mask_id = (bit / 8)
         imarray = np.asarray(probe.targetMaskImage)
         # check to see if the bits are in fact the same for a group
+        checkNotSet= False
         if (groupid, targetid) not in self.group_bit_check:
             self.group_bit_check[(groupid, targetid)] = imarray
         else:
             assert sum(sum(self.group_bit_check[(groupid, targetid)] - imarray)) == 0
+            checkNotSet = True
         while (composite_mask_id + 1) > len(composite_list):
             composite_list.append(np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8'))
         thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
-        thisbit[imarray == 0] = math.pow(2, bit % 8)
-        composite_list[composite_mask_id] = composite_list[composite_mask_id] + thisbit
+        bitvalue = int(math.pow(2, bit % 8))
+        thisbit[imarray == 0] = bitvalue
+        if checkNotSet:
+            bitvalue = int(math.pow(2, bit-1 % 8))
+            assert(np.all(composite_list[composite_mask_id]>>bitvalue == thisbit>>bitvalue))
+        else:
+            composite_list[composite_mask_id] = composite_list[composite_mask_id] + thisbit
 
     def finalize(self, probes):
         results = {}
