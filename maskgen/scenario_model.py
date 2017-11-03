@@ -1129,7 +1129,7 @@ class ImageProjectModel:
                     continue
                 composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
-                if inclusionFunction(probe.edgeId, edge):
+                if inclusionFunction(probe.edgeId, edge, self.gopLoader):
                     continue
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
@@ -2180,6 +2180,9 @@ class ImageProjectModel:
             newtarget = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
             shutil.copy2(target, newtarget)
             target = newtarget
+        if extra_args is not None and 'override_target' in extra_args:
+            filename = extra_args.pop('override_target')
+            target = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
         if extra_args is not None and 'output_files' in extra_args:
             file_params = extra_args.pop('output_files')
             for name, value in file_params.iteritems():

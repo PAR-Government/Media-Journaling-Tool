@@ -441,6 +441,8 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
             mask['endframe'] = int(item['nb_frames']) if 'nb_frames' in item  else int(mask['endtime']/rate)
             mask['frames'] = mask['endframe']
             mask['type']=item['codec_type']
+            if mask['type']=='video':
+                mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             count = 0
             if calculate_frames:
                 frame_set = frames[item['index']]
@@ -495,7 +497,7 @@ def runffmpeg(args, noOutput=True):
         pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
         stdout, stderr =  pcommand.communicate()
         if pcommand.returncode != 0:
-            error =  str(stdout) + (str(stderr) if stderr is not None else '')
+            error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
             raise ValueError(error)
     except OSError as e:
         logging.getLogger('maskgen').error( "FFmpeg not installed")
@@ -1561,6 +1563,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
                 continue
             ret_one, frame_one =analysis_components.retrieveOne()
             ret_two, frame_two = analysis_components.retrieveTwo()
+            if frame_one.shape != frame_two.shape:
+                return getMaskSetForEntireVideo(fileOne),[]
             if time_manager.isPastTime():
                 break
             diff = np.abs(frame_one - frame_two)

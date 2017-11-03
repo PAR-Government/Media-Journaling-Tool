@@ -2082,7 +2082,7 @@ class CompositeDelegate:
             elif 'inputmaskname' in edge and \
                             edge['inputmaskname'] is not None and \
                             len(edge['inputmaskname']) > 0 and \
-                    (edge['recordMaskInComposite'] == 'yes' or inclusionFunction(edge_id,edge)):
+                    (edge['recordMaskInComposite'] == 'yes' or inclusionFunction(edge_id,edge,self.gopLoader)):
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
                 if not os.path.exists(fullpath):
                     raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])

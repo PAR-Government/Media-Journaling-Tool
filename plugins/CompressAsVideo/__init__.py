@@ -161,12 +161,20 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                              ignoreError=True)
     return {'rotate': rotated, 'rotation':diff_rotation}
 
-
 def transform(img, source, target, **kwargs):
     donor = kwargs['donor']
+    container = kwargs['container'] if 'container' in kwargs else 'match'
     rotate = 'rotate' not in kwargs or kwargs['rotate'] == 'yes'
     matchcolor = 'match color characteristics' in kwargs and kwargs['match color characteristics'] == 'yes'
-    return save_as_video(source, target, donor, matchcolor=matchcolor,apply_rotate=rotate), None
+    analysis = {}
+    if container != 'match':
+        targetname = target[0:target.rfind('.')+1] + container
+        analysis = {'override_target': targetname}
+    else:
+        targetname  = target
+    analysis.update(save_as_video(source, targetname, donor, matchcolor=matchcolor,apply_rotate=rotate))
+    return analysis,None
+
 
 
 def operation():
@@ -184,6 +192,11 @@ def operation():
                 'match color characteristics': {
                     'type': 'yesno',
                     'defaultvalue': 'no'
+                },
+                'container': {
+                    'type': 'list',
+                    'values':['match','mov','avi','mp4'],
+                    'defaultvalue': 'match'
                 }
             },
             'transitions': [
