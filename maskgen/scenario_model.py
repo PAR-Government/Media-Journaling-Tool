@@ -1129,8 +1129,6 @@ class ImageProjectModel:
                     continue
                 composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
-                if inclusionFunction(probe.edgeId, edge, self.gopLoader):
-                    continue
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
         for compositeBuilder in localCompositeBuilders:

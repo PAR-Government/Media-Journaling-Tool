@@ -2253,6 +2253,7 @@ def convertToVideo(file_name, preferences=None):
         mask = reader.read()
         if mask is None:
             break
+    fn = reader.writer.filename
     return fn
 
 

@@ -183,7 +183,7 @@ def _is_empty_composite(composite):
 
 def _guess_type(edge):
     """
-
+    Backfill old journals.  New journals will have the type built into the videomasks.
     :param edge:
     :return:
     @type edge: dict
@@ -464,7 +464,7 @@ def copy_exif(edge, source, target, edgeMask,
         return CompositeImage(compositeMask.source,
                               compositeMask.target,
                               compositeMask.media_type,
-                              video_tools.rotateMask(orientrotate, compositeMask.videomasks, expectedDims=targetSize, cval=0))
+                              video_tools.rotateMask(-orientrotate, compositeMask.videomasks, expectedDims=targetSize, cval=0))
     elif donorMask is not None:
         targetSize = getNodeSize(graph, source)
         if orientrotate == 0:
@@ -472,7 +472,7 @@ def copy_exif(edge, source, target, edgeMask,
         return CompositeImage(donorMask.source,
                               donorMask.target,
                               donorMask.media_type,
-                              video_tools.rotateMask(-orientrotate, donorMask.videomasks, expectedDims=targetSize, cval=0))
+                              video_tools.rotateMask(orientrotate, donorMask.videomasks, expectedDims=targetSize, cval=0))
     return None
 
 def video_rotate_transform(edge, source, target, edgeMask,
@@ -1123,7 +1123,7 @@ def select_region(edge, source, target,
 def getNodeSize(graph, nodeid):
     node = graph.get_node(nodeid)
     if node is not None and 'shape' in node:
-        return (node['shape'][0],node['shape'][1])
+        return (node['shape'][1],node['shape'][0])
     else:
         return video_tools.getShape(graph.get_image_path(nodeid))
 
@@ -1739,6 +1739,11 @@ class ColorCompositeBuilder(CompositeBuilder):
                     'color': self.colors[probe.edgeId]
                 }
                 finalResult[0].save(targetColorMaskImageName)
+            else:
+                probe.composites[self.composite_type] = {
+                    'image': finalResult[0],
+                    'color': self.colors[probe.edgeId]
+                }
         return results
 
 
