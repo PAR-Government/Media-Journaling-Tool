@@ -23,6 +23,7 @@ import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
+from mask_rules import Jpeg2000CompositeBuilder, CompositeBuilder
 """
   Main UI Driver for MaskGen
 """
@@ -214,6 +215,10 @@ class MakeGenUI(Frame):
                     self.scModel.saveas(dir)
                     self._setTitle()
             #val.close()
+
+    def recomputeallrmask(self):
+        for edge_id in self.scModel.getGraph().get_edges():
+            self.scModel.reproduceMask(edge_id=edge_id)
 
     def recomputeedgemask(self):
         analysis_params = {}
@@ -891,7 +896,7 @@ class MakeGenUI(Frame):
             self.scModel.update_edge(d.modification)
 
     def createProbes(self):
-        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, graph_rules.Jpeg2000CompositeBuilder])
+        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
 
     def startQA(self):
         if self.scModel.getProjectData('validation') == 'yes':
@@ -980,6 +985,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
         validationmenu.add_command(label="Final Image Analysis", command=self.finalimageanalysis)
         validationmenu.add_command(label="Probes",command=self.createProbes)
+        validationmenu.add_command(label="Recompute All Masks", command=self.recomputeallrmask)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 

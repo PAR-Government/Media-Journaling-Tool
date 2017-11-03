@@ -1620,54 +1620,57 @@ def interpolateMask(mask_file_name_prefix,
         for mask_set in video_masks:
             rate = reader.fps
             change = dict()
+            destination_video = cv2api_delegate.videoCapture(dest_file_name)
             reader = tool_set.GrayBlockReader(os.path.join(directory,
                                                                     mask_set['videosegment']))
-            writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
-                                              reader.fps)
-            destination_video = cv2api_delegate.videoCapture(dest_file_name)
             try:
-                first_mask = None
-                count = 0
-                vid_frame_time=0
-                max_analysis = 0
-                while True:
-                    frame_time = reader.current_frame_time()
-                    frame_no = reader.current_frame()
-                    mask = reader.read()
-                    if mask is None:
-                        break
-                    if frame_time < vid_frame_time:
-                        continue
-                    frame,vid_frame_time = __getVideoFrame(destination_video, frame_time)
-                    if frame is None:
-                         new_mask = np.ones(mask.shape) * 255
-                    else:
-                        new_mask, analysis = tool_set.interpolateMask(ImageWrapper(mask),image, ImageWrapper(frame))
-                        if new_mask is None:
-                            new_mask = np.asarray(tool_set.convertToMask(image))
-                            max_analysis+=1
-                        if first_mask is None:
-                            change['mask'] = new_mask
-                            change['starttime'] = frame_time
-                            change['rate'] = rate
-                            change['type'] = 'video'
-                            change['startframe'] = frame_no
-                            first_mask = new_mask
-                    count+=1
-                    writer.write(new_mask,vid_frame_time,frame_no)
-                    if max_analysis > 10:
-                        break
-                change['endtime'] = vid_frame_time
-                change['endframe'] = frame_no
-                change['frames'] = count
-                change['rate'] = rate
-                change['type'] = 'video'
-                change['videosegment'] = os.path.split(writer.filename)[1]
-                if first_mask is not None:
-                    new_mask_set.append(change)
+                writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
+                                                  reader.fps)
+
+                try:
+                    first_mask = None
+                    count = 0
+                    vid_frame_time=0
+                    max_analysis = 0
+                    while True:
+                        frame_time = reader.current_frame_time()
+                        frame_no = reader.current_frame()
+                        mask = reader.read()
+                        if mask is None:
+                            break
+                        if frame_time < vid_frame_time:
+                            continue
+                        frame,vid_frame_time = __getVideoFrame(destination_video, frame_time)
+                        if frame is None:
+                             new_mask = np.ones(mask.shape) * 255
+                        else:
+                            new_mask, analysis = tool_set.interpolateMask(ImageWrapper(mask),image, ImageWrapper(frame))
+                            if new_mask is None:
+                                new_mask = np.asarray(tool_set.convertToMask(image))
+                                max_analysis+=1
+                            if first_mask is None:
+                                change['mask'] = new_mask
+                                change['starttime'] = frame_time
+                                change['rate'] = rate
+                                change['type'] = 'video'
+                                change['startframe'] = frame_no
+                                first_mask = new_mask
+                        count+=1
+                        writer.write(new_mask,vid_frame_time,frame_no)
+                        if max_analysis > 10:
+                            break
+                    change['endtime'] = vid_frame_time
+                    change['endframe'] = frame_no
+                    change['frames'] = count
+                    change['rate'] = rate
+                    change['type'] = 'video'
+                    change['videosegment'] = os.path.split(writer.filename)[1]
+                    if first_mask is not None:
+                        new_mask_set.append(change)
+                finally:
+                    writer.close()
             finally:
                 reader.close()
-                writer.close()
                 destination_video.release()
         return new_mask_set,[]
     # Masks cannot be generated for video to video....yet

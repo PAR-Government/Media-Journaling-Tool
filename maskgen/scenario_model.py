@@ -9,8 +9,6 @@ from software_loader import Software, getProjectProperties, ProjectProperty, Mas
 import tempfile
 import plugins
 import graph_rules
-from maskgen import Probe
-from graph_rules import ColorCompositeBuilder
 from image_wrap import ImageWrapper
 from PIL import Image
 from group_filter import  buildFilterOperation, GroupFilter, GroupOperationsLoader
@@ -20,7 +18,7 @@ import shutil
 import collections
 from threading import Lock
 import mask_rules
-from mask_rules import DonorImage
+from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
 
@@ -576,9 +574,6 @@ class VideoVideoLinkTool(LinkTool):
                     startFileName,
                     destFileName,
                     arguments=arguments)
-            else:
-                if 'videomasks' in edge:
-                    return edge['videomasks'], errors
         return [], errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -1088,9 +1083,9 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def getProbeSetWithoutComposites(self, otherCondition=None, saveTargets=True, graph=None, constructDonors=True):
+    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeComposite, saveTargets=True, graph=None, constructDonors=True):
         """
-        :param otherCondition: filter out edges to not include in the probe set
+        :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
         :return: The set of probes
         @rtype: list of Probe
@@ -1100,34 +1095,28 @@ class ImageProjectModel:
         useGraph = graph if graph is not None else self.G
         for edge_id in useGraph.get_edges():
             edge = useGraph.get_edge(edge_id[0], edge_id[1])
-            if edge['recordMaskInComposite'] == 'yes' or \
-                    (otherCondition is not None and otherCondition(edge_id, edge)):
+            if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
                 composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader)
-                probes.extend(composite_generator.constructProbes(saveTargets=saveTargets,constructDonors=constructDonors))
+                probes.extend(composite_generator.constructProbes(saveTargets=saveTargets,
+                                                                  inclusionFunction=inclusionFunction,
+                                                                  constructDonors=constructDonors))
         return probes
 
-    def getProbeSet(self, operationTypes=None, otherCondition=None, saveTargets=True,
+    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeComposite, saveTargets=True,
                     compositeBuilders=[ColorCompositeBuilder],
                     graph=None,
                     replacement_probes=None):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
-        :param operationTypes:  list of operation names to include in probes, otherwise all
-        :param otherCondition: a function returning True/False that takes an edge as argument
+        :param inclusionFunction: a function returning True/False that takes an edge as argument
         :return: list if Probe
         @type operationTypes: list of str
-        @type otherCondition: (dict) -> bool
+        @type inclusionFunction: (tuple, dict) -> bool
         @rtype: list of Probe
         """
-        """
-
-        Builds composites
-        :otherCondition
-
-        """
         probes = replacement_probes if replacement_probes is not None else \
-            self.getProbeSetWithoutComposites(otherCondition=otherCondition, saveTargets=saveTargets,graph=graph)
+            self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction, saveTargets=saveTargets,graph=graph)
         probes = sorted(probes, key=lambda probe: probe.level)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
         for compositeBuilder in localCompositeBuilders:
@@ -1140,8 +1129,7 @@ class ImageProjectModel:
                     continue
                 composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
-                if (operationTypes is not None and edge['op'] not in operationTypes) or \
-                        (otherCondition is not None and not otherCondition(edge)):
+                if inclusionFunction(probe.edgeId, edge):
                     continue
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
@@ -1473,21 +1461,22 @@ class ImageProjectModel:
                                                                        invert=invert,
                                                                        analysis_params=analysis_params)
 
-    def reproduceMask(self, skipDonorAnalysis=False, analysis_params=dict()):
-        edge = self.G.get_edge(self.start, self.end)
+    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict()):
+        mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
+        edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
-        mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
+        mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
                                                      arguments=arguments,
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
-        maskname = shortenName(self.start + '_' + self.end, '_mask.png', id=self.G.nextId())
-        self.G.update_mask(self.start, self.end, mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
+        maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', id=self.G.nextId())
+        self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
-                                                  (skip_data['start'], skip_data['end']) != (self.start, self.end)])
+                                                  (skip_data['start'], skip_data['end']) != mask_edge_id])
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
@@ -1881,9 +1870,6 @@ class ImageProjectModel:
         :return:
         """
         self.G.setDataItem(item, value, excludeUpdate=excludeUpdate)
-
-    def get_edges(self):
-        return [self.G.get_edge(edge[0], edge[1]) for edge in self.G.get_edges()]
 
     def getVersion(self):
         """ Return the graph/software versio n"""
@@ -2336,7 +2322,7 @@ class ImageProjectModel:
         return nfile, im
 
     def findEdgesByOperationName(self, opName):
-        return [edge for edge in self.get_edges()
+        return [edge for edge in [self.G.get_edge(edge[0], edge[1]) for edge in self.G.get_edges()]
                 if edge['op'] == opName]
 
     def export(self, location, include=[]):

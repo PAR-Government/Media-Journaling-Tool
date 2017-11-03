@@ -2285,9 +2285,10 @@ def getSingleFrameFromMask(video_masks,directory=None):
         for mask_set in video_masks:
             if 'videosegment' not in mask_set:
                 continue
+            reader = GrayBlockReader(os.path.join(directory,
+                                                  mask_set['videosegment'])
+                                     if directory is not None else mask_set['videosegment'])
             try:
-                reader = GrayBlockReader( os.path.join(directory,
-                                                               mask_set['videosegment']) if directory is not None else mask_set['videosegment'])
                 while True:
                     mask = reader.read()
                     break
