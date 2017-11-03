@@ -388,7 +388,7 @@ def runffmpeg(args, noOutput=True):
         pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
         stdout, stderr =  pcommand.communicate()
         if pcommand.returncode != 0:
-            error =  str(stdout) + (str(stderr) if stderr is not None else '')
+            error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
             raise ValueError(error)
     except OSError as e:
         logging.getLogger('maskgen').error( "FFmpeg not installed")
