@@ -159,7 +159,7 @@ def findNodesToExtend(sm, rules):
     return nodes
 
 
-def _processProject(batchSpecification, extensionRules, project):
+def _processProject(batchSpecification, extensionRules, project, workdir=None):
     """
 
     :param batchSpecification:
@@ -170,26 +170,26 @@ def _processProject(batchSpecification, extensionRules, project):
     """
     sm = maskgen.scenario_model.ImageProjectModel(project)
     nodes = findNodesToExtend(sm, extensionRules)
-    if not batchSpecification.executeForProject(sm, nodes):
+    if not batchSpecification.executeForProject(sm, nodes,workdir=workdir):
         raise ValueError('Failed to process {}'.format(sm.getName()))
     sm.save()
     return sm
 
 
-def processZippedProject(batchSpecification, extensionRules, project):
+def processZippedProject(batchSpecification, extensionRules, project,workdir=None):
     import tempfile
     import shutil
     dir = tempfile.mkdtemp()
     try:
         extract_archive(os.path.join(dir, project), dir)
         for project in pick_projects(dir):
-            sm = _processProject(batchSpecification, extensionRules, project)
+            sm = _processProject(batchSpecification, extensionRules, project,workdir=workdir)
             sm.export(os.path.join(dir, project))
     finally:
         shutil.rmtree(dir)
 
 
-def processAnyProject(batchSpecification, extensionRules, outputGraph, project):
+def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, project):
     from maskgen.graph_output import ImageGraphPainter
     """
     :param project:
@@ -197,9 +197,9 @@ def processAnyProject(batchSpecification, extensionRules, outputGraph, project):
     @type project: str
     """
     if project.endswith('tgz'):
-        processZippedProject(batchSpecification, extensionRules, project)
+        processZippedProject(batchSpecification, extensionRules, project,workdir=workdir)
     else:
-        sm = _processProject(batchSpecification, extensionRules, project)
+        sm = _processProject(batchSpecification, extensionRules, project,workdir=workdir)
         if outputGraph:
             summary_file = os.path.join(sm.get_dir(), '_overview_.png')
             try:
@@ -226,7 +226,7 @@ def processSpecification(specification, extensionRules, projects_directory, comp
     iterator = pick_projects(projects_directory)
     iterator.extend(pick_zipped_projects(projects_directory))
     processor = BatchProcessor(completeFile, iterator, threads=threads)
-    func = partial(processAnyProject, batch, rules, outputGraph)
+    func = partial(processAnyProject, batch, rules, outputGraph, '.')
     return processor.process(func)
 
 
