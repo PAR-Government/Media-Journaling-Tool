@@ -514,6 +514,8 @@ class VideoImageLinkTool(ImageImageLinkTool):
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
         operation = scModel.gopLoader.getOperationWithGroups(op)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         if op == 'Donor':
             errors = [
                 "An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
@@ -790,6 +792,40 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         return mask, analysis, errors
 
 
+class ImageZipAudioLinkTool(VideoAudioLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoAudioLinkTool.__init__(self)
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        startIm, startFileName = scModel.getImageAndName(start)
+        #destIm, destFileName = scModel.getImageAndName(destination)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
+        return mask, analysis, []
+
+
+class ImageZipVideoLinkTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        startIm, startFileName = scModel.getImageAndName(start)
+        #destIm, destFileName = scModel.getImageAndName(destination)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
+        return mask, analysis, []
+
+
 class AddTool:
     def getAdditionalMetaData(self, media):
         return {}
@@ -803,16 +839,26 @@ class VideoAddTool(AddTool):
         meta['shape'] = video_tools.getShape(media)
         return meta
 
+class ZipAddTool(AddTool):
+    def getAdditionalMetaData(self, media):
+        from zipfile import ZipFile
+        meta = {}
+        with ZipFile(media, 'r') as myzip:
+            names = myzip.namelist()
+            meta['length'] = len(names)
+        return meta
+
 class OtherAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         return {}
 
 
-addTools = {'video': VideoAddTool(), 'audio': OtherAddTool(), 'image': OtherAddTool()}
+addTools = {'video': VideoAddTool(), 'zip':ZipAddTool(),'audio': OtherAddTool(), 'image': OtherAddTool()}
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
-             'audio.audio': AudioAudioLinkTool()}
+             'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
+             'zip.audio': ImageZipAudioLinkTool()}
 
 
 class ImageProjectModel:
@@ -1453,7 +1499,7 @@ class ImageProjectModel:
                 arguments[k] = v
         except:
             pass
-        return self.getLinkTool(self.start, destination).compareImages(self.start, destination, self, opName,
+        return self.getLinkTool(start, destination).compareImages(start, destination, self, opName,
                                                                        arguments=arguments,
                                                                        skipDonorAnalysis=skipDonorAnalysis,
                                                                        invert=invert,
@@ -1653,6 +1699,8 @@ class ImageProjectModel:
         projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
         projectType = fileType(imgpathname)
         self.G = self._openProject(projectFile, projectType)
+        # do it anyway
+        self._autocorrect()
         if organization is not None:
             self.G.setDataItem('organization', organization)
         self.start = None
@@ -2120,13 +2168,19 @@ class ImageProjectModel:
         @type grp GroupFilter
         @type software Software
         """
+        import copy
         pairs_composite = []
         resultmsg = ''
+        kwargs_copy = copy.copy(kwargs)
         for filter in grp.filters:
             msg, pairs = self.imageFromPlugin(filter, software=software,
-                                              **kwargs)
+                                              **kwargs_copy)
             if msg is not None:
                 resultmsg += msg
+            mod = self.getModificationForEdge(self.start,self.end,self.G.get_edge(self.start,self.end))
+            for key,value in mod.arguments.iteritems():
+                if key in kwargs_copy:
+                    kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsg, pairs_composite
 

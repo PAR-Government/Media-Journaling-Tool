@@ -15,6 +15,11 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
 
+    def test_zip(self):
+        img = tool_set.openImage('tests/zips/raw.zip',tool_set.getMilliSecondsAndFrameCount('2'),preserveSnapshot=True)
+        self.assertEqual((5796, 3870),img.size)
+        tool_set.condenseZip('tests/zips/raw.zip',keep=1)
+
     def extendRemoveSet(self, removeset,dim):
         newset = []
         for x in removeset:
@@ -207,7 +212,7 @@ class TestToolSet(unittest.TestCase):
         for i in range(255):
             mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
             mask_set.append(mask)
-            writer.write(mask, 33.3666666667)
+            writer.write(mask, 33.3666666667,i+1)
         writer.close()
         fn = writer.get_file_name()
         reader = tool_set.GrayBlockReader(fn)

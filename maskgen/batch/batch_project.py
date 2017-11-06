@@ -127,7 +127,8 @@ def loadCustomFunctions():
     import pkg_resources
     for p in pkg_resources.iter_entry_points("maskgen_specs"):
         logging.getLogger('maskgen').info('load spec ' + p.name)
-        pluginSpecFuncs[p.name] = p.load()
+        if p.name not in pluginSpecFuncs:
+            pluginSpecFuncs[p.name] = p.load()
 
 
 def callPluginSpec(specification, local_state):
@@ -249,7 +250,8 @@ def pickImageIterator(specification, spec_name, global_state):
     if picklist_name not in global_state['picklists']:
         element = FilePermuteGroupElement(spec_name,
                                           specification['image_directory'],
-                                          tracking_filename=picklist_name + '.txt')
+                                          tracking_filename=picklist_name + '.txt',
+                                          filetypes=specification['filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
     else:
         link_element = global_state['picklists'][picklist_name]

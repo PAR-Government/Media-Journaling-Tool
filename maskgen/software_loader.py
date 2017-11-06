@@ -281,7 +281,7 @@ def getFilters(filtertype):
 
 def _loadSoftware( fileName):
     fileName = getFileName(fileName)
-    softwareset = {'image': {}, 'video': {}, 'audio': {}}
+    softwareset = {'image': {}, 'video': {}, 'audio': {},'zip': {}}
     with open(fileName) as f:
         line_no = 0
         for l in f.readlines():
@@ -299,9 +299,10 @@ def _loadSoftware( fileName):
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
-                types = ['image', 'video'] if software_type == 'both' else [software_type]
-                types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                types = ['image', 'video', 'zip'] if software_type == 'both' else [software_type]
+                types = ['image', 'video', 'audio', 'zip'] if software_type == 'all' else types
                 types = ['video', 'audio'] if software_type == 'audio' else types
+                types = ['zip'] if software_type == 'zip' else types
                 for stype in types:
                     softwareset[stype][software_name] = versions
     return softwareset
@@ -449,7 +450,7 @@ class SoftwareLoader:
 
     def get_versions(self, name, software_type=None, version=None):
         global metadataLoader
-        types_to_check = ['image', 'video', 'audio'] if software_type is None else [software_type]
+        types_to_check = metadataLoader.softwareset.keys() if software_type is None else [software_type]
         for type_to_check in types_to_check:
             versions = metadataLoader.softwareset[type_to_check][name] if name in metadataLoader.softwareset[type_to_check] else None
             if versions is None:

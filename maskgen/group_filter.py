@@ -81,7 +81,7 @@ class GroupFilter:
         return True
 
     def getOperation(self):
-        op = {}
+        op = {'name':self.name}
         op['arguments'] = {}
         bestsuffix = None
         ops = []

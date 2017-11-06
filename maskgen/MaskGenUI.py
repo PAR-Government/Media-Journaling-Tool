@@ -226,17 +226,17 @@ class MakeGenUI(Frame):
             d = ItemDescriptionCaptureDialog(self,
                                              {
                                                  'video compare': self.scModel.getEdgeItem('video difference',
-                                                                                        default='ffmpeg')
+                                                                                        default='opencv')
                                              },
                                              {
                                                  "video compare": {
                                                      "type": "list",
                                                      "source": "video",
                                                      "values": [
-                                                         "ffmpeg",
-                                                         "opencv"
+                                                         "opencv",
+                                                         "ffmpeg"
                                                      ],
-                                                     "description": "FFMPEG is faster but more senstive"
+                                                     "description": "FFMPEG is faster but less accurate"
                                                  }
                                              },
                                              'Mask Reconstruct')

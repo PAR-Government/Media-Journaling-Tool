@@ -118,7 +118,7 @@ def buildMasksFromCombinedVideoOld(filename):
     return __buildMasks(filename, hist)
 
 
-def buildMasksFromCombinedVideo(filename,time_manager):
+def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=True):
     """
 
     :param filename: str
@@ -171,9 +171,11 @@ def buildMasksFromCombinedVideo(filename,time_manager):
             thresh = frame[:,:,1] - baseline
             result = thresh.copy()
             result[:, :] = 0
-            result[abs(thresh) > 1] = 255
-            #opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
-            #closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+            result[abs(thresh) > fidelity] = 255
+            if morphology:
+                opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
+                closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+                result = closing
             totalMatch = sum(sum(abs(result) > 1))
             #result = result
             if totalMatch > 0:
@@ -361,7 +363,15 @@ def ffmpegToolTest():
         return ffmpegcommand[0] + ' not installed properly'
     return None
 
-#   sortFrames(frames)
+def __get_channel_data(source_data, codec_type):
+    for data in source_data:
+        if data['codec_type'] == codec_type:
+            return data
+
+def __get_metadata_item(data, item, default_value):
+    if data is None or item not in data:
+        return default_value
+    return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False):
     def runProbe(func, args=None):
@@ -382,7 +392,7 @@ def getMeta(file, with_frames=False, show_streams=False):
     if show_streams:
         meta = runProbe(processMetaStreams, args='-show_streams')
     else:
-        meta = runProbe(processMeta, args=None)
+        meta = runProbe(processMeta, args='-show_streams')
 
     return meta, frames
 
@@ -557,6 +567,23 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None, streamId=0,  meta_diff=None, su
                 diff[k] = ('add', v)
     return diff
 
+def compareStreams(oneMeta, twoMeta):
+    meta_diff = {}
+    one_stream_by_id = {item['index']:item for item in oneMeta}
+    two_stream_by_id = {item['index']: item for item in twoMeta}
+    for id,item in one_stream_by_id.iteritems():
+        compareMeta(item,
+                    two_stream_by_id[id] if id in two_stream_by_id else {},
+                    streamId=int(id),
+                    meta_diff=meta_diff)
+    for id,item in two_stream_by_id.iteritems():
+        if id not in one_stream_by_id:
+            compareMeta({},
+                        item,
+                        streamId=int(id),
+                        meta_diff=meta_diff)
+    return meta_diff
+
 def __getOrder(packet, orderAttr, lasttime, pkt_duration_time='pkt_duration_time'):
     try:
         if packet[orderAttr][0] == 'N':
@@ -699,9 +726,9 @@ def formMetaDataDiff(file_one, file_two, frames=True):
     """
     Obtaining frame and video meta-data, compare the two videos, identify changes, frame additions and frame removals
     """
-    one_meta, one_frames = getMeta(file_one, with_frames=frames)
-    two_meta, two_frames = getMeta(file_two, with_frames=frames)
-    meta_diff = compareMeta(one_meta, two_meta)
+    one_meta, one_frames = getMeta(file_one, show_streams=True, with_frames=frames)
+    two_meta, two_frames = getMeta(file_two, show_streams=True, with_frames=frames)
+    meta_diff = compareStreams(one_meta, two_meta)
     counters= {}
     counters['interlaced_frame'] = [0,0]
     counters['key_frame'] = [0, 0]
@@ -870,23 +897,47 @@ def _runCommand(command,outputCollector=None):
             errors.append(str(e))
     return errors
 
-def getFrameRate(fileOne, default=None):
+def getFrameAttribute(fileOne, attribute, default=None, audio=False):
     ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
     results = []
     errors = _runCommand([ffmpegcommand,
-                          '-v' ,'0', '-of', 'compact=p=0','-show_entries','stream=r_frame_rate',
+                          '-show_entries', 'stream={},codec_type'.format(attribute),
                           fileOne],
                          outputCollector=results)
     if len(results) > 0:
+        streams = []
         for result in results:
-            rate = result.split('=')[1].strip().split('/')
-            if len(rate) == 1 and float(rate[0]) > 0:
-                return float(rate[0])
-            if len(rate) == 2 and float(rate[1]) > 0:
-                return float(rate[0]) / float(rate[1])
+            if result.find('[STREAM]') >= 0:
+                streams.append(dict())
+                continue
+            parts = result.split('=')
+            if len(parts) < 2:
+                continue
+            streams[-1][parts[0]] = parts[1]
+        for stream in streams:
+            if (audio and stream['codec_type'] == 'audio') or \
+                    (not audio and stream['codec_type'] != 'audio'):
+                return stream[attribute]
+
     return default
 
-def toAudio(fileOne,outputName=None):
+def getFrameRate(fileOne, default=None, audio=False):
+    rate = getFrameAttribute(fileOne, 'r_frame_rate', default=None, audio=audio)
+    if rate is None:
+        return default
+    if len(rate) == 1 and float(rate[0]) > 0:
+        return float(rate[0])
+    if len(rate) == 2 and float(rate[1]) > 0:
+        return float(rate[0]) / float(rate[1])
+    return default
+
+def getDuration(fileOne, default=None, audio=False):
+    rate = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
+    if rate is None:
+        return default
+    return float(rate) *1000.0
+
+def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         """
         Consruct wav files
         """
@@ -894,7 +945,26 @@ def toAudio(fileOne,outputName=None):
         ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
         if os.path.exists(name):
             os.remove(name)
-        errors = _runCommand([ffmpegcommand, '-ac', '1', '-i', fileOne, '-vn',name])
+        ss = None
+        to = None
+        if start is not None:
+            rate = getFrameRate(fileOne, audio=True)
+            ss = tool_set.getDurationStringFromMilliseconds(tool_set.getMilliSecondsAndFrameCount(start,rate=rate)[0])
+        if end is not None:
+            rate = getFrameRate(fileOne, audio=True)
+            to = tool_set.getDurationStringFromMilliseconds(tool_set.getMilliSecondsAndFrameCount(end,rate=rate)[0])
+        if channel == 'left':
+            fullCommand = [ffmpegcommand,'-y','-i', fileOne, '-map_channel', '0.1.0',  '-vn']
+        elif channel == 'right':
+            fullCommand = [ffmpegcommand,'-y','-i', fileOne, '-map_channel', '0.1.1',  '-vn']
+        else:
+            fullCommand =[ffmpegcommand, '-y','-i', fileOne,  '-vn']
+        if ss is not None:
+            fullCommand.extend(["-ss",ss])
+        if to is not None:
+            fullCommand.extend(["-to", to])
+        fullCommand.append(name)
+        errors = _runCommand(fullCommand)
         return name if len(errors) == 0 else None, errors
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
@@ -1008,16 +1078,13 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     :param ranges: collection of meta-data describing then range of cut frames
     :return:
     """
-    diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
-    if (__changeCount(vidAnalysisComponents.mask) > 0 and
-                diff_in_time < vidAnalysisComponents.fps_one) or not vidAnalysisComponents.vid_two.isOpened():
+    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_two.isOpened():
         cut = {}
         cut['starttime'] = vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one
         cut['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
-        cut['rate'] =  vidAnalysisComponents.fps_one,
+        cut['rate'] = vidAnalysisComponents.fps_one
         cut['type'] = 'video'
         end_time = 0
-        count = 1
         cut['mask'] = vidAnalysisComponents.mask
         if type(cut['mask']) == int:
             cut['mask'] = vidAnalysisComponents.frame_one_mask
@@ -1031,12 +1098,11 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             diff = 0 if vidAnalysisComponents.frame_two is None else np.abs(frame_one - vidAnalysisComponents.frame_two)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_two.isOpened():
                 break
-            count+=1
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
         cut['endtime'] = end_time
         cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
-        cut['frames'] = count
+        cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe']
         ranges.append(cut)
         return False
     return True
@@ -1048,39 +1114,35 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     :param ranges: collection of meta-data describing then range of add frames
     :return:
     """
-    frame_count_diff = vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count) - \
-       vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_frame_count)
+    frame_count_diff = vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_frame_count) - \
+       vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count)
 
-    diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
-    if (__changeCount(vidAnalysisComponents.mask) > 0 and
-                diff_in_time < vidAnalysisComponents.fps_one) or not vidAnalysisComponents.vid_one.isOpened():
+    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_one.isOpened():
         addition = {}
         addition['starttime'] = vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one
         addition['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         addition['rate'] = vidAnalysisComponents.fps_one
         addition['type'] = 'video'
         end_time = None
-        count = 1
         addition['mask'] = vidAnalysisComponents.mask
         if type(addition['mask']) == int:
             addition['mask'] = vidAnalysisComponents.frame_two_mask
-        while (vidAnalysisComponents.vid_two.isOpened()):
+        while (vidAnalysisComponents.vid_two.isOpened() and frame_count_diff > 0):
             ret_two, frame_two = vidAnalysisComponents.vid_two.read()
             if not ret_two:
                 vidAnalysisComponents.vid_two.release()
                 break
             end_time = vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_pos_msec)
             vidAnalysisComponents.time_manager.updateToNow(end_time)
-
+            frame_count_diff-=1
             diff = 0 if vidAnalysisComponents.frame_one is None else np.abs(vidAnalysisComponents.frame_one - frame_two)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_one.isOpened():
                 break
-            count+=1
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
         addition['endtime'] = end_time
-        addition['endframe'] = addition['startframe'] + count
-        addition['frames'] = count
+        addition['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        addition['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - addition['startframe']
         ranges.append(addition)
         return False
     return True
@@ -1178,7 +1240,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
     change = {}
     change['starttime'] = 0
     change['startframe'] = 1
-    change['rate'] = analysis_components.fps_one,
+    change['rate'] = analysis_components.fps_one
     change['mask'] = compare_result
     change['endtime'] = entireVideoMaskSet[0]['endtime']
     change['endframe'] =  entireVideoMaskSet[0]['endframe']
@@ -1189,6 +1251,9 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analy
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments)
 
 def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
+
+def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
 
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
@@ -1209,7 +1274,7 @@ def formMaskDiff(fileOne,
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
     if alternateFunction is not None:
         return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
-    if  (diffPref is None or diffPref in ['2','ffmpeg']):
+    if  diffPref in ['2','ffmpeg']:
         result = __formMaskDiffWithFFMPEG(fileOne, fileTwo, name_prefix, opName, time_manager)
     else:
         result = __runDiff(fileOne, fileTwo, name_prefix,time_manager, detectChange, arguments=arguments)
@@ -1232,62 +1297,165 @@ def audioWrite(fileOne, amount):
         wf.close()
     return count
 
-def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
-    """
-    :param fileOne:
-    :param fileTwo:
-    :param name_prefix:
-    :param time_manager:
-    :param arguments:
-    :return:
-    @type time_manager: VidTimeManager
-    """
-    import wave
-    channel = arguments['Copy Stream'] if 'Copy Stream' in arguments else 'all'
-    fileOneAudio,errorsone = toAudio(fileOne)
-    fileTwoAudio,errorstwo = toAudio(fileTwo)
-    maxdiff = None
-    if 'startframe' in arguments and 'endframe' in arguments:
-        maxdiff = arguments['endframe'] - arguments['startframe']
-    if len(errorsone) > 0 and len(errorstwo) == 0:
-        try:
-            ftwo = wave.open(fileTwoAudio, 'rb')
-            counttwo = ftwo.getnframes()
-            startframe= time_manager.getExpectedStartFrameGiveRate(ftwo.getframerate(),defaultValue=1)
-            endframe = startframe+counttwo
-            return [{'startframe': startframe,
-                         'starttime': float(startframe) / float(ftwo.getframerate())*1000.0,
-                         'rate':ftwo.getframerate(),
-                         'endframe': endframe,
-                         'endtime': float(endframe) / float(ftwo.getframerate())*1000.0,
-                         'type': 'audio',
-                         'frames': counttwo}], []
-        finally:
-            ftwo.close()
-    if len(errorstwo) > 0:
-        return list(),errorstwo
-    try:
+class AudioCompare:
 
-        fone = wave.open(fileOneAudio,'rb')
-        try:
-            ftwo = wave.open(fileTwoAudio,'rb')
-            countone = fone.getnframes()
-            counttwo = ftwo.getnframes()
-            onechannels = fone.getnchannels()
-            twochannels = ftwo.getnchannels()
-            onewidth =fone.getsampwidth()
-            twowidth = ftwo.getsampwidth()
-            twoskipchannel = onewidth if onechannels < twochannels else 1
-            oneskipchannel = onewidth if onechannels > twochannels else 1
-            startonechannel = onewidth if channel == 'right' and oneskipchannel> 1 else 0
-            starttwochannel = onewidth if channel == 'right' and twoskipchannel > 1 else 0
-            framerateone = fone.getframerate()
-            if fone.getframerate() != ftwo.getframerate() or onewidth != twowidth:
-                time_manager.updateToNow(float(countone) / float(framerateone))
-                ftwo = wave.open(fileTwoAudio, 'rb')
+    def __init__(self, fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+        """
+        :param fileOne:
+        :param fileTwo:
+        :param name_prefix:
+        :param time_manager:
+        :param arguments:
+        :return:
+        @type time_manager: VidTimeManager
+        """
+        self.channel = arguments['Copy Stream'] if 'Copy Stream' in arguments else 'all'
+        fileOneAudio,errorsone = toAudio(fileOne)
+        fileTwoAudio,errorstwo = toAudio(fileTwo)
+        self.fileOneAudio = fileOneAudio
+        self.fileTwoAudio = fileTwoAudio
+        self.maxdiff = None
+        if 'startframe' in arguments and 'endframe' in arguments:
+           self.maxdiff = arguments['endframe'] - arguments['startframe']
+        self.errorsone = errorsone
+        self.errorstwo = errorstwo
+        self.time_manager = time_manager
+        self.analysis = analysis
+        self.name_prefix = name_prefix
+
+    def __getFrameSubset(self,frames,framessize,skipchannel,position):
+        return sum([ord(c) for c in frames[
+                                    position * framessize + self.startonechannel:position * framessize + framessize:skipchannel]])
+
+    def __compare(self):
+        framerateone = self.fone.getframerate()
+        start = None
+        totalonecount = 0
+        sections = []
+        section = None
+        block = 8192
+        end = None
+        while self.countone > 0 and self.counttwo > 0:
+            toRead = min([block, self.counttwo, self.countone])
+            framesone = self.fone.readframes(toRead)
+            framestwo = self.ftwo.readframes(toRead)
+            self.countone -= toRead
+            self.counttwo -= toRead
+            for i in range(toRead):
+                totalonecount += 1
+                allone = self.__getFrameSubset(framesone, self.framesizeone, self.oneskipchannel, i)
+                alltwo = self.__getFrameSubset(framestwo, self.framesizetwo, self.twoskipchannel, i)
+                diff = abs(allone - alltwo)
+                self.time_manager.updateToNow(totalonecount / float(framerateone))
+                if diff > 1:
+                    if section is not None and end is not None and totalonecount - end >= framerateone:
+                        section['endframe'] = end
+                        section['endtime'] = float(end) / float(framerateone) * 1000.0
+                        section['frames'] = end - start
+                        sections.append(section)
+                        section = None
+                    end = totalonecount
+                    if section is None:
+                        start = totalonecount
+                        section = {'startframe': start,
+                                   'starttime': float(start - 1) / float(framerateone),
+                                   'endframe': end,
+                                   'endtime': float(end) / float(framerateone),
+                                   'rate': framerateone,
+                                   'type': 'audio',
+                                   'frames': 1}
+                    elif self.maxdiff is not None and end - start > self.maxdiff:
+                        self.countone = 0
+                        self.counttwo = 0
+                        break
+        if section is not None:
+            section['endframe'] = end
+            section['endtime'] = float(end) / float(framerateone) * 1000.0
+            section['frames'] = end - start
+            sections.append(section)
+        startframe = self.time_manager.getExpectedStartFrameGiveRate(float(framerateone))
+        stopframe = self.time_manager.getExpectedEndFrameGiveRate(float(framerateone))
+        errors = [
+            'Channel selection is all however only one channel is provided.'] if self.channel == 'all' and self.onechannels > self.twochannels else []
+        if len(sections) == 0:  # or (startframe is not None and abs(sections[0]['startframe'] - startframe) > 2):
+            starttime = (startframe - 1) / float(framerateone) * 1000.0
+            if stopframe is None:
+                if self.maxdiff is not None:
+                    stopframe = startframe + self.maxdiff
+                else:
+                    stopframe = self.fone.getnframes()
+            errors = ['Warning: Could not find sample in source media']
+            sections = [{'startframe': startframe,
+                         'starttime': starttime,
+                         'rate': framerateone,
+                         'endframe': stopframe,
+                         'type': 'audio',
+                         'endtime': float(stopframe) / float(framerateone) * 1000.0,
+                         'frames': stopframe - startframe}
+                        ]
+        return sections, errors
+
+    def __findMatch(self, totalRead, position , framestwo, onetomatch, frametwoposition):
+        block = 8192
+        framerateone = self.fone.getframerate()
+        while self.counttwo > 0 or position < totalRead:
+            for i in range(position,totalRead):
+                frametwoposition += 1
+                alltwo = self.__getFrameSubset(framestwo, self.framesizetwo, self.twoskipchannel, i)
+                diff = abs(onetomatch - alltwo)
+                self.time_manager.updateToNow(frametwoposition / float(framerateone))
+                if diff == 0:
+                    return frametwoposition
+            totalRead = min([block, self.counttwo])
+            framestwo = self.ftwo.readframes(totalRead)
+            self.counttwo -= totalRead
+            position = 0
+        return frametwoposition
+
+    def __insert(self):
+        framerateone = self.fone.getframerate()
+        start = None
+        section = None
+        block = 8192
+        frametwoposition = 0
+        while self.countone > 0 and self.counttwo > 0 and section is None:
+            toRead = min([block, self.counttwo, self.countone])
+            framesone = self.fone.readframes(toRead)
+            self.countone -= toRead
+            framestwo = self.ftwo.readframes(toRead)
+            self.counttwo -= toRead
+            for i in range(toRead):
+                frametwoposition += 1
+                allone = self.__getFrameSubset(framesone, self.framesizeone, self.oneskipchannel, i)
+                alltwo = self.__getFrameSubset(framestwo, self.framesizetwo, self.twoskipchannel, i)
+                diff = abs(allone - alltwo)
+                self.time_manager.updateToNow(frametwoposition / float(framerateone))
+                if diff > 1:
+                    start = frametwoposition
+                    end = self.__findMatch(toRead,i,framestwo,allone,frametwoposition)
+                    section = {'startframe': start,
+                           'starttime': float(start - 1) / float(framerateone),
+                           'endframe': end,
+                           'endtime': float(end) / float(framerateone),
+                           'rate': framerateone,
+                           'type': 'audio',
+                           'frames': end-start}
+                    break
+
+        if section is not None:
+            return [section], []
+        else:
+            return [],['Warning: Could not find insertio point in target media']
+        return sections, errors
+
+    def __initiateCompare(self,compareFunc):
+        import wave
+        if len(self.errorsone) > 0 and len(self.errorstwo) == 0:
+            try:
+                ftwo = wave.open(self.fileTwoAudio, 'rb')
                 counttwo = ftwo.getnframes()
-                startframe = time_manager.getExpectedStartFrameGiveRate(ftwo.getframerate(), defaultValue=1)
-                endframe = time_manager.getExpectedEndFrameGiveRate(ftwo.getframerate(),defaultValue=counttwo)
+                startframe = self.time_manager.getExpectedStartFrameGiveRate(ftwo.getframerate(), defaultValue=1)
+                endframe = startframe + counttwo
                 return [{'startframe': startframe,
                          'starttime': float(startframe) / float(ftwo.getframerate()) * 1000.0,
                          'rate': ftwo.getframerate(),
@@ -1295,77 +1463,63 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
                          'endtime': float(endframe) / float(ftwo.getframerate()) * 1000.0,
                          'type': 'audio',
                          'frames': counttwo}], []
-            start = None
-            totalonecount = 0
-            sections = []
-            section = None
-            block = 8192
-            end = None
-            while countone > 0 and counttwo > 0:
-                toRead = min([block, counttwo,countone])
-                framesone = fone.readframes( toRead)
-                framestwo = ftwo.readframes( toRead)
-                countone -= toRead
-                counttwo -= toRead
-                framesizeone = onewidth * onechannels
-                framesizetwo = twowidth * twochannels
-                for i in range(toRead):
-                    totalonecount+=1
-                    allone = sum([ord(c) for c in framesone[i*framesizeone + startonechannel:i*framesizeone + framesizeone:oneskipchannel]])
-                    alltwo = sum([ord(c) for c in framestwo[i*framesizetwo + starttwochannel:i*framesizetwo + framesizetwo:twoskipchannel]])
-                    diff = abs(allone-alltwo)
-                    time_manager.updateToNow(totalonecount/float(framerateone))
-                    if diff > 1:
-                        if section is not None and end is not None and totalonecount-end >= framerateone:
-                            section['endframe'] = end
-                            section['endtime'] = float(end) / float(framerateone) * 1000.0
-                            section['frames'] = end - start
-                            sections.append(section)
-                            section = None
-                        end = totalonecount
-                        if section is None:
-                            start = totalonecount
-                            section = {'startframe': start,
-                             'starttime': float(start-1) / float(framerateone),
-                             'endframe': end ,
-                             'endtime': float(end) / float(framerateone),
-                             'rate': framerateone,
-                             'type' : 'audio',
-                             'frames': 1}
-                        elif maxdiff is not None and end-start > maxdiff:
-                            countone = 0
-                            counttwo = 0
-                            break
-            if section is not None:
-                section['endframe'] = end
-                section['endtime'] = float(end) / float(framerateone) * 1000.0
-                section['frames'] = end - start
-                sections.append(section)
-            startframe = time_manager.getExpectedStartFrameGiveRate(float(framerateone))
-            stopframe = time_manager.getExpectedEndFrameGiveRate(float(framerateone))
-            errors = ['Channel selection is all however only one channel is provided.'] if channel == 'all' and onechannels > twochannels else []
-            if len(sections) == 0: #or (startframe is not None and abs(sections[0]['startframe'] - startframe) > 2):
-                starttime = (startframe - 1) / float(framerateone) * 1000.0
-                if stopframe is None:
-                    if maxdiff is not None:
-                        stopframe= startframe + maxdiff
-                    else:
-                        stopframe = fone.getnframes()
-                errors = ['Warning: Could not find sample in source media']
-                sections =  [{'startframe': startframe,
-                     'starttime': starttime,
-                     'rate': framerateone,
-                     'endframe':stopframe,
-                     'type': 'audio',
-                     'endtime': float(stopframe) / float(framerateone)*1000.0,
-                     'frames': stopframe-startframe}
-                ]
-            return sections,errors
+            finally:
+                ftwo.close()
+        if len(self.errorstwo) > 0:
+            return list(), self.errorstwo
+        self.fone = wave.open(self.fileOneAudio, 'rb')
+        try:
+            self.ftwo = wave.open(self.fileTwoAudio, 'rb')
+            self.countone = self.fone.getnframes()
+            self.counttwo = self.ftwo.getnframes()
+            self.onechannels = self.fone.getnchannels()
+            self.twochannels = self.ftwo.getnchannels()
+            self.onewidth = self.fone.getsampwidth()
+            self.twowidth = self.ftwo.getsampwidth()
+            self.twoskipchannel = self.onewidth if self.onechannels < self.twochannels else 1
+            self.oneskipchannel = self.onewidth if self.onechannels > self.twochannels else 1
+            self.startonechannel = self.onewidth if self.channel == 'right' and self.oneskipchannel > 1 else 0
+            self.starttwochannel = self.onewidth if self.channel == 'right' and self.twoskipchannel > 1 else 0
+            self.framesizeone = self.onewidth * self.onechannels
+            self.framesizetwo = self.twowidth * self.twochannels
+            framerateone = self.fone.getframerate()
+            frameratetwo = self.ftwo.getframerate()
+            if framerateone != frameratetwo or self.onewidth != self.twowidth:
+                self.time_manager.updateToNow(float(self.countone) / float(framerateone))
+                startframe = self.time_manager.getExpectedStartFrameGiveRate(frameratetwo, defaultValue=1)
+                endframe = self.time_manager.getExpectedEndFrameGiveRate(frameratetwo, defaultValue=self.counttwo)
+                return [{'startframe': startframe,
+                         'starttime': float(startframe) / float(frameratetwo) * 1000.0,
+                         'rate': frameratetwo,
+                         'endframe': endframe,
+                         'endtime': float(endframe) / float(frameratetwo) * 1000.0,
+                         'type': 'audio',
+                         'frames': self.counttwo}], []
+            return compareFunc()
         finally:
-            ftwo.close()
-    finally:
-        fone.close()
-    return [],['Unable to open one of the audio streams']
+            self.ftwo.close()
+            self.fone.close()
+
+    def audioCompare(self):
+        return self.__initiateCompare(self.__compare)
+
+    def audioInsert(self):
+        return self.__initiateCompare(self.__insert)
+
+
+def audioInsert(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+    ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
+    return ac.audioInsert()
+
+def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+    ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
+    return ac.audioCompare()
+
+def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+    if 'add type' in arguments and arguments['add type'] == 'insert':
+        return audioInsert(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
+    else:
+        return audioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
 
 def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
     """
@@ -2011,20 +2165,190 @@ def insertFramesToMask(bounds,
         new_mask_set = insertFramesToMaskForBound(bound, new_mask_set,  expectedType=expectedType)
     return new_mask_set
 
+def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
+    new_mask_set = []
+    if composite_mask_set['startframe'] < edge_video_mask['startframe']:
+        if composite_mask_set['endframe'] >= edge_video_mask['endframe']:
+            return composite_mask_set
+        change = dict()
+        diff_time = composite_mask_set['endtime'] - composite_mask_set['starttime']
+        change['starttime'] = composite_mask_set['starttime']
+        change['startframe'] = composite_mask_set['startframe']
+        change['type'] = composite_mask_set['type']
+        change['rate'] = composite_mask_set['rate']
+        change['endtime'] = edge_video_mask['starttime']
+        change['endframe'] = edge_video_mask['startframe']
+        change['frames'] = change['endframe'] - change['startframe']
+        frames_left_over = composite_mask_set['frames'] - change['frames']
+        time_left_over = diff_time - (change['endtime'] - change['starttime'])
+        new_mask_set.append(change)
+        change = dict()
+        change['startframe'] = edge_video_mask['endframe'] - frames_left_over
+        change['starttime'] = edge_video_mask['endtime'] - time_left_over
+        change['type'] = composite_mask_set['type']
+        change['rate'] = composite_mask_set['rate']
+        change['endtime'] = edge_video_mask['endtime']
+        change['endframe'] = edge_video_mask['endframe']
+        change['frames'] = change['endframe'] - change['startframe']
+        new_mask_set.append(change)
+    else:
+        if composite_mask_set['endframe'] <= edge_video_mask['endframe']:
+            return composite_mask_set
+        change = dict()
+        diff_frame = edge_video_mask['endframe'] - composite_mask_set['startframe']
+        diff_time = edge_video_mask['endtime'] - composite_mask_set['starttime']
+        change['startframe'] = edge_video_mask['startframe']
+        change['starttime'] = edge_video_mask['starttime']
+        change['type'] = composite_mask_set['type']
+        change['rate'] = composite_mask_set['rate']
+        change['endtime'] = change['starttime'] + diff_time
+        change['endframe'] = change['startframe'] + diff_frame
+        change['frames'] = change['endframe'] - change['startframe']
+        new_mask_set.append(change)
+        change = dict()
+        change['startframe'] = edge_video_mask['endframe']
+        change['starttime'] = edge_video_mask['endtime']
+        change['type'] = composite_mask_set['type']
+        change['rate'] = composite_mask_set['rate']
+        change['endtime'] = composite_mask_set['endtime']
+        change['endframe'] = composite_mask_set['endframe']
+        change['frames'] = change['endframe'] - change['startframe']
+        new_mask_set.append(change)
+    return new_mask_set
 
-def _maskTransform( video_masks, func, expectedType='video'):
+def reverseMasks(edge_video_masks, composite_video_masks):
     """
-    Crop masks
-    :param start_time: insertion start time.
-    :param end_time:insertion end time.
-    :param directory:
+    Reverse Masks
+    :param func: the transforming function
+    :param expectedType:
+    :param video_masks:
+    :return: new set of video masks
+    """
+    import time
+    new_mask_set = []
+    for mask_set in composite_video_masks:
+        for edge_video_mask in edge_video_masks:
+            if edge_video_mask['endframe'] < mask_set['startframe'] or \
+               edge_video_mask['startframe'] > mask_set['endframe']:
+                new_mask_set.append(mask_set)
+                continue
+            if 'videosegment' not in mask_set:
+                new_mask_set.extend(reverseNonVideoMasks(mask_set,edge_video_mask))
+                continue
+            mask_file_name = mask_set['videosegment']
+            reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+            try:
+                frame_count = mask_set['startframe']
+                if  frame_count < edge_video_mask['startframe']:
+                    mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+                    writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
+                                                      reader.fps)
+                    change = dict()
+                    change['starttime'] = mask_set['starttime']
+                    change['startframe'] = mask_set['startframe']
+                    change['type'] = mask_set['type']
+                    change['rate'] = mask_set['rate']
+                    frame_count = mask_set['startframe']
+                    for i in range(edge_video_mask['startframe']-frame_count):
+                        frame_time = reader.current_frame_time()
+                        frame_count = reader.current_frame()
+                        mask = reader.read()
+                        if mask is None:
+                            break
+                        writer.write(mask, frame_time, frame_count)
+                    change['videosegment'] = writer.filename
+                    writer.close()
+                    change['endtime'] = frame_time = reader.current_frame_time()
+                    change['endframe'] = frame_count = reader.current_frame()
+                    change['frames'] = change['endframe'] - change['startframe']
+                    new_mask_set.append(change)
+
+                if frame_count < edge_video_mask['endframe']:
+                    mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+                    writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
+                                                      reader.fps)
+                    change = dict()
+                    masks = []
+                    start_time = frame_time
+                    for i in range(edge_video_mask['endframe']-frame_count):
+                        frame_time = reader.current_frame_time()
+                        mask = reader.read()
+                        if mask is None:
+                            break
+                        masks.insert(0,mask)
+                    if edge_video_mask['endframe']>=mask_set['endframe']:
+                        change['startframe'] =  edge_video_mask['endframe']-len(masks)
+                        change['starttime'] = edge_video_mask['endtime'] - (frame_time - start_time)
+                        change['endframe'] = edge_video_mask['endframe']
+                        change['endtime'] = edge_video_mask['endtime']
+                    else:
+                        change['startframe'] =  edge_video_mask['startframe']
+                        change['starttime'] =  edge_video_mask['starttime']
+                        change['endframe'] =change['startframe'] + len(masks)
+                        change['endtime'] = change['starttime'] + (frame_time - start_time)
+                    change['frames'] = change['endframe'] - change['startframe']
+                    change['type'] = mask_set['type']
+                    change['rate'] = mask_set['rate']
+                    frame_time = change['starttime']
+                    frame_count = change['startframe']
+                    diff_time = (change['endtime'] - change['starttime'])/change['frames']
+                    for mask in masks:
+                        writer.write(mask, frame_time, frame_count)
+                        frame_count += 1
+                        frame_time += diff_time
+                    change['videosegment'] = writer.filename
+                    new_mask_set.append(change)
+                    writer.close()
+
+                if edge_video_mask['endframe'] < mask_set['endframe']:
+                    mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+                    writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
+                                                      reader.fps)
+                    change = dict()
+                    change['startframe'] = edge_video_mask['endframe']
+                    change['starttime'] = edge_video_mask['endtime']
+                    change['endframe'] = mask_set['endframe']
+                    change['endtime'] = mask_set['endtime']
+                    change['frames'] = change['endframe'] - change['startframe']
+                    change['type'] = mask_set['type']
+                    change['rate'] = mask_set['rate']
+                    while True:
+                        frame_time = reader.current_frame_time()
+                        frame_count = reader.current_frame()
+                        mask = reader.read()
+                        if mask is None:
+                            break
+                        writer.write(mask, frame_time, frame_count)
+                    change['videosegment'] = writer.filename
+                    new_mask_set.append(change)
+                    writer.close()
+            except Exception as e:
+                logging.getLogger('maskgen').error(e)
+            finally:
+                reader.close()
+    return new_mask_set
+
+def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=False):
+    """
+    Tranform masks given the mask function.
+    If the transforming funciton supports lists:
+        signature: edge_video_masks,  next mask,frame_time,frame_count
+        When mask is empty, the function is called one more time with None
+        The function returns a list of tuples [ (mask, frame time, frame count) ]
+    If the transforming function does not support lists:
+        signature: edge_video_masks, next mask,frame_time,frame_count
+        The function is not called with a None mask
+    :param video_masks: ithe set of video masks to walk through and transform
+    :param func: the transforming function
+    :param expectedType:
     :param video_masks:
     :return: new set of video masks
     """
     import time
     new_mask_set = []
     for mask_set in video_masks:
-        if 'type' in mask_set and mask_set['type'] != expectedType:
+        if 'type' in mask_set and mask_set['type'] != expectedType or \
+            'videosegment' not in mask_set:
             new_mask_set.append(mask_set)
             continue
         change = dict()
@@ -2046,12 +2370,17 @@ def _maskTransform( video_masks, func, expectedType='video'):
                 frame_time = reader.current_frame_time()
                 frame_count = reader.current_frame()
                 mask = reader.read()
+                if funcReturnsList:
+                    for new_mask_tuple in func(mask, frame_time, frame_count):
+                        writer.write(new_mask_tuple[0], new_mask_tuple[1], new_mask_tuple[2])
                 if mask is None:
                     break
-                mask = func(mask)
-                writer.write(mask, frame_time, frame_count)
+                if not funcReturnsList:
+                    new_mask = func(mask)
+                    writer.write(new_mask, frame_time, frame_count)
             change['videosegment'] = writer.filename
             new_mask_set.append(change)
+
         except Exception as e:
             logging.getLogger('maskgen').error('Failed to transform {} using {}'.format(mask_set['videosegment'],
                                                                                         str(func)))
@@ -2061,34 +2390,21 @@ def _maskTransform( video_masks, func, expectedType='video'):
             writer.close()
     return new_mask_set
 
+
+
+
 def get_video_orientation_change(source, target):
     source_data = getMeta(source, show_streams=True)[0]
     donor_data = getMeta(target, show_streams=True)[0]
 
-    def get_channel_data(source_data, codec_type):
-        for data in source_data:
-            if data['codec_type'] == codec_type:
-                return data
+    source_channel_data = __get_channel_data(source_data, 'video')
+    target_channel_data = __get_channel_data(donor_data, 'video')
 
-    def orient_rotation_positive(rotate):
-        rotate = -rotate
-        if rotate < 0:
-            rotate = 360 + rotate
-        return rotate
-
-    def get_item(data, item, default_value):
-        if data is None or item not in data:
-            return default_value
-        return data[item]
-
-    source_channel_data = get_channel_data(source_data, 'video')
-    target_channel_data = get_channel_data(donor_data, 'video')
-
-    return int(get_item(target_channel_data, 'rotation', 0)) - int(get_item(source_channel_data, 'rotation', 0))
+    return int(__get_metadata_item(target_channel_data, 'rotation', 0)) - int(__get_metadata_item(source_channel_data, 'rotation', 0))
 
 def insertMask(video_masks,box, size):
     """
-    Insert mask insize larger mask
+    Insert mask inside larger mask
     :param directory
     :param video_masks
     :param box - tuple (upper left x, upper left y, lower right x , lower right y)
@@ -2141,6 +2457,56 @@ def resizeMask(video_masks, size):
     def resizeMaskGivenSize(size, mask):
          return cv2.resize(mask, size)
     return _maskTransform(video_masks, partial(resizeMaskGivenSize, size))
+
+def xxxreverseMasks(edge_video_masks,composite_video_masks):
+    """
+    reverse order composite masks within a section of edge_video_masks
+    :param directory
+    :param video_masks
+    :param size of the new mask
+    :return: new set of video masks
+    """
+    from functools import partial
+    # need to keep a list masks so they can be sent back in reverse order
+    memory = {
+        'compiled_mask_list' : list(),
+        'start_time':0,
+        'start_count':0}
+
+    def compileResult(memory, frame_time, frame_count):
+        if memory['start_count'] > 0:
+            diff_count = frame_count - memory['start_count']
+            diff_time = (frame_time - memory['start_time']) / diff_count
+            current_time = memory['start_time']
+            current_count = memory['start_count']
+            memory['start_count'] = 0
+        else:
+            diff_time = 0
+            current_time=frame_time
+            current_count = frame_count
+        mask_list = memory['compiled_mask_list']
+        memory['compiled_mask_list'] = list()
+        for item in mask_list:
+            current_count+=1
+            current_time+=diff_time
+            yield (item,current_time-diff_time,current_count-1)
+
+    def compileReverseMask(edge_video_masks, memory, mask,frame_time,frame_count):
+        if mask is None:
+            return compileResult(memory,frame_time,frame_count)
+        for video_mask in edge_video_masks:
+            if video_mask['startframe'] <= frame_count and video_mask['endframe'] > frame_count:
+                # in the reverse region, save the mask (insert in front)
+                if memory['start_count']== 0:
+                    memory['start_time'] = frame_time
+                    memory['start_count'] = frame_count
+                memory['compiled_mask_list'].insert(0,mask)
+                return []
+            else:
+                #outside the region, append the mask in order to the list
+                memory['compiled_mask_list'].append(mask)
+                return compileResult(memory,frame_time,frame_count)
+    return _maskTransform(composite_video_masks, partial(compileReverseMask,edge_video_masks,memory),funcReturnsList=True)
 
 def rotateMask(degrees,video_masks, expectedDims=None,cval = 0):
     """

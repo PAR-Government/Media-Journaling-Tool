@@ -1586,10 +1586,13 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
-        self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
-                                                onvalue="yes", offvalue="no")
-        self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
-        return self.cbIncludeInComposite
+        if  self.modification.category not in ['Transform', 'Output','AntiForensic','Laundering']:
+            self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
+                                                    onvalue="yes", offvalue="no")
+            self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
+            return self.cbIncludeInComposite
+        else:
+            return None
 
     def deletemask(self):
         self.selectMasks[self.optionsBox.get()] = None
@@ -2232,8 +2235,8 @@ class PropertyFrame(VerticalScrolledFrame):
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('file:'):
-               typematch = '*.' + prop[prop.find(':')+1:]
-               typename =  prop[prop.find(':') + 1:].upper()
+               typematch = '*.' + prop.name[prop.name.find(':')+1:]
+               typename =  prop.name[prop.name.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)

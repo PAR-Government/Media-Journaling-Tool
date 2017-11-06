@@ -9,7 +9,7 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate, getMeta
+from video_tools import getFrameRate, getMeta,getMaskSetForEntireVideo,getDuration
 import numpy as np
 
 rules = {}
@@ -547,27 +547,53 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     et = None
     for k, v in args.iteritems():
         if k.endswith('End Time'):
-            et = getMilliSecondsAndFrameCount(v)
+            et = v #getMilliSecondsAndFrameCount(v)
         elif k.endswith('Start Time'):
-            st = getMilliSecondsAndFrameCount(v)
+            st = v #getMilliSecondsAndFrameCount(v)
     masks = edge['videomasks'] if 'videomasks' in edge else []
-    start = 2147483647
-    end = 0
-    rate = 0
+    mask_start_constraints = {}
+    mask_end_constraints = {}
+    mask_rates = {}
     dir = graph.dir
     file = os.path.join(dir, graph.get_node(frm)['file'])
+    if fileType(file) not in ['audio','video']:
+        return
+    real_masks = getMaskSetForEntireVideo(file,start_time=st, end_time=et,media_types=['video','audio'])
     for mask in masks:
-        start = min(start, mask['starttime'])
-        rate = mask['rate'] if 'rate' in mask else (rate if rate > 0 else getFrameRate(file, default=29.97))
-        end = max(end, mask['endtime'])
+        mask_start_constraints[ mask['type']] = min(
+            (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
+                                                   mask['starttime'])
+        mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
+                                                                                     default=29.97,
+                                                                                     audio= mask['type']=='audio')
+        mask_end_constraints[mask['type']] = max(
+            (mask_end_constraints[mask['type']] if mask['type'] in mask_end_constraints else 0),
+            mask['endtime'])
+    real_mask_start_constraints = {}
+    real_mask_end_constraints = {}
+    for mask in real_masks:
+        real_mask_start_constraints[mask['type']] = min(
+            (real_mask_start_constraints[mask['type']] if mask['type'] in real_mask_start_constraints else 2147483647),
+            mask['starttime'])
+        mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
+            getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
+        real_mask_end_constraints[mask['type']] = max(
+            (real_mask_end_constraints[mask['type']] if mask['type'] in real_mask_end_constraints else 0),
+            mask['endtime'])
     if st is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
-    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
-    #rate = rate / 1000.0
-    if st is not None and abs(start - (st[1] / rate + st[0])) >= max(1000, rate):
-        return 'Start time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
-    if et is not None and abs(end - (et[1] / rate + et[0])) >= max(1000, rate):
-        return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
+    if 'video' in mask_rates:
+        mask_rates['video'] = 1000.0/mask_rates['video']
+    if 'audio' in mask_rates:
+        mask_rates['audio'] = 1.0
+    for key, value in mask_start_constraints.iteritems():
+        if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
+            return 'Start time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_start_constraints[key]))
+    for key, value in real_mask_end_constraints.iteritems():
+        if key in mask_end_constraints and abs(value - mask_end_constraints[key]) > mask_rates[key]:
+            return 'End time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_end_constraints[key]))
 
 
 def checkVideoMasks(op,graph, frm, to):
@@ -605,26 +631,42 @@ def checkAddFrameTime(op, graph, frm, to):
     """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
-    it = None
+    st = None
     for k, v in args.iteritems():
-        if k.endswith('Insertion Time') or k.endswith('Insertion Start Time'):
-            it = getMilliSecondsAndFrameCount(v)
+        if k.endswith('Start Time') or  k.endswith('Insertion Time') or k.endswith('Insertion Start Time'):
+            st = v
     masks = edge['videomasks'] if 'videomasks' in edge else []
-    start = 2147483647
-    end = 0
-    rate = 0
+    mask_start_constraints = {}
+    mask_rates = {}
     dir = graph.dir
     file = os.path.join(dir, graph.get_node(frm)['file'])
+    if fileType(file) not in ['audio','video']:
+        return
+    real_masks = getMaskSetForEntireVideo(file,start_time=st,media_types=['video','audio'])
     for mask in masks:
-        start = min(start, mask['starttime'])
-        rate = mask['rate'] if 'rate' in mask else getFrameRate(file, default=29.97)
-        end = max(end, mask['endtime'])
-    if it is not None and len(masks) == 0:
+        mask_start_constraints[ mask['type']] = min(
+            (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
+                                                   mask['starttime'])
+        mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
+                                                                                     default=29.97,
+                                                                                     audio= mask['type']=='audio')
+    real_mask_start_constraints = {}
+    for mask in real_masks:
+        real_mask_start_constraints[mask['type']] = min(
+            (real_mask_start_constraints[mask['type']] if mask['type'] in real_mask_start_constraints else 2147483647),
+            mask['starttime'])
+        mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
+            getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
+    if st is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
-    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
-    rate = rate / 1000.0
-    if it is not None and abs(start - (it[1] / rate + it[0])) >= max(1000, rate):
-        return 'Insertion time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
+    if 'video' in mask_rates:
+        mask_rates['video'] = 1000.0/mask_rates['video']
+    if 'audio' in mask_rates:
+        mask_rates['audio'] = 1.0
+    for key, value in mask_start_constraints.iteritems():
+        if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
+            return 'Insertion time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_start_constraints[key]))
 
 
 def checkFrameTimes(op, graph, frm, to):
@@ -644,9 +686,9 @@ def checkFrameTimes(op, graph, frm, to):
     st = None
     et = None
     for k, v in args.iteritems():
-        if k.endswith('Time'):
+        if k.endswith('End Time'):
             et = getMilliSecondsAndFrameCount(v)
-        elif k.endswith('Time'):
+        elif k.endswith('Start Time'):
             st = getMilliSecondsAndFrameCount(v)
     if st is None and et is None:
         return None
@@ -687,23 +729,9 @@ def checkCropLength(op, graph, frm, to):
     file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     rate = getFrameRate(file, default=29.97)
     givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
-    measuredDifference = None
-    for item in edge['metadatadiff']:
-        if 'duration'  in item:
-            #before = getMilliSecondsAndFrameCount(item['duration'][1])
-            after = getMilliSecondsAndFrameCount(item['duration'][2])
-            measuredDifference = after[0] + rate* after[1]
-        #if '0' in item:
-        #    if len(item['0'][0]) > 0 and item['0'][0] == 'change':
-        #        sumdeletes = (0,0)
-        #        for change in item['0'][1]:
-        #            if change[0] == 'delete':
-        #                sumdeletes = (sumdeletes[0] + (change[2]-change[1]), sumdeletes[1] + change[3])
-        #        sumdeletes = (sumdeletes[0]*1000, 0)
-    if measuredDifference is None:
-        return 'Could not validate difference.  Recompute Edge Mask'
-    if abs(measuredDifference - givenDifference) > 1:
-        return 'Actual amount of time cropped from video is {} in milliseconds'.format(measuredDifference)
+    duration = getDuration(file,default=None)
+    if abs(duration - givenDifference) > 1:
+        return 'Actual amount of time of cropped video is {} in milliseconds'.format(duration)
     return None
 
 def checkCropSize(op, graph, frm, to):
@@ -784,8 +812,10 @@ def checkSameChannels(op, graph, frm, to):
     vidAfter = graph.get_image_path(to)
     if fileType(vidAfter) == 'image' or fileType(vidBefore) == 'image':
         return
-    metaBefore = getFileMeta(vidBefore)
     metaAfter = getFileMeta(vidAfter)
+    if fileType(vidBefore)=='zip' and len(metaAfter) != 1:
+        return 'change in the number of streams occurred'
+    metaBefore = getFileMeta(vidBefore)
     if len(metaBefore) != len(metaAfter):
         return 'change in the number of streams occurred'
     if len(metaBefore) == 0:
@@ -1165,7 +1195,7 @@ def checkLengthSame(op, graph, frm, to):
      @type to: str
     """
     edge = graph.get_edge(frm, to)
-    durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
+    durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
         return "Length of video has changed"
 
@@ -1183,7 +1213,7 @@ def checkLengthSmaller(op, graph, frm, to):
          @type to: str
     """
     edge = graph.get_edge(frm, to)
-    durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
+    durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] <
@@ -1305,7 +1335,7 @@ def checkPasteFrameLength(op, graph, frm, to):
     if addType == 'replace' and diff > duration:
         return "Replacement contain not increase the size of video beyond the size of the donor"
     if addType != 'replace':
-        return checkLengthBigger(graph, frm, to)
+        return checkLengthBigger(op, graph, frm, to)
 
 
 def checkLengthBigger(op, graph, frm, to):
@@ -1322,7 +1352,7 @@ def checkLengthBigger(op, graph, frm, to):
     """
     edge = graph.get_edge(frm, to)
 
-    durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
+    durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] >

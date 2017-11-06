@@ -40,6 +40,8 @@ def addNoise(frames,no):
         buffer_position+=2
     return b
 
+
+
 def sampleFrames(frames,no):
     import struct
     import ctypes
@@ -97,6 +99,38 @@ def augmentAudio(filename,outfilname,augmentFunc):
     fone.close()
     ftwo.close()
 
+def insertAudio(filename,outfilname,pos,length):
+    import wave
+    import struct
+    import ctypes
+    import random
+    fone = wave.open(filename, 'rb')
+    countone = fone.getnframes()
+    onechannels = fone.getnchannels()
+    onewidth = fone.getsampwidth()
+    ftwo = wave.open(outfilname, 'wb')
+    ftwo.setparams(fone.getparams())
+    pos = pos * onechannels * onewidth
+    length = length * onechannels * onewidth
+    position = 0
+    while countone>0:
+        toRead = min([1024,countone])
+        countone -= toRead
+        framesone = fone.readframes(toRead)
+        position += toRead
+        if length > 0 and position > pos:
+            ftwo.writeframes(framesone[0:pos])
+            while(length > 0):
+                value = random.randint(-32767, 32767)
+                packed_value = struct.pack('h', value)
+                ftwo.writeframesraw(packed_value)
+                length-=1
+            ftwo.writeframes(framesone[pos:])
+        else:
+            ftwo.writeframes(framesone)
+    fone.close()
+    ftwo.close()
+
 class TestVideoTools(unittest.TestCase):
     filesToKill = []
 
@@ -118,38 +152,39 @@ class TestVideoTools(unittest.TestCase):
 
     def _init_write_video_file(self, name, alter_funcs):
         try:
+            files = []
             writer_main  = tool_set.GrayFrameWriter(name,30/1.0, preferences={'vid_suffix':'avi','vid_codec':'raw'})
             rate = 1/30.0
-            count = 0
+            main_count = 0
             counters_for_all = [0 for i in alter_funcs]
             writers = [ tool_set.GrayFrameWriter(name+str(func).split()[1],30/1.0,preferences={'vid_suffix':'avi','vid_codec':'raw'}) for func in alter_funcs]
             for i in range(100):
                 mask = np.random.randint(255, size=(1090, 1920,3)).astype('uint8')
-                writer_main.write(mask, count*rate)
+                writer_main.write(mask, main_count*rate)
                 nextcounts = []
                 for writer,func,counter in zip(writers,alter_funcs,counters_for_all):
                     result = func(mask, i + 1)
                     if type(result) == list:
                         for item in result:
-                            writer.write(item, count * rate)
-                        nextcounts.append(counter + len(result))
+                            writer.write(item, counter * rate)
+                            counter+=1
+                        nextcounts.append(counter)
                     else:
-                        writer.write(result,count*rate )
+                        writer.write(result,counter*rate )
                         nextcounts.append(counter+1)
                 counters_for_all=nextcounts
-                count += 1
+                main_count += 1
         except Exception as ex:
             print ex
         finally:
             writer_main.close()
             for writer in writers:
+                files.append(writer.filename)
                 writer.close()
-        self.filesToKill.append(writer.filename)
-        filenames = self.filesToKill
-        self.filesToKill.extend(filenames)
-        return writer_main.filename, filenames
+        self.filesToKill.append(writer_main.filename)
+        self.filesToKill.extend(files)
+        return writer_main.filename, files
 
-    """
     def test_meta(self):
         meta,frames = video_tools.getMeta('tests/videos/sample1.mov',show_streams=True)
         self.assertEqual('yuv420p',meta[0]['pix_fmt'])
@@ -194,7 +229,6 @@ class TestVideoTools(unittest.TestCase):
         self.assertEqual(174 - 89 + 1, result[0]['frames'])
 
     def test_before_dropping(self):
-
         amount = 30
         fileOne = self._init_write_file('test_ts_bd1',2500,75,30,30)
         fileTwo = self._init_write_file('test_ts_bd2', 4100,123,27,30)
@@ -563,6 +597,25 @@ class TestVideoTools(unittest.TestCase):
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
 
+    def test_crop(self):
+        fileOne = self._init_write_file('test_td_rs', 0, 1, 30, 30)
+        change = dict()
+        change['starttime'] = 0
+        change['startframe'] = 0
+        change['endtime'] = 1000
+        change['endframe'] = 30
+        change['frames'] = 30
+        change['rate'] = 29
+        change['type'] = 'video'
+        change['videosegment'] = fileOne
+        result = video_tools.cropMask([change], (100, 100, 900, 1120))
+        self.assertEqual(1, len(result))
+        self.assertEqual(30, result[0]['frames'])
+        self.assertEqual(0, result[0]['startframe'])
+        result = video_tools.insertMask([change], (100, 100, 900, 1120), (1090, 1920))
+        self.assertEqual(1, len(result))
+        self.assertEqual(30, result[0]['frames'])
+        self.assertEqual(0, result[0]['startframe'])
 
     def test_rotate(self):
         fileOne = self._init_write_file('test_td_rs', 0, 1,30, 30)
@@ -580,27 +633,73 @@ class TestVideoTools(unittest.TestCase):
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
 
-    def test_crop(self):
-        fileOne = self._init_write_file('test_td_rs', 0,1, 30, 30)
+
+
+    def test_reverse(self):
+        amount = 30
+        fileOne = self._init_write_file('test_tr1',2500,75,30,30)
+        fileTwo = self._init_write_file('test_tr2', 4100, 123, 30, 27)
+        sets = []
         change = dict()
-        change['starttime'] = 0
-        change['startframe'] = 0
-        change['endtime'] = 1000
-        change['endframe'] = 30
-        change['frames'] = 30
-        change['rate'] = 29
-        change['type'] = 'video'
+        change['starttime'] = 2500
+        change['startframe'] = 75
+        change['endtime'] = 3500
+        change['endframe'] = change['startframe'] + amount
+        change['frames'] = amount
+        change['rate'] = 30
         change['videosegment'] = fileOne
-        result = video_tools.cropMask([change],(100,100,900,1120))
-        self.assertEqual(1, len(result))
-        self.assertEqual(30, result[0]['frames'])
-        self.assertEqual(0, result[0]['startframe'])
-        result = video_tools.insertMask( [change], (100, 100, 900, 1120),(1090,1920))
-        self.assertEqual(1, len(result))
-        self.assertEqual(30, result[0]['frames'])
-        self.assertEqual(0, result[0]['startframe'])
+        change['type'] = 'video'
+        sets.append(change)
+        change = dict()
+        change['starttime'] = 4100
+        change['startframe'] = 123
+        change['endtime'] = 5000
+        change['endframe'] = 150
+        change['frames'] = int(27)
+        change['rate'] = 30
+        change['videosegment'] = fileTwo
+        change['type'] = 'video'
+        sets.append(change)
 
+        result = video_tools.reverseMasks([{
+            'startframe': 90,
+            'starttime': 3000,
+            'endframe': 130,
+            'endtime': 4333
+        }], sets)
+        self.assertEqual(4, len(result))
+        self.assertEqual(15, result[0]['frames'])
+        self.assertEqual(75, result[0]['startframe'])
+        self.assertEqual(90, result[0]['endframe'])
+        self.assertEqual(15, result[1]['frames'])
+        self.assertEqual(130, result[1]['endframe'])
+        self.assertEqual(115, result[1]['startframe'])
+        self.assertEqual(7, result[2]['frames'])
+        self.assertEqual(97, result[2]['endframe'])
+        self.assertEqual(90, result[2]['startframe'])
+        self.assertEqual(20, result[3]['frames'])
+        self.assertEqual(150, result[3]['endframe'])
+        self.assertEqual(130, result[3]['startframe'])
 
+        reader_orig = tool_set.GrayBlockReader(sets[0]['videosegment'])
+        reader_new = tool_set.GrayBlockReader(result[0]['videosegment'])
+        while True:
+            orig_mask = reader_orig.read()
+            if orig_mask is None:
+                break
+            new_mask = reader_new.read()
+            if new_mask is None:
+                break
+            is_equal = np.all(orig_mask == new_mask)
+            self.assertTrue(is_equal)
+        reader_new.close()
+        reader_new = tool_set.GrayBlockReader(result[1]['videosegment'])
+        reader_new.close()
+        reader_new = tool_set.GrayBlockReader(result[2]['videosegment'])
+        reader_new.close()
+        reader_new = tool_set.GrayBlockReader(result[3]['videosegment'])
+        reader_new.close()
+        reader_orig.close()
 
     def test_invertVideoMasks(self):
         start_set = []
@@ -628,11 +727,11 @@ class TestVideoTools(unittest.TestCase):
 
     def test_all_mods(self):
         mod_functions = [sameForTest,cropForTest,noiseForTest,addForTest]
-        fileOne,modFiles = 'test_td_rs_mask_0.0.avi',['test_td_rssameForTest_mask_0.0.avi',
-                                                      'test_td_rscropForTest_mask_0.0.avi',
-                                                      'test_td_rsnoiseForTest_mask_0.0.avi',
-                                                      'test_td_rsaddForTest_mask_0.0.avi']
-        #fileOne,modFiles = self._init_write_video_file('test_td_rs',mod_functions)
+        #fileOne,modFiles = 'test_td_rs_mask_0.0.avi',['test_td_rssameForTest_mask_0.0.avi',
+        #                                              'test_td_rscropForTest_mask_0.0.avi',
+        #                                              'test_td_rsnoiseForTest_mask_0.0.avi',
+        #                                              'test_td_rsaddForTest_mask_0.0.avi']
+        fileOne,modFiles = self._init_write_video_file('test_td_rs',mod_functions)
         analysis = {}
         result_same, errors = video_tools.formMaskDiff(fileOne,
                                                          modFiles[0],
@@ -697,7 +796,6 @@ class TestVideoTools(unittest.TestCase):
         self.assertEqual(20, result_noise1[0]['startframe'])
 
 
-    """
     def testAudio(self):
         from maskgen.tool_set import  VidTimeManager
         video_tools.audioWrite('test_ta.0.0.wav',512)
@@ -706,10 +804,18 @@ class TestVideoTools(unittest.TestCase):
         self.filesToKill.append('test_ta3.0.0.wav')
         self.filesToKill.append('test_ta4.0.0.wav')
         self.filesToKill.append('test_ta5.0.0.wav')
+        self.filesToKill.append('test_ta6.0.0.wav')
         augmentAudio('test_ta.0.0.wav','test_ta2.0.0.wav',addNoise)
         augmentAudio('test_ta.0.0.wav', 'test_ta3.0.0.wav', sampleFrames)
         singleChannelSample('test_ta.0.0.wav','test_ta4.0.0.wav')
         singleChannelSample('test_ta.0.0.wav', 'test_ta5.0.0.wav',skip=2)
+        insertAudio('test_ta.0.0.wav','test_ta6.0.0.wav',pos=28,length=6)
+
+        result, errors = video_tools.audioInsert('test_ta.0.0.wav', 'test_ta6.0.0.wav', 'test_ta_c', VidTimeManager())
+        self.assertEqual(1, len(result))
+        self.assertEqual(29, result[0]['startframe'])
+        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
+
         result,errors = video_tools.audioCompare('test_ta.0.0.wav','test_ta2.0.0.wav','test_ta_c',VidTimeManager())
         self.assertEqual(1,len(result))
         self.assertEqual(7,result[0]['startframe'])
@@ -732,9 +838,13 @@ class TestVideoTools(unittest.TestCase):
         self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
 
 
+
+
     def tearDown(self):
         for f in self.filesToKill:
             if os.path.exists(f):
                 os.remove(f)
+
+
 if __name__ == '__main__':
     unittest.main()

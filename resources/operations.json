@@ -1,5 +1,5 @@
 {
-  "version": "04.0810.546e996a36",
+  "version": "0.4.1115.32eabae8e6",
   "operations": [
      {
       "category": "Audio",
@@ -151,7 +151,7 @@
         },
         "add type" : {
             "type": "list",
-            "values" : ["replace", "overlay"],
+            "values" : ["replace", "overlay", "insert"],
              "description": "Replacing or overlaying."
         },
         "synchronization" : {
@@ -195,7 +195,7 @@
         }
       },
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
+          "video_function" :"maskgen.video_tools.audioAddCompare"
       },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
@@ -1844,6 +1844,9 @@
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
       "includeInMask": true,
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.paste_sampled"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2220,7 +2223,13 @@
     {
       "category": "CGI",
       "name": "Handwriting",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
       "rules": [
         "checkSize",
         "checkLengthSame",
@@ -2232,11 +2241,6 @@
         "checkUncompressed"
       ],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "source": "video",
@@ -2254,7 +2258,14 @@
     {
       "category": "CGI",
       "name": "OverlayObject",
-      "mandatoryparameters": {},
+      "mandatoryparameters": {
+         "Start Time": {
+           "type": "time",
+           "source": "video",
+           "defaultvalue":0,
+           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
       "rules": [
         "checkSize",
         "checkLengthSame",
@@ -2267,11 +2278,6 @@
         "checkUncompressed"
       ],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "source": "video",
@@ -2657,7 +2663,8 @@
       "generateMask" : "meta",
       "transitions": [
         "video.video",
-        "image.video"
+        "image.video",
+        "zip.video"
       ]
     },
     {
@@ -2717,7 +2724,7 @@
          }
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.pastesplice"
+        "image": "maskgen.mask_rules.paste_splice"
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
@@ -2768,6 +2775,11 @@
       "category": "Paste",
       "name": "PasteOverlay",
       "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "defaultvalue":0,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
         "motion mapping": {
            "type": "yesno",
            "description": "Is motion mapping used?"
@@ -2792,10 +2804,6 @@
         "checkUncompressed"
       ],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2803,6 +2811,7 @@
       },
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": true,
+      "generateMask":"all",
       "transitions": [
         "video.video"
       ]
@@ -2811,6 +2820,10 @@
       "category": "Paste",
       "name": "PasteImageSpliceToFrames",
       "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
          "subject": {
            "type": "list",
            "values": [
@@ -2848,10 +2861,6 @@
         "checkUncompressed"
       ],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3057,14 +3066,15 @@
     {
       "category": "Select",
       "name": "SelectRegionFromFrames",
-      "mandatoryparameters": {},
+      "mandatoryparameters": { "Start Time": {
+          "type": "time",
+           "defaultvalue":0,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
       "rules": ["checkFrameTimes",
         "checkSameChannels"],
       "optionalparameters": {
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3381,6 +3391,11 @@
           ],
           "description": "The Method setting determines how interpolated frames are generated."
         },
+        "Start Time": {
+          "type": "time",
+          "defaultvalue":0,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
         "Vector Detail": {
           "type": "int[0:100]",
           "description": "Determine how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
@@ -3406,10 +3421,6 @@
           "type": "float[0:100]",
           "description": "Choose Speed to specify a time adjustment as a percentage"
         },
-        "Start Time": {
-          "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3417,7 +3428,14 @@
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
       "includeInMask": false,
-      "generateMask" : "frames",
+      "generateMask" : "all",
+       "compareparameters" : {
+         "video_function" :"maskgen.video_tools.warpCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.time_warp_frames",
+        "audio": "maskgen.mask_rules.time_warp_audio"
+      },
       "transitions": [
         "video.video"
       ]
@@ -3852,6 +3870,10 @@
           "type": "int[-360:360]",
           "description": "The rotation should be provided in degrees counter-clockwise (ex. -90 for clockwise, 90 for counterclockwise)"
         },
+        "local": {
+          "type": "yesno",
+          "description": "Rotate entire image or a local selection"
+        },
          "Start Time": {
           "type": "time",
           "source": "video",
@@ -3896,6 +3918,9 @@
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.rotate_transform",
         "video": "maskgen.mask_rules.video_rotate_transform"
+      },
+      "compareparameters" : {
+         "function" :"maskgen.tool_set.rotateCompare"
       },
       "transitions": [
         "image.image",
@@ -4248,6 +4273,7 @@
            "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
+      "maskTransformFunction": {"video": "maskgen.mask_rules.reverse_transform"},
       "description": "Reverse the direction of video play.",
       "includeInMask": false,
       "generateMask" : "frames",
@@ -4260,6 +4286,10 @@
     "PasteSpliceBlend": [
       "PasteOverlay",
       "CopyBlended"
+    ],
+    "FlowDrivenFrameReplacement": [
+      "FlowDrivenVideoFrameDrop",
+      "FlowDrivenVideoTimeWarp"
     ]
   },
   "node_properties": {
