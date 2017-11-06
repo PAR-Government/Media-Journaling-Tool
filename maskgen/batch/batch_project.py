@@ -42,14 +42,11 @@ class IntObject:
 
 def loadJSONGraph(pathname):
     with open(pathname, "r") as f:
-        json_data = {}
         try:
             json_data = json.load(f, encoding='utf-8')
-            G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
         except  ValueError:
             json_data = json.load(f)
-            G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
-        return BatchProject(G, json_data)
+        return BatchProject(json_data)
     return None
 
 
@@ -732,12 +729,13 @@ class BatchProject:
 
     G = nx.DiGraph(name="Empty")
 
-    def __init__(self, G, json_data):
+    def __init__(self, json_data):
         """
         :param G:
         @type G: nx.DiGraph
         """
-        self.G = G
+
+        self.G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
         self.json_data = json_data
         tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
 
@@ -752,13 +750,13 @@ class BatchProject:
     def getName(self):
         return self.G.graph['name'] if 'name' in self.G.graph else 'Untitled'
 
-    def executeForProject(self, project, nodes):
+    def executeForProject(self, project, nodes, workdir=None):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         global_state = {'picklists_files': {},
                         'project': self,
-                        'workdir': project.get_dir(),
+                        'workdir': project.get_dir() if workdir is None else workdir,
                         'count': None,
-                        'permutegroupsmanager': PermuteGroupManager(dir=project.get_dir())
+                        'permutegroupsmanager': PermuteGroupManager(dir=project.get_dir() if workdir is None else workdir)
                         }
         self.logger.info('Thread {} building project {} with local state'.format(currentThread().getName(),
                                                                                    project.getName()))
@@ -1052,8 +1050,8 @@ def main():
                          'count': IntObject(int(args.count)) if args.count else None,
                          'permutegroupsmanager': PermuteGroupManager(dir=workdir)
                          }
-    gv = args.global_variables if args.global_variables is not None else ''
-    threadGlobalState.update({ pair[0]:pair[1] for pair in [pair.split('=') for pair in  gv.split(',')]})
+    if args.global_variables is not None:
+        threadGlobalState.update({ pair[0]:pair[1] for pair in [pair.split('=') for pair in  args.global_variables.split(',')]})
     loadGlobalStateInitialers(threadGlobalState,args.initializers)
 
     batchProject.loadPermuteGroups(threadGlobalState)
@@ -1062,7 +1060,7 @@ def main():
     threads_count = args.threads if args.threads else 1
     threads = []
     name = 1
-    kwargs = {'global_state':threadGlobalState}
+    kwargs = {'globalState':threadGlobalState}
     for i in range(int(threads_count)):
         name += 1
         t = Thread(target=thread_worker, name=str(name),kwargs=kwargs)
