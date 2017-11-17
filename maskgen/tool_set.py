@@ -16,16 +16,21 @@ import loghandling
 import cv2api
 
 
-imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"),("tiff files", "*.tif"), ("Raw NEF", "*.nef"),
-                  ("bmp files", "*.bmp"), ("pdf files", "*.pdf"),('cr2','*.cr2'),('raf','*.raf')]
+imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"),("tiff files", "*.tif"),
+                  ("Raw NEF", "*.nef"), ("ARW Sony","*.arw"), ("CRW Canon","*.crw"),("raw panasonic", "*.raw" ),
+                  ("Raw 2 Panasonic", "*.rw2"), ("ORF Olympus","*.orf"), ("MDC Minolta", "*.mdc"), ("PTX Pentax","*.ptx"),
+                  ("PEF Pentax","*.pef"), ("MRW Minolta","*.nrw"),("Adobe", "*.dng"),
+                  ("bmp files", "*.bmp"), ("pdf files", "*.pdf"),('cr2','*.cr2'),('raf Fuji','*.raf')]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts')]
 audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), ("mpeg audio files", "*.mp3"),
                   ("raw audio files", "*.raw"), ("Audio Interchange File","*.aif"),("Audio Interchange File","*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
-suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".gif",
-            ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif"]
+zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
+            ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz",
+            ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
@@ -122,7 +127,7 @@ def getMaskFileTypes():
 
 
 def getFileTypes():
-    return imagefiletypes + videofiletypes + audiofiletypes
+    return imagefiletypes + videofiletypes + audiofiletypes + zipfiletypes
 
 
 def fileTypeChanged(file_one, file_two):
@@ -151,6 +156,8 @@ def fileType(fileName):
         file_type = 'image'
     elif suffix in [x[1] for x in audiofiletypes]:
         file_type = 'audio'
+    elif suffix in ['*.zip','*.gz']:
+        file_type = 'zip'
     return file_type
 
 
@@ -286,18 +293,31 @@ class VidTimeManager:
         self.pastEndTime = False
         self.beforeStartTime = True if startTimeandFrame else False
 
+    def getExpectedStartFrameGiveRate(self, rate, defaultValue = None):
+        if not self.startTimeandFrame:
+            return defaultValue
+        return self.startTimeandFrame[1] + (self.startTimeandFrame[0] / 1000.0) * float(rate)
+
+    def getExpectedEndFrameGiveRate(self, rate, defaultValue=None):
+        if not self.stopTimeandFrame:
+            return None
+        val = int(self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate))
+        if val == 0:
+            return None
+        return self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate)
+
     def getStartFrame(self):
         return self.frameCountWhenStarted if self.startTimeandFrame else 1
 
     def getEndFrame(self):
         return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
 
-    def updateToNow(self, milliNow):
+    def updateToNow(self, milliNow, frames=1):
         self.milliNow = milliNow
-        self.frameSinceBeginning += 1
+        self.frameSinceBeginning += frames
         if self.stopTimeandFrame:
             if self.milliNow >= self.stopTimeandFrame[0]:
-                self.frameCountSinceStop += 1
+                self.frameCountSinceStop += frames
                 if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
                     if not self.pastEndTime:
                         self.pastEndTime = True
@@ -305,7 +325,7 @@ class VidTimeManager:
 
         if self.startTimeandFrame:
             if self.milliNow >= self.startTimeandFrame[0]:
-                self.frameCountSinceStart += 1
+                self.frameCountSinceStart += frames
                 if self.frameCountSinceStart >= self.startTimeandFrame[1]:
                     if self.beforeStartTime:
                         self.frameCountWhenStarted = self.frameSinceBeginning
@@ -322,6 +342,10 @@ class VidTimeManager:
 
     def isPastTime(self):
         return self.pastEndTime
+
+    def isPastStartTime(self):
+        return self.startTimeandFrame and self.milliNow  > self.startTimeandFrame[0] and \
+                self.frameCountSinceStart >  self.startTimeandFrame[1]
 
     def isBeforeTime(self):
         return self.beforeStartTime
@@ -369,7 +393,14 @@ def getDurationStringFromMilliseconds(millis):
 def differenceBetweeMillisecondsAndFrame(mandf1, mandf2, rate):
     return mandf1[0] - mandf2[0]  + (rate * (mandf1[1] - mandf2[1]))
 
-def getMilliSecondsAndFrameCount(v):
+def differenceInFramesBetweenMillisecondsAndFrame(mandf1, mandf2, rate):
+    return (mandf1[0] - mandf2[0])/1000.0/rate + mandf1[1] - mandf2[1]
+
+def getMilliSecondsAndFrameCount(v, rate=None):
+    if v is None:
+        return None, 0
+    if type(v) == int:
+        return (float(v)/rate*1000,0) if rate is not None else (0,v)
     dt = None
     framecount = 0
     coloncount = v.count(':')
@@ -380,7 +411,7 @@ def getMilliSecondsAndFrameCount(v):
         except:
             return None, 0
     elif coloncount == 0:
-        return (0, int(v))
+        return (float(v) / rate * 1000.0, 0) if rate is not None else (0, v)
     try:
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -388,7 +419,11 @@ def getMilliSecondsAndFrameCount(v):
             dt = datetime.strptime(v, '%H:%M:%S')
         except ValueError:
             return None, 0
-    return (dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000, framecount)
+    millis = dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000
+    if rate is not None:
+        millis = millis + float(framecount)/rate * 1000.0
+        framecount = 0
+    return (millis, framecount)
 
 
 def validateTimeString(v):
@@ -524,6 +559,32 @@ def outputVideoFrame(filename,outputName=None,videoFrameTime=None,isMask=False):
         raise e
     return openImage(outfilename,isMask=isMask)
 
+def readFromZip(filename, filetypes=imagefiletypes,videoFrameTime=None,isMask=False,snapshotFileName=None, fps=30):
+    from zipfile import ZipFile
+    import re
+    filetypematcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')')
+    with ZipFile(filename,'r') as myzip:
+        names = myzip.namelist()
+        names.sort()
+        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
+        i = 1
+        name = names[0]
+        while i < 21:
+            elapsed_time = i*fps
+            if len(filetypematcher.findall(name)) == 0:
+                continue
+            time_manager.updateToNow(elapsed_time)
+            name = names[i-1]
+            i+=1
+            if time_manager.isPastTime():
+                break
+        extracted_file = myzip.extract(name,os.path.dirname(os.path.abspath(filename)))
+        img = openImage(extracted_file, isMask=isMask)
+        if extracted_file != snapshotFileName and snapshotFileName is not None:
+            img.save(snapshotFileName)
+        return img
+
+
 def readImageFromVideo(filename,videoFrameTime=None,isMask=False,snapshotFileName=None):
     cap = cv2api.cv2api_delegate.videoCapture(filename)
 
@@ -577,6 +638,98 @@ def shortenName(name, postfix,id = None):
         middle = middle + '_' + str(id)
     return hashlib.md5(name+postfix).hexdigest() + '_' +  middle + '_' + postfix
 
+class ImageOpener:
+
+    def __init__(self):
+        pass
+
+    def openImage(self,filename, isMask=False):
+        try:
+            img = openImageFile(filename, isMask=isMask)
+            return img if img is not None else openImage('./icons/RedX.png')
+        except Exception as e:
+            logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
+            return openImage(get_icon('RedX.png'))
+
+class AudioOpener(ImageOpener):
+
+
+    def __init__(self):
+        ImageOpener.__init__(self)
+
+    def openImage(self,filename, isMask=False):
+        return ImageOpener.openImage(self, get_icon('audio.png'))
+
+class VideoOpener(ImageOpener):
+
+
+    def __init__(self,videoFrameTime=None,preserveSnapshot=True):
+        self.videoFrameTime=videoFrameTime
+        self.preserveSnapshot=preserveSnapshot
+        ImageOpener.__init__(self)
+
+    def openSnapshot(self,filename, snapshotFileName):
+         return  os.path.exists(snapshotFileName) and \
+          os.stat(snapshotFileName).st_mtime >= os.stat(filename).st_mtime
+
+    def openImage(self,filename, isMask=False):
+        if not ('video' in getFileMeta(filename)):
+            return ImageOpener.openImage(self, get_icon('audio.png'))
+        snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
+        if self.openSnapshot(filename,snapshotFileName):
+            return ImageOpener.openImage(self, snapshotFileName)
+        videoFrameImg = readImageFromVideo(filename, videoFrameTime= self.videoFrameTime, isMask=isMask,
+                                           snapshotFileName=snapshotFileName if self.preserveSnapshot else None)
+        if videoFrameImg is None:
+            logging.getLogger('maskgen').warning('invalid or corrupted file ' + filename)
+            return ImageOpener.openImage(self,get_icon('RedX.png'))
+        return videoFrameImg
+
+class ZipOpener(VideoOpener):
+
+
+    def __init__(self,videoFrameTime=None,preserveSnapshot=True):
+        VideoOpener.__init__(self,videoFrameTime=videoFrameTime,preserveSnapshot=preserveSnapshot)
+
+    def openImage(self,filename, isMask=False):
+        snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
+        if self.openSnapshot(filename, snapshotFileName):
+            return ImageOpener.openImage(self, snapshotFileName)
+        videoFrameImg = readFromZip(filename, videoFrameTime= self.videoFrameTime, isMask=isMask,
+                                           snapshotFileName=snapshotFileName if self.preserveSnapshot else None)
+        if videoFrameImg is None:
+            logging.getLogger('maskgen').warning('invalid or corrupted file ' + filename)
+            return ImageOpener.openImage(self,get_icon('RedX.png'))
+        return videoFrameImg
+
+def condenseZip(filename,outputfile=None,filetypes=None, keep=2):
+    from zipfile import ZipFile
+    import re
+    filetypematcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')') \
+      if filetypes is not None else re.compile('.*')
+    fn = filename[0:filename.rfind('.')] + '_c' + filename[filename.rfind('.'):] if outputfile is None else outputfile
+    with ZipFile(fn,'w') as outzip:
+        with ZipFile(filename, 'r') as inzip:
+            names = inzip.namelist()
+            names.sort()
+            extensions = {}
+            for i in range(len(names)):
+                name = names[i]
+                extension = name[name.rfind('.'):]
+                if len(filetypematcher.findall(name)) == 0:
+                    continue
+                if extension not in extensions:
+                    extensions[extension] = 1
+                else:
+                    extensions[extension] =  extensions[extension] + 1
+                if extensions[extension] <= keep:
+                    extracted_file = inzip.extract(name, os.path.dirname(os.path.abspath(filename)))
+                    outzip.write(extracted_file,name)
+                else:
+                    with open(name,'wb') as fp:
+                        fp.flush()
+                    outzip.write(name, name)
+
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
@@ -593,33 +746,17 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return openImage(get_icon('RedX.png'))
         return None
 
-    if filename[filename.rfind('.') + 1:].lower() in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
+    prefix = filename[filename.rfind('.') + 1:].lower()
+    opener = ImageOpener()
+    if prefix in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
                                                       'm4v', 'mts', 'mpg'] or fileType(filename) == 'video':
-        snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
+        opener = VideoOpener(videoFrameTime=videoFrameTime,preserveSnapshot=preserveSnapshot)
+    elif prefix in ['zip','gz']:
+        opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+    elif fileType(filename) == 'audio':
+        opener = AudioOpener()
 
-    if fileType(filename) == 'audio':
-        return openImage(get_icon('audio.png'))
-
-    if videoFrameTime is not None or \
-            (snapshotFileName != filename and \
-                     (not os.path.exists(snapshotFileName) or \
-                                  os.stat(snapshotFileName).st_mtime < os.stat(filename).st_mtime)):
-        if not ('video' in getFileMeta(filename)):
-            return openImage(get_icon('audio.png'))
-        videoFrameImg = readImageFromVideo(filename,videoFrameTime=videoFrameTime,isMask=isMask,
-                                           snapshotFileName=snapshotFileName if preserveSnapshot else None)
-        if videoFrameImg is None:
-            logging.getLogger('maskgen').warning( 'invalid or corrupted file ' + filename)
-            return openImage(get_icon('RedX.png'))
-        return videoFrameImg
-    else:
-        try:
-            img = openImageFile(snapshotFileName, isMask=isMask)
-            return img if img is not None else openImage('./icons/RedX.png')
-        except Exception as e:
-            logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
-            return openImage(get_icon('RedX.png'))
-
+    return opener.openImage(filename,isMask=isMask)
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
     """
@@ -890,26 +1027,8 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
     analysis['transform matrix'] = serializeMatrix(matrix)
 
 def boundingRegion (mask):
-        minregion = list(mask.shape)
-        maxregion = list((0, 0))
-        contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for i in range(0, len(contours)):
-            try:
-                cnt = contours[i]
-                x, y, w, h = cv2.boundingRect(cnt)
-                if x < minregion[0]:
-                    minregion[0] = x
-                if x + w > maxregion[0]:
-                    maxregion[0] = x + w
-                if y < minregion[1]:
-                    minregion[1] = y
-                if y + h > maxregion[1]:
-                    maxregion[1] = y + h
-            except Exception as e:
-                logging.getLogger('maskgen').warning('Failed to find bounded region: ' + str(e))
-                continue
-        return tuple(minregion), tuple(maxregion)
-
+    x,y,w,h = widthandheight(mask)
+    return (x,y),(x+w,y+h)
 
 def boundingRectange(mask):
     allpoints = []
@@ -1014,6 +1133,8 @@ def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,
                                    alternativeFunction=alternativeFunction,
                                    convertFunction=convertFunction)
     analysis['shape change'] =sizeDiff(img1, img2)
+    if 'location' not in analysis:
+        analysis['location'] = '(0,0)'
     return ImageWrapper(mask), analysis
 
 
@@ -1234,7 +1355,7 @@ def applyFlipComposite(compositeMask, mask, flip):
     maskInverted[maskInverted > 0] = 1
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    return (flipCompositeMask * maskInverted + compositeMask * maskAltered).astype('uint8')
+    return (flipCompositeMask  + compositeMask * maskAltered).astype('uint8')
 
 
 def applyToComposite(compositeMask, func, shape=None):
@@ -1250,7 +1371,7 @@ def applyToComposite(compositeMask, func, shape=None):
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask = np.zeros(compositeMask.shape).astype('uint8')
         levelMask[compositeMask == level] = 255
         newLevelMask = func(levelMask)
         if newLevelMask is not None:
@@ -1359,7 +1480,7 @@ def applyAffineToComposite(compositeMask, transform_matrix, shape):
     func = partial(perspectiveChange, M=transform_matrix,shape=shape)
     return applyToComposite(compositeMask, func, shape=shape)
 
-def applyRotateToComposite(rotation, compositeMask, expectedDims):
+def applyRotateToComposite(rotation, compositeMask, edgeMask,expectedDims, local=False):
     """
        Loop through each level add apply the rotation.
        Need to convert levels to 0 and unmapped levels to 255
@@ -1369,7 +1490,10 @@ def applyRotateToComposite(rotation, compositeMask, expectedDims):
        :return:
        """
     from functools import partial
-    func = partial(__rotateImage, rotation, expectedDims=expectedDims, cval=255)
+    if local:
+        func = partial(__localrotateImage, rotation, edgeMask,expectedDims=expectedDims, cval=255)
+    else:
+        func = partial(__rotateImage, rotation, edgeMask,expectedDims=expectedDims, cval=255)
     return applyToComposite(compositeMask, func, shape=expectedDims)
 
 
@@ -1399,23 +1523,30 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     # zeros out areas outside the mask
     compositeMaskAltered = compositeMaskFlipped * maskInverted
 
-    compositeMaskAltered[compositeMaskAltered == 255] = 200
+    maxvalue = compositeMaskAltered.max()
+    compositeMaskAltered[compositeMaskAltered > 0] = maxvalue-20
     newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (shape[1], shape[0]), flags=flags,
                                   borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-    newMask[newMask > 99] = 255
+    newMask[newMask > 99] = maxvalue
     newMask[newMask < 100] = 0
     # put the areas outside the mask back into the composite
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     if returnRaw:
         return newMask
-    newMask = newMask * maskInverted + compositeMask * maskAltered
+    newMask = newMask | compositeMask * maskAltered
     return newMask
 
 
 def cropCompare(img1, img2, arguments=dict()):
+    from maskgen.image_wrap import  ImageWrapper
     if (sum(img1.shape) > sum(img2.shape)):
-        return __composeCropImageMask(img1, img2)
+        img1_m, img2_m = __alignChannels(ImageWrapper(img1), ImageWrapper(img2),
+                                         equalize_colors='equalize_colors' in arguments)
+        analysis= {'shape change':  sizeDiff(ImageWrapper(img1_m), ImageWrapper(img2_m))}
+        mask, analysis_d = __composeCropImageMask(img1_m, img2_m)
+        analysis.update(analysis)
+        return mask, analysis_d
     return None, {}
 
 def _composeLCS(img1, img2):
@@ -1526,6 +1657,21 @@ def seamCompare(img1, img2,  arguments=dict()):
         return __composeCropImageMask(img1, img2)
     return None,{}
 
+
+def rotateCompare(img1, img2,  arguments=dict()):
+    rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
+    local = (arguments['local'] == 'yes') if 'local' in arguments else False
+    if img1.shape == img2.shape:
+        mask1, analysis1 = __diffMask(img1, img2, False, args=arguments)
+        if abs(rotation) < 0.0001:
+            return mask1, analysis1
+        mask2, analysis2 = __compareRotatedImage(rotation, img1, img2, arguments)
+        diff = sum(sum(mask1)) - sum(sum(mask2))
+        return (mask1,analysis1) if diff < 0 or local else (mask2,analysis2)
+    else:
+        return __compareRotatedImage(rotation, img1, img2, arguments)
+    return None,{}
+
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments,
                                  convertFunction=convertFunction)
@@ -1538,7 +1684,6 @@ def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     mask = None
-    analysis = {}
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
     if abs(rotation) > 0.0001:
         mask,analysis = __compareRotatedImage(rotation, img1, img2,  arguments)
@@ -1577,11 +1722,37 @@ def __resize(img, dimensions):
     return img
 
 
+def rotateImage(angle, pivot,img):
+    padX = [img.shape[1] - pivot[1], pivot[1]]
+    padY = [img.shape[0] - pivot[0], pivot[0]]
+    imgP = np.pad(img, [padY, padX], 'constant')
+    if abs(angle) % 90 == 0:
+        imgR = np.rot90(imgP,int(angle/90)).astype('uint8')
+    else:
+        try:
+            imgR = np.asarray(Image.fromarray(imgP).rotate(angle))
+        except:
+            imgR = ndimage.rotate(imgP, angle, cval=0, reshape=False, mode='constant').astype('uint8')
+
+    return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
+
+def __localrotateImage(rotation,  mask, img, expectedDims=None, cval=0):
+    maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
+    maskInverted[maskInverted > 0] = 1
+    x0,y0,w,h = widthandheight(maskInverted)
+    if w == 0 or h == 0:
+        return img
+    subImg = img[y0:(y0+h),x0:(x0+w)]
+    center = (w / 2, h/ 2)
+    M = cv2.getRotationMatrix2D(center, rotation, 1.0)
+    rotatedSubMask = cv2.warpAffine(subImg, M, (w,h))
+    rotatedMask = np.copy(img)
+    rotatedMask[y0:y0+h,x0:x0+w] = rotatedSubMask
+    maskAltered = np.copy(mask)
+    maskAltered[maskAltered > 0] = 1
+    return (rotatedMask + img * maskAltered).astype('uint8')
+
 def __rotateImage(rotation, img, expectedDims=None, cval=0):
-    #   (h, w) = image.shape[:2]
-    #   center = (w / 2, h / 2) if rotationPoint=='center' else (0,0)
-    #   M = cv2.getRotationMatrix2D(center, rotation, 1.0)
-    #   rotated = cv2.warpAffine(image, M, (w, h))
     expectedDims = expectedDims if expectedDims is not None else (img.shape[0],img.shape[1])
     rotNorm = int(rotation / 90) if (rotation % 90) == 0 else None
     rotNorm = rotNorm if rotNorm is None or rotNorm >= 0 else (4 + rotNorm)
@@ -1862,6 +2033,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
                                 cval=0)
         else:
             res = applyRotateToComposite(rotation, res,
+                                         edgeMask,
                                            (compositeMask.shape[0] + sizeChange[0],
                                             compositeMask.shape[1] + sizeChange[1]))
     # if transform matrix provided and alternate path is taken above
@@ -1948,19 +2120,6 @@ def mergeMask(compositeMask, newMask, level=0):
     return compositeMask
 
 
-def rotateImage(angle, pivot,img):
-    padX = [img.shape[1] - pivot[1], pivot[1]]
-    padY = [img.shape[0] - pivot[0], pivot[0]]
-    imgP = np.pad(img, [padY, padX], 'constant')
-    if abs(angle) % 90 == 0:
-        imgR = np.rot90(imgP,int(angle/90)).astype('uint8')
-    else:
-        try:
-            imgR = np.asarray(Image.fromarray(imgP).rotate(angle))
-        except:
-            imgR = ndimage.rotate(imgP, angle, cval=0, reshape=False, mode='constant').astype('uint8')
-
-    return imgR[padY[0] : -padY[1], padX[0] : -padX[1]]
 
 
 def  ssim(X,Y,MASK,**kwargs):
@@ -2224,6 +2383,7 @@ def convertToVideo(file_name, preferences=None):
         mask = reader.read()
         if mask is None:
             break
+    fn = reader.writer.filename
     return fn
 
 
@@ -2243,6 +2403,31 @@ def execute_every(interval, worker_func, start=True, **kwargs):
     if not start:
         worker_func(**kwargs)
 
+def getSingleFrameFromMask(video_masks,directory=None):
+        """
+        Read a single frame
+        :param start_time: insertion start time.
+        :param end_time:insertion end time.
+        :param directory:
+        :param video_masks:
+        :return: new set of video masks
+        """
+        mask = None
+        for mask_set in video_masks:
+            if 'videosegment' not in mask_set:
+                continue
+            reader = GrayBlockReader(os.path.join(directory,
+                                                  mask_set['videosegment'])
+                                     if directory is not None else mask_set['videosegment'])
+            try:
+                while True:
+                    mask = reader.read()
+                    break
+            finally:
+                reader.close()
+            if mask is not None:
+                break
+        return ImageWrapper(mask) if mask is not None else None
 
 class GrayBlockReader:
     pos = 0
@@ -2256,13 +2441,17 @@ class GrayBlockReader:
         self.dset = self.h_file.get('masks').get('masks')
         self.fps = self.h_file.attrs['fps']
         self.start_time = self.h_file.attrs['start_time']
+        self.start_frame = self.h_file.attrs['start_frame']
         self.convert = convert
         self.writer = GrayFrameWriter(filename[0:filename.rfind('.')],
                                       self.fps,
                                       preferences=preferences) if self.convert else DummyWriter()
 
     def current_frame_time(self):
-        return self.start_time + (self.pos * self.fps)
+        return self.start_time + (self.pos * (1000/self.fps))
+
+    def current_frame(self):
+        return self.start_frame + self.pos
 
     def read(self):
         if self.dset is None:
@@ -2309,7 +2498,7 @@ class GrayBlockWriter:
         self.fps = fps
         self.mask_prefix = mask_prefix
 
-    def write(self, mask, mask_time):
+    def write(self, mask, mask_time, frame_number):
         import h5py
         if self.h_file is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
@@ -2319,6 +2508,7 @@ class GrayBlockWriter:
             self.h_file.attrs['fps'] = self.fps
             self.h_file.attrs['prefix'] = self.mask_prefix
             self.h_file.attrs['start_time'] = mask_time
+            self.h_file.attrs['start_frame'] = frame_number
             self.grp = self.h_file.create_group('masks')
             self.dset = self.grp.create_dataset("masks",
                                                 (10, mask.shape[0], mask.shape[1]),
@@ -2333,7 +2523,8 @@ class GrayBlockWriter:
             new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
             for i in range(mask.shape[2]):
                 new_mask[mask[:, :, i] > 0] = 0
-        self.dset[self.pos, :, :] = new_mask
+        self.dset[self.pos,:,:] = new_mask
+        #self.dset[self.pos, :, :] = new_mask
         self.pos += 1
 
     def get_file_name(self):
@@ -2358,7 +2549,7 @@ def preferredSuffix(preferences=None):
     if sys.platform.startswith('linux'):
         default_suffix = 'avi'
     if preferences is not None:
-        t_suffix = preferences.get_key('vid_suffix')
+        t_suffix = preferences['vid_suffix']
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 
@@ -2381,26 +2572,27 @@ class GrayFrameWriter:
         self.mask_prefix = mask_prefix
         self.suffix = preferredSuffix(preferences=preferences)
         t_codec = None
-        if preferences is not None:
-            t_codec = preferences.get_key('vid_codec')
+        if preferences is not None and 'vid_codec' in preferences:
+            t_codec = preferences['vid_codec']
         if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
 	elif t_codec is None and sys.platform.startswith('linux'):
             self.codec = 'XVID'
         elif t_codec is not None:
             self.codec = str(t_codec)
-        print self.codec
-        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec)
+        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec) if self.codec is not 'raw' else 0
 
     def write(self, mask, mask_time):
         if self.capOut is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
             logging.getLogger('maskgen').info('writing using fourcc ' + str(self.fourcc))
+            if os.path.exists(unicode(os.path.abspath(self.filename))):
+                os.remove(unicode(os.path.abspath(self.filename)))
             self.capOut = cv2.VideoWriter(unicode(os.path.abspath(self.filename)),
                                           self.fourcc,
                                           self.fps,
                                           (mask.shape[1], mask.shape[0]),
-                                          False)
+                                          len(mask.shape) > 2 and mask.shape[2] > 1)
         if cv2.__version__.startswith('2.4.11'):
             mask = grayToRGB(mask)
         self.capOut.write(mask)

@@ -217,7 +217,7 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0], filetypes=filetypes)
         if (val != None and len(val) > 0):
             res = val
-    elif argumentTuple[1]['type'] == 'file:':
+    elif argumentTuple[1]['type'].startswith('file:'):
         prop = argumentTuple[1]['type']
         typematch = '*.' + prop[prop.find(':') + 1:]
         typename = prop[prop.find(':') + 1:].upper()
@@ -1586,10 +1586,13 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
-        self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
-                                                onvalue="yes", offvalue="no")
-        self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
-        return self.cbIncludeInComposite
+        if  self.modification.category not in ['Transform', 'Output','AntiForensic','Laundering']:
+            self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
+                                                    onvalue="yes", offvalue="no")
+            self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
+            return self.cbIncludeInComposite
+        else:
+            return None
 
     def deletemask(self):
         self.selectMasks[self.optionsBox.get()] = None
@@ -1620,7 +1623,7 @@ class QAViewDialog(Toplevel):
         @type parent: MakeGenUI
         """
         self.parent = parent
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites()
+        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
         Toplevel.__init__(self, parent)
         #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
         self.createWidgets()
@@ -1735,7 +1738,10 @@ class QAViewDialog(Toplevel):
             n = self.parent.scModel.G.get_node(probe.finalNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
-            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500), probe.targetMaskImage.size)
+            final = openImage(finalFile)
+            finalResized = imageResizeRelative(final, (500, 500), final.size)
+            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500),
+                                            probe.targetMaskImage.size if probe.targetMaskImage is not None else finalResized.size)
         else:
             edgeTuple = tuple(self.optionsBox.get().split('<-'))
             probe = \
@@ -1743,11 +1749,12 @@ class QAViewDialog(Toplevel):
             n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
-            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
+            final = openImage(finalFile)
+            finalResized = imageResizeRelative(final, (500, 500), final.size)
+            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
+                                            probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
         self.operationVar.set(self._compose_label(edge))
-        final = openImage(finalFile)
-        finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize is True:
@@ -1809,10 +1816,8 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
     def _newComposite(self):
         from PIL import Image
         if self.prior_composite is None:
-            self.prior_composite = \
-                self.scModel.constructCompositeForNode(self.scModel.start,
-                                                       level=self.level,
-                                                       colorMap=self.colorMap)
+            self.prior_probes = self.scModel.constructPathProbes(start=self.scModel.start)
+            self.prior_composite = composite = self.prior_probes[-1].composites['color']['image']
         override_args={
             'op' : self.op,
             'shape change': str((int(self.nextIM.size[1]-self.startIM.size[1]),
@@ -1822,10 +1827,9 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
             self.updateBox()
             override_args['arguments'] = {self.argument_name :
                                     self.getStringConfiguration()}
-        composite = self.scModel.extendCompositeByOne(self.prior_composite,
-                                                  level=self.level,
-                                                  colorMap=self.colorMap,
-                                                  override_args=override_args)
+        new_probes =  self.scModel.extendCompositeByOne(self.prior_probes,
+                                                       override_args=override_args)
+        composite = new_probes[-1].composites['color']['image']
         if composite.size != self.nextIM.size:
             composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
         return composite
@@ -2230,9 +2234,9 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
-           elif prop.type.startswith == 'file:':
-               typematch = '*.' + prop[prop.find(':')+1:]
-               typename =  prop[prop.find(':') + 1:].upper()
+           elif prop.type.startswith('file:'):
+               typematch = '*.' + prop.name[prop.name.find(':')+1:]
+               typename =  prop.name[prop.name.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)

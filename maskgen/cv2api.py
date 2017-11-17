@@ -29,6 +29,10 @@ class CV2ApiV2(CV2Api):
         self.prop_frame_count = cv2.cv.CV_CAP_PROP_FRAME_COUNT
         self.tm_sqdiff_normed = cv2.cv.CV_TM_SQDIFF_NORMED
         self.tm_ccorr_normed = cv2.cv.CV_TM_CCORR_NORMED
+        self.fourcc = cv2.cv.CV_CAP_PROP_FOURCC
+        self.inter_linear = cv2.cv.CV_INTER_LINEAR
+        self.inter_cubic = cv2.cv.CV_INTER_CUBIC
+        self.inter_nn = cv2.cv.CV_INTER_NN
 
     def findContours(self,image,mode,method):
         contours, hierarchy  = cv2.findContours(image, mode, method)
@@ -56,6 +60,10 @@ class CV2ApiV3(CV2Api):
         self.prop_frame_count = cv2.CAP_PROP_FRAME_COUNT
         self.tm_sqdiff_normed = cv2.TM_SQDIFF_NORMED
         self.tm_ccorr_normed = cv2.TM_CCORR_NORMED
+        self.fourcc = cv2.CAP_PROP_FOURCC
+        self.inter_linear = cv2.INTER_LINEAR
+        self.inter_cubic = cv2.INTER_CUBIC
+        self.inter_nn = cv2.INTER_NEAREST
 
     def findContours(self,image,mode,method):
         img2, contours, hierarchy = cv2.findContours(image, mode, method)

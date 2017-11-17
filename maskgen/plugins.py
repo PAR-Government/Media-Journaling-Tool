@@ -211,6 +211,7 @@ def mapCmdArgs(args, mapping):
     return args
 
 def findPlugin(pluginName):
+    import errno
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
     pluginFolders.extend([os.path.join(x,'plugins') for x in sys.path if 'maskgen' in x])
     for parent in pluginFolders:
@@ -220,4 +221,4 @@ def findPlugin(pluginName):
             if f == pluginName:
                 return os.path.join(parent, f)
                 
-    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), pluginName)
+    raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), pluginName)

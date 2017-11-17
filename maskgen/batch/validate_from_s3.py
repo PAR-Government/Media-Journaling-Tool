@@ -206,11 +206,12 @@ def perform_update(project,args, functions,  tempdir):
     if args.updategraph:
         if os.path.exists(os.path.join(scModel.get_dir(),'_overview_.png')):
             return
-    error_list = scModel.exporttos3(args.uploadfolder, tempdir)
-    if len(error_list) > 0:
-        for err in error_list:
-            print err
-        raise ValueError('Export Failed')
+    if args.export:
+        error_list = scModel.exporttos3(args.uploadfolder, tempdir)
+        if len(error_list) > 0:
+            for err in error_list:
+                print err
+            raise ValueError('Export Failed')
     return scModel.validate()
 
 def fetchfromS3(dir, location, file):
@@ -256,6 +257,7 @@ def main():
     parser.add_argument('-tf', '--tempfolder', required=False, help='Temp Holder')
     parser.add_argument('-e',  '--functions', required=False, help='List of function')
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
+    parser.add_argument('-x', '--export', required=False, action='store_true', help='Export Results')
     args = parser.parse_args()
 
     functions_map = {}

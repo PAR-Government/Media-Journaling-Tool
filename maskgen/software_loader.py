@@ -77,7 +77,7 @@ class Operation:
     analysisOperations = []
     transitions = []
     compareparameters = {}
-    generateMask  = True
+    generateMask  = "all"
     groupedOperations = None
     groupedCategories = None
     maskTransformFunction = None
@@ -85,7 +85,7 @@ class Operation:
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
+                 compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
                  maskTransformFunction=None):
         self.name = name
         self.category = category
@@ -117,6 +117,12 @@ class Operation:
             return getRule(funcName)
         return None
 
+    def getVideoCompareFunction(self):
+        if 'video_function' in self.compareparameters:
+            funcName = self.compareparameters['video_function']
+            return getRule(funcName)
+        return None
+
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           sort_keys=True, indent=4)
@@ -131,7 +137,11 @@ def getOperation(name, fake = False, warning=True):
     """
     global metadataLoader
     if name == 'Donor':
-        return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
+        return Operation(name='Donor', category='Donor',maskTransformFunction=
+        {'image':'maskgen.mask_rules.donor',
+         'video':'maskgen.mask_rules.video_donor',
+         'audio': 'maskgen.mask_rules.audio_donor',
+         })
     if name not in metadataLoader.operations and warning:
         logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
     return metadataLoader.operations[name] if name in metadataLoader.operations else (Operation(name='name', category='Bad') if fake else None)
@@ -204,7 +214,7 @@ def loadOperationJSON(fileName):
                                         rules=op['rules'], optionalparameters=op['optionalparameters'],
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
-                                        generateMask=op['generateMask'] if 'generateMask' in op else True,
+                                        generateMask=op['generateMask'] if 'generateMask' in op else "all",
                                         analysisOperations=op[
                                             'analysisOperations'] if 'analysisOperations' in op else [],
                                         transitions=op['transitions'] if 'transitions' in op else [],
@@ -271,7 +281,7 @@ def getFilters(filtertype):
 
 def _loadSoftware( fileName):
     fileName = getFileName(fileName)
-    softwareset = {'image': {}, 'video': {}, 'audio': {}}
+    softwareset = {'image': {}, 'video': {}, 'audio': {},'zip': {}}
     with open(fileName) as f:
         line_no = 0
         for l in f.readlines():
@@ -289,9 +299,10 @@ def _loadSoftware( fileName):
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
-                types = ['image', 'video'] if software_type == 'both' else [software_type]
-                types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                types = ['image', 'video', 'zip'] if software_type == 'both' else [software_type]
+                types = ['image', 'video', 'audio', 'zip'] if software_type == 'all' else types
                 types = ['video', 'audio'] if software_type == 'audio' else types
+                types = ['zip'] if software_type == 'zip' else types
                 for stype in types:
                     softwareset[stype][software_name] = versions
     return softwareset
@@ -439,7 +450,7 @@ class SoftwareLoader:
 
     def get_versions(self, name, software_type=None, version=None):
         global metadataLoader
-        types_to_check = ['image', 'video', 'audio'] if software_type is None else [software_type]
+        types_to_check = metadataLoader.softwareset.keys() if software_type is None else [software_type]
         for type_to_check in types_to_check:
             versions = metadataLoader.softwareset[type_to_check][name] if name in metadataLoader.softwareset[type_to_check] else None
             if versions is None:

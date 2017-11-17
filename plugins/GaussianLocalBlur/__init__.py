@@ -50,9 +50,9 @@ def operation():
                   'description':'Mask image where black pixels identify region to blur'
               },
               'Blur Type': {
-              'type': 'text',
-              'defaultvalue': 'Gaussian',
-              'description': ''
+                  'type': 'text',
+                  'defaultvalue': 'Gaussian',
+                  'description': ''
           }},
           'transitions': [
               'image.image'

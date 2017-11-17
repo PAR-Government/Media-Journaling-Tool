@@ -23,6 +23,7 @@ import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
+from mask_rules import Jpeg2000CompositeBuilder, CompositeBuilder
 """
   Main UI Driver for MaskGen
 """
@@ -215,23 +216,27 @@ class MakeGenUI(Frame):
                     self._setTitle()
             #val.close()
 
+    def recomputeallrmask(self):
+        for edge_id in self.scModel.getGraph().get_edges():
+            self.scModel.reproduceMask(edge_id=edge_id)
+
     def recomputeedgemask(self):
         analysis_params = {}
         if self.scModel.getEndType() == 'video':
             d = ItemDescriptionCaptureDialog(self,
                                              {
                                                  'video compare': self.scModel.getEdgeItem('video difference',
-                                                                                        default='ffmpeg')
+                                                                                        default='opencv')
                                              },
                                              {
                                                  "video compare": {
                                                      "type": "list",
                                                      "source": "video",
                                                      "values": [
-                                                         "ffmpeg",
-                                                         "opencv"
+                                                         "opencv",
+                                                         "ffmpeg"
                                                      ],
-                                                     "description": "FFMPEG is faster but more senstive"
+                                                     "description": "FFMPEG is faster but less accurate"
                                                  }
                                              },
                                              'Mask Reconstruct')
@@ -733,8 +738,9 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        composite = self.scModel.constructComposite()
-        if composite is not None:
+        probes = self.scModel.constructPathProbes()
+        if probes is not None:
+            composite = probes[-1].composites['color']['image']
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewmaskoverlay(self):
@@ -890,7 +896,7 @@ class MakeGenUI(Frame):
             self.scModel.update_edge(d.modification)
 
     def createProbes(self):
-        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, graph_rules.Jpeg2000CompositeBuilder])
+        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
 
     def startQA(self):
         if self.scModel.getProjectData('validation') == 'yes':
@@ -979,6 +985,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
         validationmenu.add_command(label="Final Image Analysis", command=self.finalimageanalysis)
         validationmenu.add_command(label="Probes",command=self.createProbes)
+        validationmenu.add_command(label="Recompute All Masks", command=self.recomputeallrmask)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 

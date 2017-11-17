@@ -1,18 +1,15 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, IntObject, getFileMeta, mergeColorMask, \
-    maskToColorArray, maskChangeAnalysis, openImage
+    getDurationStringFromMilliseconds, getFileMeta,  openImage
 import new
 from types import MethodType
 import numpy
-from maskgen import Probe
-from image_wrap import ImageWrapper
 from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate, getMeta
+from video_tools import getFrameRate, getMeta,getMaskSetForEntireVideo,getDuration
 import numpy as np
 
 rules = {}
@@ -550,27 +547,53 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     et = None
     for k, v in args.iteritems():
         if k.endswith('End Time'):
-            et = getMilliSecondsAndFrameCount(v)
+            et = v #getMilliSecondsAndFrameCount(v)
         elif k.endswith('Start Time'):
-            st = getMilliSecondsAndFrameCount(v)
+            st = v #getMilliSecondsAndFrameCount(v)
     masks = edge['videomasks'] if 'videomasks' in edge else []
-    start = 2147483647
-    end = 0
-    rate = 0
+    mask_start_constraints = {}
+    mask_end_constraints = {}
+    mask_rates = {}
     dir = graph.dir
     file = os.path.join(dir, graph.get_node(frm)['file'])
+    if fileType(file) not in ['audio','video']:
+        return
+    real_masks = getMaskSetForEntireVideo(file,start_time=st, end_time=et,media_types=['video','audio'])
     for mask in masks:
-        start = min(start, mask['starttime'])
-        rate = mask['rate'] if 'rate' in mask else (rate if rate > 0 else getFrameRate(file, default=29.97))
-        end = max(end, mask['endtime'])
+        mask_start_constraints[ mask['type']] = min(
+            (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
+                                                   mask['starttime'])
+        mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
+                                                                                     default=29.97,
+                                                                                     audio= mask['type']=='audio')
+        mask_end_constraints[mask['type']] = max(
+            (mask_end_constraints[mask['type']] if mask['type'] in mask_end_constraints else 0),
+            mask['endtime'])
+    real_mask_start_constraints = {}
+    real_mask_end_constraints = {}
+    for mask in real_masks:
+        real_mask_start_constraints[mask['type']] = min(
+            (real_mask_start_constraints[mask['type']] if mask['type'] in real_mask_start_constraints else 2147483647),
+            mask['starttime'])
+        mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
+            getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
+        real_mask_end_constraints[mask['type']] = max(
+            (real_mask_end_constraints[mask['type']] if mask['type'] in real_mask_end_constraints else 0),
+            mask['endtime'])
     if st is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
-    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
-    #rate = rate / 1000.0
-    if st is not None and abs(start - (st[1] / rate + st[0])) >= max(1000, rate):
-        return 'Start time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
-    if et is not None and abs(end - (et[1] / rate + et[0])) >= max(1000, rate):
-        return '[Warning] End time entered does not match detected end time: ' + getDurationStringFromMilliseconds(end)
+    if 'video' in mask_rates:
+        mask_rates['video'] = 1000.0/mask_rates['video']
+    if 'audio' in mask_rates:
+        mask_rates['audio'] = 1.0
+    for key, value in mask_start_constraints.iteritems():
+        if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
+            return 'Start time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_start_constraints[key]))
+    for key, value in real_mask_end_constraints.iteritems():
+        if key in mask_end_constraints and abs(value - mask_end_constraints[key]) > mask_rates[key]:
+            return 'End time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_end_constraints[key]))
 
 
 def checkVideoMasks(op,graph, frm, to):
@@ -608,26 +631,42 @@ def checkAddFrameTime(op, graph, frm, to):
     """
     edge = graph.get_edge(frm, to)
     args = edge['arguments'] if 'arguments' in edge  else {}
-    it = None
+    st = None
     for k, v in args.iteritems():
-        if k.endswith('Insertion Time') or k.endswith('Insertion Start Time'):
-            it = getMilliSecondsAndFrameCount(v)
+        if k.endswith('Start Time') or  k.endswith('Insertion Time') or k.endswith('Insertion Start Time'):
+            st = v
     masks = edge['videomasks'] if 'videomasks' in edge else []
-    start = 2147483647
-    end = 0
-    rate = 0
+    mask_start_constraints = {}
+    mask_rates = {}
     dir = graph.dir
     file = os.path.join(dir, graph.get_node(frm)['file'])
+    if fileType(file) not in ['audio','video']:
+        return
+    real_masks = getMaskSetForEntireVideo(file,start_time=st,media_types=['video','audio'])
     for mask in masks:
-        start = min(start, mask['starttime'])
-        rate = mask['rate'] if 'rate' in mask else getFrameRate(file, default=29.97)
-        end = max(end, mask['endtime'])
-    if it is not None and len(masks) == 0:
+        mask_start_constraints[ mask['type']] = min(
+            (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
+                                                   mask['starttime'])
+        mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
+                                                                                     default=29.97,
+                                                                                     audio= mask['type']=='audio')
+    real_mask_start_constraints = {}
+    for mask in real_masks:
+        real_mask_start_constraints[mask['type']] = min(
+            (real_mask_start_constraints[mask['type']] if mask['type'] in real_mask_start_constraints else 2147483647),
+            mask['starttime'])
+        mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
+            getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
+    if st is not None and len(masks) == 0:
         return 'Change masks not generated.  Trying recomputing edge mask'
-    rate = rate if rate > 0 else getFrameRate(os.path.join(dir, graph.get_node(frm)['file']), default=29.97)
-    rate = rate / 1000.0
-    if it is not None and abs(start - (it[1] / rate + it[0])) >= max(1000, rate):
-        return 'Insertion time entered does not match detected start time: ' + getDurationStringFromMilliseconds(start)
+    if 'video' in mask_rates:
+        mask_rates['video'] = 1000.0/mask_rates['video']
+    if 'audio' in mask_rates:
+        mask_rates['audio'] = 1.0
+    for key, value in mask_start_constraints.iteritems():
+        if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
+            return 'Insertion time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_start_constraints[key]))
 
 
 def checkFrameTimes(op, graph, frm, to):
@@ -647,9 +686,9 @@ def checkFrameTimes(op, graph, frm, to):
     st = None
     et = None
     for k, v in args.iteritems():
-        if k.endswith('Time'):
+        if k.endswith('End Time'):
             et = getMilliSecondsAndFrameCount(v)
-        elif k.endswith('Time'):
+        elif k.endswith('Start Time'):
             st = getMilliSecondsAndFrameCount(v)
     if st is None and et is None:
         return None
@@ -690,23 +729,9 @@ def checkCropLength(op, graph, frm, to):
     file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     rate = getFrameRate(file, default=29.97)
     givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
-    measuredDifference = None
-    for item in edge['metadatadiff']:
-        if 'duration'  in item:
-            #before = getMilliSecondsAndFrameCount(item['duration'][1])
-            after = getMilliSecondsAndFrameCount(item['duration'][2])
-            measuredDifference = after[0] + rate* after[1]
-        #if '0' in item:
-        #    if len(item['0'][0]) > 0 and item['0'][0] == 'change':
-        #        sumdeletes = (0,0)
-        #        for change in item['0'][1]:
-        #            if change[0] == 'delete':
-        #                sumdeletes = (sumdeletes[0] + (change[2]-change[1]), sumdeletes[1] + change[3])
-        #        sumdeletes = (sumdeletes[0]*1000, 0)
-    if measuredDifference is None:
-        return 'Could not validate difference.  Recompute Edge Mask'
-    if abs(measuredDifference - givenDifference) > 1:
-        return 'Actual amount of time cropped from video is {} in milliseconds'.format(measuredDifference)
+    duration = getDuration(file,default=None)
+    if abs(duration - givenDifference) > 1:
+        return 'Actual amount of time of cropped video is {} in milliseconds'.format(duration)
     return None
 
 def checkCropSize(op, graph, frm, to):
@@ -749,7 +774,7 @@ def checkResizeInterpolation(op, graph, frm, to):
             return interpolation + ' interpolation is not permitted with a decrease in size'
 
 
-def checkSameChannels(op, graph, frm, to):
+def checkChannelLoss(op, graph, frm, to):
     """
      :param op:
      :param graph:
@@ -767,6 +792,30 @@ def checkSameChannels(op, graph, frm, to):
         return
     metaBefore = getFileMeta(vidBefore)
     metaAfter = getFileMeta(vidAfter)
+    if len(metaBefore) > len(metaAfter):
+        return 'change in the number of streams occurred'
+
+
+def checkSameChannels(op, graph, frm, to):
+    """
+     :param op:
+     :param graph:
+     :param frm:
+     :param to:
+     :return:
+     @type op: Operation
+     @type graph: ImageGraph
+     @type frm: str
+     @type to: str
+    """
+    vidBefore = graph.get_image_path(frm)
+    vidAfter = graph.get_image_path(to)
+    if fileType(vidAfter) == 'image' or fileType(vidBefore) == 'image':
+        return
+    metaAfter = getFileMeta(vidAfter)
+    if fileType(vidBefore)=='zip' and len(metaAfter) != 1:
+        return 'change in the number of streams occurred'
+    metaBefore = getFileMeta(vidBefore)
     if len(metaBefore) != len(metaAfter):
         return 'change in the number of streams occurred'
     if len(metaBefore) == 0:
@@ -1146,7 +1195,7 @@ def checkLengthSame(op, graph, frm, to):
      @type to: str
     """
     edge = graph.get_edge(frm, to)
-    durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
+    durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
         return "Length of video has changed"
 
@@ -1164,7 +1213,7 @@ def checkLengthSmaller(op, graph, frm, to):
          @type to: str
     """
     edge = graph.get_edge(frm, to)
-    durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
+    durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] <
@@ -1286,7 +1335,7 @@ def checkPasteFrameLength(op, graph, frm, to):
     if addType == 'replace' and diff > duration:
         return "Replacement contain not increase the size of video beyond the size of the donor"
     if addType != 'replace':
-        return checkLengthBigger(graph, frm, to)
+        return checkLengthBigger(op, graph, frm, to)
 
 
 def checkLengthBigger(op, graph, frm, to):
@@ -1303,7 +1352,7 @@ def checkLengthBigger(op, graph, frm, to):
     """
     edge = graph.get_edge(frm, to)
 
-    durationChangeTuple = getValue(edge, 'metadatadiff[0].duration')
+    durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] >
@@ -1916,235 +1965,3 @@ def getOrientationForEdge(edge):
     return ''
 
 
-class GraphCompositeIdAssigner:
-    """
-        Each edge and final node is associated with a compositeid.
-        Each file node is associated with a group id.
-        target ids associated with a group id are unique.
-        A reset also increments the file id.
-        Reset points are algorithmically determined by detected pixel
-        changes for an on more than one path.
-        In the future, the algorithm should get the reset points
-        from the probe constuction where transforms themselves communicate
-        pixel changes along a path.  HOWEVER, that interjects responsibility
-        in that transformation code.  So, instead, post analysis is done here
-        to maintain some abstraction over efficiency.
-
-    """
-
-    def __init__(self, graph):
-        """
-        :param graph:
-        @type graph: ImageGraph
-        """
-        self.graph = graph
-
-    def updateProbes(self,probes, builder):
-        """
-        @type probes : list of Probe
-        :param builder:
-        :return:
-        """
-        self.__buildProbeEdgeIds(probes, builder)
-        return probes
-
-    def __buildProbeEdgeIds(self, probes,builder):
-        """
-         @type probes : list of Probe
-        :param probes:
-        :param baseNodes:
-        :return:
-        """
-        import hashlib
-        fileid = IntObject()
-        target_groups = dict()
-        group_bits = {}
-        # targets associated with different base nodes and shape are in a different groups
-        # note: target mask images will have the same shape as their final node
-        for probe in probes:
-            r = np.asarray(probe.targetMaskImage)
-            key = (probe.targetBaseNodeId, r.shape)
-            probeid = hashlib.sha384(r).hexdigest()
-            if key not in target_groups:
-                target_groups[key] = {}
-                target_groups[key] = (fileid.value, {})
-                group_bits[fileid.value] = IntObject()
-                fileid.increment()
-            if probe.edgeId not in target_groups[key][1]:
-                target_groups[key][1][probe.edgeId] = {}
-            if probeid not in target_groups[key][1][probe.edgeId]:
-                group_bits[target_groups[key][0]].increment()
-                probe.composites[builder] = {
-                    'groupid': target_groups[key][0],
-                    'bit number': group_bits[target_groups[key][0]].value
-                }
-                target_groups[key][1][probe.edgeId][probeid] = group_bits[target_groups[key][0]].value
-            else:
-                probe.composites[builder] = {
-                    'groupid': target_groups[key][0],
-                    'bit number': target_groups[key][1][probe.edgeId][probeid]
-                }
-
-
-class CompositeBuilder:
-    def __init__(self, passes, composite_type):
-        self.passes = passes
-        self.composite_type = composite_type
-
-    def initialize(self, graph, probes):
-        pass
-
-    def finalize(self, probes):
-        pass
-
-    def build(self, passcount, probe, edge):
-        pass
-
-    def getComposite(self, finalNodeId):
-        return None
-
-
-class Jpeg2000CompositeBuilder(CompositeBuilder):
-    def __init__(self):
-        self.composites = dict()
-        self.group_bit_check = dict()
-        CompositeBuilder.__init__(self, 1, 'jp2')
-
-    def initialize(self, graph, probes):
-        compositeIdAssigner = GraphCompositeIdAssigner(graph)
-        return compositeIdAssigner.updateProbes(probes, self.composite_type)
-
-    def build(self, passcount, probe, edge):
-        import math
-        """
-
-        :param passcount:
-        :param probe:
-        :param edge:
-        :return:
-        @type probe: Probe
-        """
-        if passcount > 0:
-            return
-        groupid = probe.composites[self.composite_type]['groupid']
-        targetid = probe.composites[self.composite_type]['bit number']
-        bit = targetid - 1
-        if groupid not in self.composites:
-            self.composites[groupid] = []
-        composite_list = self.composites[groupid]
-        composite_mask_id = (bit / 8)
-        imarray = np.asarray(probe.targetMaskImage)
-        # check to see if the bits are in fact the same for a group
-        checkNotSet= False
-        if (groupid, targetid) not in self.group_bit_check:
-            self.group_bit_check[(groupid, targetid)] = imarray
-        else:
-            assert sum(sum(self.group_bit_check[(groupid, targetid)] - imarray)) == 0
-            checkNotSet = True
-        while (composite_mask_id + 1) > len(composite_list):
-            composite_list.append(np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8'))
-        thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
-        bitvalue = int(math.pow(2, bit % 8))
-        thisbit[imarray == 0] = bitvalue
-        if checkNotSet:
-            bitvalue = int(math.pow(2, bit-1 % 8))
-            assert(np.all(composite_list[composite_mask_id]>>bitvalue == thisbit>>bitvalue))
-        else:
-            composite_list[composite_mask_id] = composite_list[composite_mask_id] + thisbit
-
-    def finalize(self, probes):
-        results = {}
-        if len(probes) == 0:
-            return
-        dir = [os.path.split(probe.targetMaskFileName)[0] for probe in probes][0]
-        for groupid, compositeMaskList in self.composites.iteritems():
-            third_dimension = len(compositeMaskList)
-            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
-            if third_dimension == 1:
-                result = compositeMaskList[0]
-                analysis_mask[compositeMaskList[0] > 0] = 255
-            else:
-                result = np.zeros(
-                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
-                for dim in range(third_dimension):
-                    result[:, :, dim] = compositeMaskList[dim]
-                    analysis_mask[compositeMaskList[dim] > 0] = 255
-            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
-                                                                     globalAnalysis=True)
-            img = ImageWrapper(result, mode='JP2')
-            results[groupid] = (img, globalchange, changeCategory, ratio)
-            img.save(os.path.join(dir, str(groupid) + '_c.jp2'))
-
-        for probe in probes:
-            groupid = probe.composites[self.composite_type]['groupid']
-            finalResult = results[groupid]
-            targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
-            probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName
-            probe.composites[self.composite_type]['image'] = finalResult[0]
-        return results
-
-
-class ColorCompositeBuilder(CompositeBuilder):
-    def __init__(self):
-        self.composites = dict()
-        self.colors = dict()
-        CompositeBuilder.__init__(self, 2, 'color')
-
-    def initialize(self, graph, probes):
-        for probe in probes:
-            edge = graph.get_edge(probe.edgeId[0], probe.edgeId[1])
-            color = [int(x) for x in edge['linkcolor'].split(' ')]
-            self.colors[probe.edgeId] = color
-
-    def _to_color_target_name(self, name):
-        return name[0:name.rfind('.png')] + '_c.png'
-
-    def build(self, passcount, probe, edge):
-        if passcount == 0:
-            return self.pass1(probe, edge)
-        elif passcount == 1:
-            return self.pass2(probe, edge)
-
-    def pass1(self, probe, edge):
-        color = [int(x) for x in edge['linkcolor'].split(' ')]
-        colorMask = maskToColorArray(probe.targetMaskImage, color=color)
-        if probe.finalNodeId in self.composites:
-            self.composites[probe.finalNodeId] = mergeColorMask(self.composites[probe.finalNodeId], colorMask)
-        else:
-            self.composites[probe.finalNodeId] = colorMask
-
-    def pass2(self, probe, edge):
-        """
-
-        :param probe:
-        :param edge:
-        :return:
-        @type probe: graph_rules.
-        """
-        # now reconstruct the probe target to be color coded and obscured by overlaying operations
-        color = [int(x) for x in edge['linkcolor'].split(' ')]
-        composite_mask_array = self.composites[probe.finalNodeId]
-        result = np.ones(composite_mask_array.shape).astype('uint8') * 255
-        matches = np.all(composite_mask_array == color, axis=2)
-        #  only contains visible color in the composite
-        result[matches] = color
-
-    def finalize(self, probes):
-        results = {}
-        for finalNodeId, compositeMask in self.composites.iteritems():
-            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
-            matches = np.any(compositeMask != [255, 255, 255], axis=2)
-            result[matches] = 255
-            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
-                                                                     globalAnalysis=True)
-            results[finalNodeId] = (ImageWrapper(compositeMask), globalchange, changeCategory, ratio)
-        for probe in probes:
-            finalResult = results[probe.finalNodeId]
-            targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
-            probe.composites[self.composite_type] = {
-                'file name': targetColorMaskImageName,
-                'image': finalResult[0],
-                'color': self.colors[probe.edgeId]
-            }
-            finalResult[0].save(targetColorMaskImageName)
-        return results

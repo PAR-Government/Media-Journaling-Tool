@@ -163,12 +163,13 @@ class FilePermuteGroupElement(PersistentPermuteGroupElement):
         Iterate through a list of files in a directory, excluding files in the provided
         tracking file (tracking_filename).  Reset not supported.
     """
-    def __init__(self, name, directory, tracking_filename=None):
+    def __init__(self, name, directory, tracking_filename=None, filetypes=None):
         self.directory = directory
         self.tracking_filename  = tracking_filename if tracking_filename is not None else self.name
         if not os.path.exists(directory):
             raise ValueError("ImageSelection missing valid image_directory: " + directory)
-        self.listing = [os.path.join(self.directory,item) for item in os.listdir(directory)]
+        self.listing = [os.path.join(self.directory,item) for item in os.listdir(directory) if \
+                        (filetypes is None or item[item.rfind('.')+1:] in filetypes)]
         PersistentPermuteGroupElement.__init__(self, name, self.listing.__iter__)
 
     def getSaveFileName(self):
