@@ -32,7 +32,9 @@ class CV2ApiV2(CV2Api):
         self.fourcc = cv2.cv.CV_CAP_PROP_FOURCC
         self.inter_linear = cv2.cv.CV_INTER_LINEAR
         self.inter_cubic = cv2.cv.CV_INTER_CUBIC
-        self.inter_nn = cv2.cv.CV_INTER_NN
+        self.inter_nn = cv2.INTER_NEAREST
+        self.inter_area = cv2.INTER_AREA
+        self.inter_lanczos = cv2.INTER_LANCZOS4
 
     def findContours(self,image,mode,method):
         contours, hierarchy  = cv2.findContours(image, mode, method)
@@ -64,6 +66,8 @@ class CV2ApiV3(CV2Api):
         self.inter_linear = cv2.INTER_LINEAR
         self.inter_cubic = cv2.INTER_CUBIC
         self.inter_nn = cv2.INTER_NEAREST
+        self.inter_area = cv2.INTER_AREA
+        self.inter_lanczos = cv2.INTER_LANCZOS4
 
     def findContours(self,image,mode,method):
         img2, contours, hierarchy = cv2.findContours(image, mode, method)
