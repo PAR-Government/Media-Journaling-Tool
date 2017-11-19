@@ -1672,6 +1672,20 @@ def rotateCompare(img1, img2,  arguments=dict()):
         return __compareRotatedImage(rotation, img1, img2, arguments)
     return None,{}
 
+def resizeCompare(img1, img2,  arguments=dict()):
+    interpolation = arguments['interpolation'] if 'interpolation' in arguments else 'nearest'
+    map = {
+        'bicubic': cv2api.cv2api_delegate.inter_cubic,
+        'nearest': cv2api.cv2api_delegate.inter_nn,
+        'bilinear': cv2api.cv2api_delegate.inter_linear,
+        'cubic': cv2api.cv2api_delegate.inter_cubic,
+        'mesh': cv2api.cv2api_delegate.inter_area,
+        'lanczos': cv2api.cv2api_delegate.inter_lanczos
+    }
+    inter_val = map[interpolation] if interpolation in map else cv2api.cv2api_delegate.inter_nn
+    new_img1 = cv2.resize(img1,(img2.shape[1],img2.shape[0]),interpolation=inter_val)
+    return __diffMask(new_img1, img2, False, args=arguments)
+
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments,
                                  convertFunction=convertFunction)

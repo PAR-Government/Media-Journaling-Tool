@@ -1424,6 +1424,14 @@
            "description":"How was the image downloaded"
          }
       },
+      "compareparameters" : {
+        "function":"maskgen.tool_set.resizeCompare"
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.resize_transform",
+        "video": "maskgen.mask_rules.video_resize_transform"
+       },
+      "generateMask" : "meta",
       "rules": [
         "checkSameChannels"
       ],
@@ -3855,6 +3863,9 @@
         "image": "maskgen.mask_rules.resize_transform",
         "video": "maskgen.mask_rules.video_resize_transform"
        },
+       "compareparameters" : {
+        "function":"maskgen.tool_set.resizeCompare"
+      },
       "description": "Alter the dimensions of an image.",
       "includeInMask": false,
       "generateMask" : "frames",
