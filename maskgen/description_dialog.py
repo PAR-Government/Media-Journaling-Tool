@@ -51,6 +51,11 @@ def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, arg
             nomatches = [rk for rk, rv in v['rule'].iteritems() if rk in argvalues and argvalues[rk] != rv]
             ok &= (len(nomatches) > 0 or
                    (k in argvalues and argvalues[k] is not None and len(str(argvalues[k])) > 0))
+    if op.parameter_dependencies is not None:
+        for param_name, param_requirements in op.parameter_dependencies.iteritems():
+            if param_name in argvalues and argvalues[param_name] in param_requirements:
+                check_name = param_requirements[argvalues[param_name]]
+                ok &= (check_name in argvalues and argvalues[check_name] is not None and len(str(argvalues[check_name])) > 0)
     return ok
 
 def checkValue(name, value_type, value):

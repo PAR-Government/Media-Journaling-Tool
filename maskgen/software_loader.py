@@ -82,11 +82,66 @@ class Operation:
     groupedCategories = None
     maskTransformFunction = None
     compareOperations = None
+    parameter_dependencies = None
+    """
+    parameter_dependencies is a dictionary: { 'parameter name' : { 'parameter value' : 'dependenent parameter name'}}
+    If the parameter identitied by parameter name has a value if 'parameter value' then the parameter identified by
+    'dependent parameter name' is required.
+
+    compareparamaters are used to pick arguments and algorithms for link comparison and analysis functions.
+    Examples:
+         "function" :"maskgen.tool_set.cropCompare",
+         "video_function": "maskgen.video_tools.cropCompare"
+         "tolerance" : 0.0001
+
+    maskTransformFunction is a dictionary of functions associated with type of media which determines the
+    transformation function applied to a mask as it is re-alligned to the final or base image for composite or
+    donor mask construction, respectively.  Examples:
+        "image": "maskgen.mask_rules.crop_transform",
+        "video":"maskgen.mask_rules.video_crop_transform"
+
+    rules is a list of functions to apply to each link during validation.  The signature of each of function
+    is  (op, graph, frm, to)
+      op = Operation
+      graph = maskgen.image_graph.ImageGraph
+      frm = str source node id
+      to = str targe node id
+
+    transitions is a list of string of the format source type '.' target type.
+    The types identify media types (e.g. audio, video ,zip and image).    The transition identifies
+    allowed transitions supported by the specific operation.  For example, 'video.image' states that the
+    associated operation can convert a video to an image.
+
+    generateMask states whether an operation analysis requires mask generation for 'all', 'frames', 'meta' or None.
+    For the moment, all and frames are the same thing: frames and meta data is collected for each link comparing source
+    and target media.  generateMask currently only applies to video and audio.
+
+    analysisOperations is a list of function names that are used to populate the analysis dictionary collected at link
+     comparison time. Analysis can find transform matrices, shape changes, location identification, etc.
+     The results of analysis are often used by maskTransformFunction functions to construct composite and donor masks,
+     acting as the transform parameters.
+
+    groupedOperations and groupedCategories are lists of operations and categories represented by an agglomerative/composite
+    operation.
+
+    @type category: str
+    @type generateMask: tr
+    @type name: str
+    @type rules: list
+    @type transitions : list
+    @type description: str
+    @type analysisOperations: list
+    @type mandatoryparameters: dict
+    @type optionalparameters: dict
+    @type compareparameters: dict
+    @type parameter_dependencies: dict
+    @type maskTransformFunction:dict
+    """
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
-                 maskTransformFunction=None):
+                 maskTransformFunction=None,parameter_dependencies = None):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -101,6 +156,7 @@ class Operation:
         self.groupedOperations = groupedOperations
         self.groupedCategories = groupedCategories
         self.maskTransformFunction = maskTransformFunction
+        self.parameter_dependencies = parameter_dependencies
 
     def recordMaskInComposite(self):
         return 'yes' if self.includeInMask else 'no'
@@ -220,7 +276,8 @@ def loadOperationJSON(fileName):
                                         transitions=op['transitions'] if 'transitions' in op else [],
                                         compareparameters=op[
                                             'compareparameters'] if 'compareparameters' in op else dict(),
-                                        maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
+                                        maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None,
+                                        parameter_dependencies=op['parameter_dependencies'] if 'parameter_dependencies' in op else None)
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 

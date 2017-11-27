@@ -217,7 +217,7 @@
         },
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch"],
+          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch", "Ratio"],
           "description": "Type of filter"
         },
         "Start Time": {
@@ -237,6 +237,9 @@
         "checkSameChannels",
         "checkUncompressed"
       ],
+      "parameter_dependencies" : {
+        "Filter Type" : { "Ratio": "Ratio" }
+      },
       "optionalparameters": {
         "Stream" : {
           "type" : "list",
@@ -254,6 +257,10 @@
         "Amplitude Reduction": {
           "type": "int[0:40]",
           "description": "In Decibals"
+        },
+        "Ratio": {
+          "type": "float[0:1000000]",
+          "description": "Percentage of frequencies processed for noise below analyzed noise floor"
         },
         "Spectral Decay Rate": {
           "type": "int[0:100]",

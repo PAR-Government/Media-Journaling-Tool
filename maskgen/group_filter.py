@@ -21,12 +21,15 @@ def callRule(functions, *args, **kwargs):
 
 
 def addToSet(aSet, aList):
+    if aList is None:
+        return
     for item in aList:
         if item not in aSet:
             aSet.add(item)
 
-
 def addToMap(to_map, from_map):
+    if from_map is None:
+        return
     for k, v in from_map.iteritems():
         to_map[k] = v
 
@@ -63,7 +66,8 @@ def buildFilterOperation(pluginOp):
                      optionalparameters=optional,
                      rules=realOp.rules,
                      includeInMask=realOp.includeInMask,
-                     transitions=pluginOp['transitions'])
+                     transitions=pluginOp['transitions'],
+                     parameter_dependencies=pluginOp['parameter_dependencies'] if 'parameter_dependencies' in pluginOp else None)
 
 class GroupFilter:
     name = None
@@ -175,6 +179,7 @@ class GroupFilterLoader:
             rules = set()
             opt_params = dict()
             mandatory_params = dict()
+            dependencies = dict()
             analysisOperations = set()
             generateMask = "meta"
             grp_categories = set()
@@ -192,6 +197,7 @@ class GroupFilterLoader:
                 addToMap(mandatory_params, operation.mandatoryparameters)
                 addToMap(opt_params, operation.optionalparameters)
                 addToSet(analysisOperations, operation.analysisOperations)
+                addToMap(dependencies, operation.parameter_dependencies)
                 if operation.maskTransformFunction is not None:
                     customFunctions.append(operation.maskTransformFunction)
                 else:
@@ -214,7 +220,8 @@ class GroupFilterLoader:
                              groupedOperations=grp.filters,
                              groupedCategories=grp_categories,
                              analysisOperations=analysisOperations,
-                             maskTransformFunction=maskTransformFunction)
+                             maskTransformFunction=maskTransformFunction,
+                             parameter_dependencies=dependencies)
         return getOperation(name,fake=True)
 
     def getOperation(self, name):
