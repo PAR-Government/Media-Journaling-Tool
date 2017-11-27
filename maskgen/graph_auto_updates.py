@@ -544,7 +544,7 @@ def _fixRecordMasInComposite(scModel,gopLoader):
          if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
             edge['recordMaskInComposite'] = 'yes'
          op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
-         if op.category in ['Transform', 'Output','AntiForensic','Laundering']:
+         if op.category in ['Output','AntiForensic','Laundering']:
              edge['recordMaskInComposite'] = 'no'
 
 

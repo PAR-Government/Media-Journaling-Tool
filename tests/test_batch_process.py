@@ -140,22 +140,15 @@ class TestBatchProcess(unittest.TestCase):
         if os.path.exists('test_projects'):
             shutil.rmtree('test_projects')
         os.mkdir('test_projects')
+
+        be = batch_project.BatchExecutor('test_projects')
         batch_project.loadCustomFunctions()
         batchProject = batch_project.loadJSONGraph('tests/external_image_batch_process.json')
         os.mkdir('results')
         saveAsPng('tests/images/test_project1.jpg', 'results/test_project1.png')
         with open('results/arguments.csv', 'w') as fp:
             fp.write('test_project1.png,no,16')
-        global_state = {
-            'projects': 'test_projects',
-            'project': batchProject,
-            'picklists_files': {},
-            'workdir': '.',
-            'count': batch_project.IntObject(20),
-            'permutegroupsmanager': PermuteGroupManager()
-        }
-        batchProject.loadPermuteGroups(global_state)
-        batchProject.executeOnce(global_state)
+        be.runProject(batchProject,20,graph=True)
 
         if os.path.exists('results'):
             shutil.rmtree('results')

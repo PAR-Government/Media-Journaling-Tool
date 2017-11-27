@@ -122,14 +122,12 @@ def pickArg(param_spec, node_name, spec_name, global_state, local_state):
 
 pluginSpecFuncs = {}
 
-
 def loadCustomFunctions():
     import pkg_resources
     for p in pkg_resources.iter_entry_points("maskgen_specs"):
         logging.getLogger('maskgen').info('load spec ' + p.name)
         if p.name not in pluginSpecFuncs:
             pluginSpecFuncs[p.name] = p.load()
-
 
 def callPluginSpec(specification, local_state):
     if specification['name'] not in pluginSpecFuncs:
@@ -156,10 +154,15 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     if specification['type'] == 'mask':
         source = getNodeState(specification['source'], local_state)['node']
         target = getNodeState(specification['target'], local_state)['node']
-        return os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source,
+        invert = specification['invert'] if 'invert' in specification else False
+        mask= os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source,
                                                                                                            target,
                                                                                                            'maskname')[
             1])
+        if invert:
+            tool_set.openImageFile(mask,isMask=True).invert().save(mask + '.png')
+            mask = mask + '.png'
+        return mask
     elif specification['type'] == 'value':
         return specification['value']
     elif specification['type'] == 'variable':
@@ -249,7 +252,7 @@ def pickImageIterator(specification, spec_name, global_state):
     picklist_name = specification['picklist'] if 'picklist' in specification else spec_name
     if picklist_name not in global_state['picklists']:
         element = FilePermuteGroupElement(spec_name,
-                                          specification['image_directory'],
+                                          specification['image_directory'].format(**global_state),
                                           tracking_filename=picklist_name + '.txt',
                                           filetypes=specification['filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
@@ -435,7 +438,7 @@ class PreProcessedMediaOperation(BatchOperation):
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         filename = os.path.basename(filename)
-        directory = node['directory']
+        directory = node['directory'].format(**global_state)
         if not os.path.exists(directory):
             raise ValueError('Invalid directory "' + directory + '" with node ' + node_name)
         results = glob.glob(directory + os.path.sep + filename[0:filename.rfind('.')] + '*')
@@ -812,7 +815,6 @@ class BatchProject:
         return True
 
     def executeOnce(self, global_state=dict()):
-        # print 'next ' + currentThread().getName()
         global_state['permutegroupsmanager'].save()
         global_state['permutegroupsmanager'].next()
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
@@ -976,19 +978,6 @@ class BatchProject:
             logging.getLogger('maskgen').error(str(e))
             raise e
 
-
-def getBatch(jsonFile, loglevel=50):
-    """
-    :param jsonFile:
-    :return:
-    @return BatchProject
-    """
-    FORMAT = '%(asctime)-15s %(message)s'
-    logging.basicConfig(format=FORMAT, level=50 if loglevel is None else int(loglevel))
-    logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
-    return loadJSONGraph(jsonFile)
-
-
 def thread_worker(globalState=dict()):
     # import copy
     count = globalState['count']
@@ -1008,6 +997,7 @@ def thread_worker(globalState=dict()):
                 break
         except Exception as e:
             logging.getLogger('maskgen').info('Completed thread: ' + str(e))
+    permutegroupsmanager.save()
 
 def loadGlobalStateInitialers(global_state, initializers):
     import importlib
@@ -1023,6 +1013,56 @@ def loadGlobalStateInitialers(global_state, initializers):
             logging.getLogger('maskgen').error('Unable to load initializer {}: {}'.format(initializer, str(e)))
     return global_state
 
+class BatchExecutor:
+
+    def __init__(self,results,workdir='.', global_variables=None, initializers=None, loglevel=50):
+        if not os.path.exists(results) or not os.path.isdir(results):
+            logging.getLogger('maskgen').error('invalid directory for results: ' +  results)
+            return
+        self.workdir = os.path.abspath( workdir )
+        loadCustomFunctions()
+        set_logging(workdir)
+        logging.getLogger('maskgen').info('Setting working directory to {}'.format(self.workdir))
+        if loglevel is not None:
+            logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
+        self.initialState = {'projects': results,
+                             'picklists_files': {},
+                             'workdir': self.workdir,
+                             'permutegroupsmanager':PermuteGroupManager(dir=self.workdir)}
+        loadGlobalStateInitialers(self.initialState, initializers)
+        if global_variables is not None:
+            self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \
+                                                                    for pair in global_variables.split(',')]})
+
+    def runProject(self, batchProject, count=1, graph=False, threads_count=1):
+        threadGlobalState = {
+                         'project': batchProject,
+                         'count': IntObject(int(count)) if count > 1 else None,
+                         }
+        threadGlobalState.update(self.initialState)
+        if graph is not None:
+            batchProject.dump(threadGlobalState)
+
+        batchProject.loadPermuteGroups(threadGlobalState)
+
+        if threads_count > 1:
+            threads = []
+            name = 1
+            kwargs = {'globalState':threadGlobalState}
+            for i in range(int(threads_count)):
+                name += 1
+                t = Thread(target=thread_worker, name=str(name),kwargs=kwargs)
+                threads.append(t)
+                t.start()
+            for thread in threads:
+                thread.join()
+        else:
+            thread_worker(globalState=threadGlobalState)
+
+    def finish(self):
+        for k, fp in self.initialState['picklists_files'].iteritems():
+            fp.close()
+
 def main():
     global threadGlobalState
     parser = argparse.ArgumentParser()
@@ -1037,41 +1077,16 @@ def main():
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
     args = parser.parse_args()
-    if not os.path.exists(args.results) or not os.path.isdir(args.results):
-        logging.getLogger('maskgen').error('invalid directory for results: ' + args.results)
-        return
-    loadCustomFunctions()
-    batchProject = getBatch(args.json, loglevel=args.loglevel)
-    picklists_files = {}
-    workdir = '.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir
-    set_logging(workdir)
-    threadGlobalState = {'projects': args.results,
-                         'picklists_files': picklists_files,
-                         'project': batchProject,
-                         'workdir': workdir,
-                         'count': IntObject(int(args.count)) if args.count else None,
-                         'permutegroupsmanager': PermuteGroupManager(dir=workdir)
-                         }
-    if args.global_variables is not None:
-        threadGlobalState.update({ pair[0]:pair[1] for pair in [pair.split('=') for pair in  args.global_variables.split(',')]})
-    loadGlobalStateInitialers(threadGlobalState,args.initializers)
-
-    batchProject.loadPermuteGroups(threadGlobalState)
-    if args.graph is not None:
-        batchProject.dump(threadGlobalState)
-    threads_count = args.threads if args.threads else 1
-    threads = []
-    name = 1
-    kwargs = {'globalState':threadGlobalState}
-    for i in range(int(threads_count)):
-        name += 1
-        t = Thread(target=thread_worker, name=str(name),kwargs=kwargs)
-        threads.append(t)
-        t.start()
-    for thread in threads:
-        thread.join()
-    for k, fp in picklists_files.iteritems():
-        fp.close()
+    batchProject = loadJSONGraph(args.json)
+    be = BatchExecutor(args.results,
+                  workdir = '.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir,
+                  global_variables=args.global_variables,
+                  initializers=args.initializers,
+                  loglevel= args.loglevel)
+    be.runProject(batchProject,
+                  count=args.count if args.count else 1,
+                  graph=args.graph,
+                  threads_count=int(args.threads) if args.threads else 1)
 
 
 if __name__ == '__main__':

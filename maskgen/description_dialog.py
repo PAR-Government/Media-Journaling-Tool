@@ -1552,6 +1552,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             im = red.resize(finalImage.size,1)
         else:
             im = imTuple[1]
+            im = im.to_mask().invert()
         imResized = imageResizeRelative(im, (250, 250), im.size)
         finalResized = imageResizeRelative(finalImage, (250, 250), finalImage.size)
         try:
@@ -1591,7 +1592,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
-        if  self.modification.category not in ['Transform', 'Output','AntiForensic','Laundering']:
+        if  self.modification.category not in ['Output','AntiForensic','Laundering']:
             self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
                                                     onvalue="yes", offvalue="no")
             self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
