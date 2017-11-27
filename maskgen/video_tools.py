@@ -347,15 +347,21 @@ def processFrames(stream):
     return frames
 
 
+def __getFFmpegTool():
+    return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
+
+def __getFFprobeTool():
+    return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
+
 def ffmpegToolTest():
-    ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe'), '-L']
+    ffmpegcommand = [__getFFprobeTool(), '-L']
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
     except:
         return ffmpegcommand[0]+ ' not installed properly'
 
-    ffmpegcommand = [os.getenv('MASKGEN_FFPROBETOOL', 'ffmpeg'), '-L']
+    ffmpegcommand = [__getFFmpegTool(), '-L']
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
@@ -375,7 +381,7 @@ def __get_metadata_item(data, item, default_value):
 
 def getMeta(file, with_frames=False, show_streams=False):
     def runProbe(func, args=None):
-        ffmpegcommand = [os.getenv('MASKGEN_FFMPEG', 'ffprobe'), file]
+        ffmpegcommand = [__getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
@@ -485,8 +491,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     return results  if len(results) > 0 else None
 
 def get_ffmpeg_version():
-    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
-    command = [ffcommand,'-version']
+    command = [__getFFmpegTool(),'-version']
     try:
         pcommand = Popen(command, stdout=PIPE, stderr=PIPE)
         stdout, stderr = pcommand.communicate()
@@ -500,8 +505,7 @@ def get_ffmpeg_version():
     return '?'
 
 def runffmpeg(args, noOutput=True):
-    ffcommand = os.getenv('MASKGEN_FFMPEG', 'ffmpeg')
-    command = [ffcommand]
+    command = [__getFFmpegTool()]
     command.extend(args)
     try:
         pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
@@ -775,7 +779,7 @@ def removeVideoFromAudio(filename,outputname=None):
         newfilename = tempfile.mktemp(prefix='rmfa', suffix=suffix, dir='.')
     else:
         newfilename = outputname
-    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    ffmpegcommand = __getFFmpegTool()
     command = [ffmpegcommand, '-y', '-i', filename,'-vn','-acodec','copy',newfilename]
     p = Popen(command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
@@ -820,7 +824,7 @@ def x264(filename, outputname=None, crf=0,remove_video=False):
 
 
 def vid_md5(filename):
-    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    ffmpegcommand = __getFFmpegTool()
     prefix = filename[0:filename.rfind('.')]
     outFileName = prefix + '_compressed.mp4'
     if filename == outFileName:
@@ -853,7 +857,7 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
     if not input_filename.endswith(suffix):
         execute_compress = True
     outFileName = prefix + '_compressed.' + suffix if outputname is None else outputname
-    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    ffmpegcommand = __getFFmpegTool()
     if  execute_remove:
         input_filename = removeVideoFromAudio(input_filename, outputname=outFileName if not execute_compress else None)
     elif input_filename == outFileName:
@@ -898,7 +902,7 @@ def _runCommand(command,outputCollector=None):
     return errors
 
 def getFrameAttribute(fileOne, attribute, default=None, audio=False):
-    ffmpegcommand = os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe')
+    ffmpegcommand = __getFFprobeTool()
     results = []
     errors = _runCommand([ffmpegcommand,
                           '-show_entries', 'stream={},codec_type'.format(attribute),
@@ -942,7 +946,7 @@ def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         Consruct wav files
         """
         name = fileOne + '.wav' if outputName is None else outputName
-        ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+        ffmpegcommand = __getFFmpegTool()
         if os.path.exists(name):
             os.remove(name)
         ss = None
@@ -973,7 +977,7 @@ def __formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager, codec=[
     Construct a diff video.  The FFMPEG provides degrees of difference by intensity variation in the green channel.
     The normal intensity is around 98.
     """
-    ffmpegcommand = os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg')
+    ffmpegcommand = __getFFmpegTool()
     postFix = fileOne[fileOne.rfind('.'):]
     outFileName = prefix + postFix
     command = [ffmpegcommand, '-y']
