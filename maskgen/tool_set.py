@@ -1135,6 +1135,7 @@ def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,
     analysis['shape change'] =sizeDiff(img1, img2)
     if 'location' not in analysis:
         analysis['location'] = '(0,0)'
+    analysis['empty mask'] = 'yes' if np.all(mask==255) else 'no'
     return ImageWrapper(mask), analysis
 
 
@@ -1493,7 +1494,7 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask,expectedDims, local
     if local:
         func = partial(__localrotateImage, rotation, edgeMask,expectedDims=expectedDims, cval=255)
     else:
-        func = partial(__rotateImage, rotation, edgeMask,expectedDims=expectedDims, cval=255)
+        func = partial(__rotateImage, rotation, expectedDims=expectedDims, cval=255)
     return applyToComposite(compositeMask, func, shape=expectedDims)
 
 
