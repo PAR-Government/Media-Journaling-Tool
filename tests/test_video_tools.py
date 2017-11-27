@@ -182,7 +182,7 @@ class TestVideoTools(unittest.TestCase):
                 files.append(writer.filename)
                 writer.close()
         self.filesToKill.append(writer_main.filename)
-        self.filesToKill.extend(files)
+        self.filesToKill.etend(files)
         return writer_main.filename, files
 
     def test_meta(self):
@@ -700,6 +700,29 @@ class TestVideoTools(unittest.TestCase):
         reader_new = tool_set.GrayBlockReader(result[3]['videosegment'])
         reader_new.close()
         reader_orig.close()
+
+        for item in sets:
+            item.pop('videosegment')
+        result = video_tools.reverseMasks([{
+            'startframe': 90,
+            'starttime': 3000,
+            'endframe': 130,
+            'endtime': 4333
+        }], sets)
+        self.assertEqual(4, len(result))
+        self.assertEqual(15, result[0]['frames'])
+        self.assertEqual(75, result[0]['startframe'])
+        self.assertEqual(90, result[0]['endframe'])
+        self.assertEqual(15, result[1]['frames'])
+        self.assertEqual(130, result[1]['endframe'])
+        self.assertEqual(115, result[1]['startframe'])
+        self.assertEqual(7, result[2]['frames'])
+        self.assertEqual(97, result[2]['endframe'])
+        self.assertEqual(90, result[2]['startframe'])
+        self.assertEqual(20, result[3]['frames'])
+        self.assertEqual(150, result[3]['endframe'])
+        self.assertEqual(130, result[3]['startframe'])
+
 
     def test_invertVideoMasks(self):
         start_set = []

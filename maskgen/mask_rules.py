@@ -89,6 +89,7 @@ class Probe:
     @type compositeFileNames: dict of str:str
     @type donorBaseNodeId: str
     @type donorMaskFileName: str
+    @type finalImageFileName: str
     @type donorMaskImage: ImageWrapper
     @type donorVideoSegments: list (VideoSegment)
     @type level: int
@@ -112,6 +113,7 @@ class Probe:
                  donorMaskImage=None,
                  donorVideoSegments=None,
                  targetChangeSizeInPixels=0,
+                 finalImageFileName=None,
                  level=0):
         self.edgeId = edgeId
         self.finalNodeId = finalNodeId
@@ -126,6 +128,7 @@ class Probe:
         self.targetMaskImage = targetMaskImage
         self.targetChangeSizeInPixels = targetChangeSizeInPixels
         self.level = level
+        self.finalImageFileName = finalImageFileName
         self.composites = dict()
 
 DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_file_name', 'media_type'])
@@ -253,7 +256,7 @@ def recapture_transform(edge, source, target, edgeMask,
                 res = clippedMask
             res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
             if right_box[3] > newMask.shape[0] and right_box[2] > newMask.shape[1]:
-                logging.getLogger('maskgen').warning(
+                logging.getLogger('maskgen').warn(
                     'The mask for recapture edge with file {} has an incorrect size'.format(edge['maskname']))
                 newMask = np.resize(newMask, (right_box[3] + 1, right_box[2] + 1))
             newMask[right_box[1]:right_box[3], right_box[0]:right_box[2]] = res
@@ -1723,7 +1726,9 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         imarray = np.asarray(probe.targetMaskImage)
         sums = sum(sum(255-imarray))
         if sums == 0:
-            print probe.edgeId
+            logging.getLogger('maskgen').warn('Empty bit plane for edge {} to {}:{}'.format(
+                str(probe.edgeId),probe.finalNodeId,probe.finalImageFileName
+            ))
         # check to see if the bits are in fact the same for a group
         if (groupid, targetid) not in self.group_bit_check:
             self.group_bit_check[(groupid, targetid)] = imarray
@@ -1736,8 +1741,8 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         else:
             check = np.all(self.group_bit_check[(groupid, targetid)] == imarray)
             if not check:
-                logging.getLogger('maskgen').error('Failed assertion for edge {} to {}'.format(
-                  str(probe.edgeId), probe.finalNodeId)
+                logging.getLogger('maskgen').error('Failed assertion for edge {} to {}:{}'.format(
+                  str(probe.edgeId), probe.finalNodeId,probe.finalImageFileName)
                 )
             assert (check)
 
@@ -2064,7 +2069,8 @@ class CompositeDelegate:
                                     donorMaskFileName=donortuple.mask_file_name if donortuple.media_type == 'image' else None,
                                     donorVideoSegments=_compositeImageToVideoSegment(
                                         donortuple.mask_wrapper) if donortuple.media_type != 'image' else None,
-                                    level=level))
+                                    level=level,
+                                    finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
         else:
             probes.append(Probe(edge_id,
                                 finalNodeId,
@@ -2078,7 +2084,8 @@ class CompositeDelegate:
                                 # TODO: what to do here
                                 targetChangeSizeInPixels=sizeOfChange(
                                     np.asarray(target_mask).astype('uint8')) if nodetype == 'image' else None,
-                                level=level))
+                                level=level,
+                                finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
 
     def _constructDonor(self, node, mask):
         """

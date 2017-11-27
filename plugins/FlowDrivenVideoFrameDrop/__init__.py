@@ -136,7 +136,7 @@ def selectBestFlow(frames, best_matches):
         future = cv2.cvtColor(frames[best_matches[i, 1]], cv2.COLOR_BGR2GRAY)
         flow = cv2.calcOpticalFlowFarneback(past, future, None,
                                             0.8, 7, 15, 3, 7, 1.5, 0)
-        flow_list[1] = np.std(flow)
+        flow_list[i] = np.std(flow)
 
     return np.argmin(flow_list)
 

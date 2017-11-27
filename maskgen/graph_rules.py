@@ -690,10 +690,9 @@ def checkFrameTimes(op, graph, frm, to):
             et = getMilliSecondsAndFrameCount(v)
         elif k.endswith('Start Time'):
             st = getMilliSecondsAndFrameCount(v)
-    if st is None and et is None:
+    if et is None:
         return None
     st = st if st is not None else (0, 0)
-    et = et if et is not None else (0, 0)
     if st[0] > et[0] or (st[0] == et[0] and st[1] >= et[1] and st[1] > 0):
         return 'Start Time occurs after End Time'
     return None
