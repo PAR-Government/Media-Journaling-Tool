@@ -114,8 +114,10 @@ class Probe:
                  donorVideoSegments=None,
                  targetChangeSizeInPixels=0,
                  finalImageFileName=None,
+                 empty=False,
                  level=0):
         self.edgeId = edgeId
+        self.empty = empty
         self.finalNodeId = finalNodeId
         self.targetBaseNodeId = targetBaseNodeId
         self.targetMaskFileName = targetMaskFileName
@@ -1895,6 +1897,14 @@ class CompositeDelegate:
         self.gopLoader = gopLoader
         self.edge_id = edge_id
         self.graph = graph
+        edge = graph.get_edge(edge_id[0], edge_id[1])
+        if 'empty mask' in edge and edge['empty mask'] == 'yes':
+            logging.getLogger('maskgen').warn('Composite constructed for empty mask {}->{}'.format(
+                graph.get_node(edge_id[0])['file'],graph.get_node(edge_id[1])['file'])
+            )
+            self.empty = True
+        else:
+            self.empty = False
         baseNodeIdsAndLevels = findBaseNodesWithCycleDetection(self.graph, edge_id[0])
         self.baseNodeId, self.level, self.path = baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels) > 0 else (
         None, None)
@@ -2070,6 +2080,7 @@ class CompositeDelegate:
                                     donorVideoSegments=_compositeImageToVideoSegment(
                                         donortuple.mask_wrapper) if donortuple.media_type != 'image' else None,
                                     level=level,
+                                    empty=self.empty,
                                     finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
         else:
             probes.append(Probe(edge_id,
@@ -2085,6 +2096,7 @@ class CompositeDelegate:
                                 targetChangeSizeInPixels=sizeOfChange(
                                     np.asarray(target_mask).astype('uint8')) if nodetype == 'image' else None,
                                 level=level,
+                                empty=self.empty,
                                 finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
 
     def _constructDonor(self, node, mask):
