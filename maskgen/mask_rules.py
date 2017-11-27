@@ -1999,7 +1999,7 @@ class CompositeDelegate:
                     tm = openImageFile(os.path.join(self.get_dir(),
                                                     selectMasks[finalNodeId]),
                                        isMask=True)
-                    target_mask = tm
+                    target_mask = tm.invert()
                     if saveTargets and target_mask_filename is not None:
                         target_mask.save(target_mask_filename, format='PNG')
                 except Exception as e:

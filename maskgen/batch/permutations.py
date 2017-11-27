@@ -363,5 +363,6 @@ class PermuteGroupManager:
         return False
 
     def save(self):
-        for group in self.groups.values():
-            group.save()
+        with self.lock:
+            for group in self.groups.values():
+                group.save()

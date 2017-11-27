@@ -2663,7 +2663,7 @@ def selfVideoTest():
     for i in range(255):
         mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
         mask_set.append(mask)
-        writer.write(mask, 33.3666666667)
+        writer.write(mask, i+1 * 33.3666666667,i+1)
     writer.close()
     fn = writer.get_file_name()
     vidfn = convertToVideo(fn)

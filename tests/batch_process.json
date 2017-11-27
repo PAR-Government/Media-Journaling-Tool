@@ -109,14 +109,10 @@
       "id": "6",
       "arguments": {
         "inputmaskname" : {
-          "type" : "mask",
-          "source" :"2",
-          "target": "5"
-
-        },
-        "invertmask": {
-          "type":"value",
-          "value":true
+          "type": "mask",
+          "source": "2",
+          "target": "5",
+          "invert": true
         }
       }
     },
