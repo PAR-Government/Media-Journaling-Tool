@@ -447,14 +447,16 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
             fr = item['r_frame_rate'] if 'r_frame_rate' in item else (item['avg_frame_rate'] if 'avg_frame_rate' in item else '30000/1001')
             if item['codec_type'] == 'video':
                 parts = fr.split('/')
-                rate = float(parts[0])/int(parts[1]) if len(parts)>0 else float(parts[0])
+                rate = float(parts[0])/int(parts[1]) if len(parts)>0 and int(parts[1]) != 0 else float(parts[0])
             else:
-                rate = 1.0/int(item['sample_rate']) * 1000
+                rate = float(item['sample_rate'])
             mask['rate'] = rate
             mask['starttime'] = 0
             mask['startframe'] = 1
             mask['endtime'] = float(item['duration'])*1000
-            mask['endframe'] = int(item['nb_frames']) if 'nb_frames' in item  else int(mask['endtime']/rate)
+            frame_count = int(item['nb_frames']) if 'nb_frames' in item and item['nb_frames'][0] != 'N' else \
+                (int(item['duration_ts']) if 'duration_ts' in item else int(mask['endtime']/rate))
+            mask['endframe'] = frame_count
             mask['frames'] = mask['endframe']
             mask['type']=item['codec_type']
             if mask['type']=='video':

@@ -211,13 +211,10 @@
       "category": "Audio",
       "name": "AudioFilter",
       "mandatoryparameters": {
-         "Frequency": {
-          "type": "int[0:10000000]",
-          "description": "Frequency"
-        },
+
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch", "Ratio"],
+          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch", "Ratio","Non Linearity"],
           "description": "Type of filter"
         },
         "Start Time": {
@@ -238,9 +235,22 @@
         "checkUncompressed"
       ],
       "parameter_dependencies" : {
-        "Filter Type" : { "Ratio": "Ratio" }
+        "Filter Type" : {
+          "Ratio": "Ratio",
+          "high pass": "Frequency",
+          "low pass": "Frequency",
+          "EQ": "Frequency",
+          "FFT": "Frequency",
+          "Adaptive": "Frequency",
+          "Spectral Subtraction": "Frequency",
+          "Frequency Stretch":"Frequency"
+        }
       },
       "optionalparameters": {
+        "Frequency": {
+          "type": "int[0:10000000]",
+          "description": "Frequency"
+        },
         "Stream" : {
           "type" : "list",
           "values": ["left", "right", "all"],
@@ -2379,6 +2389,9 @@
           "description": "XMP file provided when exporting from a raw image."
         }
       },
+      "compareparameters" : {
+         "function" :"maskgen.tool_set.convertCompare"
+      },
       "description": "Export the image in the bmp format.",
       "includeInMask": false,
       "transitions": [
@@ -2476,6 +2489,9 @@
           "description": "XMP file provided when exporting from a raw image."
         }
       },
+       "compareparameters" : {
+         "function" :"maskgen.tool_set.convertCompare"
+      },
       "description": "Export the image in the png format.",
       "includeInMask": false,
       "transitions": [
@@ -2519,6 +2535,9 @@
           "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
+      },
+       "compareparameters" : {
+         "function" :"maskgen.tool_set.convertCompare"
       },
       "description": "Export the image in the tif format.",
       "includeInMask": false,
