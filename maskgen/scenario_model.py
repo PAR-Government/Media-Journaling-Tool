@@ -2179,6 +2179,8 @@ class ImageProjectModel:
                                               **kwargs_copy)
             if msg is not None:
                 resultmsg += msg
+            if len(pairs) == 0:
+                break
             mod = self.getModificationForEdge(self.start,self.end,self.G.get_edge(self.start,self.end))
             for key,value in mod.arguments.iteritems():
                 if key in kwargs_copy:
@@ -2205,6 +2207,7 @@ class ImageProjectModel:
           @type filename: str
           @rtype: list of (str, list (str,str))
         """
+        import traceback
         im, filename = self.currentImage()
         op = plugins.getOperation(filter)
         suffixPos = filename.rfind('.')
@@ -2226,6 +2229,9 @@ class ImageProjectModel:
             extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
             msg = str(e)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+            logging.getLogger('maskgen').error('Plugin Failure {}'.format(str(e)))
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []

@@ -242,9 +242,6 @@ def getNodeState(node_name, local_state):
     return my_state
 
 
-def working_abs_file(global_state, filename):
-    return os.path.join(global_state['workdir'] if 'workdir' in global_state else '.', filename)
-
 
 def pickImageIterator(specification, spec_name, global_state):
     if 'picklists' not in global_state:
@@ -736,12 +733,13 @@ class BatchProject:
 
     def __init__(self, json_data):
         """
-        :param G:
-        @type G: nx.DiGraph
+        :param json_data:
+        @type json_data: nx.DiGraph or dictionary
         """
-
-        self.G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
-        self.json_data = json_data
+        if isinstance(json_data,nx.Graph):
+            self.G = json_data
+        else:
+            self.G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
         tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
 
     def _buildLocalState(self):
@@ -868,14 +866,15 @@ class BatchProject:
                     os.remove(file)
         return local_state['model'].get_dir()
 
-    def dump(self, global_state):
-        filename = working_abs_file(global_state, self.getName() + '.png')
+    def dump(self, dir='.'):
+        filename = os.path.join(dir, self.getName() + '.png')
         self._draw().write_png(filename)
-        filename = self.getName() + '.csv'
+        filename = os.path.join(dir,self.getName() + '.csv')
         position = 0
         with open(filename, 'w') as f:
-            for node in self.json_data['nodes']:
-                f.write(node['id'] + ',' + str(position) + '\n')
+            for nodeid in self.G.nodes():
+                node = self.G.node[nodeid]
+                f.write(nodeid + ',' + str(position) + '\n')
                 position += 1
 
     colors_bytype = {'InputMaskPluginOperation': 'blue'}
@@ -1040,8 +1039,8 @@ class BatchExecutor:
                          'count': IntObject(int(count)) if count > 1 else None,
                          }
         threadGlobalState.update(self.initialState)
-        if graph is not None:
-            batchProject.dump(threadGlobalState)
+        if graph:
+            batchProject.dump(dir=self.workdir)
 
         batchProject.loadPermuteGroups(threadGlobalState)
 
