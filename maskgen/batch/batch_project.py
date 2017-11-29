@@ -251,6 +251,7 @@ def pickImageIterator(specification, spec_name, global_state):
         element = FilePermuteGroupElement(spec_name,
                                           specification['image_directory'].format(**global_state),
                                           tracking_filename=picklist_name + '.txt',
+                                          fileCheckFunction=lambda x: tool_set.fileType(x) != None,
                                           filetypes=specification['filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
     else:

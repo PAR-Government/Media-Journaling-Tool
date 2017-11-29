@@ -1,7 +1,7 @@
 from maskgen import scenario_model
 import unittest
 import numpy as np
-from maskgen.graph_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
+from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 class TestScenarioModel(unittest.TestCase):
 
    def test_link_tool(self):
