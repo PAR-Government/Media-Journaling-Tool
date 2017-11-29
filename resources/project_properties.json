@@ -538,6 +538,13 @@
       "information": "Relocate a building in a new setting that is not architecturally coherent"
     },
     {
+      "description": "Location Change",
+      "name": "locationchange",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Change visual and meta-data change that forces location incoherence"
+    },
+    {
       "description": "Timeofday",
       "name": "timeofday",
       "type": "yesno",

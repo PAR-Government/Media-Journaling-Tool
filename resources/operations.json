@@ -957,7 +957,7 @@
       ],
       "optionalparameters": {},
       "description": "Disguise quantization artifacts by adding noise.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image"
       ]
@@ -3461,7 +3461,7 @@
         }
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
-      "includeInMask": false,
+      "includeInMask": true,
       "generateMask" : "all",
        "compareparameters" : {
          "video_function" :"maskgen.video_tools.warpCompare"
@@ -3506,7 +3506,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Replace large selections with an averaging of surrounding pixel groups.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"
@@ -4068,7 +4068,7 @@
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.seam_transform"},
       "description": "Resize an image while preserving the integrity of content.",
-      "includeInMask": false,
+      "includeInMask": true,
       "transitions": [
         "image.image",
         "video.video"

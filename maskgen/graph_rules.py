@@ -1,7 +1,7 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getValue
 import new
 from types import MethodType
 import numpy
@@ -1477,47 +1477,7 @@ def getOrientationFromMetaData(edge):
     return ''
 
 
-def getValue(obj, path, defaultValue=None, convertFunction=None):
-    """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
-        obj is a node or edge
-        path is a dictionary path: a.b.c
-        convertFunction converts the value
 
-        This function recurses
-    """
-    if not path:
-        return convertFunction(obj) if convertFunction and obj else obj
-
-    current = obj
-    part = path
-    splitpos = path.find(".")
-
-    if splitpos > 0:
-        part = path[0:splitpos]
-        path = path[splitpos + 1:]
-    else:
-        path = None
-
-    bpos = part.find('[')
-    pos = 0
-    if bpos > 0:
-        pos = int(part[bpos + 1:-1])
-        part = part[0:bpos]
-
-    if part in current:
-        current = current[part]
-        if type(current) is list or type(current) is tuple:
-            if bpos > 0:
-                current = current[pos]
-            else:
-                result = []
-                for item in current:
-                    v = getValue(item, path, defaultValue=defaultValue, convertFunction=convertFunction)
-                    if v:
-                        result.append(v)
-                return result
-        return getValue(current, path, defaultValue=defaultValue, convertFunction=convertFunction)
-    return defaultValue
 
 
 def blurLocalRule(scModel, edgeTuples):
@@ -1625,9 +1585,7 @@ def spatialSplice(scModel, edgeTuples):
                                       edgeTuple.edge['arguments']['purpose'] == 'add')):
             return 'yes'
         if edgeTuple.edge['op'] == 'PasteImageSpliceToFrame' and \
-                        'arguments' in edgeTuple.edge and \
-                        'purpose' in edgeTuple.edge['arguments'] and \
-                        edgeTuple.edge['arguments']['purpose'] == 'clone':
+            getValue(edgeTuple.edge, 'arguments.purpose') == 'clone':
             return 'yes'
     return 'no'
 
@@ -1637,9 +1595,7 @@ def spatialRemove(scModel, edgeTuples):
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
             continue
         if edgeTuple.edge['op'] in ['PasteSampled', 'PasteOverlay', 'PasteImageSpliceToFrame'] and \
-                        'arguments' in edgeTuple.edge and \
-                        'purpose' in edgeTuple.edge['arguments'] and \
-                        edgeTuple.edge['arguments']['purpose'] == 'remove':
+                        getValue(edgeTuple.edge,'arguments.purpose') == 'remove':
             return 'yes'
     return 'no'
 
@@ -1649,20 +1605,15 @@ def spatialMovingObject(scModel, edgeTuples):
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
             continue
         if edgeTuple.edge['op'] in ['PasteSampled', 'PasteOverlay', 'PasteImageSpliceToFrame'] and \
-                        'arguments' in edgeTuple.edge and \
-                        'motion mapping' in edgeTuple.edge['arguments'] and \
-                        edgeTuple.edge['arguments']['motion mapping'] == 'yes':
+                        getValue(edgeTuple.edge, 'arguments.motion mapping') == 'yes':
             return 'yes'
     return 'no'
 
 
 def voiceSwap(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
-        if 'arguments' in edgeTuple.edge and \
-                        'voice' in edgeTuple.edge['arguments'] and \
-                        edgeTuple.edge['arguments']['voice'] == 'yes' and \
-                        'add type' in edgeTuple.edge['arguments'] and \
-                        edgeTuple.edge['arguments']['add type'] == 'replace':
+        if getValue(edgeTuple.edge, 'arguments.voice') =='yes' and \
+             getValue(edgeTuple.edge, 'arguments.add type') == 'replace':
             return 'yes'
     return 'no'
 
