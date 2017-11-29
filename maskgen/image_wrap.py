@@ -344,6 +344,7 @@ def get_mode(image_array):
         return 'RGB'
 
 
+
 class ImageWrapper:
     """
     @type image_array: numpy.array
@@ -358,8 +359,8 @@ class ImageWrapper:
         self.mode = mode if mode is not None else get_mode(image_array)
         self.size = (image_array.shape[1], image_array.shape[0])
         if to_mask and self.mode != 'L':
-            self.image_array = cv2.cvtColor(self.to_rgb(type='uint8').image_array, cv2.COLOR_RGBA2GRAY)
-            self.mode = 'L'
+            self.image_array = self.to_mask_array()
+            self.mode='L'
 
     def has_alpha(self):
         return len(self.image_array.shape) == 3 and self.mode.find('A') > 0
@@ -525,7 +526,8 @@ class ImageWrapper:
             return ImageWrapper(img_array)
         return mask
 
-    def to_mask(self):
+
+    def to_mask_array(self):
         """
         white = selected, black = unselected
         @rtype : ImageWrapper
@@ -538,7 +540,14 @@ class ImageWrapper:
         else:
             gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255
             gray_image[gray_image_temp.image_array == 0] = 0
-        return ImageWrapper(gray_image)
+        return gray_image
+
+    def to_mask(self):
+        """
+        white = selected, black = unselected
+        @rtype : ImageWrapper
+        """
+        return ImageWrapper(self.to_mask_array())
 
     def to_16BitGray(self, equalize_colors=False):
         """

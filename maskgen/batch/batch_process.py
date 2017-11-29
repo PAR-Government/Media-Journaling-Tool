@@ -13,7 +13,7 @@ import bulk_export
 import maskgen.group_operations
 import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
-from batch_project import getBatch, BatchProject
+from batch_project import loadJSONGraph, BatchProject
 from maskgen.image_graph import extract_archive
 
 
@@ -219,7 +219,7 @@ def processSpecification(specification, extensionRules, projects_directory, comp
     :return: None
     """
     from functools import partial
-    batch = getBatch(specification,loglevel=loglevel)
+    batch = loadJSONGraph(specification)
     rules = parseRules(extensionRules)
     if batch is None:
         return

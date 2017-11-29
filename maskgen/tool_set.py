@@ -161,6 +161,49 @@ def fileType(fileName):
     return file_type
 
 
+def getValue(obj, path, defaultValue=None, convertFunction=None):
+    """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
+        obj is a node or edge
+        path is a dictionary path: a.b.c
+        convertFunction converts the value
+
+        This function recurses
+    """
+    if not path:
+        return convertFunction(obj) if convertFunction and obj else obj
+
+    current = obj
+    part = path
+    splitpos = path.find(".")
+
+    if splitpos > 0:
+        part = path[0:splitpos]
+        path = path[splitpos + 1:]
+    else:
+        path = None
+
+    bpos = part.find('[')
+    pos = 0
+    if bpos > 0:
+        pos = int(part[bpos + 1:-1])
+        part = part[0:bpos]
+
+    if part in current:
+        current = current[part]
+        if type(current) is list or type(current) is tuple:
+            if bpos > 0:
+                current = current[pos]
+            else:
+                result = []
+                for item in current:
+                    v = getValue(item, path, defaultValue=defaultValue, convertFunction=convertFunction)
+                    if v:
+                        result.append(v)
+                return result
+        return getValue(current, path, defaultValue=defaultValue, convertFunction=convertFunction)
+    return defaultValue
+
+
 def openFile(fileName):
     """
      Open a file using a native OS associated program
@@ -400,7 +443,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
     if v is None:
         return None, 0
     if type(v) == int:
-        return (float(v)/rate*1000,0) if rate is not None else (0,v)
+        return (float(v)/rate*1000,0) if rate is not None else (0,int(v))
     dt = None
     framecount = 0
     coloncount = v.count(':')
@@ -411,7 +454,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
         except:
             return None, 0
     elif coloncount == 0:
-        return (float(v) / rate * 1000.0, 0) if rate is not None else (0, v)
+        return (float(v) / rate * 1000.0, 0) if rate is not None else (0, int(v))
     try:
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -1687,6 +1730,15 @@ def resizeCompare(img1, img2,  arguments=dict()):
     new_img1 = cv2.resize(img1,(img2.shape[1],img2.shape[0]),interpolation=inter_val)
     return __diffMask(new_img1, img2, False, args=arguments)
 
+def convertCompare(img1, img2,  arguments=dict()):
+    if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
+        rotation,mask=__findRotation(img1,img2,[90,180,270])
+        return 255-mask, {'rotation':-rotation}
+    if img1.shape != img2.shape:
+        img1 = cv2.resize(img1,(img2.shape[1],img2.shape[0]))
+    return __diffMask(img1, img2, False, args=arguments)
+
+
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
     img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments,
                                  convertFunction=convertFunction)
@@ -1713,6 +1765,7 @@ def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None
         except ValueError as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
         mask = np.zeros(img1.shape, dtype=np.uint8)
+        analysis={}
     return abs(255 - mask).astype('uint8') if invert else mask, analysis
 
 
@@ -1788,15 +1841,17 @@ def __compareRotatedImage(rotation, img1, img2,  arguments):
 
 
 def __findRotation(img1, img2, range):
-    best = img1.shape[0] * img1.shape[1]
+    best = 0
     r = None
+    best_mask = None
     for rotation in range:
         res, analysis  = __compareRotatedImage(rotation, img1,img2, {})
         c = sum(sum(res))
-        if c < best:
+        if c > best or best_mask is None:
             best = c
+            best_mask = res
             r = rotation
-    return r
+    return r,best_mask
 
 #      res = __resize(mask,(max(img2.shape[0],img1.shape[0]), max(img2.shape[1],img1.shape[1])))
 #      res[res<0.00001] = 0
@@ -2663,7 +2718,7 @@ def selfVideoTest():
     for i in range(255):
         mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
         mask_set.append(mask)
-        writer.write(mask, 33.3666666667)
+        writer.write(mask, i+1 * 33.3666666667,i+1)
     writer.close()
     fn = writer.get_file_name()
     vidfn = convertToVideo(fn)

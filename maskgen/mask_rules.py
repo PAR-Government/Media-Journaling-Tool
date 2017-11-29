@@ -1,5 +1,5 @@
 from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openImageFile, sizeOfChange, \
-    convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject
+    convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, getValue
 import exif
 import graph_rules
 from image_wrap import ImageWrapper
@@ -152,8 +152,9 @@ def getMasksFromEdge(graph, source, edge, media_types, channel=0):
         #} for media_type in media_types]
     else:
        result = video_tools.getMaskSetForEntireVideo(getNodeFile(graph,source),
-                                             start_time = edge['Start Time'] if 'Start Time' in edge else '00:00:00.000',
-                                             end_time = edge['End Time'] if 'End Time' in edge else None,
+                                             start_time = getValue(edge,'arguments.Start Time',
+                                                                   defaultValue='00:00:00.000'),
+                                             end_time = getValue(edge,'arguments.End Time'),
                                              media_types=media_types,
                                              channel=channel)
        if result is None or len(result) == 0:
@@ -1999,7 +2000,7 @@ class CompositeDelegate:
                     tm = openImageFile(os.path.join(self.get_dir(),
                                                     selectMasks[finalNodeId]),
                                        isMask=True)
-                    target_mask = tm
+                    target_mask = tm.invert()
                     if saveTargets and target_mask_filename is not None:
                         target_mask.save(target_mask_filename, format='PNG')
                 except Exception as e:
