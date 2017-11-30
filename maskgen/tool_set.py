@@ -161,6 +161,49 @@ def fileType(fileName):
     return file_type
 
 
+def getValue(obj, path, defaultValue=None, convertFunction=None):
+    """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
+        obj is a node or edge
+        path is a dictionary path: a.b.c
+        convertFunction converts the value
+
+        This function recurses
+    """
+    if not path:
+        return convertFunction(obj) if convertFunction and obj else obj
+
+    current = obj
+    part = path
+    splitpos = path.find(".")
+
+    if splitpos > 0:
+        part = path[0:splitpos]
+        path = path[splitpos + 1:]
+    else:
+        path = None
+
+    bpos = part.find('[')
+    pos = 0
+    if bpos > 0:
+        pos = int(part[bpos + 1:-1])
+        part = part[0:bpos]
+
+    if part in current:
+        current = current[part]
+        if type(current) is list or type(current) is tuple:
+            if bpos > 0:
+                current = current[pos]
+            else:
+                result = []
+                for item in current:
+                    v = getValue(item, path, defaultValue=defaultValue, convertFunction=convertFunction)
+                    if v:
+                        result.append(v)
+                return result
+        return getValue(current, path, defaultValue=defaultValue, convertFunction=convertFunction)
+    return defaultValue
+
+
 def openFile(fileName):
     """
      Open a file using a native OS associated program
@@ -1693,7 +1736,7 @@ def convertCompare(img1, img2,  arguments=dict()):
         return 255-mask, {'rotation':-rotation}
     if img1.shape != img2.shape:
         img1 = cv2.resize(img1,(img2.shape[1],img2.shape[0]))
-    return __diffMask(img1, img2, False, args=arguments),{}
+    return __diffMask(img1, img2, False, args=arguments)
 
 
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):

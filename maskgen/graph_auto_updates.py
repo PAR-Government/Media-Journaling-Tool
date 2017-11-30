@@ -77,6 +77,8 @@ def updateJournal(scModel):
     if '0.4.1115.32eabae8e6' not in upgrades:
         _fixRecordMasInComposite(scModel, gopLoader)
         _fixLocalRotate(scModel)
+    if '0.4.1115.ad475bbfcf' not in upgrades:
+        _fixSeam(scModel, gopLoader)
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -546,6 +548,19 @@ def _fixRecordMasInComposite(scModel,gopLoader):
          op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
          if op.category in ['Output','AntiForensic','Laundering']:
              edge['recordMaskInComposite'] = 'no'
+
+def _fixSeam(scModel,gopLoader):
+    """
+   Seam Carving is recorded in Composite
+    :param scModel: Opened project model
+    :return: None. Updates JSON.
+    @type scModel: ImageProjectModel
+    @type gopLoader: GroupOperationsLoader
+    """
+    for frm, to in scModel.G.get_edges():
+         edge = scModel.G.get_edge(frm, to)
+         if edge['op'] == 'TransformSeamCarving':
+             edge['recordMaskInComposite'] = 'yes'
 
 
 def _replace_oldops(scModel):

@@ -1983,7 +1983,7 @@ class ImageProjectModel:
 
         for frm, to in self.G.get_edges():
             edge = self.G.get_edge(frm, to)
-            if 'empty mask' in edge and edge['empty mask'] is 'yes':
+            if 'empty mask' in edge and edge['empty mask'] == 'yes':
                 total_errors.append((str(frm), str(to), str(frm) + ' => ' + str(to) + ': ' +' has an empty change mask indicating an manipulation did not occur.'))
             op = edge['op']
             errors = graph_rules.run_rules(self.gopLoader.getOperationWithGroups(op, fake=True), self.G, frm, to)
