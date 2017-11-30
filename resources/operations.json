@@ -544,7 +544,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -577,7 +578,8 @@
         "checkFrameTimes",
         "check_local_warn",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -625,7 +627,8 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -657,7 +660,8 @@
         "checkSize",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -699,7 +703,8 @@
         "check_local",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -747,7 +752,8 @@
         "check_local",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -786,7 +792,8 @@
             "position",
             "position,scale and rotation",
             "perspective",
-            "subspace warp"
+            "subspace warp",
+            "checkEmpty"
           ],
           "description": "Position = Stabilization is based on position data only and is the most basic way footage can be stabilized. Position, Scale and Rotation = Stabilization is based on manipulations to the frame that change the size, orientation, and location. Perspective  = Uses a type of stabilization in which the entire frame is effectively corner-pinned. If there are not enough areas to track, Warp Stabilizer chooses the previous type (Position, Scale, Rotation). Subspace Warp = Attempts to warp various parts of the frame differently to stabilize the entire frame. If there are not enough areas to track, Warp Stabilizer choose the previous type (Perspective)."
         },
@@ -807,7 +814,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {},
       "analysisOperations": [ ],
@@ -836,7 +844,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -870,7 +879,8 @@
       "rules": ["checkFrameTimes",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"],
+        "checkUncompressed",
+        "checkEmpty"],
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -990,7 +1000,8 @@
       },
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1020,7 +1031,8 @@
       },
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkEmpty"
       ],
       "optionalparameters": {},
       "description": "Apply artificial lens distortion",
@@ -1036,7 +1048,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1056,7 +1069,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1118,7 +1132,8 @@
       },
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkEmpty"
       ],
       "optionalparameters": {},
       "description": "Chromatic Aberration Correction",
@@ -1145,7 +1160,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1184,7 +1200,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1223,7 +1240,8 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1270,7 +1288,8 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1312,7 +1331,8 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1355,7 +1375,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1404,7 +1425,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -1478,7 +1500,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1515,7 +1538,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1564,7 +1588,8 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1607,7 +1632,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1650,7 +1676,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1687,7 +1714,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1715,7 +1743,8 @@
         "checkFileTypeChange",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1759,7 +1788,8 @@
         "check_local",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1806,7 +1836,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1851,7 +1882,8 @@
         "sampledInputMask",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1892,7 +1924,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "type":{
@@ -1925,7 +1958,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1954,7 +1988,8 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkForRawFile",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2006,7 +2041,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
          "gamma": {
@@ -2049,7 +2085,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
          "End Time": {
@@ -2084,7 +2121,8 @@
         "checkLevelsVsCurves",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2117,7 +2155,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2150,7 +2189,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2188,7 +2228,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2228,7 +2269,8 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2263,7 +2305,8 @@
         "check_local",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2300,7 +2343,8 @@
         "checkFrameTimeAlignment",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2336,7 +2380,8 @@
         "checkFrameTimeAlignment",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2656,6 +2701,22 @@
     },
     {
       "category": "Output",
+      "name": "OutputM4",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSameChannels"
+      ],
+      "optionalparameters": {},
+      "description": "Export the image to lossless format.",
+      "includeInMask": false,
+      "generateMask" : "meta",
+      "transitions": [
+        "video.video",
+        "audio.audio"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputAVI",
       "mandatoryparameters": {
         "Video Rotated": {
@@ -2746,7 +2807,8 @@
         "checkForDonorWithRegion",
         "checkFileTypeChange",
         "check_local",
-        "check_pastemask"
+        "check_pastemask",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "mode": {
@@ -2835,7 +2897,8 @@
         "checkFrameTimeAlignment",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2892,7 +2955,8 @@
         "checkFrameTimeAlignment",
         "checkSameChannels",
         "checkVideoMasks",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -2926,7 +2990,8 @@
       },
       "rules": [
         "checkLengthBigger",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkEmpty"
       ],
       "optionalparameters": {},
       "description": "Copy & Paste a series of frames within the same video",
@@ -3012,6 +3077,7 @@
         "maskgen.tool_set.siftAnalysis"
       ],
       "rules": [
+        "checkEmpty"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -3074,7 +3140,8 @@
       },
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3107,7 +3174,8 @@
         }
       },
       "rules": ["checkFrameTimes",
-        "checkSameChannels"],
+        "checkSameChannels",
+        "checkEmpty"],
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -3139,7 +3207,8 @@
       "rules": [
         "checkLengthSmaller",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3195,7 +3264,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSize",
-        "checkFileTypeChange"
+        "checkFileTypeChange",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "tolerance": {
@@ -3242,6 +3312,7 @@
         }
       },
       "rules": [
+        "checkEmpty"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3496,7 +3567,8 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3528,7 +3600,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "homography": {
@@ -3579,7 +3652,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "homography": {
@@ -3677,7 +3751,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3783,7 +3858,8 @@
         "checkInputMask",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkEmpty"
       ],
       "optionalparameters": {
 
@@ -3980,7 +4056,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "homography": {
@@ -4029,7 +4106,8 @@
         "seamCarvingCheck",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "homography": {
@@ -4198,7 +4276,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
