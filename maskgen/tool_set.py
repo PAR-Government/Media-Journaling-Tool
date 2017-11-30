@@ -146,12 +146,27 @@ def fileTypeChanged(file_one, file_two):
         return suffix_one.lower() != suffix_two.lower()
 
 
+def getFFmpegTool():
+    return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
+
+def getFFprobeTool():
+    return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
+
+def isVideo(filename):
+    ffmpegcommand = [getFFprobeTool, filename]
+    try:
+        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+        return stderr.find('Invalid data') < 0
+    except:
+        return False
+
 def fileType(fileName):
     pos = fileName.rfind('.')
     suffix = '*' + fileName[pos:] if pos > 0 else ''
     if not os.path.exists(fileName):
         return None
-    file_type = 'video'
+    file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
     if suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None:
         file_type = 'image'
     elif suffix in [x[1] for x in audiofiletypes]:
@@ -1810,12 +1825,12 @@ def __localrotateImage(rotation,  mask, img, expectedDims=None, cval=0):
     x0,y0,w,h = widthandheight(maskInverted)
     if w == 0 or h == 0:
         return img
-    subImg = img[y0:(y0+h),x0:(x0+w)]
-    center = (w / 2, h/ 2)
+    #subImg = img[y0:(y0+h),x0:(x0+w)]
+    center = ( y0 + h/ 2,x0+ w / 2)
     M = cv2.getRotationMatrix2D(center, rotation, 1.0)
-    rotatedSubMask = cv2.warpAffine(subImg, M, (w,h))
-    rotatedMask = np.copy(img)
-    rotatedMask[y0:y0+h,x0:x0+w] = rotatedSubMask
+    rotatedMask = cv2.warpAffine(img*maskInverted, M, (img.shape[1],img.shape[0]),flags=cv2api.cv2api_delegate.inter_linear)
+    #rotatedMask = np.copy(img)
+    #rotatedMask[y0:y0+h,x0:x0+w] = rotatedSubMask
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     return (rotatedMask + img * maskAltered).astype('uint8')
@@ -2646,11 +2661,11 @@ class GrayFrameWriter:
             t_codec = preferences['vid_codec']
         if t_codec is None and sys.platform.startswith('win'):
             self.codec = 'XVID'
-	elif t_codec is None and sys.platform.startswith('linux'):
+        elif t_codec is None and sys.platform.startswith('linux'):
             self.codec = 'XVID'
         elif t_codec is not None:
             self.codec = str(t_codec)
-        self.fourcc = cv2api.cv2api_delegate.fourcc(self.codec) if self.codec is not 'raw' else 0
+        self.fourcc = cv2api.cv2api_delegate.get_fourcc(self.codec) if self.codec is not 'raw' else 0
 
     def write(self, mask, mask_time):
         if self.capOut is None:

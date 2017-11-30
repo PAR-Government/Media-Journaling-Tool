@@ -151,6 +151,8 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     @rtype : tuple(image_wrap.ImageWrapper,str)
     @type predecessors: List[str]
     """
+    if 'type' not in specification:
+        raise ValueError('type attribute missing in  {}'.format(specification_name))
     if specification['type'] == 'mask':
         source = getNodeState(specification['source'], local_state)['node']
         target = getNodeState(specification['target'], local_state)['node']
@@ -166,6 +168,14 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     elif specification['type'] == 'value':
         return specification['value']
     elif specification['type'] == 'variable':
+        if 'name' not in specification:
+            raise ValueError('name attribute missing in  {}'.format(specification_name))
+        if 'source' not in specification:
+            raise ValueError('name attribute missing in  {}'.format(specification_name))
+        if specification['name'] not in getNodeState(specification['source'], local_state):
+            raise ValueError('Missing variable {} in from {} while processing {}'.format(specification['name'],
+                                                                                         specification['source'],
+                                                                                         specification_name))
         if 'permutegroup' in specification:
             source_spec = copy.copy(getNodeState(specification['source'], local_state)[specification['name']])
             source_spec['permutegroup'] = specification['permutegroup']
@@ -180,13 +190,19 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             return getNodeState(specification['source'], local_state)['node']
         return random.choice(predecessors)
     elif specification['type'] == 'imagefile':
+        if 'source' not in specification:
+            raise ValueError('name attribute missing in  {}'.format(specification_name))
         source = getNodeState(specification['source'], local_state)['node']
         return local_state['model'].getGraph().get_image(source)[1]
     elif specification['type'] == 'input':
+        if 'source' not in specification:
+            raise ValueError('name attribute missing in  {}'.format(specification_name))
         return getNodeState(specification['source'], local_state)['output']
     elif specification['type'] == 'plugin':
         return callPluginSpec(specification, local_state)
     elif specification['type'].startswith('global'):
+        if 'name' not in specification:
+            raise ValueError('source attribute missing in {}'.format(specification_name))
         return global_state[specification['name']]
     return pickArg(specification, node_name, specification_name, global_state, local_state)
 
@@ -530,12 +546,15 @@ class PluginOperation(BatchOperation):
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
         op = software_loader.getOperation(plugin_op['name'], fake=True)
-        args = pickArgs(local_state,
-                        global_state,
-                        node_name,
-                        node['arguments'] if 'arguments' in node else None,
-                        op,
-                        predecessors)
+        try:
+            args = pickArgs(local_state,
+                            global_state,
+                            node_name,
+                            node['arguments'] if 'arguments' in node else None,
+                            op,
+                            predecessors)
+        except Exception as ex:
+            raise ValueError('Invalid argument ({}) for node {}'.format(ex.message, node_name))
         if 'experiment_id' in node:
             args['experiment_id'] = node['experiment_id']
         args['skipRules'] = True
@@ -860,12 +879,13 @@ class BatchProject:
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             if 'model' in local_state:
                 shutil.rmtree(local_state['model'].get_dir())
-            return None
+            return None,project_name
         finally:
             for file in local_state['cleanup']:
                 if os.path.exists(file):
                     os.remove(file)
-        return local_state['model'].get_dir()
+        project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
+        return local_state['model'].get_dir(), project_name
 
     def dump(self, dir='.'):
         filename = os.path.join(dir, self.getName() + '.png')
@@ -987,11 +1007,13 @@ def thread_worker(globalState=dict()):
             'Starting worker thread {}. Current count is {}'.format(currentThread().getName(), count.value))
     while ((count and count.decrement() > 0) or (count is None and permutegroupsmanager.hasNext())):
         try:
-            project_directory = globalState['project'].executeOnce(globalState)
+            project_directory, project_name = globalState['project'].executeOnce(globalState)
             if project_directory is not None:
                 logging.getLogger('maskgen').info('Thread {} Completed {}'.format(currentThread().getName(),
                                                                                   project_directory))
             else:
+                with globalState['errors_lock']:
+                    globalState['errors'].append(project_name)
                 logging.getLogger('maskgen').error(
                     'Exiting thread {} due to failure to create project'.format(currentThread().getName()))
                 break
@@ -1038,6 +1060,8 @@ class BatchExecutor:
         threadGlobalState = {
                          'project': batchProject,
                          'count': IntObject(int(count)) if count > 1 else None,
+                         'errors' : list(),
+                         'errors_lock': Lock()
                          }
         threadGlobalState.update(self.initialState)
         if graph:

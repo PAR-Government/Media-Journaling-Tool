@@ -29,7 +29,7 @@ class CV2ApiV2(CV2Api):
         self.prop_frame_count = cv2.cv.CV_CAP_PROP_FRAME_COUNT
         self.tm_sqdiff_normed = cv2.cv.CV_TM_SQDIFF_NORMED
         self.tm_ccorr_normed = cv2.cv.CV_TM_CCORR_NORMED
-        self.fourcc = cv2.cv.CV_CAP_PROP_FOURCC
+        self.fourcc_prop = cv2.cv.CV_CAP_PROP_FOURCC
         self.inter_linear = cv2.cv.CV_INTER_LINEAR
         self.inter_cubic = cv2.cv.CV_INTER_CUBIC
         self.inter_nn = cv2.INTER_NEAREST
@@ -46,7 +46,7 @@ class CV2ApiV2(CV2Api):
         kp = detector.detect(img)
         return extractor.compute(img, kp)
 
-    def fourcc(self,codec):
+    def get_fourcc(self,codec):
         return cv2.cv.CV_FOURCC(*codec)
 
 
@@ -77,7 +77,7 @@ class CV2ApiV3(CV2Api):
         detector = cv2.xfeatures2d.SIFT_create()
         return detector.detectAndCompute(img,None)
 
-    def fourcc(self, codec):
+    def get_fourcc(self, codec):
         return cv2.VideoWriter_fourcc(*codec)
 
 global cv2api_delegate

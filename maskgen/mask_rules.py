@@ -197,7 +197,9 @@ def _guess_type(edge):
     return 'audio' if edge['op'].find('Audio') >= 0 else 'video'
 
 
-def _prepare_video_masks(directory, video_masks, media_type, source, target, returnEmpty=True):
+def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
+                         returnEmpty=True,
+                         fillWithUserBoundaries=False):
     """
     Remove empty videosegments, set the videosegment file names to full path names,
     set the media_type of the segment if missing.
@@ -225,8 +227,17 @@ def _prepare_video_masks(directory, video_masks, media_type, source, target, ret
                         mask_copy.pop('videosegment')
             yield mask_copy
 
+    if len(video_masks) == 0:
+        if not returnEmpty:
+            return None
+        if fillWithUserBoundaries:
+            video_masks = video_tools.getMaskSetForEntireVideo(getNodeFile(graph,source),
+                                                 start_time = getValue(edge,'arguments.Start Time',
+                                                                       defaultValue='00:00:00.000'),
+                                                 end_time = getValue(edge,'arguments.End Time'),
+                                                 media_types=[media_type])
     return None if len(video_masks) == 0 and not returnEmpty else \
-         CompositeImage(source, target, media_type, [item for item in replace_with_dir(directory, video_masks)])
+         CompositeImage(source, target, media_type, [item for item in replace_with_dir(graph.dir, video_masks)])
 
 
 def recapture_transform(edge, source, target, edgeMask,
@@ -1204,8 +1215,8 @@ def select_region_frames(edge, source, target,
         return compositeMask
     elif donorMask is not None:
         return donorMask
-    return _prepare_video_masks(directory, edge['videomasks'], 'video', source,
-                                target) if 'videomasks' in edge else None
+    return _prepare_video_masks(graph, edge['videomasks'], 'video', source,
+                                target, edge,fillWithUserBoundaries=True) if 'videomasks' in edge else None
 
 
 def select_region(edge, source, target,
@@ -1284,11 +1295,13 @@ def image_to_video(edge, source, target, edgeMask,
                    top=False
                    ):
     if compositeMask is not None:
-        return _prepare_video_masks(directory,
+        return _prepare_video_masks(graph,
                                     video_tools.getMaskSetForEntireVideo(graph.get_image_path(target)),
                                     'video',
                                     source,
-                                    target)
+                                    target,
+                                    edge,
+                                    fillWithUserBoundaries=True)
     else:
         wrapper, name = graph.get_image(source)
         return np.ones(wrapper.to_array().size, dtype=np.uint8) * 255
@@ -1305,7 +1318,7 @@ def video_donor(edge, source, target, edgeMask,
     if compositeMask is not None:
         return compositeMask
     else:
-        return _prepare_video_masks(directory, edge['videomasks'], 'video', source, target) if donorMask is None and \
+        return _prepare_video_masks(graph, edge['videomasks'], 'video', source, target, edge) if donorMask is None and \
                                                                                                'videomasks' in edge and \
                                                                                                len(edge[
                                                                                                        'videomasks']) > 0 else donorMask
@@ -1324,8 +1337,8 @@ def audio_donor(edge, source, target, edgeMask,
     else:
         node = graph.get_node(target)
         if getNodeFileType(graph, node) in ['video', 'audio']:
-            return _prepare_video_masks(directory, edge['videomasks'], 'audio',
-                                        source, target) if donorMask is None and \
+            return _prepare_video_masks(graph, edge['videomasks'], 'audio',
+                                        source, target, edge,fillWithUserBoundaries=False) if donorMask is None and \
                                                            'videomasks' in edge and \
                                                            len(edge['videomasks']) > 0 else donorMask
     return donorMask
@@ -1513,6 +1526,9 @@ def _getUnresolvedSelectMasksForEdge(edge):
     return sms
 
 
+def isEdgeNotDonor(edge_id, edge, operation):
+    return edge['op'] != 'Donor'
+
 def isEdgeComposite(edge_id, edge, operation):
     return edge['recordMaskInComposite'] == 'yes'
 
@@ -1524,7 +1540,7 @@ def isEdgeLocalized(edge_id,edge, operation):
     :return:
     @type Operation
     """
-    return operation.category not in ['Output','AntiForensic','PostProcessing','Select','Transform','Laundering']
+    return getValue(edge, 'global') == 'yes' or operation.category not in ['Output','AntiForensic','PostProcessing','Laundering']
 
 def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
     preds = graph.predecessors(node)
@@ -1898,8 +1914,8 @@ class CompositeDelegate:
         self.gopLoader = gopLoader
         self.edge_id = edge_id
         self.graph = graph
-        edge = graph.get_edge(edge_id[0], edge_id[1])
-        if 'empty mask' in edge and edge['empty mask'] == 'yes':
+        self.edge = graph.get_edge(edge_id[0], edge_id[1])
+        if 'empty mask' in self.edge and self.edge['empty mask'] == 'yes':
             logging.getLogger('maskgen').warn('Composite constructed for empty mask {}->{}'.format(
                 graph.get_node(edge_id[0])['file'],graph.get_node(edge_id[1])['file'])
             )
@@ -1913,10 +1929,9 @@ class CompositeDelegate:
     def _getComposite(self):
         if self.composite is not None:
             return self.composite
-        edge = self.graph.get_edge(self.edge_id[0], self.edge_id[1])
-        if 'videomasks' in edge :
-            return _prepare_video_masks(self.graph.dir, edge['videomasks'], _guess_type(edge),
-                                        self.edge_id[0], self.edge_id[1])
+        if 'videomasks' in self.edge :
+            return _prepare_video_masks(self.graph, self.edge['videomasks'], _guess_type(self.edge),
+                                        self.edge_id[0], self.edge_id[1], self.edge,fillWithUserBoundaries=True)
         else:
             edgeMask = \
             self.graph.get_edge_image(self.edge_id[0], self.edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
@@ -1991,7 +2006,7 @@ class CompositeDelegate:
         :return:
         %rtype: list of Probe
         """
-        selectMasks = _getUnresolvedSelectMasksForEdge(self.graph.get_edge(self.edge_id[0], self.edge_id[1]))
+        selectMasks = _getUnresolvedSelectMasksForEdge(self.edge)
         finaNodeIdMasks = self.constructTransformedMask(self.edge_id, self._getComposite(), saveTargets=saveTargets)
         probes = []
         for target_mask, target_mask_filename, finalNodeId, nodetype in finaNodeIdMasks:
@@ -2131,8 +2146,12 @@ class CompositeDelegate:
     def __getDonorMaskForEdge(self, edge_id,returnEmpty=True):
         edge = self.graph.get_edge(edge_id[0], edge_id[1])
         if 'videomasks' in edge:
-            return _prepare_video_masks(self.graph.dir, edge['videomasks'], _guess_type(edge), edge_id[0], edge_id[1],
-                                        returnEmpty=returnEmpty)
+            return _prepare_video_masks(self.graph, edge['videomasks'], _guess_type(edge),
+                                        edge_id[0],
+                                        edge_id[1],
+                                        edge,
+                                        returnEmpty=returnEmpty,
+                                        fillWithUserBoundaries=False)
         startMask = self.graph.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
         if startMask is None:
             raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])

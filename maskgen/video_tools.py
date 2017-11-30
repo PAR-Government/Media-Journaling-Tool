@@ -347,21 +347,15 @@ def processFrames(stream):
     return frames
 
 
-def __getFFmpegTool():
-    return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
-
-def __getFFprobeTool():
-    return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
-
 def ffmpegToolTest():
-    ffmpegcommand = [__getFFprobeTool(), '-L']
+    ffmpegcommand = [tool_set.getFFprobeTool(), '-L']
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
     except:
         return ffmpegcommand[0]+ ' not installed properly'
 
-    ffmpegcommand = [__getFFmpegTool(), '-L']
+    ffmpegcommand = [tool_set.getFFmpegTool(), '-L']
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
@@ -381,7 +375,7 @@ def __get_metadata_item(data, item, default_value):
 
 def getMeta(file, with_frames=False, show_streams=False):
     def runProbe(func, args=None):
-        ffmpegcommand = [__getFFprobeTool(), file]
+        ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
@@ -474,7 +468,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
                     if aptime*1000 >= st[0] and not startcomplete:
                         if framessince_start >= st[1]:
                             startcomplete = True
-                            mask['starttime'] = lasttime
+                            mask['starttime'] = aptime*1000
                             mask['startframe'] = count
                             framessince_start = 0
                             if et is None:
@@ -483,7 +477,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
                             framessince_start+=1
                     elif et is not None and aptime*1000 >= et[0]:
                         if framessince_start >= et[1]:
-                            mask['endtime'] = lasttime
+                            mask['endtime'] = aptime*1000
                             mask['endframe'] = count
                             break
                         else:
@@ -493,7 +487,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     return results  if len(results) > 0 else None
 
 def get_ffmpeg_version():
-    command = [__getFFmpegTool(),'-version']
+    command = [tool_set.getFFmpegTool(),'-version']
     try:
         pcommand = Popen(command, stdout=PIPE, stderr=PIPE)
         stdout, stderr = pcommand.communicate()
@@ -507,7 +501,7 @@ def get_ffmpeg_version():
     return '?'
 
 def runffmpeg(args, noOutput=True):
-    command = [__getFFmpegTool()]
+    command = [tool_set.getFFmpegTool()]
     command.extend(args)
     try:
         pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
@@ -781,7 +775,7 @@ def removeVideoFromAudio(filename,outputname=None):
         newfilename = tempfile.mktemp(prefix='rmfa', suffix=suffix, dir='.')
     else:
         newfilename = outputname
-    ffmpegcommand = __getFFmpegTool()
+    ffmpegcommand = tool_set.getFFmpegTool()
     command = [ffmpegcommand, '-y', '-i', filename,'-vn','-acodec','copy',newfilename]
     p = Popen(command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
@@ -804,7 +798,7 @@ def x265(filename ,outputname=None, crf=0, remove_video=False):
 
 def lossy(filename, outputname=None, crf=0,remove_video=False):
     return __vid_compress(filename,
-                          ['-loglevel','error'],
+                          ['-loglevel', 'error', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', str(crf)],
                          'h264',
                           outputname=outputname,
                           suffix = 'mov',
@@ -826,7 +820,7 @@ def x264(filename, outputname=None, crf=0,remove_video=False):
 
 
 def vid_md5(filename):
-    ffmpegcommand = __getFFmpegTool()
+    ffmpegcommand = tool_set.getFFmpegTool()
     prefix = filename[0:filename.rfind('.')]
     outFileName = prefix + '_compressed.mp4'
     if filename == outFileName:
@@ -846,7 +840,7 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
     #md5 = vid_md5(filename)
     one_meta, one_frames = getMeta(filename, with_frames=False)
     execute_remove= False
-    execute_compress = True
+    execute_compress = False
     input_filename = filename
     #see if already compressed
     if one_meta is not None:
@@ -856,10 +850,10 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
             if 'Stream' in k and criteria in v:
                 execute_compress = False
     prefix = input_filename[0:filename.rfind('.')]
-    if not input_filename.endswith(suffix):
+    if not input_filename.endswith('_compressed.' + suffix):
         execute_compress = True
     outFileName = prefix + '_compressed.' + suffix if outputname is None else outputname
-    ffmpegcommand = __getFFmpegTool()
+    ffmpegcommand = tool_set.getFFmpegTool()
     if  execute_remove:
         input_filename = removeVideoFromAudio(input_filename, outputname=outFileName if not execute_compress else None)
     elif input_filename == outFileName:
@@ -904,7 +898,7 @@ def _runCommand(command,outputCollector=None):
     return errors
 
 def getFrameAttribute(fileOne, attribute, default=None, audio=False):
-    ffmpegcommand = __getFFprobeTool()
+    ffmpegcommand = tool_set.getFFprobeTool()
     results = []
     errors = _runCommand([ffmpegcommand,
                           '-show_entries', 'stream={},codec_type'.format(attribute),
@@ -948,7 +942,7 @@ def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         Consruct wav files
         """
         name = fileOne + '.wav' if outputName is None else outputName
-        ffmpegcommand = __getFFmpegTool()
+        ffmpegcommand = tool_set.getFFmpegTool()
         if os.path.exists(name):
             os.remove(name)
         ss = None
@@ -979,7 +973,7 @@ def __formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager, codec=[
     Construct a diff video.  The FFMPEG provides degrees of difference by intensity variation in the green channel.
     The normal intensity is around 98.
     """
-    ffmpegcommand = __getFFmpegTool()
+    ffmpegcommand = tool_set.getFFmpegTool()
     postFix = fileOne[fileOne.rfind('.'):]
     outFileName = prefix + postFix
     command = [ffmpegcommand, '-y']
@@ -1000,7 +994,6 @@ def __formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager, codec=[
     p = Popen(command, stdout=PIPE,stderr=PIPE)
     stdout, stderr = p.communicate()
     errors = []
-    sendErrors = False
     try:
         if stderr is not None:
             for line in stderr.splitlines():
@@ -1993,12 +1986,15 @@ def dropFramesWithoutMask(bounds,
                        expectedType = 'video'):
         drop_sf = bound['startframe'] if 'startframe' in bound else 1
         drop_ef = bound['endframe'] if 'endframe' in bound and bound['endframe'] > 0 else None
+        drop_st = bound['starttime'] if 'starttime' in bound else 0
+        drop_et = bound['endtime'] if 'endtime' in bound and bound['endtime'] > 0 else None
         new_mask_set = []
         for mask_set in video_masks:
             if 'type' in mask_set and mask_set['type'] != expectedType:
                 new_mask_set.append(mask_set)
                 continue
             mask_sf = mask_set['startframe']
+            mask_st = mask_set['starttime']
             mask_ef = mask_set['endframe'] if 'endframe' in mask_set or mask_set['endframe'] == 0 else None
             rate = mask_set['rate']
             # before remove region
@@ -2015,12 +2011,13 @@ def dropFramesWithoutMask(bounds,
                 continue
             #occurs after drop region
             start_diff_frame = drop_sf - mask_sf
+            start_diff_time = drop_st - mask_st
             if start_diff_frame > 0:
                 change = dict()
                 change['starttime'] = mask_set['starttime']
                 change['type'] = mask_set['type']
                 change['startframe'] = mask_set['startframe']
-                change['endtime'] = mask_set['starttime'] + start_diff_frame*1000/rate
+                change['endtime'] = mask_set['starttime'] + start_diff_time
                 change['endframe'] = mask_set['startframe'] + start_diff_frame
                 change['frames'] = change['endframe'] - change['startframe']
                 change['rate'] = rate
@@ -2029,6 +2026,7 @@ def dropFramesWithoutMask(bounds,
                  end_diff_frame = drop_ef  - mask_ef
                  if end_diff_frame < 0:
                     end_adjust_frame = drop_ef - drop_sf
+                    end_adjust_time = drop_et - drop_st
                     change = dict()
                     if keepTime:
                         change['starttime'] = bound['endtime']
@@ -2041,11 +2039,11 @@ def dropFramesWithoutMask(bounds,
                     else:
                         if drop_ef - mask_sf <= 0:
                             change['startframe'] = mask_set['startframe'] -  end_adjust_frame
-                            change['starttime'] =  mask_set['starttime'] -  end_adjust_frame*1000/rate
+                            change['starttime'] =  mask_set['starttime'] -  end_adjust_time
                         else:
                             change['starttime']  = bound['starttime']
                             change['startframe'] = bound['startframe']
-                        change['endtime'] = mask_set['endtime'] -  end_adjust_frame*1000/rate
+                        change['endtime'] = mask_set['endtime'] -  end_adjust_time
                         change['endframe'] = mask_set['endframe'] -  end_adjust_frame
                         change['frames'] = change['endframe'] - change['startframe']
                         change['type'] = mask_set['type']
@@ -2553,20 +2551,22 @@ def insertFramesWithoutMask(bounds,
                 new_mask_set.append(mask_set)
                 continue
             mask_sf = mask_set['startframe']
-            mask_ef = mask_set['endframe'] if 'endframe' in mask_set or mask_set['endframe'] == 0 else None
+            mask_ef = mask_set['endframe'] if 'endframe' in mask_set or mask_set['endframe'] == 0 else 0
+            mask_et = mask_set['endtime'] if 'endtime' in mask_set or mask_set['endtime'] == 0 else 0
             rate = mask_set['rate']
             #before addition
-            if add_sf - mask_ef > 0:
+            if add_sf - mask_ef >= 0:
                 new_mask_set.append(mask_set)
                 continue
             start_diff_count= add_sf - mask_sf
+            start_diff_time = add_st - mask_set['starttime']
             end_adjust_count = add_ef - add_sf if add_ef is not None else -1
             end_adjust_time = add_et - add_st if add_ef is not None else -1
             if start_diff_count > 0:
                 change = dict()
                 change['starttime'] = mask_set['starttime']
                 change['startframe'] = mask_set['startframe']
-                change['endtime'] = mask_set['starttime'] + start_diff_count/1000.0 * rate
+                change['endtime'] = mask_set['starttime'] + start_diff_time
                 change['endframe'] = mask_set['startframe'] + start_diff_count
                 change['frames'] = change['endframe'] - change['startframe']
                 change['type'] = mask_set['type']
@@ -2576,7 +2576,7 @@ def insertFramesWithoutMask(bounds,
                     change = dict()
                     change['starttime'] =  add_et
                     change['startframe'] = add_ef
-                    change['endtime'] = mask_set['endtime'] + end_adjust_count/1000.0 * rate
+                    change['endtime'] = mask_set['endtime'] + end_adjust_time
                     change['endframe'] = mask_set['endframe'] + end_adjust_count
                     change['frames'] = change['endframe'] - change['startframe']
                     change['rate'] = rate
