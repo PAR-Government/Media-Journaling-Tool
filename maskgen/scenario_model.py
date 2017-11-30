@@ -995,9 +995,6 @@ class ImageProjectModel:
         self.notify((self.start, self.end), 'update_edge')
         self._save_group(mod.operationName)
 
-        if mod_old.recordMaskInComposite != mod.recordMaskInComposite and mod.recordMaskInComposite == 'yes':
-            self.assignColors()
-
     def compare(self, destination, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
             Return both images, the mask and the analysis results (a dictionary)
@@ -1148,7 +1145,7 @@ class ImageProjectModel:
                                                                   constructDonors=constructDonors))
         return probes
 
-    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeComposite, saveTargets=True,
+    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeNotDonor, saveTargets=True,
                     compositeBuilders=[ColorCompositeBuilder],
                     graph=None,
                     replacement_probes=None):
@@ -1161,6 +1158,7 @@ class ImageProjectModel:
         @type inclusionFunction: (tuple, dict) -> bool
         @rtype: list of Probe
         """
+        self.assignColors()
         probes = replacement_probes if replacement_probes is not None else \
             self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction, saveTargets=saveTargets,graph=graph)
         probes = sorted(probes, key=lambda probe: probe.level)
@@ -1552,8 +1550,6 @@ class ImageProjectModel:
             msg = msg if len(msg) > 0 else None
             self.labelNodes(self.start)
             self.labelNodes(destination)
-            if mod.recordMaskInComposite:
-                self.assignColors()
             return msg, True
         except Exception as e:
             return 'Exception (' + str(e) + ')', False
@@ -1758,11 +1754,13 @@ class ImageProjectModel:
     def saveas(self, pathname):
         with self.lock:
             self.clear_validation_properties()
+            self.assignColors()
             self.G.saveas(pathname)
 
     def save(self):
         with self.lock:
             self.clear_validation_properties()
+            self.assignColors()
             self.G.save()
 
     def getEdgeItem(self, name, default=None):
@@ -1983,8 +1981,6 @@ class ImageProjectModel:
 
         for frm, to in self.G.get_edges():
             edge = self.G.get_edge(frm, to)
-            if 'empty mask' in edge and edge['empty mask'] == 'yes':
-                total_errors.append((str(frm), str(to), str(frm) + ' => ' + str(to) + ': ' +' has an empty change mask indicating an manipulation did not occur.'))
             op = edge['op']
             errors = graph_rules.run_rules(self.gopLoader.getOperationWithGroups(op, fake=True), self.G, frm, to)
             if len(errors) > 0:
@@ -1994,11 +1990,20 @@ class ImageProjectModel:
     def assignColors(self):
         level = 1
         edgeMap = dict()
+        missingColors = 0
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
-            if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-                edgeMap[edge_id] = (level, None)
-                level = level + 1
+            if edge['op'] == 'Donor':
+                continue
+            missingColors += 1 if 'linkcolor' not in edge else 0
+        if missingColors == 0:
+            return
+        for edge_id in self.G.get_edges():
+            edge = self.G.get_edge(edge_id[0], edge_id[1])
+            if edge['op'] == 'Donor':
+                continue
+            edgeMap[edge_id] = (level, None)
+            level = level + 1
         redistribute_intensity(edgeMap)
         for k, v in edgeMap.iteritems():
             self.G.get_edge(k[0], k[1])['linkcolor'] = str(list(v[1])).replace('[', '').replace(']', '').replace(
