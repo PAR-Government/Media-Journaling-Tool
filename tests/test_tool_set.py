@@ -9,7 +9,8 @@ import random
 class TestToolSet(unittest.TestCase):
     def test_filetype(self):
         self.assertEquals(tool_set.fileType('images/hat.jpg'), 'image')
-        self.assertEquals(tool_set.fileType('images/sample.json'), 'video')
+        self.assertEquals(tool_set.fileType('images/sample.json'), None)
+        self.assertEquals(tool_set.fileType('tests/videos/sample1.mov'), 'video')
 
     def test_filetypes(self):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
@@ -110,12 +111,33 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(np.all(new==new_rebuilt))
 
     def test_rotate(self):
+        import cv2
+        from maskgen import cv2api
         img1 = np.zeros((100,100),dtype=np.uint8)
         img1[20:50,40:50] = 1
+        mask = np.ones((100,100),dtype=np.uint8)*255
+        img1[20:50,40] = 2
         img = tool_set.applyRotateToCompositeImage(img1, 90, (50,50))
-        self.assertTrue(sum(sum(img))>40)
-        img = tool_set.applyRotateToComposite(-90,img,img.shape)
+        self.assertTrue(sum(sum(img1-img))>40)
+        img = tool_set.applyRotateToCompositeImage(img,-90,(50,50))
         self.assertTrue(sum(sum(img1-img)) <2)
+        img = tool_set.applyRotateToComposite(-90, img1,  np.zeros((100,100),dtype=np.uint8), img1.shape, local=True)
+        self.assertTrue(sum(img[40,:]) == sum(img1[:,40]))
+        self.assertTrue(sum(img[40, :]) == 60)
+        M = cv2.getRotationMatrix2D((35,45), -90, 1.0)
+        img = cv2.warpAffine(img1, M, (img.shape[1], img.shape[0]),
+                                     flags=cv2api.cv2api_delegate.inter_linear)
+
+        mask[abs(img - img1) > 0] = 0
+        #image_wrap.ImageWrapper(mask * 100).save('mask.png')
+        #image_wrap.ImageWrapper(img*100).save('foo.png')
+        img[10:15,10:15]=3
+        img3 = tool_set.applyRotateToComposite(90, img, mask, img1.shape, local=True)
+        self.assertTrue(np.all(img3[10:15,10:15]==3))
+        img3[10:15, 10:15] = 0
+        #self.assertTrue((sum(img1[20:50,40]) - sum(img3[24:54,44]))==0)
+        #image_wrap.ImageWrapper(img3 * 100).save('foo2.png')
+
 
     def test_fileMask(self):
         pre = tool_set.openImageFile('tests/images/prefill.png')

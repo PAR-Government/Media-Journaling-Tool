@@ -74,9 +74,7 @@ def missing_donor_inputmask(edge, dir):
              len(edge['inputmaskname']) == 0 or
              not os.path.exists(os.path.join(dir, edge['inputmaskname']))) and \
             (edge['op'] == 'PasteSampled' and \
-             'arguments' in edge and \
-             'purpose' in edge['arguments'] and \
-             edge['arguments']['purpose'] == 'clone') or
+                getValue(edge,'arguments.purpose') == 'clone') or
             edge['op'] == 'TransformMove')
 
 
@@ -85,9 +83,7 @@ def eligible_donor_inputmask(edge):
             edge['inputmaskname'] is not None and \
             len(edge['inputmaskname']) > 0 and \
             edge['op'] == 'PasteSampled' and \
-            'arguments' in edge and \
-            'purpose' in edge['arguments'] and \
-            edge['arguments']['purpose'] == 'clone')
+            getValue(edge,'arguments.purpose') == 'clone')
 
 
 def eligible_for_donor(edge):
@@ -794,6 +790,10 @@ def checkChannelLoss(op, graph, frm, to):
     if len(metaBefore) > len(metaAfter):
         return 'change in the number of streams occurred'
 
+def checkEmpty(op,graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    if getValue(edge, 'empty mask')  == 'yes':
+        return "An empty change mask indicating an manipulation did not occur."
 
 def checkSameChannels(op, graph, frm, to):
     """
