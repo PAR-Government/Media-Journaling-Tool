@@ -1825,12 +1825,15 @@ def __localrotateImage(rotation,  mask, img, expectedDims=None, cval=0):
     x0,y0,w,h = widthandheight(maskInverted)
     if w == 0 or h == 0:
         return img
-    #subImg = img[y0:(y0+h),x0:(x0+w)]
-    center = ( y0 + h/ 2,x0+ w / 2)
+    maxsize = max(w,h)
+    subImg = img[y0:(y0+maxsize),x0:(x0+maxsize)]
+    #center = ( y0 + h/ 2,x0+ w / 2)
+    center = (h /2, w / 2)
+    #rotatedSubMask = cv2.rotate(subImg*maskInverted[y0:(y0+h),x0:(x0+w)],rotation)
     M = cv2.getRotationMatrix2D(center, rotation, 1.0)
-    rotatedMask = cv2.warpAffine(img*maskInverted, M, (img.shape[1],img.shape[0]),flags=cv2api.cv2api_delegate.inter_linear)
-    #rotatedMask = np.copy(img)
-    #rotatedMask[y0:y0+h,x0:x0+w] = rotatedSubMask
+    rotatedSubMask = cv2.warpAffine(subImg*maskInverted[y0:(y0+maxsize),x0:(x0+maxsize)], M, (maxsize,maxsize),flags=cv2api.cv2api_delegate.inter_linear)
+    rotatedMask = np.zeros(mask.shape)
+    rotatedMask[y0:y0+maxsize,x0:x0+maxsize] = rotatedSubMask
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     return (rotatedMask + img * maskAltered).astype('uint8')

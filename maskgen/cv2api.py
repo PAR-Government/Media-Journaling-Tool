@@ -17,6 +17,9 @@ class CV2Api:
     def computeSIFT(self, img):
         None, None
 
+    def get_fourcc(self, codec):
+        return 0
+
 class CV2ApiV2(CV2Api):
 
     def __init__(self):

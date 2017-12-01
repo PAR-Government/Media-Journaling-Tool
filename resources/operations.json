@@ -2763,6 +2763,25 @@
       ]
     },
     {
+      "category": "Output",
+      "name": "OutputM4",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSameChannels"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Export to M4 format.",
+      "includeInMask": false,
+      "generateMask" : "meta",
+      "transitions": [
+        "video.video",
+        "audio.audio",
+        "zip.video"
+      ]
+    },
+    {
       "category": "Paste",
       "name": "PasteSplice",
       "mandatoryparameters": {

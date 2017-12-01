@@ -6,6 +6,7 @@ from networkx.readwrite import json_graph
 import os
 from maskgen import software_loader
 from maskgen import scenario_model
+from maskgen.image_graph import ImageGraph
 import random
 from maskgen import tool_set
 import shutil
@@ -49,6 +50,26 @@ def loadJSONGraph(pathname):
         return BatchProject(json_data)
     return None
 
+
+def getNoneDonorPredecessor(graph, target):
+    """
+
+    :param graph:
+    :return:
+    @type graph: ImageGraph
+    """
+    viable = [pred for pred in graph.predecessors(target) if graph.get_edge(pred,target)['op'] != 'Donor']
+    return viable[0] if len(viable) > 0 else None
+
+def getGraphFromLocalState(local_state):
+    """
+
+    :param local_state:
+    :return:
+    @type local_state: dict
+    @rtype: ImageGraph
+    """
+    return local_state['model'].getGraph()
 
 def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     """
@@ -154,10 +175,12 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     if 'type' not in specification:
         raise ValueError('type attribute missing in  {}'.format(specification_name))
     if specification['type'] == 'mask':
-        source = getNodeState(specification['source'], local_state)['node']
-        target = getNodeState(specification['target'], local_state)['node']
+        if 'source' not in specification:
+            raise ValueError('source attribute missing in  {}'.format(specification_name))
+        target = getNodeState(specification['source'], local_state)['node']
+        source = getNoneDonorPredecessor(getGraphFromLocalState(local_state),target)
         invert = specification['invert'] if 'invert' in specification else False
-        mask= os.path.join(local_state['model'].get_dir(), local_state['model'].getGraph().get_edge_image(source,
+        mask= os.path.join(local_state['model'].get_dir(), getGraphFromLocalState(local_state).get_edge_image(source,
                                                                                                            target,
                                                                                                            'maskname')[
             1])
@@ -193,7 +216,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         source = getNodeState(specification['source'], local_state)['node']
-        return local_state['model'].getGraph().get_image(source)[1]
+        return getGraphFromLocalState(local_state).get_image(source)[1]
     elif specification['type'] == 'input':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -534,9 +557,13 @@ class PluginOperation(BatchOperation):
         """
         my_state = getNodeState(node_name, local_state)
 
+        def isDonor(edge):
+            return 'donor' in edge and edge['donor']
+
         predecessors = [getNodeState(predecessor, local_state)['node'] \
                         for predecessor in graph.predecessors(node_name) \
-                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
+                        if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state) and \
+                        isDonor(graph.edge[predecessor][node_name])]
 
         predecessor_state = getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
