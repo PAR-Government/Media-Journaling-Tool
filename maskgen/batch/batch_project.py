@@ -13,12 +13,13 @@ import shutil
 from maskgen import plugins
 from maskgen import group_operations
 import logging
-from threading import Thread, local, currentThread
+from threading import Thread, local, Semaphore
 import numpy as np
 from maskgen.batch.permutations import *
 import time
 from datetime import datetime
 from maskgen.loghandling import set_logging
+import queue
 
 
 class IntObject:
@@ -211,7 +212,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
                 # return  local_state['model'].getImageAndName(local_state['model'].getBaseNode(local_state['model'].start))[1]
                 return local_state['model'].getBaseNode(local_state['model'].start)
             return getNodeState(specification['source'], local_state)['node']
-        return random.choice(predecessors)
+        if len(predecessors) != 1:
+            raise ValueError('Donor specification {} missing source '.format(specification['name']))
+        return predecessors[0]
     elif specification['type'] == 'imagefile':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -342,7 +345,7 @@ class ImageSelectionOperation(BatchOperation):
         manager = global_state['permutegroupsmanager']
         pick = manager.current(node['permutegroup'] if 'permutegroup' in node else None,
                                node_name)
-        logging.getLogger('maskgen').info('Thread {} picking file {}'.format(currentThread().getName(), pick))
+        logging.getLogger('maskgen').info('Picking file {}'.format(pick))
         getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick)
         return local_state['model']
 
@@ -369,7 +372,7 @@ class BaseSelectionOperation(BatchOperation):
         manager = global_state['permutegroupsmanager']
         pick = manager.current(node['permutegroup'] if 'permutegroup' in node else None,
                                node_name)
-        logging.getLogger('maskgen').info('Thread {} picking file {}'.format(currentThread().getName(), pick))
+        logging.getLogger('maskgen').info('Picking file {}'.format(pick))
         pick_file = os.path.split(pick)[1]
         name = pick_file[0:pick_file.rfind('.')]
         dir = os.path.join(global_state['projects'], name)
@@ -382,7 +385,7 @@ class BaseSelectionOperation(BatchOperation):
         os.mkdir(dir)
         file_path_in_project = os.path.join(dir, pick_file)
         shutil.copy2(pick, file_path_in_project)
-        logging.getLogger('maskgen').info("Thread {} build project {}".format(currentThread().getName(), pick_file))
+        logging.getLogger('maskgen').info("Build project {}".format(pick_file))
         local_state['model'] = scenario_model.createProject(dir,
                                                             name=name,
                                                             base=file_path_in_project,
@@ -416,7 +419,7 @@ class BaseAttachmentOperation(BatchOperation):
         """
         getNodeState(node_name, local_state)['node'] = local_state['start node name']
         if (self.logger.isEnabledFor(logging.DEBUG)):
-            self.logger.debug('Thread {} attaching to node {}'.format(currentThread().getName(), local_state['start node name']))
+            self.logger.debug('Attaching to node {}'.format(local_state['start node name']))
         return local_state['model']
 
 class PreProcessedMediaOperation(BatchOperation):
@@ -428,6 +431,7 @@ class PreProcessedMediaOperation(BatchOperation):
     def _fetchArguments(self, directory, node, nodename, image_file_name, arguments):
         import copy
         import csv
+        print directory + ' for ' + nodename + ' to ' + image_file_name
         argcopy = copy.deepcopy(arguments)
         if 'argument file' in node:
             if 'argument names' not in node:
@@ -496,8 +500,7 @@ class PreProcessedMediaOperation(BatchOperation):
             args['skipRules'] = True
             args['sendNotifications'] = False
             if (self.logger.isEnabledFor(logging.DEBUG)):
-                self.logger.debug('Thread {} Execute image {} on {} with {}'.format(currentThread().getName(),
-                                                                                     node['description'],
+                self.logger.debug('Execute image {} on {} with {}'.format(node['description'],
                                                                                      filename,
                                                                                      str(args)))
             opDetails = scenario_model.Modification(node['op'],
@@ -518,8 +521,7 @@ class PreProcessedMediaOperation(BatchOperation):
             for predecessor in predecessors:
                 local_state['model'].selectImage(predecessor)
                 if (self.logger.isEnabledFor(logging.DEBUG)):
-                    self.logger.debug('Thread {} project {} connect {} to {}'.format(currentThread().getName(),
-                                                                                     local_state['model'].getName(),
+                    self.logger.debug('Project {} connect {} to {}'.format(local_state['model'].getName(),
                                                                                      predecessor,
                                                                                      node_name))
                 local_state['model'].connect(my_state['node'],
@@ -587,8 +589,7 @@ class PluginOperation(BatchOperation):
         args['skipRules'] = True
         args['sendNotifications'] = False
         if (self.logger.isEnabledFor(logging.DEBUG)):
-            self.logger.debug('Thread {} Execute plugin {} on {} with {}'.format(currentThread().getName(),
-                                                                             plugin_name,
+            self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                              filename,
                                                                              str(args)))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
@@ -598,8 +599,7 @@ class PluginOperation(BatchOperation):
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
             if (self.logger.isEnabledFor(logging.DEBUG)):
-                self.logger.debug('Thread {} project {} connect {} to {}'.format(currentThread().getName(),
-                                                                                 local_state['model'].getName(),
+                self.logger.debug('Project {} connect {} to {}'.format(local_state['model'].getName(),
                                                                                  predecessor,
                                                                                  node_name))
             local_state['model'].connect(my_state['node'],
@@ -679,8 +679,7 @@ class InputMaskPluginOperation(PluginOperation):
         kwargs = {k: self.resolveDonor(k, v, local_state) for k, v in kwargs.iteritems()}
         try:
             if (self.logger.isEnabledFor(logging.DEBUG)):
-                    self.logger.debug('Thread {} calling plugin {} for {} with args {}'.format(currentThread().getName(),
-                                                                                        filter,
+                    self.logger.debug('Calling plugin {} for {} with args {}'.format(filter,
                                                                                         filename,
                                                                                        str(kwargs)))
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
@@ -720,7 +719,7 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
                 raise ValueError('file key expected in result to identify chosen file')
             else:
                 pick = extra_args.pop('file')
-                logging.getLogger('maskgen').info('Thread {} picking file {}'.format(currentThread().getName(), pick))
+                logging.getLogger('maskgen').info('Picking file {}'.format(pick))
                 getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick)
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
@@ -805,16 +804,13 @@ class BatchProject:
         global_state = {'picklists_files': {},
                         'project': self,
                         'workdir': project.get_dir() if workdir is None else workdir,
-                        'count': None,
                         'permutegroupsmanager': PermuteGroupManager(dir=project.get_dir() if workdir is None else workdir)
                         }
-        self.logger.info('Thread {} building project {} with local state'.format(currentThread().getName(),
-                                                                                   project.getName()))
+        self.logger.info('Building project {} with local state'.format(project.getName()))
         local_state = self._buildLocalState()
         mydata = local()
         mydata.current_local_state = local_state
-        self.logger.info('Thread {} building project {} with global state: {} '.format(currentThread().getName(),
-                                                                                       project.getName(),
+        self.logger.info('Building project {} with global state: {} '.format(project.getName(),
                                                                                     str(global_state)))
         local_state['model'] = project
         base_node = self._findBase()
@@ -837,10 +833,10 @@ class BatchProject:
                                       if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
 
                     connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
-                    self.logger.debug('{} Starting: {}'.format(currentThread().getName(), op_node_name))
+                    self.logger.debug('Starting: {}'.format(op_node_name))
                     self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                     completed.append(op_node_name)
-                    self.logger.debug('{} Completed: {}'.format(currentThread().getName(), op_node_name))
+                    self.logger.debug('Completed: {}'.format(op_node_name))
                     queue.extend(self.G.successors(op_node_name))
             if recompress:
                 self.logger.debug("Run Save As")
@@ -866,8 +862,7 @@ class BatchProject:
         local_state = self._buildLocalState()
         mydata = local()
         mydata.current_local_state = local_state
-        self.logger.info('Thread {} building project with global state: {} '.format(currentThread().getName(),
-                                                                                    str(global_state)))
+        self.logger.info('Building project with global state: {} '.format(str(global_state)))
         base_node = self._findBase()
         try:
             self._execute_node(base_node, None, local_state, global_state)
@@ -892,7 +887,7 @@ class BatchProject:
                 self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
                 completed.append(op_node_name)
                 if (self.logger.isEnabledFor(logging.DEBUG)):
-                    self.logger.debug('{} Completed: {}'.format(currentThread().getName(), op_node_name))
+                    self.logger.debug('Completed: {}'.format(op_node_name))
                 queue.extend(self.G.successors(op_node_name))
             if recompress:
                 self.logger.debug("Run Save As")
@@ -1013,7 +1008,7 @@ class BatchProject:
         """
         try:
             if (self.logger.isEnabledFor(logging.DEBUG)):
-                self.logger.debug('_execute_node {}  by {} connect to {}'.format(node_name, currentThread().getName(),
+                self.logger.debug('_execute_node {} connect to {}'.format(node_name,
                                                                              str(connect_to_node_name)))
             return getOperationGivenDescriptor(self.G.node[node_name]).execute(self.G,
                                                                                node_name,
@@ -1025,28 +1020,61 @@ class BatchProject:
             logging.getLogger('maskgen').error(str(e))
             raise e
 
-def thread_worker(globalState=dict()):
-    # import copy
-    count = globalState['count']
-    permutegroupsmanager = globalState['permutegroupsmanager']
-    if count is not None:
-        logging.getLogger('maskgen').info(
-            'Starting worker thread {}. Current count is {}'.format(currentThread().getName(), count.value))
-    while ((count and count.decrement() > 0) or (count is None and permutegroupsmanager.hasNext())):
+class QueueThreadWorker:
+
+    def __init__(self, iq):
+        """
+
+        :param iq:
+        @type iq: queue.Queue
+        """
+        self.iq = iq
+
+    def __executeOnce(self, globalState):
+        project_directory = None
+        project_name = None
         try:
+            globalState['project'].loadPermuteGroups(globalState)
             project_directory, project_name = globalState['project'].executeOnce(globalState)
+            globalState['permutegroupsmanager'].save()
             if project_directory is not None:
-                logging.getLogger('maskgen').info('Thread {} Completed {}'.format(currentThread().getName(),
-                                                                                  project_directory))
+                logging.getLogger('maskgen').info('Completed {}'.format(project_directory))
             else:
-                with globalState['errors_lock']:
-                    globalState['errors'].append(project_name)
                 logging.getLogger('maskgen').error(
-                    'Exiting thread {} due to failure to create project'.format(currentThread().getName()))
-                break
+                    'Detected failure from project {}'.format(project_directory))
         except Exception as e:
-            logging.getLogger('maskgen').info('Completed thread: ' + str(e))
-    permutegroupsmanager.save()
+            logging.getLogger('maskgen').error(
+                'Due caught failure  {} from project {}'.format( str(e), project_directory))
+        return project_directory, project_name
+
+    def execute(self):
+        exit = False
+        while not exit:
+            globalState = self.iq.get()
+            if str(globalState) == 'Stop':
+                exit = True
+            else:
+                id = globalState['uuid']
+                logging.getLogger('maskgen').info('Executing {} as {}'.format(
+                    globalState['project'].getName(),
+                    id))
+                flushLogs()
+                project_directory, project_name = self.__executeOnce(globalState)
+                if 'notify_function' in globalState:
+                    globalState['notify_function'](id,project_directory, project_name)
+
+def thread_worker(iq):
+    """
+
+     :param iq:
+     :param oq:
+     @type iq: queue.Queue
+     @type notify_function: function
+     """
+    logging.getLogger('maskgen').info(
+        'Starting Thread')
+    QueueThreadWorker(iq).execute()
+
 
 def loadGlobalStateInitialers(global_state, initializers):
     import importlib
@@ -1062,18 +1090,51 @@ def loadGlobalStateInitialers(global_state, initializers):
             logging.getLogger('maskgen').error('Unable to load initializer {}: {}'.format(initializer, str(e)))
     return global_state
 
+
+def do_nothing_notify(id, project_directory, project_name):
+    pass
+
+class WaitToFinish:
+
+    def __init__(self, count = 1, name = ''):
+        self.lock = Semaphore()
+        self.lock.acquire()
+        self.count = IntObject(count)
+        self.name = name
+
+    def wait_notify(self, id, project_directory, project_name):
+        logging.getLogger('maskgen').info('Received completion of {} as {}'.format(self.name, id))
+        if self.count.decrement() == 0:
+            self.lock.release()
+
+    def wait(self):
+        logging.getLogger('maskgen').info('Waiting completion {}'.format(self.name, id))
+        self.lock.acquire()
+
+def flushLogs():
+
+    for handler in logging.getLogger('maskgen').handlers:
+        handler.flush()
+
 class BatchExecutor:
 
-    def __init__(self,results,workdir='.', global_variables=None, initializers=None, loglevel=50):
+    def __init__(self,results,
+                 workdir='.',
+                 global_variables=None,
+                 initializers=None,
+                 loglevel=50,
+                 threads_count=1):
         if not os.path.exists(results) or not os.path.isdir(results):
             logging.getLogger('maskgen').error('invalid directory for results: ' +  results)
             return
+        self.__setupThreads(threads_count)
         self.workdir = os.path.abspath( workdir )
         loadCustomFunctions()
         set_logging(workdir)
         logging.getLogger('maskgen').info('Setting working directory to {}'.format(self.workdir))
         if loglevel is not None:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
+        self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
         self.initialState = {'projects': results,
                              'picklists_files': {},
                              'workdir': self.workdir,
@@ -1083,36 +1144,54 @@ class BatchExecutor:
             self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \
                                                                     for pair in global_variables.split(',')]})
 
-    def runProject(self, batchProject, count=1, graph=False, threads_count=1):
-        threadGlobalState = {
-                         'project': batchProject,
-                         'count': IntObject(int(count)) if count > 1 else None,
-                         'errors' : list(),
-                         'errors_lock': Lock()
-                         }
-        threadGlobalState.update(self.initialState)
-        if graph:
-            batchProject.dump(dir=self.workdir)
-
-        batchProject.loadPermuteGroups(threadGlobalState)
-
-        if threads_count > 1:
-            threads = []
-            name = 1
-            kwargs = {'globalState':threadGlobalState}
-            for i in range(int(threads_count)):
+    def __setupThreads(self, threads_count):
+        self.threads = []
+        name = 0
+        self.iq = queue.Queue(threads_count)
+        for i in range(int(threads_count)):
                 name += 1
-                t = Thread(target=thread_worker, name=str(name),kwargs=kwargs)
-                threads.append(t)
+                t = Thread(target=thread_worker, name=str(name), kwargs={'iq':self.iq})
+                self.threads.append(t)
                 t.start()
-            for thread in threads:
-                thread.join()
-        else:
-            thread_worker(globalState=threadGlobalState)
+
+    def runProject(self, batchProject, count=1):
+        import uuid
+        logging.getLogger('maskgen').info('Queue up {} projects'.format(count))
+        while count > 0:
+            myid = uuid.uuid4()
+            globalState = {
+                'project': batchProject,
+                'uuid': myid,
+                'notify_function': do_nothing_notify
+            }
+            globalState.update(self.initialState)
+            logging.getLogger('maskgen').info('Queueing {} as {}'.format(batchProject.getName(), myid))
+            self.iq.put(globalState)
+            count -= 1
+        return uuid
+
+    def runProjectLocally(self, batchProject):
+        import uuid
+        myid = uuid.uuid4()
+        globalState = {
+                'project': batchProject,
+                'uuid': myid,
+                'notify_function': do_nothing_notify
+        }
+        globalState.update(self.initialState)
+        logging.getLogger('maskgen').info('Running {} as {}'.format(batchProject.getName(), myid))
+        batchProject.executeOnce(globalState)
 
     def finish(self):
         for k, fp in self.initialState['picklists_files'].iteritems():
             fp.close()
+        logging.getLogger('maskgen').info('Stopping Threads')
+        for thread in self.threads:
+            self.iq.put('Stop')
+        logging.getLogger('maskgen').info('Waiting for Threads termination')
+        for thread in self.threads:
+            thread.join()
+        logging.getLogger('maskgen').info('Thread termination complete')
 
 def main():
     global threadGlobalState
@@ -1133,11 +1212,16 @@ def main():
                   workdir = '.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir,
                   global_variables=args.global_variables,
                   initializers=args.initializers,
+                  threads_count=int(args.threads) if args.threads else 1,
                   loglevel= args.loglevel)
-    be.runProject(batchProject,
-                  count=args.count if args.count else 1,
-                  graph=args.graph,
-                  threads_count=int(args.threads) if args.threads else 1)
+    if args.graph:
+        batchProject.dump(be.workdir)
+    try:
+        be.runProject(batchProject,
+                      count=int(args.count) if args.count else 1
+                     )
+    finally:
+        be.finish()
 
 
 if __name__ == '__main__':

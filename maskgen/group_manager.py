@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("TkAgg")
 from Tkinter import *
 from group_filter import GroupFilter
 import tkSimpleDialog

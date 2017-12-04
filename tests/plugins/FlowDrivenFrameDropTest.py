@@ -1,6 +1,8 @@
 import unittest
 import os
 from maskgen import plugins, video_tools
+from tests.test_support import TestSupport
+
 
 def get_channel_data(source_data, codec_type):
     pos = 0
@@ -9,15 +11,15 @@ def get_channel_data(source_data, codec_type):
             return data,pos
         pos+=1
 
-class CropSelectorTestCase(unittest.TestCase):
+class CropSelectorTestCase(TestSupport):
     filesToKill = []
 
     def setUp(self):
         plugins.loadPlugins()
 
     def test_drop_then_add(self):
-        filename='tests/videos/sample1.mov'
-        filename_output1 = 'tests/videos/sample_out1a.avi'
+        filename= self.locateFile('tests/videos/sample1.mov')
+        filename_output1 = os.path.join(os.path.dirname(os.path.abspath(filename)),'sample_out1a.avi')
         kwargs = {'Start Time':100,
                  'seconds to drop': 2,
                  'codec':'XVID',
@@ -36,7 +38,7 @@ class CropSelectorTestCase(unittest.TestCase):
         self.assertTrue(diff>0)
         diff_time = int(args['End Time']) - int(args['Start Time'])
         self.assertEqual(diff, diff_time)
-        filename_output2 = 'tests/videos/sample_out2a.avi'
+        filename_output2 = os.path.join(os.path.dirname(os.path.abspath(filename)), 'sample_out2a.avi')
         args['codec'] = 'XVID'
         print str(args)
         args, error = plugins.callPlugin('FlowDrivenVideoTimeWarp',

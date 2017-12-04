@@ -16,38 +16,10 @@ Install graphviz
 
 ## Installation Details
 
-The tool has one installation command.  However, many dependent packages have installation dependencies that are not directly handled by python's installer.  Thus, additional steps are needed.
+Use one of the installers from the scripts directory.  Windows uses nsis.sourceforge.net.
 
-### Open CV
-```
-brew tap homebrew/science
-brew install opencv
-
-```
-### Tool
-```
-pip install setuptools
-cd setuptools-version
-python setup.py install
-cd ..
-python setup.py sdist
-pip install -e . 
-```
-
-## For Anaconda
-You may need to update pillow:
-```
-conda remove PIL
-conda remove pillow
-pip install Image
-```
-
-OpenCV is installed with:
-```
-conda install -c https://conda.binstar.org/menpo opencv
-```
-
-For Anaconda users wishing to use FFMPEG:
+### FFMPEG
+For Anaconda users, the windows installer sets up the following installation.
 
 *	Dowload and install FFMPEG 3.1.1.
 *	Download and install opencv 2.4.13 from opencv.org using the appropriate architecture (x86 or x64).  Make sure it is built with FFMPEG.  This is confirmed by looking for opencv/build/x64/vc11/opencv_ffmpeg2413_64.dll.  Follow build-from-source instructions for opencv to include FFMPEG.
@@ -57,19 +29,8 @@ For Anaconda users wishing to use FFMPEG:
 *	64-bit: Set OPENCV_DIR to the absolute path of opencv/x64/vc11
 *	Add to PATH: %OPENCV_DIR%\bin
 *	Add to Path: FFMPEG’s bin directory
-Test :
-*	run python
-*	import cv2
-*	print cv2.__version__
 
-## Other Packages
-
-## HDF5:
-```
-brew install homebrew/science/hdf5
-```
-
-## FFMPEG (not Anaconda): 
+### FFMPEG (not Anaconda): 
 
 ffmpeg should installed with x265 and x265 codecs prior to installing python package.
 For example, a Mac user can use the following command.
@@ -80,7 +41,6 @@ brew install ffmpeg --with-fdk-aac --with-ffplay --with-freetype --with-libass -
 ```
 pip install ffmpeg
 ```
-
 
 ## GRAPHVIZ:
 ### (MAC)
@@ -132,8 +92,6 @@ Resource files are stored in one of the following locations, searched in the ord
 	*	current working directory
 	*	resources subdirectory
 	*	The resource installation as determined by Python’s sys path.
-
-
 
 # Usage
 

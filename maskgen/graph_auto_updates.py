@@ -79,6 +79,9 @@ def updateJournal(scModel):
         _fixLocalRotate(scModel)
     if '0.4.1115.ad475bbfcf' not in upgrades:
         _fixSeam(scModel, gopLoader)
+    if '0.4.1204.5291b06e59' not in upgrades:
+        _fixAudioOutput(scModel, gopLoader)
+        _fixEmptyMask(scModel, gopLoader)
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -548,6 +551,31 @@ def _fixRecordMasInComposite(scModel,gopLoader):
          op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
          if op.category in ['Output','AntiForensic','Laundering']:
              edge['recordMaskInComposite'] = 'no'
+
+def _fixEmptyMask(scModel,gopLoader):
+    import numpy as np
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'empty mask' not in edge and ('recordInCompositeMask' not in edge or edge['recordInCompositeMask'] == 'no') \
+                and  'videomasks' not in edge:
+            mask = scModel.G.get_edge_image(frm,to, 'maskname', returnNoneOnMissing=True)[0]
+            edge['empty mask'] = 'yes' if mask is None or np.all(mask == 255) else 'no'
+
+def _fixAudioOutput(scModel,gopLoader):
+    """
+     Consolidate Audio Outputs
+    :param scModel: Opened project model
+    :return: None. Updates JSON.
+    @type scModel: ImageProjectModel
+    @type gopLoader: GroupOperationsLoader
+    """
+    for frm, to in scModel.G.get_edges():
+         edge = scModel.G.get_edge(frm, to)
+         if edge['op'] in ['OutputAIF','OutputWAV']:
+             edge['op'] = 'OutputAudioPCM'
+         elif edge['op'] in ['OutputM4']:
+             edge['op'] = 'OutputAudioCompressed'
+
 
 def _fixSeam(scModel,gopLoader):
     """
