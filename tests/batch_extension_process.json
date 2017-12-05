@@ -60,11 +60,6 @@
         "inputmaskname" : {
           "type" : "input",
           "source" :"1"
-
-        },
-        "invertmask": {
-          "type":"value",
-          "value":true
         }
       }
     }
