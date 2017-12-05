@@ -190,25 +190,22 @@ def executeWith(executionCommand, im, source, target, mapping, **kwargs):
         executionCommand[0] = executionCommand[0][2:]
         shell = True
     kwargs = mapCmdArgs(kwargs, mapping)
+    kwargs['inputimage'] = source
+    kwargs['outputimage'] = target
     for i in range(len(executionCommand)):
-        if executionCommand[i] == '{inputimage}':
-            executionCommand[i] = source
-        elif executionCommand[i] == '{outputimage}':
-            executionCommand[i] = target
-
-        # Replace bracketed text with arg
-        else:
             executionCommand[i] = executionCommand[i].format(**kwargs)
     subprocess.call(executionCommand,shell=shell)
 
 def mapCmdArgs(args, mapping):
+    import copy
+    newargs = copy.copy(args)
     if mapping is not None:
         for key, val in args.iteritems():
             if key in mapping:
                 if val not in mapping[key] or mapping[key][val] is None:
                     raise ValueError('Option \"' + str(val) + '\" is not permitted for this plugin.')
-                args[key] = mapping[key][val]
-    return args
+                    newargs[key] = mapping[key][val]
+    return newargs
 
 def findPlugin(pluginName):
     import errno

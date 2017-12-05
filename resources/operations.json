@@ -2445,7 +2445,7 @@
     },
      {
       "category": "Output",
-      "name": "OutputWAV",
+      "name": "OutputAudioPCM",
       "mandatoryparameters": {
 
       },
@@ -2457,15 +2457,17 @@
       },
       "optionalparameters": {
       },
-      "description": "Export the image in the WAV format.",
+      "description": "Export the image in the PCM format (wave, aif, etc.).",
       "includeInMask": false,
       "transitions": [
-        "audio.audio"
+        "audio.audio",
+        "video.audio",
+        "zip.audio"
       ]
     },
-     {
+    {
       "category": "Output",
-      "name": "OutputAIF",
+      "name": "OutputAudioCompressed",
       "mandatoryparameters": {
       },
       "rules": [
@@ -2476,10 +2478,11 @@
       },
       "optionalparameters": {
       },
-      "description": "Export the image in the AIF format.",
+      "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
       "includeInMask": false,
       "transitions": [
-        "audio.audio"
+        "audio.audio",
+        "video.audio"
       ]
     },
     {
@@ -2743,25 +2746,6 @@
       "transitions": [
         "video.video",
         "image.video",
-        "zip.video"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputM4",
-      "mandatoryparameters": {
-      },
-      "rules": [
-        "checkSameChannels"
-      ],
-      "optionalparameters": {
-      },
-      "description": "Export to M4 format.",
-      "includeInMask": false,
-      "generateMask" : "meta",
-      "transitions": [
-        "video.video",
-        "audio.audio",
         "zip.video"
       ]
     },

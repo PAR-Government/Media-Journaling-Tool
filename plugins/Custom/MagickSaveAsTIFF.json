@@ -1,0 +1,45 @@
+{
+    "name": "MagickSaveAsTIFF",
+    "operation": {
+      "name": "OutputTif",
+      "category": "Output",
+      "description": "Save Input file as TIFF",
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments":{
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".tiff",
+    "command": {
+      "default": [
+        "convert",
+        "-compress",
+        "none",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+       "darwin": [
+        "convert",
+         "-compress",
+        "none",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+       "linux": [
+        "convert",
+         "-compress",
+        "none",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "-compress",
+        "none",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
+}

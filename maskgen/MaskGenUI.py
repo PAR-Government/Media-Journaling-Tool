@@ -128,8 +128,7 @@ class MakeGenUI(Frame):
             return
         self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
                               organization=self.prefLoader.get_key('organization'))
-        if self.scModel.getProjectData('typespref') is None:
-            self.scModel.setProjectData('typespref', getFileTypes())
+        self.updateFileTypePrefs()
         self._setTitle()
         self.drawState()
         self.canvas.update()
@@ -185,8 +184,9 @@ class MakeGenUI(Frame):
                 totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
                 self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
-            except IOError:
-                tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
+            except IOError as e:
+                tkMessageBox.showinfo("Error", "Failed to load image {}: {}".format(self.scModel.startImageName(),
+                                                                                    str(e)))
             self.setSelectState('normal')
 
     def save(self):
@@ -440,6 +440,14 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(self.menuindices['undo'], state='disabled')
         self.setSelectState('disabled')
 
+    def updateFileTypePrefs(self):
+        if self.scModel.getProjectData('typespref') is None:
+            preferredFT = self.prefLoader.get_key('filetypes')
+            if preferredFT is not None:
+                self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
+            else:
+                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
+
     def updateFileTypes(self, filename):
         if filename is None or len(filename) == 0:
             return
@@ -467,8 +475,6 @@ class MakeGenUI(Frame):
 
     def getPreferredFileTypes(self):
         return [tuple(x) for x in self.scModel.getProjectData('typespref')]
-
-
 
     def nextadd(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select image file",
@@ -1170,12 +1176,7 @@ class MakeGenUI(Frame):
             logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)
         self.scModel = tuple[0]
-        if self.scModel.getProjectData('typespref') is None:
-            preferredFT = self.prefLoader.get_key('filetypes')
-            if preferredFT:
-                self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
-            else:
-                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
+        self.updateFileTypePrefs()
         self.createWidgets()
         self.startedWithNewProject = tuple[1]
 

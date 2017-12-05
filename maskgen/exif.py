@@ -115,18 +115,25 @@ def runexif(args, fix=True, ignoreError=False):
                 logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
             #try stripping off the offenders
             if len(newsetofargs) < len(args) and fix:
-                runexif(newsetofargs, fix=False)
+                return runexif(newsetofargs, fix=False)
+            else:
+                return False
     except OSError as e:
         logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
         if not ignoreError:
             raise e
+    return True
 
 exif_lock = RLock()
 exif_cache = LRUCache(maxsize=12)
 
+def stringifyargs(kwargs):
+    return [str(item) for item in sorted([(k,str(v)) for k,v in kwargs.iteritems()])]
+
 def sourcefilehashkey(*args, **kwargs):
+    import hashlib
     """Return a cache key for the specified hashable arguments."""
-    return args[0]
+    return hashlib.sha384(' '.join(list([str(x) for x in args]) + stringifyargs(kwargs))).hexdigest()
 
 
 @cached(exif_cache, lock=exif_lock, key=sourcefilehashkey)

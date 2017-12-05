@@ -1169,7 +1169,6 @@ def move_transform(edge, source, target, edgeMask,
         return res
     return edgeMask
 
-
 def paste_sampled(edge, source, target,
                 edgeMask,
                 compositeMask=None,
@@ -1525,6 +1524,8 @@ def _getUnresolvedSelectMasksForEdge(edge):
         sms[image['node']] = image['mask']
     return sms
 
+def isEdgeNotDonorAndNotEmpty(edge_id, edge, operation):
+    return edge['op'] != 'Donor' and edge['empty mask'] == 'no'
 
 def isEdgeNotDonor(edge_id, edge, operation):
     return edge['op'] != 'Donor'
@@ -1935,7 +1936,12 @@ class CompositeDelegate:
         else:
             edgeMask = \
             self.graph.get_edge_image(self.edge_id[0], self.edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
-            return edgeMask.invert().to_array()
+            mask = edgeMask.invert().to_array()
+            sizeChange = toIntTuple(self.edge['shape change']) if 'shape change' in self.edge else (0, 0)
+            if sizeChange != (0,0):
+                expectedSize = (mask.shape[0] + sizeChange[0], mask.shape[1] + sizeChange[1])
+                mask = tool_set.applyResizeComposite(mask, (expectedSize[0], expectedSize[1]))
+            return mask
 
     def find_donor_edges(self):
         donors = [(pred, self.edge_id[1]) for pred in self.graph.predecessors(self.edge_id[1])
@@ -2007,7 +2013,7 @@ class CompositeDelegate:
         %rtype: list of Probe
         """
         selectMasks = _getUnresolvedSelectMasksForEdge(self.edge)
-        finaNodeIdMasks = self.constructTransformedMask(self.edge_id, self._getComposite(), saveTargets=saveTargets)
+        finaNodeIdMasks = self.constructTransformedMask(self.edge_id,self._getComposite(), saveTargets=saveTargets)
         probes = []
         for target_mask, target_mask_filename, finalNodeId, nodetype in finaNodeIdMasks:
             if finalNodeId in selectMasks:
