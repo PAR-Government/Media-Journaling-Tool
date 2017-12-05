@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import cv2
 import os
+from test_support import TestSupport
 
 
 def cropForTest(frame,no):
@@ -131,7 +132,7 @@ def insertAudio(filename,outfilname,pos,length):
     fone.close()
     ftwo.close()
 
-class TestVideoTools(unittest.TestCase):
+class TestVideoTools(TestSupport):
     filesToKill = []
 
     def _init_write_file(self, name, start_time, start_position, amount, fps,mask_set=None):
@@ -186,32 +187,32 @@ class TestVideoTools(unittest.TestCase):
         return writer_main.filename, files
 
     def test_meta(self):
-        meta,frames = video_tools.getMeta('tests/videos/sample1.mov',show_streams=True)
+        meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'),show_streams=True)
         self.assertEqual('yuv420p',meta[0]['pix_fmt'])
 
     def test_frame_binding(self):
-        result = video_tools.getMaskSetForEntireVideo('tests/videos/sample1.mov')
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'))
         self.assertEqual(0.0, result[0]['starttime'])
         self.assertEqual(1, result[0]['startframe'])
         self.assertEqual(803,result[0]['frames'])
         self.assertEqual(803.0, result[0]['endframe'])
         self.assertEqual(59350.0, result[0]['endtime'])
         self.assertEqual('video', result[0]['type'])
-        result = video_tools.getMaskSetForEntireVideo('tests/videos/sample1.mov',start_time='00:00:02.01')
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'),start_time='00:00:02.01')
         self.assertEqual(2123.0, round(result[0]['starttime']))
         self.assertEqual(24, result[0]['startframe'])
         self.assertEqual(803-24+1, result[0]['frames'])
-        result = video_tools.getMaskSetForEntireVideo('tests/videos/sample1.mov', start_time='00:00:02.01:02')
-        self.assertEqual(2265.0, round(result[0]['starttime']))
-        self.assertEqual(26, result[0]['startframe'])
-        self.assertEqual(803 - 26 + 1, result[0]['frames'])
-        result = video_tools.getMaskSetForEntireVideo('tests/videos/sample1.mov', start_time='00:00:02.01',end_time='00:00:04')
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='00:00:02.01:02')
+        self.assertEqual(2195.0, round(result[0]['starttime']))
+        self.assertEqual(25, result[0]['startframe'])
+        self.assertEqual(779, result[0]['frames'])
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='00:00:02.01',end_time='00:00:04')
         self.assertEqual(2123.0, round(result[0]['starttime']))
         self.assertEqual(24, result[0]['startframe'])
         self.assertEqual(4037.0, round(result[0]['endtime']))
         self.assertEqual(48, result[0]['endframe'])
         self.assertEqual(48 - 24 + 1, result[0]['frames'])
-        result = video_tools.getMaskSetForEntireVideo('tests/videos/sample1.mov',
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'),
                                                       media_types=['audio'])
         self.assertEqual(0.0, result[0]['starttime'])
         self.assertEqual(1, result[0]['startframe'])
@@ -219,7 +220,7 @@ class TestVideoTools(unittest.TestCase):
         self.assertEqual(2563.0, result[0]['endframe'])
         self.assertEqual(59348.0, round(result[0]['endtime']))
         self.assertEqual('audio', result[0]['type'])
-        result = video_tools.getMaskSetForEntireVideo('tests/videos/sample1.mov', start_time='00:00:02.01',
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='00:00:02.01',
                                                       end_time='00:00:04',
                                                       media_types=['audio'])
         self.assertEqual(2032.0, round(result[0]['starttime']))
@@ -778,7 +779,7 @@ class TestVideoTools(unittest.TestCase):
                                                          arguments={})
         self.assertEqual(1, len(result_add))
         self.assertEqual(21,result_add[0]['startframe'])
-        self.assertEqual(40, result_add[0]['endframe'])
+        self.assertEqual(39, result_add[0]['endframe'])
         result_crop,errors = video_tools.formMaskDiff(fileOne,
                                  modFiles[1],
                                  modFiles[1],
@@ -802,7 +803,7 @@ class TestVideoTools(unittest.TestCase):
                                           alternateFunction=None,
                                           arguments={})
         self.assertTrue(len(result_noise1)>= 1)
-        self.assertEqual(result_noise1[0]['endframe']-result_noise1[0]['startframe'], result_noise1[0]['frames'])
+        self.assertEqual(result_noise1[0]['endframe']-result_noise1[0]['startframe']+1, result_noise1[0]['frames'])
         self.assertEqual(20, result_noise1[0]['startframe'])
         #self.assertEqual(81, result_noise1[0]['endframe'])
         result_noise2,errors = video_tools.formMaskDiff(fileOne,
@@ -815,7 +816,7 @@ class TestVideoTools(unittest.TestCase):
                                           alternateFunction=video_tools.detectCompare,
                                           arguments={})
         self.assertTrue(len(result_noise2) >= 1)
-        self.assertEqual(result_noise2[0]['endframe'] - result_noise2[0]['startframe'], result_noise2[0]['frames'])
+        self.assertEqual(result_noise2[0]['endframe'] - result_noise2[0]['startframe']+1, result_noise2[0]['frames'])
         self.assertEqual(20, result_noise1[0]['startframe'])
 
 
@@ -837,28 +838,28 @@ class TestVideoTools(unittest.TestCase):
         result, errors = video_tools.audioInsert('test_ta.0.0.wav', 'test_ta6.0.0.wav', 'test_ta_c', VidTimeManager())
         self.assertEqual(1, len(result))
         self.assertEqual(29, result[0]['startframe'])
-        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
+        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
         result,errors = video_tools.audioCompare('test_ta.0.0.wav','test_ta2.0.0.wav','test_ta_c',VidTimeManager())
         self.assertEqual(1,len(result))
         self.assertEqual(7,result[0]['startframe'])
-        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
+        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta3.0.0.wav', 'test_ta_s1', VidTimeManager())
         self.assertEqual(1, len(result))
         self.assertEqual(6, result[0]['startframe'])
-        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
+        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta4.0.0.wav', 'test_ta_s2', VidTimeManager())
         self.assertEqual(1, len(result))
         self.assertEqual(6, result[0]['startframe'])
-        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
+        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta5.0.0.wav', 'test_ta_s3', VidTimeManager(),
                                                  arguments={'Copy Stream':'right'})
         self.assertEqual(1, len(result))
         self.assertEqual(6, result[0]['startframe'])
-        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames'])
+        self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
 
 

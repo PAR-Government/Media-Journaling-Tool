@@ -1132,7 +1132,7 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeNotDonorAndNotEmpty, saveTargets=True, graph=None, constructDonors=True):
+    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True, graph=None, constructDonors=True):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
