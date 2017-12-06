@@ -1151,7 +1151,7 @@ class ImageProjectModel:
                                                                   constructDonors=constructDonors))
         return probes
 
-    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeNotDonorAndNotEmpty, saveTargets=True,
+    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,
                     compositeBuilders=[ColorCompositeBuilder],
                     graph=None,
                     replacement_probes=None):
