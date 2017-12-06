@@ -118,16 +118,8 @@ class TestBatchProcess(unittest.TestCase):
         os.mkdir('test_projects')
         batch_project.loadCustomFunctions()
         batchProject = batch_project.loadJSONGraph('tests/simple_image_selector_plugin.json')
-        global_state = {
-            'projects': 'test_projects',
-            'project': batchProject,
-            'picklists_files': {},
-            'workdir': '.',
-            'count': batch_project.IntObject(20),
-            'permutegroupsmanager': PermuteGroupManager()
-        }
-        batchProject.loadPermuteGroups(global_state)
-        batchProject.executeOnce(global_state)
+        be = batch_project.BatchExecutor('test_projects')
+        be.runProjectLocally(batchProject)
 
     def test_external_image_selection(self):
         if os.path.exists('imageset.txt'):
@@ -148,8 +140,8 @@ class TestBatchProcess(unittest.TestCase):
         saveAsPng('tests/images/test_project1.jpg', 'results/test_project1.png')
         with open('results/arguments.csv', 'w') as fp:
             fp.write('test_project1.png,no,16')
-        be.runProject(batchProject,20,graph=True)
-
+        be.runProject(batchProject,20)
+        be.finish()
         if os.path.exists('results'):
             shutil.rmtree('results')
         if os.path.exists('test_projects'):

@@ -153,7 +153,6 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                 sample = np.ones(frame[:, :, 0].shape).astype('uint8')
                 mean_value = np.median(frame[:,:,1])
                 baseline = np.ones(frame[:, :, 0].shape).astype('uint8') * mean_value
-            last_time = elapsed_time
             elapsed_time = capIn.get(cv2api_delegate.prop_pos_msec)
             time_manager.updateToNow(elapsed_time)
             if time_manager.isBeforeTime():
@@ -194,7 +193,7 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                         {'starttime': startTime,
                          'endtime': last_time,
                          'startframe':startFrame,
-                         'endframe': time_manager.frameSinceBeginning,
+                         'endframe': time_manager.frameSinceBeginning-1,
                          'frames': count,
                          'rate': capIn.get(cv2api_delegate.prop_fps),
                          'mask': sample,
@@ -202,11 +201,12 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                     capOut.release()
                     count = 0
                 startTime = None
+            last_time = elapsed_time
         if startTime is not None:
             ranges.append({'starttime': startTime,
                            'endtime': last_time,
                            'startframe': startFrame,
-                           'endframe': time_manager.frameSinceBeginning,
+                           'endframe': time_manager.frameSinceBeginning-1,
                            'frames': time_manager.frameSinceBeginning-startFrame,
                            'rate': capIn.get(cv2api_delegate.prop_fps),
                            'mask': sample,
@@ -428,7 +428,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     """
     st = start_time_tuple
     et = end_time_tuple
-    calculate_frames = st[0] > 0  or st[1] > 0 or et is not None
+    calculate_frames = st[0] > 0  or st[1] > 1 or et is not None
     meta, frames = getMeta(video_file, show_streams=True,with_frames=calculate_frames)
     found_num = 0
     results = []
@@ -459,7 +459,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
             if calculate_frames:
                 frame_set = frames[item['index']]
                 aptime = 0
-                framessince_start = 0
+                framessince_start = 1
                 startcomplete = False
                 for packet in frame_set:
                     count += 1
@@ -470,7 +470,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
                             startcomplete = True
                             mask['starttime'] = aptime*1000
                             mask['startframe'] = count
-                            framessince_start = 0
+                            framessince_start = 1
                             if et is None:
                                 break
                         else:
@@ -1087,6 +1087,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         cut['mask'] = vidAnalysisComponents.mask
         if type(cut['mask']) == int:
             cut['mask'] = vidAnalysisComponents.frame_one_mask
+        last_time = 0
         while (vidAnalysisComponents.vid_one.isOpened()):
             ret_one, frame_one = vidAnalysisComponents.vid_one.read()
             if not ret_one:
@@ -1099,8 +1100,9 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
                 break
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-        cut['endtime'] = end_time
-        cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+            last_time = end_time
+        cut['endtime'] = last_time
+        cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
         cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe']
         ranges.append(cut)
         return False
@@ -1126,6 +1128,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         addition['mask'] = vidAnalysisComponents.mask
         if type(addition['mask']) == int:
             addition['mask'] = vidAnalysisComponents.frame_two_mask
+        last_time = 0
         while (vidAnalysisComponents.vid_two.isOpened() and frame_count_diff > 0):
             ret_two, frame_two = vidAnalysisComponents.vid_two.read()
             if not ret_two:
@@ -1139,8 +1142,9 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
                 break
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-        addition['endtime'] = end_time
-        addition['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+            last_time = end_time
+        addition['endtime'] = last_time
+        addition['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
         addition['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - addition['startframe']
         ranges.append(addition)
         return False
@@ -1179,7 +1183,7 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
         change['videosegment'] = os.path.split(vidAnalysisComponents.writer.filename)[1]
         change['endtime'] = vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one
         change['rate'] = vidAnalysisComponents.fps
-        change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
         change['type'] = 'video'
         vidAnalysisComponents.writer.release()
     return True
@@ -1350,7 +1354,7 @@ class AudioCompare:
                     if section is not None and end is not None and totalonecount - end >= framerateone:
                         section['endframe'] = end
                         section['endtime'] = float(end) / float(framerateone) * 1000.0
-                        section['frames'] = end - start
+                        section['frames'] = end - start + 1
                         sections.append(section)
                         section = None
                     end = totalonecount
@@ -1370,7 +1374,7 @@ class AudioCompare:
         if section is not None:
             section['endframe'] = end
             section['endtime'] = float(end) / float(framerateone) * 1000.0
-            section['frames'] = end - start
+            section['frames'] = end - start + 1
             sections.append(section)
         startframe = self.time_manager.getExpectedStartFrameGiveRate(float(framerateone))
         stopframe = self.time_manager.getExpectedEndFrameGiveRate(float(framerateone))
@@ -1390,7 +1394,7 @@ class AudioCompare:
                          'endframe': stopframe,
                          'type': 'audio',
                          'endtime': float(stopframe) / float(framerateone) * 1000.0,
-                         'frames': stopframe - startframe}
+                         'frames': stopframe - startframe + 1}
                         ]
         return sections, errors
 
@@ -1404,12 +1408,12 @@ class AudioCompare:
                 diff = abs(onetomatch - alltwo)
                 self.time_manager.updateToNow(frametwoposition / float(framerateone))
                 if diff == 0:
-                    return frametwoposition
+                    return frametwoposition-1
             totalRead = min([block, self.counttwo])
             framestwo = self.ftwo.readframes(totalRead)
             self.counttwo -= totalRead
             position = 0
-        return frametwoposition
+        return frametwoposition-1
 
     def __insert(self):
         framerateone = self.fone.getframerate()
@@ -1438,7 +1442,7 @@ class AudioCompare:
                            'endtime': float(end) / float(framerateone),
                            'rate': framerateone,
                            'type': 'audio',
-                           'frames': end-start}
+                           'frames': end-start+1}
                     break
 
         if section is not None:
@@ -1454,7 +1458,7 @@ class AudioCompare:
                 ftwo = wave.open(self.fileTwoAudio, 'rb')
                 counttwo = ftwo.getnframes()
                 startframe = self.time_manager.getExpectedStartFrameGiveRate(ftwo.getframerate(), defaultValue=1)
-                endframe = startframe + counttwo
+                endframe = startframe + counttwo  - 1
                 return [{'startframe': startframe,
                          'starttime': float(startframe) / float(ftwo.getframerate()) * 1000.0,
                          'rate': ftwo.getframerate(),
@@ -1597,7 +1601,7 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
             return [{'startframe': startframe,
                      'starttime': starttime,
                      'rate': framerateone,
-                     'endframe': startframe + ftwo.getnframes(),
+                     'endframe': startframe + ftwo.getnframes() - 1,
                      'type': 'audio',
                      'endtime': float(startframe + ftwo.getnframes()) / float(framerateone)*1000.0,
                      'frames': ftwo.getnframes()}], errors
@@ -1663,7 +1667,7 @@ def audioDelete(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
             return [{'startframe': startframe,
                      'starttime': starttime,
                      'rate': framerateone,
-                     'endframe': startframe + ftwo.getnframes(),
+                     'endframe': startframe + ftwo.getnframes() -1 ,
                      'type': 'audio',
                      'endtime': float(startframe + ftwo.getnframes()) / float(framerateone),
                      'frames': ftwo.getnframes()}], []

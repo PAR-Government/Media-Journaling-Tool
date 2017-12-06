@@ -1,24 +1,23 @@
 from PIL import Image
 import numpy as np
+from sys import platform as sys_pf
+
+if sys_pf == 'darwin':
+    import matplotlib
+    matplotlib.use("TkAgg")
+
 import cv2
 import random
 import os
 from maskgen.image_wrap import ImageWrapper, openImageFile
-from maskgen import tool_set, image_wrap
+from maskgen import tool_set
 from skimage import segmentation, color, measure, feature
 from skimage.future import graph
 import numpy as np
 import math
 from skimage.restoration import denoise_tv_bregman
 from maskgen import cv2api
-# import maskgen.tool_set
 
-from sys import platform as sys_pf
-
-if sys_pf == 'darwin':
-    import matplotlib
-
-    matplotlib.use("TkAgg")
 
 from matplotlib import transforms
 from matplotlib.patches import Ellipse

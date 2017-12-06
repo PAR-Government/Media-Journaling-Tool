@@ -924,19 +924,25 @@ class ImageProjectModel:
                              not filename.endswith('_mask' + suffix) and \
                              not filename.endswith('_proxy' + suffix)])
         totalSet = sorted(totalSet, key=sortalg)
+        added = 0
         for filename in totalSet:
-            pathname = os.path.abspath(os.path.join(dir, filename))
-            additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
-            nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
-            ypos += 50
-            if ypos == 450:
-                ypos = initialYpos
-                xpos += 50
-            if filename == baseImageFileName:
-                self.start = nname
-                self.end = None
-        if self.notify is not None:
+            try:
+                pathname = os.path.abspath(os.path.join(dir, filename))
+                additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+                nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
+                ypos += 50
+                if ypos == 450:
+                    ypos = initialYpos
+                    xpos += 50
+                added=True
+                if filename == baseImageFileName:
+                    self.start = nname
+                    self.end = None
+            except Exception as ex:
+                logging.getLogger('maskgen').warn('Failed to add media file {}'.format(filename))
+        if added and self.notify is not None:
             self.notify((self.start, None), 'add')
+
 
     def addImage(self, pathname, cgi=False):
         maxx = max(
@@ -1126,7 +1132,7 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeComposite, saveTargets=True, graph=None, constructDonors=True):
+    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True, graph=None, constructDonors=True):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
@@ -1145,7 +1151,7 @@ class ImageProjectModel:
                                                                   constructDonors=constructDonors))
         return probes
 
-    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeNotDonor, saveTargets=True,
+    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeNotDonorAndNotEmpty, saveTargets=True,
                     compositeBuilders=[ColorCompositeBuilder],
                     graph=None,
                     replacement_probes=None):
@@ -1219,7 +1225,7 @@ class ImageProjectModel:
         """
         :return: list a mask transfomed to all final image nodes
         """
-        composite_generator = mask_rules.prepareComposite((self.start, self.end),self.graph, self.gopLoader)
+        composite_generator = mask_rules.prepareComposite((self.start, self.end),self.G, self.gopLoader)
         return composite_generator.constructComposites()
 
     def extendCompositeByOne(self, probes, start=None, override_args={}):

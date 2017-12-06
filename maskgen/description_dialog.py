@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("TkAgg")
 from Tkinter import *
 import ttk
 import tkMessageBox

@@ -1,0 +1,22 @@
+{
+    "name": "GimpSaveAsPNG",
+    "operation": {
+      "name": "OutputPng",
+      "category": "Output",
+      "description": "Save Input file as PNG",
+      "software": "GIMP",
+      "version": "2.8.20",
+      "arguments":{
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".png",
+    "command": {
+      "default": [
+        "gmic",
+        "{inputimage}",
+        "-o",
+        "{outputimage}"
+      ]
+    }
+}

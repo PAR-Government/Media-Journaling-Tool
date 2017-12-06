@@ -161,9 +161,27 @@ def isVideo(filename):
     except:
         return False
 
+def getMimeType(filename):
+    import subprocess
+    import shlex
+    cmd = shlex.split('file --mime-type "{0}"'.format(filename))
+    try:
+        result = subprocess.check_output(cmd)
+        return (result.split(':')[1]).split('/')[0].strip()
+    except Exception as e:
+        logging.getLogger('maskgen').error('Cannot determine file type for {}: {}'.format(
+            filename,
+            str(e)
+        ))
+        raise ValueError('Cannot determine file type for {}'.format(
+            filename
+        ))
+    return None
+
+
 def fileType(fileName):
     pos = fileName.rfind('.')
-    suffix = '*' + fileName[pos:] if pos > 0 else ''
+    suffix = ('*' + fileName[pos:] if pos > 0 else '').lower()
     if not os.path.exists(fileName):
         return None
     file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
@@ -173,7 +191,7 @@ def fileType(fileName):
         file_type = 'audio'
     elif suffix in ['*.zip','*.gz']:
         file_type = 'zip'
-    return file_type
+    return getMimeType(fileName) if file_type is None else file_type
 
 
 def getValue(obj, path, defaultValue=None, convertFunction=None):
@@ -358,10 +376,10 @@ class VidTimeManager:
 
     def getExpectedEndFrameGiveRate(self, rate, defaultValue=None):
         if not self.stopTimeandFrame:
-            return None
+            return defaultValue
         val = int(self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate))
         if val == 0:
-            return None
+            return defaultValue
         return self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate)
 
     def getStartFrame(self):
@@ -391,12 +409,6 @@ class VidTimeManager:
 
     def isOpenEnded(self):
         return self.stopTimeandFrame is None
-
-    def hasStartTimeConstraints(self):
-        return self.startTimeandFrame is not None and self.startTimeandFrame[0] > 0
-
-    def hasEndTimeConstraints(self):
-        return self.startTimeandFrame is not None and self.stopTimeandFrame[0] > 0
 
     def isPastTime(self):
         return self.pastEndTime
@@ -458,7 +470,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
     if v is None:
         return None, 0
     if type(v) == int:
-        return (float(v)/rate*1000,0) if rate is not None else (0,int(v))
+        return (float(v)/rate*1000,0) if rate is not None else (0,1 if v == 0 else v)
     dt = None
     framecount = 0
     coloncount = v.count(':')
@@ -467,21 +479,21 @@ def getMilliSecondsAndFrameCount(v, rate=None):
             framecount = int(v[v.rfind(':') + 1:])
             v = v[0:v.rfind(':')]
         except:
-            return None, 0
+            return None, 1
     elif coloncount == 0:
-        return (float(v) / rate * 1000.0, 0) if rate is not None else (0, int(v))
+        return (float(v) / rate * 1000.0, 0) if rate is not None else (0,1 if v == 0 else int(v))
     try:
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
             dt = datetime.strptime(v, '%H:%M:%S')
         except ValueError:
-            return None, 0
+            return None, 1
     millis = dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000
     if rate is not None:
         millis = millis + float(framecount)/rate * 1000.0
-        framecount = 0
-    return (millis, framecount)
+        framecount = 1
+    return (millis, framecount) if (millis, framecount) != (0,0) else (0,1)
 
 
 def validateTimeString(v):
@@ -1731,8 +1743,7 @@ def rotateCompare(img1, img2,  arguments=dict()):
         return __compareRotatedImage(rotation, img1, img2, arguments)
     return None,{}
 
-def resizeCompare(img1, img2,  arguments=dict()):
-    interpolation = arguments['interpolation'] if 'interpolation' in arguments else 'nearest'
+def resizeImage(img1, shape,interpolation):
     map = {
         'bicubic': cv2api.cv2api_delegate.inter_cubic,
         'nearest': cv2api.cv2api_delegate.inter_nn,
@@ -1742,7 +1753,12 @@ def resizeCompare(img1, img2,  arguments=dict()):
         'lanczos': cv2api.cv2api_delegate.inter_lanczos
     }
     inter_val = map[interpolation] if interpolation in map else cv2api.cv2api_delegate.inter_nn
-    new_img1 = cv2.resize(img1,(img2.shape[1],img2.shape[0]),interpolation=inter_val)
+    return cv2.resize(img1, (shape[1], shape[0]), interpolation=inter_val)
+
+def resizeCompare(img1, img2,  arguments=dict()):
+    new_img1 = resizeImage(img1,
+                           (img2.shape[1],img2.shape[0]),
+                           arguments['interpolation'] if 'interpolation' in arguments else 'nearest')
     return __diffMask(new_img1, img2, False, args=arguments)
 
 def convertCompare(img1, img2,  arguments=dict()):

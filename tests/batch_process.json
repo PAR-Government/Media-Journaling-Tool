@@ -99,7 +99,8 @@
            "value": "slic"
          },
          "donor" : {
-           "type": "donor"
+           "type": "donor",
+           "source": 4
          }
       }
     },
@@ -152,7 +153,8 @@
     },
     {
       "source": 4,
-      "target": 5
+      "target": 5,
+      "donor":true
     },
      {
       "source": 5,
