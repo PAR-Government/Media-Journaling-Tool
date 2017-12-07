@@ -168,7 +168,7 @@ def callPlugin(name,im,source,target,**kwargs):
         try:
             return loaded[name]['function'](im,source,target,**kwargs)
         except Exception as e:
-            logging.getLogger('Plugin {} failed with {} for arguments {}', format(name, str(e), str(kwargs)))
+            logging.getLogger('Plugin {} failed with {} for arguments {}'. format(name, str(e), str(kwargs)))
             raise e
 
 def runCustomPlugin(name, im, source, target, **kwargs):
@@ -188,7 +188,7 @@ def runCustomPlugin(name, im, source, target, **kwargs):
         if not executeOk:
             executeWith(commands['default'], im, source, target, mapping, **kwargs)
     except Exception as e:
-        logging.getLogger('Plugin {} failed with {} for arguments {}',format(name,str(e), str(kwargs)))
+        logging.getLogger('Plugin {} failed with {} for arguments {}'.format(name,str(e), str(kwargs)))
         raise e
     return None, None
 

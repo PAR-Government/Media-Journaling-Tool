@@ -4,18 +4,19 @@ PAR Government Systems
 compress_as takes in two JPEG images, and compresses the first with the q tables of the second
 
 """
-
-import os
-import tempfile
-from PIL import Image
-import numpy as np
-from maskgen.jpeg.utils import get_subsampling,parse_tables,sort_tables,check_rotate
-import maskgen.exif
 import maskgen
 
 
 
 def cs_save_as(img,source, target, donor, qTables,rotate,quality):
+    import os
+    import tempfile
+    from PIL import Image
+    import numpy as np
+    from maskgen.jpeg.utils import get_subsampling, parse_tables, sort_tables, check_rotate
+    import maskgen.exif
+    import maskgen
+
     """
     Saves image file using quantization tables
     :param ImageWrapper
@@ -105,6 +106,8 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
         maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
 
 def transform(img,source,target, **kwargs):
+    from maskgen.jpeg.utils import  parse_tables, sort_tables
+
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
    # if 'quality' in kwargs:

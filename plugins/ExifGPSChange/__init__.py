@@ -1,9 +1,5 @@
-import maskgen.exif
-import random
-import os
-
-
 def get_new_position(start, range=0, degrees_of_change=3):
+    import random
     if start is None:
         startdegrees = random.randint(1, range - 1)
     else:
@@ -18,6 +14,7 @@ def get_same_positon(start):
     return start
 
 def modify_value(source, target, tag, name, modifier):
+    import maskgen.exif
     result = maskgen.exif.getexif(source, args=[tag])
     if name in result:
         newvalue = modifier(result[name])

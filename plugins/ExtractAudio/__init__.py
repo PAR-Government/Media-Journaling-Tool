@@ -1,11 +1,8 @@
-from subprocess import call
-import shutil
-import maskgen.exif
-from PIL import Image
+
 from maskgen import video_tools
 
-
 def transform(img,source,target, **kwargs):
+    from maskgen import video_tools
     channel = kwargs['Copy Stream'] if 'Copy Stream' in kwargs else None
     starttime = kwargs['Start Time'] if 'Start Time' in kwargs else None
     endtime = kwargs['End Time'] if 'End Time' in kwargs else None

@@ -8,13 +8,14 @@ from maskgen.batch.permutations import *
 from threading import Lock
 from maskgen import plugins
 from maskgen.tool_set import openImageFile
+from test_support import TestSupport
 
 
 def saveAsPng(source, target):
     openImageFile(source, args={'Bits per Channel': 16}).save(target, format='PNG')
 
 
-class TestBatchProcess(unittest.TestCase):
+class TestBatchProcess(TestSupport):
     def test_int_picker(self):
         manager = PermuteGroupManager()
         global_state = {'iteratorslock': Lock(),
@@ -73,21 +74,21 @@ class TestBatchProcess(unittest.TestCase):
         import shutil
         if os.path.exists('testimages'):
             shutil.rmtree('testimages')
-        shutil.copytree('./images', './testimages')
-        self.assertTrue(processSpecification('tests/batch_extension_process.json', '', './testimages') == 1)
+        shutil.copytree(os.path.dirname(self.locateFile('./images/sample.json')), './testimages')
+        self.assertTrue(processSpecification(self.locateFile('tests/batch_extension_process.json'), '', './testimages') == 1)
         shutil.rmtree('./testimages')
 
     def test_run(self):
         if os.path.exists('imageset.txt'):
             os.remove('imageset.txt')
         with open('imageset.txt', 'w') as fp:
-            fp.writelines([filename + os.linesep for filename in os.listdir('tests/images') if
+            fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
                            not filename.startswith('test_project')])
         if os.path.exists('test_projects'):
             shutil.rmtree('test_projects')
         os.mkdir('test_projects')
         batch_project.loadCustomFunctions()
-        batchProject = batch_project.loadJSONGraph('tests/batch_process.json')
+        batchProject = batch_project.loadJSONGraph(self.locateFile('tests/batch_process.json'))
         global_state = {
             'projects': 'test_projects',
             'project': batchProject,

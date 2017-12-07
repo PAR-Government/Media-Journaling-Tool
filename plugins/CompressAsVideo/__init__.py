@@ -1,4 +1,3 @@
-import maskgen.exif
 import maskgen.video_tools
 import logging
 
@@ -36,6 +35,8 @@ def get_rotation_filter(difference):
 
 
 def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
+    import maskgen.exif
+    import maskgen.video_tools
     """
     Saves image file using quantization tables
     :param source: string filename of source image
