@@ -71,7 +71,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy Stream" : {
@@ -107,6 +107,7 @@
       "mandatoryparameters": {
        "Start Time": {
           "type": "time",
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -161,7 +162,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -219,7 +220,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
          "Smoothing": {
@@ -313,7 +314,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -371,7 +372,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -433,7 +434,7 @@
         },
        "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -482,7 +483,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream" : {
@@ -833,6 +834,7 @@
          "Start Time": {
           "type": "time",
           "source": "video",
+           "defaultValue":1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -2330,7 +2332,7 @@
          "Start Time": {
            "type": "time",
            "source": "video",
-           "defaultvalue":0,
+           "defaultvalue":1,
            "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -2860,7 +2862,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "motion mapping": {
@@ -3156,7 +3158,7 @@
       "name": "SelectRegionFromFrames",
       "mandatoryparameters": { "Start Time": {
           "type": "time",
-           "defaultvalue":0,
+           "defaultvalue":1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -3337,6 +3339,7 @@
         },
         "Start Time": {
           "type": "time",
+          "defaultvalue":1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -3485,7 +3488,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":0,
+          "defaultvalue":1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Vector Detail": {

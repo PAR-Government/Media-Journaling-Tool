@@ -70,7 +70,6 @@ def updateJournal(scModel):
         _fixCompression(scModel)
         upgrades.append('04.0810.9381e76724')
     if '0.4.0901.723277630c' not in upgrades:
-        _addColor(scModel)
         _fixFrameRate(scModel)
         upgrades.append('0.4.0901.723277630c')
         _fixRaws(scModel)
@@ -80,6 +79,7 @@ def updateJournal(scModel):
     if '0.4.1115.ad475bbfcf' not in upgrades:
         _fixSeam(scModel, gopLoader)
     if '0.4.1204.5291b06e59' not in upgrades:
+        _addColor(scModel)
         _fixAudioOutput(scModel, gopLoader)
         _fixEmptyMask(scModel, gopLoader)
     if scModel.getGraph().getVersion() not in upgrades:
@@ -575,6 +575,8 @@ def _fixAudioOutput(scModel,gopLoader):
              edge['op'] = 'OutputAudioPCM'
          elif edge['op'] in ['OutputM4']:
              edge['op'] = 'OutputAudioCompressed'
+         if 'Start Time' in edge and edge['Start Time'] == '0':
+             edge['Start Time'] = '00:00:00'
 
 
 def _fixSeam(scModel,gopLoader):

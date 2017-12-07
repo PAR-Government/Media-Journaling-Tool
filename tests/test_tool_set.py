@@ -3,23 +3,26 @@ import unittest
 import numpy as np
 from maskgen import image_wrap
 import random
+from test_support import TestSupport
 
 
 
-class TestToolSet(unittest.TestCase):
+class TestToolSet(TestSupport):
     def test_filetype(self):
-        self.assertEquals(tool_set.fileType('images/hat.jpg'), 'image')
-        self.assertEquals(tool_set.fileType('images/sample.json'), None)
-        self.assertEquals(tool_set.fileType('tests/videos/sample1.mov'), 'video')
+        self.assertEquals(tool_set.fileType(self.locateFile('images/hat.jpg')), 'image')
+        self.assertEquals(tool_set.fileType(self.locateFile('images/sample.json')), 'text')
+        self.assertEquals(tool_set.fileType(self.locateFile('tests/videos/sample1.mov')), 'video')
+
+
 
     def test_filetypes(self):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
 
     def test_zip(self):
-        img = tool_set.openImage('tests/zips/raw.zip',tool_set.getMilliSecondsAndFrameCount('2'),preserveSnapshot=True)
+        img = tool_set.openImage(self.locateFile('tests/zips/raw.zip'),tool_set.getMilliSecondsAndFrameCount('2'),preserveSnapshot=True)
         self.assertEqual((5796, 3870),img.size)
-        tool_set.condenseZip('tests/zips/raw.zip',keep=1)
+        tool_set.condenseZip(self.locateFile('tests/zips/raw.zip'),keep=1)
 
     def extendRemoveSet(self, removeset,dim):
         newset = []
@@ -140,15 +143,15 @@ class TestToolSet(unittest.TestCase):
 
 
     def test_fileMask(self):
-        pre = tool_set.openImageFile('tests/images/prefill.png')
-        post = tool_set.openImageFile('tests/images/postfill.png')
+        pre = tool_set.openImageFile(self.locateFile('tests/images/prefill.png'))
+        post = tool_set.openImageFile(self.locateFile('tests/images/postfill.png'))
         mask,analysis = tool_set.createMask(pre,post,invert=False,arguments={'tolerance' : 2500})
         withtolerance = sum(sum(mask.image_array))
-        mask.save('tests/images/maskfill.png')
+        mask.save(self.locateFile('tests/images/maskfill.png'))
         mask, analysis = tool_set.createMask(pre, post, invert=False)
         withouttolerance = sum(sum(mask.image_array))
         mask, analysis = tool_set.createMask(pre, post, invert=False, arguments={'tolerance': 2500,'equalize_colors':True})
-        mask.save('tests/images/maskfillt.png')
+        mask.save(self.locateFile('tests/images/maskfillt.png'))
         withtoleranceandqu = sum(sum(mask.image_array))
         self.assertTrue(withouttolerance < withtolerance)
         self.assertTrue(withtolerance <= withtoleranceandqu)
@@ -162,6 +165,12 @@ class TestToolSet(unittest.TestCase):
             self.assertTrue(np.all(result[55:65,15:25] == img1[20:30,50:60]))
 
     def test_timeparse(self):
+        t, f = tool_set.getMilliSecondsAndFrameCount('00:00:00')
+        self.assertEqual(1, f)
+        self.assertEqual(0, t)
+        t, f = tool_set.getMilliSecondsAndFrameCount('1')
+        self.assertEqual(1, f)
+        self.assertEqual(0, t)
         self.assertTrue(tool_set.validateTimeString('03:10:10.434'))
         t,f = tool_set.getMilliSecondsAndFrameCount('03:10:10.434')
         self.assertEqual(0, f)
@@ -176,7 +185,7 @@ class TestToolSet(unittest.TestCase):
         self.assertEqual(1690000, t)
         t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10:A')
         self.assertFalse(tool_set.validateTimeString('03:10:10:A'))
-        self.assertEqual(0, f)
+        self.assertEqual(0, 0)
         self.assertEqual(None, t)
         time_manager = tool_set.VidTimeManager(startTimeandFrame=(1000,2),stopTimeandFrame=(1003,4))
         time_manager.updateToNow(999)
@@ -214,11 +223,11 @@ class TestToolSet(unittest.TestCase):
 
     def test_opacity_analysis(self):
         # need to redo with generated data.
-        initialImage = image_wrap.openImageFile('tests/images/pre_blend.png')
-        finalImage = image_wrap.openImageFile('tests/images/post_blend.png')
-        mask = image_wrap.openImageFile('tests/images/blend_mask.png')
-        donorMask = image_wrap.openImageFile('tests/images/donor_to_blend_mask.png')
-        donorImage = image_wrap.openImageFile('tests/images/donor_to_blend.png')
+        initialImage = image_wrap.openImageFile(self.locateFile('tests/images/pre_blend.png'))
+        finalImage = image_wrap.openImageFile(self.locateFile('tests/images/post_blend.png'))
+        mask = image_wrap.openImageFile(self.locateFile('tests/images/blend_mask.png'))
+        donorMask = image_wrap.openImageFile(self.locateFile('tests/images/donor_to_blend_mask.png'))
+        donorImage = image_wrap.openImageFile(self.locateFile('tests/images/donor_to_blend.png'))
         result = tool_set.generateOpacityImage(initialImage.to_array(), donorImage.to_array(), finalImage.to_array(), mask.to_array(),
                                                donorMask.to_array(),None)
         min = np.min(result)

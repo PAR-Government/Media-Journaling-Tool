@@ -1533,7 +1533,7 @@ def isEdgeNotDonor(edge_id, edge, operation):
 def isEdgeComposite(edge_id, edge, operation):
     return edge['recordMaskInComposite'] == 'yes'
 
-def isEdgeLocalized(edge_id,edge, operation):
+def isEdgeLocalized(edge_id, edge, operation):
     """
     :param edge_id:
     :param edge:
@@ -1541,7 +1541,14 @@ def isEdgeLocalized(edge_id,edge, operation):
     :return:
     @type Operation
     """
-    return getValue(edge, 'global') == 'yes' or operation.category not in ['Output','AntiForensic','PostProcessing','Laundering']
+    return edge['op'] not in ['TransformSeamCarving',
+                              'Donor',
+                              'TransformDownSample',
+                              'TransformReverse',
+                              'DeleteAudioSample'] and \
+           ('empty mask' not in edge or edge['empty mask'] == 'no') and \
+            getValue(edge, 'global',defaultValue='no') != 'yes' and \
+            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration']
 
 def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
     preds = graph.predecessors(node)

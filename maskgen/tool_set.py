@@ -376,10 +376,10 @@ class VidTimeManager:
 
     def getExpectedEndFrameGiveRate(self, rate, defaultValue=None):
         if not self.stopTimeandFrame:
-            return None
+            return defaultValue
         val = int(self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate))
         if val == 0:
-            return None
+            return defaultValue
         return self.stopTimeandFrame[1] + (self.stopTimeandFrame[0] / 1000.0) * float(rate)
 
     def getStartFrame(self):
@@ -481,7 +481,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
         except:
             return None, 1
     elif coloncount == 0:
-        return (float(v) / rate * 1000.0, 0) if rate is not None else (0,1 if v == 0 else v)
+        return (float(v) / rate * 1000.0, 0) if rate is not None else (0,1 if v == 0 else int(v))
     try:
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -493,7 +493,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
     if rate is not None:
         millis = millis + float(framecount)/rate * 1000.0
         framecount = 1
-    return (millis, framecount)
+    return (millis, framecount) if (millis, framecount) != (0,0) else (0,1)
 
 
 def validateTimeString(v):

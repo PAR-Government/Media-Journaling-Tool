@@ -165,7 +165,11 @@ def callPlugin(name,im,source,target,**kwargs):
     if loaded[name]['function'] == 'custom':
         return runCustomPlugin(name, im, source, target, **kwargs)
     else:
-        return loaded[name]['function'](im,source,target,**kwargs)
+        try:
+            return loaded[name]['function'](im,source,target,**kwargs)
+        except Exception as e:
+            logging.getLogger('Plugin {} failed with {} for arguments {}', format(name, str(e), str(kwargs)))
+            raise e
 
 def runCustomPlugin(name, im, source, target, **kwargs):
     global loaded
@@ -175,13 +179,17 @@ def runCustomPlugin(name, im, source, target, **kwargs):
     commands = copy.deepcopy(loaded[name]['command'])
     mapping = copy.deepcopy(loaded[name]['mapping'])
     executeOk = False
-    for k, command in commands.items():
-        if sys.platform.startswith(k):
-            executeWith(command, im, source, target, mapping, **kwargs)
-            executeOk = True
-            break
-    if not executeOk:
-        executeWith(commands['default'], im, source, target, mapping, **kwargs)
+    try:
+        for k, command in commands.items():
+            if sys.platform.startswith(k):
+                executeWith(command, im, source, target, mapping, **kwargs)
+                executeOk = True
+                break
+        if not executeOk:
+            executeWith(commands['default'], im, source, target, mapping, **kwargs)
+    except Exception as e:
+        logging.getLogger('Plugin {} failed with {} for arguments {}',format(name,str(e), str(kwargs)))
+        raise e
     return None, None
 
 def executeWith(executionCommand, im, source, target, mapping, **kwargs):
@@ -193,8 +201,9 @@ def executeWith(executionCommand, im, source, target, mapping, **kwargs):
     kwargs['inputimage'] = source
     kwargs['outputimage'] = target
     for i in range(len(executionCommand)):
-            executionCommand[i] = executionCommand[i].format(**kwargs)
+        executionCommand[i] = executionCommand[i].format(**kwargs)
     subprocess.call(executionCommand,shell=shell)
+
 
 def mapCmdArgs(args, mapping):
     import copy
