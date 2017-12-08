@@ -447,7 +447,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
             mask['rate'] = rate
             mask['starttime'] = 0
             mask['startframe'] = 1
-            mask['endtime'] = float(item['duration'])*1000 if 'duration' in item else 1000*int(item['nb_frames'])/rate
+            mask['endtime'] = float(item['duration'])*1000 if 'duration' in item and item['duration'][0] != 'N' else 1000*int(item['nb_frames'])/rate
             frame_count = int(item['nb_frames']) if 'nb_frames' in item and item['nb_frames'][0] != 'N' else \
                 (int(item['duration_ts']) if 'duration_ts' in item else int(mask['endtime']/rate))
             mask['endframe'] = frame_count
@@ -933,10 +933,10 @@ def getFrameRate(fileOne, default=None, audio=False):
 
 def getDuration(fileOne, default=None, audio=False):
     duration = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
-    if duration is None:
+    if duration is None or duration[0]== 'N':
         frames = getFrameAttribute(fileOne, 'nb_frames', default=None, audio=audio)
         rate = getFrameAttribute(fileOne, 'sample_rate', default=None, audio=audio)
-        if rate is not None and frames is not None:
+        if rate is not None and frames is not None and frames[0] != 'N' and rate[0] != 'N':
             return 1000.0 * int(frames) / float(rate)
         return default
     return float(duration) *1000.0
