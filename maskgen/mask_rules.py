@@ -366,11 +366,12 @@ def resize_transform(edge, source, target, edgeMask,
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
-        elif sizeChange == (0, 0):
+        else:
             if tm is not None:
                 # local resize
-                res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm))
-            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
+                res = tool_set.applyTransformToComposite(res, edgeMask, tool_set.deserializeMatrix(tm),
+                                                         shape=expectedSize, returnRaw=sizeChange != (0, 0))
+            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None and sizeChange == (0, 0):
                 inputmask = openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
@@ -386,11 +387,11 @@ def resize_transform(edge, source, target, edgeMask,
             upperBound = (
                 min(expectedSize[0] + location[0], res.shape[0]), min(expectedSize[1] + location[1], res.shape[1]))
             res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
-        elif sizeChange == (0, 0):
+        else:
             if tm is not None:
                 res = tool_set.applyTransform(res, mask=edgeMask, transform_matrix=tool_set.deserializeMatrix(tm),
-                                              invert=True, returnRaw=False)
-            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None:
+                                              invert=True,  shape=targetSize, returnRaw=sizeChange != (0, 0))
+            elif 'inputmaskname' in edge and edge['inputmaskname'] is not None and sizeChange == (0, 0):
                 inputmask = openImageFile(os.path.join(directory, edge['inputmaskname']))
                 if inputmask is not None:
                     mask = inputmask.to_mask().to_array()
@@ -1388,7 +1389,6 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None):
     orientflip, orientrotate = exif.rotateAmount(graph_rules.getOrientationForEdge(edge))
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-    crop = (sizeChange[0] < 0 or sizeChange[1] < 0) and tm is None and abs(rotation) < 0.00001
     flip = flip if flip is not None else orientflip
     tm = None if flip else tm
     compositeMask = alterMask(compositeMask,
@@ -1398,8 +1398,7 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None):
                               interpolation=interpolation,
                               location=location,
                               flip=flip,
-                              transformMatrix=tm,
-                              crop=crop)
+                              transformMatrix=tm)
     return compositeMask
 
 
@@ -1424,7 +1423,6 @@ def defaultAlterDonor(edge, edgeMask, donorMask=None):
     orientrotate = -orientrotate if orientrotate is not None else None
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
-    crop = (sizeChange[0] < 0 or sizeChange[1] < 0) and tm is None and abs(rotation) < 0.00001
     flip = flip if flip is not None else orientflip
     tm = None if flip else tm
     return alterReverseMask(donorMask,
@@ -1434,8 +1432,7 @@ def defaultAlterDonor(edge, edgeMask, donorMask=None):
                             location=location,
                             flip=flip,
                             transformMatrix=tm,
-                            targetSize=targetSize,
-                            crop=crop)
+                            targetSize=targetSize)
 
 
 def _getMaskTranformationFunction(

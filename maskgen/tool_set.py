@@ -1772,6 +1772,8 @@ def convertCompare(img1, img2,  arguments=dict()):
         return 255-mask, {'rotation':-rotation}
     if img1.shape != img2.shape:
         new_img2 = cv2.resize(img2,(img1.shape[1],img1.shape[0]))
+    else:
+        new_img2 = img2
     return __diffMask(img1, new_img2, False, args=arguments)
 
 
