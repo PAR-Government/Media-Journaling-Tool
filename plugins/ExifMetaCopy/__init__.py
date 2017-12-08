@@ -1,9 +1,6 @@
-from subprocess import call
-import shutil
-import maskgen.exif
-from PIL import Image
 
 def emc_update_size(size,imageFile):
+    import maskgen.exif
     width, height = size
     maskgen.exif.runexif(['-P', '-q', '-m', '-ExifImageWidth=' + str(width),
                                             '-ImageWidth=' + str(width),
@@ -12,11 +9,13 @@ def emc_update_size(size,imageFile):
                                             imageFile])
 
 def update_modifytime(imageFile):
+    import maskgen.exif
     createtime = maskgen.exif.getexif(imageFile, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
         maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], imageFile])
 
 def transform(img,source,target, **kwargs):
+    import maskgen.exif
     donor = kwargs['donor']
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
     maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all>all:all', '-unsafe', target])

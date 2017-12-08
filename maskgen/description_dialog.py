@@ -3,7 +3,6 @@ matplotlib.use("TkAgg")
 from Tkinter import *
 import ttk
 import tkMessageBox
-from maskgen import image_wrap
 from group_filter import GroupFilterLoader
 import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk

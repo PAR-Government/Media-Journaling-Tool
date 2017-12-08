@@ -3,11 +3,11 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
+from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import  GroupFilterLoader
-from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -102,7 +102,6 @@ class MakeGenUI(Frame):
     @type scModel: ImageProjectModel
     """
 
-    gfl = GroupFilterLoader()
 
     if prefLoader.get_key('username') is not None:
         setPwdX(CustomPwdX(prefLoader.get_key('username')))
@@ -1165,10 +1164,11 @@ class MakeGenUI(Frame):
                                          information='notification property'))
         return props
 
-    def __init__(self, dir, master=None, pluginops={}, base=None, uiProfile=UIProfile()):
+    def __init__(self, dir, master=None, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
-        self.mypluginops = pluginops
+        self.mypluginops = plugins.loadPlugins()
+        self.gfl = GroupFilterLoader()
         tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
@@ -1254,7 +1254,7 @@ def main(argv=None):
             sys.exit(1)
         return
     root = Tk()
-    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+    gui = MakeGenUI(imgdir, master=root,
                     base=args.base if args.base is not None else None, uiProfile=uiProfile)
 
     #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())

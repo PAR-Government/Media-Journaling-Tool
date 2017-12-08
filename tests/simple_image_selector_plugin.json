@@ -15,7 +15,7 @@
   "nodes": [
    {
       "op_type": "BaseSelection",
-      "image_directory": "tests/images",
+      "image_directory": "{image_dir}",
       "picklist": "imageset",
       "id": "0"
     },
@@ -26,17 +26,17 @@
       "arguments": {
         "directory" : {
           "type" : "value",
-          "value" :"tests/images"
+          "value" :"{image_dir}"
         },
         "pairing" : {
           "type" : "value",
-          "value" :"tests/data/pairedimages.csv"
+          "value" :"{image_dir}/../data/pairedimages.csv"
         }
       }
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "SaveAsPNG",
+      "plugin": "OutputPNG",
       "id": "2",
       "arguments": {
         "Image Rotated" : {

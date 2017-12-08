@@ -82,6 +82,7 @@ def updateJournal(scModel):
         _addColor(scModel)
         _fixAudioOutput(scModel, gopLoader)
         _fixEmptyMask(scModel, gopLoader)
+        _fixGlobal(scModel, gopLoader)
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -551,6 +552,13 @@ def _fixRecordMasInComposite(scModel,gopLoader):
          op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
          if op.category in ['Output','AntiForensic','Laundering']:
              edge['recordMaskInComposite'] = 'no'
+
+def _fixGlobal(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+        if 'global' in edge and edge['global'] == 'yes' and "maskgen.tool_set.localTransformAnalysis" in op.analysisOperations:
+            edge['global'] = 'no'
 
 def _fixEmptyMask(scModel,gopLoader):
     import numpy as np

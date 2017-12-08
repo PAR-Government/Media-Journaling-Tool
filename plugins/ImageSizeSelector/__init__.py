@@ -1,13 +1,14 @@
 import maskgen
-from maskgen_coco import createMaskImageWithParams
-import sys
-from maskgen.image_wrap import ImageWrapper
 import numpy as np
-from maskgen import exif
 import os
 
 """
-Select the size of an image based on make and model
+Select the size of an image based on make and model using a Camera Data JSON
+file.  The file is the format:
+ {"data": [cameradata]}
+ where cameradata is a:
+ {"make":"","model":"","height":100,"width":100,"format":format}
+ where format is a string "jpg","png","cr2", etc.
 """
 
 cameraData = {}
@@ -30,6 +31,7 @@ def loadCameraData(cameraDataFile):
     return cameraData[absfile]
 
 def getMakeAndModel(source):
+    from maskgen import exif
     data = exif.getexif(source,['-make','-model'])
     if 'Make' not in data or 'Camera Model Name' not in data:
         return None,None
@@ -66,6 +68,7 @@ def operation():
     return {'name': 'SelectRegion',
             'category': 'Select',
             'software': 'maskgen',
+            'type': 'selector',
             'version': maskgen.__version__[0:6],
             'arguments': {
                 'cameraDataFile': {
@@ -78,7 +81,13 @@ def operation():
                     "description": "Randomly pick one size or return tuples"
                 }
             },
-            'description': 'Lookup possible image sizes',
+            'output': {
+                'sizes': {
+                    'type':'list',
+                    'description':'list of dictionary of width and height keys'
+                }
+            },
+            'description': 'Lookup possible image sizes for a camera and randomly pick.  Use with to support a resize plugin',
             'transitions': [
                 'image.image'
             ]
