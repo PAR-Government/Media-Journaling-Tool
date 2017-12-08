@@ -197,6 +197,7 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                          'frames': count,
                          'rate': capIn.get(cv2api_delegate.prop_fps),
                          'mask': sample,
+                         'type':'video',
                          'videosegment': os.path.split(capOut.filename)[1]})
                     capOut.release()
                     count = 0
@@ -210,6 +211,7 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                            'frames': time_manager.frameSinceBeginning-startFrame,
                            'rate': capIn.get(cv2api_delegate.prop_fps),
                            'mask': sample,
+                           'type': 'video',
                            'videosegment': os.path.split(capOut.filename)[1]})
             capOut.release()
     finally:
@@ -1247,6 +1249,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
     change = {}
     change['starttime'] = 0
     change['startframe'] = 1
+    change['type'] = 'video'
     change['rate'] = analysis_components.fps_one
     change['mask'] = compare_result
     change['endtime'] = entireVideoMaskSet[0]['endtime']

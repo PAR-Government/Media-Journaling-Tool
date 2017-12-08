@@ -15,7 +15,7 @@
     {
       "op_type": "BaseSelection",
       "permutegroup": "image",
-      "image_directory": "tests/images",
+      "image_directory": "{image_dir}",
       "picklist": "imageset",
       "id": "0"
     },

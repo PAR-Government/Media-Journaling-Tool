@@ -8,9 +8,5 @@ set_logging()
 import software_loader
 from image_graph import igversion
 logging.getLogger('maskgen').info('Version ' + igversion)
-import graph_rules
-graph_rules.setup()
-from image_wrap import  ImageWrapper
-
-
+from image_wrap import ImageWrapper
 

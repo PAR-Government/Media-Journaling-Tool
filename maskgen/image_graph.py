@@ -9,12 +9,10 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime, strptime
 import logging
-import maskgen
-
+from maskgen import __version__
 from threading import RLock
 
-igversion = maskgen.__version__
-
+igversion = __version__
 
 def current_version():
     return igversion

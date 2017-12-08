@@ -1037,6 +1037,11 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
     analysis['change size category'] = changeCategory
     return globalchange
 
+def localTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
+    globalchange = globalTransformAnalysis(analysis,img1,img2,mask=mask,linktype=linktype,arguments=arguments,directory=directory)
+    analysis['global'] = 'no'
+    return globalchange
+
 def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     """
        Perform SIFT regardless of the global change status, using an input mask from the arguments
@@ -1756,18 +1761,20 @@ def resizeImage(img1, shape,interpolation):
     return cv2.resize(img1, (shape[1], shape[0]), interpolation=inter_val)
 
 def resizeCompare(img1, img2,  arguments=dict()):
-    new_img1 = resizeImage(img1,
-                           (img2.shape[1],img2.shape[0]),
+    new_img2 = resizeImage(img2,
+                           img1.shape,
                            arguments['interpolation'] if 'interpolation' in arguments else 'nearest')
-    return __diffMask(new_img1, img2, False, args=arguments)
+    return __diffMask(img1, new_img2, False, args=arguments)
 
 def convertCompare(img1, img2,  arguments=dict()):
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation,mask=__findRotation(img1,img2,[90,180,270])
         return 255-mask, {'rotation':-rotation}
     if img1.shape != img2.shape:
-        img1 = cv2.resize(img1,(img2.shape[1],img2.shape[0]))
-    return __diffMask(img1, img2, False, args=arguments)
+        new_img2 = cv2.resize(img2,(img1.shape[1],img1.shape[0]))
+    else:
+        new_img2 = img2
+    return __diffMask(img1, new_img2, False, args=arguments)
 
 
 def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):

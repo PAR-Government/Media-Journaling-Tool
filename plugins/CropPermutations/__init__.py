@@ -32,6 +32,7 @@ def operation():
           'description':'Select a region to crop',
           'software':'OpenCV',
           'version':'2.4.13',
+          'type':'selector',
           'arguments':{'percentage_width':
                            {'type': "float[0:0.5]", 'description':'the percentage of pixels to remove horizontal'},
                        'percentage_height':
@@ -43,6 +44,25 @@ def operation():
                        'eightbit_boundary':
                            {'type': "yesno", 'defaultvalue':'no', 'description':'Snap to 8 bit boundary'}
                        },
+         'output':
+              {'crop_x': {
+                  'type': 'list',
+                  'description': 'upper corner pixel location to start crop'
+              },
+              'crop_y': {
+                  'type': 'list',
+                  'description': 'upper corner pixel location to start crop'
+              }
+              ,
+              'crop_width': {
+                  'type': 'int',
+                  'description': 'witdh in pixels of crop region'
+              },
+              'crop_height': {
+                  'type': 'int',
+                  'description': 'witdh in pixels of crop region'
+              }
+          },
           'transitions': [
               'image.image'
           ]

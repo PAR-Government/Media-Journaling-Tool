@@ -194,7 +194,10 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             mask = mask + '.png'
         return mask
     elif specification['type'] == 'value':
-        return specification['value']
+        if isinstance(specification['value'],str):
+            return specification['value'].format(**global_state)
+        else:
+            return specification['value']
     elif specification['type'] == 'variable':
         if 'name' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -296,7 +299,7 @@ def pickImageIterator(specification, spec_name, global_state):
         element = FilePermuteGroupElement(spec_name,
                                           specification['image_directory'].format(**global_state),
                                           tracking_filename=picklist_name + '.txt',
-                                          fileCheckFunction=lambda x: tool_set.fileType(x) != None,
+                                          fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio','video','image'],
                                           filetypes=specification[
                                               'filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
@@ -1166,6 +1169,7 @@ class BatchExecutor:
         if not os.path.exists(results) or not os.path.isdir(results):
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
             return
+        plugins.loadPlugins()
         self.__setupThreads(threads_count)
         self.workdir = os.path.abspath(workdir)
         loadCustomFunctions()
@@ -1234,6 +1238,7 @@ class BatchExecutor:
         }
         globalState.update(self.initialState)
         logging.getLogger('maskgen').info('Running {} as {}'.format(batchProject.getName(), myid))
+        batchProject.loadPermuteGroups(globalState)
         batchProject.executeOnce(globalState)
 
     def finish(self):
@@ -1266,6 +1271,7 @@ def main():
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
     args = parser.parse_args()
+
     batchProject = loadJSONGraph(args.json)
     be = BatchExecutor(args.results,
                        workdir='.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir,
@@ -1273,7 +1279,6 @@ def main():
                        initializers=args.initializers,
                        threads_count=int(args.threads) if args.threads else 1,
                        loglevel=args.loglevel)
-    logging.DE
     if args.graph:
         batchProject.saveGraphImage(be.workdir)
     try:

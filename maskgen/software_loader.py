@@ -13,6 +13,11 @@ class OperationEncoder(JSONEncoder):
 
 def getFileName(fileName, path=None):
     import sys
+    #import traceback
+    #try:
+    #    None.foo()
+    #except Exception as ex:
+    #    traceback.print_stack()
     if (os.path.exists(fileName)):
         logging.getLogger('maskgen').info( 'Loading ' + fileName)
         return fileName
@@ -191,28 +196,25 @@ def getOperation(name, fake = False, warning=True):
     :param fake: Set to True to allow fake operations
     :return: Operation
     """
-    global metadataLoader
     if name == 'Donor':
         return Operation(name='Donor', category='Donor',maskTransformFunction=
         {'image':'maskgen.mask_rules.donor',
          'video':'maskgen.mask_rules.video_donor',
          'audio': 'maskgen.mask_rules.audio_donor',
          })
-    if name not in metadataLoader.operations and warning:
+    if name not in getMetDataLoader().operations and warning:
         logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
-    return metadataLoader.operations[name] if name in metadataLoader.operations else (Operation(name='name', category='Bad') if fake else None)
+    return getMetDataLoader().operations[name] if name in getMetDataLoader().operations else (Operation(name='name', category='Bad') if fake else None)
 
 
 def getOperations():
-    global metadataLoader
-    return metadataLoader.operations
+    return getMetDataLoader().operations
 
 
 def getOperationsByCategory(sourcetype, targettype):
-    global metadataLoader
     result = {}
     transition = sourcetype + '.' + targettype
-    for name, op in metadataLoader.operations.iteritems():
+    for name, op in getMetDataLoader().operations.iteritems():
         if transition in op.transitions:
             if op.category not in result:
                 result[op.category] = []
@@ -220,19 +222,16 @@ def getOperationsByCategory(sourcetype, targettype):
     return result
 
 def getPropertiesBySourceType(source):
-    global metadataLoader
-    return metadataLoader.node_properties[source]
+    return getMetDataLoader().node_properties[source]
 
 def getSoftwareSet():
-    global metadataLoader
-    return metadataLoader.softwareset
+    return getMetDataLoader().softwareset
 
 
 def saveJSON(filename):
-    global metadataLoader
-    opnamelist = list(metadataLoader.operations.keys())
+    opnamelist = list(getMetDataLoader().operations.keys())
     opnamelist.sort()
-    oplist = [metadataLoader.operations[op] for op in opnamelist]
+    oplist = [getMetDataLoader().operations[op] for op in opnamelist]
     with open(filename, 'w') as f:
         json.dump({'operations': oplist}, f, indent=2, cls=OperationEncoder)
 
@@ -322,17 +321,15 @@ def getProjectProperties():
     :return:
     @rtype: list of ProjectProperty
     """
-    global metadataLoader
-    return metadataLoader.projectProperties
+    return getMetDataLoader().projectProperties
 
 
 def getSemanticGroups():
     return [prop.description for prop in getProjectProperties() if prop.semanticgroup]
 
 def getFilters(filtertype):
-    global metadataLoader
     if filtertype == 'filtergroups':
-        return metadataLoader.filters
+        return getMetDataLoader().filters
     else:
         return {}
 
@@ -427,7 +424,8 @@ class MetaDataLoader:
 
 
 global metadataLoader
-metadataLoader =  MetaDataLoader()
+metadataLoader = {}
+
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
@@ -435,14 +433,17 @@ def toSoftware(columns):
 def getOS():
     return platform.system() + ' ' + platform.release() + ' ' + platform.version()
 
+def getMetDataLoader():
+    global metadataLoader
+    if 'l' not in metadataLoader:
+        metadataLoader['l'] = MetaDataLoader()
+    return metadataLoader['l']
 
 def operationVersion():
-    global metadataLoader
-    return metadataLoader.version
+    return getMetDataLoader().version
 
 def validateSoftware(softwareName, softwareVersion):
-    global metadataLoader
-    for software_type, typed_software_set in metadataLoader.softwareset.iteritems():
+    for software_type, typed_software_set in getMetDataLoader().softwareset.iteritems():
         if softwareName in typed_software_set and softwareVersion in typed_software_set[softwareName]:
             return True
     return False
@@ -500,16 +501,14 @@ class SoftwareLoader:
         return None
 
     def get_names(self, software_type):
-        global metadataLoader
         if software_type is None:
             return []
-        return list(metadataLoader.softwareset[software_type].keys())
+        return list(getMetDataLoader().softwareset[software_type].keys())
 
     def get_versions(self, name, software_type=None, version=None):
-        global metadataLoader
-        types_to_check = metadataLoader.softwareset.keys() if software_type is None else [software_type]
+        types_to_check = getMetDataLoader().softwareset.keys() if software_type is None else [software_type]
         for type_to_check in types_to_check:
-            versions = metadataLoader.softwareset[type_to_check][name] if name in metadataLoader.softwareset[type_to_check] else None
+            versions = getMetDataLoader().softwareset[type_to_check][name] if name in getMetDataLoader().softwareset[type_to_check] else None
             if versions is None:
                 continue
             if version is not None and version not in versions:
