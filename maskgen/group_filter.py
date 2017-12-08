@@ -5,7 +5,6 @@ import logging
 
 maskgenloader = MaskGenLoader()
 
-
 def callRule(functions, *args, **kwargs):
     import copy
     for func in functions:
@@ -245,7 +244,6 @@ class GroupFilterLoader:
 
     def load(self, filterFactory=lambda k,v: GroupFilter(k, v)):
         global maskgenloader
-        plugins.loadPlugins()
         self.groups = {}
         newset = maskgenloader.get_key(self.getLoaderKey())
         if newset is not None:

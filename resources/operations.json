@@ -1216,7 +1216,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add sources of reflection that were not originally present.",
       "includeInMask": true,
       "transitions": [
@@ -1256,7 +1256,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add shadows that were not originally present.",
       "includeInMask": true,
       "transitions": [
@@ -1304,7 +1304,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Create objects that were not originally present in an image.",
       "includeInMask": true,
       "transitions": [
@@ -1391,7 +1391,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Change the fill using a solid color or gradient.",
       "includeInMask": true,
       "transitions": [
@@ -1437,7 +1437,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": true,
       "hidden" : false,
@@ -1516,7 +1516,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
       "includeInMask": true,
       "transitions": [
@@ -1604,7 +1604,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Uniformly alter the color of an image within a given selection.",
       "includeInMask": true,
       "transitions": [
@@ -1804,7 +1804,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
       "compareparameters" : {
          "tolerance" : 0.0001
@@ -1847,7 +1847,7 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
       "includeInMask": true,
       "transitions": [
@@ -1900,7 +1900,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
       "includeInMask": true,
       "maskTransformFunction": {
@@ -2281,7 +2281,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true,
       "transitions": [
@@ -2317,7 +2317,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": true,
       "transitions": [
@@ -2355,7 +2355,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ObjectCGI.",
       "includeInMask": true,
       "transitions": [
@@ -2392,7 +2392,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
       "includeInMask": true,
       "transitions": [
@@ -2811,7 +2811,7 @@
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.paste_splice"
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
       "includeInMask": true,
       "transitions": [

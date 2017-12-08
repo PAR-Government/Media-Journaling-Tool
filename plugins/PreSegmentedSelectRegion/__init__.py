@@ -47,6 +47,12 @@ def operation():
                         'description': 'The color to be used for classification (e.g. [100,200,130])'
                     }
                 },
+            'output':
+                {'subject': {
+                    'type': 'string',
+                    'description': 'the subject name of the chosen segment of an image'
+                }
+                },
             'transitions': [
                 'image.image'
             ]

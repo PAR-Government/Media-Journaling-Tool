@@ -1,10 +1,10 @@
 import sys
-import imp
 import os
 import json
 import subprocess
 import logging
 import tarfile
+import importlib
 
 """
 Manage and invoke all JT plugins that support operations on node media (images, video and audio)
@@ -48,7 +48,7 @@ def installPlugin(zippedFile):
 def _loadPluginModule(info,name,loaded):
     logging.getLogger('maskgen').info("Loading plugin " + name)
     try:
-        plugin = imp.load_module(MainModule, *info)
+        plugin = __import__(info)
         op = plugin.operation()
         loaded[name] = {}
         loaded[name]['function'] = plugin.transform
@@ -56,18 +56,23 @@ def _loadPluginModule(info,name,loaded):
         loaded[name]['suffix'] = plugin.suffix() if hasattr(plugin, 'suffix') else None
     except Exception as e:
         logging.getLogger('maskgen').error("Failed loading plugin " + name + ": " + str(e))
+    #finally:
+    #    info[0].close()
 
 def _findPluginModule(location):
     if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
         return None
-    return imp.find_module(MainModule, [location])
+    return os.path.basename(location) #imp.find_module(MainModule, [location])
 
 def getPlugins(reload=False):
     plugins = {}
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
     pluginFolders.extend([os.path.join(x,'plugins') for x in sys.path if 'maskgen' in x])
+    pluginFolders = set([os.path.abspath(f) for f in pluginFolders])
     for folder in pluginFolders:
         if os.path.exists(folder):
+            if folder not in sys.path:
+                sys.path.append(folder)
             possibleplugins = os.listdir(folder)
             customfolder = os.path.join(folder, 'Custom')
             customplugins = os.listdir(customfolder) if os.path.exists(customfolder) else []
@@ -120,8 +125,16 @@ def pluginSummary():
 
 def loadPlugins(reload=False):
    global loaded
+   import traceback
+
    if loaded is not None and not reload:
        return loaded
+
+   import traceback
+   try:
+       None.foo()
+   except Exception as ex:
+       traceback.print_stack()
 
    loaded = {}
    ps = getPlugins() 
@@ -131,6 +144,7 @@ def loadPlugins(reload=False):
           loadCustom(i, path)
       else:
           _loadPluginModule(ps[i]['info'],i,loaded)
+
    return loaded
 
 def getOperations(fileType=None):

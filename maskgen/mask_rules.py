@@ -1541,14 +1541,15 @@ def isEdgeLocalized(edge_id, edge, operation):
     :return:
     @type Operation
     """
-    return edge['op'] not in ['TransformSeamCarving',
+    return edge['recordMaskInComposite'] == 'yes' or \
+           (edge['op'] not in ['TransformSeamCarving',
                               'Donor',
                               'TransformDownSample',
                               'TransformReverse',
                               'DeleteAudioSample'] and \
            ('empty mask' not in edge or edge['empty mask'] == 'no') and \
             getValue(edge, 'global',defaultValue='no') != 'yes' and \
-            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration']
+            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration'])
 
 def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
     preds = graph.predecessors(node)

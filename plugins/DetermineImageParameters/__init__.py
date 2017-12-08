@@ -4,9 +4,9 @@ import maskgen
 from maskgen.jpeg import utils
 
 """
-Determine new parameters based on an image's current metrics (qualify factor, size, etc.)
+Determine new parameters based on an image's current metrics (qualify factor, size, etc.).
+Returns selected_width,selected_height and quality_factor.
 """
-
 
 def transform(img, source, target, **kwargs):
     qf_donor = source
@@ -26,12 +26,12 @@ def transform(img, source, target, **kwargs):
         qf = utils.estimate_qf(qf_donor)
     return {'selected_width': w, 'selected_height': h, 'quality_factor': int(qf*qf_c)}, None
 
-
 def operation():
     return {
         'category': 'Select',
         'name': 'SelectRegion',
-        'description': 'Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.  In the later case, paste_x and paste_y variables are returned indicating a suitable  upper left corner paste position in the source image. ',
+        'type':'selector',
+        'description': 'Select image parameters selected_width,selected_height, and quality_factor for use by other plugins',
         'software': 'maskgen',
         'version': maskgen.__version__[0:3],
         'arguments': {'percentage_width': {'type': "float[0.01:2]", 'description': 'percentage change'},
