@@ -20,7 +20,7 @@ import time
 from datetime import datetime
 from maskgen.loghandling import set_logging
 import Queue as queue
-
+from maskgen.graph_output import ImageGraphPainter
 
 class IntObject:
     value = 0
@@ -810,8 +810,7 @@ class BatchProject:
 
     def executeForProject(self, project, nodes, workdir=None):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
-        global_state = {'picklists_files': {},
-                        'project': self,
+        global_state = {'project': self,
                         'workdir': project.get_dir() if workdir is None else workdir,
                         'permutegroupsmanager': PermuteGroupManager(
                             dir=project.get_dir() if workdir is None else workdir)
@@ -876,6 +875,7 @@ class BatchProject:
         base_node = self._findBase()
         try:
             self._execute_node(base_node, None, local_state, global_state)
+            local_state['model'].setProjectData('batch specification name', self.getName())
             queue = [top for top in self._findTops() if top != base_node]
             queue.extend(self.G.successors(base_node))
             completed = [base_node]
@@ -903,9 +903,12 @@ class BatchProject:
                 self.logger.debug("Run Save As")
                 op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
                 op.performOp()
-            local_state['model'].renameFileImages()
+            sm = local_state['model']
+            sm.renameFileImages()
+            summary_file = os.path.join(sm.get_dir(), '_overview_.png')
+            ImageGraphPainter(sm.getGraph()).output(summary_file)
             if 'archives' in global_state:
-                local_state['model'].export(global_state['archives'])
+                sm.export(global_state['archives'])
         except Exception as e:
             project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
@@ -1039,7 +1042,6 @@ def createGlobalState(projectDirectory, stateDirectory):
     :return:
     """
     return {'projects': projectDirectory,
-            'picklists_files': {},
             'workdir': stateDirectory,
             'permutegroupsmanager': PermuteGroupManager(dir=stateDirectory)}
 
@@ -1077,14 +1079,15 @@ class QueueThreadWorker:
             if str(globalState) == 'Stop':
                 exit = True
             else:
+                batchProject = globalState['project']
                 id = globalState['uuid']
                 logging.getLogger('maskgen').info('Executing {} as {}'.format(
-                    globalState['project'].getName(),
+                    batchProject.getName(),
                     id))
                 flushLogs()
                 project_directory, project_name = self.__executeOnce(globalState)
                 if 'notify_function' in globalState:
-                    globalState['notify_function'](id, project_directory, project_name)
+                    globalState['notify_function'](batchProject.getName(),id, project_directory, project_name)
 
 
 def thread_worker(iq):
@@ -1115,7 +1118,7 @@ def loadGlobalStateInitialers(global_state, initializers):
     return global_state
 
 
-def do_nothing_notify(id, project_directory, project_name):
+def do_nothing_notify(spec_name, id, project_directory, project_name):
     pass
 
 
@@ -1126,7 +1129,7 @@ class WaitToFinish:
         self.count = IntObject(count)
         self.name = name
 
-    def wait_notify(self, id, project_directory, project_name):
+    def wait_notify(self, spec_name, id, project_directory, project_name):
         logging.getLogger('maskgen').info('Received completion of {} as {}'.format(self.name, id))
         if self.count.decrement() == 0:
             self.lock.release()
@@ -1197,7 +1200,7 @@ class BatchExecutor:
             self.threads.append(t)
             t.start()
 
-    def runProject(self, batchProject, count=1):
+    def runProject(self, batchProject, count=1, notify_function=do_nothing_notify):
 
         """
         Run in a thread
@@ -1213,7 +1216,7 @@ class BatchExecutor:
             globalState = {
                 'project': batchProject,
                 'uuid': myid,
-                'notify_function': do_nothing_notify
+                'notify_function': notify_function
             }
             globalState.update(self.initialState)
             logging.getLogger('maskgen').info('Queueing {} as {}'.format(batchProject.getName(), myid))
@@ -1221,7 +1224,7 @@ class BatchExecutor:
             count -= 1
         return uuid
 
-    def runProjectLocally(self, batchProject):
+    def runProjectLocally(self, batchProject, notify_function=do_nothing_notify):
         """
         Run in a in the this current thread
         :param batchProject:
@@ -1233,21 +1236,19 @@ class BatchExecutor:
         myid = uuid.uuid4()
         globalState = {
             'project': batchProject,
-            'uuid': myid,
-            'notify_function': do_nothing_notify
+            'uuid': myid
         }
         globalState.update(self.initialState)
         logging.getLogger('maskgen').info('Running {} as {}'.format(batchProject.getName(), myid))
         batchProject.loadPermuteGroups(globalState)
-        batchProject.executeOnce(globalState)
+        project_directory, project_name = batchProject.executeOnce(globalState)
+        notify_function(batchProject.getName(), myid, project_directory, project_name)
 
     def finish(self):
         """
         Send termination and wait for threads to finish
         :return:
         """
-        for k, fp in self.initialState['picklists_files'].iteritems():
-            fp.close()
         logging.getLogger('maskgen').info('Stopping Threads')
         for thread in self.threads:
             self.iq.put('Stop')
