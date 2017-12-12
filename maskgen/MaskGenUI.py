@@ -156,6 +156,38 @@ class MakeGenUI(Frame):
         #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
             #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
 
+        export_info = (graph_rules.get_journal_exporttime(self.scModel.getName(), self.prefLoader.get_key("apitoken"), self.prefLoader.get_key("apiurl"))).split(" ")
+
+        if export_info:
+            export_info[0] = map(int, export_info[0].split("-"))
+            export_info[1] = map(int, export_info[1].split(":"))
+
+            current_info = (self.scModel.getProjectData("exporttime")).split(" ")
+            current_info[0] = map(int, current_info[0].split("-"))
+            current_info[1] = map(int, current_info[1].split(":"))
+
+            if current_info[0][0] == export_info[0][0]:
+                if current_info[0][1] == export_info[0][1]:
+                    if current_info[0][2] == export_info[0][2]:
+                        if current_info[1][0] == export_info[1][0]:
+                            if current_info[1][1] == export_info[1][1]:
+                                if current_info[1][2] == export_info[1][2]:
+                                    return
+                                if current_info[1][2] > export_info[1][2]:
+                                    return
+                            if current_info[1][1] > export_info[1][1]:
+                                return
+                        if current_info[1][0] > export_info[1][0]:
+                            return
+                    if current_info[0][2] > export_info[0][2]:
+                        return
+                if current_info[0][1] > export_info[0][1]:
+                    return
+            if current_info[0][0] > export_info[0][0]:
+                return
+
+            tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
                                            filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])
