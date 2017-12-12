@@ -125,16 +125,9 @@ def pluginSummary():
 
 def loadPlugins(reload=False):
    global loaded
-   import traceback
 
    if loaded is not None and not reload:
        return loaded
-
-   import traceback
-   try:
-       None.foo()
-   except Exception as ex:
-       traceback.print_stack()
 
    loaded = {}
    ps = getPlugins() 
