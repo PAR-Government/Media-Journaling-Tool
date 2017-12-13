@@ -156,6 +156,15 @@ class MakeGenUI(Frame):
         #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
             #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
 
+        export_info = graph_rules.get_journal_exporttime(self.scModel.getName(), self.prefLoader.get_key("apitoken"), self.prefLoader.get_key("apiurl"))
+
+        if export_info and self.scModel.getProjectData("exporttime") is not None:
+            local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
+            browser_journal = datetime.strptime(export_info, "%Y-%m-%d %H:%M:%S")
+
+            if local_journal < browser_journal:
+                tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
                                            filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])

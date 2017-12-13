@@ -190,6 +190,32 @@ def test_api(apitoken, url):
     return None
 
 
+def get_journal_exporttime(journalname, apitoken, url):
+    import requests
+    import json
+    if url is None:
+        logging.getLogger('maskgen').critical('Missing external service URL.  Check settings')
+        return []
+    try:
+        url = url[:-1] if url.endswith('/') else url
+        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
+
+        url = url + "/journals/filters/?fields=journal"
+        data = '{ "name": { "type": "exact", "value": "' + journalname + '" }}'
+        response = requests.post(url, data=data, headers=headers)
+        if response.status_code == requests.codes.ok:
+            r = json.loads(response.content)
+            if 'results' in r:
+                for item in r['results']:
+                    return item["journal"]["graph"]["exporttime"]
+        else:
+            logging.getLogger('maskgen').error("Unable to connect to service: {}".format(response.text))
+
+    except Exception as e:
+        logging.getLogger('maskgen').error("Error calling external service: " + str(e))
+        logging.getLogger('maskgen').critical("Cannot reach external service")
+
+
 def get_fields(filename, apitoken, url):
     import requests
     import json

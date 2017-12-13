@@ -84,6 +84,7 @@ Section -Prerequisites
 	has_cv2_installed:
 	ExecWait "$CONDA install -c conda-forge tifffile -y"
 	ExecWait "$CONDA remove pillow -y"
+    ExecWait "$CONDA install -y Pillow=4.2.1"
 	ExecWait "$CONDA install scikit-image -y"
 
 	SetOutPath "$INSTDIR"
