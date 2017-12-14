@@ -1,8 +1,8 @@
 {
     "name": "Constrast",
     "operation": {
-      "name": "Color",
-      "category": "ColorBalance",
+      "name": "ColorBalance",
+      "category": "Color",
       "description": "Enhance or reduce the image contrast. (https://www.imagemagick.org/script/command-line-options.php#blur)",
       "software": "ImageMagick",
       "version": "7.0",
@@ -18,7 +18,7 @@
     },
     "mapping": {
       "direction" : {
-        "increase" : "+constrast",
+        "increase" : "+contrast",
         "decrease" : "-contrast"
       }
     },

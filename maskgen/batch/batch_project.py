@@ -81,27 +81,50 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     :return: a iterator function to construct an iterator over possible values
     """
     if param_spec['type'] == 'list':
+        new_values =[value.format(**global_state) for value in param_spec['values']]
         if not random_selection:
-            return ListPermuteGroupElement(spec_name, param_spec['values'])
+            return ListPermuteGroupElement(spec_name, new_values)
         else:
-            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(param_spec['values'])))
+            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(new_values)))
     elif 'int' in param_spec['type']:
         v = param_spec['type']
-        vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
-        beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 1 else beg + 1
-        if not random_selection:
-            increment = 1
+        spec = v[v.rfind('[') + 1:-1]
+        choices = []
+        for section in spec.split(','):
+            vals = [int(x) for x in section.split(':')]
+            beg = vals[0] if len(vals) > 0 else 0
+            end = vals[1] if len(vals) > 1 else beg + 1
             if len(vals) > 2:
                 increment = vals[2]
+            else:
+                increment = 1
+            choices.append((beg,end,increment))
+        bounds = random.choice(choices)
+        beg = bounds[0]
+        end = bounds[1]
+        increment =  bounds[2]
+        if not random_selection:
+            increment = 1
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type']:
         v = param_spec['type']
-        vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
-        beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 1 else beg + 1.0
+        spec = v[v.rfind('[') + 1:-1]
+        choices = []
+        for section in spec.split(','):
+            vals = [float(x) for x in section.split(':')]
+            beg = vals[0] if len(vals) > 0 else 0
+            end = vals[1] if len(vals) > 1 else beg + 1.0
+            if len(vals) > 2:
+                increment = vals[2]
+            else:
+                increment = 1
+            choices.append((beg,end,increment))
+        bounds = random.choice(choices)
+        beg = bounds[0]
+        end = bounds[1]
+        increment =  bounds[2]
         if not random_selection:
             increment = 1
             if len(vals) > 2:

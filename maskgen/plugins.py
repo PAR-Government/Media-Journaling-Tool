@@ -208,7 +208,10 @@ def executeWith(executionCommand, im, source, target, mapping, **kwargs):
     kwargs['inputimage'] = source
     kwargs['outputimage'] = target
     for i in range(len(executionCommand)):
-        executionCommand[i] = executionCommand[i].format(**kwargs)
+        try:
+            executionCommand[i] = executionCommand[i].format(**kwargs)
+        except KeyError as e:
+            logging.getLogger('maskgen').warn('Argument {} not provided for {}'.format(e.message,executionCommand[0]))
     subprocess.call(executionCommand,shell=shell)
 
 
@@ -220,7 +223,7 @@ def mapCmdArgs(args, mapping):
             if key in mapping:
                 if val not in mapping[key] or mapping[key][val] is None:
                     raise ValueError('Option \"' + str(val) + '\" is not permitted for this plugin.')
-                    newargs[key] = mapping[key][val]
+                newargs[key] = mapping[key][val]
     return newargs
 
 def findPlugin(pluginName):
