@@ -1,0 +1,61 @@
+{
+  "name": "MagickAddNoise",
+  "operation": {
+    "name": "AddNoise",
+    "category": "Filter",
+    "description": "Adds Noise to an image. (https://www.imagemagick.org/script/command-line-options.php#wavelet-denoise)",
+    "software": "ImageMagick",
+    "version": "7.0",
+    "arguments": {
+      "Noise Type": {
+        "type": "string",
+        "defaultvalue": "salt-pepper",
+        "description": "Noise Type"
+      }
+    },
+    "transitions": [
+      "image.image"
+    ]
+  },
+  "mapping": {
+    "Noise Type": {
+      "salt-pepper": "Impulse",
+      "shot": "Multiplicative",
+      "uniform": "Uniform",
+      "random": "Random",
+      "gaussian": "Gaussian",
+      "laplacian": "Laplacian"
+    }
+  },
+  "command": {
+    "default": [
+      "convert",
+      "{inputimage}",
+      "+noise",
+      "{Noise Type}",
+      "{outputimage}"
+    ],
+    "win": [
+      "magick",
+      "convert",
+      "{inputimage}",
+      "+noise",
+      "{Noise Type}",
+      "{outputimage}"
+    ],
+    "darwin": [
+      "convert",
+      "{inputimage}",
+      "+noise",
+      "{Noise Type}",
+      "{outputimage}"
+    ],
+    "linux": [
+      "convert",
+      "{inputimage}",
+      "+noise",
+      "{Noise Type}",
+      "{outputimage}"
+    ]
+  }
+}

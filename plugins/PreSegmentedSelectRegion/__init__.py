@@ -18,6 +18,7 @@ Save the mask as the target image.  The result of the transform includes a varia
 def transform(img, source, target, **kwargs):
     segmentation_directory = kwargs['segmentation_directory']
     segmentation_color = kwargs['color'] if 'color' in kwargs else None
+    source = kwargs['alternate_source'] if 'alternate_source' in kwargs else source
     segmentation_color = convert_color(segmentation_color)
     segment_mask = find_segmentation_classifier(source, segmentation_directory)
     if segment_mask is None:
@@ -36,11 +37,12 @@ def operation():
             'software': 'OpenCV',
             'version': cv2.__version__,
             'arguments':
-                {'segmentation_directory': {
-                    'type': 'imagefile',
-                    'defaultvalue': None,
-                    'description': 'Directory containing the image segments'
-                },
+                {
+                    'segmentation_directory': {
+                        'type': 'imagefile',
+                        'defaultvalue': None,
+                        'description': 'Directory containing the image segments'
+                    },
                     'color': {
                         'type': 'string',
                         'defaultvalue': None,
@@ -48,10 +50,11 @@ def operation():
                     }
                 },
             'output':
-                {'subject': {
-                    'type': 'string',
-                    'description': 'the subject name of the chosen segment of an image'
-                }
+                {
+                    'subject': {
+                        'type': 'string',
+                        'description': 'the subject name of the chosen segment of an image'
+                    }
                 },
             'transitions': [
                 'image.image'
