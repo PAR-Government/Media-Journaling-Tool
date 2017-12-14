@@ -1,0 +1,48 @@
+{
+    "name": "ManualGammaCorrection",
+    "operation": {
+      "name": "Normalization",
+      "category": "Intensity",
+      "description": "Apply gamma adjustment so the mean image color will have a value of 50% (https://www.imagemagick.org/script/command-line-options.php#auto-gamma)",
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments": {
+         "gamma": {
+          "type": "float[0:10]",
+          "description": "Gamma Correction"
+        }
+      },
+      "transitions": ["image.image"]
+    },
+    "command": {
+      "default": [
+        "convert",
+        "{inputimage}",
+        "-gamma",
+        "{gamma}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "{inputimage}",
+        "-gamma",
+        "{gamma}",
+        "{outputimage}"
+      ],
+      "darwin":[
+       "convert",
+        "{inputimage}",
+        "-gamma",
+        "{gamma}",
+        "{outputimage}"
+      ],
+      "linux":[
+       "convert",
+        "{inputimage}",
+        "-gamma",
+        "{gamma}",
+        "{outputimage}"
+      ]
+    }
+}
