@@ -14,7 +14,7 @@
         },
         "whitepoint": {
           "type": "int[0:100]",
-          "defaultvalue": 0,
+          "defaultvalue": 100,
           "description": "Percentage"
         },
         "gamma": {

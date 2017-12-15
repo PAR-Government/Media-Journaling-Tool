@@ -896,6 +896,8 @@ class BatchProject:
         mydata.current_local_state = local_state
         self.logger.info('Building project with global state: {} '.format(str(global_state)))
         base_node = self._findBase()
+        if base_node is None:
+            self.logger.error("A suitable base node for this project {} was not found".format(self.getName()))
         try:
             self._execute_node(base_node, None, local_state, global_state)
             local_state['model'].setProjectData('batch specification name', self.getName())
