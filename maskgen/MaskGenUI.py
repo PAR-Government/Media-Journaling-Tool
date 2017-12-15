@@ -913,6 +913,13 @@ class MakeGenUI(Frame):
             self.scModel.update_edge(d.modification)
 
     def createProbes(self):
+        for edge_id in self.scModel.getGraph().get_edges():
+            edge = self.scModel.getGraph().get_edge(edge_id[0], edge_id[1])
+            op = self.scModel.gopLoader.getOperation(edge['op'])
+            if mask_rules.isEdgeLocalized(edge_id,edge, op):
+                logging.getLogger('maskgen').info('Eligible edge {} to {} op: {}'.format(
+                    edge_id[0], edge_id[1],edge['op']
+                ))
         ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
 
     def startQA(self):
