@@ -1,0 +1,46 @@
+{
+    "operation": {
+        "category": "Color",
+        "name": "Vibrance",
+        "description": "Increase the contrast in an image by stretching the range of intensity values  using ImageMagick.",
+        "version": "7.0",
+        "arguments": {
+            "direction": {
+                "type":"text",
+                "defaultvalue":"increase"
+            },
+            "brightness": {
+                "defaultvalue": 120,
+                "type": "int[0:200]",
+                "description": "brightness and saturation are percentage multipliers 0 to 200"
+            },
+            "saturation": {
+                "defaultvalue": 100,
+                "type": "int[0:200]",
+                "description": "brightness and saturation are percentage multipliers 0 to 200"
+            }
+        },
+        "transitions": [
+            "image.image"
+        ],
+        "software": "ImageMagick"
+    },
+    "command": {
+        "default": [
+            "convert",
+            "{inputimage}",
+            "-modulate",
+            "{brightness},{saturation}",
+            "{outputimage}"
+        ],
+        "win32": [
+            "magick",
+            "convert",
+            "{inputimage}",
+            "-modulate",
+            "{brightness},{saturation}",
+            "{outputimage}"
+        ]
+    },
+    "name": "MagickModulate"
+}

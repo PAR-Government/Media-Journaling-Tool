@@ -32,7 +32,7 @@ def operation():
                   "type": "list",
                   "defaultValue": "image",
                   "values": [
-                      "bicubic",
+                      "bilinear",
                       "bicubic",
                       "cubic",
                       "mesh",
