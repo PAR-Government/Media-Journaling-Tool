@@ -73,6 +73,20 @@ def getGraphFromLocalState(local_state):
     """
     return local_state['model'].getGraph()
 
+def rangeNumberPicker(value, convert_function=lambda x: int(x)):
+    spec = value[value.rfind('[') + 1:-1] if value.rfind('[') >= 0 else value
+    choices = []
+    for section in spec.split(','):
+        vals = [convert_function(x) for x in section.split(':')]
+        beg = vals[0] if len(vals) > 0 else 0
+        end = vals[1] if len(vals) > 1 else beg + convert_function(1)
+        if len(vals) > 2:
+            increment = vals[2]
+        else:
+            increment = convert_function(1)
+        choices.append((beg, end, increment))
+    bounds = random.choice(choices)
+    return bounds
 
 def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     """
@@ -88,21 +102,7 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(new_values)))
     elif 'int' in param_spec['type']:
         v = param_spec['type']
-        spec = v[v.rfind('[') + 1:-1]
-        choices = []
-        for section in spec.split(','):
-            vals = [int(x) for x in section.split(':')]
-            beg = vals[0] if len(vals) > 0 else 0
-            end = vals[1] if len(vals) > 1 else beg + 1
-            if len(vals) > 2:
-                increment = vals[2]
-            else:
-                increment = 1
-            choices.append((beg,end,increment))
-        bounds = random.choice(choices)
-        beg = bounds[0]
-        end = bounds[1]
-        increment =  bounds[2]
+        beg,end,increment = rangeNumberPicker(v)
         if not random_selection:
             increment = 1
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
@@ -110,25 +110,8 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type']:
         v = param_spec['type']
-        spec = v[v.rfind('[') + 1:-1]
-        choices = []
-        for section in spec.split(','):
-            vals = [float(x) for x in section.split(':')]
-            beg = vals[0] if len(vals) > 0 else 0
-            end = vals[1] if len(vals) > 1 else beg + 1.0
-            if len(vals) > 2:
-                increment = vals[2]
-            else:
-                increment = 1
-            choices.append((beg,end,increment))
-        bounds = random.choice(choices)
-        beg = bounds[0]
-        end = bounds[1]
-        increment =  bounds[2]
+        beg, end, increment = rangeNumberPicker(v, convert_function=float)
         if not random_selection:
-            increment = 1
-            if len(vals) > 2:
-                increment = vals[2]
             return IteratorPermuteGroupElement(spec_name, lambda: np.arange(beg, end, increment).__iter__())
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: beg + random.random() * (end - beg)))
