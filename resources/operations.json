@@ -737,7 +737,7 @@
         },
         "Blur Type": {
           "type": "list",
-          "values" : ["Smooth", "Wavelet Denoise",  "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion", "Other"],
+          "values" : ["Smooth", "Wavelet Denoise",  "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion", "Other", "Wiener"],
           "description" : "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
         },
         "Laundering": {
