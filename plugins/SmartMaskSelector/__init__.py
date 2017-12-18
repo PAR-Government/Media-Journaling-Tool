@@ -74,13 +74,14 @@ def build_mask_slic(img, size,W,H):
     return new_position_x, new_position_y, mask
 
 def transform(img,source,target,**kwargs):
-    smallw = int(kwargs['smallw'])
-    smallh = int(kwargs['smallh'])
-    mediumw = int(kwargs['mediumw'])
-    mediumh = int(kwargs['mediumh'])
-    largew = int(kwargs['largew'])
-    largeh = int(kwargs['largeh'])
-    size = int(kwargs['size'])
+    smallw = int(kwargs['smallw']) if 'smallw' in  kwargs else 32
+    smallh = int(kwargs['smallh']) if 'smallh' in  kwargs else 32
+    mediumw = int(kwargs['mediumw']) if 'mediumw' in  kwargs else 64
+    mediumh = int(kwargs['mediumh']) if 'mediumh' in  kwargs else 64
+    largew = int(kwargs['largew']) if 'largew' in  kwargs else 128
+    largeh = int(kwargs['largeh']) if 'largeh' in  kwargs else 128
+    size = int(kwargs['size']) if 'size' in  kwargs else 1
+    color = map(int,kwargs['savecolor'].split(',')) if 'savecolor' in kwargs and kwargs['savecolor']  is not 'none' else None
     op = kwargs['op'] if 'op' in kwargs else 'box'
     if size ==1:
         W=smallw
@@ -109,6 +110,11 @@ def transform(img,source,target,**kwargs):
         rgba = np.copy(rgba)
         rgba[mask != 255] = 0
         image_wrap.ImageWrapper(rgba).save(target)
+    elif color is not None:
+        rgb = np.zeros((mask.shape[0],mask.shape[1],3),dtype=np.uint8)
+        for channel in range(3):
+            rgb[:,:,channel] = (mask/255)*color[channel]
+        image_wrap.ImageWrapper(rgb).save(target)
     else:
         image_wrap.ImageWrapper(mask.astype('uint8')).save(target)
     return {'paste_x': new_position_x, 'paste_y': new_position_y},None
@@ -120,17 +126,20 @@ def operation():
           'description':'Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.  In the later case, paste_x and paste_y variables are returned indicating a suitable  upper left corner paste position in the source image. ',
           'software':'skimage',
           'version':skimage.__version__,
-          'arguments':{'smallw': {'type': "int[32:64]", 'description':'small mask width size'},
-                       'smallh': {'type': "int[32:64]", 'description':'small mask height size'},
-                       'mediumw': {'type': "int[64:128]", 'description':'medium mask width size'},
-                       'mediumh': {'type': "int[64:128]", 'description':'medium mask width size'},
-                       'largew': {'type': "int[128:1000]", 'description':'large mask width size'},
-                       'largeh': {'type': "int[128:1000]", 'description':'large mask width size'},
-                       'size': {'type': "int[1:4]", 'description':'mask size 1=small, 2=med, 3=large'},
+          'arguments':{'smallw': {'type': "int[32:64]", 'defaultValue': 32, 'description':'small mask width size'},
+                       'smallh': {'type': "int[32:64]",  'defaultValue': 32,'description':'small mask height size'},
+                       'mediumw': {'type': "int[64:128]",  'defaultValue': 64, 'description':'medium mask width size'},
+                       'mediumh': {'type': "int[64:128]", 'defaultValue': 64, 'description':'medium mask width size'},
+                       'largew': {'type': "int[128:1000]",'defaultValue': 128, 'description':'large mask width size'},
+                       'largeh': {'type': "int[128:1000]", 'defaultValue': 128,'description':'large mask width size'},
+                       'size': {'type': "int[1:4]",'defaultValue': 1, 'description':'mask size 1=small, 2=med, 3=large'},
                        'op': {'type': 'list', 'values' : ['slic', 'box'], 'description':'selection algorithm to use'},
                        'alpha': {'type' : "yesno",
                                       "defaultvalue": "no",
-                                      'description': "If yes, save the image with an alpha channel instead of the mask."}
+                                      'description': "If yes, save the image with an alpha channel instead of the mask."},
+                       "savecolor": {'type' : "text",
+                                      "defaultvalue": "none",
+                                      'description': "color value in rgb 100,100,100  for color mask generation."}
                        },
           'transitions': [
               'image.image'

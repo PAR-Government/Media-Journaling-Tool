@@ -5,7 +5,6 @@ from random import randint
 
 def transform(img,source,target,**kwargs):
     kernelSize = int(kwargs['kernelSize']) if 'kernelSize' in kwargs else 25
-    kernelSize = kernelSize + kernelSize / 2
     percentageChange = float(kwargs['percentageChange']) if 'percentageChange' in kwargs else 1
     rgb = img.convert('RGB')
     cv_image = numpy.array(rgb)

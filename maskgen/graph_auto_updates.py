@@ -566,7 +566,7 @@ def _fixEmptyMask(scModel,gopLoader):
         edge = scModel.G.get_edge(frm, to)
         if 'empty mask' not in edge and ('recordInCompositeMask' not in edge or edge['recordInCompositeMask'] == 'no') \
                 and  'videomasks' not in edge:
-            mask = scModel.G.get_edge_image(frm,to, 'maskname', returnNoneOnMissing=True)[0]
+            mask = scModel.G.get_edge_image(frm,to, 'maskname', returnNoneOnMissing=True)
             edge['empty mask'] = 'yes' if mask is None or np.all(mask == 255) else 'no'
 
 def _fixAudioOutput(scModel,gopLoader):

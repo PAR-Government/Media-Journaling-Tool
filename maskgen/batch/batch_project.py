@@ -191,10 +191,8 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         target = getNodeState(specification['source'], local_state)['node']
         source = getNoneDonorPredecessor(getGraphFromLocalState(local_state), target)
         invert = specification['invert'] if 'invert' in specification else False
-        mask = os.path.join(local_state['model'].get_dir(), getGraphFromLocalState(local_state).get_edge_image(source,
-                                                                                                               target,
-                                                                                                               'maskname')[
-            1])
+        edge = getGraphFromLocalState(local_state).get_edge(source,target)
+        mask = os.path.join(local_state['model'].get_dir(), tool_set.getValue(edge,'maskname',defaultValue=''))
         if invert:
             tool_set.openImageFile(mask, isMask=True).invert().save(mask + '.png')
             mask = mask + '.png'
