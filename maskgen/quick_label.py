@@ -126,7 +126,7 @@ class QuickLabel(Frame):
         mask = self.currentProject.getGraph().get_edge_image(self.nextEdge[0][0], self.nextEdge[0][1], 'maskname')
         self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.sim[0], (500, 500), self.nim[0].size)).toPIL())
         self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(self.nim[0], (500, 500), self.sim[0].size)).toPIL())
-        self.img3 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(mask[0], (500, 500), mask[0].size)).toPIL())
+        self.img3 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(mask, (500, 500), mask.size)).toPIL())
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
         self.img3c.config(image=self.img3)
