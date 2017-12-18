@@ -1261,6 +1261,8 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analy
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments)
 
 def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
+    if 'add type' in 'arguments' and arguments['add type'] == 'replace':
+        return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
 
 def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
