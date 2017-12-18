@@ -302,6 +302,7 @@ def openImageFile(filename, isMask=False, args=None):
                 return wrapper
 
     wrap = openFromRegistry(filename, isMask=isMask, args=args)
+    wrap.filename = filename
     with image_lock:
         image_cache[filename] = (wrap, current_time)
     return wrap
@@ -350,7 +351,7 @@ class ImageWrapper:
     @type image_array: numpy.array
     """
 
-    def __init__(self, image_array, mode=None, to_mask=False, info=None):
+    def __init__(self, image_array, mode=None, to_mask=False, info=None,filename=None):
         if str(type(image_array)) == 'ImageWrapper':
             self.image_array = image_array.image_array
         else:
@@ -358,6 +359,7 @@ class ImageWrapper:
         self.info = info
         self.mode = mode if mode is not None else get_mode(image_array)
         self.size = (image_array.shape[1], image_array.shape[0])
+        self.filename = filename
         if to_mask and self.mode != 'L':
             self.image_array = self.to_mask_array()
             self.mode='L'
@@ -418,6 +420,7 @@ class ImageWrapper:
             self.image_array = img_array.astype('uint8')
 
     def save(self, filename, **kwargs):
+        self.filename = filename
         if 'format' in kwargs:
             format = kwargs['format']
         elif getFromWriterRegistry(self.mode.lower()):

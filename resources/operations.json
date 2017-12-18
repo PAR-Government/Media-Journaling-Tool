@@ -4087,10 +4087,6 @@
       "category": "Transform",
       "name": "TransformSeamCarving",
       "mandatoryparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing preserved and sliced areas"
-        }
       },
       "rules": [
         "seamCarvingCheck",
@@ -4100,6 +4096,10 @@
         "checkEmpty"
       ],
       "optionalparameters": {
+         "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing preserved and sliced areas"
+        },
         "homography": {
           "type": "list",
           "source": "image",
@@ -4126,13 +4126,30 @@
         "homography max matches" : {
             "type": "int[20:10000]",
            "description": "Maximum number of matched feature points used to compute the homography."
+        },
+        "row adjuster" : {
+           "type": "file:image",
+           "description": "An 16 unsigned bit mapping indices image file directing the change in pixels row from space to another"
+        },
+        "column adjuster" : {
+           "type": "file:image",
+           "description": "An 16 unsigned bit mapping indices image file directing the change in pixels column from space to another"
+        },
+        "neighbor mask": {
+            "type": "file:image",
+            "use as composite": true,
+            "description": "A 8 unsigned but image file indicating which pixels in the resulting image  had neighbors removed or added"
+        },
+        "plugin mask": {
+             "type": "file:image",
+            "description": "A 8 unsigned but image file indicating which pixels in the source image were removed"
         }
       },
       "compareparameters" : {
-         "function" :"maskgen.tool_set.seamCompare"
+         "function" :"maskgen.algorithms.seam_carving.seamCompare"
       },
       "analysisOperations": [
-        "maskgen.tool_set.forcedSiftAnalysis"
+        "maskgen.tool_set.seamAnalysis"
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.seam_transform"},
       "description": "Resize an image while preserving the integrity of content.",
