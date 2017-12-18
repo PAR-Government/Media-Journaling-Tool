@@ -3,9 +3,6 @@ import cv2
 from maskgen.algorithms.optical_flow import  smartAddFrames
 from maskgen.tool_set import  getDurationStringFromMilliseconds
 
-
-
-
 def transform(img,source,target,**kwargs):
     start_time = getMilliSecondsAndFrameCount(kwargs['Start Time']) if 'Start Time' in kwargs else (0,1)
     end_time = getMilliSecondsAndFrameCount(kwargs['End Time']) if 'End Time' in kwargs else None
