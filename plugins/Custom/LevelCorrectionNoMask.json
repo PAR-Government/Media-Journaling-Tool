@@ -1,5 +1,5 @@
 {
-    "name": "LevelCorrection",
+    "name": "LevelCorrectionNoMask",
     "operation": {
       "name": "Levels",
       "category": "Intensity",
@@ -21,11 +21,6 @@
           "type": "float[0:2]",
           "defaultvalue": 0.5,
           "description": "gamma 0.0 to 2.0"
-        },
-        "clip mask": {
-          "type": "imagefile",
-          "defaultvalue":"",
-          "description": "clip mask"
         }
       },
       "transitions": ["image.image"]
@@ -35,8 +30,6 @@
         "convert",
         "-level",
         "{blackpoint}%,{whitepoint}%,{gamma}",
-        "-clip-mask",
-        "{clip mask}",
         "{inputimage}",
         "{outputimage}"
       ],
@@ -44,8 +37,6 @@
         "convert",
         "-level",
         "{blackpoint}%,{whitepoint}%,{gamma}",
-        "-clip-mask",
-        "{clip mask}",
         "{inputimage}",
         "{outputimage}"
       ],
@@ -54,8 +45,6 @@
         "convert",
         "-level",
         "{blackpoint}%,{whitepoint}%,{gamma}",
-        "-clip-mask",
-        "{clip mask}",
         "{inputimage}",
         "{outputimage}"
       ],
@@ -63,8 +52,6 @@
         "convert",
         "-level",
         "{blackpoint}%,{whitepoint}%,{gamma}",
-        "-clip-mask",
-        "{clip mask}",
         "{inputimage}",
         "{outputimage}"
       ]

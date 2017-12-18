@@ -73,6 +73,20 @@ def getGraphFromLocalState(local_state):
     """
     return local_state['model'].getGraph()
 
+def rangeNumberPicker(value, convert_function=lambda x: int(x)):
+    spec = value[value.rfind('[') + 1:-1] if value.rfind('[') >= 0 else value
+    choices = []
+    for section in spec.split(','):
+        vals = [convert_function(x) for x in section.split(':')]
+        beg = vals[0] if len(vals) > 0 else 0
+        end = vals[1] if len(vals) > 1 else beg + convert_function(1)
+        if len(vals) > 2:
+            increment = vals[2]
+        else:
+            increment = convert_function(1)
+        choices.append((beg, end, increment))
+    bounds = random.choice(choices)
+    return bounds
 
 def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     """
@@ -81,31 +95,23 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     :return: a iterator function to construct an iterator over possible values
     """
     if param_spec['type'] == 'list':
+        new_values =[value.format(**global_state) for value in param_spec['values']]
         if not random_selection:
-            return ListPermuteGroupElement(spec_name, param_spec['values'])
+            return ListPermuteGroupElement(spec_name, new_values)
         else:
-            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(param_spec['values'])))
+            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(new_values)))
     elif 'int' in param_spec['type']:
         v = param_spec['type']
-        vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
-        beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 1 else beg + 1
+        beg,end,increment = rangeNumberPicker(v)
         if not random_selection:
             increment = 1
-            if len(vals) > 2:
-                increment = vals[2]
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type']:
         v = param_spec['type']
-        vals = [float(x) for x in v[v.rfind('[') + 1:-1].split(':')]
-        beg = vals[0] if len(vals) > 0 else 0
-        end = vals[1] if len(vals) > 1 else beg + 1.0
+        beg, end, increment = rangeNumberPicker(v, convert_function=float)
         if not random_selection:
-            increment = 1
-            if len(vals) > 2:
-                increment = vals[2]
             return IteratorPermuteGroupElement(spec_name, lambda: np.arange(beg, end, increment).__iter__())
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: beg + random.random() * (end - beg)))
@@ -873,6 +879,8 @@ class BatchProject:
         mydata.current_local_state = local_state
         self.logger.info('Building project with global state: {} '.format(str(global_state)))
         base_node = self._findBase()
+        if base_node is None:
+            self.logger.error("A suitable base node for this project {} was not found".format(self.getName()))
         try:
             self._execute_node(base_node, None, local_state, global_state)
             local_state['model'].setProjectData('batch specification name', self.getName())
