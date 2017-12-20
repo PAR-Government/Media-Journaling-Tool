@@ -444,9 +444,9 @@ class ImageImageLinkTool(LinkTool):
                     edge_op = scModel.gopLoader.getOperationWithGroups(pred_edge['op'])
                     expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
                     if expect_donor_mask:
-                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')[0]
+                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')
                         if mask is None:
-                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')[0]
+                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')
                         mask, analysis = interpolateMask(
                             mask, startIm, destIm,
                             arguments=consolidate(arguments, analysis_params), invert=invert)
@@ -460,7 +460,7 @@ class ImageImageLinkTool(LinkTool):
                     edge = scModel.G.get_edge(pred, start)
                     # probably should change this to == 'SelectRegion'
                     if edge['op'] == 'SelectRegion':
-                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0])
+                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname'))
                         if mask.size != startIm.size:
                             mask = mask.resize(startIm.size, Image.ANTIALIAS)
                         break
@@ -472,7 +472,8 @@ class ImageImageLinkTool(LinkTool):
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
         else:
-            mask, analysis = createMask(startIm, destIm,
+            mask, analysis = createMask(startIm,
+                                        destIm,
                                         invert=invert,
                                         arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction(),
@@ -1299,7 +1300,7 @@ class ImageProjectModel:
             if graph_rules.missing_donor_inputmask(edge, self.G.dir):
                 startimage, name = self.G.get_image(edge_id[0])
                 finalimage, fname = self.G.get_image(edge_id[1])
-                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
+                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')
                 inputmaskname = name[0:name.rfind('.')] + '_inputmask.png'
                 ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
                 #                if 'arguments' not in edge:
@@ -1859,7 +1860,7 @@ class ImageProjectModel:
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
-        return self.G.get_edge_image(self.start, self.end, 'maskname')[0]
+        return self.G.get_edge_image(self.start, self.end, 'maskname')
 
     def maskStats(self):
         if self.end is None:
@@ -2234,7 +2235,6 @@ class ImageProjectModel:
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(self.start, suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
-
         self.__addEdgeFilePaths(fullOp)
         try:
             extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)

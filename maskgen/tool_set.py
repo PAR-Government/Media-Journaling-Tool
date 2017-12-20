@@ -23,7 +23,8 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf"),('cr2','*.cr2'),('raf Fuji','*.raf')]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
-                  ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts')]
+                  ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts'), ('3gp', '*.3gp'),
+                  ('mxf','*.mxf')]
 audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), ("mpeg audio files", "*.mp3"),
                   ("raw audio files", "*.raw"), ("Audio Interchange File","*.aif"),("Audio Interchange File","*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
@@ -194,6 +195,40 @@ def fileType(fileName):
     return getMimeType(fileName) if file_type is None else file_type
 
 
+def openImageMaskFile(directory, filename):
+    return openImageFile(os.path.join(directory,filename),isMask=True).to_array()
+
+def removeValue(obj, path):
+
+    part = path
+    splitpos = path.find(".")
+
+    if splitpos > 0:
+        part = path[0:splitpos]
+        path = path[splitpos + 1:]
+    else:
+        path = None
+
+    bpos = part.find('[')
+    pos = 0
+    if bpos > 0:
+        pos = int(part[bpos + 1:-1])
+        part = part[0:bpos]
+
+    if part in obj:
+        current_value = obj[part]
+        if path is None:
+            if type(current_value) is list or  type(current_value) is tuple :
+                obj[part]  = tuple(list(current_value[:pos]) + list(current_value[pos+1:]))
+                return current_value[pos]
+            else:
+                return obj.pop(part)
+        else:
+            if bpos > 0:
+                current_value = current_value[pos]
+            return removeValue(current_value,path)
+
+
 def getValue(obj, path, defaultValue=None, convertFunction=None):
     """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
         obj is a node or edge
@@ -203,7 +238,7 @@ def getValue(obj, path, defaultValue=None, convertFunction=None):
         This function recurses
     """
     if not path:
-        return convertFunction(obj) if convertFunction and obj else obj
+        return convertFunction(obj) if convertFunction and obj is not None else (defaultValue if obj is None else obj)
 
     current = obj
     part = path
@@ -701,6 +736,10 @@ def md5offile(filename,raiseError=True):
             raise e
         return ''
 
+def uniqueId():
+    import time
+    return str(time.time()).replace('.','')
+
 def shortenName(name, postfix,id = None):
     import hashlib
     middle = ''.join([(x[0]+x[-1] if len(x) > 1 else x) for x in name.split('_')])
@@ -1092,6 +1131,11 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments
     matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
+def seamAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    forcedSiftAnalysis(analysis, img1, img2, mask=mask,linktype=linktype, arguments=arguments,directory=directory)
+    if 'neighbor mask' in arguments:
+        analysis['global'] = 'no'
+
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
@@ -1204,7 +1248,10 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
 
 
 def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,convertFunction=None):
-    mask, analysis = __composeMask(img1, img2, invert, arguments=arguments,
+    mask, analysis = __composeMask(img1,
+                                   img2,
+                                   invert,
+                                   arguments=arguments,
                                    alternativeFunction=alternativeFunction,
                                    convertFunction=convertFunction)
     analysis['shape change'] =sizeDiff(img1, img2)
@@ -1620,7 +1667,7 @@ def cropCompare(img1, img2, arguments=dict()):
         img1_m, img2_m = __alignChannels(ImageWrapper(img1), ImageWrapper(img2),
                                          equalize_colors='equalize_colors' in arguments)
         analysis= {'shape change':  sizeDiff(ImageWrapper(img1_m), ImageWrapper(img2_m))}
-        mask, analysis_d = __composeCropImageMask(img1_m, img2_m)
+        mask, analysis_d = composeCropImageMask(img1_m, img2_m)
         analysis.update(analysis)
         return mask, analysis_d
     return None, {}
@@ -1724,15 +1771,6 @@ def _tallySeam(img1, img2, minDepth=50):
                 tally2[pos[0], pos[1]] = 1
     return tally1.astype('uint8')*255
 
-def seamCompare(img1, img2,  arguments=dict()):
-    if (sum(img1.shape) != sum(img2.shape) and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1])):
-        # seams can only be calculated in one dimension--only one dimension can change in size
-        return __composeSeamMask(img1, img2)
-    #return _composeLCS(img1,img2),{}
-    elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
-        return __composeCropImageMask(img1, img2)
-    return None,{}
-
 
 def rotateCompare(img1, img2,  arguments=dict()):
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
@@ -1777,12 +1815,34 @@ def convertCompare(img1, img2,  arguments=dict()):
     return __diffMask(img1, new_img2, False, args=arguments)
 
 
-def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
-    img1, img2 = __alignChannels(img1, img2, equalize_colors='equalize_colors' in arguments,
+def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None,convertFunction=None):
+    """
+
+    :param img1:
+    :param img2:
+    :param invert:
+    :param arguments:
+    :param alternativeFunction:
+    :param convertFunction:
+    :return:
+    @type img1_wrapper: ImageWrapper
+    @type img2_wrapper: ImageWrapper
+    @type arguments: dict
+    @rtype numpy.ndarray,dict
+    """
+    img1, img2 = __alignChannels(img1_wrapper,
+                                 img2_wrapper,
+                                 equalize_colors='equalize_colors' in arguments,
                                  convertFunction=convertFunction)
 
+    args = {}
+    args.update(arguments)
+    args['source filename'] = img1_wrapper.filename
+    args['target filename'] = img2_wrapper.filename
     if alternativeFunction is not None:
-        mask,analysis = alternativeFunction(img1, img2, arguments=arguments)
+        mask,analysis = alternativeFunction(img1, img2, arguments=args)
+        removeValue(analysis, 'arguments.source filename')
+        removeValue(analysis, 'arguments.target filename')
         if mask is not None:
             return mask if not invert else 255-mask,analysis
 
@@ -1793,7 +1853,7 @@ def __composeMask(img1, img2, invert, arguments=dict(), alternativeFunction=None
     if abs(rotation) > 0.0001:
         mask,analysis = __compareRotatedImage(rotation, img1, img2,  arguments)
     if (sum(img1.shape) > sum(img2.shape)):
-        mask,analysis =  __composeCropImageMask(img1, img2)
+        mask,analysis =  composeCropImageMask(img1, img2)
     if (sum(img1.shape) < sum(img2.shape)):
         mask,analysis= __composeExpandImageMask(img1, img2)
     if mask is None:
@@ -1960,16 +2020,13 @@ def bm(X,patch):
                 bp = (i,j)
     return bp,bv
 
-def __composeSeamMask(img1, img2):
-    if img1.shape[0] < img2.shape[0]:
-        return abs(255 - createHorizontalSeamMask(img1, img2)), {}
-    else:
-        return abs(255 - createVerticalSeamMask(img1, img2)), {}
-
-
-def __composeCropImageMask(img1, img2):
+def composeCropImageMask(img1, img2):
     """ Return a masking where img1 is bigger than img2 and
         img2 is likely a crop of img1.
+        images are 16 bit unnsigned or floating point.
+        @return change mask aligned to in img1 dimensions, dictionary of analysis keys
+        @type img1: np.array
+        @type img2: np.array
     """
     tuple = __findBestMatch(img1, img2)
     mask = None
@@ -2308,21 +2365,6 @@ def fixTransparency(img):
     return img.apply_transparency()
 
 
-def __findNeighbors(paths, next_pixels):
-    newpaths = list()
-    s = set()
-    for path in paths:
-        x = path[len(path) - 1]
-        for i in np.intersect1d(np.array([x - 1, x, x + 1]), next_pixels):
-            if i not in s:
-                newpaths.append(path + [i])
-                s.add(i)
-    return newpaths
-
-
-def __setMask(mask, x, y, value):
-    mask[x, y] = value
-
 def dictDeepUpdate(aDictionary, aPartialDictionary):
     for k,v in aPartialDictionary.iteritems():
         if k in aDictionary and type(v) == dict:
@@ -2330,95 +2372,6 @@ def dictDeepUpdate(aDictionary, aPartialDictionary):
         else:
             aDictionary[k] = v
 
-def createHorizontalSeamMask(old, new):
-    return __slideAcrossSeams(old,
-                              new,
-                              range(old.shape[1]),
-                              range(old.shape[1]),
-                              old.shape[1],
-                              old.shape[0]
-                              )
-
-
-def createVerticalSeamMask(old, new):
-    return __slideAcrossSeams(old,
-                              new,
-                              [x * old.shape[1] for x in range(old.shape[0])],
-                              [x * new.shape[1] for x in range(old.shape[0])],
-                              1,
-                              old.shape[1])
-
-
-def __slideAcrossSeams(old, new, oldmatchchecks, newmatchchecks, increment, count):
-    from functools import partial
-    h, w = old.shape
-    mask = np.zeros((h, w)).astype('uint8')
-    remove_action = partial(__setMask, mask)
-    for pos in range(count):
-        oldmatchchecks, newmatchchecks = __findSeam(old,
-                                                    new,
-                                                    oldmatchchecks,
-                                                    newmatchchecks,
-                                                    increment,
-                                                    lambda pos: remove_action(pos / w, pos % w, 255))
-    return mask
-
-
-def __findSeam(old, new, oldmatchchecks, newmatchchecks, increment, remove_action):
-    replacement_oldmatchchecks = []
-    replacement_newmatchchecks = []
-    newmaxlen = reduce(lambda x, y: x * y, new.shape, 1)
-    for pos in range(len(oldmatchchecks)):
-        old_pixel = old.item(oldmatchchecks[pos])
-        if newmatchchecks[pos] >= newmaxlen:
-            remove_action(oldmatchchecks[pos])
-            #         replacement_newmatchchecks.append(newmatchchecks[pos])
-            continue
-        new_pixel = new.item(newmatchchecks[pos])
-        if old_pixel != new_pixel:
-            remove_action(oldmatchchecks[pos])
-            replacement_newmatchchecks.append(newmatchchecks[pos])
-        else:
-            replacement_newmatchchecks.append(newmatchchecks[pos] + increment)
-        replacement_oldmatchchecks.append(oldmatchchecks[pos] + increment)
-    return replacement_oldmatchchecks, replacement_newmatchchecks
-
-
-# def __findVerticalSeam(mask):
-#    paths = list()
-##    for candidate in np.where(mask[0, :] > 0)[0]:
-#       paths.append([candidate])
-#   for x in range(1, mask.shape[0]):
-#       paths = __findNeighbors(paths, np.where(mask[x, :] > 0)[0])
-#   return paths
-# def __findHorizontalSeam(mask):
-#    paths = list()
-#    for candidate in np.where(mask[:, 0] > 0)[0]:
-#        paths.append([candidate])
-#    for y in range(1, mask.shape[1]):
-#        paths = __findNeighbors(paths, np.where(mask[:, y] > 0)[0])
-#    return paths
-# def __seamMask(mask):
-#    seams = __findVerticalSeams(mask)
-##    if len(seams) > 0:
-#        first = seams[0]
-#        # should compare to seams[-1].  this would be accomplished by
-#        # looking at the region size of the seam. We want one of the first or last seam that is most
-#        # centered
-#        mask = np.zeros(mask.shape)
-#        for i in range(len(first)):
-#            mask[i, first[i]] = 255
-#        return mask
-#    else:
-#        seams = __findHorizontalSeam(mask)
-#        if len(seams) == 0:
-#            return mask
-#        first = seams[0]
-#        # should compare to seams[-1]
-#        mask = np.zeros(mask.shape)
-#        for i in range(len(first)):
-#            mask[first[i], i] = 255
-#        return mask
 
 
 def __add_edge(edges, edge_points, points, i, j):
