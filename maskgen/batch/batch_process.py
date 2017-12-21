@@ -15,6 +15,7 @@ import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import loadJSONGraph, BatchProject
 from maskgen.image_graph import extract_archive
+from maskgen.tool_set import setPwdX, CustomPwdX
 
 
 def args_to_map(args, op):
@@ -447,6 +448,8 @@ def main():
                              semanticrestaging=args.semanticRestaging, semanticrepurposing=args.semanticRepurposing,
                              semanticrefabrication=args.semanticEventFabrication,
                              imagereformat=args.imageReformatting)
+
+    setPwdX(CustomPwdX(args.username))
 
     if args.plugins:
         for plugin in maskgen.plugins.loadPlugins().keys():
