@@ -1,18 +1,14 @@
 from maskgen.tool_set import getMilliSecondsAndFrameCount
 import cv2
-from maskgen.algorithms.optical_flow import  smartAddFrames
+from maskgen.algorithms.optical_flow import  smartSmoothFrames
 from maskgen.tool_set import  getDurationStringFromMilliseconds
 
 def transform(img,source,target,**kwargs):
     start_time = getMilliSecondsAndFrameCount(kwargs['Start Time']) if 'Start Time' in kwargs else (0,1)
-    end_time = getMilliSecondsAndFrameCount(kwargs['End Time']) if 'End Time' in kwargs else None
-    frames_add = int(kwargs['Frames to Add']) if 'Frames to Add' in kwargs else None
-    if frames_add is not None:
-        end_time = (start_time[0],start_time[1] + frames_add+1)
     codec = (kwargs['codec']) if 'codec' in kwargs else 'XVID'
-    add_frames, end_time_millis = smartAddFrames(source, target,
+    add_frames, end_time_millis = smartSmoothFrames(source,
+                                                  target,
                                               start_time,
-                                              end_time,
                                               codec=codec)
 
 
@@ -34,11 +30,6 @@ def operation():
           'software':'OpenCV',
           'version':cv2.__version__,
           'arguments':  {
-              'Frames to Add': {
-                  'type': 'int[0:100000000]',
-                  'defaultvalue': 1,
-                  'description':'Number of frames since Start Time. overrides or in lieu of an End Time.'
-              },
               'codec': {
                   'type': 'list',
                   'values': ['MPEG','XVID','AVC1','HFYU'],

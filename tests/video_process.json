@@ -64,8 +64,58 @@
     },
      {
       "op_type": "PluginOperation",
-      "plugin": "CompressAsVideo",
+      "plugin": "VideoCopyPasteFrames",
       "id": "4",
+      "arguments": {
+        "Number of Frames": {
+          "type":"int[35:60]"
+        },
+        "Select Start Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"Start Time"
+        },
+        "Dest Paste Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"Start Time"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "FlowDrivenVideoInsert",
+      "id": "5",
+      "arguments": {
+        "Start Time": {
+          "type":"variable",
+          "source":"4",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "End Time": {
+          "type":"variable",
+          "source":"4",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "6",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     },
+       {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "7",
       "arguments": {
          "donor": {
            "type": "donor",
@@ -89,7 +139,24 @@
     },
     {
       "source": 3,
+      "target": 6
+    },
+    {
+      "source": 1,
       "target": 4
+    },
+    {
+      "source": 2,
+      "target": 4,
+       "connect":false
+    },
+    {
+      "source": 4,
+      "target": 5
+    },
+    {
+      "source": 5,
+      "target": 7
     }
   ],
   "multigraph": false

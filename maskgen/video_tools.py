@@ -103,7 +103,7 @@ def __buildMasks(filename, histandcount):
         totalMatch = 0
         for value in values:
             matches = gray == value
-            totalMatch += sum(sum(matches))
+            totalMatch += np.sum(matches)
             result[matches] = 0
         if totalMatch > 0:
             elapsed_time = cap.get(cv2api_delegate.prop_pos_msec)
@@ -175,7 +175,7 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                 opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
                 closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
                 result = closing
-            totalMatch = sum(sum(abs(result) > 1))
+            totalMatch = np.sum(abs(result) > 1)
             #result = result
             if totalMatch > 0:
                 count += 1
