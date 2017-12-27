@@ -129,16 +129,23 @@ def _find_seam_what(paths, end_x):
     seam.reverse()
     return seam,sum([paths[r,seam[r]] for r in range(height)])
 
-def _find_seam(cumulative_map, bounds=(500000000000,-1)):
+def _find_seam(cumulative_map, bounds=None):
         m, n = cumulative_map.shape
         output = np.zeros((m,), dtype=np.uint32)
-        output[-1] = np.argmin(cumulative_map[-1])
-        for row in range(min(bounds[1],m - 2), max(-1,bounds[0]), -1):
+        if bounds is not None:
+            output[-1] = np.argmin(cumulative_map[-1,bounds[0]:bounds[1]]) + bounds[0]
+        else:
+            output[-1] = np.argmin(cumulative_map[-1])
+        for row in range(m - 2, -1, -1):
             previous_x = output[row + 1]
-            if previous_x == 0:
-                output[row] = np.argmin(cumulative_map[row, : 2])
-            else:
-                output[row] = np.argmin(cumulative_map[row, previous_x - 1: min(previous_x + 1, n - 1)]) + previous_x - 1
+            try:
+                if previous_x == 0:
+                    output[row] = np.argmin(cumulative_map[row,:2])
+                else:
+                    output[row] = np.argmin(cumulative_map[row, previous_x - 1: min(previous_x + 1, n - 1)]) + previous_x - 1
+            except Exception as ex:
+                print str(bounds)
+                raise ex
         return output, sum([cumulative_map[r,output[r]] for r in range(m)])
 
 def _remove_seam(images, seam_idx):
@@ -154,6 +161,7 @@ def _remove_seam(images, seam_idx):
 
 
 def _add_seam(images_and_value, seam_idx):
+    import random
     m, n = images_and_value[0][0].shape[: 2]
     outputs = []
     for image,value in images_and_value:
@@ -162,21 +170,15 @@ def _add_seam(images_and_value, seam_idx):
             col = seam_idx[row]
             if len(image.shape) > 2:
                 for channel in range(image.shape[2]):
-                    if col == 0:
-                        p = np.average(image[row, col: col + 2, channel]) if value is None else value
-                        output[row, col, channel] = image[row, col, channel]
-                        output[row, col + 1, channel] = p
-                        output[row, col + 1:, channel] = image[row, col:, channel]
-                    else:
-                        p = np.average(image[row, col - 1: col + 1, channel]) if value is None else value
-                        output[row, : col, channel] = image[row, : col, channel]
-                        output[row, col, channel] = p
-                        output[row, col + 1:, channel] = image[row, col:, channel]
+                    p = np.average(image[row, max(col - 1,0): col + 2, channel]) if value is None else value
+                    output[row, : col, channel] = image[row, : col, channel]
+                    output[row, col, channel] = min(max(0,p + random.randint(-1,1)),255)
+                    output[row, col + 1:, channel] = image[row, col:, channel]
             else:
                 if col == 0:
                     p = np.average(image[row, col: col + 2]) if value is None else value
-                    output[row, col] = image[row, col]
-                    output[row, col + 1] = p
+                    output[row,: col] = image[row, :col]
+                    output[row, col] = p
                     output[row, col + 1:] = image[row, col:]
                 else:
                     p = np.average(image[row, col - 1: col + 1]) if value is None else value
@@ -418,7 +420,7 @@ class ScharrEnergyFunc(EnergyFunc):
             g_energy = np.hypot(cv2.Scharr(g, cv2.CV_64F, 1, 0), cv2.Scharr(g, cv2.CV_64F, 0, 1))
             r_energy = np.hypot(cv2.Scharr(r, cv2.CV_64F, 1, 0), cv2.Scharr(r, cv2.CV_64F, 0, 1))
             # abs ?
-            result = (b_energy + g_energy + r_energy)
+            result = np.linalg.norm([b_energy, g_energy, r_energy],axis=0)
         else:
             result = np.hypot(cv2.Scharr(splits[0], cv2.CV_64F, 1, 0), cv2.Scharr(splits[0], cv2.CV_64F, 0, 1))
         return result
@@ -441,14 +443,17 @@ class ImageState:
         self.energy_function = energy_function
 
     def energy(self):
-        return (self.energy_function(self.image) + 1.0) * self.multiplier
+        E = self.energy_function(self.image)
+        return E + (E * self.multiplier)
 
 class SeamCarver:
     def __init__(self, filename, shape=None, mask_filename=None,
                  energy_function= ScharrEnergyFunc(),
+                 keep_size = False,
                  seam_function=base_energy_function):
         # initialize parameter
         self.filename = filename
+        self.keep_size = keep_size
 
         # read in image and store as np.float64 format
         self.image = tool_set.openImageFile(filename).to_array().astype(np.float64)
@@ -459,7 +464,7 @@ class SeamCarver:
         self.energy_function = energy_function
         self.seam_function = seam_function
 
-        self.protected = np.ones((self.image.shape[0], self.image.shape[1])).astype(np.float64)*10.0
+        self.protected = np.ones((self.image.shape[0], self.image.shape[1])).astype(np.float64)
         self.removal = np.ones((self.image.shape[0], self.image.shape[1])).astype(np.float64)
         self.mask_tracker = MaskTracker((self.image.shape[0], self.image.shape[1]))
 
@@ -468,7 +473,7 @@ class SeamCarver:
             self.protected[mask[:, :, 0] > 2] = 1000.0
             self.removal[mask[:, :, 1] > 2] = -1000.0
 
-        self.narrow_bounds = False
+        self.narrow_bounds = True
 
         # kernel for forward energy map calculation
         self.kernel_x = np.array([[0., 0., 0.], [-1., 0., 1.], [0., 0., 0.]], dtype=np.float64)
@@ -488,22 +493,22 @@ class SeamCarver:
             column_energy = _accumulate_energy(_image_rotate(base_energy, 1),energy_function=self.seam_function)#,
                                                #multiplier=_image_rotate(current_image.multiplier,1))
             if self.narrow_bounds:
-                options = np.where(self.removal==-1000.0)
+                options = np.where(removal==-1000.0)
                 min_row = min(options[0])
                 max_row = max(options[0])
-                min_row = max(0,min_row-10)
-                max_row = min(self.removal.shape[0], max_row + 10)
+                min_row = max(0,min_row-50)
+                max_row = min(removal.shape[0], max_row + 50)
                 min_col = min(options[1])
                 max_col = max(options[1])
-                min_col = max(0, min_col - 10)
-                max_col = min(self.removal.shape[1], max_col + 10)
+                min_col = max(0, min_col - 50)
+                max_col = min(removal.shape[1], max_col + 50)
+                row_bounds = (min_row,max_row)
+                col_bounds = (min_col,max_col)
             else:
-                min_row = -1
-                max_row = self.removal.shape[0]
-                min_col = -1
-                max_col = self.removal.shape[-1]
-            seam_row_idx, row_cost = _find_seam(row_energy, bounds=(min_row,max_row))
-            seam_col_idx, col_cost = _find_seam(column_energy, bounds=(min_col,max_col))
+                row_bounds = None
+                col_bounds = None
+            seam_row_idx, row_cost = _find_seam(row_energy, bounds=col_bounds)
+            seam_col_idx, col_cost = _find_seam(column_energy, bounds=row_bounds)
             if col_cost < row_cost:
                 self.mask_tracker.rotate(1)
                 results = _remove_seam([_image_rotate(current_image.image,1),
@@ -528,9 +533,9 @@ class SeamCarver:
                 current_image =  ImageState(results[0],multipliers=[removal,protected],
                                             energy_function=self.energy_function)
             iterations+=1
-            #if iterations%10 == 0:
-            #    image_wrap.ImageWrapper(current_image.image).save('foo.png')
-            #    self.mask_tracker.save_dropped_mask('foo_m.png')
+
+        if self.keep_size:
+            return current_image.image, self.mask_tracker.dropped_mask*255
 
         # REMOVE ROWS
         if self.shape[1] < current_image.image.shape[1]:
