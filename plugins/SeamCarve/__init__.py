@@ -12,17 +12,25 @@ ScharrEnergyFunc,base_energy_function,foward_base_energy_function
 Seam Carving: Calculate the final mask from seam carving.
 """
 
-def carveSeams(source,target,shape,mask_filename, approach='backward', energy='Sobel'):
+def carveSeams(source,target,shape,mask_filename, approach='backward', energy='Sobel', keep_size=False):
     """
     :param img:
     :return:
     @type img: ImageWrapper
     """
-    sc = SeamCarver(source, shape=shape,
-                    energy_function=SobelFunc() if energy == 'Sobel' else ScharrEnergyFunc(),
-                    mask_filename=mask_filename,
-                    seam_function=foward_base_energy_function if approach == 'forward' else base_energy_function)
-    image, mask = sc.remove_seams()
+    import traceback
+    import sys
+    try:
+        sc = SeamCarver(source, shape=shape,
+                        energy_function=SobelFunc() if energy == 'Sobel' else ScharrEnergyFunc(),
+                        mask_filename=mask_filename,
+                        keep_size = keep_size,
+                        seam_function=foward_base_energy_function if approach == 'forward' else base_energy_function)
+        image, mask = sc.remove_seams()
+    except IndexError as ex:
+        texc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback.print_tb(exc_traceback, limit=10, file=sys.stdout)
+        raise ex
     maskname = os.path.join(os.path.dirname(source),shortenName(os.path.basename(source),'_real_mask.png', id=uniqueId()))
     adjusternames= os.path.join(os.path.dirname(source),shortenName(os.path.basename(source), '.png',id=uniqueId()))
     finalmaskname = os.path.join(os.path.dirname(source),shortenName(os.path.basename(source), '_final_mask.png',id=uniqueId()))
@@ -44,6 +52,7 @@ def transform(img, source, target, **kwargs):
     sizeDonor = (sizeDonor[0]+(8+sizeDonor[0]%8),sizeDonor[1]+ (8+sizeDonor[1]%8))
     return {'output_files': carveSeams(source, target, sizeDonor,
                                        kwargs['inputmaskname'] if 'inputmaskname' in kwargs else None,
+                                       keep_size='keepSize' in kwargs and kwargs['keepSize'] == 'yes',
                                        approach=getValue(kwargs,'approach',defaultValue="backward"),
                                        energy=getValue(kwargs, 'energy', defaultValue="Sobel"))}, None
 
@@ -76,6 +85,11 @@ def operation():
                     "values": ["Sobel", "Scharr"],
                     'defaultvalue': 'Sobel',
                     'description': 'See literature.'
+                },
+                'keepSize': {
+                    'type': 'yesno',
+                    'defaultvalue': 'no',
+                    'description': 'After object removal, retain current size or add seams back to restore original size.'
                 }
             },
             'transitions': [
