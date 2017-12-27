@@ -1,6 +1,7 @@
 import numpy as np
 from maskgen import cv2api, tool_set, image_wrap
 import cv2
+import numba
 
 maxdisplacementvalue = np.iinfo(np.uint16).max
 
@@ -32,7 +33,20 @@ def foward_base_energy_function(base_energy, i, j, quad):
             return abs(base_energy[i-1, j] - base_energy[i, j])
         return abs(base_energy[i, j + 1] - base_energy[i, j - 1])
 
-def _accumulate_energy(base_energy, multiplier=None, energy_function=base_energy_function):
+
+
+def _create_offsets(m):
+    u = np.roll(m,  1, axis=0)
+    ru = np.roll(u, 1, axis=1)
+    ru[:,-1] = 10000000
+    lu = np.roll(u, -1, axis=1)
+    lu[-1,:] = 10000000
+    mu = u
+    mu[0,:] = 0
+    return lu,mu,ru
+
+
+def _accumulate_energy_old(base_energy, energy_function=base_energy_function):
     """
     Converts energy values to cumulative energy values
     """
@@ -56,15 +70,70 @@ def _accumulate_energy(base_energy, multiplier=None, energy_function=base_energy
                     min_energy[i - 1, j - 1] + energy_function(base_energy,i,j,'L'),
                     min_energy[i - 1, j] + energy_function(base_energy,i,j,'U'),
                     min_energy[i - 1, j + 1] + energy_function(base_energy,i,j,'R'))
-            if multiplier is not None:
-                min_energy[i, j] += multiplier[i,j]
     return min_energy
 
-def _find_seam(cumulative_map):
+@numba.jit()
+def _accumulate_energy(energy,energy_function=base_energy_function):
+    """
+    https://en.wikipedia.org/wiki/Seam_carving#Dynamic_programming
+
+    Parameters
+    ==========
+    energy: 2-D numpy.array(uint8)
+        Produced by energy_map
+
+    Returns
+    =======
+        tuple of 2 2-D numpy.array(int64) with shape (height, width).
+        paths has the x-offset of the previous seam element for each pixel.
+        path_energies has the cumulative energy at each pixel.
+    """
+    height, width = energy.shape
+    #paths = np.zeros((height, width), dtype=np.int64)
+    path_energies = np.zeros((height, width), dtype=np.int64)
+    path_energies[0] = energy[0]
+    #paths[0] = np.arange(width) * np.nan
+
+    for i in range(1, height):
+        for j in range(width):
+            # Note that indexing past the right edge of a row, as will happen if j == width-1, will
+            # simply return the part of the slice that exists
+            prev_energies = path_energies[i-1, max(j-1, 0):j+2]
+            least_energy = prev_energies.min()
+            path_energies[i][j] = energy[i][j] + least_energy
+            #paths[i][j] = np.where(prev_energies == least_energy)[0][0] - (1*(j != 0))
+    return  path_energies
+
+def _find_seam_what(paths, end_x):
+    """
+    Parameters
+    ==========
+    paths: 2-D numpy.array(int64)
+        Output of cumulative_energy_map. Each element of the matrix is the offset of the index to
+        the previous pixel in the seam
+    end_x: int
+        The x-coordinate of the end of the seam
+
+    Returns
+    =======
+        1-D numpy.array(int64) with length == height of the image
+        Each element is the x-coordinate of the pixel to be removed at that y-coordinate. e.g.
+        [4,4,3,2] means "remove pixels (0,4), (1,4), (2,3), and (3,2)"
+    """
+    height, width = paths.shape[:2]
+    seam = [end_x]
+    for i in range(height-1, 0, -1):
+        cur_x = seam[-1]
+        offset_of_prev_x = paths[i][cur_x]
+        seam.append(cur_x + offset_of_prev_x)
+    seam.reverse()
+    return seam,sum([paths[r,seam[r]] for r in range(height)])
+
+def _find_seam(cumulative_map, bounds=(500000000000,-1)):
         m, n = cumulative_map.shape
         output = np.zeros((m,), dtype=np.uint32)
         output[-1] = np.argmin(cumulative_map[-1])
-        for row in range(m - 2, -1, -1):
+        for row in range(min(bounds[1],m - 2), max(-1,bounds[0]), -1):
             previous_x = output[row + 1]
             if previous_x == 0:
                 output[row] = np.argmin(cumulative_map[row, : 2])
@@ -116,6 +185,21 @@ def _add_seam(images_and_value, seam_idx):
                     output[row, col + 1:] = image[row, col:]
         outputs.append(output)
     return outputs
+
+def _seam_end(energy_totals):
+    """
+    Parameters
+    ==========
+    energy_totals: 2-D numpy.array(int64)
+        Cumulative energy of each pixel in the image
+
+    Returns
+    =======
+        numpy.int64
+        the x-coordinate of the bottom of the seam for the image with these
+        cumulative energies
+    """
+    return list(energy_totals[-1]).index(min(energy_totals[-1]))
 
 
 class MaskTracker:
@@ -346,6 +430,7 @@ def saveEnergy(map,filename):
     map = cv2.cvtColor((map*255).astype('uint8'), cv2.COLOR_GRAY2RGB)
     image_wrap.ImageWrapper(map).save(filename)
 
+
 class ImageState:
 
     def __init__(self, image, multipliers=[], energy_function = ScharrEnergyFunc()):
@@ -356,7 +441,7 @@ class ImageState:
         self.energy_function = energy_function
 
     def energy(self):
-        return self.energy_function(self.image) * self.multiplier
+        return (self.energy_function(self.image) + 1.0) * self.multiplier
 
 class SeamCarver:
     def __init__(self, filename, shape=None, mask_filename=None,
@@ -376,14 +461,14 @@ class SeamCarver:
 
         self.protected = np.ones((self.image.shape[0], self.image.shape[1])).astype(np.float64)*10.0
         self.removal = np.ones((self.image.shape[0], self.image.shape[1])).astype(np.float64)
-        self.removal_mask = np.zeros((self.image.shape[0], self.image.shape[1]),dtype=np.uint8)
         self.mask_tracker = MaskTracker((self.image.shape[0], self.image.shape[1]))
 
         if mask_filename is not None:
             mask = tool_set.openImageFile(mask_filename).to_array()
             self.protected[mask[:, :, 0] > 2] = 1000.0
-            self.removal[mask[:, :, 1] > 2] = 0.0
-            self.removal_mask[mask[:, :, 1] > 2] = 1
+            self.removal[mask[:, :, 1] > 2] = -1000.0
+
+        self.narrow_bounds = False
 
         # kernel for forward energy map calculation
         self.kernel_x = np.array([[0., 0., 0.], [-1., 0., 1.], [0., 0., 0.]], dtype=np.float64)
@@ -397,13 +482,28 @@ class SeamCarver:
         current_image = ImageState(self.image,multipliers=[self.protected, self.removal],
                                    energy_function=self.energy_function)
         iterations = 0
-        while np.any((1-removal)>0):
+        while np.any((removal)<0):
             base_energy = current_image.energy()
-            row_energy =_accumulate_energy(base_energy,energy_function=self.seam_function)#,multiplier=current_image.multiplier)
+            row_energy=_accumulate_energy(base_energy,energy_function=self.seam_function)#,multiplier=current_image.multiplier)
             column_energy = _accumulate_energy(_image_rotate(base_energy, 1),energy_function=self.seam_function)#,
                                                #multiplier=_image_rotate(current_image.multiplier,1))
-            seam_row_idx, row_cost = _find_seam(row_energy)
-            seam_col_idx, col_cost = _find_seam(column_energy)
+            if self.narrow_bounds:
+                options = np.where(self.removal==-1000.0)
+                min_row = min(options[0])
+                max_row = max(options[0])
+                min_row = max(0,min_row-10)
+                max_row = min(self.removal.shape[0], max_row + 10)
+                min_col = min(options[1])
+                max_col = max(options[1])
+                min_col = max(0, min_col - 10)
+                max_col = min(self.removal.shape[1], max_col + 10)
+            else:
+                min_row = -1
+                max_row = self.removal.shape[0]
+                min_col = -1
+                max_col = self.removal.shape[-1]
+            seam_row_idx, row_cost = _find_seam(row_energy, bounds=(min_row,max_row))
+            seam_col_idx, col_cost = _find_seam(column_energy, bounds=(min_col,max_col))
             if col_cost < row_cost:
                 self.mask_tracker.rotate(1)
                 results = _remove_seam([_image_rotate(current_image.image,1),
