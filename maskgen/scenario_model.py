@@ -2241,8 +2241,9 @@ class ImageProjectModel:
         except Exception as e:
             msg = str(e)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-            logging.getLogger('maskgen').error('Plugin Failure {}'.format(str(e)))
+            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+            logging.getLogger('maskgen').error(
+                'Plugin {} failed with {} for arguments {}'.format(filter, str(e), str(resolved)))
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
