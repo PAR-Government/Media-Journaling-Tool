@@ -1045,6 +1045,10 @@ class VidAnalysisComponents:
         self.two_count = 0
         self.elapsed_time_one = 0
         self.elapsed_time_two = 0
+        self.grabbed_one = False
+        self.grabbed_two = False
+        self.frame_one = None
+        self.frame_two = None
 
     def grabOne(self):
         res = self.vid_one.grab()

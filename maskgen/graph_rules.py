@@ -1,7 +1,7 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage, getValue
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getValue,getMilliSeconds
 import new
 from types import MethodType
 import numpy
@@ -1343,15 +1343,15 @@ def checkPasteFrameLength(op, graph, frm, to):
     diff = 0
     duration = 0
     if 'duration' in from_node and 'duration' in to_node:
-        from_duration = getMilliSecondsAndFrameCount(from_node['duration'])[0]
-        to_duration = getMilliSecondsAndFrameCount(to_node['duration'])[0]
+        from_duration = getMilliSeconds(from_node['duration'])
+        to_duration = getMilliSeconds(to_node['duration'])
         donor_tuple = getDonor(graph, to)
         if donor_tuple is None:
             return "Missing donor"
         else:
             donor_node = graph.get_node(donor_tuple[0])
             if donor_node is not None and 'duration' in donor_node:
-                duration = getMilliSecondsAndFrameCount(donor_node['duration'])[0]
+                duration = getMilliSeconds(donor_node['duration'])
                 diff = (to_duration - from_duration) - duration
             else:
                 return "Missing duration in donor node's meta-data"
