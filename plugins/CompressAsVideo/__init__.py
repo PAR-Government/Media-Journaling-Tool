@@ -72,7 +72,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                         if data[setting].find(tup[0]) >= 0:
                             ffargs.extend([option, tup[1]])
                             break
-                elif setting in data and data[setting] != 'unknown':
+                elif setting in data and data[setting] not in  ['unknown','N/A']:
                     ffargs.extend([option, data[setting]])
 
             try:

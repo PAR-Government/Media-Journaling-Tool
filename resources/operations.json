@@ -4361,7 +4361,16 @@
           "source": "video",
           "values": [ "add", "remove", "semantic-remove"],
           "description": "Semantic remove attempts to mitigate lines prior to export in non interlaced format."
-        }
+        },
+		"Start Time": {
+   		  "type": "time",
+   		  "defaultvalue":"00:00:00",
+   		  "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+ 		},
+		"End Time": {
+  		  "type": "time",
+		  "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+		}
       },
       "description": "Down sample a video to a lower frame resolution.",
       "includeInMask": false,

@@ -501,6 +501,25 @@ def differenceBetweeMillisecondsAndFrame(mandf1, mandf2, rate):
 def differenceInFramesBetweenMillisecondsAndFrame(mandf1, mandf2, rate):
     return (mandf1[0] - mandf2[0])/1000.0/rate + mandf1[1] - mandf2[1]
 
+def getMilliSeconds(v):
+    if v is None:
+        return None, 0
+    if type(v) == int:
+        return v
+    dt = None
+    coloncount = v.count(':')
+    if coloncount == 0:
+        return int(float(v) * 1000.0)
+    try:
+        dt = datetime.strptime(v, '%H:%M:%S.%f')
+    except ValueError:
+        try:
+            dt = datetime.strptime(v, '%H:%M:%S')
+        except ValueError:
+            return None
+    millis = dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000
+    return millis
+
 def getMilliSecondsAndFrameCount(v, rate=None):
     if v is None:
         return None, 0
@@ -672,16 +691,14 @@ def readFromZip(filename, filetypes=imagefiletypes,videoFrameTime=None,isMask=Fa
         names = myzip.namelist()
         names.sort()
         time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
-        i = 1
-        name = names[0]
-        while i < 21:
+        i= 0
+        for name in names:
+            i+=1
             elapsed_time = i*fps
-            if len(filetypematcher.findall(name)) == 0:
+            if len(filetypematcher.findall(name.lower())) == 0:
                 continue
             time_manager.updateToNow(elapsed_time)
-            name = names[i-1]
-            i+=1
-            if time_manager.isPastTime():
+            if time_manager.isPastTime() or videoFrameTime is None:
                 break
         extracted_file = myzip.extract(name,os.path.dirname(os.path.abspath(filename)))
         img = openImage(extracted_file, isMask=isMask)
@@ -755,7 +772,7 @@ class ImageOpener:
     def openImage(self,filename, isMask=False):
         try:
             img = openImageFile(filename, isMask=isMask)
-            return img if img is not None else openImage('./icons/RedX.png')
+            return img if img is not None else openImage(get_icon('RedX.png'))
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
             return openImage(get_icon('RedX.png'))
