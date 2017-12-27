@@ -612,6 +612,7 @@ class PluginOperation(BatchOperation):
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
         for k,v in tool_set.getValue(edge,'arguments',defaultValue={}).iteritems():
             my_state[k] = v
+        my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
             if (self.logger.isEnabledFor(logging.DEBUG)):
