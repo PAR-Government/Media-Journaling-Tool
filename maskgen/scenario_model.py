@@ -410,8 +410,14 @@ class ImageImageLinkTool(LinkTool):
         if edge is not None:
             operation = scModel.gopLoader.getOperationWithGroups(edge['op'] if edge is not None else 'NA', fake=True)
             compareFunction = operation.getCompareFunction()
-        mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
+        mask, analysis, error = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=compareFunction)
+        if error is not None:
+            logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                edge['op'] if edge is not None else 'NA',
+                start,
+                end
+            ))
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -472,12 +478,19 @@ class ImageImageLinkTool(LinkTool):
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
         else:
-            mask, analysis = createMask(startIm,
+            mask, analysis, error = createMask(startIm,
                                         destIm,
                                         invert=invert,
                                         arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction(),
                                         convertFunction=operation.getConvertFunction())
+            if error is not None:
+                errors.append(error)
+                logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                    op,
+                    start,
+                    destination
+                ))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -503,8 +516,14 @@ class VideoImageLinkTool(ImageImageLinkTool):
         im2, destFileName = scModel.getImageAndName(end)
         edge = scModel.G.get_edge(start, end)
         operation = scModel.gopLoader.getOperationWithGroups(edge['op'])
-        mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
+        mask, analysis,error = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=operation.getCompareFunction())
+        if error is not None:
+            logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                edge['op'] if edge is not None else 'NA',
+                start,
+                end
+            ))
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -522,8 +541,15 @@ class VideoImageLinkTool(ImageImageLinkTool):
                 "An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
             analysis = {}
         else:
-            mask, analysis = createMask(startIm, destIm, invert=invert, arguments=arguments,
+            mask, analysis,error = createMask(startIm, destIm, invert=invert, arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction())
+            if error is not None:
+                errors.append(error)
+                logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                    op,
+                    start,
+                    destination
+                ))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -2241,8 +2267,9 @@ class ImageProjectModel:
         except Exception as e:
             msg = str(e)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-            logging.getLogger('maskgen').error('Plugin Failure {}'.format(str(e)))
+            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+            logging.getLogger('maskgen').error(
+                'Plugin {} failed with {} for arguments {}'.format(filter, str(e), str(resolved)))
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []

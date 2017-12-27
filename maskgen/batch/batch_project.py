@@ -106,6 +106,8 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         if not random_selection:
             increment = 1
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
+        elif increment != 1:
+            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice( xrange(beg, end + 1, increment))))
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type']:
@@ -113,6 +115,9 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         beg, end, increment = rangeNumberPicker(v, convert_function=float)
         if not random_selection:
             return IteratorPermuteGroupElement(spec_name, lambda: np.arange(beg, end, increment).__iter__())
+        elif abs(increment - 1.0) > 0.000000001:
+            return PermuteGroupElement(spec_name,
+                                       randomGeneratorFactory(lambda: random.choice(np.arange(beg, end, increment))))
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: beg + random.random() * (end - beg)))
     elif param_spec['type'] == 'yesno':
@@ -612,6 +617,7 @@ class PluginOperation(BatchOperation):
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
         for k,v in tool_set.getValue(edge,'arguments',defaultValue={}).iteritems():
             my_state[k] = v
+        my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
             if (self.logger.isEnabledFor(logging.DEBUG)):
