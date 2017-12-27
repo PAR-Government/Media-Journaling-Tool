@@ -106,6 +106,8 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         if not random_selection:
             increment = 1
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
+        elif increment != 1:
+            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice( xrange(beg, end + 1, increment))))
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type']:
@@ -113,6 +115,9 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         beg, end, increment = rangeNumberPicker(v, convert_function=float)
         if not random_selection:
             return IteratorPermuteGroupElement(spec_name, lambda: np.arange(beg, end, increment).__iter__())
+        elif abs(increment - 1.0) > 0.000000001:
+            return PermuteGroupElement(spec_name,
+                                       randomGeneratorFactory(lambda: random.choice(np.arange(beg, end, increment))))
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: beg + random.random() * (end - beg)))
     elif param_spec['type'] == 'yesno':
@@ -612,6 +617,7 @@ class PluginOperation(BatchOperation):
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
         for k,v in tool_set.getValue(edge,'arguments',defaultValue={}).iteritems():
             my_state[k] = v
+        my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
             if (self.logger.isEnabledFor(logging.DEBUG)):
@@ -922,7 +928,10 @@ class BatchProject:
             project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             if 'model' in local_state:
-                shutil.rmtree(local_state['model'].get_dir())
+                if 'removebadprojects' in global_state and not global_state['removebadprojects']:
+                    local_state['model'].save()
+                else:
+                    shutil.rmtree(local_state['model'].get_dir())
             return None, project_name
         finally:
             for file in local_state['cleanup']:
@@ -1043,7 +1052,7 @@ class BatchProject:
             raise e
 
 
-def createGlobalState(projectDirectory, stateDirectory):
+def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True):
     """
 
     :param projectDirectory: directory for resulting projects
@@ -1052,6 +1061,7 @@ def createGlobalState(projectDirectory, stateDirectory):
     """
     return {'projects': projectDirectory,
             'workdir': stateDirectory,
+            'removebadprojects' : removeBadProjects,
             'permutegroupsmanager': PermuteGroupManager(dir=stateDirectory)}
 
 
@@ -1163,7 +1173,8 @@ class BatchExecutor:
                  global_variables=None,
                  initializers=None,
                  loglevel=50,
-                 threads_count=1):
+                 threads_count=1,
+                 removeBadProjects=True):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1182,6 +1193,7 @@ class BatchExecutor:
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
             return
         plugins.loadPlugins()
+        self.removeBadProjects = removeBadProjects
         self.__setupThreads(threads_count)
         self.workdir = os.path.abspath(workdir)
         loadCustomFunctions()
@@ -1190,7 +1202,7 @@ class BatchExecutor:
         if loglevel is not None:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
         self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
-        self.initialState = createGlobalState(results,self.workdir)
+        self.initialState = createGlobalState(results,self.workdir,removeBadProjects=removeBadProjects)
         if global_variables is not None:
             if type(global_variables) == str:
                 self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \

@@ -1265,7 +1265,7 @@ def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, argumen
 
 
 def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,convertFunction=None):
-    mask, analysis = __composeMask(img1,
+    mask, analysis,error = __composeMask(img1,
                                    img2,
                                    invert,
                                    arguments=arguments,
@@ -1275,7 +1275,7 @@ def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,
     if 'location' not in analysis:
         analysis['location'] = '(0,0)'
     analysis['empty mask'] = 'yes' if np.all(mask==255) else 'no'
-    return ImageWrapper(mask), analysis
+    return ImageWrapper(mask), analysis,error
 
 
 def __indexOf(source, dest):
@@ -1857,15 +1857,23 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
     args['source filename'] = img1_wrapper.filename
     args['target filename'] = img2_wrapper.filename
     if alternativeFunction is not None:
-        mask,analysis = alternativeFunction(img1, img2, arguments=args)
-        removeValue(analysis, 'arguments.source filename')
-        removeValue(analysis, 'arguments.target filename')
-        if mask is not None:
-            return mask if not invert else 255-mask,analysis
+        try:
+            mask,analysis = alternativeFunction(img1, img2, arguments=args)
+            removeValue(analysis, 'arguments.source filename')
+            removeValue(analysis, 'arguments.target filename')
+            if mask is not None:
+                return mask if not invert else 255-mask,analysis, None
+        except ValueError as e:
+            logging.getLogger('maskgen').error('Mask generation failure ' + str(e))
+            logging.getLogger('maskgen').info('Arguments ' + str(arguments))
+            mask = np.zeros(img1.shape, dtype=np.uint8)
+            analysis = {}
+            return  abs(255 - mask).astype('uint8') if invert else mask, analysis, str(e)
 
     # rotate image two if possible to compare back to image one.
     # The mask is not perfect.
     mask = None
+    error = None
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
     if abs(rotation) > 0.0001:
         mask,analysis = __compareRotatedImage(rotation, img1, img2,  arguments)
@@ -1876,12 +1884,14 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
     if mask is None:
         try:
             if img1.shape == img2.shape:
-                return __diffMask(img1, img2, invert, args=arguments)
-        except ValueError as e:
+                mask, analysis = __diffMask(img1, img2, False, args=arguments)
+        except Exception as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
-        mask = np.zeros(img1.shape, dtype=np.uint8)
-        analysis={}
-    return abs(255 - mask).astype('uint8') if invert else mask, analysis
+            logging.getLogger('maskgen').info('Arguments ' + str(arguments))
+            error = str(e)
+            mask = np.zeros(img1.shape, dtype=np.uint8)
+            analysis={}
+    return abs(255 - mask).astype('uint8') if invert else mask, analysis, error
 
 
 def __alignShape(im, shape):
