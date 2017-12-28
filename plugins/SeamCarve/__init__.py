@@ -20,14 +20,14 @@ def carveSeams(source,target,shape,mask_filename, approach='backward', energy='S
     """
     import traceback
     import sys
-    sc = SeamCarver(source, shape=shape,
-                    energy_function=SobelFunc() if energy == 'Sobel' else ScharrEnergyFunc(),
-                    mask_filename=mask_filename,
-                    keep_size = keep_size,
-                    seam_function=foward_base_energy_function if approach == 'forward' else base_energy_function)
     try:
+        sc = SeamCarver(source, shape=shape,
+                        energy_function=SobelFunc() if energy == 'Sobel' else ScharrEnergyFunc(),
+                        mask_filename=mask_filename,
+                        keep_size = keep_size,
+                        seam_function=foward_base_energy_function if approach == 'forward' else base_energy_function)
         image, mask = sc.remove_seams()
-    except Exception as ex:
+    except IndexError as ex:
         texc_type, exc_value, exc_traceback = sys.exc_info()
         traceback.print_tb(exc_traceback, limit=10, file=sys.stdout)
         raise ex
@@ -85,6 +85,11 @@ def operation():
                     "values": ["Sobel", "Scharr"],
                     'defaultvalue': 'Sobel',
                     'description': 'See literature.'
+                },
+                'keepSize': {
+                    'type': 'yesno',
+                    'defaultvalue': 'no',
+                    'description': 'After object removal, retain current size or add seams back to restore original size.'
                 }
             },
             'transitions': [

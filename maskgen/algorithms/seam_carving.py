@@ -138,15 +138,32 @@ def _find_seam(cumulative_map, bounds=None):
             output[-1] = np.argmin(cumulative_map[-1])
         for row in range(m - 2, -1, -1):
             previous_x = output[row + 1]
-            try:
-                if previous_x == 0:
-                    output[row] = np.argmin(cumulative_map[row,:2])
-                else:
-                    output[row] = np.argmin(cumulative_map[row, previous_x - 1: min(previous_x + 1, n - 1)]) + previous_x - 1
-            except Exception as ex:
-                print str(bounds)
-                raise ex
+            if previous_x == 0:
+                output[row] = np.argmin(cumulative_map[row, :2])
+            elif cumulative_map[row, previous_x - 1] == cumulative_map[row, previous_x]:
+                output[row] = np.argmin(cumulative_map[row, previous_x: previous_x + 2]) + previous_x
+            else:
+                output[row] = np.argmin(cumulative_map[row, previous_x - 1: previous_x + 2]) + previous_x - 1
         return output, sum([cumulative_map[r,output[r]] for r in range(m)])
+
+
+def _find_k_seams(cumulative_map, bounds=None):
+    bounded_cumulative_map = cumulative_map[:, bounds[0]:bounds[1]] if bounds is not None else cumulative_map
+    m, n = bounded_cumulative_map.shape
+    output = np.zeros((m,n), dtype=np.int)
+    output[-1] = np.argsort(bounded_cumulative_map[-1])
+    for row in range(m - 2, -1, -1):
+        previous_x = output[row + 1]
+        allpositions= [(previous_x - 1).clip(min=0),previous_x, (previous_x + 1).clip(max=(n-1))]
+        positionvalues = [ bounded_cumulative_map[row, allpositions[0]],
+                         bounded_cumulative_map[row, allpositions[1]],
+                         bounded_cumulative_map[row, allpositions[2]]]
+        minrow = np.argmin(positionvalues,axis=0)
+        output[row] = np.asarray(allpositions)[minrow,np.arange(n)] + (bounds[0] if bounds is not None else 0)
+    output = output.transpose()
+    diffs = np.diff(output,axis=0)
+    return output[np.setdiff1d(np.arange(n), np.where(diffs == 0)[0] + 1),:]
+
 
 def _remove_seam(images, seam_idx):
     m, n = images[0].shape[: 2]
@@ -226,7 +243,7 @@ class MaskTracker:
         self.inverter = None
 
     def rotate(self,direction):
-        self.dropped_adjuster = np.asarray([_image_rotate(self.dropped_adjuster[0],direction),
+        self.dropped_adjuster = np.asarray([_image_rotate(self.dropped_adjuster[0], direction),
                                             _image_rotate(self.dropped_adjuster[1], direction)])
         self.neighbors_mask = _image_rotate(self.neighbors_mask,direction)
 
@@ -447,6 +464,7 @@ class ImageState:
         return E + (E * self.multiplier)
 
 class SeamCarver:
+    bounds_expansion = 5
     def __init__(self, filename, shape=None, mask_filename=None,
                  energy_function= ScharrEnergyFunc(),
                  keep_size = False,
@@ -496,12 +514,12 @@ class SeamCarver:
                 options = np.where(removal==-1000.0)
                 min_row = min(options[0])
                 max_row = max(options[0])
-                min_row = max(0,min_row-50)
-                max_row = min(removal.shape[0], max_row + 50)
+                min_row = max(0,min_row-self.bounds_expansion)
+                max_row = min(removal.shape[0], max_row + self.bounds_expansion)
                 min_col = min(options[1])
                 max_col = max(options[1])
-                min_col = max(0, min_col - 50)
-                max_col = min(removal.shape[1], max_col + 50)
+                min_col = max(0, min_col - self.bounds_expansion)
+                max_col = min(removal.shape[1], max_col + self.bounds_expansion)
                 row_bounds = (min_row,max_row)
                 col_bounds = (min_col,max_col)
             else:
@@ -579,18 +597,26 @@ class SeamCarver:
 
         # ADD ROWS
         if self.shape[1] > current_image.image.shape[1]:
+            base_energy = current_image.energy()
+            row_energy = _accumulate_energy(base_energy,energy_function=self.seam_function)#,multiplier=current_image.multiplier)
+            seam_row_idx = _find_k_seams(row_energy)
+            column_idx = 0
             while self.shape[1] > current_image.image.shape[1]:
-                base_energy = current_image.energy()
-                row_energy = _accumulate_energy(base_energy,energy_function=self.seam_function)#,multiplier=current_image.multiplier)
-                seam_row_idx, row_cost = _find_seam(row_energy)
                 results = _add_seam([(current_image.image,None),
                                      (protected,10000.0)],
-                                       seam_row_idx)
-                self.mask_tracker.add_seams(seam_row_idx)
+                                      seam_row_idx[column_idx])
+                self.mask_tracker.add_seams(seam_row_idx[column_idx])
+                column_idx+=1
                 protected = results[1]
                 current_image = ImageState(results[0],
                                            multipliers=[protected],
                                            energy_function=self.energy_function)
+                if column_idx % 50 == 0 or column_idx == seam_row_idx.shape[0]:
+                    base_energy = current_image.energy()
+                    row_energy = _accumulate_energy(base_energy,
+                                                    energy_function=self.seam_function)  # ,multiplier=current_image.multiplier)
+                    seam_row_idx = _find_k_seams(row_energy)
+                    column_idx = 0
 
         # ADD COLUMNS
         if self.shape[0] > current_image.image.shape[0]:
@@ -600,18 +626,27 @@ class SeamCarver:
                                            multipliers=[protected],
                                            energy_function=self.energy_function)
             # rotated so compare to shape[1]
+
+            base_energy = current_image.energy()
+            column_energy = _accumulate_energy(base_energy,energy_function=self.seam_function)
+            seam_col_idx = _find_k_seams(column_energy)
+            row_idx = 0
             while self.shape[0] > current_image.image.shape[1]:
-                base_energy = current_image.energy()
-                column_energy = _accumulate_energy(base_energy,energy_function=self.seam_function)
-                seam_col_idx, col_cost = _find_seam(column_energy)
                 results = _add_seam([(current_image.image,None),
                                     (protected,10000.0)],
-                                        seam_col_idx)
-                self.mask_tracker.add_seams(seam_col_idx)
+                                    seam_col_idx[row_idx])
+                self.mask_tracker.add_seams(seam_col_idx[row_idx])
+                row_idx+=1
                 protected = results[1]
                 current_image = ImageState(results[0],
                                                multipliers=[protected],
                                                energy_function=self.energy_function)
+                if row_idx % 50 ==0 or row_idx == seam_col_idx.shape[0]:
+                    base_energy = current_image.energy()
+                    column_energy = _accumulate_energy(base_energy, energy_function=self.seam_function)
+                    seam_col_idx = _find_k_seams(column_energy)
+                    row_idx = 0
+
             self.mask_tracker.rotate(0)
             protected = _image_rotate(protected, 0)
             current_image = ImageState(_image_rotate(current_image.image, 0),
