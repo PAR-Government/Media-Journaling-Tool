@@ -283,10 +283,15 @@ class MaskTracker:
             self.neighbors_mask[row, col + 1] += 1
 
     def drop_pixel(self, oldrow, oldcol, newrow, newcol):
-        self.dropped_adjuster[0, newrow, newcol] = oldrow
-        self.dropped_adjuster[1, newrow, newcol] = oldcol
+        if newrow < self.dropped_adjuster.shape[0] and \
+            newcol < self.dropped_adjuster.shape[1]:
+            self.dropped_adjuster[0, newrow, newcol] = oldrow
+            self.dropped_adjuster[1, newrow, newcol] = oldcol
+            self.__set_neighbors(newrow, newcol)
+       # else:
+        #    print 'foo'
         self.dropped_mask[oldrow, oldcol] = 1
-        self.__set_neighbors(newrow, newcol)
+
 
     def keep_pixel(self, oldrow, oldcol, newrow, newcol):
         self.dropped_adjuster[0, newrow, newcol] = oldrow
@@ -741,7 +746,6 @@ class SeamCarver:
         width = np.amax(cols) - np.amin(cols) + 1
         return height, width
 
-
 def __composeArguments(mask_tracker, arguments={}):
     import os
     source = arguments['source filename']
@@ -749,15 +753,18 @@ def __composeArguments(mask_tracker, arguments={}):
                                  tool_set.shortenName(os.path.basename(source), '.png',id=tool_set.uniqueId()))
     finalmaskname = os.path.join(os.path.dirname(source),
                                  tool_set.shortenName(os.path.basename(source), '_final_mask.png',id=tool_set.uniqueId()))
-    adjusternames_row, adjusternames_col = mask_tracker.save_adjusters(adjusternames)
-    mask_tracker.save_neighbors_mask(finalmaskname)
     args = {}
     args.update(arguments)
-    args.update({
-        'neighbor mask': os.path.basename(finalmaskname),
-        'column adjuster': os.path.basename(adjusternames_col),
-        'row adjuster': os.path.basename(adjusternames_row)
-    })
+    if 'row adjuster' not in arguments:
+        adjusternames_row, adjusternames_col = mask_tracker.save_adjusters(adjusternames)
+        args.update({
+            'column adjuster': os.path.basename(adjusternames_col),
+            'row adjuster': os.path.basename(adjusternames_row)})
+    if 'neighbor mask' not in arguments:
+        mask_tracker.save_neighbors_mask(finalmaskname)
+        args.update({
+            'neighbor mask': os.path.basename(finalmaskname)
+        })
     return {'arguments': args}
 
 def seamCompare(img1, img2,  arguments=dict()):
@@ -845,11 +852,11 @@ def __findSeam(old, new, oldmatchchecks, newmatchchecks, increment, remove_actio
     for pos in range(len(oldmatchchecks)):
         old_pixel = old.item(oldmatchchecks[pos])
         if newmatchchecks[pos] >= newmaxlen:
-            remove_action(oldmatchchecks[pos],newmatchchecks[pos])
+            remove_action(oldmatchchecks[pos], newmatchchecks[pos])
             continue
         new_pixel = new.item(newmatchchecks[pos])
         if old_pixel != new_pixel:
-            remove_action(oldmatchchecks[pos],newmatchchecks[pos])
+            remove_action(oldmatchchecks[pos], newmatchchecks[pos])
             replacement_newmatchchecks.append(newmatchchecks[pos])
         else:
             keep_action(oldmatchchecks[pos], newmatchchecks[pos])
