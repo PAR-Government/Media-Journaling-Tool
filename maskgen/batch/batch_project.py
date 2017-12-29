@@ -928,7 +928,10 @@ class BatchProject:
             project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             if 'model' in local_state:
-                shutil.rmtree(local_state['model'].get_dir())
+                if 'removebadprojects' in global_state and not global_state['removebadprojects']:
+                    local_state['model'].save()
+                else:
+                    shutil.rmtree(local_state['model'].get_dir())
             return None, project_name
         finally:
             for file in local_state['cleanup']:
@@ -1049,7 +1052,7 @@ class BatchProject:
             raise e
 
 
-def createGlobalState(projectDirectory, stateDirectory):
+def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True):
     """
 
     :param projectDirectory: directory for resulting projects
@@ -1058,6 +1061,7 @@ def createGlobalState(projectDirectory, stateDirectory):
     """
     return {'projects': projectDirectory,
             'workdir': stateDirectory,
+            'removebadprojects' : removeBadProjects,
             'permutegroupsmanager': PermuteGroupManager(dir=stateDirectory)}
 
 
@@ -1169,7 +1173,8 @@ class BatchExecutor:
                  global_variables=None,
                  initializers=None,
                  loglevel=50,
-                 threads_count=1):
+                 threads_count=1,
+                 removeBadProjects=True):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1188,6 +1193,7 @@ class BatchExecutor:
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
             return
         plugins.loadPlugins()
+        self.removeBadProjects = removeBadProjects
         self.__setupThreads(threads_count)
         self.workdir = os.path.abspath(workdir)
         loadCustomFunctions()
@@ -1196,7 +1202,7 @@ class BatchExecutor:
         if loglevel is not None:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
         self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
-        self.initialState = createGlobalState(results,self.workdir)
+        self.initialState = createGlobalState(results,self.workdir,removeBadProjects=removeBadProjects)
         if global_variables is not None:
             if type(global_variables) == str:
                 self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \

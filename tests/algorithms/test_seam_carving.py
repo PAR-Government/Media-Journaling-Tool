@@ -36,6 +36,10 @@ class TestToolSet(TestSupport):
         somemask = sc.mask_tracker.move_pixels(somemask)
         self.assertTrue(image.shape == somemask.shape)
         self.assertTrue((image.shape[0],image.shape[1]) == sc.mask_tracker.neighbors_mask.shape)
+        #ImageWrapper(image).save(os.path.join(os.path.dirname(filename), 'cat_f.png'))
+        #ImageWrapper(mask).save(os.path.join(os.path.dirname(filename), 'cat_m.png'))
+        #ImageWrapper(somemask).save(os.path.join(os.path.dirname(filename), 'twins_sm.png'))
+        #sc.mask_tracker.save_neighbors_mask(os.path.join(os.path.dirname(filename), 'twins_rm.png'))
 
     def test_shrink(self):
         filename = self.locateFile('tests/algorithms/twins.jpg')
