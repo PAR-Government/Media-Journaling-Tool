@@ -2379,7 +2379,7 @@ def __diffMask(img1, img2, invert, args=None):
     difference = difference*ii16.max
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
-    return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis, None
+    return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
 
 
 def coordsFromString(value):
