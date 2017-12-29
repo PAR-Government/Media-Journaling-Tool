@@ -1884,13 +1884,13 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
     if mask is None:
         try:
             if img1.shape == img2.shape:
-                return __diffMask(img1, img2, invert, args=arguments)
+                mask, analysis = __diffMask(img1, img2, False, args=arguments)
         except Exception as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
             logging.getLogger('maskgen').info('Arguments ' + str(arguments))
             error = str(e)
-        mask = np.zeros(img1.shape, dtype=np.uint8)
-        analysis={}
+            mask = np.zeros(img1.shape, dtype=np.uint8)
+            analysis={}
     return abs(255 - mask).astype('uint8') if invert else mask, analysis, error
 
 
