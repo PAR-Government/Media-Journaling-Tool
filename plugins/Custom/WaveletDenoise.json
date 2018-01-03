@@ -8,14 +8,9 @@
       "version": "7.0",
       "arguments":{
         "threshold":{
-          "type": "float[0:1]",
-          "defaultvalue": 0.1,
+          "type": "int[1:100]",
+          "defaultvalue": 1,
           "description": "Wavelet threshold."
-        },
-        "softness":{
-          "type": "float[0:1]",
-          "defaultvalue": 0,
-          "description": "Softness attenuates the threshold and typically ranges from 0.0 (none) to 1.0."
         },
         "Blur Type": {
               "type": "text",
