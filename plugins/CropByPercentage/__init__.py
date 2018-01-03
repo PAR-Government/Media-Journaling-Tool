@@ -14,12 +14,17 @@ def transform(img,source,target,**kwargs):
     if snapto8:
         pixelWidth  = pixelWidth - pixelWidth % 8
         pixelHeight = pixelHeight - pixelHeight % 8
-    r_x = randint(1,  pixelWidth) if pixelWidth > 1 else 1
-    r_y = randint(1,  pixelHeight) if pixelHeight > 1 else 1
+    r_x = randint(1,  pixelWidth-1) if pixelWidth > 1 else 1
+    r_y = randint(1,  pixelHeight-1) if pixelHeight > 1 else 1
     if snapto8:
       r_x = r_x + (8 - r_x % 8)
       r_y = r_y + (8 - r_y % 8)
     cv_image = numpy.copy(img)
+    print r_x,r_y,pixelWidth,pixelHeight,(pixelHeight - r_y),(pixelWidth - r_x)
+    if pixelWidth == r_x:
+        pixelWidth +=8
+    if pixelHeight == r_x:
+        pixelHeight += 8
     new_img = cv_image[r_y:-(pixelHeight - r_y), r_x:-(pixelWidth - r_x), :]
     ImageWrapper(new_img).save(target)
     return {'crop_x':r_x,'crop_y':r_y, 'crop_width':pixelWidth,'crop_height':pixelHeight},None
