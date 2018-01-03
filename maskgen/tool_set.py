@@ -427,7 +427,7 @@ class VidTimeManager:
         self.milliNow = milliNow
         self.frameSinceBeginning += frames
         if self.stopTimeandFrame:
-            if self.milliNow >= self.stopTimeandFrame[0]:
+            if self.milliNow > self.stopTimeandFrame[0]:
                 self.frameCountSinceStop += frames
                 if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
                     if not self.pastEndTime:
@@ -435,7 +435,7 @@ class VidTimeManager:
                         self.frameCountWhenStopped = self.frameSinceBeginning
 
         if self.startTimeandFrame:
-            if self.milliNow >= self.startTimeandFrame[0]:
+            if self.milliNow > self.startTimeandFrame[0]:
                 self.frameCountSinceStart += frames
                 if self.frameCountSinceStart >= self.startTimeandFrame[1]:
                     if self.beforeStartTime:
@@ -494,6 +494,13 @@ def getDurationStringFromMilliseconds(millis):
     mi = sec / 60 - (hr * 60)
     ss = sec - (hr * 3600) - mi * 60
     return '{:=02d}:{:=02d}:{:=02d}.{:=03d}'.format(hr, mi, ss,ms)
+
+def addOneFrame(time_string):
+    time_val = getMilliSecondsAndFrameCount(time_string)
+    return str(time_val[1]+1)
+
+def addFrame(millisAndFrame, frames):
+    return (millisAndFrame[0],millisAndFrame[1] + frames)
 
 def differenceBetweeMillisecondsAndFrame(mandf1, mandf2, rate):
     return mandf1[0] - mandf2[0]  + (rate * (mandf1[1] - mandf2[1]))
@@ -1046,16 +1053,16 @@ def toIntTuple(tupleString):
 
 def sizeOfChange(mask):
     if len(mask.shape) == 2:
-        return mask.size - sum(sum(mask == 255))
+        return mask.size - np.sum(mask == 255)
     else:
         mask_size = mask.shape[0] * mask.shape[1]
-        return mask_size - sum(sum(np.all(mask == [255, 255, 255], axis=2)))
+        return mask_size - np.sum(np.all(mask == [255, 255, 255], axis=2))
 
 
 def maskChangeAnalysis(mask, globalAnalysis=False):
     mask = np.asarray(mask)
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
-    totalChange = sum(sum(mask.astype('float32'))) / 255.0
+    totalChange = np.sum(mask.astype('float32')) / 255.0
     ratio = float(totalChange) / float(totalPossible)
     globalchange = True
     if globalAnalysis:
@@ -1118,7 +1125,7 @@ def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, 
         # a bit arbitrary.  If there is a less than  50% overlap, then isolate the regions highlighted by the inputmask
         # otherwise just use the change mask for the transform.  The change mask should be the full set of the pixels
         # changed and the input mask a subset of those pixels
-        if sum(sum(abs((mask.image_array - inputmask)/255))) / float(sum(sum(mask.image_array/255))) >= 0.75:
+        if np.sum(abs((mask.image_array - inputmask)/255)) / float(np.sum(mask.image_array/255)) >= 0.75:
             # want mask2 to be the region moved to
             mask2 = mask - inputmask
             # mask1 to be the region moved from
@@ -1418,7 +1425,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
                 RANSAC_THRESHOLD = 10.0
             if matches is None:
                 M1, matches = cv2.findHomography(new_src_pts, new_dst_pts, cv2.RANSAC, RANSAC_THRESHOLD)
-        matchCount = sum(sum(matches))
+        matchCount = np.sum(matches)
         if float(matchCount) / len(src_dts_pts) < 0.15 and matchCount < 30 :
             return None,None
         return M1,matchCount
@@ -1797,7 +1804,7 @@ def rotateCompare(img1, img2,  arguments=dict()):
         if abs(rotation) < 0.0001:
             return mask1, analysis1
         mask2, analysis2 = __compareRotatedImage(rotation, img1, img2, arguments)
-        diff = sum(sum(mask1)) - sum(sum(mask2))
+        diff = np.sum(mask1) - np.sum(mask2)
         return (mask1,analysis1) if diff < 0 or local else (mask2,analysis2)
     else:
         return __compareRotatedImage(rotation, img1, img2, arguments)
@@ -1823,7 +1830,7 @@ def resizeCompare(img1, img2,  arguments=dict()):
 
 def convertCompare(img1, img2,  arguments=dict()):
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
-        rotation,mask=__findRotation(img1,img2,[90,180,270])
+        rotation,mask=__findRotation(img1,img2,[0, 90,180,270])
         return 255-mask, {'rotation':-rotation}
     if img1.shape != img2.shape:
         new_img2 = cv2.resize(img2,(img1.shape[1],img1.shape[0]))
@@ -1961,10 +1968,18 @@ def __rotateImage(rotation, img, expectedDims=None, cval=0):
 
 
 def __compareRotatedImage(rotation, img1, img2,  arguments):
-    res = __rotateImage(rotation, img1, expectedDims=img2.shape, cval=img2[0, 0])
-    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res, img2,False,
+    if rotation != 0:
+        res = __rotateImage(rotation, img1, expectedDims=img2.shape, cval=img2[0, 0])
+    else:
+        res = img1
+    mask, analysis = __composeExpandImageMask(res, img2) if res.shape != img2.shape else __diffMask(res,
+                                                                                                    img2,
+                                                                                                    False,
                                                                                                     args=arguments)
-    res = __rotateImage(-rotation, mask, expectedDims=img1.shape, cval=255)
+    if rotation != 0:
+        res = __rotateImage(-rotation, mask, expectedDims=img1.shape, cval=255)
+    else:
+        res = mask
     return res, analysis
 
 
@@ -1974,7 +1989,7 @@ def __findRotation(img1, img2, range):
     best_mask = None
     for rotation in range:
         res, analysis  = __compareRotatedImage(rotation, img1,img2, {})
-        c = sum(sum(res))
+        c = np.sum(res)
         if c > best or best_mask is None:
             best = c
             best_mask = res
@@ -2368,7 +2383,7 @@ def img_analytics(z1, z2, mask=None):
         if mask is not None:
             mask = np.copy(mask)
             mask[mask>0] = 1
-            result.update({'local psnr': __colorPSNR(z1*mask, z2*mask, size=sum(sum(mask)))})
+            result.update({'local psnr': __colorPSNR(z1*mask, z2*mask, size=np.sum(mask))})
         return result
 
 def __diffMask(img1, img2, invert, args=None):

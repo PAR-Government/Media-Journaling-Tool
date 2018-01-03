@@ -2982,6 +2982,9 @@
         "checkSameChannels",
         "checkEmpty"
       ],
+        "maskTransformFunction": {
+        "video": "maskgen.mask_rules.copy_paste_frames"
+      },
       "optionalparameters": {},
       "description": "Copy & Paste a series of frames within the same video",
       "includeInMask": true,

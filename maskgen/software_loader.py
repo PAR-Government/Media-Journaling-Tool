@@ -292,19 +292,21 @@ def insertCustomRule(name,func):
     global customRuleFunc
     customRuleFunc[name] = func
 
-def noopFule(*arg,**kwargs):
+def returnNoneFunction(*arg,**kwargs):
     return None
 
-def getRule(name, globals={}):
+def getRule(name, globals={}, noopRule=returnNoneFunction):
     if name is None:
-        return None
+        return noopRule
     import importlib
     global customRuleFunc
     if name in customRuleFunc:
         return customRuleFunc[name]
     else:
         if '.' not in name:
-            return globals.get(name)
+            func = globals.get(name)
+            if func is None:
+                return noopRule
         mod_name, func_name = name.rsplit('.', 1)
         try:
             mod = importlib.import_module(mod_name)
@@ -313,7 +315,7 @@ def getRule(name, globals={}):
             return func#globals.get(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Unable to load rule {}: {}'.format(name,str(e)))
-            return noopFule
+            return noopRule
 
 def getProjectProperties():
     """

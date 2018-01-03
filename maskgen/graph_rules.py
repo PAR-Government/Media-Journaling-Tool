@@ -456,9 +456,9 @@ def check_masks(edge, op, graph, frm, to):
             intersection = inputmask * mask
             leftover_mask = mask - intersection
             leftover_inputmask = inputmask - intersection
-            masksize = sum(sum(leftover_mask))
-            inputmasksize = sum(sum(leftover_inputmask))
-            intersectionsize = sum(sum(intersection))
+            masksize = np.sum(leftover_mask)
+            inputmasksize = np.sum(leftover_inputmask)
+            intersectionsize =np.sum(intersection)
             if inputmasksize == 0 and intersectionsize == 0:
                 return ['input mask does not represent moved pixels. It is empty.']
             ratio_of_intersection = float(intersectionsize) / float(inputmasksize)

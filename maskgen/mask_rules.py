@@ -1,5 +1,6 @@
 from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openImageFile, sizeOfChange, \
-    convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, getValue
+    convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, getValue, addFrame, \
+    getMilliSecondsAndFrameCount
 import exif
 import graph_rules
 from image_wrap import ImageWrapper
@@ -136,7 +137,7 @@ class Probe:
 DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_file_name', 'media_type'])
 CompositeImage = namedtuple('CompositeImage', ['source', 'target', 'media_type', 'videomasks'])
 
-def getMasksFromEdge(graph, source, edge, media_types, channel=0):
+def getMasksFromEdge(graph, source, edge, media_types, channel=0, startTime=None,endTime=None):
     #TODO
     if 'videomasks' in edge and \
         edge['videomasks'] is not None and \
@@ -153,8 +154,10 @@ def getMasksFromEdge(graph, source, edge, media_types, channel=0):
     else:
        result = video_tools.getMaskSetForEntireVideo(getNodeFile(graph,source),
                                              start_time = getValue(edge,'arguments.Start Time',
-                                                                   defaultValue='00:00:00.000'),
-                                             end_time = getValue(edge,'arguments.End Time'),
+                                                                   defaultValue='00:00:00.000')
+                                             if startTime is None else startTime,
+                                             end_time = getValue(edge,'arguments.End Time')
+                                             if endTime is None else endTime,
                                              media_types=media_types,
                                              channel=channel)
        if result is None or len(result) == 0:
@@ -678,6 +681,56 @@ def delete_audio(edge, source, target, edgeMask,
                                                    expectedType='audio')
 
 
+def copy_paste_frames(edge, source, target, edgeMask,
+                     compositeMask=None,
+                     directory='.',
+                     donorMask=None,
+                     pred_edges=None,
+                     graph=None):
+    startTime = getValue(edge,'arguments.Dest Paste Time')
+    framesCount = getValue(edge,'arguments.Number of Frames')
+    endTime = addFrame(getMilliSecondsAndFrameCount(startTime),framesCount)
+
+
+    args = edge['arguments'] if 'arguments' in edge else {}
+    if 'add type' in args and args['add type'] == 'insert':
+        if compositeMask is not None:
+            if compositeMask.source != source and compositeMask.target != target:
+                return CompositeImage(compositeMask.source,
+                                      compositeMask.target,
+                                      compositeMask.media_type,
+                                      video_tools.insertFramesToMask(getMasksFromEdge(graph,source, edge,['video'],
+                                                                     startTime=startTime,
+                                                                     endTime=endTime),
+                                                                     compositeMask.videomasks))
+            return compositeMask
+        elif donorMask is not None:
+            return CompositeImage(donorMask.source,
+                                  donorMask.target,
+                                  donorMask.media_type,
+                                  video_tools.dropFramesFromMask(getMasksFromEdge(graph,source, edge,['video'],
+                                                                     startTime=startTime,
+                                                                     endTime=endTime),
+                                                                 donorMask.videomasks))
+        return None
+    else:
+        # overlay case, trim masks
+        if compositeMask is not None:
+            if compositeMask.source != source and compositeMask.target != target:
+                return CompositeImage(compositeMask.source,
+                                      compositeMask.target,
+                                      compositeMask.media_type,
+                                      video_tools.dropFramesFromMask(getMasksFromEdge(graph,source, edge,['video'],
+                                                                     startTime=startTime,
+                                                                     endTime=endTime
+                                                                     ),
+                                                                     compositeMask.videomasks,
+                                                                     keepTime=True))
+            return compositeMask
+        # in donor case, the donor was already trimmed
+        else:
+            return donorMask
+
 def paste_add_frames(edge, source, target, edgeMask,
                      compositeMask=None,
                      directory='.',
@@ -1140,8 +1193,8 @@ def move_transform(edge, source, target, edgeMask,
         decision = __getInputMaskDecision(edge)
         if decision == 'no' or \
                 (decision != 'yes' and \
-                                 sum(sum(abs(((255 - edgeMask) - (255 - inputmask)) / 255))) / float(
-                                 sum(sum((255 - edgeMask) / 255))) <= 0.25):
+                                 np.sum(abs(((255 - edgeMask) - (255 - inputmask)) / 255)) / float(
+                              np.sum((255 - edgeMask) / 255)) <= 0.25):
             inputmask = edgeMask
     except:
         inputmask = edgeMask
@@ -1765,7 +1818,7 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         composite_list = self.composites[groupid]
         composite_mask_id = (bit / 8)
         imarray = np.asarray(probe.targetMaskImage)
-        sums = sum(sum(255-imarray))
+        sums = np.sum(255-imarray)
         if sums == 0:
             logging.getLogger('maskgen').warn('Empty bit plane for edge {} to {}:{}'.format(
                 str(probe.edgeId),probe.finalNodeId,probe.finalImageFileName
@@ -2206,7 +2259,7 @@ class CompositeDelegate:
             if type(donor_mask_tuple[1]) != np.ndarray:
                 continue
             donor_mask = donor_mask_tuple[1].astype('uint8')
-            if sum(sum(donor_mask > 1)) == 0:
+            if np.sum(donor_mask > 1) == 0:
                 continue
             baseNode = donor_mask_tuple[0]
             if baseNode in imageDonorToNodes:
