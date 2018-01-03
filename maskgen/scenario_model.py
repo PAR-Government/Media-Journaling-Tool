@@ -2294,7 +2294,8 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'],
                                    category=opInfo.category,
                                    generateMask=opInfo.generateMask,
-                                   recordMaskInComposite=opInfo.recordMaskInComposite(filetype))
+                                   recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
+                                   'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         if software is None:
