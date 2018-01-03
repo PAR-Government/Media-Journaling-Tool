@@ -163,8 +163,12 @@ class Operation:
         self.maskTransformFunction = maskTransformFunction
         self.parameter_dependencies = parameter_dependencies
 
-    def recordMaskInComposite(self):
-        return 'yes' if self.includeInMask else 'no'
+    def recordMaskInComposite(self,filetype):
+        if filetype in self.includeInMask :
+            return self.includeInMask [filetype]
+        if 'default' in self.includeInMask :
+            return self.includeInMask ['default']
+        return 'no'
 
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
@@ -307,6 +311,7 @@ def getRule(name, globals={}, noopRule=returnNoneFunction):
             func = globals.get(name)
             if func is None:
                 return noopRule
+            return func
         mod_name, func_name = name.rsplit('.', 1)
         try:
             mod = importlib.import_module(mod_name)

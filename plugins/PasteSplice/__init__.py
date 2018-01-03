@@ -190,11 +190,8 @@ def pasteAnywhere(img, img_to_paste, mask_of_image_to_paste, simple):
         # x,y have no use
         rect=(x, y, w, h))
 
+def performPaste(img,img_to_paste,approach,segment_algorithm):
 
-def transform(img, source, target, **kwargs):
-    img_to_paste = openImageFile(kwargs['donor'])
-    approach = kwargs['approach'] if 'approach' in kwargs else 'simple'
-    segment_algorithm = kwargs['segment'] if 'segment' in kwargs else 'felzenszwalb'
     mask_of_image_to_paste = img_to_paste.to_mask().to_array()
     out2 = None
     if approach == 'texture':
@@ -274,8 +271,35 @@ def transform(img, source, target, **kwargs):
     if out2 is None:
         transform_matrix, out2 = pasteAnywhere(img, img_to_paste.to_array(), mask_of_image_to_paste,
                                                approach == 'simple')
+    return transform_matrix,out2
 
-    ImageWrapper(out2).save(target)
+def transform(img, source, target, **kwargs):
+    img_to_paste = openImageFile(kwargs['donor'])
+    pasteregionsize = kwargs['region size'] if 'region size' in kwargs else 1.0
+    approach = kwargs['approach'] if 'approach' in kwargs else 'simple'
+    segment_algorithm = kwargs['segment'] if 'segment' in kwargs else 'felzenszwalb'
+
+    if pasteregionsize < 1.0:
+        dims = (int(img.size[1]*pasteregionsize),int(img.size[0]*pasteregionsize))
+    else:
+        dims = (img.size[1],img.size[0])
+    x = (img.size[1]-dims[0])/2
+    y = (img.size[0]-dims[1])/2
+    imgarray = np.asarray(img)
+    if len(imgarray.shape) > 2:
+        newimg = imgarray[x:dims[0]+x,y:dims[1]+y,:]
+    else:
+        newimg = imgarray[x:dims[0]+x, y:dims[1]+y]
+
+    transform_matrix,out = performPaste(ImageWrapper(newimg),img_to_paste,approach,segment_algorithm)
+    if pasteregionsize < 1.0:
+        out2 = np.copy(imgarray)
+        if len(imgarray.shape) > 2:
+            out2[x:dims[0]+x, y:dims[1]+y, :] = out
+        else:
+            out2[x:dims[0]+x, y:dims[1]+y] = out
+        out = out2
+    ImageWrapper(out).save(target)
     return {'transform matrix': tool_set.serializeMatrix(
         transform_matrix)} if transform_matrix is not None else None, None
 
@@ -305,6 +329,11 @@ def operation():
                     'values': ['felzenszwalb', 'slic'],
                     'defaultvalue': 'felzenszwalb',
                     'description': 'Segmentation algorithm for determiming paste region with simple set to no'
+                },
+                'region size': {
+                    'type':'float[0:1]',
+                    'default':1.0,
+                    'description':'Paste region size from the center of image in percent 0 to 1. 1.0 is the entire image'
                 }
             },
             'transitions': [
