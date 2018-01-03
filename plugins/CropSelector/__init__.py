@@ -19,9 +19,9 @@ def transform(img,source,target,**kwargs):
       r_x = r_x + (8 - r_x % 8)
       r_y = r_y + (8 - r_y % 8)
     if pixelWidth == r_x:
-        pixelWidth-=8
-    if pixelHeight == r_x:
-        pixelHeight -= 8
+        pixelWidth +=8
+    if pixelHeight == r_y:
+        pixelHeight += 8
     mask = numpy.zeros((cv_image.shape[0], cv_image.shape[1]))
     mask[r_y:-(pixelHeight-r_y), r_x:-(pixelWidth-r_x)] = 255
     Image.fromarray(mask.astype('uint8')).save(target)

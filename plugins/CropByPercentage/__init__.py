@@ -20,10 +20,9 @@ def transform(img,source,target,**kwargs):
       r_x = r_x + (8 - r_x % 8)
       r_y = r_y + (8 - r_y % 8)
     cv_image = numpy.copy(img)
-    print r_x,r_y,pixelWidth,pixelHeight,(pixelHeight - r_y),(pixelWidth - r_x)
     if pixelWidth == r_x:
         pixelWidth +=8
-    if pixelHeight == r_x:
+    if pixelHeight == r_y:
         pixelHeight += 8
     new_img = cv_image[r_y:-(pixelHeight - r_y), r_x:-(pixelWidth - r_x), :]
     ImageWrapper(new_img).save(target)
