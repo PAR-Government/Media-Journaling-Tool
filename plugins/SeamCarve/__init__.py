@@ -49,10 +49,10 @@ def transform(img, source, target, **kwargs):
     sizeSource = img.shape
     percent = float(kwargs['percentage bounds'] if 'percentage bounds' in kwargs else 100)/100.0
     sizeDonor = (int(percent*sizeSource[0]),int(percent*sizeSource[1]))
-    sizeDonor = (sizeDonor[0]+(8+sizeDonor[0]%8),sizeDonor[1]+ (8+sizeDonor[1]%8))
+    keepSize = 'keepSize' in kwargs and kwargs['keepSize'] == 'yes'
     return {'output_files': carveSeams(source, target, sizeDonor,
                                        kwargs['inputmaskname'] if 'inputmaskname' in kwargs else None,
-                                       keep_size='keepSize' in kwargs and kwargs['keepSize'] == 'yes',
+                                       keep_size=keepSize,
                                        approach=getValue(kwargs,'approach',defaultValue="backward"),
                                        energy=getValue(kwargs, 'energy', defaultValue="Sobel"))}, None
 

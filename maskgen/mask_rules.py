@@ -1,6 +1,6 @@
 from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openImageFile, sizeOfChange, \
     convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, getValue, addFrame, \
-    getMilliSecondsAndFrameCount
+    getMilliSecondsAndFrameCount, sumMask
 import exif
 import graph_rules
 from image_wrap import ImageWrapper
@@ -1193,8 +1193,8 @@ def move_transform(edge, source, target, edgeMask,
         decision = __getInputMaskDecision(edge)
         if decision == 'no' or \
                 (decision != 'yes' and \
-                                 np.sum(abs(((255 - edgeMask) - (255 - inputmask)) / 255)) / float(
-                              np.sum((255 - edgeMask) / 255)) <= 0.25):
+                                 sumMask(abs(((255 - edgeMask) - (255 - inputmask)) / 255)) / float(
+                                 sumMask((255 - edgeMask) / 255)) <= 0.25):
             inputmask = edgeMask
     except:
         inputmask = edgeMask

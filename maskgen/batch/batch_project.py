@@ -699,7 +699,7 @@ class InputMaskPluginOperation(PluginOperation):
         if file.endswith('.png'):
             shutil.copy2(filename, target)
         else:
-            tool_set.openImageFile(filename).save(target, format='PNG')
+            tool_set.openImage(filename).save(target, format='PNG')
         local_state['cleanup'].append(target)
         params = {}
         kwargs = {k: self.resolveDonor(k, v, local_state) for k, v in kwargs.iteritems()}
@@ -736,7 +736,7 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
         if filename.endswith('.png'):
             shutil.copy2(filename, target)
         else:
-            tool_set.openImageFile(filename).save(target, format='PNG')
+            tool_set.openImage(filename).save(target, format='PNG')
         local_state['cleanup'].append(target)
         params = {}
         try:
@@ -899,12 +899,15 @@ class BatchProject:
             self._execute_node(base_node, None, local_state, global_state)
             local_state['model'].setProjectData('batch specification name', self.getName())
             queue = [top for top in self._findTops() if top != base_node]
+            logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
             completed = [base_node]
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
                 if op_node_name in completed:
                     continue
+                if op_node_name not in self.G.nodes():
+                    logging.getLogger('maskgen').error('Project {} missing node {}'.format( self.getName(),op_node_name))
                 predecessors = list(self.G.predecessors(op_node_name))
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:

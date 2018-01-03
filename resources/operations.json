@@ -58,7 +58,7 @@
       },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "transitions": [
         "video.video",
@@ -94,7 +94,7 @@
       "compareparameters": {
           "video_function" :"maskgen.video_tools.audioSample"
       },
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.audio",
         "audio.audio",
@@ -136,7 +136,7 @@
       "maskTransformFunction": {"image": "maskgen.mask_rules.delete_audio"},
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"
@@ -200,7 +200,7 @@
       },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "transitions": [
         "video.video",
@@ -280,7 +280,7 @@
       },
       "analysisOperations": [],
       "description": "Apply filter to audio stream",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "compareparameters": {
           "video_function" :"maskgen.video_tools.audioCompare"
@@ -339,10 +339,10 @@
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "analysisOperations": [],
       "description": "Amplify Audio Signal",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "transitions": [
         "audio.audio",
@@ -398,7 +398,7 @@
       },
       "analysisOperations": [],
       "description": "Add Reverb or Dampen an Audio Signal to alter the perception of the room size.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "transitions": [
         "audio.audio",
@@ -458,7 +458,7 @@
       },
       "analysisOperations": [],
       "description": "Compress Audio Signal",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "transitions": [
         "audio.audio",
@@ -512,7 +512,7 @@
       },
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
       "transitions": [
         "video.video",
@@ -557,7 +557,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make it appear is if the camera is moving or not moving",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -595,7 +595,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Decrease opacity of an image or a layer.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -640,7 +640,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Create a mosaic pattern and then reassemble",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -677,7 +677,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Smooth the artifacts resultant from interlacing.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -720,7 +720,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add random variations of brightness or color information.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -769,7 +769,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make details unclear or less distinct.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -821,7 +821,7 @@
       "optionalparameters": {},
       "analysisOperations": [ ],
       "description": "Distort and/or crop video layers in order to remove camera shake",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"
@@ -862,7 +862,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Enhance edge definition within an image.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -891,7 +891,7 @@
         }
       },
       "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -916,7 +916,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "image.image",
@@ -934,7 +934,7 @@
       ],
       "optionalparameters": {},
       "description": "Alter image metadata.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -954,7 +954,7 @@
       ],
       "optionalparameters": {},
       "description": "Use quantization tables and exif data from a particular camera to save an image as JPG.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -969,7 +969,7 @@
       ],
       "optionalparameters": {},
       "description": "Disguise quantization artifacts by adding noise.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image"
       ]
@@ -990,7 +990,7 @@
       ],
       "optionalparameters": {},
       "description": "Alter Image to be compliant with another images quantization and EXIF",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -1012,7 +1012,7 @@
         }
       },
       "description": "CFA Correction",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -1038,7 +1038,7 @@
       ],
       "optionalparameters": {},
       "description": "Apply artificial lens distortion",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1060,7 +1060,7 @@
         }
       },
       "description": "Add PRNU fingerprint trace from an image.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -1081,7 +1081,7 @@
         }
       },
       "description": "Remove PRNU fingerprint from image.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -1102,7 +1102,7 @@
       "optionalparameters": {
       },
       "description": "Add PRNU fingerprint trace, generated from a set of images.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -1122,7 +1122,7 @@
       ],
       "optionalparameters": {},
       "description": "Remove PRNU fingerprint trace, generated from a set of images from a camera.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -1139,7 +1139,7 @@
       ],
       "optionalparameters": {},
       "description": "Chromatic Aberration Correction",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image"
       ]
@@ -1179,7 +1179,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Add sources of illumination that were not originally present.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1218,7 +1218,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add sources of reflection that were not originally present.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1258,7 +1258,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add shadows that were not originally present.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1306,7 +1306,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Create objects that were not originally present in an image.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1349,7 +1349,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Change the transparency of a given color overlay.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1393,7 +1393,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Change the fill using a solid color or gradient.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1439,7 +1439,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "hidden" : false,
       "transitions": [
         "video.video"
@@ -1480,7 +1480,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Laundering",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1518,7 +1518,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1560,7 +1560,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Changing color space or changing based on a lut.",
-      "includeInMask": true,
+     "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1606,7 +1606,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Uniformly alter the color of an image within a given selection.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1650,7 +1650,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the color of a selection or image without adjusting saturation or luminance.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1694,7 +1694,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the color intensity of a given hue.",
-      "includeInMask": true,
+     "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1727,7 +1727,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Visually change brightness and saturation",
-      "includeInMask": true,
+     "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1756,7 +1756,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Filter to alter visual impact of the image.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1809,7 +1809,7 @@
       "compareparameters" : {
          "tolerance" : 0.0001
       },
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1849,7 +1849,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1902,7 +1902,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.paste_sampled"
       },
@@ -1938,7 +1938,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Convolve an image with a custom convolution kernel.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -1976,7 +1976,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Modify an image or image selection to create the illusion of motion.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -2005,7 +2005,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Make edits to raw imagery in a raw processor.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2021,7 +2021,7 @@
       ],
       "optionalparameters": {},
       "description": "Remove a color from a layer of video.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"false"},
       "transitions": [
         "video.video"
       ]
@@ -2064,7 +2064,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Normalize using histograms.",
-      "includeInMask": true,
+    "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2099,7 +2099,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
-      "includeInMask": true,
+     "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2135,7 +2135,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift luminance values on a histogram with an editable and flexible curve.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2168,7 +2168,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Shift all luminance values on a histogram to higher or lower values.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2207,7 +2207,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Adjust brightness, contrast, and tonal range by specifying the location of complete black, complete white, and midtones in a histogram.",
-      "includeInMask": true,
+     "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2246,7 +2246,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Alter the values of a luminance histogram.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "false", "video":"true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2283,7 +2283,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2319,7 +2319,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2357,7 +2357,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ObjectCGI.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2394,7 +2394,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2412,7 +2412,7 @@
       "optionalparameters": {
       },
       "description": "Export the image in the in the same format. Used to branch off a final image  node",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -2440,7 +2440,7 @@
          "function" :"maskgen.tool_set.convertCompare"
       },
       "description": "Export the image in the bmp format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -2460,7 +2460,7 @@
       "optionalparameters": {
       },
       "description": "Export the image in the PCM format (wave, aif, etc.).",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "audio.audio",
         "video.audio",
@@ -2481,7 +2481,7 @@
       "optionalparameters": {
       },
       "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "audio.audio",
         "video.audio"
@@ -2496,7 +2496,7 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the DNG format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -2515,7 +2515,7 @@
         }
       },
       "description": "Export the image in the jpeg format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -2543,7 +2543,7 @@
          "function" :"maskgen.tool_set.convertCompare"
       },
       "description": "Export the image in the png format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -2562,7 +2562,7 @@
       "optionalparameters": {
       },
       "description": "Export the image in the PDF format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -2590,7 +2590,7 @@
          "function" :"maskgen.tool_set.convertCompare"
       },
       "description": "Export the image in the tif format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -2625,7 +2625,7 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "meta",
       "transitions": [
         "video.video"
@@ -2661,7 +2661,7 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "meta",
       "transitions": [
         "video.video"
@@ -2697,7 +2697,7 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "meta",
       "transitions": [
         "video.video",
@@ -2743,7 +2743,7 @@
         "image": "maskgen.mask_rules.image_to_video"
       },
       "description": "Export the image in the AVI format.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "meta",
       "transitions": [
         "video.video",
@@ -2813,7 +2813,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image"
       ]
@@ -2851,7 +2851,7 @@
          "video_function": "maskgen.video_tools.pasteCompare"
       },
       "description": "Adding a series of frames from a video clip",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -2896,7 +2896,7 @@
         }
       },
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask":"all",
       "transitions": [
         "video.video"
@@ -2955,7 +2955,7 @@
       },
       "analysisOperations": [],
       "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -2987,7 +2987,7 @@
       },
       "optionalparameters": {},
       "description": "Copy & Paste a series of frames within the same video",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -3015,7 +3015,7 @@
       ],
       "optionalparameters": {},
       "description": "Cut & Paste a series of frames within the same video",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "video.video"
       ]
@@ -3030,7 +3030,7 @@
       ],
       "optionalparameters": {},
       "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image"
       ]
@@ -3099,7 +3099,7 @@
         "image": "maskgen.mask_rules.recapture_transform"
       },
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -3148,7 +3148,7 @@
         "image": "maskgen.mask_rules.select_region"
       },
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "compareparameters" : {
          "convert_function" :"maskgen.tool_set.extractAlpha"
       },
@@ -3182,7 +3182,7 @@
         "image": "maskgen.mask_rules.select_region_frames"
       },
       "description": "Create a limited selection,removing background,from a donor video,for the intent of pasting.  The result should be a black back ground for non-keyed manipulations.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "video.video"
       ]
@@ -3216,7 +3216,7 @@
         "audio": "maskgen.mask_rules.delete_audio"
       },
       "description": "Remove a series of frames from a video clip.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "video.video"
       ]
@@ -3241,7 +3241,7 @@
         }
       },
       "description": "Remove all frames before and after the selected video clip.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask": "frames",
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_crop_frames"
@@ -3269,7 +3269,7 @@
         "image": "maskgen.mask_rules.select_remove"
       },
       "description": "Remove a limited selection within an image.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image"
       ]
@@ -3288,7 +3288,7 @@
       "optionalparameters": {
       },
       "description": "Select a single frame into an image.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "video.image"
       ]
@@ -3315,7 +3315,7 @@
       },
       "analysisOperations": [ ""],
       "description": "Stitching video frames together to form a comprehensive view of the scene.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "video.image"
       ]
@@ -3357,7 +3357,7 @@
         }
       },
       "description": "Duplicate video frames and replay them at a delay to create a trail.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "video.video"
       ]
@@ -3386,7 +3386,7 @@
         }
       },
       "description": "Lock a layer to a specific frame rate.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"
@@ -3436,7 +3436,7 @@
         }
       },
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"
@@ -3470,7 +3470,7 @@
         }
       },
       "description": "Distorts the image by shifting pixels across time.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"
@@ -3525,7 +3525,7 @@
         }
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "generateMask" : "all",
        "compareparameters" : {
          "video_function" :"maskgen.video_tools.warpCompare"
@@ -3571,7 +3571,7 @@
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Replace large selections with an averaging of surrounding pixel groups.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -3623,7 +3623,7 @@
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -3687,7 +3687,7 @@
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.cas_transform"},
       "description": "Resize an image without changing important visual content.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -3717,7 +3717,7 @@
         "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.crop_transform",
@@ -3778,7 +3778,7 @@
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the shape and dimensions of a given selection or image.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -3824,7 +3824,7 @@
         "video": "maskgen.mask_rules.video_flip_transform"
       },
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "image.image",
@@ -3890,7 +3890,7 @@
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.move_transform"},
       "description": "Reposition a selection within a larger composition.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -3962,7 +3962,7 @@
         "function":"maskgen.tool_set.resizeCompare"
       },
       "description": "Alter the dimensions of an image.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "image.image"
@@ -4020,7 +4020,7 @@
         "maskgen.tool_set.siftAnalysis"
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.rotate_transform",
         "video": "maskgen.mask_rules.video_rotate_transform"
@@ -4080,7 +4080,7 @@
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Change the size of an image or layer while preserving dimensions.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -4156,7 +4156,7 @@
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.seam_transform"},
       "description": "Resize an image while preserving the integrity of content.",
-      "includeInMask": true,
+      "includeInMask": {"default" : "true"},
       "transitions": [
         "image.image",
         "video.video"
@@ -4210,7 +4210,7 @@
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -4265,7 +4265,7 @@
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -4324,7 +4324,7 @@
       ],
       "maskTransformFunction": {"image": "maskgen.mask_rules.warp_transform"},
       "description": "Freely alter the shape or dimensions of a given selection or image.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "transitions": [
         "image.image",
         "video.video"
@@ -4376,7 +4376,7 @@
 		}
       },
       "description": "Down sample a video to a lower frame resolution.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"
@@ -4410,7 +4410,7 @@
       },
       "maskTransformFunction": {"video": "maskgen.mask_rules.reverse_transform"},
       "description": "Reverse the direction of video play.",
-      "includeInMask": false,
+      "includeInMask": {"default" : "false"},
       "generateMask" : "frames",
       "transitions": [
         "video.video"

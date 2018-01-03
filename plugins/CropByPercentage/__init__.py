@@ -19,7 +19,7 @@ def transform(img,source,target,**kwargs):
     if snapto8:
       r_x = r_x + (8 - r_x % 8)
       r_y = r_y + (8 - r_y % 8)
-    cv_image = numpy.array(img)
+    cv_image = numpy.copy(img)
     new_img = cv_image[r_y:-(pixelHeight - r_y), r_x:-(pixelWidth - r_x), :]
     ImageWrapper(new_img).save(target)
     return {'crop_x':r_x,'crop_y':r_y, 'crop_width':pixelWidth,'crop_height':pixelHeight},None
