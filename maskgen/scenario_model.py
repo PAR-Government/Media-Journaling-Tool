@@ -333,7 +333,7 @@ class Modification:
     def setOperationName(self, name):
         self.operationName = name
 
-    def setFromOperation(self,op):
+    def setFromOperation(self,op,filetype='image'):
         """
         :param op:
         :return:
@@ -341,7 +341,7 @@ class Modification:
         """
         self.category = op.category
         self.generateMask = op.generateMask
-        self.recordMaskInComposite = op.recordMaskInComposite()
+        self.recordMaskInComposite = op.recordMaskInComposite(filetype)
 
 
 
@@ -1571,6 +1571,9 @@ class ImageProjectModel:
             for k, v in analysis_params.iteritems():
                 if k not in analysis:
                     analysis[k] = v
+            if 'recordMaskInComposite' in mod.arguments:
+                mod.recordMaskInComposite = mod.arguments.pop('recordMaskInComposite')
+
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
             edgeErrors = [] if skipRules else graph_rules.run_rules(
@@ -2247,6 +2250,7 @@ class ImageProjectModel:
         """
         import traceback
         im, filename = self.currentImage()
+        filetype= fileType(filename)
         op = plugins.getOperation(filter)
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
@@ -2269,7 +2273,7 @@ class ImageProjectModel:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
             logging.getLogger('maskgen').error(
-                'Plugin {} failed with {} for arguments {}'.format(filter, str(e), str(resolved)))
+                'Plugin {} failed with {} given node {} for arguments {}'.format(filter, str(e),self.start, str(resolved)))
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
@@ -2290,7 +2294,7 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'],
                                    category=opInfo.category,
                                    generateMask=opInfo.generateMask,
-                                   recordMaskInComposite=opInfo.recordMaskInComposite())
+                                   recordMaskInComposite=opInfo.recordMaskInComposite(filetype))
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         if software is None:

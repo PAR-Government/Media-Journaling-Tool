@@ -21,6 +21,8 @@ from datetime import datetime
 from maskgen.loghandling import set_logging
 import Queue as queue
 from maskgen.graph_output import ImageGraphPainter
+from maskgen.software_loader import getRule
+
 
 class IntObject:
     value = 0
@@ -190,6 +192,8 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     """
     if 'type' not in specification:
         raise ValueError('type attribute missing in  {}'.format(specification_name))
+    donothing = lambda x:  x
+    postProcess = getRule(specification['function'],noopRule=donothing)  if 'function' in specification else donothing
     if specification['type'] == 'mask':
         if 'source' not in specification:
             raise ValueError('source attribute missing in  {}'.format(specification_name))
@@ -201,12 +205,12 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         if invert:
             tool_set.openImageFile(mask, isMask=True).invert().save(mask + '.png')
             mask = mask + '.png'
-        return mask
+        return postProcess(mask)
     elif specification['type'] == 'value':
         if isinstance(specification['value'],str):
-            return specification['value'].format(**global_state)
+            return postProcess(specification['value'].format(**global_state))
         else:
-            return specification['value']
+            return postProcess(specification['value'])
     elif specification['type'] == 'variable':
         if 'name' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -219,9 +223,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         if 'permutegroup' in specification:
             source_spec = copy.copy(getNodeState(specification['source'], local_state)[specification['name']])
             source_spec['permutegroup'] = specification['permutegroup']
-            return pickArg(source_spec, node_name, specification_name, global_state, local_state)
+            return postProcess(pickArg(source_spec, node_name, specification_name, global_state, local_state))
         else:
-            return getNodeState(specification['source'], local_state)[specification['name']]
+            return postProcess(getNodeState(specification['source'], local_state)[specification['name']])
     elif specification['type'] == 'donor':
         if 'source' in specification:
             if specification['source'] == 'base':
@@ -230,23 +234,23 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             return getNodeState(specification['source'], local_state)['node']
         if len(predecessors) != 1:
             raise ValueError('Donor specification {} missing source '.format(specification['name']))
-        return predecessors[0]
+        return postProcess(predecessors[0])
     elif specification['type'] == 'imagefile':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         source = getNodeState(specification['source'], local_state)['node']
-        return getGraphFromLocalState(local_state).get_image(source)[1]
+        return postProcess(getGraphFromLocalState(local_state).get_image(source)[1])
     elif specification['type'] == 'input':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
-        return getNodeState(specification['source'], local_state)['output']
+        return postProcess(getNodeState(specification['source'], local_state)['output'])
     elif specification['type'] == 'plugin':
-        return callPluginSpec(specification, local_state)
+        return postProcess(callPluginSpec(specification, local_state))
     elif specification['type'].startswith('global'):
         if 'name' not in specification:
             raise ValueError('source attribute missing in {}'.format(specification_name))
         return global_state[specification['name']]
-    return pickArg(specification, node_name, specification_name, global_state, local_state)
+    return postProcess(pickArg(specification, node_name, specification_name, global_state, local_state))
 
 
 def pickArgs(local_state, global_state, node_name, argument_specs, operation, predecessors):
@@ -695,7 +699,7 @@ class InputMaskPluginOperation(PluginOperation):
         if file.endswith('.png'):
             shutil.copy2(filename, target)
         else:
-            tool_set.openImageFile(filename).save(target, format='PNG')
+            tool_set.openImage(filename).save(target, format='PNG')
         local_state['cleanup'].append(target)
         params = {}
         kwargs = {k: self.resolveDonor(k, v, local_state) for k, v in kwargs.iteritems()}
@@ -732,7 +736,7 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
         if filename.endswith('.png'):
             shutil.copy2(filename, target)
         else:
-            tool_set.openImageFile(filename).save(target, format='PNG')
+            tool_set.openImage(filename).save(target, format='PNG')
         local_state['cleanup'].append(target)
         params = {}
         try:
@@ -821,6 +825,11 @@ class BatchProject:
     def getName(self):
         return self.G.graph['name'] if 'name' in self.G.graph else 'Untitled'
 
+    def getConnectToNodes(self,op_node_name):
+        return [predecessor for predecessor in self.G.predecessors(op_node_name)
+         if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' or
+         tool_set.getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
+
     def executeForProject(self, project, nodes, workdir=None):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         global_state = {'project': self,
@@ -851,9 +860,7 @@ class BatchProject:
                     # skip if a predecessor is missing
                     if len([pred for pred in predecessors if pred not in completed]) > 0:
                         continue
-                    connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
-                                      if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
-
+                    connecttonodes = self.getConnectToNodes(op_node_name)
                     connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                     self.logger.debug('Starting: {}'.format(op_node_name))
                     self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
@@ -892,18 +899,20 @@ class BatchProject:
             self._execute_node(base_node, None, local_state, global_state)
             local_state['model'].setProjectData('batch specification name', self.getName())
             queue = [top for top in self._findTops() if top != base_node]
+            logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
             completed = [base_node]
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
                 if op_node_name in completed:
                     continue
+                if op_node_name not in self.G.nodes():
+                    logging.getLogger('maskgen').error('Project {} missing node {}'.format( self.getName(),op_node_name))
                 predecessors = list(self.G.predecessors(op_node_name))
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
                     continue
-                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
-                                  if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
+                connecttonodes = self.getConnectToNodes(op_node_name)
                 node = self.G.node[op_node_name]
                 if len(connecttonodes) > 0 and 'source' in node:
                     connect_to_node_name = node['source']

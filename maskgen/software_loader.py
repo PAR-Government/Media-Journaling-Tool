@@ -163,8 +163,12 @@ class Operation:
         self.maskTransformFunction = maskTransformFunction
         self.parameter_dependencies = parameter_dependencies
 
-    def recordMaskInComposite(self):
-        return 'yes' if self.includeInMask else 'no'
+    def recordMaskInComposite(self,filetype):
+        if filetype in self.includeInMask :
+            return self.includeInMask [filetype]
+        if 'default' in self.includeInMask :
+            return self.includeInMask ['default']
+        return 'no'
 
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
@@ -292,19 +296,22 @@ def insertCustomRule(name,func):
     global customRuleFunc
     customRuleFunc[name] = func
 
-def noopFule(*arg,**kwargs):
+def returnNoneFunction(*arg,**kwargs):
     return None
 
-def getRule(name, globals={}):
+def getRule(name, globals={}, noopRule=returnNoneFunction):
     if name is None:
-        return None
+        return noopRule
     import importlib
     global customRuleFunc
     if name in customRuleFunc:
         return customRuleFunc[name]
     else:
         if '.' not in name:
-            return globals.get(name)
+            func = globals.get(name)
+            if func is None:
+                return noopRule
+            return func
         mod_name, func_name = name.rsplit('.', 1)
         try:
             mod = importlib.import_module(mod_name)
@@ -313,7 +320,7 @@ def getRule(name, globals={}):
             return func#globals.get(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Unable to load rule {}: {}'.format(name,str(e)))
-            return noopFule
+            return noopRule
 
 def getProjectProperties():
     """

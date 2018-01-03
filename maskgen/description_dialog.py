@@ -671,7 +671,8 @@ class DescriptionCaptureDialog(Toplevel):
 
     def apply(self):
         self.cancelled = False
-        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True))
+        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True),
+                                          filetype = self.sourcefiletype)
         self.description.setOperationName(self.e2.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
