@@ -5,6 +5,7 @@ import subprocess
 import logging
 import tarfile
 import importlib
+import traceback
 
 """
 Manage and invoke all JT plugins that support operations on node media (images, video and audio)
@@ -176,6 +177,7 @@ def callPlugin(name,im,source,target,**kwargs):
             return loaded[name]['function'](im,source,target,**kwargs)
         except Exception as e:
             logging.getLogger('maskgen').error('Plugin {} failed with {} for arguments {}'. format(name, str(e), str(kwargs)))
+            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
             raise e
 
 def runCustomPlugin(name, im, source, target, **kwargs):

@@ -1285,7 +1285,7 @@ def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,
     if 'location' not in analysis:
         analysis['location'] = '(0,0)'
     analysis['empty mask'] = 'yes' if np.all(mask==255) else 'no'
-    return ImageWrapper(mask), analysis,error
+    return ImageWrapper(mask), analysis, error
 
 
 def __indexOf(source, dest):
@@ -1885,6 +1885,7 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
     mask = None
     error = None
     rotation = float(arguments['rotation']) if 'rotation' in arguments else 0.0
+    analysis= {}
     if abs(rotation) > 0.0001:
         mask,analysis = __compareRotatedImage(rotation, img1, img2,  arguments)
     if (sum(img1.shape) > sum(img2.shape)):
@@ -1893,12 +1894,10 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
         mask,analysis= __composeExpandImageMask(img1, img2)
     if mask is None:
         try:
-            if img1.shape == img2.shape:
-                mask, analysis = __diffMask(img1, img2, False, args=arguments)
+            mask, analysis = __diffMask(img1, img2, False, args=arguments)
         except Exception as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
             logging.getLogger('maskgen').info('Arguments ' + str(arguments))
-            error = str(e)
             mask = np.zeros(img1.shape, dtype=np.uint8)
             analysis={}
     return abs(255 - mask).astype('uint8') if invert else mask, analysis, error

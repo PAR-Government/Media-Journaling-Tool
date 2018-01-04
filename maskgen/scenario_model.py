@@ -21,7 +21,7 @@ import mask_rules
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
-
+import traceback
 
 def formatStat(val):
     if type(val) == float:
@@ -1589,6 +1589,7 @@ class ImageProjectModel:
             self.labelNodes(destination)
             return msg, True
         except Exception as e:
+            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
             return 'Exception (' + str(e) + ')', False
 
     def __scan_args_callback(self, opName, arguments):
@@ -2230,7 +2231,7 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsg, pairs_composite
 
-    def imageFromPlugin(self, filter, software=None, **kwargs):
+    def imageFromPlugin(self, filter, software=None,**kwargs):
         """
           Create a new image from a plugin filter.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2249,7 +2250,7 @@ class ImageProjectModel:
           @type filename: str
           @rtype: list of (str, list (str,str))
         """
-        import traceback
+
         im, filename = self.currentImage()
         filetype= fileType(filename)
         op = plugins.getOperation(filter)
@@ -2322,9 +2323,11 @@ class ImageProjectModel:
                                          node_parameters={
                                              'experiment_id': experiment_id} if experiment_id is not None else {})
         pairs = list()
+
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
                          msg2 if msg2 else '']).strip()
+
         os.remove(target)
         if status:
             pairs.append((self.start, self.end))

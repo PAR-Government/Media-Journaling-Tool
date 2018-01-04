@@ -29,7 +29,7 @@ def upload_projects(s3dir, dir, qa, username, error_writer):
             setPwdX(CustomPwdX(username))
 
         processProjectProperties(scModel)
-        scModel.renameFileImages()
+        #scModel.renameFileImages()
         if qa:
             scModel.set_validation_properties("yes", get_username(), "QA redone via Batch Updater")
         error_list = scModel.exporttos3(s3dir)
