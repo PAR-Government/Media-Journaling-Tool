@@ -1097,7 +1097,8 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
     ratio = 1.0
     if mask is not None:
         globalchange, totalChange, ratio = maskChangeAnalysis(mask, not globalchange)
-    analysis['global'] = 'yes' if globalchange else 'no'
+    analysis['global'] = arguments['global operation'] if 'global operation' in arguments else \
+        ('yes' if globalchange else 'no')
     analysis['change size ratio'] = ratio
     analysis['change size category'] = changeCategory
     return globalchange
@@ -2389,14 +2390,14 @@ def img_analytics(z1, z2, mask=None):
         return result
 
 def __diffMask(img1, img2, invert, args=None):
-    dst = np.abs(img1 - img2)
+    dst = np.abs(np.subtract(img1, img2))
     gray_image = np.zeros(img1.shape).astype('uint8')
     ii16 = np.iinfo(dst.dtype)
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
     difference = difference*ii16.max
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
-    return (np.array(gray_image) if invert else (255 - np.array(gray_image))), analysis
+    return (gray_image if invert else (255 - gray_image)), analysis
 
 
 def coordsFromString(value):

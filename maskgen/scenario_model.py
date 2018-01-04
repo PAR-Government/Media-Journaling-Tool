@@ -2311,10 +2311,13 @@ class ImageProjectModel:
                     description.arguments[k] = v
         description.setSoftware(software)
         description.setAutomated('yes')
+        edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
+        if  'global operation' in kwargs:
+            edge_parameters['global operation'] = kwargs['global operation']
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
-                                         edge_parameters={'plugin_name': filter,'experiment_id': experiment_id},
+                                         edge_parameters=edge_parameters,
                                          node_parameters={
                                              'experiment_id': experiment_id} if experiment_id is not None else {})
         pairs = list()

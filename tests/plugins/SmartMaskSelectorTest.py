@@ -75,7 +75,8 @@ class SmartMaskSelectorTestCase(test_support.TestSupport):
                                         largeh=200,
                                         size=2,
                                         op=2,
-                                        savecolor='0,255,0'
+                                        savecolor='0,255,0',
+                                        region=0.8
                                         )
         wrapper = image_wrap.openImageFile(filename_output)
         output = wrapper.to_array()
