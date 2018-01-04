@@ -12,7 +12,7 @@ class CropSelectorTestCase(unittest.TestCase):
         plugins.loadPlugins()
 
     def test_nonsnap(self):
-        img = numpy.zeros((500,500),dtype='uint8')
+        img = numpy.zeros((500,540),dtype='uint8')
         wrapper = image_wrap.ImageWrapper(img)
         filename  = tempfile.mktemp(prefix='mstc',suffix='.png',dir='.')
         filename_output = tempfile.mktemp(prefix='mstcr', suffix='.png', dir='.')

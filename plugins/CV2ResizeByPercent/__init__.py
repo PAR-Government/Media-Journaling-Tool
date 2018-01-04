@@ -12,7 +12,7 @@ def transform(img, source, target, **kwargs):
     pixelHeight = int(shape[0] * percentageHeight)
     pixelWidth = pixelWidth - pixelWidth % 8
     pixelHeight = pixelHeight - pixelHeight % 8
-    ImageWrapper(resizeImage(cv_image, (pixelWidth, pixelHeight), kwargs['interpolation'])).save(target)
+    ImageWrapper(resizeImage(cv_image, (pixelHeight,pixelWidth), kwargs['interpolation'])).save(target)
     return None, None
 
 
@@ -27,9 +27,9 @@ def operation():
         'version': cv2.__version__,
         'arguments': {
             'percentage_width':
-                {'type': "float[0:0.99]", 'description': 'the percentage of pixels to remove horizontal'},
+                {'type': "float[0:0.99]", 'description': 'the percentage of pixels to retained horizontal'},
             'percentage_height':
-                {'type': "float[0:0.99]", 'description': 'the percentage of pixels to remove vertically'},
+                {'type': "float[0:0.99]", 'description': 'the percentage of pixels to retained vertically'},
             'interpolation': {
                 "type": "list",
                 "defaultValue": "image",

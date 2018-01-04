@@ -22,6 +22,7 @@ from maskgen.loghandling import set_logging
 import Queue as queue
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.software_loader import getRule
+import traceback
 
 
 class IntObject:
@@ -616,6 +617,9 @@ class PluginOperation(BatchOperation):
                                                                        str(args)))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception( exc_type, exc_value, exc_traceback,limit=10)))
+            self.logger.error(' '.join(traceback.format_stack()))
             raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
         my_state['node'] = pairs[0][1]
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
@@ -715,6 +719,8 @@ class InputMaskPluginOperation(PluginOperation):
                     params[k] = v
         except Exception as e:
             msg = str(e)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception( exc_type, exc_value, exc_traceback,limit=10)))
             raise ValueError("Plugin " + filter + " failed:" + msg)
         return target, params
 
@@ -753,6 +759,8 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
                         params[k] = v
         except Exception as e:
             msg = str(e)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception( exc_type, exc_value, exc_traceback,limit=10)))
             raise ValueError("Plugin " + filter + " failed:" + msg)
         return target, params
 

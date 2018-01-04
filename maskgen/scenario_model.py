@@ -477,6 +477,7 @@ class ImageImageLinkTool(LinkTool):
                 analysis = {}
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
+                analysis = {}
         else:
             mask, analysis, error = createMask(startIm,
                                         destIm,

@@ -22,7 +22,7 @@ def modify_value(source, target, tag, name, modifier):
     newvalue = modifier(result[name] if name in result else None)
     if newvalue is None:
         newvalue = get_new_position(None)
-    return maskgen.exif.runexif(['-P', '-q', '-m',
+    return maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m',
                                      tag + '=' + newvalue,
                                      target],
                                     fix=False)
