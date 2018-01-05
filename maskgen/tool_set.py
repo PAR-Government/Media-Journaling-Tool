@@ -1894,6 +1894,11 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
         mask,analysis= __composeExpandImageMask(img1, img2)
     if mask is None:
         try:
+            if img1.shape != img2.shape and \
+                            img1.shape[1] == img2.shape[0] and \
+                            img1.shape[0] == img2.shape[1]:
+                arguments['Image Rotated'] = 'yes'
+                return convertCompare(img1,img2,arguments)
             mask, analysis = __diffMask(img1, img2, False, args=arguments)
         except Exception as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))

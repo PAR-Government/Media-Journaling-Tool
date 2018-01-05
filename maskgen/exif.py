@@ -27,6 +27,15 @@ def getOrientationFromExif(source):
         return None
 
 
+def rotateAnalysis( orientation):
+    flip, rotate  = rotateAmount(orientation)
+    result = {}
+    if flip is not None:
+        result['flip direction'] = flip
+    if rotate  != 0:
+        result['rotation'] = rotate
+    return result
+
 def rotateAmount( orientation):
     rotation = orientation
     if rotation == 'Mirror horizontal':
