@@ -2,10 +2,15 @@ from maskgen.tool_set import getMilliSecondsAndFrameCount, addFrame
 import cv2
 from maskgen.algorithms.optical_flow import copyFrames
 
+"""
+Returns the start and end time of the frames inserted
+"""
+
+
 
 def transform(img, source, target, **kwargs):
     start_time = getMilliSecondsAndFrameCount(kwargs['Select Start Time']) if 'Select Start Time' in kwargs else (0, 1)
-    end_time = addFrame(start_time, int(kwargs['Number of Frames']))
+    end_time = addFrame(start_time, int(kwargs['Number of Frames'])-1)
     paste_time = getMilliSecondsAndFrameCount(kwargs['Dest Paste Time'])
     codec = (kwargs['codec']) if 'codec' in kwargs else 'XVID'
     start_frame = copyFrames(source, target,
@@ -13,7 +18,9 @@ def transform(img, source, target, **kwargs):
                              end_time,
                              paste_time,
                              codec=codec) + 1
-    return {'Start Time': str(start_frame), 'End Time': str(start_frame + int(kwargs['Number of Frames']))}, None
+    return {'Start Time': str(start_frame),
+            'End Time': str(start_frame + int(kwargs['Number of Frames'] - 1)),
+            'add type': 'insert'}, None
 
 
 def suffix():

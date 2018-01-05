@@ -113,20 +113,22 @@ def runexif(args, fix=True, ignoreError=False):
     command = [exifcommand]
     command.extend(args)
     try:
-        stdout,stderr = Popen(command,stdout=PIPE,stderr=PIPE).communicate()
+        pipe = Popen(command,stdout=PIPE,stderr=PIPE)
+        stdout,stderr = pipe.communicate()
         if stdout is not None:
             for line in stdout.splitlines():
                 logging.getLogger('maskgen').info("exif output for command " + str(command) + " = "+ line)
         if stderr is not None:
             newsetofargs = args
             for line in stderr.splitlines():
-                newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
+            #    newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
                 logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
-            #try stripping off the offenders
-            if len(newsetofargs) < len(args) and fix:
-                return runexif(newsetofargs, fix=False)
-            else:
-                return False
+            ##try stripping off the offenders
+            #if len(newsetofargs) < len(args) and fix:
+            #    return runexif(newsetofargs, fix=False)
+            #else:
+            #    return False
+            return pipe.returncode == 0
     except OSError as e:
         logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
         if not ignoreError:

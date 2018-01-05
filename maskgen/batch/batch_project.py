@@ -18,7 +18,7 @@ import numpy as np
 from maskgen.batch.permutations import *
 import time
 from datetime import datetime
-from maskgen.loghandling import set_logging
+from maskgen.loghandling import set_logging,set_logging_level
 import Queue as queue
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.software_loader import getRule
@@ -591,6 +591,8 @@ class PluginOperation(BatchOperation):
                         isDonor(graph.edge[predecessor][node_name])]
 
         predecessor_state = getNodeState(connect_to_node_name, local_state)
+        if 'node' not in predecessor_state:
+            self.logger.error('{} is not valid predecessor for {}.  Is it labeled as connect:False?'.format(connect_to_node_name,node_name))
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
@@ -617,14 +619,14 @@ class PluginOperation(BatchOperation):
                                                                        str(args)))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            self.logger.error(' '.join(traceback.format_exception( exc_type, exc_value, exc_traceback,limit=10)))
-            self.logger.error(' '.join(traceback.format_stack()))
             raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
         my_state['node'] = pairs[0][1]
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
         for k,v in tool_set.getValue(edge,'arguments',defaultValue={}).iteritems():
             my_state[k] = v
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Plugin {} returned {}'.format(plugin_name,
+                                                                       str(tool_set.getValue(edge,'arguments',defaultValue={}))))
         my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
@@ -677,7 +679,13 @@ class InputMaskPluginOperation(PluginOperation):
                         predecessors)
         args['skipRules'] = True
         args['sendNotifications'] = False
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Calling plugin {} for {} with args {}'.format(filter,
+                                                                             filename,
+                                                                             str(args)))
         targetfile, params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, **args)
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Plugin {} returned args {}'.format(filter,str(params)))
         my_state['output'] = targetfile
         if params is not None and type(params) == type({}):
             for k, v in params.iteritems():
@@ -713,6 +721,8 @@ class InputMaskPluginOperation(PluginOperation):
                                                                                  filename,
                                                                                  str(kwargs)))
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                self.logger.debug('Plugin {} returned  {}'.format(filter, str(extra_args)))
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
                     # if k not in kwargs:
@@ -835,7 +845,7 @@ class BatchProject:
 
     def getConnectToNodes(self,op_node_name):
         return [predecessor for predecessor in self.G.predecessors(op_node_name)
-         if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' or
+         if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' and
          tool_set.getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
 
     def executeForProject(self, project, nodes, workdir=None):
@@ -1218,6 +1228,7 @@ class BatchExecutor:
         logging.getLogger('maskgen').info('Setting working directory to {}'.format(self.workdir))
         if loglevel is not None:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
+            set_logging_level(logging.INFO if loglevel is None else int(loglevel))
         self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
         self.initialState = createGlobalState(results,self.workdir,removeBadProjects=removeBadProjects)
         if global_variables is not None:

@@ -431,13 +431,13 @@ class VidTimeManager:
         if self.stopTimeandFrame:
             if self.milliNow > self.stopTimeandFrame[0]:
                 self.frameCountSinceStop += frames
-                if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
+                if self.frameCountSinceStop > self.stopTimeandFrame[1]:
                     if not self.pastEndTime:
                         self.pastEndTime = True
-                        self.frameCountWhenStopped = self.frameSinceBeginning
+                        self.frameCountWhenStopped = self.frameSinceBeginning - 1
 
         if self.startTimeandFrame:
-            if self.milliNow > self.startTimeandFrame[0]:
+            if self.milliNow >= self.startTimeandFrame[0]:
                 self.frameCountSinceStart += frames
                 if self.frameCountSinceStart >= self.startTimeandFrame[1]:
                     if self.beforeStartTime:
@@ -446,6 +446,10 @@ class VidTimeManager:
 
     def isOpenEnded(self):
         return self.stopTimeandFrame is None
+
+    def isPastTime(self):
+        return self.pastEndTime
+
 
     def isPastTime(self):
         return self.pastEndTime
@@ -500,6 +504,10 @@ def getDurationStringFromMilliseconds(millis):
 def addOneFrame(time_string):
     time_val = getMilliSecondsAndFrameCount(time_string)
     return str(time_val[1]+1)
+
+def subtractOneFrame(time_string):
+    time_val = getMilliSecondsAndFrameCount(time_string)
+    return str(time_val[1]-1) if time_val[1] > 1 else '0'
 
 def addFrame(millisAndFrame, frames):
     return (millisAndFrame[0],millisAndFrame[1] + frames)

@@ -61,7 +61,7 @@ def transform(img, source, target, **kwargs):
     else:
         ok = relocate(source, target, degrees_of_change)
     if ok:
-        maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=', target])
+        maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m', '-XMPToolkit=', target])
     return None, 'Failed' if not ok else None
 
 def suffix():

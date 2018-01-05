@@ -13,7 +13,7 @@
     "recompress": false
   },
   "nodes": [
-   {
+    {
       "op_type": "BaseSelection",
       "image_directory": "{image_dir}",
       "picklist": "videoset",
@@ -32,42 +32,28 @@
       "id": "2",
       "arguments": {
         "seconds to drop": {
-          "type" : "int[1:3]"
+         "type":"int[1:3]"
+        },
+        "codec": {
+         "type":"value",
+          "value":"H264"
         },
         "Start Time": {
           "type":"value",
           "value":0
-        }
-      }
-    },
-    {
-      "op_type": "PluginOperation",
-      "plugin": "FlowDrivenVideoTimeWarp",
-      "id": "3",
-      "arguments": {
-        "Frames to Add": {
-          "type":"variable",
-          "source":"2",
-          "name":"Frames to Add"
         },
-        "Start Time": {
-          "type":"variable",
-          "source":"2",
-          "name":"Start Time"
-        },
-        "End Time": {
-          "type":"variable",
-          "source":"2",
-          "name":"End Time"
+        "save histograms": {
+          "type" : "value",
+          "value":"no"
         }
       }
     },
      {
       "op_type": "PluginOperation",
       "plugin": "VideoCopyPasteFrames",
-      "id": "4",
+      "id": "3",
       "arguments": {
-        "Number of Frames": {
+         "Number of Frames": {
           "type":"int[35:60]"
         },
         "Select Start Time": {
@@ -82,37 +68,64 @@
         }
       }
     },
-     {
+    {
       "op_type": "PluginOperation",
-      "plugin": "FlowDrivenVideoInsert",
-      "id": "5",
+         "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "4",
       "arguments": {
-        "Start Time": {
+        "Frames to Add": {
           "type":"variable",
-          "source":"4",
+          "source":"2",
+          "name":"Frames to Add"
+        },
+       "Start Time": {
+          "type":"variable",
+          "source":"3",
           "name":"End Time",
           "function": "maskgen.tool_set.addOneFrame"
         },
         "End Time": {
           "type":"variable",
-          "source":"4",
+          "source":"3",
           "name":"End Time",
           "function": "maskgen.tool_set.addOneFrame"
         }
       }
     },
-     {
+    {
       "op_type": "PluginOperation",
       "plugin": "CompressAsVideo",
-      "id": "6",
+      "id": "5",
       "arguments": {
          "donor": {
            "type": "donor",
            "source": "0"
          }
       }
-     },
-       {
+    },
+    {
+      "op_type": "PluginOperation",
+         "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "6",
+      "arguments": {
+        "Frames to Add": {
+          "type":"variable",
+          "source":"2",
+          "name":"Frames to Add"
+        },
+       "Start Time": {
+         "type":"variable",
+          "source":"2",
+          "name":"Start Time"
+        },
+        "End Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"End Time"
+        }
+      }
+    },
+    {
       "op_type": "PluginOperation",
       "plugin": "CompressAsVideo",
       "id": "7",
@@ -134,28 +147,28 @@
       "target": 2
     },
     {
-      "source": 2,
+      "source": 1,
       "target": 3
     },
     {
-      "source": 3,
-      "target": 6
-    },
-    {
-      "source": 1,
-      "target": 4
-    },
-    {
-      "source": 2,
-      "target": 4,
+       "source": 2,
+       "target": 3,
        "connect":false
     },
     {
+      "source": 3,
+      "target": 4
+    },
+     {
       "source": 4,
       "target": 5
     },
     {
-      "source": 5,
+      "source": 2,
+      "target": 6
+    },
+    {
+      "source": 6,
       "target": 7
     }
   ],

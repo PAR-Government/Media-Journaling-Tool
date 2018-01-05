@@ -28,7 +28,7 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
         source_img.save(target, format='TIFF', **donor_img.info)
         maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         maskgen.exif.runexif(['-overwrite_original','-q', '-all=', target])
-        maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])
+        maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])
     else:
         im = Image.fromarray(np.asarray(source_img))
         im.save(target, format='TIFF')

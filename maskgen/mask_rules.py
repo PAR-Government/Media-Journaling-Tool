@@ -691,9 +691,8 @@ def copy_paste_frames(edge, source, target, edgeMask,
     framesCount = getValue(edge,'arguments.Number of Frames')
     endTime = addFrame(getMilliSecondsAndFrameCount(startTime),framesCount)
 
-
     args = edge['arguments'] if 'arguments' in edge else {}
-    if 'add type' in args and args['add type'] == 'insert':
+    if 'add type' not in args or args['add type'] == 'insert':
         if compositeMask is not None:
             if compositeMask.source != source and compositeMask.target != target:
                 return CompositeImage(compositeMask.source,
@@ -2345,7 +2344,8 @@ class CompositeDelegate:
             if edge['op'] == 'Donor':
                 startMask = self.__getDonorMaskForEdge(edge_id)
             elif len(getValue(edge,'inputmaskname',defaultValue='')) > 0 and \
-                    (edge['recordMaskInComposite'] == 'yes' or inclusionFunction(edge_id,edge,self.gopLoader)):
+                    (edge['recordMaskInComposite'] == 'yes' or
+                         inclusionFunction(edge_id,edge,self.gopLoader.getOperationWithGroups(edge['op'],fake=True))):
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
                 if not os.path.exists(fullpath):
                     raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])

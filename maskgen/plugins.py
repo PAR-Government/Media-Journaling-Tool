@@ -168,6 +168,8 @@ def getOperation(name):
 
 def callPlugin(name,im,source,target,**kwargs):
     global loaded
+    if loaded is None:
+        loaded = loadPlugins()
     if name not in loaded:
         raise ValueError('Request plugined not found: ' + str(name))
     if loaded[name]['function'] == 'custom':
@@ -214,7 +216,9 @@ def executeWith(executionCommand, im, source, target, mapping, **kwargs):
             executionCommand[i] = executionCommand[i].format(**kwargs)
         except KeyError as e:
             logging.getLogger('maskgen').warn('Argument {} not provided for {}'.format(e.message,executionCommand[0]))
-    subprocess.call(executionCommand,shell=shell)
+    ret = subprocess.call(executionCommand,shell=shell)
+    if ret != 0:
+        raise RuntimeError('Plugin {} failed with code {}'.format(executionCommand[0],ret))
 
 
 def mapCmdArgs(args, mapping):

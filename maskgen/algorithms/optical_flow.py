@@ -5,6 +5,7 @@ import os
 from maskgen.cv2api import cv2api_delegate
 from maskgen.tool_set import VidTimeManager, differenceInFramesBetweenMillisecondsAndFrame
 
+import hashlib
 
 def readFrames(in_file, start_time, end_time):
     """
@@ -47,7 +48,7 @@ def readFrames(in_file, start_time, end_time):
     return [frames, histograms, fps, startFrame]
 
 
-def createOutput(in_file, out_file, timeManager, codec='MPEG'):
+def createOutput(in_file, out_file, timeManager, codec=None):
     """
 
     :param in_file:
@@ -59,8 +60,9 @@ def createOutput(in_file, out_file, timeManager, codec='MPEG'):
     @type out_file: str
     @type timeManager: VidTimeManager
     """
+    logger = logging.getLogger('maskgen')
     cap = cv2api_delegate.videoCapture(in_file)
-    fourcc = cv2api_delegate.get_fourcc(codec)
+    fourcc = cv2api_delegate.get_fourcc(str(codec)) if codec is not None else cap.get(cv2api_delegate.fourcc_prop)
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
@@ -70,14 +72,18 @@ def createOutput(in_file, out_file, timeManager, codec='MPEG'):
               " H: " + str(height) + " W: " + str(width)
         raise ValueError('Unable to create video ' + err)
     try:
-        count = 0
+        writecount = 0
+        dropcount =0
         while (cap.grab()):
             ret, frame = cap.retrieve()
-            count += 1
             elapsed_time = float(cap.get(cv2api_delegate.prop_pos_msec))
             timeManager.updateToNow(elapsed_time)
             if timeManager.isBeforeTime() or timeManager.isPastTime():
                 out_video.write(frame)
+                writecount += 1
+            else:
+                dropcount += 1
+        logger.debug('Drop {} frames; Wrote {} frames'.format(dropcount, writecount))
     finally:
         cap.release()
         out_video.release()
@@ -140,7 +146,7 @@ def selectBestMatches(differences, selection=10):
 
 
 # best flow defined as the lowest sigam of the optical flow between frames
-def selectBestFlow(frames, best_matches):
+def selectBestFlow(frames, best_matches, logger):
     flow_list = np.zeros(best_matches.shape[0])
     for i in range(best_matches.shape[0]):
         past = cv2.cvtColor(frames[best_matches[i, 0]], cv2.COLOR_BGR2GRAY)
@@ -148,7 +154,8 @@ def selectBestFlow(frames, best_matches):
         flow = cv2.calcOpticalFlowFarneback(past, future, None,
                                             0.8, 7, 15, 3, 7, 1.5, 0)
         flow_list[i] = np.std(flow)
-
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('FOR {} to {}, STD={}'.format(best_matches[i, 0],best_matches[i, 1],flow_list[i]))
     return np.argmin(flow_list)
 
 
@@ -173,7 +180,6 @@ def calculateOptimalFrameReplacement(frames, start, stop):
 
     std_jump_flow = np.std(jump_flow)
     frames_to_add = int(np.rint(std_jump_flow / avg_flow))
-    # print "jump, avg, frames:", std_jump_flow, avg_flow, frames_to_add
     return frames_to_add
 
 
@@ -182,7 +188,7 @@ def smartDropFrames(in_file, out_file,
                     end_time,
                     seconds_to_drop,
                     savehistograms=False,
-                    codec='MPEG',
+                    codec=None,
                     drop=True):
     """
     :param in_file: is the full path of the video file from which to drop frames
@@ -192,21 +198,23 @@ def smartDropFrames(in_file, out_file,
     :param seconds_to_drop:
     :param savehistograms: save histograms differences to file
     :param codec:
-    :return:
+    :return: first and last frame numbers dropped, and the optimal number to add back/replace
     """
     logger = logging.getLogger('maskgen')
     logger.info('Read {} frames into memory'.format(in_file))
     frames, histograms, fps, start = readFrames(in_file, start_time, end_time)
     distance = int(round(fps * seconds_to_drop))
+    logger.info('Distance {} for {} frames to drop with {} fps'.format(distance,seconds_to_drop,fps))
+    offset = int(round(fps * seconds_to_drop))
     # avg_diffs, sigma_diffs = computeNormalDiffs(histograms, 60)
     logger.info('starting histogram computational')
-    differences = scanHistList(histograms, distance, 0,
+    differences = scanHistList(histograms, distance, offset,
                                saveHistFile=in_file[0:in_file.rfind('.')] + '-hist.csv' if savehistograms else None)
     logger.info('Finding best matches')
     best_matches = selectBestMatches(differences, selection=10)
     logger.info('Starting optical flow search')
     if best_matches is not None:
-        best_flow = selectBestFlow(frames, best_matches)
+        best_flow = selectBestFlow(frames, best_matches, logger)
         logger.info('best pair: {}'.format(str(best_matches[best_flow])))
         frames_to_add = calculateOptimalFrameReplacement(frames, best_matches[best_flow][0],
                                                          best_matches[best_flow][1])
@@ -215,15 +223,15 @@ def smartDropFrames(in_file, out_file,
         lastFrametoDrop = best_matches[best_flow][1] + start
         if drop:
             time_manager = VidTimeManager(startTimeandFrame=(0, firstFrametoDrop),
-                                          stopTimeandFrame=(0, lastFrametoDrop))
+                                          stopTimeandFrame=(0, lastFrametoDrop ))
             createOutput(in_file, out_file, time_manager, codec=codec)
-        return firstFrametoDrop, lastFrametoDrop + 1, frames_to_add
+        return firstFrametoDrop, lastFrametoDrop, frames_to_add
 
 
 def dropFrames(in_file, out_file,
                start_time,
                end_time,
-               codec='MPEG'):
+               codec=None):
     """
     :param in_file: is the full path of the video file from which to drop frames
     :param out_file: resulting video file
@@ -280,7 +288,6 @@ def getNormalFlow(frames):
         flow = cv2.calcOpticalFlowFarneback(past, future, None,
                                             0.8, 7, 15, 3, 7, 1.5, 0)
         flow_list[i - 1] = np.std(flow)
-    print flow_list
     return np.mean(flow_list)
 
 
@@ -288,23 +295,24 @@ def smartAddFrames(in_file,
                    out_file,
                    start_time,
                    end_time,
-                   codec='MPEG'):
+                   codec=None):
     """
     :param in_file: is the full path of the video file from which to drop frames
     :param out_file: resulting video file
-    :param start_time: (milli,frame no) to start to fill
-    :param end_time: (milli,frame no) end fil
+    :param start_time: (milli,frame no) start to fill
+    :param end_time: (milli,frame no) end to fill
     :param codec:
     :return:
     """
+    logger = logging.getLogger('maskgen')
     cap = cv2api_delegate.videoCapture(in_file)
-    fourcc = cv2api_delegate.get_fourcc(codec)
+    fourcc = cv2api_delegate.get_fourcc(str(codec)) if codec is not None else cap.get(cv2api_delegate.fourcc_prop)
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
     out_video = cv2.VideoWriter(out_file, fourcc, fps, (width, height))
     time_manager = VidTimeManager(startTimeandFrame=start_time, stopTimeandFrame=end_time)
-    frames_to_add = differenceInFramesBetweenMillisecondsAndFrame(end_time, start_time, fps) - 1
+    frames_to_add = differenceInFramesBetweenMillisecondsAndFrame(end_time, start_time, fps) + 1
     if not out_video.isOpened():
         err = out_video + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
               " H: " + str(height) + " W: " + str(width)
@@ -319,6 +327,10 @@ def smartAddFrames(in_file,
                 break
             out_video.write(frame)
             last_frame = frame
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Smart Add Frames ' + str(start_time) + '  to ' + str(end_time))
+            logger.debug("Selected Before {}".format(hashlib.sha256(last_frame).digest()))
+            logger.debug("Selected After {}".format(hashlib.sha256(frame).digest()))
         next_frame = frame
         prev_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
         next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
@@ -327,6 +339,7 @@ def smartAddFrames(in_file,
 
         opticalFlow = OpticalFlow(last_frame, next_frame, jump_flow)
         i = 0
+        frames_to_add+=1
         while i < frames_to_add:
             frame_scale = i / (1.0 * frames_to_add)
             frame = opticalFlow.setTime(frame_scale)
@@ -341,73 +354,12 @@ def smartAddFrames(in_file,
         out_video.release()
     return frames_to_add, frames_to_add * (1000.0 / fps)
 
-
-def smartSmoothFrames(in_file,
-                    out_file,
-                    start_time,
-                    codec='MPEG'):
-    """
-    :param in_file: is the full path of the video file from which to drop frames
-    :param out_file: resulting video file
-    :param start_time: (milli,frame no) to start to fill
-    :param end_time: (milli,frame no) end fil
-    :param codec:
-    :return:
-    """
-    cap = cv2api_delegate.videoCapture(in_file)
-    fourcc = cv2api_delegate.get_fourcc(codec)
-    fps = cap.get(cv2api_delegate.prop_fps)
-    height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
-    width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, fourcc, fps, (width, height))
-    if not out_video.isOpened():
-        err = out_video + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
-              " H: " + str(height) + " W: " + str(width)
-        raise ValueError('Unable to create video ' + err)
-
-    time_manager = VidTimeManager(startTimeandFrame=start_time)
-    last_frames = []
-    try:
-        while (time_manager.isBeforeTime() and cap.grab()):
-            ret, frame = cap.retrieve()
-            elapsed_time = float(cap.get(cv2api_delegate.prop_pos_msec))
-            time_manager.updateToNow(elapsed_time)
-            if time_manager.isBeforeTime():
-                out_video.write(frame)
-            last_frames.append(frame)
-            if len(last_frames)> 60:
-                last_frames = last_frames[1:]
-        frames_to_add = calculateOptimalFrameReplacement(last_frames, 0, len(last_frames) - 1)
-        last_frame = last_frames[-1]
-        first_frame = frame
-        prev_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
-        next_frame_gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
-        jump_flow = cv2.calcOpticalFlowFarneback(prev_frame_gray, next_frame_gray, None,
-                                                 0.8, 7, 15, 3, 7, 1.5, 2)
-        opticalFlow = OpticalFlow(last_frame, last_frame, jump_flow)
-
-        i = 0
-        while i < frames_to_add:
-            frame_scale = i / (1.0 * frames_to_add)
-            frame = opticalFlow.setTime(frame_scale)
-            out_video.write(frame)
-            i += 1
-        out_video.write(first_frame)
-        while (cap.grab()):
-            ret, frame = cap.retrieve()
-            out_video.write(frame)
-    finally:
-        cap.release()
-        out_video.release()
-    return frames_to_add, frames_to_add * (1000.0 / fps)
-
-
 def copyFrames(in_file,
                     out_file,
                     start_time,
                     end_time,
                     paste_time,
-                    codec='MPEG'):
+                    codec=None):
     """
     :param in_file: is the full path of the video file from which to drop frames
     :param out_file: resulting video file
@@ -416,10 +368,11 @@ def copyFrames(in_file,
     :param codec:
     :return:
     """
+    logger = logging.getLogger('maskgen')
     frames_to_write = []
     frames_to_copy = []
     cap = cv2api_delegate.videoCapture(in_file)
-    fourcc = cv2api_delegate.get_fourcc(codec)
+    fourcc = cv2api_delegate.get_fourcc(str(codec)) if codec is not None else cap.get(cv2api_delegate.fourcc_prop)
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
@@ -433,6 +386,7 @@ def copyFrames(in_file,
     paste_time_manager = VidTimeManager(startTimeandFrame=paste_time)
     write_count=0
     try:
+        last_write = None
         while (not copy_time_manager.isPastTime() and cap.grab()):
             ret, frame = cap.retrieve()
             elapsed_time = float(cap.get(cv2api_delegate.prop_pos_msec))
@@ -444,13 +398,19 @@ def copyFrames(in_file,
                 frames_to_write.append(frame)
             else:
                 out_video.write(frame)
+                last_write = frame
                 write_count+=1
+        if logger.isEnabledFor(logging.DEBUG)  :
+            logger.debug("Last to write {}".format(hashlib.sha256(last_write).digest()))
+            logger.debug("Last to copy {}".format(hashlib.sha256(frames_to_copy[-1]).digest()))
         if  len(frames_to_write) > 0:
             # paste prior to copy
-            for frame in frames_to_copy:
-                out_video.write(frame)
-            for frame in frames_to_write:
-                out_video.write(frame)
+            for copy_frame in frames_to_copy:
+                #if logger.isEnabledFor(logging.DEBUG):
+                #    copy_frame[0:50, 0:50, :] = [0, 0, 0]
+                out_video.write(copy_frame)
+            for write_frame in frames_to_write:
+                out_video.write(write_frame)
         else:
             # paste after to copy
             frame = None
@@ -461,8 +421,10 @@ def copyFrames(in_file,
                 if paste_time_manager.isBeforeTime():
                     out_video.write(frame)
                     write_count += 1
-            for frame in frames_to_copy:
-                out_video.write(frame)
+            for copy_frame in frames_to_copy:
+                #if logger.isEnabledFor(logging.DEBUG):
+                #    copy_frame[0:50, 0:50, :] = [0, 0, 0]
+                out_video.write(copy_frame)
             if frame is not None:
                 out_video.write(frame)
         while (cap.grab()):

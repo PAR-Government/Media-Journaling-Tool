@@ -37,7 +37,7 @@ class CompressAsTestCase(TestSupport):
                                          filename,
                                          filename_output,
                                          donor=filename,
-                                         rotate='yes')
+                                         **{'Image Rotated': 'yes'})
         self.assertEqual(error, None)
         data = exif.getexif(filename)
 

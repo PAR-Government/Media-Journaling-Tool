@@ -493,8 +493,8 @@ class SeamCarver:
 
         if mask_filename is not None:
             mask = tool_set.openImageFile(mask_filename).to_array()
-            self.protected[mask[:, :, 0] > 2] = 1000.0
-            self.removal[mask[:, :, 1] > 2] = -1000.0
+            self.protected[mask[:, :, 1] > 2] = 1000.0
+            self.removal[mask[:, :, 0] > 2] = -1000.0
 
         self.narrow_bounds = True
 
@@ -557,8 +557,6 @@ class SeamCarver:
                                             energy_function=self.energy_function)
             iterations+=1
 
-        if self.keep_size:
-            return current_image.image, self.mask_tracker.dropped_mask*255
 
         # REMOVE ROWS
         if self.shape[1] < current_image.image.shape[1]:
@@ -599,6 +597,9 @@ class SeamCarver:
             current_image = ImageState(_image_rotate(current_image.image, 0),
                                        multipliers=[protected],
                                        energy_function=self.energy_function)
+
+        if self.keep_size:
+            return current_image.image, self.mask_tracker.dropped_mask*255
 
         # ADD ROWS
         if self.shape[1] > current_image.image.shape[1]:

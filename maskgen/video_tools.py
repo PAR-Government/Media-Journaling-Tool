@@ -175,7 +175,7 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
                 opening = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
                 closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
                 result = closing
-            totalMatch = np.sum(abs(result) > 1)
+            totalMatch = sumMask(abs(result) > 1)
             #result = result
             if totalMatch > 0:
                 count += 1
@@ -280,7 +280,7 @@ def getStreamId(line):
     return ''
 
 
-def processMeta(stream):
+def processMeta(stream,errorstream):
     meta = {}
     prefix = ''
     while True:
@@ -298,9 +298,23 @@ def processMeta(stream):
             addToMeta(meta, prefix, line, split=False)
     return meta
 
-def processMetaStreams(stream):
+def processMetaStreams(stream,errorstream):
     streams = []
     temp = {}
+    bit_rate = None
+    video_stream = None
+    try:
+        while True:
+            line = errorstream.readline()
+            pos = line.find('bitrate:')
+            if pos > 0:
+                bit_rate = line[pos+9:].strip()
+                pos = bit_rate.find(' ')
+                if pos > 0:
+                    bit_rate = str(int(bit_rate[0:pos]) * 1024)
+                    break
+    except:
+        pass
     while True:
         line = stream.readline()
         if line is None or len(line) == 0:
@@ -315,7 +329,12 @@ def processMetaStreams(stream):
                 else:
                     setting = line.split('=')
                     temp[setting[0]] = '='.join(setting[1:]).strip()
-
+                    if setting[0] == 'codec_type' and temp[setting[0]] == 'video':
+                        video_stream = len(streams)
+    if bit_rate is not None and video_stream is not None and \
+            ('bit_rate' is not streams[video_stream]  or \
+                     streams[video_stream]['bit_rate'] == 'N/A'):
+        streams[video_stream]['bit_rate'] = bit_rate
     return streams
 
 def sortFrames(frames):
@@ -331,7 +350,7 @@ def __addMetaToFrames(frames, meta):
         meta.pop('stream_index')
 
 
-def processFrames(stream):
+def processFrames(stream, errorstream):
     frames = {}
     meta = {}
     while True:
@@ -382,7 +401,7 @@ def getMeta(file, with_frames=False, show_streams=False):
             ffmpegcommand.append(args)
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         try:
-            return func(p.stdout)
+            return func(p.stdout,p.stderr)
         finally:
             p.stdout.close()
             p.stderr.close()
@@ -1113,7 +1132,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             last_time = end_time
         cut['endtime'] = last_time
         cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
-        cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe']
+        cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe'] + 1
         ranges.append(cut)
         return False
     return True
@@ -1731,12 +1750,12 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
             time_manager.updateToNow(analysis_components.elapsed_time_one)
             if time_manager.isBeforeTime():
                 continue
+            if time_manager.isPastTime():
+                break
             ret_one, frame_one =analysis_components.retrieveOne()
             ret_two, frame_two = analysis_components.retrieveTwo()
             if frame_one.shape != frame_two.shape:
                 return getMaskSetForEntireVideo(fileOne),[]
-            if time_manager.isPastTime():
-                break
             diff = np.abs(frame_one - frame_two)
             analysis_components.mask = np.zeros((frame_one.shape[0],frame_one.shape[1])).astype('uint8')
             diff  = cv2.cvtColor(diff,cv2.COLOR_RGBA2GRAY)
@@ -1746,6 +1765,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
             if not opFunc(analysis_components,ranges,arguments):
                 done = True
                 break
+
         analysis_components.mask = 0
         if analysis_components.grabbed_one and analysis_components.frame_one is None:
             analysis_components.retrieveOne()

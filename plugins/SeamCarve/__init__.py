@@ -3,6 +3,7 @@ from maskgen.image_wrap import ImageWrapper
 import os
 import numpy as np
 from maskgen.tool_set import shortenName,uniqueId,getValue
+import maskgen
 
 from maskgen.algorithms.seam_carving import SeamCarver, SobelFunc, \
 ScharrEnergyFunc,base_energy_function,foward_base_energy_function
@@ -47,12 +48,21 @@ def carveSeams(source,target,shape,mask_filename, approach='backward', energy='S
 def transform(img, source, target, **kwargs):
     img = np.asarray(img)
     sizeSource = img.shape
-    percent = float(kwargs['percentage bounds'] if 'percentage bounds' in kwargs else 100)/100.0
-    sizeDonor = (int(percent*sizeSource[0]),int(percent*sizeSource[1]))
+    percentageWidth = float(kwargs['percentage_width'])
+    percentageHeight = float(kwargs['percentage_height'])
+    pixelWidth = int(sizeSource[1] * percentageWidth)
+    pixelHeight = int(sizeSource[0] * percentageHeight)
+    keepSize = 'keepSize' in kwargs and kwargs['keepSize'] == 'yes'
+    if not keepSize:
+        if percentageWidth != 1.0:
+            pixelWidth = pixelWidth - pixelWidth % 4
+        if  percentageHeight != 1.0:
+            pixelHeight = pixelHeight - pixelHeight % 4
+    sizeDonor = (pixelHeight, pixelWidth)
     keepSize = 'keepSize' in kwargs and kwargs['keepSize'] == 'yes'
     return {'output_files': carveSeams(source, target, sizeDonor,
                                        kwargs['inputmaskname'] if 'inputmaskname' in kwargs else None,
-                                       keep_size=keepSize,
+                                       keep_size=not keepSize,
                                        approach=getValue(kwargs,'approach',defaultValue="backward"),
                                        energy=getValue(kwargs, 'energy', defaultValue="Sobel"))}, None
 
@@ -61,18 +71,23 @@ def operation():
     return {'name': 'TransformSeamCarving',
             'category': 'Transform',
             'description': 'Resize donor to size of Input using LQR. Requires GIMP.  Set environment variable MASKGEN_GIMP to the gimp binary',
-            'software': 'GIMP',
-            'version': '2.8.20',
+            'software':'maskgen',
+            'version':maskgen.__version__[0:3],
             'arguments': {
                 'donor': {
                     'type': 'donor',
                     'defaultvalue': None,
                     'description': 'png that contributes size info'
                 },
-                'percentage bounds': {
-                    'type': 'int',
-                    'defaultvalue': 100,
-                    'description': 'The percentage change in size '
+                'percentage_width': {
+                    'type': 'float[0.5:1.0]',
+                    'defaultvalue': 1,
+                    'description': 'The percentage of size to keep'
+                },
+                'percentage_height': {
+                    'type': 'float[0.5:1.0]',
+                    'defaultvalue': 1,
+                    'description': 'The percentage of size to keep'
                 },
                 'approach': {
                     'type': 'list',

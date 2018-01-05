@@ -1,7 +1,9 @@
-from image_graph import current_version,getPathValues
+from image_graph import current_version,getPathValues, getValue
 import tool_set
 import os
 import logging
+from image_wrap import openImageFile,ImageWrapper
+import numpy as np
 
 """
 Support functions for auto-updating journals created with older versions of the tool"
@@ -71,18 +73,20 @@ def updateJournal(scModel):
         upgrades.append('04.0810.9381e76724')
     if '0.4.0901.723277630c' not in upgrades:
         _fixFrameRate(scModel)
-        upgrades.append('0.4.0901.723277630c')
         _fixRaws(scModel)
     if '0.4.1115.32eabae8e6' not in upgrades:
         _fixRecordMasInComposite(scModel, gopLoader)
         _fixLocalRotate(scModel)
-    if '0.4.1115.ad475bbfcf' not in upgrades:
-        _fixSeam(scModel, gopLoader)
+        upgrades.append('0.4.1115.32eabae8e6')
     if '0.4.1204.5291b06e59' not in upgrades:
         _addColor(scModel)
         _fixAudioOutput(scModel, gopLoader)
         _fixEmptyMask(scModel, gopLoader)
         _fixGlobal(scModel, gopLoader)
+        upgrades.append('0.4.1204.5291b06e59')
+    if '0.4.1231.03ad63e6bb' not in upgrades:
+        _fixSeams(scModel)
+        upgrades.append('0.4.1231.03ad63e6bb')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -164,6 +168,33 @@ def _fixRaws(scModel):
             if redo:
                 scModel.select((frm,to))
                 scModel.reproduceMask()
+
+def _fixSeams(scModel):
+    if scModel.G.get_project_type()!= 'image':
+        return
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] in [ 'TransformSeamCarving']:
+            bounds = getValue(edge,'arguments.percentage bounds')
+            if  bounds is not None:
+                edge['arguments'].pop('percentage bounds')
+                edge['arguments']['percentage_width'] = float(bounds)/100.0
+                edge['arguments']['percentage_height'] = float(bounds)/100.0
+            keep  =getValue(edge, 'arguments.keepSize')
+            if keep is not None:
+                edge['arguments']['keep'] = 'yes' if keep == 'no' else 'no'
+            mask = getValue(edge,'inputmaskname')
+            if mask is not None:
+                try:
+                    im = openImageFile(os.path.join(scModel.get_dir(),mask))
+                    if im is not None:
+                        oldmask = im.to_array()
+                        newmask = np.zeros(oldmask.shape,dtype=np.uint8)
+                        newmask[:,:,1] = oldmask[:,:,0]
+                        newmask[:,:,0] = oldmask[:,:,1]
+                        ImageWrapper(newmask).save(os.path.join(scModel.get_dir(),mask))
+                except Exception as e:
+                    logging.getLogger('maskgen').log('Seam Carve fix {} mask error {}'.format(mask,str(e)))
 
 def _fixVideoAudioOps(scModel):
     groups = scModel.G.getDataItem('groups')
