@@ -183,6 +183,13 @@ def calculateOptimalFrameReplacement(frames, start, stop):
     return frames_to_add
 
 
+def dumpFrames(frames,file):
+    with open(file,'w') as fp:
+        i =1
+        for frame in frames:
+            fp.write('{},{}\n'.format(i,hashlib.sha256(frame).hexdigest()))
+            i+=1
+
 def smartDropFrames(in_file, out_file,
                     start_time,
                     end_time,
@@ -203,6 +210,7 @@ def smartDropFrames(in_file, out_file,
     logger = logging.getLogger('maskgen')
     logger.info('Read {} frames into memory'.format(in_file))
     frames, histograms, fps, start = readFrames(in_file, start_time, end_time)
+    dumpFrames(frames, in_file[0:in_file.rfind('.')] + '-frames.csv')
     distance = int(round(fps * seconds_to_drop))
     logger.info('Distance {} for {} frames to drop with {} fps'.format(distance,seconds_to_drop,fps))
     offset = int(round(fps * seconds_to_drop))
@@ -329,8 +337,8 @@ def smartAddFrames(in_file,
             last_frame = frame
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Smart Add Frames ' + str(start_time) + '  to ' + str(end_time))
-            logger.debug("Selected Before {}".format(hashlib.sha256(last_frame).digest()))
-            logger.debug("Selected After {}".format(hashlib.sha256(frame).digest()))
+            logger.debug("Selected Before {}".format(hashlib.sha256(last_frame).hexdigest()))
+            logger.debug("Selected After {}".format(hashlib.sha256(frame).hexdigest()))
         next_frame = frame
         prev_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
         next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
@@ -338,13 +346,11 @@ def smartAddFrames(in_file,
                                                  0.8, 7, 15, 3, 7, 1.5, 2)
 
         opticalFlow = OpticalFlow(last_frame, next_frame, jump_flow)
-        i = 0
         frames_to_add+=1
-        while i < frames_to_add:
+        for i in range(1, frames_to_add):
             frame_scale = i / (1.0 * frames_to_add)
             frame = opticalFlow.setTime(frame_scale)
             out_video.write(frame)
-            i += 1
         out_video.write(next_frame)
         while (cap.grab()):
             ret, frame = cap.retrieve()
@@ -401,8 +407,8 @@ def copyFrames(in_file,
                 last_write = frame
                 write_count+=1
         if logger.isEnabledFor(logging.DEBUG)  :
-            logger.debug("Last to write {}".format(hashlib.sha256(last_write).digest()))
-            logger.debug("Last to copy {}".format(hashlib.sha256(frames_to_copy[-1]).digest()))
+            logger.debug("Last to write {}".format(hashlib.sha256(last_write).hexdigest()))
+            logger.debug("Last to copy {}".format(hashlib.sha256(frames_to_copy[-1]).hexdigest()))
         if  len(frames_to_write) > 0:
             # paste prior to copy
             for copy_frame in frames_to_copy:

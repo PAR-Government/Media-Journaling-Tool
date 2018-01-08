@@ -26,6 +26,7 @@ def transform(img,source,target,**kwargs):
     #frames_to_add=7
     return {'Start Time': str(start),
             'End Time': str(stop),
+            'Frames Dropped' : stop-start + 1,
             'Frames to Add':frames_to_add},None
 
 def suffix():

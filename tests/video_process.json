@@ -45,6 +45,10 @@
         "save histograms": {
           "type" : "value",
           "value":"no"
+        },
+        "codec" : {
+          "type":"value",
+          "value":0
         }
       }
     },
@@ -54,7 +58,9 @@
       "id": "3",
       "arguments": {
          "Number of Frames": {
-          "type":"int[35:60]"
+           "type":"variable",
+           "source": "2",
+           "name":"Frames Dropped"
         },
         "Select Start Time": {
           "type":"variable",
@@ -65,6 +71,10 @@
           "type":"variable",
           "source":"2",
           "name":"Start Time"
+        },
+        "codec" : {
+          "type":"value",
+          "value":0
         }
       }
     },
@@ -89,6 +99,10 @@
           "source":"3",
           "name":"End Time",
           "function": "maskgen.tool_set.addOneFrame"
+        },
+        "codec" : {
+          "type":"value",
+          "value":0
         }
       }
     },
@@ -103,25 +117,36 @@
          }
       }
     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "5",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+    },
     {
       "op_type": "PluginOperation",
-         "plugin": "FlowDrivenVideoTimeWarp",
+      "plugin": "FlowDrivenVideoTimeWarp",
       "id": "6",
       "arguments": {
         "Frames to Add": {
-          "type":"variable",
-          "source":"2",
-          "name":"Frames to Add"
+          "type": "variable",
+          "source": "2",
+          "name": "Frames to Add"
         },
-       "Start Time": {
-         "type":"variable",
-          "source":"2",
-          "name":"Start Time"
+        "Start Time": {
+          "type": "variable",
+          "source": "2",
+          "name": "Start Time"
         },
         "End Time": {
-          "type":"variable",
-          "source":"2",
-          "name":"End Time"
+          "type": "variable",
+          "source": "2",
+          "name": "End Time"
         }
       }
     },
@@ -135,7 +160,7 @@
            "source": "0"
          }
       }
-    }
+     }
   ],
   "links": [
     {
@@ -169,8 +194,8 @@
     },
     {
       "source": 6,
-      "target": 7
-    }
+     "target": 7
+     }
   ],
   "multigraph": false
 }

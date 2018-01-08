@@ -1129,10 +1129,9 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
                 break
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-            last_time = end_time
-        cut['endtime'] = last_time
+        cut['endtime'] = end_time
         cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
-        cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe'] + 1
+        cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe']
         ranges.append(cut)
         return False
     return True
@@ -1157,7 +1156,6 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         addition['mask'] = vidAnalysisComponents.mask
         if type(addition['mask']) == int:
             addition['mask'] = vidAnalysisComponents.frame_two_mask
-        last_time = 0
         while (vidAnalysisComponents.vid_two.isOpened() and frame_count_diff > 0):
             ret_two, frame_two = vidAnalysisComponents.vid_two.read()
             if not ret_two:
@@ -1171,8 +1169,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
                 break
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-            last_time = end_time
-        addition['endtime'] = last_time
+        addition['endtime'] = end_time
         addition['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
         addition['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - addition['startframe']
         ranges.append(addition)
