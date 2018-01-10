@@ -1,0 +1,201 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "video_flow",
+    "organization": "PAR",
+    "projectDescription" : "test",
+    "technicalSummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "videoset",
+      "id": "0"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputX264",
+      "id": "1",
+      "arguments": {
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "FlowDrivenVideoFrameDrop",
+      "id": "2",
+      "arguments": {
+        "seconds to drop": {
+         "type":"int[1:3]"
+        },
+        "codec": {
+         "type":"value",
+          "value":"H264"
+        },
+        "Start Time": {
+          "type":"value",
+          "value":0
+        },
+        "save histograms": {
+          "type" : "value",
+          "value":"no"
+        },
+        "codec" : {
+          "type":"value",
+          "value":0
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "VideoCopyPasteFrames",
+      "id": "3",
+      "arguments": {
+         "Number of Frames": {
+           "type":"variable",
+           "source": "2",
+           "name":"Frames Dropped"
+        },
+        "Select Start Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"Start Time"
+        },
+        "Dest Paste Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"Start Time"
+        },
+        "codec" : {
+          "type":"value",
+          "value":0
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+         "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "4",
+      "arguments": {
+        "Frames to Add": {
+          "type":"variable",
+          "source":"2",
+          "name":"Frames to Add"
+        },
+       "Start Time": {
+          "type":"variable",
+          "source":"3",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "End Time": {
+          "type":"variable",
+          "source":"3",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "codec" : {
+          "type":"value",
+          "value":0
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "5",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "5",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "6",
+      "arguments": {
+        "Frames to Add": {
+          "type": "variable",
+          "source": "2",
+          "name": "Frames to Add"
+        },
+        "Start Time": {
+          "type": "variable",
+          "source": "2",
+          "name": "Start Time"
+        },
+        "End Time": {
+          "type": "variable",
+          "source": "2",
+          "name": "End Time"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "7",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1
+    },
+    {
+      "source": 1,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 3
+    },
+    {
+       "source": 2,
+       "target": 3,
+       "connect":false
+    },
+    {
+      "source": 3,
+      "target": 4
+    },
+     {
+      "source": 4,
+      "target": 5
+    },
+    {
+      "source": 2,
+      "target": 6
+    },
+    {
+      "source": 6,
+     "target": 7
+     }
+  ],
+  "multigraph": false
+}

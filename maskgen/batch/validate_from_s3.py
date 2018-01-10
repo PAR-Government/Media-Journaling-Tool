@@ -250,7 +250,7 @@ def processProject(args, functions, file_to_process):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',  '--file', required=True, help='File of projects')
-    parser.add_argument('-df', '--downloadfolder', required=True, help='Download folder')
+    parser.add_argument('-df', '--threads', required=True, help='Download folder')
     parser.add_argument('-ug', '--updategraph', required=False, help='Upload Graph',action='store_true')
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
     parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')

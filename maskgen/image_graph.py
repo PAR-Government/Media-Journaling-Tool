@@ -483,8 +483,8 @@ class ImageGraph:
             if returnNoneOnMissing and not os.path.exists(fullpath):
                 return None, None
             im = self.openImage(fullpath, mask=True)
-            return im, value
-        return None, None
+            return im
+        return None
 
     def getNodeFileType(self, nodeid):
         node = self.get_node(nodeid)

@@ -287,7 +287,7 @@ class GroupFilterLoader:
         :return:
         @rtype: Operation
         """
-        op = getOperation(name, fake=False, warning=False)
+        op = getOperation(name, fake=False, warning=warning)
         if op is None:
             op = self.getOperation(name)
         if op is None and fake:

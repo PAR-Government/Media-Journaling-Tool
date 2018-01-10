@@ -456,9 +456,9 @@ def check_masks(edge, op, graph, frm, to):
             intersection = inputmask * mask
             leftover_mask = mask - intersection
             leftover_inputmask = inputmask - intersection
-            masksize = sum(sum(leftover_mask))
-            inputmasksize = sum(sum(leftover_inputmask))
-            intersectionsize = sum(sum(intersection))
+            masksize = np.sum(leftover_mask)
+            inputmasksize = np.sum(leftover_inputmask)
+            intersectionsize =np.sum(intersection)
             if inputmasksize == 0 and intersectionsize == 0:
                 return ['input mask does not represent moved pixels. It is empty.']
             ratio_of_intersection = float(intersectionsize) / float(inputmasksize)
@@ -1061,8 +1061,8 @@ def check_local_warn(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
-    if not is_global and not included_in_composite and op.category not in ['Output', 'Transform']:
-        return '[Warning] Operation link appears affect local area in the image and should be included in the composite mask'
+    if not is_global and not included_in_composite and op.category not in ['Output', 'AntiForensic','Laundering','PostProcessing']:
+        return '[Warning] Operation link appears to affect local area in the image; should be included in the composite mask'
     return None
 
 
@@ -1397,9 +1397,7 @@ def seamCarvingCheck(op, graph, frm, to):
              @type frm: str
              @type to: str
     """
-    change = getSizeChange(graph, frm, to)
-    if change is not None and change[0] != 0 and change[1] != 0:
-        return 'seam carving should not alter both dimensions of an image'
+    #change = getSizeChange(graph, frm, to)
     return None
 
 

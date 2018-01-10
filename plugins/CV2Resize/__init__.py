@@ -5,7 +5,7 @@ from maskgen.tool_set import resizeImage
 def transform(img,source,target,**kwargs):
     pixelWidth = int(kwargs['width'])
     pixelHeight = int(kwargs['height'])
-    ImageWrapper(resizeImage(img.to_array(),(pixelWidth,pixelHeight),kwargs['interpolation'])).save(target)
+    ImageWrapper(resizeImage(img.to_array(),(pixelHeight,pixelWidth),kwargs['interpolation'])).save(target)
     return None, None
 
 # the actual link name to be used.

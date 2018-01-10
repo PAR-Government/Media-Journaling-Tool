@@ -18,13 +18,15 @@ def transform(img,source,target, **kwargs):
         ret[:, :, :] = imarray[:, :, np.newaxis]
         imarray = ret
 
+    analysis = {}
     if 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
         orientation = exif.getOrientationFromExif(source)
         if orientation is not None:
+            analysis.update( exif.rotateAnalysis(orientation))
             imarray = exif.rotateAccordingToExif(imarray,orientation, counter=True)
     ImageWrapper(imarray).save(target,format='PNG')
-    
-    return None,None
+    analysis['Image Rotated']  = 'yes' if 'rotation' in analysis else 'no'
+    return analysis,None
     
 def operation():
     return {'name':'OutputPng',

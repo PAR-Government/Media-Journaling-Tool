@@ -11,7 +11,9 @@ class CV2Api:
     def findContours(self,image):
         pass
 
-    def videoCapture(self,filename):
+    def videoCapture(self,filename, preference = None):
+        if preference is not None:
+            return cv2.VideoCapture(filename,preference)
         return cv2.VideoCapture(filename)
 
     def computeSIFT(self, img):
@@ -50,6 +52,8 @@ class CV2ApiV2(CV2Api):
         return extractor.compute(img, kp)
 
     def get_fourcc(self,codec):
+        if codec == '0' or codec == 0:
+            return 0
         return cv2.cv.CV_FOURCC(*codec)
 
 
@@ -81,6 +85,8 @@ class CV2ApiV3(CV2Api):
         return detector.detectAndCompute(img,None)
 
     def get_fourcc(self, codec):
+        if codec == '0' or codec == 0:
+            return 0
         return cv2.VideoWriter_fourcc(*codec)
 
 global cv2api_delegate

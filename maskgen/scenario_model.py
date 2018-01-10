@@ -21,7 +21,7 @@ import mask_rules
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
-
+import traceback
 
 def formatStat(val):
     if type(val) == float:
@@ -333,7 +333,7 @@ class Modification:
     def setOperationName(self, name):
         self.operationName = name
 
-    def setFromOperation(self,op):
+    def setFromOperation(self,op,filetype='image'):
         """
         :param op:
         :return:
@@ -341,7 +341,7 @@ class Modification:
         """
         self.category = op.category
         self.generateMask = op.generateMask
-        self.recordMaskInComposite = op.recordMaskInComposite()
+        self.recordMaskInComposite = op.recordMaskInComposite(filetype)
 
 
 
@@ -410,8 +410,14 @@ class ImageImageLinkTool(LinkTool):
         if edge is not None:
             operation = scModel.gopLoader.getOperationWithGroups(edge['op'] if edge is not None else 'NA', fake=True)
             compareFunction = operation.getCompareFunction()
-        mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
+        mask, analysis, error = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=compareFunction)
+        if error is not None:
+            logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                edge['op'] if edge is not None else 'NA',
+                start,
+                end
+            ))
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -444,9 +450,9 @@ class ImageImageLinkTool(LinkTool):
                     edge_op = scModel.gopLoader.getOperationWithGroups(pred_edge['op'])
                     expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
                     if expect_donor_mask:
-                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')[0]
+                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')
                         if mask is None:
-                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')[0]
+                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')
                         mask, analysis = interpolateMask(
                             mask, startIm, destIm,
                             arguments=consolidate(arguments, analysis_params), invert=invert)
@@ -460,7 +466,7 @@ class ImageImageLinkTool(LinkTool):
                     edge = scModel.G.get_edge(pred, start)
                     # probably should change this to == 'SelectRegion'
                     if edge['op'] == 'SelectRegion':
-                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0])
+                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname'))
                         if mask.size != startIm.size:
                             mask = mask.resize(startIm.size, Image.ANTIALIAS)
                         break
@@ -471,12 +477,21 @@ class ImageImageLinkTool(LinkTool):
                 analysis = {}
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
+                analysis = {}
         else:
-            mask, analysis = createMask(startIm, destIm,
+            mask, analysis, error = createMask(startIm,
+                                        destIm,
                                         invert=invert,
                                         arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction(),
                                         convertFunction=operation.getConvertFunction())
+            if error is not None:
+                errors.append(error)
+                logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                    op,
+                    start,
+                    destination
+                ))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -502,8 +517,14 @@ class VideoImageLinkTool(ImageImageLinkTool):
         im2, destFileName = scModel.getImageAndName(end)
         edge = scModel.G.get_edge(start, end)
         operation = scModel.gopLoader.getOperationWithGroups(edge['op'])
-        mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
+        mask, analysis,error = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=operation.getCompareFunction())
+        if error is not None:
+            logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                edge['op'] if edge is not None else 'NA',
+                start,
+                end
+            ))
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -521,8 +542,15 @@ class VideoImageLinkTool(ImageImageLinkTool):
                 "An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
             analysis = {}
         else:
-            mask, analysis = createMask(startIm, destIm, invert=invert, arguments=arguments,
+            mask, analysis,error = createMask(startIm, destIm, invert=invert, arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction())
+            if error is not None:
+                errors.append(error)
+                logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                    op,
+                    start,
+                    destination
+                ))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -1299,7 +1327,7 @@ class ImageProjectModel:
             if graph_rules.missing_donor_inputmask(edge, self.G.dir):
                 startimage, name = self.G.get_image(edge_id[0])
                 finalimage, fname = self.G.get_image(edge_id[1])
-                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
+                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')
                 inputmaskname = name[0:name.rfind('.')] + '_inputmask.png'
                 ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
                 #                if 'arguments' not in edge:
@@ -1544,6 +1572,9 @@ class ImageProjectModel:
             for k, v in analysis_params.iteritems():
                 if k not in analysis:
                     analysis[k] = v
+            if 'recordMaskInComposite' in mod.arguments:
+                mod.recordMaskInComposite = mod.arguments.pop('recordMaskInComposite')
+
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
             edgeErrors = [] if skipRules else graph_rules.run_rules(
@@ -1558,6 +1589,7 @@ class ImageProjectModel:
             self.labelNodes(destination)
             return msg, True
         except Exception as e:
+            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
             return 'Exception (' + str(e) + ')', False
 
     def __scan_args_callback(self, opName, arguments):
@@ -1859,7 +1891,7 @@ class ImageProjectModel:
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
-        return self.G.get_edge_image(self.start, self.end, 'maskname')[0]
+        return self.G.get_edge_image(self.start, self.end, 'maskname')
 
     def maskStats(self):
         if self.end is None:
@@ -2199,7 +2231,7 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsg, pairs_composite
 
-    def imageFromPlugin(self, filter, software=None, **kwargs):
+    def imageFromPlugin(self, filter, software=None,**kwargs):
         """
           Create a new image from a plugin filter.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2218,8 +2250,9 @@ class ImageProjectModel:
           @type filename: str
           @rtype: list of (str, list (str,str))
         """
-        import traceback
+
         im, filename = self.currentImage()
+        filetype= fileType(filename)
         op = plugins.getOperation(filter)
         suffixPos = filename.rfind('.')
         suffix = filename[suffixPos:].lower()
@@ -2234,15 +2267,15 @@ class ImageProjectModel:
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(self.start, suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
-
         self.__addEdgeFilePaths(fullOp)
         try:
             extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
             msg = str(e)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-            logging.getLogger('maskgen').error('Plugin Failure {}'.format(str(e)))
+            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+            logging.getLogger('maskgen').error(
+                'Plugin {} failed with {} given node {} for arguments {}'.format(filter, str(e),self.start, str(resolved)))
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
@@ -2263,7 +2296,8 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'],
                                    category=opInfo.category,
                                    generateMask=opInfo.generateMask,
-                                   recordMaskInComposite=opInfo.recordMaskInComposite())
+                                   recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
+                                   'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         if software is None:
@@ -2279,16 +2313,21 @@ class ImageProjectModel:
                     description.arguments[k] = v
         description.setSoftware(software)
         description.setAutomated('yes')
+        edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
+        if  'global operation' in kwargs:
+            edge_parameters['global operation'] = kwargs['global operation']
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
-                                         edge_parameters={'plugin_name': filter,'experiment_id': experiment_id},
+                                         edge_parameters=edge_parameters,
                                          node_parameters={
                                              'experiment_id': experiment_id} if experiment_id is not None else {})
         pairs = list()
+
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
                          msg2 if msg2 else '']).strip()
+
         os.remove(target)
         if status:
             pairs.append((self.start, self.end))

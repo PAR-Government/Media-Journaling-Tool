@@ -45,8 +45,9 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
         im = Image.fromarray(np.asarray(img.convert('RGB')))
     else:
         im = Image.fromarray(np.asarray(img))
+    analysis = None
     if rotate:
-      im = check_rotate(im,donor)
+      im,analysis = check_rotate(im,donor)
     sbsmp = get_subsampling(donor)
     try:
         if len(finalTable) > 0:
@@ -57,7 +58,7 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
         im.save(target)
     width, height = im.size
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
-    maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all>all:all', '-unsafe', target])
+    maskgen.exif.runexif([ '-P', '-q', '-m', '-tagsFromFile', donor, '-all:all>all:all', '-unsafe', target])
 
     # Preview is not well standardized in JPG (unlike thumbnail), so it doesn't always work.
     if prevTable:
@@ -95,7 +96,7 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
                 print e
         finally:
             os.remove(tempFile)
-    maskgen.exif.runexif(['-P', '-q', '-m', '-XMPToolkit=',
+    maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=',
                                         '-ExifImageWidth=' + str(width),
                                         '-ImageWidth=' + str(width),
                                         '-ExifImageHeight=' + str(height),
@@ -103,7 +104,8 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
                                         target])
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
-        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
+        maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
+    return analysis
 
 def transform(img,source,target, **kwargs):
     from maskgen.jpeg.utils import  parse_tables, sort_tables
@@ -117,9 +119,9 @@ def transform(img,source,target, **kwargs):
     
     tables_zigzag = parse_tables(donor)
     tables_sorted = sort_tables(tables_zigzag)
-    cs_save_as(img,source, target, donor, tables_sorted,rotate, quality)
+    analysis = cs_save_as(img,source, target, donor, tables_sorted,rotate, quality)
     
-    return None,None
+    return analysis , None
     
 def operation():
     return {'name':'AntiForensicExifQuantizationTable',

@@ -9,9 +9,8 @@ import maskgen.exif
 from maskgen.tool_set import *
 import numpy as np
 import PIL
+from maskgen.jpeg.utils import check_rotate
 
-def check_tiff_rotate(im, donor_img, jpg_file_name):
-    return ImageWrapper(maskgen.exif.rotateAccordingToExif(np.asarray(im),maskgen.exif.getOrientationFromExif(jpg_file_name)))
 
 def tiff_save_as(source_img, source, target, donor_file, rotate):
     """
@@ -21,28 +20,29 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
     :param donor: string filename of donor TIFF
     :param rotate: boolean True if counter rotation is required
     """
+    analysis = {}
     if donor_file is not None:
         donor_img = openImageFile(donor_file)
         if rotate:
-            source_img = check_tiff_rotate(source_img, donor_img,donor_file)
+            source_img,analysis = check_rotate(source_img, donor_file)
         source_img.save(target, format='TIFF', **donor_img.info)
         maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
-        maskgen.exif.runexif(['-q', '-all=', target])
+        maskgen.exif.runexif(['-overwrite_original','-q', '-all=', target])
         maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])
     else:
         im = Image.fromarray(np.asarray(source_img))
         im.save(target, format='TIFF')
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
-        maskgen.exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
-
+        maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
+    return analysis
 
 def transform(source_img,source,target, **kwargs):
     donor = kwargs['donor'] if 'donor' in kwargs else None
     rotate = 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes'
-    tiff_save_as(source_img , source, target, donor, rotate)
-    
-    return None,None
+    analysis = tiff_save_as(source_img , source, target, donor, rotate)
+    analysis['Image Rotated'] = 'yes' if 'rotation' in analysis else 'no'
+    return  analysis ,None
     
 def operation():
     return {'name':'OutputTif',

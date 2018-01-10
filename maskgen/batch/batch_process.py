@@ -171,6 +171,7 @@ def _processProject(batchSpecification, extensionRules, project, workdir=None):
     """
     sm = maskgen.scenario_model.ImageProjectModel(project)
     nodes = findNodesToExtend(sm, extensionRules)
+    print 'extending {}'.format(' '.join(nodes))
     if not batchSpecification.executeForProject(sm, nodes,workdir=workdir):
         raise ValueError('Failed to process {}'.format(sm.getName()))
     sm.save()
@@ -450,7 +451,7 @@ def main():
                              imagereformat=args.imageReformatting)
 
     setPwdX(CustomPwdX(args.username))
-
+    maskgen.plugins.loadPlugins()
     if args.plugins:
         for plugin in maskgen.plugins.loadPlugins().keys():
             if args.plugin is not None and plugin != args.plugin:

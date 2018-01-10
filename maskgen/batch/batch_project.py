@@ -18,9 +18,12 @@ import numpy as np
 from maskgen.batch.permutations import *
 import time
 from datetime import datetime
-from maskgen.loghandling import set_logging
+from maskgen.loghandling import set_logging,set_logging_level
 import Queue as queue
 from maskgen.graph_output import ImageGraphPainter
+from maskgen.software_loader import getRule
+import traceback
+
 
 class IntObject:
     value = 0
@@ -106,6 +109,8 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         if not random_selection:
             increment = 1
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
+        elif increment != 1:
+            return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice( xrange(beg, end + 1, increment))))
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.randint(beg, end)))
     elif 'float' in param_spec['type']:
@@ -113,6 +118,9 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         beg, end, increment = rangeNumberPicker(v, convert_function=float)
         if not random_selection:
             return IteratorPermuteGroupElement(spec_name, lambda: np.arange(beg, end, increment).__iter__())
+        elif abs(increment - 1.0) > 0.000000001:
+            return PermuteGroupElement(spec_name,
+                                       randomGeneratorFactory(lambda: random.choice(np.arange(beg, end, increment))))
         else:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: beg + random.random() * (end - beg)))
     elif param_spec['type'] == 'yesno':
@@ -185,25 +193,25 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     """
     if 'type' not in specification:
         raise ValueError('type attribute missing in  {}'.format(specification_name))
+    donothing = lambda x:  x
+    postProcess = getRule(specification['function'],noopRule=donothing)  if 'function' in specification else donothing
     if specification['type'] == 'mask':
         if 'source' not in specification:
             raise ValueError('source attribute missing in  {}'.format(specification_name))
         target = getNodeState(specification['source'], local_state)['node']
         source = getNoneDonorPredecessor(getGraphFromLocalState(local_state), target)
         invert = specification['invert'] if 'invert' in specification else False
-        mask = os.path.join(local_state['model'].get_dir(), getGraphFromLocalState(local_state).get_edge_image(source,
-                                                                                                               target,
-                                                                                                               'maskname')[
-            1])
+        edge = getGraphFromLocalState(local_state).get_edge(source,target)
+        mask = os.path.join(local_state['model'].get_dir(), tool_set.getValue(edge,'maskname',defaultValue=''))
         if invert:
             tool_set.openImageFile(mask, isMask=True).invert().save(mask + '.png')
             mask = mask + '.png'
-        return mask
+        return postProcess(mask)
     elif specification['type'] == 'value':
         if isinstance(specification['value'],str):
-            return specification['value'].format(**global_state)
+            return postProcess(specification['value'].format(**global_state))
         else:
-            return specification['value']
+            return postProcess(specification['value'])
     elif specification['type'] == 'variable':
         if 'name' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -216,9 +224,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         if 'permutegroup' in specification:
             source_spec = copy.copy(getNodeState(specification['source'], local_state)[specification['name']])
             source_spec['permutegroup'] = specification['permutegroup']
-            return pickArg(source_spec, node_name, specification_name, global_state, local_state)
+            return postProcess(pickArg(source_spec, node_name, specification_name, global_state, local_state))
         else:
-            return getNodeState(specification['source'], local_state)[specification['name']]
+            return postProcess(getNodeState(specification['source'], local_state)[specification['name']])
     elif specification['type'] == 'donor':
         if 'source' in specification:
             if specification['source'] == 'base':
@@ -227,23 +235,23 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             return getNodeState(specification['source'], local_state)['node']
         if len(predecessors) != 1:
             raise ValueError('Donor specification {} missing source '.format(specification['name']))
-        return predecessors[0]
+        return postProcess(predecessors[0])
     elif specification['type'] == 'imagefile':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         source = getNodeState(specification['source'], local_state)['node']
-        return getGraphFromLocalState(local_state).get_image(source)[1]
+        return postProcess(getGraphFromLocalState(local_state).get_image(source)[1])
     elif specification['type'] == 'input':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
-        return getNodeState(specification['source'], local_state)['output']
+        return postProcess(getNodeState(specification['source'], local_state)['output'])
     elif specification['type'] == 'plugin':
-        return callPluginSpec(specification, local_state)
+        return postProcess(callPluginSpec(specification, local_state))
     elif specification['type'].startswith('global'):
         if 'name' not in specification:
             raise ValueError('source attribute missing in {}'.format(specification_name))
         return global_state[specification['name']]
-    return pickArg(specification, node_name, specification_name, global_state, local_state)
+    return postProcess(pickArg(specification, node_name, specification_name, global_state, local_state))
 
 
 def pickArgs(local_state, global_state, node_name, argument_specs, operation, predecessors):
@@ -583,6 +591,8 @@ class PluginOperation(BatchOperation):
                         isDonor(graph.edge[predecessor][node_name])]
 
         predecessor_state = getNodeState(connect_to_node_name, local_state)
+        if 'node' not in predecessor_state:
+            self.logger.error('{} is not valid predecessor for {}.  Is it labeled as connect:False?'.format(connect_to_node_name,node_name))
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
@@ -614,6 +624,10 @@ class PluginOperation(BatchOperation):
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
         for k,v in tool_set.getValue(edge,'arguments',defaultValue={}).iteritems():
             my_state[k] = v
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Plugin {} returned {}'.format(plugin_name,
+                                                                       str(tool_set.getValue(edge,'arguments',defaultValue={}))))
+        my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
             if (self.logger.isEnabledFor(logging.DEBUG)):
@@ -665,7 +679,13 @@ class InputMaskPluginOperation(PluginOperation):
                         predecessors)
         args['skipRules'] = True
         args['sendNotifications'] = False
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Calling plugin {} for {} with args {}'.format(filter,
+                                                                             filename,
+                                                                             str(args)))
         targetfile, params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, **args)
+        if (self.logger.isEnabledFor(logging.DEBUG)):
+            self.logger.debug('Plugin {} returned args {}'.format(filter,str(params)))
         my_state['output'] = targetfile
         if params is not None and type(params) == type({}):
             for k, v in params.iteritems():
@@ -691,7 +711,7 @@ class InputMaskPluginOperation(PluginOperation):
         if file.endswith('.png'):
             shutil.copy2(filename, target)
         else:
-            tool_set.openImageFile(filename).save(target, format='PNG')
+            tool_set.openImage(filename).save(target, format='PNG')
         local_state['cleanup'].append(target)
         params = {}
         kwargs = {k: self.resolveDonor(k, v, local_state) for k, v in kwargs.iteritems()}
@@ -701,12 +721,16 @@ class InputMaskPluginOperation(PluginOperation):
                                                                                  filename,
                                                                                  str(kwargs)))
             extra_args, msg = plugins.callPlugin(filter, im, filename, target, **kwargs)
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                self.logger.debug('Plugin {} returned  {}'.format(filter, str(extra_args)))
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
                     # if k not in kwargs:
                     params[k] = v
         except Exception as e:
             msg = str(e)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception( exc_type, exc_value, exc_traceback,limit=10)))
             raise ValueError("Plugin " + filter + " failed:" + msg)
         return target, params
 
@@ -728,7 +752,7 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
         if filename.endswith('.png'):
             shutil.copy2(filename, target)
         else:
-            tool_set.openImageFile(filename).save(target, format='PNG')
+            tool_set.openImage(filename).save(target, format='PNG')
         local_state['cleanup'].append(target)
         params = {}
         try:
@@ -745,6 +769,8 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
                         params[k] = v
         except Exception as e:
             msg = str(e)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception( exc_type, exc_value, exc_traceback,limit=10)))
             raise ValueError("Plugin " + filter + " failed:" + msg)
         return target, params
 
@@ -817,6 +843,11 @@ class BatchProject:
     def getName(self):
         return self.G.graph['name'] if 'name' in self.G.graph else 'Untitled'
 
+    def getConnectToNodes(self,op_node_name):
+        return [predecessor for predecessor in self.G.predecessors(op_node_name)
+         if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' and
+         tool_set.getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
+
     def executeForProject(self, project, nodes, workdir=None):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         global_state = {'project': self,
@@ -847,9 +878,7 @@ class BatchProject:
                     # skip if a predecessor is missing
                     if len([pred for pred in predecessors if pred not in completed]) > 0:
                         continue
-                    connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
-                                      if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
-
+                    connecttonodes = self.getConnectToNodes(op_node_name)
                     connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
                     self.logger.debug('Starting: {}'.format(op_node_name))
                     self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
@@ -888,18 +917,20 @@ class BatchProject:
             self._execute_node(base_node, None, local_state, global_state)
             local_state['model'].setProjectData('batch specification name', self.getName())
             queue = [top for top in self._findTops() if top != base_node]
+            logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
             completed = [base_node]
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
                 if op_node_name in completed:
                     continue
+                if op_node_name not in self.G.nodes():
+                    logging.getLogger('maskgen').error('Project {} missing node {}'.format( self.getName(),op_node_name))
                 predecessors = list(self.G.predecessors(op_node_name))
                 # skip if a predecessor is missing
                 if len([pred for pred in predecessors if pred not in completed]) > 0:
                     continue
-                connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
-                                  if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation']
+                connecttonodes = self.getConnectToNodes(op_node_name)
                 node = self.G.node[op_node_name]
                 if len(connecttonodes) > 0 and 'source' in node:
                     connect_to_node_name = node['source']
@@ -924,7 +955,10 @@ class BatchProject:
             project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             if 'model' in local_state:
-                shutil.rmtree(local_state['model'].get_dir())
+                if 'removebadprojects' in global_state and not global_state['removebadprojects']:
+                    local_state['model'].save()
+                else:
+                    shutil.rmtree(local_state['model'].get_dir())
             return None, project_name
         finally:
             for file in local_state['cleanup']:
@@ -1045,7 +1079,7 @@ class BatchProject:
             raise e
 
 
-def createGlobalState(projectDirectory, stateDirectory):
+def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True):
     """
 
     :param projectDirectory: directory for resulting projects
@@ -1054,6 +1088,7 @@ def createGlobalState(projectDirectory, stateDirectory):
     """
     return {'projects': projectDirectory,
             'workdir': stateDirectory,
+            'removebadprojects' : removeBadProjects,
             'permutegroupsmanager': PermuteGroupManager(dir=stateDirectory)}
 
 
@@ -1165,7 +1200,8 @@ class BatchExecutor:
                  global_variables=None,
                  initializers=None,
                  loglevel=50,
-                 threads_count=1):
+                 threads_count=1,
+                 removeBadProjects=True):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1184,6 +1220,7 @@ class BatchExecutor:
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
             return
         plugins.loadPlugins()
+        self.removeBadProjects = removeBadProjects
         self.__setupThreads(threads_count)
         self.workdir = os.path.abspath(workdir)
         loadCustomFunctions()
@@ -1191,8 +1228,9 @@ class BatchExecutor:
         logging.getLogger('maskgen').info('Setting working directory to {}'.format(self.workdir))
         if loglevel is not None:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
+            set_logging_level(logging.INFO if loglevel is None else int(loglevel))
         self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
-        self.initialState = createGlobalState(results,self.workdir)
+        self.initialState = createGlobalState(results,self.workdir,removeBadProjects=removeBadProjects)
         if global_variables is not None:
             if type(global_variables) == str:
                 self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \
