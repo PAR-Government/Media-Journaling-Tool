@@ -2149,6 +2149,11 @@
           "type": "list",
           "values" : ["increase","decrease", "match to video frames"],
           "description": "Shift midtone luminance in the desired direction"
+        },
+         "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [

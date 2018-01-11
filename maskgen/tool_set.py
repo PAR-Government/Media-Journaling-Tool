@@ -1842,7 +1842,7 @@ def resizeCompare(img1, img2,  arguments=dict()):
 def convertCompare(img1, img2,  arguments=dict()):
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation,mask=__findRotation(img1,img2,[0, 90,180,270])
-        return 255-mask, {'rotation':-rotation}
+        return 255-mask, {'rotation':rotation}
     if img1.shape != img2.shape:
         new_img2 = cv2.resize(img2,(img1.shape[1],img1.shape[0]))
     else:
