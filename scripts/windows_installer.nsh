@@ -16,11 +16,10 @@ Var USERDIR
 Var BRANCH 
 
 Section -Prerequisites
-
     MessageBox MB_OK "Specific versions of each prerequisite are required for$\neverything to work properly.  Please verify that any previously$\ninstalled prerequisites match the following versions:$\n$\n$\tAnaconda2$\t$\t4.4.0$\n$\tFFmpeg$\t$\t$\t3.2.X$\n$\tExiftool$\t$\t$\t10.61$\n$\tOpenCV$\t$\t$\t2.4.13.X$\n$\tGraphViz$\t$\t$\t2.38"
-	
+
 	MessageBox MB_YESNO "Do you need the prerequisites installed?$\n(e.g. anaconda, exiftool, graphviz etc.)" /SD IDYES IDNO prereqs_installed
-	
+
     SetOutPath $INSTDIR
     ReadRegStr $0 HKLM "SOFTWARE\Python\ContinuumAnalytics\Anaconda27-64" SysVersion
     StrCmp $0 "" lbl_install_conda lbl_has_conda
@@ -84,7 +83,9 @@ Section -Prerequisites
 	has_cv2_installed:
 	ExecWait "$CONDA install -c conda-forge tifffile -y"
 	ExecWait "$CONDA remove pillow -y"
-    ExecWait "$CONDA install -y Pillow=4.2.1"
+    ExecWait "$PIP uninstall Pillow -y"
+	ExecWait "$CONDA remove PIL -y"
+    ExecWait "$CONDA install -c anaconda pillow -y"
 	ExecWait "$CONDA install scikit-image -y"
 
 	SetOutPath "$INSTDIR"
@@ -154,4 +155,7 @@ Section "Maskgen"
 	Delete "$USERDIR\jtprefs.py"
 
 	Delete "$USERDIR\$BRANCH.zip"
+    
+    MessageBox MB_OK "If this is your first installation, you will need to$\nrestart your computer to use the HP Tool."
+
 SectionEnd
