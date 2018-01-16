@@ -266,7 +266,7 @@ class HP_Device_Form(Toplevel):
         :return: (string) Error message (if error), otherwise None
         """
         print 'Verifying local ID is not already in use...'
-        c = API_Camera_Handler(self, token=self.browser_token.get(), url='https://medifor.rankone.io')
+        c = API_Camera_Handler(self, token=self.browser_token.get(), url='https://medifor.rankone.io', given_id=self.questions["Local ID*"].get())
         local_id_reference = c.get_local_ids()
         if not local_id_reference:
             return 'Could not successfully connect to Medifor browser. Please check credentials.'

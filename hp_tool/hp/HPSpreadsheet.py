@@ -777,7 +777,6 @@ class HPSpreadsheet(Toplevel):
         :return: dictionary containing an entry for each row, with what columns to highlight, and an error messages.
         """
         errors = {}
-        self.master.reload_ids()
         for row in range(0, self.pt.rows):
             db_configs = []
             image = self.pt.model.df['OriginalImageName'][row]
