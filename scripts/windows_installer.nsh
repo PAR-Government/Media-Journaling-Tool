@@ -77,8 +77,11 @@ Section -Prerequisites
 	Delete "$DESKTOP\opencv-2.4.13.3-vc14.exe"
 	
 	has_cvd_build:
-	IfFileExists "$PROFILE\Anaconda2\Lib\cv2.pyd" has_cv2_installed
-	Rename "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\cv2.pyd"
+    IfFileExists "$PROFILE\Anaconda2\Lib\cv2.pyd" +1 +3
+    Rename "$PROFILE\Anaconda2\Lib\cv2.pyd" "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd"
+    CopyFiles "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\site-packages\cv2.pyd"
+	IfFileExists "$PROFILE\Anaconda2\Lib\site-packages\cv2.pyd" has_cv2_installed
+	CopyFiles "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\site-packages\"
 
 	has_cv2_installed:
 	ExecWait "$CONDA install -c conda-forge tifffile -y"
@@ -100,7 +103,7 @@ SectionEnd
 
 Section "Maskgen"
 
-	IfFileExists "$DESKTOP\install_options.txt" +4
+	IfFileExists "$DESKTOP\install_options.txt" +5
 	FileOpen $9 "$DESKTOP\install_options.txt" w
 	FileWrite $9 "$DESKTOP$\r$\n"
 	FileWrite $9 "master"
@@ -116,7 +119,7 @@ Section "Maskgen"
     ${WordReplace} $USERDIR "$\r$\n" "" "+" $USERDIR
     ${WordReplace} $BRANCH "$\r$\n" "" "+" $BRANCH
 
-	IfFileExists "$USERDIR\maskgen\*.*" 0 +1
+	IfFileExists "$USERDIR\maskgen\*.*" +1 +2
 	RMDir /r $USERDIR\maskgen
 
     SetOutPath $USERDIR
