@@ -85,6 +85,8 @@ class HP_Starter(Frame):
         elif self.outputdir.get() == '':
                 self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
 
+        self.update_model()
+
         if self.camModel.get() == '':
             yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
             if yes:
@@ -167,7 +169,6 @@ class HP_Starter(Frame):
         r+=1
 
         self.localID = StringVar()
-        self.localID.trace('w', self.update_model)
         self.camModel = StringVar()
         col = 0
         self.attributes = {}
@@ -204,6 +205,7 @@ class HP_Starter(Frame):
         self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
 
     def update_model(self, *args):
+        self.master.load_ids(self.localID.get())
         if self.localID.get() in self.master.cameras:
             self.attributes['Camera Model'].config(state=NORMAL)
             self.camModel.set(self.master.cameras[self.localID.get()]['hp_camera_model'])
@@ -539,14 +541,13 @@ class PRNU_Uploader(Frame):
         self.rootEntry.config(state=NORMAL)
 
     def archive_prnu(self):
-        dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
         #ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
         archive = tarfile.open(tname, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
         os.close(fd)
-        final_name = os.path.join(self.root_dir.get(), '-'.join((self.localID.get(), dt)) + '.tar')
+        final_name = os.path.join(self.root_dir.get(), self.localID.get() + '.tar')
         shutil.move(tname, os.path.join(self.root_dir.get(), final_name))
         return final_name
 
@@ -597,8 +598,10 @@ class HPGUI(Frame):
         self.master = master
         self.trello_key = data_files._TRELLO['app_key']
         self.settings = SettingsManager()
+        with open(data_files._LOCALDEVICES, "r") as j:
+            self.cameras = json.load(j)
+        self.cam_local_id = ""
         self.create_widgets()
-        self.load_ids()
         self.statusBox.println('See terminal/command prompt window for progress while processing.')
 
     def create_widgets(self):
@@ -610,6 +613,7 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
+        self.fileMenu.add_command(label='Download HP Device List for Offline Use', command=lambda: API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'), given_id="download_locally"))
         self.master.config(menu=self.menubar)
 
         self.statusFrame = Frame(self)
@@ -653,10 +657,12 @@ class HPGUI(Frame):
         if device_id in ('', None):
             return
 
+        self.cam_local_id = device_id
+
         # before opening the camera update form, make sure the most up-to-date camera list is available
         source = self.reload_ids()
         if source == 'local':
-            tkMessageBox.showerror(title='Error', message='Could not update camera list from browser.')
+            tkMessageBox.showerror(title='Error', message='Could not get camera from browser.')
             return
         else:
             try:
@@ -734,13 +740,14 @@ class HPGUI(Frame):
     def open_settings(self):
         SettingsWindow(master=self.master, settings=self.settings)
 
-    def load_ids(self):
+    def load_ids(self, local_id):
         """
         Call to the camera handler class to get most updated version of camera list. Will load from local list if no
         connection available.
         :return: string containing source of camera data ('local' or 'remote')
         """
-        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'))
+        self.cam_local_id = local_id
+        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'), given_id=self.cam_local_id)
         self.cameras = cams.get_all()
         if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
@@ -751,10 +758,12 @@ class HPGUI(Frame):
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
         return cams.source
 
-    def reload_ids(self):
+    def reload_ids(self, local_id=""):
         """Wipe and reload camera data"""
+        if local_id != "":
+            self.cam_local_id = local_id
         self.cameras = None
-        return self.load_ids()
+        return self.load_ids(self.cam_local_id)
 
 
 class ReadOnlyText(Text):
