@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import os
 import maskgen.scenario_model
@@ -17,6 +18,7 @@ from functools import partial
 from maskgen import plugins
 
 
+
 def reproduceMask(scModel):
     """
     Rebuild all edge masks
@@ -26,7 +28,7 @@ def reproduceMask(scModel):
     for edge in scModel.getGraph().get_edges():
         scModel.select(edge)
         scModel.reproduceMask()
-    print 'Updated masks in project: ' + str(scModel.getName())
+    print ('Updated masks in project: ' + str(scModel.getName()))
 
 
 def select_region(imfile, prev):
@@ -110,6 +112,7 @@ def update_rotation(scModel):
                     currentLink['arguments']['Image Rotated'] = 'no'
 
 
+
 def validate_by(scModel, person):
     scModel.setProjectData('validation', 'yes')
     scModel.setProjectData('validatedby', person)
@@ -191,7 +194,7 @@ def recompressAsVideo(scModel):
 
 def perform_update(project,args, functions,  tempdir):
     scModel = maskgen.scenario_model.ImageProjectModel(project)
-    print 'User: ' + scModel.getGraph().getDataItem('username')
+    print ('User: ' + scModel.getGraph().getDataItem('username'))
     validator = scModel.getProjectData('validatedby')
     if not args.validate:
         if validator is  not None:
@@ -210,7 +213,7 @@ def perform_update(project,args, functions,  tempdir):
         error_list = scModel.exporttos3(args.uploadfolder, tempdir)
         if len(error_list) > 0:
             for err in error_list:
-                print err
+                print (err)
             raise ValueError('Export Failed')
     return scModel.validate()
 

@@ -19,7 +19,7 @@ def transform(img, source, target, **kwargs):
                              paste_time,
                              codec=codec) + 1
     return {'Start Time': str(start_frame),
-            'End Time': str(start_frame + int(kwargs['Number of Frames'] - 1)),
+            'End Time': str(start_frame + int(kwargs['Number of Frames']) - 1),
             'add type': 'insert'}, None
 
 

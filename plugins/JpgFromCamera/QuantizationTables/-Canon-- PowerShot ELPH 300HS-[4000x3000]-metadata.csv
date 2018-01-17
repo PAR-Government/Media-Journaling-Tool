@@ -1,0 +1,155 @@
+database,-IFD0:ModifyDate,2016:07:08 19:52:38
+database,-Canon:CanonImageWidth,4000
+database,-File:ImageHeight,3000
+database,-Canon:CroppedImageWidth,4000
+database,-ExifIFD:UserComment,
+database,-ExifIFD:ExifVersion,0230
+database,-Canon:MeasuredEV,11.13
+database,-IFD0:Orientation,Horizontal (normal)
+database,-ExifIFD:FlashpixVersion,0100
+database,-Canon:EasyMode,Full auto
+database,-Canon:Saturation,Normal
+database,-Canon:MeteringMode,Evaluative
+database,-XMP-xmp:Rating,0
+database,-Canon:FlashBits,(none)
+database,-ExifIFD:ColorSpace,sRGB
+database,-Canon:AspectRatio,4:3
+database,-Canon:FocusRange,Auto
+database,-Canon:AFPointsInFocus,0
+database,-IFD0:ResolutionUnit,inches
+database,-Canon:SelfTimer2,0
+database,-ExifIFD:SensingMethod,One-chip color area
+database,-IFD0:XResolution,180
+database,-ExifIFD:ExposureTime,1/320
+database,-ExifIFD:DigitalZoomRatio,1
+database,-ExifIFD:FNumber,2.7
+database,-IFD0:ImageDescription,
+database,-Canon:ManualFlashOutput,n/a
+database,-Canon:ZoomTargetWidth,4000
+database,-Canon:AutoISO,187
+database,-Canon:NDFilter,Off
+database,-Canon:CameraType,Compact
+database,-IPTC:CopyrightNotice,(c) 2016 MediFor
+database,-ExifIFD:ExposureMode,Auto
+database,-Canon:ExposureTime,1/298
+database,-Canon:FileNumber,138-3090
+database,-Canon:IntelligentContrast,Off (0x10)
+database,-File:BitsPerSample,8
+database,-Canon:CanonExposureMode,Easy
+database,-Canon:FlashExposureComp,0
+database,-ExifIFD:WhiteBalance,Auto
+database,-IFD0:Model,Canon PowerShot ELPH 300HS
+database,-Canon:CameraISO,Auto
+database,-Canon:CameraTemperature,28 C
+database,-ExifIFD:ApertureValue,2.7
+database,-Canon:ExposureCompensation,0
+database,-Canon:PrimaryAFPoint,0
+database,-ExifIFD:CreateDate,2016:07:08 19:52:38
+database,-Canon:ImageStabilization,On
+database,-IFD1:ThumbnailOffset,5632
+database,-ExifIFD:CustomRendered,Normal
+database,-Canon:ZoomSourceWidth,4000
+database,-Canon:WhiteBalance,Auto
+database,-Canon:AFPoint,Face Detect
+database,-Canon:BaseISO,100
+database,-Canon:AFAreaWidths,40 7256 92 7256 10 16544 129 20 19
+database,-ExifIFD:DateTimeOriginal,2016:07:08 19:52:38
+compute,-ExifIFD:ExifImageWidth,4000
+database,-Canon:AFAreaYPositions,27 0 0 0 0 322 319 320 -22864
+database,-Canon:DateStampMode,Off
+database,-Canon:CanonImageHeight,3000
+database,-Canon:MaxFocalLength,21.5 mm
+database,-ExifIFD:FileSource,Digital Camera
+database,-ExifIFD:SensitivityType,Standard Output Sensitivity and Recommended Exposure Index
+database,-Canon:AFAreaXPositions,0 311 0 0 0 0 321 147 19
+database,-Canon:SpotMeteringMode,Center
+database,-ExifIFD:FocalPlaneXResolution,16393.44262
+database,-Canon:FocalUnits,1000/mm
+database,-Canon:FocusContinuous,Continuous
+database,-IFD1:YResolution,180
+database,-File:ExifByteOrder,"Little-endian (Intel, II)"
+database,-ExifIFD:ISO,200
+database,-Canon:MinAperture,8
+database,-Canon:CanonFirmwareVersion,Firmware Version 1.01
+database,-Canon:CanonImageType,IMG:PowerShot ELPH 300HS JPEG
+database,-Canon:CroppedImageHeight,3000
+database,-Canon:AEBBracketValue,0
+database,-IFD0:Make,Canon
+database,-ExifIFD:FocalPlaneYResolution,16393.44262
+database,-Canon:FirmwareRevision,1.01 rev 7.00
+database,-Canon:MinFocalLength,4.3 mm
+database,-Canon:DisplayAperture,2.7
+database,-Canon:Categories,(none)
+database,-XMP-xmpRights:UsageTerms,CC0
+database,-ExifIFD:CompressedBitsPerPixel,3
+database,-Canon:MyColorMode,Off
+database,-ExifIFD:MeteringMode,Multi-segment
+database,-Canon:Contrast,Normal
+database,-Canon:TargetAperture,2.7
+database,-Canon:FNumber,2.9
+database,-Canon:SelfTimer,Off
+database,-Canon:AESetting,Normal AE
+database,-Canon:FlashOutput,0
+database,-InteropIFD:RelatedImageWidth,4000
+database,-IFD0:YCbCrPositioning,Co-sited
+database,-File:ImageWidth,4000
+database,-Canon:ControlMode,Camera Local Control
+database,-Canon:SlowShutter,Off
+database,-Canon:DigitalZoom,None
+database,-Canon:CanonModelID,PowerShot ELPH 300 HS / IXUS 220 HS / IXY 410F
+database,-Canon:CanonFlashMode,Auto
+database,-Canon:TargetExposureTime,1/318
+database,-Canon:MaxAperture,2.7
+database,-Canon:Sharpness,0
+database,-Canon:RecordMode,JPEG
+database,-IFD1:ResolutionUnit,inches
+database,-Canon:FocusDistanceUpper,0.82 m
+database,-Canon:BulbDuration,0
+database,-Canon:VRDOffset,0
+database,-Canon:CroppedImageTop,0
+database,-ExifIFD:ComponentsConfiguration,"Y, Cb, Cr, -"
+database,-Canon:ValidAFPoints,1
+database,-File:YCbCrSubSampling,YCbCr4:2:2 (2 1)
+database,-ExifIFD:SceneCaptureType,Standard
+database,-Canon:AutoRotate,None
+database,-Canon:FocusDistanceLower,0 m
+database,-Canon:ImageUniqueID,bb52d6abb2eeb3c1b201019bb8ebd5d8
+database,-Canon:FocusMode,Single
+database,-Canon:AFAreaHeights,33 11656 0 -17844 -22788 10088 0 0 -22792
+database,-Canon:AFImageHeight,240
+database,-Canon:FlashGuideNumber,0
+database,-Canon:FacesDetected,0
+database,-Canon:NumAFPoints,9
+database,-File:EncodingProcess,"Baseline DCT, Huffman coding"
+database,-IPTC:Credit,PAR Government
+compute,-ExifIFD:ExifImageHeight,3000
+database,-Canon:ContinuousDrive,Single
+database,-InteropIFD:RelatedImageHeight,3000
+database,-Canon:SequenceNumber,0
+database,-Canon:OwnerName,
+database,-InteropIFD:InteropIndex,R98 - DCF basic file (sRGB)
+database,-Canon:OpticalZoomCode,0
+database,-IFD1:ThumbnailLength,5956
+database,-Canon:AFImageWidth,320
+database,-ExifIFD:MaxApertureValue,2.7
+database,-Canon:AFAreaMode,Single-point AF
+database,-ExifIFD:Flash,"Auto, Did not fire"
+database,-Canon:Quality,Fine
+database,-IFD1:XResolution,180
+database,-Canon:AutoExposureBracketing,Off
+database,-ExifIFD:FocalLength,4.3 mm
+database,-IFD0:YResolution,180
+database,-File:ColorComponents,3
+database,-Canon:ThumbnailImageValidArea,0 0 0 0
+database,-Canon:LensType,n/a
+database,-InteropIFD:InteropVersion,0100
+database,-Canon:MacroMode,Normal
+database,-ExifIFD:ShutterSpeedValue,1/318
+database,-Canon:CanonImageSize,Large
+database,-ExifIFD:ExposureCompensation,0
+database,-IFD1:Compression,JPEG (old-style)
+database,-File:CurrentIPTCDigest,dd4dd2162050f90fb9a60f582f7970fd
+database,-Canon:CroppedImageLeft,0
+database,-IPTC:By-line,MarkKozak
+database,-ExifTool:Warning,[minor] Possibly incorrect maker notes offsets (fix by -24?)
+database,-ExifIFD:FocalPlaneResolutionUnit,inches

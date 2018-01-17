@@ -99,21 +99,22 @@ Resource files are stored in one of the following locations, searched in the ord
 
 
 ```
-% jtui --imagedir images
+% jtuiw
 ```
 
 The imagedir argument is a project directory with a project JSON file in the project directory.
 
+An optional folder can be specified to open an existing journal directory or create a new journal using all the media in the provided directory.
 
-If the project JSON is not found and the imagedir contains is a set of images, then the images are sorted by time stamp, oldest to newest.  The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
+```
+% jtuiw --imagedir directory_name
+```
+
+If the project JSON is not found and the provided imagedir folder contains is a set of images, then the images are sorted by time stamp, oldest to newest.  The first image file in the sorted list is used as the base image of the project and as a basis for the project name.  All images in the imagedir are imported into the project. An alternative base image can be chosen using the --base command parameter.  
 
 ```
 % jtui  --imagedir images --base images/baseimage.jpg
 ```
-
-If the operations.csv and software.csv are to be downloaded from a S3 bucket, then
-(1) Use command aws configure to setup you Access Id and Key
-(2) add the argument --s3 bucketname/pathname, for example MyBucket/metaData
 
 ## Projects
 

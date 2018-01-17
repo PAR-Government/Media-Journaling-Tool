@@ -3,7 +3,9 @@ import cv2
 import logging
 import os
 from maskgen.cv2api import cv2api_delegate
+from maskgen.image_wrap import ImageWrapper
 from maskgen.tool_set import VidTimeManager, differenceInFramesBetweenMillisecondsAndFrame
+
 
 import hashlib
 
@@ -66,9 +68,9 @@ def createOutput(in_file, out_file, timeManager, codec=None):
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, fourcc, fps, (width, height))
+    out_video = cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps, (width, height), isColor=1)
     if not out_video.isOpened():
-        err = out_video + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
+        err = out_file + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
               " H: " + str(height) + " W: " + str(width)
         raise ValueError('Unable to create video ' + err)
     try:
@@ -287,23 +289,46 @@ class OpticalFlow:
         # return the average sigma(optical flow)
 
 
-def getNormalFlow(frames):
-    flow_list = np.zeros(len(frames) - 1)
-    future = cv2.cvtColor(frames[0], cv2.COLOR_BGR2GRAY)
-    for i in range(1, len(frames)):
-        past = future
-        future = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
-        flow = cv2.calcOpticalFlowFarneback(past, future, None,
-                                            0.8, 7, 15, 3, 7, 1.5, 0)
-        flow_list[i - 1] = np.std(flow)
-    return np.mean(flow_list)
 
+
+class FrameAnalyzer:
+
+    def __init__(self,start_time, end_time, fps):
+        self.last_frames = []
+        self.start_time = start_time
+        self.end_time  = end_time
+        self.fps = fps
+
+    def addFrame(self,frame):
+        if self.end_time is not None:
+            return
+        self.last_frames.append(frame)
+        if len(self.last_frames) > 50:
+            self.last_frames = self.last_frames[1:]
+
+    def framesToAdd(self):
+        if self.end_time is not None:
+            return differenceInFramesBetweenMillisecondsAndFrame(self.end_time, self.start_time, self.fps) + 1
+        avg_flow = getNormalFlow(self.last_frames)
+        std_jump_flow = np.std(self.jump_flow)
+        return int(np.rint(std_jump_flow / avg_flow))
+
+    def updateFlow(self,  last_frame,next_frame,direction):
+        if direction != 'forward':
+            prev_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
+            next_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
+        else:
+            prev_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
+            next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
+        self.jump_flow = cv2.calcOpticalFlowFarneback(prev_frame_gray, next_frame_gray, None,
+                                                 0.8, 7, 15, 3, 7, 1.5, 2)
 
 def smartAddFrames(in_file,
                    out_file,
                    start_time,
                    end_time,
-                   codec=None):
+                   codec=None,
+                   direction='forward'):
     """
     :param in_file: is the full path of the video file from which to drop frames
     :param out_file: resulting video file
@@ -313,44 +338,49 @@ def smartAddFrames(in_file,
     :return:
     """
     logger = logging.getLogger('maskgen')
+    import time
     cap = cv2api_delegate.videoCapture(in_file)
     fourcc = cv2api_delegate.get_fourcc(str(codec)) if codec is not None else cap.get(cv2api_delegate.fourcc_prop)
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, fourcc, fps, (width, height))
+    out_video = cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps, (width, height),isColor=1)
     time_manager = VidTimeManager(startTimeandFrame=start_time, stopTimeandFrame=end_time)
-    frames_to_add = differenceInFramesBetweenMillisecondsAndFrame(end_time, start_time, fps) + 1
     if not out_video.isOpened():
-        err = out_video + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
+        err = out_file + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
               " H: " + str(height) + " W: " + str(width)
         raise ValueError('Unable to create video ' + err)
     try:
         last_frame = None
+        frame_analyzer = FrameAnalyzer(start_time, end_time, fps)
         while (cap.grab()):
             ret, frame = cap.retrieve()
+            frame_analyzer.addFrame(frame)
             elapsed_time = float(cap.get(cv2api_delegate.prop_pos_msec))
             time_manager.updateToNow(elapsed_time)
             if not time_manager.isBeforeTime():
                 break
             out_video.write(frame)
             last_frame = frame
+        next_frame = frame
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Smart Add Frames ' + str(start_time) + '  to ' + str(end_time))
             logger.debug("Selected Before {}".format(hashlib.sha256(last_frame).hexdigest()))
-            logger.debug("Selected After {}".format(hashlib.sha256(frame).hexdigest()))
-        next_frame = frame
-        prev_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
-        next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
-        jump_flow = cv2.calcOpticalFlowFarneback(prev_frame_gray, next_frame_gray, None,
-                                                 0.8, 7, 15, 3, 7, 1.5, 2)
-
-        opticalFlow = OpticalFlow(last_frame, next_frame, jump_flow)
-        frames_to_add+=1
-        for i in range(1, frames_to_add):
+            logger.debug("Selected After {}".format(hashlib.sha256(next_frame).hexdigest()))
+            ImageWrapper(last_frame).save('before_'  + str(time.clock())+ '.png')
+            ImageWrapper(next_frame).save('after_' + str(time.clock()) + '.png')
+            logger.debug("STD after and before {}".format(np.std(last_frame-next_frame)))
+        frame_analyzer.updateFlow(last_frame,next_frame,  direction)
+        opticalFlow = OpticalFlow(last_frame, next_frame, frame_analyzer.jump_flow)
+        frames_to_add = frame_analyzer.framesToAdd()
+        lf = last_frame
+        for i in range(1, int(frames_to_add+1)):
             frame_scale = i / (1.0 * frames_to_add)
             frame = opticalFlow.setTime(frame_scale)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("frame {}".format(np.std(frame - lf)))
             out_video.write(frame)
+            lf = frame
         out_video.write(next_frame)
         while (cap.grab()):
             ret, frame = cap.retrieve()
@@ -374,6 +404,7 @@ def copyFrames(in_file,
     :param codec:
     :return:
     """
+    import time
     logger = logging.getLogger('maskgen')
     frames_to_write = []
     frames_to_copy = []
@@ -382,38 +413,35 @@ def copyFrames(in_file,
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, fourcc, fps, (width, height))
+    out_video = cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps, (width, height),isColor=1)
     if not out_video.isOpened():
-        err = out_video + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
+        err = out_file + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
               " H: " + str(height) + " W: " + str(width)
         raise ValueError('Unable to create video ' + err)
-
     copy_time_manager = VidTimeManager(startTimeandFrame=start_time, stopTimeandFrame=end_time)
     paste_time_manager = VidTimeManager(startTimeandFrame=paste_time)
     write_count=0
     try:
-        last_write = None
         while (not copy_time_manager.isPastTime() and cap.grab()):
             ret, frame = cap.retrieve()
             elapsed_time = float(cap.get(cv2api_delegate.prop_pos_msec))
             copy_time_manager.updateToNow(elapsed_time)
             paste_time_manager.updateToNow(elapsed_time)
-            if not copy_time_manager.isBeforeTime():
+            if not copy_time_manager.isBeforeTime() and not copy_time_manager.isPastTime():
                 frames_to_copy.append(frame)
             if not paste_time_manager.isBeforeTime():
                 frames_to_write.append(frame)
             else:
                 out_video.write(frame)
-                last_write = frame
                 write_count+=1
-        if logger.isEnabledFor(logging.DEBUG)  :
-            logger.debug("Last to write {}".format(hashlib.sha256(last_write).hexdigest()))
+        if logger.isEnabledFor(logging.DEBUG) :
+            logger.debug("First to copy {}".format(hashlib.sha256(frames_to_copy[0]).hexdigest()))
             logger.debug("Last to copy {}".format(hashlib.sha256(frames_to_copy[-1]).hexdigest()))
+            ImageWrapper(frames_to_copy[0]).save('first_' + str(time.clock()) + '.png')
+            ImageWrapper(frames_to_copy[-1]).save('last_' + str(time.clock()) + '.png')
         if  len(frames_to_write) > 0:
             # paste prior to copy
             for copy_frame in frames_to_copy:
-                #if logger.isEnabledFor(logging.DEBUG):
-                #    copy_frame[0:50, 0:50, :] = [0, 0, 0]
                 out_video.write(copy_frame)
             for write_frame in frames_to_write:
                 out_video.write(write_frame)
@@ -428,8 +456,6 @@ def copyFrames(in_file,
                     out_video.write(frame)
                     write_count += 1
             for copy_frame in frames_to_copy:
-                #if logger.isEnabledFor(logging.DEBUG):
-                #    copy_frame[0:50, 0:50, :] = [0, 0, 0]
                 out_video.write(copy_frame)
             if frame is not None:
                 out_video.write(frame)

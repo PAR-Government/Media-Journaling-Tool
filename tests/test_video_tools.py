@@ -862,8 +862,6 @@ class TestVideoTools(TestSupport):
         self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
 
-
-
     def tearDown(self):
         for f in self.filesToKill:
             if os.path.exists(f):

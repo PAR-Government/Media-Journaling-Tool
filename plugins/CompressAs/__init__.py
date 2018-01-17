@@ -5,6 +5,7 @@ compress_as takes in two JPEG images, and compresses the first with the q tables
 
 """
 import maskgen
+import logging
 
 
 
@@ -74,8 +75,7 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
                 im.save(tempFile, subsampling=sbsmp, qtables=prevTable,quality=quality)
                 maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-PreviewImage<=' + tempFile + '', target])
             except Exception as e:
-                print 'Preview generation failed'
-                print e
+                logging.getLogger('maskgen').error('Preview generation failed {}'.fomat(str(e)))
         finally:
             os.remove(tempFile)
 
@@ -92,8 +92,7 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
                 im.save(tempFile, subsampling=sbsmp, qtables=thumbTable,quality=quality)
                 maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-ThumbnailImage<=' + tempFile + '', target])
             except Exception as e:
-                print 'thumbnail generation failed'
-                print e
+                logging.getLogger('maskgen').error('Thumbnail generation failed {}'.fomat(str(e)))
         finally:
             os.remove(tempFile)
     maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=',

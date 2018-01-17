@@ -463,8 +463,15 @@ class MaskGraphCanvas(tk.Canvas):
 
     def reformat(self,scale=1.2,min_distance=50):
         from networkx.drawing.nx_agraph import graphviz_layout
+        import networkx
+        nodes = self.scModel.getGraph().G.nodes()
         baseTuples = self.scModel.getTerminalToBasePairs(suffix=None)
-        positions = graphviz_layout(self.scModel.getGraph().G, prog='dot',
+        gg = networkx.nx.DiGraph()
+        for n in self.scModel.getGraph().G.nodes():
+            gg.add_node(n,file = self.scModel.getGraph().G.node[n]['file'])
+        for e in self.scModel.getGraph().G.edges():
+            gg.add_edge(e[0],e[1],op=self.scModel.getGraph().G.edge[e[0]][e[1]]['op'])
+        positions = graphviz_layout(gg, prog='dot',
                                     root=baseTuples[0][1] if len(baseTuples) > 0 else None)
         xs = [x for (x, y) in positions.values()]
         ys = [y for (x, y) in positions.values()]

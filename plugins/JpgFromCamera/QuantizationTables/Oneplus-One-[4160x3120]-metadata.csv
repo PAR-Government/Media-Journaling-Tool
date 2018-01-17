@@ -1,0 +1,46 @@
+database,-File:ImageHeight,3120
+database,-GPS:GPSImgDirection,337
+database,-ExifIFD:ExifVersion,0220
+compute,-ExifIFD:ExifImageHeight,3120
+database,-ExifIFD:ApertureValue,2.0
+database,-ExifIFD:CreateDate,2002:12:08 12:00:00
+database,-InteropIFD:InteropIndex,R98 - DCF basic file (sRGB)
+database,-GPS:GPSLatitudeRef,North
+database,-GPS:GPSDateStamp,2016:08:30
+database,-File:EncodingProcess,"Baseline DCT, Huffman coding"
+database,-IFD1:ThumbnailLength,12953
+database,-ExifIFD:CustomRendered,Normal
+database,-GPS:GPSLongitudeRef,West
+database,-File:ImageWidth,4160
+compute,-ExifIFD:ExifImageWidth,4160
+database,-ExifIFD:ColorSpace,sRGB
+database,-IFD0:ResolutionUnit,inches
+database,-IFD0:YResolution,72
+database,-GPS:GPSTimeStamp,16:57:01
+database,-IFD0:XResolution,72
+database,-ExifIFD:FocalLength,3.8 mm
+database,-ExifIFD:ExposureTime,1/3422
+database,-IFD1:YResolution,72
+database,-InteropIFD:InteropVersion,0100
+database,-IFD1:XResolution,72
+database,-File:ExifByteOrder,"Big-endian (Motorola, MM)"
+database,-GPS:GPSAltitude,85 m
+database,-ExifIFD:ShutterSpeedValue,1/3421
+database,-ExifIFD:ISO,100
+database,-ExifIFD:FNumber,2.0
+database,-GPS:GPSLatitude,"43 deg 11' 50.64"""
+database,-ExifIFD:ComponentsConfiguration,"Y, Cb, Cr, -"
+database,-File:YCbCrSubSampling,YCbCr4:2:0 (2 2)
+database,-ExifIFD:Flash,"Auto, Did not fire"
+database,-IFD1:ResolutionUnit,inches
+database,-GPS:GPSProcessingMethod,ASCII
+database,-IFD1:Compression,JPEG (old-style)
+database,-GPS:GPSAltitudeRef,Above Sea Level
+database,-File:ColorComponents,3
+database,-IFD1:ThumbnailOffset,777
+database,-GPS:GPSLongitude,"75 deg 43' 43.62"""
+database,-ExifIFD:DateTimeOriginal,2016:08:30 12:57:00
+database,-ExifIFD:FlashpixVersion,0100
+database,-IFD0:YCbCrPositioning,Centered
+database,-File:BitsPerSample,8
+database,-GPS:GPSImgDirectionRef,Magnetic North

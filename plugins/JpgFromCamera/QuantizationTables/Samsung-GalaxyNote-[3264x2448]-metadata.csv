@@ -1,0 +1,47 @@
+source,-ExifIFD:ApertureValue,2.6
+source,-ExifIFD:BrightnessValue,3.13
+database,-ExifIFD:ColorSpace,sRGB
+database,-ExifIFD:CreateDate,2012:03:08 12:44:50
+database,-ExifIFD:DateTimeOriginal,2012:03:08 12:44:50
+compute,-ExifIFD:ExifImageHeight,2448
+compute,-ExifIFD:ExifImageWidth,3264
+database,-ExifIFD:ExifVersion,0220
+source,-ExifIFD:ExposureCompensation,0
+source,-ExifIFD:ExposureMode,Auto
+source,-ExifIFD:ExposureProgram,Aperture-priority AE
+source,-ExifIFD:ExposureTime,1/40
+source,-ExifIFD:FNumber,2.6
+source,-ExifIFD:Flash,"Off, Did not fire"
+source,-ExifIFD:FlashpixVersion,0100
+source,-ExifIFD:FocalLength,4.0 mm
+source,-ExifIFD:ISO,100
+database,-ExifIFD:ImageUniqueID,OOEI08
+source,-ExifIFD:MaxApertureValue,2.6
+database,-ExifIFD:MeteringMode,Center-weighted average
+database,-ExifIFD:SceneCaptureType,Standard
+source,-ExifIFD:ShutterSpeedValue,1/40
+database,-ExifIFD:UserComment,
+database,-ExifIFD:WhiteBalance,Auto
+compute,-IFD0:ImageHeight,Height
+compute,-IFD0:ImageWidth,Width
+database,-IFD0:Make,SAMSUNG
+database,-IFD0:Model,SGH-I717
+database,-IFD0:ModifyDate,2012:03:08 12:44:50
+database,-IFD0:Orientation,Horizontal (normal)
+database,-IFD0:ResolutionUnit,inches
+database,-IFD0:Software,I717UCLF6
+database,-IFD0:XResolution,72
+database,-IFD0:YCbCrPositioning,Centered
+database,-IFD0:YResolution,72
+database,-IFD1:Compression,JPEG (old-style)
+database,-IFD1:ImageHeight,240
+database,-IFD1:ImageWidth,320
+database,-IFD1:Orientation,Horizontal (normal)
+database,-IFD1:ResolutionUnit,inches
+database,-IFD1:ThumbnailLength,37915
+database,-IFD1:ThumbnailOffset,858
+database,-IFD1:XResolution,72
+database,-IFD1:YResolution,72
+database,-Samsung:DeviceType,Cell Phone
+database,-Samsung:FaceDetect,Off
+database,-Samsung:MakerNoteVersion,0100

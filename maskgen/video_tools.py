@@ -832,7 +832,10 @@ def x264fast(filename, outputname=None, crf=0,remove_video=False):
                           outputname=outputname,
                           remove_video=remove_video)
 
-def x264(filename, outputname=None, crf=0,remove_video=False):
+def x264(filename, outputname=None, crf=0,remove_video=False, additional_args=[]):
+    args = ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)]
+    if additional_args  is not None:
+        args.extend (additional_args)
     return __vid_compress(filename,
                           ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)],
                          'h264',
@@ -1035,7 +1038,7 @@ def __formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager, codec=[
     try:
         os.remove(outFileName)
     except OSError:
-        print 'video diff process failed'
+        logging.getLogger('maskgen').warn('video diff process failed')
 
     return result, errors if sendErrors  else []
 
@@ -2654,11 +2657,6 @@ def pullFrameNumber(video_file, frame_number):
     ImageWrapper(frame).save(video_file[0:video_file.rfind('.')] + '.png')
     return time.strftime("%H:%M:%S", time.gmtime(elapsed_time / 1000)) + '.%03d' % (elapsed_time % 1000)
 
-def main(argv=None):
-    print pullFrameNumber('/Users/ericrobertson/Documents/movie/videoSample5.mp4',
-                            50)
-    #print formMaskDiff2('/Users/ericrobertson/Documents/movie/videoSample5.mp4',
-    #                     '/Users/ericrobertson/Documents/movie/videoSample6.mp4', "/Users/ericrobertson/Documents/movie/v5_v6", 'SelectCutFrames')
 
 if __name__ == "__main__":
     import sys

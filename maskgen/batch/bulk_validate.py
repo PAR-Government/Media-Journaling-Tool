@@ -1,5 +1,5 @@
+from __future__ import print_function
 import argparse
-
 from maskgen import scenario_model
 from maskgen.software_loader import *
 import bulk_export
@@ -7,6 +7,7 @@ from maskgen import graph_rules
 import csv
 import os
 from maskgen.batch import pick_projects
+
 
 def validate_export(error_writer,project, sm):
     """
@@ -36,8 +37,8 @@ def main():
             try:
                 validate_export(error_writer, project, scenario_model.loadProject(project))
             except Exception as e:
-                print project
-                print e
+                print (project)
+                print (str(e))
 
 if __name__ == '__main__':
     main()
