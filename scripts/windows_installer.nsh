@@ -77,9 +77,8 @@ Section -Prerequisites
 	Delete "$DESKTOP\opencv-2.4.13.3-vc14.exe"
 	
 	has_cvd_build:
-    IfFileExists "$PROFILE\Anaconda2\Lib\cv2.pyd" +1 +3
+    IfFileExists "$PROFILE\Anaconda2\Lib\cv2.pyd" +1 +2
     Rename "$PROFILE\Anaconda2\Lib\cv2.pyd" "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd"
-    CopyFiles "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\site-packages\cv2.pyd"
 	IfFileExists "$PROFILE\Anaconda2\Lib\site-packages\cv2.pyd" has_cv2_installed
 	CopyFiles "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\site-packages\"
 
