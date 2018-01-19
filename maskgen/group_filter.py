@@ -174,7 +174,8 @@ class GroupFilterLoader:
     def _buildGroupOperation(self,grp, name, filter=True):
         from functools import partial
         if grp is not None:
-            includeInMask = False
+            includeInMask = dict()
+            includeInMask['default'] = False
             rules = set()
             opt_params = dict()
             mandatory_params = dict()
@@ -190,7 +191,11 @@ class GroupFilterLoader:
                 operation = self._getOperation(op)
                 ops.append(operation)
                 grp_categories.add(operation.category)
-                includeInMask |= operation.includeInMask
+                for k,v in operation.includeInMask.iteritems():
+                    if k in includeInMask:
+                        includeInMask[k] = includeInMask[k] | v
+                    else:
+                        includeInMask[k] = v
                 generateMask = chooseHigherRank(generateMask, operation.generateMask)
                 addToSet(rules, operation.rules)
                 addToMap(mandatory_params, operation.mandatoryparameters)

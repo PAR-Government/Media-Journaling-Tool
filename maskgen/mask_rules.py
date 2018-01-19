@@ -1403,8 +1403,7 @@ def audio_donor(edge, source, target, edgeMask,
     if compositeMask is not None:
         return compositeMask
     else:
-        node = graph.get_node(target)
-        if getNodeFileType(graph, node) in ['video', 'audio']:
+        if getNodeFileType(graph, target) in ['video', 'audio']:
             return _prepare_video_masks(graph, edge['videomasks'], 'audio',
                                         source, target, edge,fillWithUserBoundaries=False) if donorMask is None and \
                                                            'videomasks' in edge and \
