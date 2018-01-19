@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 import argparse
@@ -35,7 +36,7 @@ def upload_projects(s3dir, dir, qa, username, error_writer):
         error_list = scModel.exporttos3(s3dir)
         if len(error_list) > 0:
             for err in error_list:
-                print err
+                print (err)
             raise ValueError('Export Failed')
         for err in scModel.validate():
             error_writer.writerow((scModel.getName(), str(err)))

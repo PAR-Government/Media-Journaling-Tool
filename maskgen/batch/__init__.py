@@ -57,7 +57,7 @@ class BatchProcessor:
                 item_to_process = self.q.get_nowait()
                 if item_to_process is None:
                     break
-                item_id = item_to_process[0] if isinstance(item_to_process,tuple) else item_id
+                item_id = item_to_process[0] if isinstance(item_to_process,tuple) else item_to_process
                 logging.getLogger('maskgen').info('Project updating: ' + str(item_id))
                 errors = func_to_run(item_to_process)
                 for error in errors:

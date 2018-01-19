@@ -174,7 +174,7 @@ def _fixSeams(scModel):
         return
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        if edge['op'] in [ 'TransformSeamCarving']:
+        if edge['op'] in [ 'TransformSeamCarving'] and edge['softwareName'] == 'maskgen':
             bounds = getValue(edge,'arguments.percentage bounds')
             if  bounds is not None:
                 edge['arguments'].pop('percentage bounds')
@@ -194,7 +194,7 @@ def _fixSeams(scModel):
                         newmask[:,:,0] = oldmask[:,:,1]
                         ImageWrapper(newmask).save(os.path.join(scModel.get_dir(),mask))
                 except Exception as e:
-                    logging.getLogger('maskgen').log('Seam Carve fix {} mask error {}'.format(mask,str(e)))
+                    logging.getLogger('maskgen').error('Seam Carve fix {} mask error {}'.format(mask,str(e)))
 
 def _fixVideoAudioOps(scModel):
     groups = scModel.G.getDataItem('groups')

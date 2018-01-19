@@ -13,11 +13,6 @@ class OperationEncoder(JSONEncoder):
 
 def getFileName(fileName, path=None):
     import sys
-    #import traceback
-    #try:
-    #    None.foo()
-    #except Exception as ex:
-    #    traceback.print_stack()
     if (os.path.exists(fileName)):
         logging.getLogger('maskgen').info( 'Loading ' + fileName)
         return fileName
@@ -403,14 +398,14 @@ class MetaDataLoader:
                 namesTwo[name] = versions
         for name,versions in namesTwo.iteritems():
             if name not in namesOne:
-                print 'missing ' + name
+                logging.getLogger('maskgen').warn( 'missing ' + name)
             else:
                 for version in versions:
                     if version not in namesOne[name]:
-                        print 'missing ' + str(version) + ' in ' + name
+                        logging.getLogger('maskgen').warn( 'missing ' + str(version) + ' in ' + name)
         for name, atype in bytesTwo.iteritems():
             if name  in bytesOne and atype != bytesOne[name]:
-                print 'missing ' + str(atype) + ' in ' + name
+                logging.getLogger('maskgen').warn( 'missing ' + str(atype) + ' in ' + name)
 
 
     def loadProjectProperties(self, fileName):

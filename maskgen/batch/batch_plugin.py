@@ -1,8 +1,11 @@
+from __future__ import print_function
+import sys
 from maskgen.plugins import loadPlugins, callPlugin, getOperation
 from maskgen.image_wrap import  openImageFile
 from maskgen.tool_set import validateAndConvertTypedValue
 from maskgen import software_loader
-import sys
+
+
 
 def run_plugin(argv=None):
     import argparse
@@ -24,10 +27,10 @@ def run_plugin(argv=None):
     loadPlugins()
     args, msg = callPlugin(args.plugin, openImageFile(args.input), args.input, args.output, **parsedArgs)
     if msg is not None:
-        print msg
+        print (msg)
     if args is not None:
-        print 'Results:'
-        print str(args)
+        print ('Results:')
+        print (str(args))
 
 if __name__ == "__main__":
     sys.exit(run_plugin())

@@ -772,7 +772,7 @@ def seamCompare(img1, img2,  arguments=dict()):
     if (sum(img1.shape) != sum(img2.shape) and (img1.shape[0] == img2.shape[0] or img1.shape[1] == img2.shape[1])):
         # seams can only be calculated in one dimension--only one dimension can change in size
         mask_tracker = __composeSeamMask(img1, img2)
-        return mask_tracker.dropped_mask*255,__composeArguments(mask_tracker,arguments=arguments)
+        return (255-(mask_tracker.dropped_mask*255)),__composeArguments(mask_tracker,arguments=arguments)
     elif (img1.shape[0] != img2.shape[0] and img1.shape[1] != img2.shape[1]):
         return tool_set.composeCropImageMask(img1, img2)
     return None,{}

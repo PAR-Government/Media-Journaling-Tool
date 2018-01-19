@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 from sys import platform as sys_pf
+import logging
 
 if sys_pf == 'darwin':
     import matplotlib
@@ -108,7 +109,7 @@ def minimum_bounded_ellipse(image):
                                         min_samples=3, residual_threshold=1,
                                         max_trials=500)
     except Exception as ex:
-        print ex
+        logging.getLogger('maskgen').error('minimum_bounded_ellipse {}'.fomat(str(ex)))
         raise ex
     return model.params
 
@@ -262,7 +263,6 @@ def performPaste(img,img_to_paste,approach,segment_algorithm):
                                 if out2 is not None:
                                     break
                             except Exception as e:
-                                # print e
                                 continue
                     if out2 is not None:
                         break

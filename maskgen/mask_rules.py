@@ -87,7 +87,7 @@ class Probe:
     #type targetChangeSizeInPixels: size
     @type targetMaskImage: ImageWrapper
     @type finalNodeId: str
-    @type compositeFileNames: dict of str:str
+    @type composites: dict of str:{}
     @type donorBaseNodeId: str
     @type donorMaskFileName: str
     @type finalImageFileName: str

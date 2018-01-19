@@ -1,0 +1,53 @@
+database,-IFD0:ModifyDate,2003:01:13 19:15
+database,-IFD0:Model,1.0
+database,-ExifIFD:LightSource,Unknown
+database,-ExifIFD:SceneType,Directly photographed
+database,-ExifIFD:MeteringMode,Multi-segment
+database,-ExifIFD:ExifVersion,0210
+compute,-ExifIFD:ExifImageHeight,1200
+database,-IFD0:Orientation,Horizontal (normal)
+database,-ExifIFD:ExposureProgram,Aperture-priority AE
+database,-File:EncodingProcess,"Baseline DCT, Huffman coding"
+database,-ExifIFD:CreateDate,2003:01:13 19:15
+database,-InteropIFD:InteropIndex,R98 - DCF basic file (sRGB)
+database,-File:ImageHeight,1200
+database,-IFD1:ThumbnailLength,6148
+database,-ExifIFD:MaxApertureValue,3.6
+database,-File:ImageWidth,1600
+compute,-ExifIFD:ExifImageWidth,1600
+database,-ExifIFD:ColorSpace,sRGB
+database,-IFD0:Software,1.0
+database,-ExifIFD:FileSource,Digital Camera
+database,-ExifIFD:RelatedSoundFile,
+database,-IFD0:ResolutionUnit,inches
+database,-IFD0:YResolution,96
+database,-ExifIFD:SensingMethod,One-chip color area
+database,-IFD0:XResolution,96
+database,-ExifIFD:ExposureTime,1/304
+database,-IFD1:YResolution,1
+database,-InteropIFD:InteropVersion,0100
+database,-IFD1:XResolution,1
+database,-File:ExifByteOrder,"Big-endian (Motorola, MM)"
+database,-File:YCbCrSubSampling,YCbCr4:2:2 (2 1)
+database,-ExifIFD:ShutterSpeedValue,1/304
+database,-ExifIFD:ISO,100
+database,-ExifIFD:FNumber,2.8
+database,-IFD0:ImageDescription,
+database,-ExifIFD:ExposureCompensation,0
+database,-ExifIFD:ComponentsConfiguration,"Y, Cb, Cr, -"
+database,-ExifIFD:ExposureIndex,1
+database,-ExifIFD:Flash,No Flash
+database,-IFD1:ResolutionUnit,inches
+database,-IFD0:Make,DIGITAL CAMERA
+database,-ExifIFD:ApertureValue,4.0
+database,-IFD1:Compression,JPEG (old-style)
+database,-File:ColorComponents,3
+database,-IFD0:Copyright,"Copyright 9,2002"
+database,-IFD1:ThumbnailOffset,1413
+database,-ExifTool:Warning,[minor] Unrecognized MakerNotes
+database,-ExifIFD:DateTimeOriginal,2003:01:13 19:15
+database,-IFD1:Orientation,Horizontal (normal)
+database,-ExifIFD:FlashpixVersion,0100
+database,-IFD0:YCbCrPositioning,Co-sited
+database,-File:BitsPerSample,8
+database,-ExifIFD:CompressedBitsPerPixel,1.995325

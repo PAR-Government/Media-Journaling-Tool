@@ -453,7 +453,6 @@ class PreProcessedMediaOperation(BatchOperation):
     def _fetchArguments(self, directory, node, nodename, image_file_name, arguments):
         import copy
         import csv
-        print directory + ' for ' + nodename + ' to ' + image_file_name
         argcopy = copy.deepcopy(arguments)
         if 'argument file' in node:
             if 'argument names' not in node:
@@ -989,6 +988,8 @@ class BatchProject:
             name = op_type = node['op_type']
             if op_type in ['PluginOperation', 'InputMaskPluginOperation']:
                 name = node['plugin']
+                if 'description'  in node:
+                    name = node['description']
             color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
                                               shape='plain',

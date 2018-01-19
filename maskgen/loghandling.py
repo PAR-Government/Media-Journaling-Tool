@@ -1,7 +1,9 @@
+from __future__ import print_function
 import time
 import logging
 from logging import handlers, config
 import os
+
 
 class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """
@@ -63,7 +65,7 @@ def set_logging(directory=None, filename='maskgen.log'):
     logger.addHandler(fh)
 
     if os.path.exists('logging.config'):
-        print 'Establishing logging configuration from file'
+        print ('Establishing logging configuration from file')
         config.fileConfig('logging.config')
 
 

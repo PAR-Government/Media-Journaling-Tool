@@ -975,7 +975,7 @@ def checkLevelsVsCurves(op, graph, frm, to):
 
     # The lag-one autocorrelation will serve as a score and has a reasonably straightforward statistical interpretation too.
     if corrs1[1] < 0.9:
-        print '[Warning] Verify this operation was performed with Levels rather than Curves'
+        return '[Warning] Verify this operation was performed with Levels rather than Curves'
     return None
 
 

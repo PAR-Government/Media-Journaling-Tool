@@ -1,6 +1,7 @@
 """
 Bulk Image Journal Processing
 """
+from __future__ import print_function
 import argparse
 import sys
 import itertools
@@ -16,6 +17,7 @@ from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import loadJSONGraph, BatchProject
 from maskgen.image_graph import extract_archive
 from maskgen.tool_set import setPwdX, CustomPwdX
+
 
 
 def args_to_map(args, op):
@@ -39,7 +41,7 @@ def check_additional_args(parsedArgs, op, continueWithWarning=False):
     # parse additional arguments (rotation, etc.)
     # http://stackoverflow.com/questions/6900955/python-convert-list-to-dictionary
     if op is None:
-        print 'Invalid Operation Name {}'.format(op)
+        print ('Invalid Operation Name {}'.format(op))
         return {}
 
     missing = [param for param in op.mandatoryparameters.keys() if
@@ -57,7 +59,7 @@ def check_additional_args(parsedArgs, op, continueWithWarning=False):
 
     if missing:
         for m in missing:
-            print 'Mandatory parameter ' + m + ' is missing'
+            print ('Mandatory parameter ' + m + ' is missing')
         if continueWithWarning is False:
             sys.exit(0)
     return parsedArgs
@@ -151,10 +153,10 @@ def findNodesToExtend(sm, rules):
             continue
         for rule in rules:
             if rule.startswith('~'):
-                catname, opname = rule[1:].split(':')[0:2]
+                catandop = rule[1:].split(':')
                 if op is not None:
-                    if op.category == catname and \
-                                    len(opname) == '' or opname == op.name:
+                    if op.category == catandop[0] and \
+                            (len(catandop) == 0 or len(catandop[1]) == '' or catandop[1] == op.name):
                         continue
         nodes.append(nodename)
     return nodes
@@ -171,7 +173,7 @@ def _processProject(batchSpecification, extensionRules, project, workdir=None):
     """
     sm = maskgen.scenario_model.ImageProjectModel(project)
     nodes = findNodesToExtend(sm, extensionRules)
-    print 'extending {}'.format(' '.join(nodes))
+    print ('extending {}'.format(' '.join(nodes)))
     if not batchSpecification.executeForProject(sm, nodes,workdir=workdir):
         raise ValueError('Failed to process {}'.format(sm.getName()))
     sm.save()
@@ -289,7 +291,6 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
             eImg = None if endDir is None else os.path.join(endDir, find_corresponding_image(sImgName, endingImages))
         else:
             eImg = os.path.join(sourceDir, sImg)
-            # print sm.G.get_nodes()
             lastNodes = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0]
             lastNodeName = lastNodes[-1]
 
@@ -456,51 +457,51 @@ def main():
         for plugin in maskgen.plugins.loadPlugins().keys():
             if args.plugin is not None and plugin != args.plugin:
                 continue
-            print '---------------------------------------'
-            print plugin
+            print ('---------------------------------------')
+            print (plugin)
             op = maskgen.plugins.getOperation(plugin)
             if 'arguments' not in op or op['arguments'] is None:
                 continue
-            print 'Arguments:'
+            print ('Arguments:')
             argsProcessed = set()
             for name, definition in op['arguments'].iteritems():
                 argsProcessed.add(name)
                 vals = (' of ' + ','.join([str(v) for v in definition['values']])) if definition[
                                                                                           'type'] == 'list' else ''
-                print '  {}: {}{} [ {} ]'.format(name, definition['type'], vals,
-                                                 definition['description'] if 'description' in definition else '')
+                print ('  {}: {}{} [ {} ]'.format(name, definition['type'], vals,
+                                                 definition['description'] if 'description' in definition else ''))
             opdef = getOperation(op['name'], fake=True)
             for name, definition in opdef.mandatoryparameters.iteritems():
                 if name not in argsProcessed:
                     vals = (' of ' + ','.join([str(v) for v in definition['values']])) if definition[
                                                                                               'type'] == 'list' else ''
-                    print '  {}: {}{} [ {} ]'.format(name, definition['type'], vals,
-                                                     definition['description'] if 'description' in definition else '')
+                    print ('  {}: {}{} [ {} ]'.format(name, definition['type'], vals,
+                                                     definition['description'] if 'description' in definition else ''))
             for name, definition in opdef.optionalparameters.iteritems():
                 if name not in argsProcessed:
                     vals = (' of ' + ','.join([str(v) for v in definition['values']])) if definition[
                                                                                               'type'] == 'list' else ''
-                    print '  {}*: {}{} [ {} ]'.format(name, definition['type'], vals,
+                    print ('  {}*: {}{} [ {} ]'.format(name, definition['type'], vals,
                                                       definition['description'].encode('ascii',
-                                                                                       errors='ignore') if 'description' in definition else '')
+                                                                                       errors='ignore') if 'description' in definition else ''))
         return
 
     elif args.specification:
         if args.projects is None:
-            print 'projects is required'
+            print ('projects is required')
             sys.exit(-1)
         processSpecification(args.specification, args.extensionRules, args.projects, completeFile=args.completeFile,
                              outputGraph=args.graph, threads=int(args.threads), loglevel=args.loglevel)
     # perform the specified operation
     elif args.plugin:
         if args.projects is None:
-            print 'projects is required'
+            print ('projects is required')
             sys.exit(-1)
         opDef = maskgen.plugins.getOperation(args.plugin)
         if opDef is not None:
             op = getOperation(opDef['name'])
             if op is None:
-                print 'Invalid Operation definition {} for plugin.  Plugin is an invalid state.'.format(args.op)
+                print ('Invalid Operation definition {} for plugin.  Plugin is an invalid state.'.format(args.op))
                 sys.exit(-1)
         additionalArgs = args_to_map(args.arguments, op)
         if 'arguments' in opDef and opDef['arguments'] is not None:
@@ -511,25 +512,25 @@ def main():
 
         additionalArgs = check_additional_args(additionalArgs, op, args.continueWithWarning)
 
-        print 'Performing plugin operation ' + args.plugin + '...'
+        print ('Performing plugin operation ' + args.plugin + '...')
         process_plugin(args.sourceDir, args.projects, args.plugin, props, additionalArgs)
     elif args.sourceDir:
         op = getOperation(args.op)
         if args.projects is None:
-            print 'projects is required'
+            print ('projects is required')
             sys.exit(-1)
         if op is None:
-            print 'Invalid Operation {}'.format(args.op)
+            print ('Invalid Operation {}'.format(args.op))
             sys.exit(-1)
         additionalArgs = args_to_map(args.arguments, op)
         additionalArgs = {} if args.op is None else check_additional_args(additionalArgs, op, args.continueWithWarning)
         if args.op:
-            print 'Adding operation ' + args.op + '...'
+            print ('Adding operation ' + args.op + '...')
         process(args.sourceDir, args.endDir, args.projects, args.op, args.softwareName,
                 args.softwareVersion, args.description, args.inputmaskpath, additionalArgs,
                 props)
     if args.jpg:
-        print 'Performing JPEG save & copying metadata from base...'
+        print ('Performing JPEG save & copying metadata from base...')
         process_jpg(args.projects)
 
     # bulk export to s3

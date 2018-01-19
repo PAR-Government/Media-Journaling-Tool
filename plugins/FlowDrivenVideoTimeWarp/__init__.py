@@ -18,7 +18,8 @@ def transform(img,source,target,**kwargs):
     add_frames, end_time_millis = smartAddFrames(source, target,
                                               start_time,
                                               end_time,
-                                              codec=codec)
+                                              codec=codec,
+                                              direction=kwargs['Direction'] if 'Direction' in kwargs else 'forward')
 
 
     if start_time[0] > 0:
@@ -26,7 +27,7 @@ def transform(img,source,target,**kwargs):
     else:
         et = str(int(start_time[1]) + int(add_frames))
 
-    return {'Start Time':str(kwargs['Start Time']), 'End Time': et},None
+    return {'Start Time':str(kwargs['Start Time']), 'End Time': et, 'Frames to Add': int(add_frames)},None
 
 def suffix():
     return '.avi'
@@ -43,6 +44,12 @@ def operation():
                   'type': 'int[0:100000000]',
                   'defaultvalue': 1,
                   'description':'Number of frames since Start Time. overrides or in lieu of an End Time.'
+              },
+              'Direction': {
+                  'type': 'list',
+                  'values':['forward','backward'],
+                  'defaultvalue': 'forward',
+                  'description': 'Direction of flow.'
               },
               'codec': {
                   'type': 'list',

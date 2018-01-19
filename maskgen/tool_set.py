@@ -501,6 +501,12 @@ def getDurationStringFromMilliseconds(millis):
     ss = sec - (hr * 3600) - mi * 60
     return '{:=02d}:{:=02d}:{:=02d}.{:=03d}'.format(hr, mi, ss,ms)
 
+def addTwo(num_string):
+    return int(num_string)+2
+
+def sutractOne(num_string):
+    return int(num_string)-1
+
 def addOneFrame(time_string):
     time_val = getMilliSecondsAndFrameCount(time_string)
     return str(time_val[1]+1)
