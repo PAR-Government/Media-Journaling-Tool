@@ -118,6 +118,25 @@ def fillTextVariable(obj, row, event):
     obj.values[row].set(obj.widgets[row].get(1.0, END))
 
 
+def promptForURLAndFillButtonText(obj, id, row):
+    """
+    Prompt for a URL.
+    Set the button's text, identify by the id.
+    :param obj:
+    :param dir: Starting place for file inspection
+    :param id: button identitifer
+    :param row:
+    :param filetypes:
+    @type obj: PropertyFrame
+    @type row: int
+    @type filetypes: [(str,str)]
+    :return:
+    """
+    var = obj.values[row]
+    val = URLCaptureDialog(obj, var.get().split('\n'))
+    var.set('\n'.join(val.urls).strip())
+    obj.buttons[id].configure(text=var.get(),height =(len(val.urls)))
+
 def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     """
     Prompt for a file given the file types.
@@ -724,7 +743,8 @@ class ItemDescriptionCaptureDialog(Toplevel):
         body = Frame(self)
         self.initial_focus = self.body(body)
         self.buttonbox()
-        body.pack(padx=5, pady=5)
+        body.pack(padx=5, pady=5, fill=BOTH, expand=True)
+        #body.pack_propagate(True)
 
         if not self.initial_focus:
             self.initial_focus = self
@@ -764,14 +784,16 @@ class ItemDescriptionCaptureDialog(Toplevel):
                                 propertyFunction=NodePropertyFunction(self.argvalues),
                                 changeParameterCB=self.changeParameter,
                                 dir='.')
+       # self.argBox.pack(padx=5, pady=5, fill=BOTH, expand=True)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
-        self.argBox.grid_propagate(1)
+        self.argBox.columnconfigure(0,weight=1)
+        self.argBox.grid_propagate(True)
 
 
     def body(self, master):
         self.okButton = None
         row  = 0
-        Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
+        Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=E)
         row += 1
         self.argBoxRow = row
         self.argBoxMaster = master
@@ -1256,6 +1278,72 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
 
     def getGroup(self):
         return self.grouptocall
+
+class URLCaptureDialog(tkSimpleDialog.Dialog):
+
+
+    def __init__(self, parent, urls):
+        self.urls = [x for x in urls if len(x) > 0]
+        tkSimpleDialog.Dialog.__init__(self, parent, "Select URLs")
+
+    def body(self, master):
+        yscrollbar = Scrollbar(master, orient=VERTICAL)
+        xscrollbar = Scrollbar(master, orient=HORIZONTAL)
+        self.listbox = Listbox(master, width=80,
+                               yscrollcommand=yscrollbar.set,
+                               xscrollcommand=xscrollbar.set)
+        self.listbox.bind("<Double-Button-1>", self.remove)
+        self.listbox.grid(row=0, column=1, sticky=E + W + N + S,
+                               columnspan=2)
+        xscrollbar.config(command=self.listbox.xview)
+        xscrollbar.grid(row=1, column=0, stick=E + W,columnspan=2)
+        yscrollbar.config(command=self.listbox.yview)
+        yscrollbar.grid(row=0, column=2, stick=N + S)
+        for item in self.urls:
+            self.listbox.insert(END, item)
+        Label(master, text="Add Entry:", anchor=W, justify=LEFT).grid(row=2, column=0, sticky=W)
+        self.url = Text(master, takefocus=True, width=60, height=1, relief=RAISED,
+                      borderwidth=2)
+        self.url.grid(row=2, column=1,sticky=EW)
+        #self.url.bind("<Return>", self.add)
+
+    def buttonbox(self):
+        '''add standard button box.
+
+        override if you do not want the standard buttons
+        '''
+
+        box = Frame(self)
+
+        w = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Escape>", self.cancel)
+        self.bind("<Return>", self.add)
+        box.pack()
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.urls = self.listbox.get(0, END)
+
+    def remove(self,event):
+        self.listbox.delete(self.listbox.curselection()[0],self.listbox.curselection()[0])
+
+    def add(self,event):
+        import urllib2
+        contents = self.url.get(1.0, END).strip()
+        if len(contents) == 0:
+            return
+        try:
+            f = urllib2.urlopen(contents,timeout=2)
+            self.listbox.insert(END, contents)
+            f.close()
+        except Exception as e:
+            pass
 
 
 class ActionableTableCanvas(TableCanvas):
@@ -2137,6 +2225,7 @@ class VerticalScrolledFrame(Frame):
                         yscrollcommand=vscrollbar.set)
         canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command=canvas.yview)
+        canvas.pack_propagate(True)
 
         # reset the view
         canvas.xview_moveto(0)
@@ -2167,6 +2256,7 @@ class VerticalScrolledFrame(Frame):
         canvas.bind('<Configure>', _configure_canvas)
 
         return
+
 
 def notifyCB(obj,name, type, row, cb,a1,a2,a3):
     if cb is not None:
@@ -2228,6 +2318,14 @@ class PropertyFrame(VerticalScrolledFrame):
                if v:
                    widget.insert(1.0, v)
                widget.grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'urls':
+               partialf = partial(promptForURLAndFillButtonText, self, prop.name, row)
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ',
+                                                         takefocus=False,
+                                                         height =(1 if v is None else v.count('\n')+1),
+                                                         anchor=W, justify=LEFT, padx=2,
+                                                         command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type == 'yesno':
                widget = [None,None]
                widget[0]  =Radiobutton(master, text='Yes', takefocus=(row == 0), variable=self.values[row],

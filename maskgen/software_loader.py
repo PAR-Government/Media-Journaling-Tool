@@ -69,7 +69,7 @@ class ProjectProperty:
 class Operation:
     name = None
     category = None
-    includeInMask = False
+    includeInMask = {'default':False}
     description = None
     optionalparameters = {}
     mandatoryparameters = {}
@@ -160,9 +160,9 @@ class Operation:
 
     def recordMaskInComposite(self,filetype):
         if filetype in self.includeInMask :
-            return self.includeInMask [filetype]
+            return 'yes' if self.includeInMask [filetype] else 'no'
         if 'default' in self.includeInMask :
-            return self.includeInMask ['default']
+            return 'yes' if self.includeInMask ['default'] else 'no'
         return 'no'
 
     def getConvertFunction(self):
