@@ -17,7 +17,8 @@ import data_files
 
 exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
         'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf','.mxf'],
-        'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
+        'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
+        'MODEL': ['.obj']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 RVERSION = '#@version=01.10'
 
@@ -43,6 +44,8 @@ def copyrename(image, path, usrname, org, seq, other):
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
+    elif currentExt.lower() in exts['MODEL']:
+        sub = 'model'
     else:
         sub = 'image'
     newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
@@ -112,7 +115,7 @@ def grab_dir(inpath, outdir=None, r=False):
     """
     imageList = []
     names = os.listdir(inpath)
-    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
+    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'] + exts['MODEL'])
     if r:
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
@@ -231,7 +234,7 @@ def check_create_subdirectories(path):
     :param path: directory path
     :return: None
     """
-    subs = ['image', 'video', 'audio', 'csv']
+    subs = ['image', 'video', 'audio', 'model', 'csv']
     for sub in subs:
         if not os.path.exists(os.path.join(path, sub, '.hptemp')):
             os.makedirs(os.path.join(path, sub, '.hptemp'))
@@ -246,7 +249,7 @@ def remove_temp_subs(path):
     :param path: Path containing temp subdirectories
     :return:
     """
-    subs = ['image', 'video', 'audio', 'csv']
+    subs = ['image', 'video', 'audio', 'model', 'csv']
     for sub in subs:
         for f in os.listdir(os.path.join(path,sub,'.hptemp')):
             shutil.move(os.path.join(path,sub,'.hptemp',f), os.path.join(path,sub))
@@ -298,6 +301,8 @@ def set_other_data(data, imfile):
         data['Type'] = 'audio'
     elif imext.lower() in exts['VIDEO']:
         data['Type'] = 'video'
+    elif imext.lower() in exts['MODEL']:
+        data['Type'] = 'model'
     else:
         data['Type'] = 'image'
     # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
@@ -416,7 +421,10 @@ def parse_image_info(self, imageList, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v),k) for k,v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-        data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+        if os.path.splitext(imageList[i])[1] not in exts['MODEL']:
+            data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+        else:
+            data[i] = combine_exif({os.path.normpath(imageList[i]): {}}, reverseLUT, master.copy())
         data[i] = set_other_data(data[i], imageList[i])
 
     return data
@@ -519,7 +527,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print('Updating metadata...')
 
-    for folder in ['image', 'video', 'audio']:
+    for folder in ['image', 'video', 'audio', 'model']:
         process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get('metadata'), quiet=True)
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]

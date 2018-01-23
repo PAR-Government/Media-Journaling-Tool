@@ -598,11 +598,16 @@ class HPGUI(Frame):
         self.master = master
         self.trello_key = data_files._TRELLO['app_key']
         self.settings = SettingsManager()
-        with open(data_files._LOCALDEVICES, "r") as j:
-            self.cameras = json.load(j)
         self.cam_local_id = ""
         self.create_widgets()
         self.statusBox.println('See terminal/command prompt window for progress while processing.')
+        try:
+            with open(data_files._LOCALDEVICES, "r") as j:
+                self.cameras = json.load(j)
+        except (ValueError, IOError):
+            if self.settings.get("apitoken") != "":
+                self.load_ids("download_locally")
+            print("Failed to load local device list from file.")
 
     def create_widgets(self):
         self.menubar = Menu(self)
@@ -725,7 +730,8 @@ class HPGUI(Frame):
                     # csv directory and at least one of: image, video, audio folders must exist
                     if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
                                                    os.path.exists(os.path.join(d, 'video')),
-                                                   os.path.exists(os.path.join(d, 'audio'))):
+                                                   os.path.exists(os.path.join(d, 'audio')),
+                                                   os.path.exists(os.path.join(d, 'model'))):
                         raise OSError()
                 except OSError as e:
                     tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*keywords.csv).')

@@ -40,6 +40,7 @@ class HPSpreadsheet(Toplevel):
             self.imageDir = os.path.join(self.dir, 'image')
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
+            self.modelDir = os.path.join(self.dir, 'model')
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -187,10 +188,16 @@ class HPSpreadsheet(Toplevel):
             image = os.path.join(self.videoDir, self.imName)
             if not os.path.exists(image):
                 image = os.path.join(self.audioDir, self.imName)
+                if not os.path.exists(image):
+                    image = os.path.join(self.modelDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
-            os.startfile(image)
+            try:
+                os.startfile(image)
+            except WindowsError as e:
+                if e[0] == 1155:
+                    tkMessageBox.showerror("Error", "Unable to open {0}.".format(image.split("\\")[1]))
         else:
             os.system('open "' + image + '"')
 

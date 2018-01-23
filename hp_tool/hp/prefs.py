@@ -104,6 +104,7 @@ class SettingsWindow(Toplevel):
         self.imageVar = StringVar()
         self.videoVar = StringVar()
         self.audioVar = StringVar()
+        self.modelVar = StringVar()
 
         self.copyrightVar = StringVar()
         self.bylineVar = StringVar()
@@ -191,7 +192,7 @@ class SettingsWindow(Toplevel):
         self.trelloBox = Entry(self.prefsFrame, textvar=self.trelloVar)
         self.trelloBox.grid(row=r, column=4)
 
-        types = {'Image':self.imageVar, 'Video':self.videoVar, 'Audio':self.audioVar}
+        types = {'Image':self.imageVar, 'Video':self.videoVar, 'Audio':self.audioVar, "3D Models":self.modelVar}
         self.extensions = {}
         for t in types.keys():
             r+=1
@@ -240,10 +241,12 @@ class SettingsWindow(Toplevel):
         imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
         vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf', '.mxf']
         audExts = ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']
+        modelExts = ['.obj']
         tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
                                                     'Image: ' + ', '.join(imExts) + '\n' +
                                                     'Video: ' + ', '.join(vidExts) + '\n' +
-                                                    'Audio: ' + ', '.join(audExts))
+                                                    'Audio: ' + ', '.join(audExts) + '\n' +
+                                                    '3D Models: ' + ', '.join(modelExts))
 
     def limit_length(self, *args):
         s = self.usrVar.get()
@@ -303,6 +306,7 @@ class SettingsWindow(Toplevel):
         self.settings.set('imagetypes', self.imageVar.get())
         self.settings.set('videotypes', self.videoVar.get())
         self.settings.set('audiotypes', self.audioVar.get())
+        self.settings.set('modeltypes', self.modelVar.get())
         self.settings.set('trello_login_url', 'https://trello.com/1/authorize?key='+self.trello_key+'&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
         self.settings.set('browser_login_url', 'https://medifor.rankone.io/api/login')
 
