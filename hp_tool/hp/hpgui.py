@@ -136,7 +136,7 @@ class HP_Starter(Frame):
         self.recBool.set(False)
         self.inputSelector = Button(self, text='Input directory: ', command=self.load_input, width=20)
         self.inputSelector.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
-        self.recbox = Checkbutton(self, text='Include subdirectories', variable=self.recBool)
+        self.recbox = Checkbutton(self, text='Include subdirectories', variable=self.recBool, command=self.warnRecbox)
         self.recbox.grid(row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5)
         self.inputdir = Entry(self)
         self.inputdir.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=2)
@@ -214,6 +214,11 @@ class HP_Starter(Frame):
             self.attributes['Camera Model'].config(state=NORMAL)
             self.camModel.set('')
             self.attributes['Camera Model'].config(state=DISABLED)
+
+    def warnRecbox(self):
+        if self.recBool.get():
+            tkMessageBox.showwarning("Warning", '3D Models will not be scanned loaded if the "Include subdirectories"'
+                                                ' box is checked.')
 
 
 class PRNU_Uploader(Frame):
@@ -699,7 +704,8 @@ class HPGUI(Frame):
                     # csv directory and at least one of: image, video, audio folders must exist
                     if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
                                                    os.path.exists(os.path.join(d, 'video')),
-                                                   os.path.exists(os.path.join(d, 'audio'))):
+                                                   os.path.exists(os.path.join(d, 'audio')),
+                                                   os.path.exists(os.path.join(d, 'model'))):
                         raise OSError()
                 except OSError as e:
                     tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*rit.csv).')

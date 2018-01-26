@@ -22,7 +22,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 RVERSION = '#@version=01.10'
 
-def copyrename(image, path, usrname, org, seq, other):
+def copyrename(image, path, usrname, org, seq, other, containsmodels):
     """
     Performs the copy/rename operation
     :param image: original filename (full path)
@@ -40,15 +40,31 @@ def copyrename(image, path, usrname, org, seq, other):
         newNameStr = newNameStr + '-' + other
 
     currentExt = os.path.splitext(image)[1]
-    if currentExt.lower() in exts['VIDEO']:
+    if os.path.isdir(image):
+        return
+    file_exts_in_dir = [os.path.splitext(x)[1] for x in os.listdir(os.path.dirname(image))] if containsmodels else []
+    if any(fileext in exts['MODEL'] for fileext in file_exts_in_dir):
+        sub = 'model'
+    elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
-    elif currentExt.lower() in exts['MODEL']:
-        sub = 'model'
     else:
         sub = 'image'
-    newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
+    if sub != 'model':
+        newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
+    else:
+        newFolderName = os.path.join(path, sub, '.hptemp', newNameStr)
+        if not os.path.isdir(newFolderName):
+            os.mkdir(newFolderName)
+
+        model_dir = os.path.dirname(image)
+        for i in os.listdir(model_dir):
+            currentExt = os.path.splitext(i)[1]
+            if currentExt in exts['MODEL']:
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + currentExt)
+            else:
+                shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, i))
     shutil.copy2(image, newPathName)
     return newPathName
 
@@ -115,16 +131,21 @@ def grab_dir(inpath, outdir=None, r=False):
     """
     imageList = []
     names = os.listdir(inpath)
-    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'] + exts['MODEL'])
     if r:
+        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
                 if filename.lower().endswith(valid_exts) and not filename.startswith('.'):
                     imageList.append(os.path.join(dirname, filename))
     else:
+        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'] + exts['MODEL'])
         for f in names:
             if f.lower().endswith(valid_exts) and not f.startswith('.'):
                 imageList.append(os.path.join(inpath, f))
+            elif os.path.isdir(os.path.join(inpath, f)):
+                for obj in os.listdir(os.path.join(inpath, f)):
+                    if os.path.splitext(os.path.join(inpath, f, obj))[1] in exts['MODEL']:
+                        imageList.append(os.path.join(inpath, f, obj))
 
     imageList = sorted(imageList, key=str.lower)
 
@@ -424,7 +445,10 @@ def parse_image_info(self, imageList, **kwargs):
         if os.path.splitext(imageList[i])[1] not in exts['MODEL']:
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
-            data[i] = combine_exif({os.path.normpath(imageList[i]): {}}, reverseLUT, master.copy())
+            image_path_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
+            del image_path_list[image_path_list.index(os.path.basename(imageList[i]))]
+            data[i] = combine_exif({"Thumbnail": "; ".join(image_path_list)},
+                                   reverseLUT, master.copy())
         data[i] = set_other_data(data[i], imageList[i])
 
     return data
@@ -515,8 +539,12 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     # copy with renaming
     print('Copying files...')
     newNameList = []
+    searchmodels = not recursive
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo)
+        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
+        # image_dir = os.path.dirname(image)
+        # newFolder = copyrename(image_dir, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
+        newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         newNameList += [newName]
         count += 1
     print(' done')

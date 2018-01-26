@@ -431,7 +431,12 @@ class HPSpreadsheet(Toplevel):
         for c in self.mandatoryAudioNames:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake']
+        self.mandatoryModels = []
+        self.mandatoryModelNames = ['HP-Keywords', 'HP-PolyCount']
+        for m in self.mandatoryModelNames:
+            self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
+
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -474,7 +479,8 @@ class HPSpreadsheet(Toplevel):
                     tab.disabled_cells.append((row, col))
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
                         (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
-                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']):
+                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']) or \
+                        (colName in self.mandatoryModelNames and currentExt in hp_data.exts['MODEL']):
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#f3f315',
                                                 outline='#084B8A',
