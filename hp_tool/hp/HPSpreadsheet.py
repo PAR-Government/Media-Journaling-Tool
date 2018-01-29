@@ -797,7 +797,10 @@ class HPSpreadsheet(Toplevel):
             try:
                 dbData = self.master.cameras[self.pt.model.df['HP-DeviceLocalID'][row]]
             except KeyError:
-                errors[image].append(('HP-DeviceLocalID', 'Invalid Device Local ID ' + self.pt.model.df['HP-DeviceLocalID'][row]))
+                try:
+                    errors[image].append(('HP-DeviceLocalID', 'Invalid Device Local ID ' + self.pt.model.df['HP-DeviceLocalID'][row]))
+                except TypeError:
+                    pass
                 continue
             for item in dbData:
                 if dbData[item] is None or dbData[item] == 'nan':

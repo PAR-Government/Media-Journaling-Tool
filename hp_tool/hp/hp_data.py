@@ -21,6 +21,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
         'MODEL': ['.obj']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 RVERSION = '#@version=01.10'
+thumbnail_conversion = {}
 
 def copyrename(image, path, usrname, org, seq, other, containsmodels):
     """
@@ -34,6 +35,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     :return: full path of new file
     """
     global exts
+    global thumbnails
     newNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
                     org + usrname + '-' + seq
     if other:
@@ -59,12 +61,17 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
             os.mkdir(newFolderName)
 
         model_dir = os.path.dirname(image)
+        thumbnail_counter = 0
         for i in os.listdir(model_dir):
             currentExt = os.path.splitext(i)[1]
             if currentExt in exts['MODEL']:
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + currentExt)
             else:
-                shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, i))
+                newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
+                shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, newThumbnailName))
+                thumbnail_conversion[i] = newThumbnailName
+                thumbnail_counter += 1
+
     shutil.copy2(image, newPathName)
     return newPathName
 
@@ -431,8 +438,7 @@ def parse_image_info(self, imageList, **kwargs):
     try:
         exifDataResult = json.loads(exifDataResult)
     except:
-        print('Exiftool could not return data for all input. Process cancelled.')
-        return None
+        print('Exiftool could not return data for all input.')
 
     # further organize exif data into a dictionary based on source filename
     exifDict = {}
@@ -547,6 +553,20 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         newNameList += [newName]
         count += 1
+
+    # Updates HP-Thumbnails tab to show renamed image names rather than the original image names.
+    for model in xrange(0, len(imageInfo)):
+        thumbnails = imageInfo[model]['HP-Thumbnails'].split("; ")
+        try:
+            del thumbnails[thumbnails.index('')]
+        except ValueError:
+            pass
+        new_thumbnails = []
+        if thumbnails:
+            for thumbnail in thumbnails:
+                new_thumbnails.append(thumbnail_conversion[thumbnail])
+        imageInfo[model]['HP-Thumbnails'] = "; ".join(new_thumbnails)
+
     print(' done')
 
     self.settings.set('seq', pad_to_5_str(count))

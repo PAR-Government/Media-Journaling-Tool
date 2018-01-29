@@ -88,11 +88,15 @@ class HP_Starter(Frame):
         self.update_model()
 
         if self.camModel.get() == '':
-            yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
-            if yes:
-                self.master.open_form()
-                self.update_model()
-            return
+            models = all(os.path.splitext(x)[1] == '' for x in os.listdir(self.inputdir.get()))
+            if models and not self.recBool.get():
+                pass
+            else:
+                yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
+                if yes:
+                    self.master.open_form()
+                    self.update_model()
+                return
 
         globalFields = ['HP-Collection', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
         kwargs = {'settings':self.settings,
