@@ -10,6 +10,6 @@ def main():
     arguments = {a.split(':')[0]: a.split(':')[1] for a in arguments_list}
     img = image_wrap.openImageFile(arguments['inputimage'])
     plugins.loadPlugins()
-    plugins.runCustomPlugin(args.plugin,img, arguments['inputimage'],arguments['outputimage'],**arguments)
+    plugins.callPlugin(args.plugin,img, arguments['inputimage'],arguments['outputimage'],**arguments)
 if __name__ == '__main__':
     main()

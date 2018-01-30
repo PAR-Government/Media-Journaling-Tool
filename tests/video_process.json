@@ -4,8 +4,8 @@
     "username": "dupre",
     "name": "video_flow",
     "organization": "PAR",
-    "projectDescription" : "test",
-    "technicalSummary" : "Automated",
+    "projectdescription" : "Optical Flow and Remove PRNU",
+    "technicalsummary" : "Automated",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
@@ -143,8 +143,46 @@
     },
     {
       "op_type": "PluginOperation",
+      "plugin": "PRNURemoveFromVid",
+      "id": "7"
+     },
+    {
+      "op_type": "PluginOperation",
       "plugin": "CompressAsVideo",
-      "id": "7",
+      "id": "8",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "9",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "10",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+      },
+      {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "11",
       "arguments": {
          "donor": {
            "type": "donor",
@@ -152,6 +190,7 @@
          }
       }
      }
+
   ],
   "links": [
     {
@@ -186,6 +225,22 @@
     {
       "source": 6,
       "target": 7
+     },
+      {
+      "source": 2,
+      "target": 8
+    },
+    {
+      "source": 3,
+      "target": 9
+     },
+     {
+      "source": 7,
+      "target": 10
+     },
+     {
+      "source": 6,
+      "target": 11
      }
   ],
   "multigraph": false

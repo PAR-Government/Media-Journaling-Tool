@@ -1898,6 +1898,10 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         return results
 
 
+class EmptyCompositeBuilder(CompositeBuilder):
+    def __init__(self):
+        CompositeBuilder.__init__(self, 0, 'empty')
+
 class ColorCompositeBuilder(CompositeBuilder):
     def __init__(self):
         self.composites = dict()

@@ -71,6 +71,24 @@ class UIProfile:
         parent.bind_all('<Control-j>', lambda event: parent.after(100, parent.createJPEGorTIFF))
 
 
+class UserPropertyChange(ProperyChangeAction):
+
+    """
+    Customized actions to take for specific properties.
+    When a user is changed, change the name of the user in the current memory image.
+    Prompt to see if the journal should be updated with the new name.
+    """
+
+    def __init__(self, scModel):
+        self.scModel = scModel
+
+    def setvalue(self, oldvalue, newvalue):
+        newName = newvalue.lower()
+        setPwdX(CustomPwdX(newName))
+        self.scModel.setProjectData('username', newName)
+        if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
+            self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
+
 class MakeGenUI(Frame):
     prefLoader = MaskGenLoader()
     img1 = None
@@ -370,14 +388,6 @@ class MakeGenUI(Frame):
             self.canvas.add(pair[0], pair[1])
         self.drawState()
 
-    def setorganization(self):
-        name = self.prefLoader.get_key('organization')
-        if name is None:
-            name = 'Performer'
-        newName = tkSimpleDialog.askstring("Set Organization", "Name", initialvalue=name)
-        if newName is not None:
-            self.prefLoader.save('organization', newName)
-            self.scModel.setProjectData('organization', newName)
 
     def setautosave(self):
         autosave_decision = self.prefLoader.get_key('autosave')
@@ -395,18 +405,6 @@ class MakeGenUI(Frame):
             if new_autosave_decision > 0:
                  execute_every(new_autosave_decision, saveme, saver=self)
 
-
-    def setusername(self):
-        name = get_username()
-        newName = tkSimpleDialog.askstring("Set Username", "Username", initialvalue=name)
-        if newName is not None:
-            newName = newName.lower()
-            self.prefLoader.save('username', newName)
-            setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
-            oldName = self.scModel.getProjectData('username')
-            self.scModel.setProjectData('username', newName)
-            if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
-                self.scModel.getGraph().replace_attribute_value('username', oldName, newName)
 
     def setproperty(self, key, value):
         token = self.prefLoader.get_key(key)
@@ -689,7 +687,8 @@ class MakeGenUI(Frame):
             self.errorlistDialog.setItems(errorList)
 
     def getsystemproperties(self):
-        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader)
+        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader,
+                                 property_change_actions={'username': UserPropertyChange(self.scModel)})
 
     def getproperties(self):
         graph_rules.setProjectSummary(self.scModel)

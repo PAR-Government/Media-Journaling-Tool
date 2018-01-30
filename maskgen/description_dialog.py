@@ -7,7 +7,7 @@ from group_filter import GroupFilterLoader
 import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize, imageResizeRelative, openImage, fixTransparency, openImage, openFile, validateTimeString, \
+from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
@@ -359,6 +359,11 @@ class MyDropDown(OptionMenu):
         self.command = command
 
 class PropertyFunction:
+
+    """
+    Set and Get values for a property for a given name.
+    Used by general UI frames and property updaters, regardless of the source of the property (e.g. node, edge, system).
+    """
 
     def getValue(self, name):
         return None
@@ -2408,25 +2413,44 @@ class PropertyFrame(VerticalScrolledFrame):
                tkMessageBox.showwarning('Error', prop.name, error)
            i += 1
 
+
+
+class ProperyChangeAction:
+
+    """
+    Customized actions to take for specific properties by PropertyFunction
+    @see PropertyFunction
+    """
+
+    def __init__(self):
+        pass
+
+    def setvalue(self, oldvalue, newvalue):
+        pass
+
 class SystemPropertyFunction(PropertyFunction):
 
     prefLoader = None
     """
     @type prefLoader: MaskGenLoader
+    @type property_change_actions: dict {str:ProperyChangeAction)
     """
-    def __init__(self,prefLoader):
+    def __init__(self,prefLoader,property_change_actions):
         """
 
         :param prefLoader:
         @type prefLoader: MaskGenLoader
         """
         self.prefLoader = prefLoader
+        self.property_change_actions = property_change_actions
 
 
     def getValue(self, name):
         return self.prefLoader.get_key(name,'')
 
     def setValue(self, name,value):
+        if name in self.property_change_actions:
+            self.property_change_actions[name].setvalue(self.prefLoader.get_key(name,''), value)
         return self.prefLoader.save(name,value)
 
 class ProjectPropertyFunction(PropertyFunction):
@@ -2447,16 +2471,20 @@ class ProjectPropertyFunction(PropertyFunction):
 class SystemPropertyDialog(tkSimpleDialog.Dialog):
 
    cancelled = False
-   def __init__(self, parent, properties, prefLoader=None,title="System Properties", dir='.'):
+   def __init__(self, parent, properties, prefLoader=None,title="System Properties",
+                dir='.',
+                property_change_actions=dict()):
         self.properties =properties
         self.prefLoader = prefLoader
         self.dir=dir
+        self.property_change_actions = property_change_actions
         tkSimpleDialog.Dialog.__init__(self, parent, title)
 
    def body(self, master):
         self.vs = PropertyFrame(master,
                             self.properties,
-                            propertyFunction=SystemPropertyFunction(self.prefLoader),
+                            propertyFunction=SystemPropertyFunction(self.prefLoader,
+                                                                    self.property_change_actions),
                             dir=self.dir)
         self.vs.grid(row=0)
 
