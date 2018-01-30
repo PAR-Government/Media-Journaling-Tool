@@ -595,7 +595,7 @@
     },
     {
       "description": "Weather Changes",
-      "name": "shadowmanipulations",
+      "name": "weatherchanges",
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Radically alter the weather, (e.g. add snow or rain to a sunny day)"
