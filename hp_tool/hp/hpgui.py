@@ -84,12 +84,19 @@ class HP_Starter(Frame):
             return
         elif self.outputdir.get() == '':
                 self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
-
         self.update_model()
 
         if self.camModel.get() == '':
-            models = all(os.path.splitext(x)[1] == '' for x in os.listdir(self.inputdir.get()))
+            input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
+            models = all(os.path.isdir(x) for x in input_dir_files)
             if models and not self.recBool.get():
+                errors = []
+                for model_dir in input_dir_files:
+                    if len(os.listdir(model_dir)) == 1 and os.path.splitext(os.listdir(model_dir)[0])[1] in exts['MODEL']:
+                        errors.append("No Thumbnail images found in {0}.".format(os.path.basename(model_dir)))
+                if len(errors) > 0:
+                    tkMessageBox.showerror("Error", "\n".join(errors))
+                    return
                 pass
             else:
                 yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')

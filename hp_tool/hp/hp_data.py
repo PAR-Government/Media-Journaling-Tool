@@ -60,7 +60,8 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         if not os.path.isdir(newFolderName):
             os.mkdir(newFolderName)
 
-        model_dir = os.path.dirname(image)
+        model_dir = os.path.normpath(os.path.dirname(image))
+        thumbnail_conversion[model_dir] = {}
         thumbnail_counter = 0
         for i in os.listdir(model_dir):
             currentExt = os.path.splitext(i)[1]
@@ -69,7 +70,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
             else:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
                 shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, newThumbnailName))
-                thumbnail_conversion[i] = newThumbnailName
+                thumbnail_conversion[model_dir][i] = newThumbnailName
                 thumbnail_counter += 1
 
     shutil.copy2(image, newPathName)
@@ -451,9 +452,9 @@ def parse_image_info(self, imageList, **kwargs):
         if os.path.splitext(imageList[i])[1] not in exts['MODEL']:
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
-            image_path_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
-            del image_path_list[image_path_list.index(os.path.basename(imageList[i]))]
-            data[i] = combine_exif({"Thumbnail": "; ".join(image_path_list)},
+            imghdr = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
+            del imghdr[imghdr.index(os.path.basename(imageList[i]))]
+            data[i] = combine_exif({"Thumbnail": "; ".join(imghdr)},
                                    reverseLUT, master.copy())
         data[i] = set_other_data(data[i], imageList[i])
 
@@ -564,7 +565,8 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         new_thumbnails = []
         if thumbnails:
             for thumbnail in thumbnails:
-                new_thumbnails.append(thumbnail_conversion[thumbnail])
+                model_path = os.path.dirname(os.path.normpath(imageList[model]))
+                new_thumbnails.append(thumbnail_conversion[model_path][thumbnail])
         imageInfo[model]['HP-Thumbnails'] = "; ".join(new_thumbnails)
 
     print(' done')
