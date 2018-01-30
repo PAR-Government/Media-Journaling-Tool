@@ -932,8 +932,11 @@ class HPSpreadsheet(Toplevel):
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
         if pd.isnull(model) or model.lower() == 'nan' or model == '':
-            imageName = self.pt.model.getValueAt(row, 0)
-            errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+            if self.pt.model.df['Type'][row] != "model":
+                imageName = self.pt.model.getValueAt(row, 0)
+                errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+            else:
+                pass
         elif model not in [self.devices[data]['hp_camera_model'] for data in self.devices if
                          self.devices[data]['hp_camera_model'] is not None]:
             errors.append('Invalid camera model ' + model + ' (row ' + str(row + 1) + ')')
@@ -947,12 +950,15 @@ class HPSpreadsheet(Toplevel):
         """
         errors = []
         localID = self.pt.model.df['HP-DeviceLocalID'][row]
-        if localID.lower() == 'nan' or localID == '':
-            imageName = self.pt.model.getValueAt(row, 0)
-            errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row + 1) + ')')
-        elif localID not in [self.devices[data]['hp_device_local_id'] for data in self.devices if
-                         self.devices[data]['hp_device_local_id'] is not None]:
-            errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
+        try:
+            if localID.lower() == 'nan' or localID == '':
+                imageName = self.pt.model.getValueAt(row, 0)
+                errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row + 1) + ')')
+            elif localID not in [self.devices[data]['hp_device_local_id'] for data in self.devices if
+                             self.devices[data]['hp_device_local_id'] is not None]:
+                errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
+        except AttributeError:
+            pass
         return errors
 
 
