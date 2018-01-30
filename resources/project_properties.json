@@ -594,6 +594,13 @@
       "information": "Manipulations to alter a shadows."
     },
     {
+      "description": "Weather Changes",
+      "name": "shadowmanipulations",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Radically alter the weather, (e.g. add snow or rain to a sunny day)"
+    },
+    {
       "description": "Ambience Audio Swap",
       "name": "ambienceaudioswap",
       "type": "yesno",
