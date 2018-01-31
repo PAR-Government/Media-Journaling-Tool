@@ -107,7 +107,6 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
         v = param_spec['type']
         beg,end,increment = rangeNumberPicker(v)
         if not random_selection:
-            increment = 1
             return IteratorPermuteGroupElement(spec_name, lambda: xrange(beg, end + 1, increment).__iter__())
         elif increment != 1:
             return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice( xrange(beg, end + 1, increment))))

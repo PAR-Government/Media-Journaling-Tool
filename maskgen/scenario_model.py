@@ -125,7 +125,7 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
     if not existingProject:
         image = projectFile
         if name is None:
-            projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
+            projectFile = os.path.splitext(projectFile)[0] + ".json"
         else:
             projectFile = os.path.abspath(os.path.join(path, name + ".json"))
     model = projectModelFactory(projectFile, notify=notify, baseImageFileName=image)
@@ -1328,7 +1328,7 @@ class ImageProjectModel:
                 startimage, name = self.G.get_image(edge_id[0])
                 finalimage, fname = self.G.get_image(edge_id[1])
                 mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')
-                inputmaskname = name[0:name.rfind('.')] + '_inputmask.png'
+                inputmaskname = os.path.splitext(name)[0]+ '_inputmask.png'
                 ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
                 #                if 'arguments' not in edge:
                 #                    edge['arguments'] = {}
@@ -1344,7 +1344,7 @@ class ImageProjectModel:
         for nodeid in self.G.get_nodes():
             node = self.G.get_node(nodeid)
             if 'nodetype' in node and node['nodetype'] == 'base':
-                self.getGraph().set_name(node['file'][0:node['file'].rfind('.')])
+                self.getGraph().set_name(os.path.splitext(node['file'])[0])
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
@@ -1730,7 +1730,7 @@ class ImageProjectModel:
 
     def startNew(self, imgpathname, suffixes=[], organization=None):
         """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
-        projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
+        projectFile = os.path.splitext(imgpathname)[0] + ".json"
         projectType = fileType(imgpathname)
         self.G = self._openProject(projectFile, projectType)
         # do it anyway
@@ -2065,8 +2065,7 @@ class ImageProjectModel:
             nodeData = self.G.get_node(node)
             if nodeData['nodetype'] in ['final']:
                 logging.getLogger('maskgen').info('Inspecting {}  for rename'.format(nodeData['file']))
-                suffix_pos = nodeData['file'].rfind('.')
-                suffix = nodeData['file'][suffix_pos:].lower()
+                suffix = os.path.splitext(nodeData['file'])[1].lower()
                 file_path_name = os.path.join(self.G.dir, nodeData['file'])
                 try:
                     new_file_name = md5offile(os.path.join(self.G.dir, nodeData['file'])) + suffix
@@ -2254,8 +2253,7 @@ class ImageProjectModel:
         im, filename = self.currentImage()
         filetype= fileType(filename)
         op = plugins.getOperation(filter)
-        suffixPos = filename.rfind('.')
-        suffix = filename[suffixPos:].lower()
+        suffix = os.path.splitext(filename)[1].lower()
         preferred = plugins.getPreferredSuffix(filter)
         fullOp = buildFilterOperation(op)
         resolved, donors, graph_args = self._resolvePluginValues(kwargs, fullOp)

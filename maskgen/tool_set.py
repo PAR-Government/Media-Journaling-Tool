@@ -140,11 +140,7 @@ def fileTypeChanged(file_one, file_two):
         two_type = imghdr.what(file_two)
         return one_type != two_type
     except:
-        pos = file_one.rfind('.')
-        suffix_one = file_one[pos + 1:] if pos > 0 else ''
-        pos = file_two.rfind('.')
-        suffix_two = file_two[pos + 1:] if pos > 0 else ''
-        return suffix_one.lower() != suffix_two.lower()
+        return os.path.splitext(file_one)[1].lower() != os.path.splitext(file_two)[1].lower()
 
 
 def getFFmpegTool():
@@ -181,8 +177,8 @@ def getMimeType(filename):
 
 
 def fileType(fileName):
-    pos = fileName.rfind('.')
-    suffix = ('*' + fileName[pos:] if pos > 0 else '').lower()
+    suffix = os.path.splitext(fileName)[1].lower()
+    suffix = '*' + suffix if len(suffix) > 0 else ''
     if not os.path.exists(fileName):
         return None
     file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
@@ -690,7 +686,7 @@ def outputVideoFrame(filename,outputName=None,videoFrameTime=None,isMask=False):
     if outputName is not None:
         outfilename  = outputName
     else:
-        outfilename = filename[0:filename.rfind('.')] + '.png'
+        outfilename = os.path.splitext(filename)[0] + '.png'
     command = [ffcommand,'-i',filename]
     if videoFrameTime is not None:
         st = videoFrameTime[0] + 30*videoFrameTime[1]
@@ -824,7 +820,7 @@ class VideoOpener(ImageOpener):
     def openImage(self,filename, isMask=False):
         if not ('video' in getFileMeta(filename)):
             return ImageOpener.openImage(self, get_icon('audio.png'))
-        snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
+        snapshotFileName = os.path.splitext(filename)[0] + '.png'
         if self.openSnapshot(filename,snapshotFileName):
             return ImageOpener.openImage(self, snapshotFileName)
         videoFrameImg = readImageFromVideo(filename, videoFrameTime= self.videoFrameTime, isMask=isMask,
@@ -841,7 +837,7 @@ class ZipOpener(VideoOpener):
         VideoOpener.__init__(self,videoFrameTime=videoFrameTime,preserveSnapshot=preserveSnapshot)
 
     def openImage(self,filename, isMask=False):
-        snapshotFileName = filename[0:filename.rfind('.') - len(filename)] + '.png'
+        snapshotFileName = os.path.splitext(filename)[0] + '.png'
         if self.openSnapshot(filename, snapshotFileName):
             return ImageOpener.openImage(self, snapshotFileName)
         videoFrameImg = readFromZip(filename, videoFrameTime= self.videoFrameTime, isMask=isMask,
@@ -851,33 +847,49 @@ class ZipOpener(VideoOpener):
             return ImageOpener.openImage(self,get_icon('RedX.png'))
         return videoFrameImg
 
+def getContentsOfZip(filename):
+    from zipfile import ZipFile
+    with ZipFile(filename, 'r') as inzip:
+        names = inzip.namelist()
+        names.sort()
+        return names
+
 def condenseZip(filename,outputfile=None,filetypes=None, keep=2):
     from zipfile import ZipFile
     import re
     filetypematcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')') \
       if filetypes is not None else re.compile('.*')
-    fn = filename[0:filename.rfind('.')] + '_c' + filename[filename.rfind('.'):] if outputfile is None else outputfile
-    with ZipFile(fn,'w') as outzip:
-        with ZipFile(filename, 'r') as inzip:
-            names = inzip.namelist()
-            names.sort()
-            extensions = {}
-            for i in range(len(names)):
-                name = names[i]
-                extension = name[name.rfind('.'):]
-                if len(filetypematcher.findall(name)) == 0:
-                    continue
-                if extension not in extensions:
-                    extensions[extension] = 1
-                else:
-                    extensions[extension] =  extensions[extension] + 1
-                if extensions[extension] <= keep:
-                    extracted_file = inzip.extract(name, os.path.dirname(os.path.abspath(filename)))
-                    outzip.write(extracted_file,name)
-                else:
-                    with open(name,'wb') as fp:
-                        fp.flush()
-                    outzip.write(name, name)
+    fn = os.path.splitext(filename)[0] + '_c' + os.path.splitext(filename)[1] if outputfile is None else outputfile
+    cleanup = []
+    try:
+        with ZipFile(fn,'w') as outzip:
+            with ZipFile(filename, 'r') as inzip:
+                names = inzip.namelist()
+                names.sort()
+                extensions = {}
+                for i in range(len(names)):
+                    name = names[i]
+                    extension = os.path.splitext(name)[1]
+                    if len(filetypematcher.findall(name)) == 0:
+                        continue
+                    if extension not in extensions:
+                        extensions[extension] = 1
+                    else:
+                        extensions[extension] =  extensions[extension] + 1
+                    dir = os.path.dirname(os.path.abspath(filename))
+                    extracted_file = os.path.join(dir, name)
+                    cleanup.append(extracted_file)
+                    if extensions[extension] <= keep:
+                        extracted_file = inzip.extract(name, dir)
+                        outzip.write(extracted_file,name)
+                    else:
+                        with open(extracted_file,'wb') as fp:
+                            fp.flush()
+                        outzip.write(extracted_file, name)
+    finally:
+        for filename in cleanup:
+            if os.path.exists(filename):
+                os.remove(filename)
 
 def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
     """
@@ -895,7 +907,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
             return openImage(get_icon('RedX.png'))
         return None
 
-    prefix = filename[filename.rfind('.') + 1:].lower()
+    prefix = os.path.splitext(filename)[1][1:].lower()
     opener = ImageOpener()
     if prefix in ['avi', 'mp4', 'mov', 'flv', 'qt', 'wmv', 'm4p', 'mpeg', 'mpv',
                                                       'm4v', 'mts', 'mpg'] or fileType(filename) == 'video':
@@ -2497,15 +2509,15 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
 
-def convertToVideo(file_name, preferences=None):
+def convertToVideo(filename, preferences=None):
     suffix = '.' + preferredSuffix(preferences=preferences)
-    fn = file_name[:file_name.rfind('.')] + suffix
+    fn = os.path.splitext(filename)[0] + suffix
     if os.path.exists(fn):
-        if os.stat(file_name).st_mtime < os.stat(fn).st_mtime:
+        if os.stat(filename).st_mtime < os.stat(fn).st_mtime:
             return fn
         else:
             os.remove(fn)
-    reader = GrayBlockReader(file_name, convert=True, preferences=preferences)
+    reader = GrayBlockReader(filename, convert=True, preferences=preferences)
     while True:
         mask = reader.read()
         if mask is None:
@@ -2570,7 +2582,7 @@ class GrayBlockReader:
         self.start_time = self.h_file.attrs['start_time']
         self.start_frame = self.h_file.attrs['start_frame']
         self.convert = convert
-        self.writer = GrayFrameWriter(filename[0:filename.rfind('.')],
+        self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,
                                       preferences=preferences) if self.convert else DummyWriter()
 

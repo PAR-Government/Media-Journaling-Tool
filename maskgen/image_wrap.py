@@ -171,8 +171,7 @@ def pdf2_image_extractor(filename, isMask=False):
 
 def convertToPDF(filename, isMask=False):
     import platform
-    prefix = filename[0:filename.rfind('.')]
-    newname = prefix + '.png'
+    newname = os.path.splitext(filename)[0] + '.png'
     if "Darwin" in platform.platform():
         if not os.path.exists(newname):
             with open(os.devnull, 'w') as fp:
@@ -185,7 +184,7 @@ def convertToPDF(filename, isMask=False):
 
 
 def getProxy(filename):
-    proxyname = filename[0:filename.rfind('.')] + '_proxy.png'
+    proxyname = os.path.splitext(filename)[0] + '_proxy.png'
     if os.path.exists(proxyname):
         return proxyname
     return None
@@ -286,8 +285,8 @@ def openImageFile(filename, isMask=False, args=None):
     @rtype: ImageWrapper
     """
     if not os.path.exists(filename):
-        pos = filename.rfind('.')
-        mod_filename = filename[0:pos] + filename[pos:].lower()
+        parts = os.path.splitext(filename)
+        mod_filename = parts[0] + parts[1].lower()
         if os.path.exists(mod_filename):
             filename = mod_filename
     if not os.path.exists(filename):

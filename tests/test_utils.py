@@ -1,12 +1,12 @@
 from maskgen.jpeg import utils
 
 import unittest
-
-class TestJpegUtils(unittest.TestCase):
+from test_support import TestSupport
+class TestJpegUtils(TestSupport):
 
    def test_load(self):
-      self.assertEqual(91,utils.estimate_qf('./tests/images/test_project1.jpg'))
-      self.assertEqual(100,utils.estimate_qf('./tests/images/test_project2.png'))
+      self.assertEqual(91,utils.estimate_qf(self.locateFile('tests/images/test_project1.jpg')))
+      self.assertEqual(100,utils.estimate_qf(self.locateFile('tests/images/test_project2.png')))
 
 if __name__ == '__main__':
     unittest.main()
