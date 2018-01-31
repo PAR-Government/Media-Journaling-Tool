@@ -19,10 +19,17 @@ class TestToolSet(TestSupport):
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
 
     def test_zip(self):
-        img = tool_set.openImage(self.locateFile('tests/zips/raw.zip'),tool_set.getMilliSecondsAndFrameCount('2'),preserveSnapshot=True)
+        import os
+        filename = self.locateFile('tests/zips/raw.zip')
+        self.addFileToRemove(os.path.join(os.path.dirname(filename), 'raw.png'))
+        img = tool_set.openImage(filename,tool_set.getMilliSecondsAndFrameCount('2'),preserveSnapshot=True)
         self.assertEqual((5796, 3870),img.size)
-        tool_set.condenseZip(self.locateFile('tests/zips/raw.zip'),keep=1)
-
+        tool_set.condenseZip(filename,keep=1)
+        self.addFileToRemove(os.path.join(os.path.dirname(filename),'raw_c.zip'))
+        contents = tool_set.getContentsOfZip(os.path.join(os.path.dirname(filename),'raw_c.zip'))
+        self.assertTrue('59487443539401a4d83512edaab3c1b2.cr2' in contents)
+        self.assertTrue('7d1800a38ca7a22021bd94e71b6e0f42.cr2' in contents)
+        self.assertTrue(len(contents) == 2)
 
 
     def test_rotate(self):
@@ -44,14 +51,10 @@ class TestToolSet(TestSupport):
                                      flags=cv2api.cv2api_delegate.inter_linear)
 
         mask[abs(img - img1) > 0] = 0
-        #image_wrap.ImageWrapper(mask * 100).save('mask.png')
-        #image_wrap.ImageWrapper(img*100).save('foo.png')
         img[10:15,10:15]=3
         img3 = tool_set.applyRotateToComposite(90, img, mask, img1.shape, local=True)
         self.assertTrue(np.all(img3[10:15,10:15]==3))
         img3[10:15, 10:15] = 0
-        #self.assertTrue((sum(img1[20:50,40]) - sum(img3[24:54,44]))==0)
-        #image_wrap.ImageWrapper(img3 * 100).save('foo2.png')
 
 
     def test_fileMask(self):
@@ -105,7 +108,7 @@ class TestToolSet(TestSupport):
         time_manager.updateToNow(1000)
         self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1001)
-        self.assertTrue(time_manager.isBeforeTime())
+        self.assertFalse(time_manager.isBeforeTime())
         time_manager.updateToNow(1002)
         self.assertFalse(time_manager.isBeforeTime())
         self.assertFalse(time_manager.isPastTime())
@@ -116,12 +119,12 @@ class TestToolSet(TestSupport):
         time_manager.updateToNow(1005)
         self.assertFalse(time_manager.isPastTime())
         time_manager.updateToNow(1006)
-        self.assertTrue(time_manager.isPastTime())
+        self.assertFalse(time_manager.isPastTime())
         time_manager.updateToNow(1007)
-        self.assertTrue(time_manager.isPastTime())
+        self.assertFalse(time_manager.isPastTime())
         time_manager.updateToNow(1008)
         self.assertTrue(time_manager.isPastTime())
-        self.assertEqual(8,time_manager.getEndFrame() )
+        self.assertEqual(9,time_manager.getEndFrame() )
         self.assertEqual(3, time_manager.getStartFrame())
 
         time_manager = tool_set.VidTimeManager(startTimeandFrame=(1000, 2), stopTimeandFrame=None)
@@ -146,7 +149,6 @@ class TestToolSet(TestSupport):
         min = np.min(result)
         max = np.max(result)
         result = (result - min)/(max-min) * 255.0
-        print np.mean(result)
 
     def test_gray_writing(self):
         import os
@@ -177,7 +179,6 @@ class TestToolSet(TestSupport):
         self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.' + suffix))
 
         size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix, tool_set.getMilliSecondsAndFrameCount('00:00:01:2')).size
-        print size
         self.assertTrue(size == (1920,1090))
         os.remove('test_ts_gw_mask_33.3666666667.'+suffix)
         os.remove('test_ts_gw_mask_33.3666666667.hdf5')

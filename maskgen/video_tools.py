@@ -90,7 +90,7 @@ def __buildHist(filename):
 
 
 def __buildMasks(filename, histandcount):
-    maskprefix = filename[0:filename.rfind('.')]
+    maskprefix = os.path.splitext(filename)[0]
     histnorm = histandcount[0] / histandcount[1]
     values = np.where((histnorm <= 0.95) & (histnorm > (256 / histandcount[1])))[0]
     cap = cv2api_delegate.videoCapture(filename)
@@ -126,7 +126,7 @@ def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=Tr
     :return:
     """
     capIn = cv2api_delegate.videoCapture(filename)
-    capOut = tool_set.GrayBlockWriter(filename[0:filename.rfind('.')],
+    capOut = tool_set.GrayBlockWriter(os.path.splitext(filename)[0],
                              capIn.get(cv2api_delegate.prop_fps))
     amountRead = 0
     try:
@@ -847,8 +847,7 @@ def x264(filename, outputname=None, crf=0,remove_video=False, additional_args=[]
 
 def vid_md5(filename):
     ffmpegcommand = tool_set.getFFmpegTool()
-    prefix = filename[0:filename.rfind('.')]
-    outFileName = prefix + '_compressed.mp4'
+    outFileName = os.path.splitext(filename)[0] + '_compressed.mp4'
     if filename == outFileName:
         return filename
     command = [ffmpegcommand, '-i', filename,'-loglevel','error','-map','0:v', '-f','md5','-']
@@ -875,10 +874,9 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
                 execute_remove= True
             if 'Stream' in k and criteria in v:
                 execute_compress = False
-    prefix = input_filename[0:filename.rfind('.')]
     if not input_filename.endswith('_compressed.' + suffix):
         execute_compress = True
-    outFileName = prefix + '_compressed.' + suffix if outputname is None else outputname
+    outFileName = os.path.splitext(input_filename)[0] + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = tool_set.getFFmpegTool()
     if  execute_remove:
         input_filename = removeVideoFromAudio(input_filename, outputname=outFileName if not execute_compress else None)
@@ -971,6 +969,13 @@ def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         """
         Consruct wav files
         """
+        import shutil
+        if start is None and end is None and channel is None and fileOne.lower().endswith('.wav'):
+            if outputName is None:
+                return fileOne,[]
+            elif fileOne != outputName:
+                shutil.copy(fileOne,outputName)
+            return outputName,[]
         name = fileOne + '.wav' if outputName is None else outputName
         ffmpegcommand = tool_set.getFFmpegTool()
         if os.path.exists(name):
@@ -1004,8 +1009,7 @@ def __formMaskDiffWithFFMPEG(fileOne, fileTwo, prefix, op, time_manager, codec=[
     The normal intensity is around 98.
     """
     ffmpegcommand = tool_set.getFFmpegTool()
-    postFix = fileOne[fileOne.rfind('.'):]
-    outFileName = prefix + postFix
+    outFileName = prefix + os.path.splitext(fileOne)[1]
     command = [ffmpegcommand, '-y']
     #if startSegment:
     #    command.extend(['-ss', startSegment])
@@ -1919,7 +1923,7 @@ def dropFramesFromMask(bounds,
                 continue
             mask_file_name = mask_set['videosegment']
             reader = tool_set.GrayBlockReader(mask_set['videosegment'])
-            mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+            mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
             writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
                                                   reader.fps)
             if keepTime:
@@ -2129,7 +2133,7 @@ def insertFramesToMask(bounds,
                 continue
             mask_file_name = mask_set['videosegment']
             reader = tool_set.GrayBlockReader(mask_set['videosegment'])
-            mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+            mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
             writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
                                                   reader.fps)
             if add_ef is None:
@@ -2283,7 +2287,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
             try:
                 frame_count = mask_set['startframe']
                 if  frame_count < edge_video_mask['startframe']:
-                    mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+                    mask_file_name_prefix = os.path.splitext(mask_file_name)[0]+ str(time.clock())
                     writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
                                                       reader.fps)
                     change = dict()
@@ -2307,7 +2311,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     new_mask_set.append(change)
 
                 if frame_count <= edge_video_mask['endframe']:
-                    mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+                    mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
                     writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
                                                       reader.fps)
                     change = dict()
@@ -2344,7 +2348,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     writer.close()
 
                 if edge_video_mask['endframe'] < mask_set['endframe']:
-                    mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+                    mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
                     writer = tool_set.GrayBlockWriter(mask_file_name_prefix,
                                                       reader.fps)
                     change = dict()
@@ -2406,7 +2410,7 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
         try:
             mask_file_name = mask_set['videosegment']
             reader = tool_set.GrayBlockReader(mask_set['videosegment'])
-            mask_file_name_prefix = mask_file_name[0:mask_file_name.rfind('.')] + str(time.clock())
+            mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
             writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
                                                   reader.fps)
             while True:
@@ -2656,7 +2660,7 @@ def pullFrameNumber(video_file, frame_number):
     ret, frame = video_capture.retrieve()
     elapsed_time = video_capture.get(cv2api_delegate.prop_pos_msec)
     video_capture.release()
-    ImageWrapper(frame).save(video_file[0:video_file.rfind('.')] + '.png')
+    ImageWrapper(frame).save(os.path.splitext(video_file)[0] + '.png')
     return time.strftime("%H:%M:%S", time.gmtime(elapsed_time / 1000)) + '.%03d' % (elapsed_time % 1000)
 
 

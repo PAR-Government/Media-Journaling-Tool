@@ -116,6 +116,7 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(manager.hasNext())
         self.assertEquals('3', manager.current('group_a', '2.list'))
         self.assertEquals(3, manager.current('group_a', '2.num_4_iterator'))
+        shutil.rmtree('pgm')
 
 
 
