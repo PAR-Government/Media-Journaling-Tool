@@ -306,6 +306,8 @@ def processMetaStreams(stream,errorstream):
     try:
         while True:
             line = errorstream.readline()
+            if line is None or len(line) == 0:
+                break
             pos = line.find('bitrate:')
             if pos > 0:
                 bit_rate = line[pos+9:].strip()

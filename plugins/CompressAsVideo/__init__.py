@@ -49,6 +49,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)[0]
     video_settings = {'-codec:v': 'codec_name', '-b:v': 'bit_rate', '-r': 'r_frame_rate', '-pix_fmt': 'pix_fmt',
                       '-profile:v': 'profile'}
+    # not a dictionary for case sensistivity
     profile_map = [('Baseline', 'baseline'),
                    ('Main', 'main'),
                    ('4:4:4', 'high444'),
@@ -56,6 +57,15 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                    ('High 10', 'high10'),
                    ('High', 'high')
                    ]
+
+    # limited supported from progress to interlaced top or bottom first.
+    # does not appear to support top coded first, bottom displayed first and vice versa
+    #progressive conversion if a filter conversion and not a flag.
+    # supposedly, some version of ffmpeg support the an deinterlace option, but not all.
+    field_order_map= {'tt':['-flags', '+ilme+ildct', '-top', '1'],
+                      'bb':['-flags', '+ilme+ildct', '-top', '0'],
+                      'tb':['-flags', '+ilme+ildct', '-top', '1'],
+                      'bt':['-flags', '+ilme+ildct', '-top', '0']}
     if matchcolor:
         video_settings.update(
             {'-color_primaries': 'color_primaries', '-color_trc': 'color_transfer', '-colorspace': 'color_space'})
@@ -66,6 +76,19 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     for streamid in range(len(donor_data)):
         data = donor_data[streamid]
         if data['codec_type'] == 'video':
+            filters = ''
+            rotation = None
+            source_channel_data, source_streamid = get_channel_data(source_data, 'video')
+            if 'field_order' in data and \
+                ('field_order' not in source_channel_data or source_channel_data['field_order'] != data['field_order']):
+                if data['field_order'] in field_order_map:
+                    ffargs.extend(field_order_map[data['field_order']])
+                elif data['field_order'] == 'progressive':
+                    # let auto parity detection.  Could have looked at the field order and mapping top first to 0
+                    # bottom first to 1, thus yadif=1:parity:1
+                    filters += ',yadif=1'
+                else:
+                    logging.getLogger('maskgen').warn('Unable to update the field order; too many options')
             if data['nb_frames'] in ['unknown','N/A']:
                 ffargs.extend(['-vsync', '2'])
                 data['r_frame_rate'] = 'N/A'
@@ -81,7 +104,6 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
             try:
                 width = data['width']
                 height = data['height']
-                source_channel_data, source_streamid = get_channel_data(source_data, 'video')
                 source_width = source_channel_data['width']
                 source_height = source_channel_data['height']
                 # source_aspect = source_channel_data['display_aspect_ratio']
@@ -93,7 +115,6 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                 else:
                     rotation_filter = get_rotation_filter(donor_rotation)
                     rotation = str(orient_rotation_positive(donor_rotation)) if donor_rotation != 0 else None
-                filters = ''
                 # do we only include these settings IF there is a difference?
                 if skipRotate:
                     rotated = 'no'
@@ -113,10 +134,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                                 aspect_ratio = ''
                         except KeyError:
                             aspect_ratio = ''
-                        filters += ('scale=' + video_size + aspect_ratio)
-                    if len(filters) > 0:
-                        ffargs.extend(['-vf'])
-                        ffargs.append(filters)
+                        filters += (',scale=' + video_size + aspect_ratio)
                 else:
                     if (abs(diff_rotation) == 90 and (source_height != width or source_width != height)) or \
                             (abs(diff_rotation) != 90 and (source_height != height or source_width != width)):
@@ -128,22 +146,22 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                                 aspect_ratio = ''
                         except KeyError:
                             aspect_ratio = ''
-                        filters += ('scale=' + video_size + aspect_ratio)
-                    if rotation_filter is not None:
-                        filters += (',' + rotation_filter if len(filters) > 0 else rotation_filter)
+                        filters += (',scale=' + video_size + aspect_ratio)
+                    if rotation_filter is not None and  len(rotation_filter) > 0:
+                        filters += (',' + rotation_filter)
                         rotated = 'yes'
                         if ffmpeg_version[0:3] == '3.3':
                             logging.getLogger('maskgen').error(
                                 'FFMPEG version {} does no support setting rotation meta-data. {}'.format(
                                 ffmpeg_version,
                                 'The target video will not match the characteristcs of the donor. '))
-                    if len(filters) > 0:
-                        ffargs.extend(['-vf'])
-                        ffargs.append(filters)
-                    if rotation is not None:
-                        ffargs.extend(['-metadata:s:v:' + str(source_streamid), 'rotate=' + rotation])
             except KeyError:
                 continue
+            if len(filters) > 0:
+                ffargs.extend(['-vf'])
+                ffargs.append(filters[1:])
+            if rotation is not None:
+                ffargs.extend(['-metadata:s:v:' + str(source_streamid), 'rotate=' + rotation])
             if 'TAG:language' in data:
                 ffargs.extend(['-metadata:s:v:' + str(source_streamid), 'language=' + data['TAG:language']])
         elif data['codec_type'] == 'audio':
