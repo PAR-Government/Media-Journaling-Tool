@@ -241,7 +241,7 @@ class SettingsWindow(Toplevel):
         imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
         vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf', '.mxf']
         audExts = ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']
-        modelExts = ['.obj']
+        modelExts = ['.3d.zip']
         tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
                                                     'Image: ' + ', '.join(imExts) + '\n' +
                                                     'Video: ' + ', '.join(vidExts) + '\n' +

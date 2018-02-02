@@ -193,11 +193,8 @@ class HPSpreadsheet(Toplevel):
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
-            try:
+            if not image.endswith('.3d.zip'):
                 os.startfile(image)
-            except WindowsError as e:
-                if e[0] == 1155:
-                    tkMessageBox.showerror("Error", "Unable to open {0}.".format(image.split("\\")[1]))
         else:
             os.system('open "' + image + '"')
 
@@ -480,7 +477,7 @@ class HPSpreadsheet(Toplevel):
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
                         (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
                         (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']) or \
-                        (colName in self.mandatoryModelNames and currentExt in hp_data.exts['MODEL']):
+                        (colName in self.mandatoryModelNames and self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#f3f315',
                                                 outline='#084B8A',

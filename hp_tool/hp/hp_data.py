@@ -9,6 +9,8 @@ import os
 import datetime
 import csv
 import hashlib
+import tkMessageBox
+
 import pandas as pd
 import numpy as np
 import subprocess
@@ -18,7 +20,7 @@ import data_files
 exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
         'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf','.mxf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
-        'MODEL': ['.obj']}
+        'MODEL': ['.3d.zip']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 RVERSION = '#@version=01.10'
 thumbnail_conversion = {}
@@ -44,8 +46,8 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     currentExt = os.path.splitext(image)[1]
     if os.path.isdir(image):
         return
-    file_exts_in_dir = [os.path.splitext(x)[1] for x in os.listdir(os.path.dirname(image))] if containsmodels else []
-    if any(fileext in exts['MODEL'] for fileext in file_exts_in_dir):
+    files_in_dir = [x for x in os.listdir(os.path.dirname(image))] if containsmodels else []
+    if any(filename.endswith('.3d.zip') for filename in files_in_dir):
         sub = 'model'
     elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'
@@ -65,13 +67,13 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         thumbnail_counter = 0
         for i in os.listdir(model_dir):
             currentExt = os.path.splitext(i)[1]
-            if currentExt in exts['MODEL']:
-                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + currentExt)
-            else:
+            if currentExt in exts['IMAGE']:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
                 shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, newThumbnailName))
                 thumbnail_conversion[model_dir][i] = newThumbnailName
                 thumbnail_counter += 1
+            elif i.endswith(".3d.zip"):
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
 
     shutil.copy2(image, newPathName)
     return newPathName
@@ -146,14 +148,14 @@ def grab_dir(inpath, outdir=None, r=False):
                 if filename.lower().endswith(valid_exts) and not filename.startswith('.'):
                     imageList.append(os.path.join(dirname, filename))
     else:
-        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'] + exts['MODEL'])
+        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
         for f in names:
             if f.lower().endswith(valid_exts) and not f.startswith('.'):
                 imageList.append(os.path.join(inpath, f))
             elif os.path.isdir(os.path.join(inpath, f)):
                 for obj in os.listdir(os.path.join(inpath, f)):
-                    if os.path.splitext(os.path.join(inpath, f, obj))[1] in exts['MODEL']:
-                        imageList.append(os.path.join(inpath, f, obj))
+                    if os.path.join(inpath, f, obj).endswith('.3d.zip'):
+                        imageList.append(os.path.normpath(os.path.join(inpath, f, obj)))
 
     imageList = sorted(imageList, key=str.lower)
 
@@ -330,7 +332,7 @@ def set_other_data(data, imfile):
         data['Type'] = 'audio'
     elif imext.lower() in exts['VIDEO']:
         data['Type'] = 'video'
-    elif imext.lower() in exts['MODEL']:
+    elif imfile.endswith('.3d.zip'):
         data['Type'] = 'model'
     else:
         data['Type'] = 'image'
@@ -432,7 +434,7 @@ def parse_image_info(self, imageList, **kwargs):
         if kkey in fields:
             master[kkey] = kwargs[kkey]
 
-    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software']
+    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
     exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
     # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
@@ -449,12 +451,12 @@ def parse_image_info(self, imageList, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v),k) for k,v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-        if os.path.splitext(imageList[i])[1] not in exts['MODEL']:
+        if not imageList[i].endswith('.3d.zip'):
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
-            imghdr = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
-            del imghdr[imghdr.index(os.path.basename(imageList[i]))]
-            data[i] = combine_exif({"Thumbnail": "; ".join(imghdr)},
+            image_file_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
+            del image_file_list[image_file_list.index(os.path.basename(imageList[i]))]
+            data[i] = combine_exif({"Thumbnail": "; ".join(image_file_list)},
                                    reverseLUT, master.copy())
         data[i] = set_other_data(data[i], imageList[i])
 
@@ -523,7 +525,11 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     if not imageList:
         print('No new images found')
         remove_temp_subs(outputdir)
-        check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
+        if os.path.exists(os.path.join(outputdir, 'csv')):
+            check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
+        else:
+            tkMessageBox.showerror("Directory Error", "There has been an error processing the input directory.  Please verify there is media within the directory.  If there is only 3D Models to be processed, verify that you are following the correct directory structure.")
+            return None, None
         return imageList, []
 
     # build information list. This is the bulk of the processing, and what runs exiftool
