@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+
 from image_graph import current_version,getPathValues, getValue
 import tool_set
 import os

@@ -1,4 +1,11 @@
-import scenario_model
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 import tool_set
 import numpy as np
 

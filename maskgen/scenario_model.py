@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from image_graph import createGraph, current_version, getPathValues
 import exif
 import os
@@ -11,7 +19,7 @@ import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
-from group_filter import  buildFilterOperation, GroupFilter, GroupOperationsLoader
+from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
@@ -34,7 +42,6 @@ prefLoader = MaskGenLoader()
 
 def imageProjectModelFactory(name, **kwargs):
     return ImageProjectModel(name, **kwargs)
-
 
 def defaultNotify(edge, message, **kwargs):
     return True
@@ -1168,15 +1175,22 @@ class ImageProjectModel:
         @rtype: list of Probe
         """
         self._executeSkippedComparisons()
-        probes = list()
+        from multiprocessing.pool import ThreadPool
+        thread_pool = ThreadPool(prefLoader.get_key('skipped_threads', 2))
+        futures = list()
         useGraph = graph if graph is not None else self.G
         for edge_id in useGraph.get_edges():
             edge = useGraph.get_edge(edge_id[0], edge_id[1])
             if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
                 composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader)
-                probes.extend(composite_generator.constructProbes(saveTargets=saveTargets,
-                                                                  inclusionFunction=inclusionFunction,
-                                                                  constructDonors=constructDonors))
+                futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
+                    'saveTargets':saveTargets,
+                    'inclusionFunction':inclusionFunction,
+                    'constructDonors':constructDonors
+                }))
+        probes = list()
+        for future in futures:
+            probes.extend(future.get(timeout=1000))
         return probes
 
     def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,

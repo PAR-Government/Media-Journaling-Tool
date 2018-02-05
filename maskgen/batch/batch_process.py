@@ -1,6 +1,16 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+#
+
 """
-Bulk Image Journal Processing
+  Bulk Image Journal Processing
 """
+
 from __future__ import print_function
 import argparse
 import sys
