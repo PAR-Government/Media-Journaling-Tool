@@ -1,12 +1,13 @@
+import matplotlib
+matplotlib.use("TkAgg")
 from Tkinter import *
 import ttk
 import tkMessageBox
-from maskgen import image_wrap
 from group_filter import GroupFilterLoader
 import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize, imageResizeRelative, openImage, fixTransparency, openImage, openFile, validateTimeString, \
+from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
@@ -51,6 +52,11 @@ def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, arg
             nomatches = [rk for rk, rv in v['rule'].iteritems() if rk in argvalues and argvalues[rk] != rv]
             ok &= (len(nomatches) > 0 or
                    (k in argvalues and argvalues[k] is not None and len(str(argvalues[k])) > 0))
+    if op.parameter_dependencies is not None:
+        for param_name, param_requirements in op.parameter_dependencies.iteritems():
+            if param_name in argvalues and argvalues[param_name] in param_requirements:
+                check_name = param_requirements[argvalues[param_name]]
+                ok &= (check_name in argvalues and argvalues[check_name] is not None and len(str(argvalues[check_name])) > 0)
     return ok
 
 def checkValue(name, value_type, value):
@@ -111,6 +117,25 @@ def fillTextVariable(obj, row, event):
     """
     obj.values[row].set(obj.widgets[row].get(1.0, END))
 
+
+def promptForURLAndFillButtonText(obj, id, row):
+    """
+    Prompt for a URL.
+    Set the button's text, identify by the id.
+    :param obj:
+    :param dir: Starting place for file inspection
+    :param id: button identitifer
+    :param row:
+    :param filetypes:
+    @type obj: PropertyFrame
+    @type row: int
+    @type filetypes: [(str,str)]
+    :return:
+    """
+    var = obj.values[row]
+    val = URLCaptureDialog(obj, var.get().split('\n'))
+    var.set('\n'.join(val.urls).strip())
+    obj.buttons[id].configure(text=var.get(),height =(len(val.urls)))
 
 def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     """
@@ -217,7 +242,7 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
         val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + argumentTuple[0], filetypes=filetypes)
         if (val != None and len(val) > 0):
             res = val
-    elif argumentTuple[1]['type'] == 'file:':
+    elif argumentTuple[1]['type'].startswith('file:'):
         prop = argumentTuple[1]['type']
         typematch = '*.' + prop[prop.find(':') + 1:]
         typename = prop[prop.find(':') + 1:].upper()
@@ -334,6 +359,11 @@ class MyDropDown(OptionMenu):
         self.command = command
 
 class PropertyFunction:
+
+    """
+    Set and Get values for a property for a given name.
+    Used by general UI frames and property updaters, regardless of the source of the property (e.g. node, edge, system).
+    """
 
     def getValue(self, name):
         return None
@@ -665,7 +695,8 @@ class DescriptionCaptureDialog(Toplevel):
 
     def apply(self):
         self.cancelled = False
-        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True))
+        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True),
+                                          filetype = self.sourcefiletype)
         self.description.setOperationName(self.e2.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
@@ -717,7 +748,8 @@ class ItemDescriptionCaptureDialog(Toplevel):
         body = Frame(self)
         self.initial_focus = self.body(body)
         self.buttonbox()
-        body.pack(padx=5, pady=5)
+        body.pack(padx=5, pady=5, fill=BOTH, expand=True)
+        #body.pack_propagate(True)
 
         if not self.initial_focus:
             self.initial_focus = self
@@ -757,14 +789,16 @@ class ItemDescriptionCaptureDialog(Toplevel):
                                 propertyFunction=NodePropertyFunction(self.argvalues),
                                 changeParameterCB=self.changeParameter,
                                 dir='.')
+       # self.argBox.pack(padx=5, pady=5, fill=BOTH, expand=True)
         self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
-        self.argBox.grid_propagate(1)
+        self.argBox.columnconfigure(0,weight=1)
+        self.argBox.grid_propagate(True)
 
 
     def body(self, master):
         self.okButton = None
         row  = 0
-        Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
+        Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=E)
         row += 1
         self.argBoxRow = row
         self.argBoxMaster = master
@@ -1250,6 +1284,72 @@ class FilterGroupCaptureDialog(tkSimpleDialog.Dialog):
     def getGroup(self):
         return self.grouptocall
 
+class URLCaptureDialog(tkSimpleDialog.Dialog):
+
+
+    def __init__(self, parent, urls):
+        self.urls = [x for x in urls if len(x) > 0]
+        tkSimpleDialog.Dialog.__init__(self, parent, "Select URLs")
+
+    def body(self, master):
+        yscrollbar = Scrollbar(master, orient=VERTICAL)
+        xscrollbar = Scrollbar(master, orient=HORIZONTAL)
+        self.listbox = Listbox(master, width=80,
+                               yscrollcommand=yscrollbar.set,
+                               xscrollcommand=xscrollbar.set)
+        self.listbox.bind("<Double-Button-1>", self.remove)
+        self.listbox.grid(row=0, column=1, sticky=E + W + N + S,
+                               columnspan=2)
+        xscrollbar.config(command=self.listbox.xview)
+        xscrollbar.grid(row=1, column=0, stick=E + W,columnspan=2)
+        yscrollbar.config(command=self.listbox.yview)
+        yscrollbar.grid(row=0, column=2, stick=N + S)
+        for item in self.urls:
+            self.listbox.insert(END, item)
+        Label(master, text="Add Entry:", anchor=W, justify=LEFT).grid(row=2, column=0, sticky=W)
+        self.url = Text(master, takefocus=True, width=60, height=1, relief=RAISED,
+                      borderwidth=2)
+        self.url.grid(row=2, column=1,sticky=EW)
+        #self.url.bind("<Return>", self.add)
+
+    def buttonbox(self):
+        '''add standard button box.
+
+        override if you do not want the standard buttons
+        '''
+
+        box = Frame(self)
+
+        w = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Escape>", self.cancel)
+        self.bind("<Return>", self.add)
+        box.pack()
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.urls = self.listbox.get(0, END)
+
+    def remove(self,event):
+        self.listbox.delete(self.listbox.curselection()[0],self.listbox.curselection()[0])
+
+    def add(self,event):
+        import urllib2
+        contents = self.url.get(1.0, END).strip()
+        if len(contents) == 0:
+            return
+        try:
+            f = urllib2.urlopen(contents,timeout=2)
+            self.listbox.insert(END, contents)
+            f.close()
+        except Exception as e:
+            pass
+
 
 class ActionableTableCanvas(TableCanvas):
     def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.', **kwargs):
@@ -1547,6 +1647,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             im = red.resize(finalImage.size,1)
         else:
             im = imTuple[1]
+            im = im.to_mask().invert()
         imResized = imageResizeRelative(im, (250, 250), im.size)
         finalResized = imageResizeRelative(finalImage, (250, 250), finalImage.size)
         try:
@@ -1586,10 +1687,13 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             row += 1
         self.includeInMaskVar = StringVar()
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
-        self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
-                                                onvalue="yes", offvalue="no")
-        self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
-        return self.cbIncludeInComposite
+        if  self.modification.category not in ['Output','AntiForensic','Laundering']:
+            self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
+                                                    onvalue="yes", offvalue="no")
+            self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)
+            return self.cbIncludeInComposite
+        else:
+            return None
 
     def deletemask(self):
         self.selectMasks[self.optionsBox.get()] = None
@@ -1620,7 +1724,7 @@ class QAViewDialog(Toplevel):
         @type parent: MakeGenUI
         """
         self.parent = parent
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites()
+        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
         Toplevel.__init__(self, parent)
         #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
         self.createWidgets()
@@ -1735,7 +1839,10 @@ class QAViewDialog(Toplevel):
             n = self.parent.scModel.G.get_node(probe.finalNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
-            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500), probe.targetMaskImage.size)
+            final = openImage(finalFile)
+            finalResized = imageResizeRelative(final, (500, 500), final.size)
+            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500),
+                                            probe.targetMaskImage.size if probe.targetMaskImage is not None else finalResized.size)
         else:
             edgeTuple = tuple(self.optionsBox.get().split('<-'))
             probe = \
@@ -1743,11 +1850,12 @@ class QAViewDialog(Toplevel):
             n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
                                      self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
-            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500), probe.donorMaskImage.size)
+            final = openImage(finalFile)
+            finalResized = imageResizeRelative(final, (500, 500), final.size)
+            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
+                                            probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
         edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
         self.operationVar.set(self._compose_label(edge))
-        final = openImage(finalFile)
-        finalResized = imageResizeRelative(final, (500, 500), final.size)
         finalResized = finalResized.overlay(imResized)
         self.photo = ImageTk.PhotoImage(finalResized.toPIL())
         if initialize is True:
@@ -1809,10 +1917,8 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
     def _newComposite(self):
         from PIL import Image
         if self.prior_composite is None:
-            self.prior_composite = \
-                self.scModel.constructCompositeForNode(self.scModel.start,
-                                                       level=self.level,
-                                                       colorMap=self.colorMap)
+            self.prior_probes = self.scModel.constructPathProbes(start=self.scModel.start)
+            self.prior_composite = composite = self.prior_probes[-1].composites['color']['image']
         override_args={
             'op' : self.op,
             'shape change': str((int(self.nextIM.size[1]-self.startIM.size[1]),
@@ -1822,10 +1928,9 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
             self.updateBox()
             override_args['arguments'] = {self.argument_name :
                                     self.getStringConfiguration()}
-        composite = self.scModel.extendCompositeByOne(self.prior_composite,
-                                                  level=self.level,
-                                                  colorMap=self.colorMap,
-                                                  override_args=override_args)
+        new_probes =  self.scModel.extendCompositeByOne(self.prior_probes,
+                                                       override_args=override_args)
+        composite = new_probes[-1].composites['color']['image']
         if composite.size != self.nextIM.size:
             composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
         return composite
@@ -2125,6 +2230,7 @@ class VerticalScrolledFrame(Frame):
                         yscrollcommand=vscrollbar.set)
         canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command=canvas.yview)
+        canvas.pack_propagate(True)
 
         # reset the view
         canvas.xview_moveto(0)
@@ -2155,6 +2261,7 @@ class VerticalScrolledFrame(Frame):
         canvas.bind('<Configure>', _configure_canvas)
 
         return
+
 
 def notifyCB(obj,name, type, row, cb,a1,a2,a3):
     if cb is not None:
@@ -2216,6 +2323,14 @@ class PropertyFrame(VerticalScrolledFrame):
                if v:
                    widget.insert(1.0, v)
                widget.grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'urls':
+               partialf = partial(promptForURLAndFillButtonText, self, prop.name, row)
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ',
+                                                         takefocus=False,
+                                                         height =(1 if v is None else v.count('\n')+1),
+                                                         anchor=W, justify=LEFT, padx=2,
+                                                         command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type == 'yesno':
                widget = [None,None]
                widget[0]  =Radiobutton(master, text='Yes', takefocus=(row == 0), variable=self.values[row],
@@ -2230,9 +2345,9 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
-           elif prop.type.startswith == 'file:':
-               typematch = '*.' + prop[prop.find(':')+1:]
-               typename =  prop[prop.find(':') + 1:].upper()
+           elif prop.type.startswith('file:'):
+               typematch = '*.' + prop.name[prop.name.find(':')+1:]
+               typename =  prop.name[prop.name.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
@@ -2298,25 +2413,44 @@ class PropertyFrame(VerticalScrolledFrame):
                tkMessageBox.showwarning('Error', prop.name, error)
            i += 1
 
+
+
+class ProperyChangeAction:
+
+    """
+    Customized actions to take for specific properties by PropertyFunction
+    @see PropertyFunction
+    """
+
+    def __init__(self):
+        pass
+
+    def setvalue(self, oldvalue, newvalue):
+        pass
+
 class SystemPropertyFunction(PropertyFunction):
 
     prefLoader = None
     """
     @type prefLoader: MaskGenLoader
+    @type property_change_actions: dict {str:ProperyChangeAction)
     """
-    def __init__(self,prefLoader):
+    def __init__(self,prefLoader,property_change_actions):
         """
 
         :param prefLoader:
         @type prefLoader: MaskGenLoader
         """
         self.prefLoader = prefLoader
+        self.property_change_actions = property_change_actions
 
 
     def getValue(self, name):
         return self.prefLoader.get_key(name,'')
 
     def setValue(self, name,value):
+        if name in self.property_change_actions:
+            self.property_change_actions[name].setvalue(self.prefLoader.get_key(name,''), value)
         return self.prefLoader.save(name,value)
 
 class ProjectPropertyFunction(PropertyFunction):
@@ -2337,16 +2471,20 @@ class ProjectPropertyFunction(PropertyFunction):
 class SystemPropertyDialog(tkSimpleDialog.Dialog):
 
    cancelled = False
-   def __init__(self, parent, properties, prefLoader=None,title="System Properties", dir='.'):
+   def __init__(self, parent, properties, prefLoader=None,title="System Properties",
+                dir='.',
+                property_change_actions=dict()):
         self.properties =properties
         self.prefLoader = prefLoader
         self.dir=dir
+        self.property_change_actions = property_change_actions
         tkSimpleDialog.Dialog.__init__(self, parent, title)
 
    def body(self, master):
         self.vs = PropertyFrame(master,
                             self.properties,
-                            propertyFunction=SystemPropertyFunction(self.prefLoader),
+                            propertyFunction=SystemPropertyFunction(self.prefLoader,
+                                                                    self.property_change_actions),
                             dir=self.dir)
         self.vs.grid(row=0)
 

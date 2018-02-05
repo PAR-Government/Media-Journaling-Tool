@@ -9,12 +9,10 @@ import tarfile
 from tool_set import *
 from time import gmtime, strftime, strptime
 import logging
-import maskgen
-
+from maskgen import __version__
 from threading import RLock
 
-igversion = maskgen.__version__
-
+igversion = __version__
 
 def current_version():
     return igversion
@@ -384,6 +382,7 @@ class ImageGraph:
         proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
+        filetype = fileType(pathname)
         origname = get_pre_name(fname)
         suffix = get_suffix(fname)
         newfname = self.new_name(fname, suffix.lower())
@@ -408,8 +407,9 @@ class ImageGraph:
                             file=fname,
                             ownership=('yes' if includePathInUndo else 'no'),
                             username=get_username(),
+                            filetype=filetype,
                             ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                            **self.__filter_args(kwargs, exclude=['seriesname', 'username', 'ctime', 'ownership', 'file']))
+                            **self.__filter_args(kwargs, exclude=['filetype', 'seriesname', 'username', 'ctime', 'ownership', 'file']))
 
             self.__scan_args('node', kwargs)
 
@@ -483,8 +483,8 @@ class ImageGraph:
             if returnNoneOnMissing and not os.path.exists(fullpath):
                 return None, None
             im = self.openImage(fullpath, mask=True)
-            return im, value
-        return None, None
+            return im
+        return None
 
     def getNodeFileType(self, nodeid):
         node = self.get_node(nodeid)
@@ -777,6 +777,11 @@ class ImageGraph:
 
     def getProjectVersion(self):
         return self.G.graph['igversion'] if 'igversion' in self.G.graph else ''
+
+    def subgraph(self, nodes):
+        return ImageGraph(os.path.join(self.dir,self.get_name() + '_sub'),
+                   graph=nx.DiGraph(self.G.subgraph(nodes)),
+                   projecttype=self.get_project_type())
 
     def getVersion(self):
         return igversion

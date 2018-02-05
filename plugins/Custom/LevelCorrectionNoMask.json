@@ -1,0 +1,59 @@
+{
+    "name": "LevelCorrectionNoMask",
+    "operation": {
+      "name": "Levels",
+      "category": "Intensity",
+      "description": "Adjust the level of image channels (https://www.imagemagick.org/script/command-line-options.php#level)",
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments": {
+        "blackpoint": {
+          "type": "int[0:100]",
+          "defaultvalue": 0,
+          "description": "Percentage"
+        },
+        "whitepoint": {
+          "type": "int[0:100]",
+          "defaultvalue": 100,
+          "description": "Percentage"
+        },
+        "gamma": {
+          "type": "float[0:2]",
+          "defaultvalue": 0.5,
+          "description": "gamma 0.0 to 2.0"
+        }
+      },
+      "transitions": ["image.image"]
+    },
+    "command": {
+      "default": [
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "darwin": [
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "linux": [
+        "convert",
+        "-level",
+        "{blackpoint}%,{whitepoint}%,{gamma}",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
+}

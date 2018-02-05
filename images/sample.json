@@ -3,7 +3,11 @@
   "graph": {
     "validationtime": "", 
     "projectdescription": "Sample Project with Paste Splice and Seam Carving", 
-    "creator": "ericrobertson", 
+    "nodeFilePaths": {
+      "proxyfile": "", 
+      "compositemaskname": "", 
+      "donors.*": ""
+    }, 
     "validatedby": "", 
     "exporttime": "2016-12-27 19:17:59", 
     "jt_upgrades": [
@@ -21,10 +25,15 @@
       "04.0621.3a5c9635ef", 
       "04.0720.415b6a5cc4", 
       "04.0720.b0ec584b4e", 
-      "04.0710.b0ec584b4e"
+      "04.0710.b0ec584b4e", 
+      "04.0810.546e996a36", 
+      "04.0810.9381e76724", 
+      "0.4.1115.32eabae8e6", 
+      "0.4.1204.5291b06e59", 
+      "0.4.1231.03ad63e6bb"
     ], 
     "autopastecloneinputmask": "no", 
-    "idcount": 25, 
+    "idcount": 27, 
     "provenance": "no", 
     "api_validated_node": [
       "input_mod_2_25.jpg", 
@@ -34,7 +43,7 @@
     "semanticgroups": [], 
     "skipped_edges": [], 
     "username": "ericrobertson", 
-    "igversion": "04.0710.b0ec584b4e", 
+    "igversion": "0.4.1231.03ad63e6bb", 
     "validationdate": "", 
     "edgeFilePaths": {
       "maskname": "", 
@@ -47,13 +56,8 @@
       "inputmaskname": "inputmaskownership", 
       "arguments.PNG File Name": ""
     }, 
-    "nodeFilePaths": {
-      "proxyfile": "", 
-      "compositemaskname": "", 
-      "donors.*": ""
-    }, 
     "groups": {}, 
-    "updatetime": "2017-08-10 15:18:50", 
+    "updatetime": "2018-01-17 22:57:40", 
     "projecttype": "image", 
     "name": "sample", 
     "typespref": [
@@ -75,7 +79,8 @@
       ]
     ], 
     "organization": "PAR", 
-    "validation": "no"
+    "validation": "no", 
+    "creator": "ericrobertson"
   }, 
   "nodes": [
     {
@@ -180,9 +185,11 @@
   ], 
   "links": [
     {
-      "global": "yes", 
+      "global": "no", 
       "recordMaskInComposite": "no", 
+      "linkcolor": "0 255 174", 
       "errors": [], 
+      "empty mask": "no", 
       "opsys": "Windows 7 6.1.7601", 
       "ssim": 0.6220126321186452, 
       "source": 1, 
@@ -195,10 +202,10 @@
       "selectmaskname": null, 
       "automated": "no", 
       "inputmaskname": null, 
-      "shape change": "(0, 0)", 
+      "target": 5, 
       "change size category": "large", 
       "psnr": 25.23448219085477, 
-      "target": 5, 
+      "shape change": "(0, 0)", 
       "exifdiff": {
         "Background Color": [
           "delete", 
@@ -238,12 +245,20 @@
       "global": "no", 
       "recordMaskInComposite": "no", 
       "inputmaskownership": "no", 
+      "linkcolor": "0 255 6", 
       "errors": [], 
+      "empty mask": "no", 
       "opsys": "Windows 7 6.1.7601", 
       "ssim": 0.8824301202318747, 
       "source": 2, 
-      "location": "(0, 0)", 
-      "arguments": {}, 
+      "arguments": {
+        "function": "maskgen.algorithms.seam_carving.seamCompare", 
+        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_151622659143__final_mask.png", 
+        "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
+        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_151622659143__adjr.png", 
+        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_151622659143__adjc.png"
+      }, 
+      "location": "(0,0)", 
       "username": "TheDoorKnob", 
       "description": "", 
       "maskname": "input_mod_1_input_mod_2_mask.png", 
@@ -298,45 +313,30 @@
       }, 
       "softwareVersion": "CC2015.5.12", 
       "op": "TransformSeamCarving", 
-      "transform matrix": {
-        "c": 3, 
-        "r": 3, 
-        "r0": [
-          0.06783959972327469, 
-          -0.21558606533590524, 
-          185.15074279915257
-        ], 
-        "r1": [
-          -0.6125210620947953, 
-          0.08012743235628318, 
-          328.90079648346165
-        ], 
-        "r2": [
-          -0.00109942980417734, 
-          -0.0006049090824194641, 
-          1.0
-        ]
-      }
+      "transform matrix": null
     }, 
     {
-      "username": "ericrobertson", 
-      "maskname": "sample_orig_input_mask.png", 
-      "errors": [], 
-      "description": "", 
-      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
-      "semanticGroups": [], 
-      "editable": "yes", 
-      "softwareVersion": "12.1", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "source": 3, 
-      "ssim": 0.9999999855200266, 
-      "psnr": 101.8345154087617, 
       "recordMaskInComposite": "no", 
-      "automated": "no", 
+      "linkcolor": "0 168 255", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "ssim": 0.9999999855200266, 
+      "source": 3, 
       "arguments": {
         "Image Rotated": "no"
       }, 
+      "username": "ericrobertson", 
+      "description": "", 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "automated": "no", 
+      "shape change": "(0, 0)", 
+      "maskname": "sample_orig_input_mask.png", 
+      "psnr": 101.8345154087617, 
+      "target": 8, 
+      "semanticGroups": [], 
       "exifdiff": {
         "Compression": [
           "add", 
@@ -431,15 +431,15 @@
           "1"
         ]
       }, 
-      "target": 8, 
-      "op": "OutputPng", 
-      "shape change": "(0, 0)"
+      "softwareVersion": "12.1", 
+      "op": "OutputPng"
     }, 
     {
       "username": "TheDoorKnob", 
       "maskname": "sample_input_mod_2_25_mask.png", 
       "errors": [], 
       "description": "", 
+      "empty mask": "no", 
       "homography max matches": 20, 
       "automated": "no", 
       "editable": "no", 
@@ -456,7 +456,9 @@
     {
       "global": "yes", 
       "recordMaskInComposite": "no", 
+      "linkcolor": "162 255 0", 
       "errors": [], 
+      "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "ssim": 1.0, 
       "source": 4, 
@@ -525,30 +527,32 @@
       "op": "TransformCrop"
     }, 
     {
-      "username": "TheDoorKnob", 
-      "maskname": "input_mod_2_3_input_mod_2_25_mask.png", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "255 180 0", 
       "errors": [], 
-      "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
+      "empty mask": "no", 
       "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.9333140628895015, 
+      "source": 5, 
+      "arguments": {
+        "rotate": "no"
+      }, 
+      "username": "TheDoorKnob", 
+      "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
       "editable": "no", 
-      "softwareVersion": "1.1.7", 
       "softwareName": "PIL", 
       "selectmaskname": null, 
-      "source": 5, 
-      "ssim": 0.9333140628895015, 
-      "psnr": 47.16511443998102, 
-      "recordMaskInComposite": "no", 
       "automated": "yes", 
       "inputmaskname": null, 
+      "shape change": "(0, 0)", 
+      "maskname": "input_mod_2_3_input_mod_2_25_mask.png", 
+      "psnr": 47.16511443998102, 
+      "target": 0, 
       "exifdiff": {
         "File Access Date/Time": [
           "change", 
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
-        ], 
-        "Resolution Unit": [
-          "add", 
-          "inches"
         ], 
         "Compression": [
           "delete", 
@@ -601,14 +605,18 @@
           "add", 
           "0100"
         ], 
+        "Exif Byte Order": [
+          "add", 
+          "Little-endian (Intel, II)"
+        ], 
         "File Modification Date/Time": [
           "change", 
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Exif Byte Order": [
+        "Resolution Unit": [
           "add", 
-          "Little-endian (Intel, II)"
+          "inches"
         ], 
         "MIME Type": [
           "change", 
@@ -670,22 +678,21 @@
           "72"
         ]
       }, 
-      "target": 0, 
-      "op": "AntiForensicExifQuantizationTable", 
-      "arguments": {
-        "rotate": "no"
-      }, 
-      "shape change": "(0, 0)"
+      "softwareVersion": "1.1.7", 
+      "op": "AntiForensicExifQuantizationTable"
     }, 
     {
       "global": "no", 
       "recordMaskInComposite": "no", 
+      "linkcolor": "255 12 0", 
       "errors": [], 
+      "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "ssim": 0.525715087856544, 
       "source": 6, 
       "arguments": {
-        "rotation": -90
+        "rotation": -90, 
+        "local": "yes"
       }, 
       "username": "Saffire", 
       "description": "", 
@@ -728,7 +735,6 @@
         ]
       }, 
       "softwareVersion": "CC16.16", 
-      "op": "TransformRotate", 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -747,22 +753,24 @@
           9.891532278139353e-06, 
           1.0
         ]
-      }
+      }, 
+      "op": "TransformRotate"
     }, 
     {
       "username": "Saffire", 
       "maskname": "hat_splice_crop_input_mod_1_mask.png", 
       "errors": [], 
       "description": "", 
+      "empty mask": "no", 
       "homography max matches": 20, 
-      "automated": "no", 
       "editable": "no", 
       "recordMaskInComposite": "no", 
       "selectmaskname": null, 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "source": 7, 
       "softwareVersion": "", 
       "softwareName": "", 
-      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "automated": "no", 
       "inputmaskname": null, 
       "op": "Donor", 
       "target": 2, 
@@ -787,13 +795,15 @@
       }
     }, 
     {
-      "selectmaskownership": "no", 
+      "ssim": 0.9598897451746461, 
       "global": "no", 
       "recordMaskInComposite": "yes", 
       "inputmaskownership": "no", 
+      "linkcolor": "255 0 156", 
       "errors": [], 
+      "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
-      "ssim": 0.9598897451746461, 
+      "selectmaskownership": "no", 
       "local psnr": 3.1876244887399414, 
       "source": 8, 
       "arguments": {
@@ -845,6 +855,7 @@
       "maskname": "hat_hat_splice_mask.png", 
       "psnr": 1.9792876806804547, 
       "description": "", 
+      "empty mask": "no", 
       "source": 9, 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "semanticGroups": [], 
@@ -952,6 +963,7 @@
       "inputmaskownership": "no", 
       "softwareVersion": "2.4", 
       "ssim": 0.3481807393556555, 
+      "linkcolor": "186 0 255", 
       "softwareName": "GIMP", 
       "target": 6, 
       "arguments": {

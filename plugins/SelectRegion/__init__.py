@@ -2,6 +2,12 @@ import numpy
 import cv2
 import random
 from maskgen.image_wrap import ImageWrapper
+from sys import platform as sys_pf
+
+if sys_pf == 'darwin':
+    import matplotlib
+    matplotlib.use("TkAgg")
+
 from skimage.restoration import denoise_tv_bregman
 from skimage.segmentation import felzenszwalb
 import math

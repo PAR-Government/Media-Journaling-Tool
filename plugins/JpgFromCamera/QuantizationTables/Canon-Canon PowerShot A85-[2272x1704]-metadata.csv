@@ -1,0 +1,134 @@
+compute,-IFD0:ModifyDate,2005:10:08 16:01:43
+database,-Canon:CanonImageWidth,2272
+database,-File:ImageHeight,1704
+database,-ExifIFD:UserComment,
+database,-ExifIFD:ExifVersion,0220
+database,-Canon:MeasuredEV,3.22
+database,-IFD0:Orientation,Horizontal (normal)
+database,-Canon:EasyMode,Full auto
+database,-Canon:Saturation,Normal
+database,-Canon:MeteringMode,Evaluative
+database,-Canon:FlashBits,"E-TTL, Built-in"
+database,-ExifIFD:ColorSpace,sRGB
+database,-Canon:FocusRange,Auto
+database,-Canon:AFPointsInFocus,(none)
+database,-IFD0:ResolutionUnit,inches
+database,-Canon:SelfTimer2,0
+database,-ExifIFD:SensingMethod,One-chip color area
+database,-IFD0:XResolution,180
+database,-ExifIFD:ExposureTime,1/60
+database,-ExifIFD:DigitalZoomRatio,1
+source,-ExifIFD:FNumber,2.8
+database,-Canon:ManualFlashOutput,n/a
+database,-Canon:ZoomTargetWidth,2272
+database,-Canon:AutoISO,204
+database,-Canon:NDFilter,Off
+database,-Canon:CameraType,Compact
+database,-Canon:FocalPlaneXSize,5.46 mm
+database,-ExifIFD:ExposureMode,Auto
+database,-Canon:ExposureTime,1/64
+database,-Canon:FileNumber,102-0286
+database,-Canon:FocalLength,5.40625 mm
+database,-ExifIFD:FlashpixVersion,0100
+database,-File:BitsPerSample,8
+database,-Canon:FlashExposureComp,0
+database,-ExifIFD:WhiteBalance,Auto
+database,-IFD0:Model,Canon PowerShot A85
+database,-Canon:CameraISO,Auto
+database,-ExifIFD:ApertureValue,2.8
+database,-Canon:ExposureCompensation,0
+database,-Canon:PrimaryAFPoint,0
+database,-ExifIFD:CreateDate,2005:10:08 16:01:43
+database,-Canon:SequenceNumber,0
+database,-IFD1:ThumbnailOffset,2560
+database,-Canon:PhotoEffect,Off
+database,-ExifIFD:CustomRendered,Normal
+database,-Canon:ZoomSourceWidth,2272
+database,-Canon:WhiteBalance,Auto
+database,-Canon:AFPoint,Auto AF point selection
+database,-Canon:BaseISO,50
+database,-ExifIFD:DateTimeOriginal,2005:10:08 16:01:43
+compute,-ExifIFD:ExifImageWidth,2272
+database,-Canon:AFAreaYPositions,-54 -54 -54 0 0 0 54 54 54
+database,-Canon:FocalPlaneYSize,4.09 mm
+database,-Canon:CanonImageHeight,1704
+database,-Canon:MaxFocalLength,16.21875 mm
+database,-ExifIFD:FileSource,Digital Camera
+database,-Canon:CanonExposureMode,Easy
+database,-Canon:AFAreaXPositions,-410 0 410 -410 0 410 -410 0 410
+database,-Canon:SpotMeteringMode,Center
+database,-ExifIFD:FocalPlaneXResolution,10819.04762
+database,-Canon:FocalUnits,32/mm
+database,-Canon:FocusContinuous,Single
+database,-IFD1:YResolution,180
+database,-File:ExifByteOrder,"Little-endian (Intel, II)"
+database,-Canon:MinAperture,8
+database,-Canon:CanonFirmwareVersion,Firmware Version 1.00
+database,-Canon:CanonImageType,IMG:PowerShot A85 JPEG
+database,-Canon:AEBBracketValue,0
+database,-IFD0:Make,Canon
+database,-ExifIFD:FocalPlaneYResolution,10784.81013
+database,-Canon:MinFocalLength,5.40625 mm
+database,-IFD0:YCbCrPositioning,Centered
+database,-ExifIFD:CompressedBitsPerPixel,5
+database,-ExifIFD:MeteringMode,Multi-segment
+database,-Canon:AFAreaHeight,51
+database,-Canon:Contrast,Normal
+database,-Canon:TargetAperture,2.8
+database,-Canon:FNumber,2.9
+database,-Canon:SelfTimer,Off
+database,-Canon:AESetting,Normal AE
+database,-Canon:FocalType,Zoom
+database,-Canon:FlashOutput,18
+database,-InteropIFD:RelatedImageWidth,2272
+database,-File:ImageWidth,2272
+database,-Canon:ControlMode,Camera Local Control
+database,-Canon:SlowShutter,Off
+database,-Canon:DigitalZoom,None
+database,-Canon:CanonModelID,PowerShot A85
+database,-Canon:CanonFlashMode,Red-eye reduction (Auto)
+database,-Canon:TargetExposureTime,1/60
+database,-Canon:MaxAperture,2.9
+database,-Canon:Sharpness,0
+database,-Canon:RecordMode,JPEG
+database,-IFD1:ResolutionUnit,inches
+database,-Canon:FocusDistanceUpper,1.31 m
+database,-Canon:BulbDuration,0
+database,-ExifIFD:ComponentsConfiguration,"Y, Cb, Cr, -"
+database,-Canon:ValidAFPoints,9
+database,-File:YCbCrSubSampling,YCbCr4:2:2 (2 1)
+database,-ExifIFD:SceneCaptureType,Standard
+database,-Canon:AutoRotate,None
+database,-Canon:FocusDistanceLower,0 m
+database,-Canon:FocusMode,Single
+database,-Canon:AFImageHeight,284
+database,-Canon:FlashGuideNumber,3.125
+database,-Canon:NumAFPoints,9
+database,-File:EncodingProcess,"Baseline DCT, Huffman coding"
+database,-Canon:DateStampMode,Off
+compute,-ExifIFD:ExifImageHeight,1704
+database,-Canon:ContinuousDrive,Single
+database,-InteropIFD:RelatedImageHeight,1704
+database,-Canon:OwnerName,
+database,-InteropIFD:InteropIndex,R98 - DCF basic file (sRGB)
+database,-Canon:OpticalZoomCode,0
+database,-IFD1:ThumbnailLength,5078
+database,-Canon:AFImageWidth,2272
+database,-ExifIFD:MaxApertureValue,2.8
+database,-ExifIFD:Flash,"Auto, Fired, Red-eye reduction"
+database,-Canon:Quality,Superfine
+database,-IFD1:XResolution,180
+database,-Canon:AutoExposureBracketing,Off
+database,-ExifIFD:FocalLength,5.4 mm
+database,-IFD0:YResolution,180
+database,-File:ColorComponents,3
+database,-Canon:ThumbnailImageValidArea,0 0 0 0
+database,-Canon:LensType,n/a
+database,-InteropIFD:InteropVersion,0100
+database,-Canon:MacroMode,Normal
+database,-Canon:AFAreaWidth,409
+database,-ExifIFD:ShutterSpeedValue,1/60
+database,-Canon:CanonImageSize,Large
+database,-ExifIFD:ExposureCompensation,0
+database,-IFD1:Compression,JPEG (old-style)
+database,-ExifIFD:FocalPlaneResolutionUnit,inches

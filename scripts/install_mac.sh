@@ -9,13 +9,44 @@ else
 fi
 
 VERSION=$((python --version) 2>&1)
-check=".*2.7.1[123].*"
+check=".*2.7.1[234].*"
 if [[ $VERSION =~ $check ]]
 then
    echo "Python version $VERSION"
 else
-   echo "Unexpected python version $VERSION"
+   echo "Unexpected python version $VERSION. Installing upgrade."
+   brew install readline sqlite gdbm
+   brew install python
+fi
+
+VERSION=$((python --version) 2>&1)
+check=".*2.7.1[234].*"
+if [[ ! $VERSION =~ $check ]]
+then
+   echo "Uncorrected python version $VERSION.  Check for an older python in your search PATH.  Mac OS places an older python in /usr/bin."
    exit 1
+fi
+
+piploc=`which pip`
+pythonloc=`which python`
+if [ "${piploc%/*/*}" != "${pythonloc%/*/*}" ]
+then
+  echo "pip does match the installed python"
+  exit 1
+fi
+
+easyloc=`which easy_install`
+if [ "${easyloc%/*/*}" != "${pythonloc%/*/*}" ]
+then
+  echo "easy_install does match the installed python. Trying to correct."
+  pip install --upgrade setuptools pip
+fi
+
+easyloc=`which easy_install`
+if [ "${easyloc%/*/*}" != "${pythonloc%/*/*}" ]
+then
+  echo "easy_install does match the installed python"
+  exit 1
 fi
 
 which cc
@@ -63,7 +94,7 @@ git -C "$(brew --repo homebrew/core)" fetch --unshallow
 brew unlink ffmpeg
 git checkout e1b6557c45bdbf85060f35c3ed8e34e3d1b0248 Formula/ffmpeg.rb 
 brew install ffmpeg --with-fdk-aac --with-sdl2 --with-freetype --with-libass --with-libvorbis --with-libvpx --with-opus --with-x265 --with-xvid --with-openh264
-brew install opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test
+brew install opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --with-contrib
 brew install hdf5
 
 wget http://www.sno.phy.queensu.ca/~phil/exiftool/ExifTool-10.50.dmg

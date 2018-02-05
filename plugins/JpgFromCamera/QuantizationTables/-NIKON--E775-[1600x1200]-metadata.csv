@@ -1,0 +1,66 @@
+source,-IFD0:ModifyDate,0000:00:00 00:00:00
+database,-IFD0:Model,E775
+database,-ExifIFD:LightSource,Unknown
+database,-File:ColorComponents,3
+database,-ExifIFD:SceneType,Directly photographed
+database,-Nikon:MakerNoteVersion,1.00
+database,-ExifIFD:MeteringMode,Multi-segment
+database,-Nikon:AFAreaMode,Single Area
+database,-PrintIM:PrintIMVersion,0100
+database,-Nikon:Quality,Normal
+database,-ExifIFD:ExifVersion,0210
+compute,-ExifIFD:ExifImageHeight,1200
+database,-IFD0:Orientation,Horizontal (normal)
+database,-ExifIFD:ExposureProgram,Program AE
+database,-File:EncodingProcess,"Baseline DCT, Huffman coding"
+source,-ExifIFD:CreateDate,0000:00:00 00:00:00
+database,-Nikon:SceneMode,
+database,-InteropIFD:InteropIndex,R98 - DCF basic file (sRGB)
+database,-Nikon:ManualFocusDistance,undef
+database,-IFD1:YResolution,300
+database,-Nikon:AFPoint,Center
+database,-File:ImageHeight,1200
+database,-IFD1:ThumbnailLength,3752
+database,-ExifIFD:MaxApertureValue,3.4
+database,-Nikon:Sharpness,Auto
+database,-File:ImageWidth,1600
+compute,-ExifIFD:ExifImageWidth,1600
+database,-Nikon:DigitalZoom,1
+database,-Nikon:AuxiliaryLens,Off
+database,-ExifIFD:ColorSpace,sRGB
+database,-Nikon:FlashSetting,Red-Eye
+database,-Nikon:AFPointsInFocus,(none)
+database,-IFD0:Software,E775v1.4u
+database,-Nikon:ISOSelection,Auto
+database,-IFD1:XResolution,300
+database,-ExifIFD:FileSource,Digital Camera
+database,-IFD0:ResolutionUnit,inches
+database,-IFD0:YResolution,300
+database,-IFD1:ResolutionUnit,inches
+database,-IFD0:XResolution,300
+database,-ExifIFD:FocalLength,5.8 mm
+database,-ExifIFD:ExposureTime,1/377
+database,-Nikon:DataDump,"(Binary data 122 bytes, use -b option to extract)"
+database,-InteropIFD:InteropVersion,0100
+database,-Nikon:ColorMode,Color
+database,-File:ExifByteOrder,"Little-endian (Intel, II)"
+database,-ExifIFD:ISO,100
+database,-ExifIFD:FNumber,7.9
+database,-IFD0:ImageDescription,
+database,-ExifIFD:ExposureCompensation,0
+database,-ExifIFD:ComponentsConfiguration,"Y, Cb, Cr, -"
+database,-File:YCbCrSubSampling,YCbCr4:2:2 (2 1)
+database,-ExifIFD:Flash,No Flash
+database,-Nikon:ISO,0
+database,-IFD0:Make,NIKON
+database,-Nikon:FocusMode,AF-C
+database,-IFD1:Compression,JPEG (old-style)
+database,-Nikon:WhiteBalance,Auto
+database,-Nikon:ImageAdjustment,Normal
+database,-IFD1:ThumbnailOffset,2048
+source,-ExifIFD:DateTimeOriginal,0000:00:00 00:00:00
+database,-ExifIFD:FlashpixVersion,0100
+database,-IFD0:YCbCrPositioning,Co-sited
+database,-File:BitsPerSample,8
+database,-ExifIFD:CompressedBitsPerPixel,2
+database,-ExifIFD:UserComment,

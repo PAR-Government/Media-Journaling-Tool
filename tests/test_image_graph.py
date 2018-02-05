@@ -1,17 +1,21 @@
 from maskgen import image_graph
 import unittest
+from test_support import TestSupport
 
-class TestImageGraph(unittest.TestCase):
+class TestImageGraph(TestSupport):
 
    def test_filetype(self):
-      graph = image_graph.createGraph('images/sample.json','image')
+      graph = image_graph.createGraph(self.locateFile('images/sample.json'),'image')
       self.assertTrue('hat' in graph.get_nodes())
       self.assertTrue(graph.G.graph['idcount'] == graph.idc)
       self.assertTrue(graph.G.graph['projecttype'] == 'image')
-      #self.assertTrue(graph.G.graph['igversion'] == '0.1')
       self.assertTrue(graph.idc > 1)
-      graph = image_graph.createGraph('tests/video.json')
-      self.assertTrue(graph.G.graph['projecttype'] == 'video')
+
+   def test_subgraph(self):
+       initial = image_graph.createGraph(self.locateFile('images/sample.json'),'image')
+       graph = initial.subgraph(['sample','orig_input','input_mod_1'])
+       self.assertEqual(3,len(graph.get_nodes()))
+       self.assertEqual(2,len(graph.get_edges()))
 
    def test_build_graph(self):
         edgePaths = ['videomasks', 'videosegment']
@@ -27,7 +31,7 @@ class TestImageGraph(unittest.TestCase):
         self.assertEqual(result[0],'videomasks[0].videosegment')
 
    def test_attribute_replace(self):
-       graph = image_graph.createGraph('images/sample.json', 'image')
+       graph = image_graph.createGraph(self.locateFile('images/sample.json'), 'image')
        id1=  graph.add_node('foo.jpg',xxx=1)
        id2 = graph.add_node('bar.jpg', xxx=1)
        graph.setDataItem('xxx',1)

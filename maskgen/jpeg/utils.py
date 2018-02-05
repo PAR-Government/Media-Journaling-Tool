@@ -5,15 +5,17 @@ from bitstring import BitArray
 from maskgen import exif
 from PIL import Image
 import numpy as np
+import logging
 
 def check_rotate(im, jpg_file_name):
-    return Image.fromarray(exif.rotateAccordingToExif(np.asarray(im),exif.getOrientationFromExif(jpg_file_name)))
+    orientation = exif.getOrientationFromExif(jpg_file_name)
+    return Image.fromarray(exif.rotateAccordingToExif(np.asarray(im),orientation)), exif.rotateAnalysis(orientation)
 
 def read_tables(imageTableFile, prevTableFile=None, thumbTableFile=None):
     try:
         imageTableData = open(imageTableFile)
-    except IOError:
-        print 'Invalid quantization tables.'
+    except IOError as e:
+        logging.getLogger('maskgen').warn('Invalid quantization tables from file {} : {}.'.format(imageTableFile,str(e)))
         return
 
     lineCount = 0
@@ -26,7 +28,8 @@ def read_tables(imageTableFile, prevTableFile=None, thumbTableFile=None):
         else:
             imageTable[1].extend(map(int, line))
     if len(imageTable[0]) != 64 or len(imageTable[1]) != 64:
-        print 'Invalid quantization tables.'
+        logging.getLogger('maskgen').warn(
+            'Invalid quantization tables from file {} : table size is 64.'.format(imageTableFile))
         return
 
     if thumbTableFile:

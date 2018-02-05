@@ -9,7 +9,6 @@ from software_loader import Software, getProjectProperties, ProjectProperty, Mas
 import tempfile
 import plugins
 import graph_rules
-from graph_rules import Probe, ColorCompositeBuilder
 from image_wrap import ImageWrapper
 from PIL import Image
 from group_filter import  buildFilterOperation, GroupFilter, GroupOperationsLoader
@@ -19,9 +18,10 @@ import shutil
 import collections
 from threading import Lock
 import mask_rules
+from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
-
+import traceback
 
 def formatStat(val):
     if type(val) == float:
@@ -125,7 +125,7 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
     if not existingProject:
         image = projectFile
         if name is None:
-            projectFile = projectFile[0:projectFile.rfind(".")] + ".json"
+            projectFile = os.path.splitext(projectFile)[0] + ".json"
         else:
             projectFile = os.path.abspath(os.path.join(path, name + ".json"))
     model = projectModelFactory(projectFile, notify=notify, baseImageFileName=image)
@@ -248,7 +248,7 @@ class Modification:
     # errors
     errors = list()
     # generate mask
-    generateMask = True
+    generateMask = "all"
     username = ''
     ctime = ''
     start = ''
@@ -270,7 +270,7 @@ class Modification:
                  errors=list(),
                  semanticGroups=None,
                  category=None,
-                 generateMask=False):
+                 generateMask="all"):
         self.start = start
         self.end = end
         self.additionalInfo = additionalInfo
@@ -333,7 +333,7 @@ class Modification:
     def setOperationName(self, name):
         self.operationName = name
 
-    def setFromOperation(self,op):
+    def setFromOperation(self,op,filetype='image'):
         """
         :param op:
         :return:
@@ -341,7 +341,7 @@ class Modification:
         """
         self.category = op.category
         self.generateMask = op.generateMask
-        self.recordMaskInComposite = op.recordMaskInComposite()
+        self.recordMaskInComposite = op.recordMaskInComposite(filetype)
 
 
 
@@ -410,8 +410,14 @@ class ImageImageLinkTool(LinkTool):
         if edge is not None:
             operation = scModel.gopLoader.getOperationWithGroups(edge['op'] if edge is not None else 'NA', fake=True)
             compareFunction = operation.getCompareFunction()
-        mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
+        mask, analysis, error = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=compareFunction)
+        if error is not None:
+            logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                edge['op'] if edge is not None else 'NA',
+                start,
+                end
+            ))
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -444,9 +450,9 @@ class ImageImageLinkTool(LinkTool):
                     edge_op = scModel.gopLoader.getOperationWithGroups(pred_edge['op'])
                     expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
                     if expect_donor_mask:
-                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')[0]
+                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')
                         if mask is None:
-                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')[0]
+                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')
                         mask, analysis = interpolateMask(
                             mask, startIm, destIm,
                             arguments=consolidate(arguments, analysis_params), invert=invert)
@@ -460,7 +466,7 @@ class ImageImageLinkTool(LinkTool):
                     edge = scModel.G.get_edge(pred, start)
                     # probably should change this to == 'SelectRegion'
                     if edge['op'] == 'SelectRegion':
-                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname')[0])
+                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname'))
                         if mask.size != startIm.size:
                             mask = mask.resize(startIm.size, Image.ANTIALIAS)
                         break
@@ -471,12 +477,21 @@ class ImageImageLinkTool(LinkTool):
                 analysis = {}
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
+                analysis = {}
         else:
-            mask, analysis = createMask(startIm, destIm,
+            mask, analysis, error = createMask(startIm,
+                                        destIm,
                                         invert=invert,
                                         arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction(),
                                         convertFunction=operation.getConvertFunction())
+            if error is not None:
+                errors.append(error)
+                logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                    op,
+                    start,
+                    destination
+                ))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -502,8 +517,14 @@ class VideoImageLinkTool(ImageImageLinkTool):
         im2, destFileName = scModel.getImageAndName(end)
         edge = scModel.G.get_edge(start, end)
         operation = scModel.gopLoader.getOperationWithGroups(edge['op'])
-        mask, analysis = createMask(im1, im2, invert=False, arguments=arguments,
+        mask, analysis,error = createMask(im1, im2, invert=False, arguments=arguments,
                                     alternativeFunction=operation.getCompareFunction())
+        if error is not None:
+            logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                edge['op'] if edge is not None else 'NA',
+                start,
+                end
+            ))
         return im1, im2, mask, analysis
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -514,13 +535,22 @@ class VideoImageLinkTool(ImageImageLinkTool):
         destIm, destFileName = scModel.getImageAndName(destination)
         errors = list()
         operation = scModel.gopLoader.getOperationWithGroups(op)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         if op == 'Donor':
             errors = [
                 "An video cannot directly donate to an image.  First select a frame using an appropriate operation."]
             analysis = {}
         else:
-            mask, analysis = createMask(startIm, destIm, invert=invert, arguments=arguments,
+            mask, analysis,error = createMask(startIm, destIm, invert=invert, arguments=arguments,
                                         alternativeFunction=operation.getCompareFunction())
+            if error is not None:
+                errors.append(error)
+                logging.getLogger('maskgen').warn('Failed mask generation for operation {} between {} and {}'.format(
+                    op,
+                    start,
+                    destination
+                ))
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
@@ -602,7 +632,7 @@ class VideoVideoLinkTool(LinkTool):
         mask, analysis = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
-        if op != 'Donor' and not operation.generateMask:
+        if op != 'Donor' and operation.generateMask != "all":
             maskSet = list()
             errors = list()
         elif op == 'Donor':
@@ -618,7 +648,7 @@ class VideoVideoLinkTool(LinkTool):
                                                        endSegment=getMilliSecondsAndFrameCount(arguments[
                                                                                                    'End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
-                                                       alternateFunction=operation.getCompareFunction(),
+                                                       alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
         # for now, just save the first mask
         if len(maskSet) > 0 and 'mask' in maskSet[0]:
@@ -627,7 +657,8 @@ class VideoVideoLinkTool(LinkTool):
                 item.pop('mask')
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
-        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
+        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName,
+                                                    frames=operation.generateMask in ["all", "frames"])
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         analysis['shape change'] = sizeDiff(startIm, destIm)
@@ -683,7 +714,7 @@ class AudioVideoLinkTool(LinkTool):
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         errors = []
 
-        if op != 'Donor' and operation.generateMask:
+        if op != 'Donor' and operation.generateMask == 'all':
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
@@ -692,7 +723,7 @@ class AudioVideoLinkTool(LinkTool):
                                                        endSegment=getMilliSecondsAndFrameCount(arguments[
                                                                                                    'End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
-                                                       alternateFunction=operation.getCompareFunction(),
+                                                       alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
 
             analysis['masks count'] = len(maskSet)
@@ -789,6 +820,40 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         return mask, analysis, errors
 
 
+class ImageZipAudioLinkTool(VideoAudioLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoAudioLinkTool.__init__(self)
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        startIm, startFileName = scModel.getImageAndName(start)
+        #destIm, destFileName = scModel.getImageAndName(destination)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
+        return mask, analysis, []
+
+
+class ImageZipVideoLinkTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        startIm, startFileName = scModel.getImageAndName(start)
+        #destIm, destFileName = scModel.getImageAndName(destination)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
+        return mask, analysis, []
+
+
 class AddTool:
     def getAdditionalMetaData(self, media):
         return {}
@@ -796,19 +861,32 @@ class AddTool:
 
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
-        return video_tools.getMeta(media)[0]
+        meta = video_tools.getMeta(media,show_streams=True)[0]
+        if (type(meta)) == list and len(meta) > 0:
+            meta = meta[0]
+        meta['shape'] = video_tools.getShape(media)
+        return meta
 
+class ZipAddTool(AddTool):
+    def getAdditionalMetaData(self, media):
+        from zipfile import ZipFile
+        meta = {}
+        with ZipFile(media, 'r') as myzip:
+            names = myzip.namelist()
+            meta['length'] = len(names)
+        return meta
 
 class OtherAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         return {}
 
 
-addTools = {'video': VideoAddTool(), 'audio': OtherAddTool(), 'image': OtherAddTool()}
+addTools = {'video': VideoAddTool(), 'zip':ZipAddTool(),'audio': OtherAddTool(), 'image': OtherAddTool()}
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
-             'audio.audio': AudioAudioLinkTool()}
+             'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
+             'zip.audio': ImageZipAudioLinkTool()}
 
 
 class ImageProjectModel:
@@ -874,19 +952,25 @@ class ImageProjectModel:
                              not filename.endswith('_mask' + suffix) and \
                              not filename.endswith('_proxy' + suffix)])
         totalSet = sorted(totalSet, key=sortalg)
+        added = 0
         for filename in totalSet:
-            pathname = os.path.abspath(os.path.join(dir, filename))
-            additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
-            nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
-            ypos += 50
-            if ypos == 450:
-                ypos = initialYpos
-                xpos += 50
-            if filename == baseImageFileName:
-                self.start = nname
-                self.end = None
-        if self.notify is not None:
+            try:
+                pathname = os.path.abspath(os.path.join(dir, filename))
+                additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+                nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
+                ypos += 50
+                if ypos == 450:
+                    ypos = initialYpos
+                    xpos += 50
+                added=True
+                if filename == baseImageFileName:
+                    self.start = nname
+                    self.end = None
+            except Exception as ex:
+                logging.getLogger('maskgen').warn('Failed to add media file {}'.format(filename))
+        if added and self.notify is not None:
             self.notify((self.start, None), 'add')
+
 
     def addImage(self, pathname, cgi=False):
         maxx = max(
@@ -929,6 +1013,8 @@ class ImageProjectModel:
         :return:
         @type mod: Modification
         """
+        mod_old = self.getModificationForEdge(self.start, self.end, self.G.get_edge(self.start, self.end))
+
         self.G.update_edge(self.start, self.end,
                            op=mod.operationName,
                            description=mod.additionalInfo,
@@ -1074,108 +1160,41 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def getProbeSetWithoutComposites(self, otherCondition=None):
+    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True, graph=None, constructDonors=True):
         """
-         Calls constructDonors()
-        :param skipComputation: If True, will skip computation of masks where possible
-        :param otherCondition: filter out edges to not include in the probe set
+        :param inclusionFunction: filter out edges to not include in the probe set
+        :param saveTargets: save the result images as files
         :return: The set of probes
         @rtype: list of Probe
         """
         self._executeSkippedComparisons()
-        donors = self.constructDonors()
         probes = list()
-        for edge_id in self.G.get_edges():
-            edge = self.G.get_edge(edge_id[0], edge_id[1])
-            if edge['recordMaskInComposite'] == 'yes' or (otherCondition is not None and otherCondition(edge)):
-                baseNodeIdsAndLevels = self._findBaseNodesWithCycleDetection(edge_id[0])
-                baseNodeId, level, path = baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels) > 0 else (None, None)
-                edgeMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
-                # build composite
-                selectMasks = self._getUnresolvedSelectMasksForEdge(edge)
-                composite = edgeMask.invert().to_array()
-                composite = mask_rules.alterComposite(edge,
-                                                      self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                                                      edge_id[0],
-                                                      edge_id[1],
-                                                      composite, edgeMask.to_array(),
-                                                      self.get_dir(),
-                                                      graph=self.G,
-                                                      top=True)
-                for target_mask, finalNodeId in self._constructTransformedMask((edge_id[0], edge_id[1]), composite):
-                    target_mask = target_mask.invert()
-                    if finalNodeId in selectMasks:
-                        try:
-                            tm = openImageFile(os.path.join(self.get_dir(), selectMasks[finalNodeId]), isMask=True)
-                            target_mask = tm
-                        except Exception as e:
-                            logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
-                    target_mask_filename = os.path.join(self.get_dir(),
-                                                        shortenName(edge_id[0] + '_' + edge_id[1] + '_' + finalNodeId,
-                                                                    '_ps.png',id=self.G.nextId()))
-                    target_mask.save(target_mask_filename, format='PNG')
-                    self._add_final_node_with_donors(probes, edge_id, finalNodeId, baseNodeId, target_mask,
-                                                     target_mask_filename, edge_id[1], level, donors)
+        useGraph = graph if graph is not None else self.G
+        for edge_id in useGraph.get_edges():
+            edge = useGraph.get_edge(edge_id[0], edge_id[1])
+            if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
+                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader)
+                probes.extend(composite_generator.constructProbes(saveTargets=saveTargets,
+                                                                  inclusionFunction=inclusionFunction,
+                                                                  constructDonors=constructDonors))
         return probes
 
-    def _to_color_target_name(self, name):
-        return name[0:name.rfind('.png')] + '_c.png'
-
-    def _add_final_node_with_donors(self,
-                                    probes,
-                                    edge_id,
-                                    finalNodeId,
-                                    baseNodeId,
-                                    target_mask,
-                                    target_mask_filename,
-                                    end_node,
-                                    level,
-                                    donors):
-
-        donormasks = [donor for donor in donors if donor[0] == end_node]
-        if len(donormasks) > 0:
-            for image_node, donorbase, donor_mask_image, donor_mask_file_name in donormasks:
-                probes.append(Probe(edge_id,
-                                    finalNodeId,
-                                    baseNodeId,
-                                    target_mask,
-                                    os.path.join(self.G.dir, target_mask_filename),
-                                    sizeOfChange(np.asarray(target_mask).astype('uint8')),
-                                    donorbase,
-                                    donor_mask_image,
-                                    os.path.join(self.G.dir, donor_mask_file_name),
-                                    level=level))
-        else:
-            probes.append(Probe(edge_id,
-                                finalNodeId,
-                                baseNodeId,
-                                target_mask,
-                                os.path.join(self.G.dir, target_mask_filename),
-                                sizeOfChange(np.asarray(target_mask).astype('uint8')),
-                                None,
-                                None,
-                                None,
-                                level=level))
-
-    def getProbeSet(self, operationTypes=None, otherCondition=None, compositeBuilders=[ColorCompositeBuilder]):
+    def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,
+                    compositeBuilders=[ColorCompositeBuilder],
+                    graph=None,
+                    replacement_probes=None):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
-        :param operationTypes:  list of operation names to include in probes, otherwise all
-        :param otherCondition: a function returning True/False that takes an edge as argument
+        :param inclusionFunction: a function returning True/False that takes an edge as argument
         :return: list if Probe
         @type operationTypes: list of str
-        @type otherCondition: (dict) -> bool
+        @type inclusionFunction: (tuple, dict) -> bool
         @rtype: list of Probe
         """
-        """
-
-        Builds composites
-        :otherCondition
-
-        """
-        self._executeSkippedComparisons()
-        probes = self.getProbeSetWithoutComposites(otherCondition=otherCondition)
+        self.assignColors()
+        probes = replacement_probes if replacement_probes is not None else \
+            self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction, saveTargets=saveTargets,graph=graph)
         probes = sorted(probes, key=lambda probe: probe.level)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
         for compositeBuilder in localCompositeBuilders:
@@ -1184,37 +1203,15 @@ class ImageProjectModel:
         composite_bases = dict()
         for passcount in range(maxpass):
             for probe in probes:
+                if probe.targetMaskImage is None:
+                    continue
                 composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
-                if (operationTypes is not None and edge['op'] not in operationTypes) or \
-                        (otherCondition is not None and not otherCondition(edge)):
-                    continue
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
         for compositeBuilder in localCompositeBuilders:
             compositeBuilder.finalize(probes)
         return probes
-
-    def _saveCompositeToFile(self, image, fname):
-        try:
-            image.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
-        except IOError:
-            compositeMask = convertToMask(image)
-            compositeMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
-
-    def _saveDonorToFile(self, recipientNode, baseNode, mask):
-        """
-        Add mask to interim node and save mask to disk that has a input mask or
-        a donor link
-        """
-        if self.G.has_node(recipientNode):
-            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png',id=self.G.nextId())
-            try:
-                mask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
-            except IOError:
-                donorMask = convertToMask(mask)
-                donorMask.save(os.path.abspath(os.path.join(self.get_dir(), fname)))
-        return fname
 
     def getPredecessorNode(self):
         if self.end is None:
@@ -1241,116 +1238,26 @@ class ImageProjectModel:
         for x in endPointTuples:
             if nodeName == x[0][1]:
                 baseImage, _ = self.G.get_image(x[1])
-                donors = self.constructDonors(nodeOfInterest=nodeName)
-                for target, base, mask_wrapper, mask_file_name in donors:
-                    if base == x[1]:
-                        return mask_wrapper, baseImage
+                donors = self.constructDonors()
+                for donortuple in donors:
+                    if donortuple.base == x[1]:
+                        if donortuple.media_type == 'video':
+                            return getSingleFrameFromMask(donortuple.mask_wrapper), baseImage
+                        elif donortuple.media_type == 'audio':
+                            return None, None
+                        else:
+                            return donortuple.mask_wrapper, baseImage
         return None, None
-
-    def _constructComposites(self, nodeAndMasks, stopAtNode=None, colorMap=dict(), level=IntObject(),
-                             operationTypes=None):
-        """
-            Walks up down the tree from base nodes, assemblying composite masks
-        :param nodeAndMasks:
-        :param stopAtNode: the id of the node to stop inspection
-        :param edgeMap:
-        :param level:
-        :param operationTypes:  restrict operations to include
-        :return:
-        @type edgeMap: dict of (str,str):(int,[])
-        @type nodeAndMasks: (str,str, np.array)
-        @type stopAtNode: str
-        @type level: IntObject
-        @type operationTypes: list of str
-        """
-        result = list()
-        finished = list()
-        for nodeAndMask in nodeAndMasks:
-            if nodeAndMask[1] == stopAtNode:
-                return [nodeAndMask]
-            successors = self.G.successors(nodeAndMask[1])
-            if len(successors) == 0:
-                finished.append(nodeAndMask)
-                continue
-            for suc in self.G.successors(nodeAndMask[1]):
-                edge = self.G.get_edge(nodeAndMask[1], suc)
-                if edge['op'] == 'Donor':
-                    continue
-                compositeMask = self._extendComposite(nodeAndMask[2],
-                                                      edge,
-                                                      nodeAndMask[1],
-                                                      suc,
-                                                      level=level,
-                                                      colorMap=colorMap,
-                                                      operationTypes=operationTypes)
-                result.append((nodeAndMask[0], suc, compositeMask))
-        if len(result) == 0:
-            return nodeAndMasks
-        finished.extend(self._constructComposites(result,
-                                                  stopAtNode=stopAtNode,
-                                                  level=level,
-                                                  colorMap=colorMap,
-                                                  operationTypes=operationTypes))
-        return finished
-
-    def _constructTransformedMask(self, edge_id, mask):
-        """
-        walks up down the tree from base nodes, assemblying composite masks
-        return: list of tuples (transformed mask, final image id)
-        @rtype:  list of (ImageWrapper,str))
-        """
-        results = []
-        successors = self.G.successors(edge_id[1])
-        for successor in successors:
-            source = edge_id[1]
-            target = successor
-            edge = self.G.get_edge(source, target)
-            if edge['op'] == 'Donor':
-                continue
-            edgeMask = self.G.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)[0]
-            if edgeMask is None:
-                raise ValueError('Missing edge mask from ' + source + ' to ' + target)
-            edgeMask = edgeMask.to_array()
-            newMask = mask_rules.alterComposite(edge,
-                                                self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                                                source, target, mask, edgeMask, self.get_dir(), graph=self.G)
-            results.extend(self._constructTransformedMask((source, target), newMask))
-        return results if len(successors) > 0 else [(ImageWrapper(np.copy(mask)), edge_id[1])]
-
-    def _constructDonor(self, node, mask):
-        """
-          Walks up  the tree assembling donor masks"
-        """
-        result = []
-        preds = self.G.predecessors(node)
-        if len(preds) == 0:
-            return [(node, mask)]
-        pred_edges = [self.G.get_edge(pred, node) for pred in preds]
-        for pred in preds:
-            edge = self.G.get_edge(pred, node)
-            donorMask = mask_rules.alterDonor(mask,
-                                              self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                                              pred,
-                                              node,
-                                              edge,
-                                              self.G.get_edge_image(pred, node, 'maskname', returnNoneOnMissing=True)[
-                                                  0],
-                                              directory=self.get_dir(),
-                                              pred_edges=[p for p in pred_edges if p != edge],
-                                              graph=self.G)
-            result.extend(self._constructDonor(pred, donorMask))
-        return result
 
     def getTransformedMask(self):
         """
         :return: list a mask transfomed to all final image nodes
         """
-        selectMask = self.G.get_edge_image(self.start, self.end, 'maskname')[0]
-        return self._constructTransformedMask((self.start, self.end), selectMask.to_array())
+        composite_generator = mask_rules.prepareComposite((self.start, self.end),self.G, self.gopLoader)
+        return composite_generator.constructComposites()
 
-    def extendCompositeByOne(self, compositeMask, level=None, replacementEdgeMask=None, colorMap={}, override_args={}):
+    def extendCompositeByOne(self, probes, start=None, override_args={}):
         """
-
         :param compositeMask:
         :param level:
         :param replacementEdgeMask:
@@ -1362,54 +1269,30 @@ class ImageProjectModel:
         @type replacementEdgeMask: ImageWrapper
         @rtype ImageWrapper
         """
-        edge = self.G.get_edge(self.start, self.end)
-        if len(override_args) > 0 and edge is not None:
-            edge = copy.deepcopy(edge)
-            dictDeepUpdate(edge, override_args)
-        else:
-            edge = override_args
-        level = IntObject() if level is None else level
-        compositeMask = self._extendComposite(compositeMask, edge, self.start, self.end,
-                                              level=level,
-                                              replacementEdgeMask=replacementEdgeMask,
-                                              colorMap=colorMap)
+        results = mask_rules.findBaseNodesWithCycleDetection(self.G, start if start is not None else \
+            (self.end if self.end is not None else self.start))
+        if len(results) == 0:
+            return
+        nodeids = results[0][2]
+        graph = self.G.subgraph(nodeids)
+        composite_generator = mask_rules.prepareComposite((self.start,self.end), graph, self.gopLoader)
+        probes = composite_generator.extendByOne(probes,self.start,self.end,override_args=override_args)
+        return self.getProbeSet(replacement_probes=probes)
 
-        return ImageWrapper(toColor(compositeMask, intensity_map=colorMap))
-
-    def constructCompositeForNode(self, selectedNode, level=IntObject(), colorMap=dict()):
+    def constructPathProbes(self, start=None):
         """
          Construct the composite mask for the selected node.
          Does not save the composite in the node.
          Returns the composite mask if successful, otherwise None
         """
-        self._executeSkippedComparisons()
-        baseNodes = self._findBaseNodes(selectedNode)
-        if len(baseNodes) > 0:
-            baseNode = baseNodes[0]
-            composites = self._constructComposites([(baseNode, baseNode, None)],
-                                                   colorMap=colorMap,
-                                                   stopAtNode=selectedNode,
-                                                   level=level)
-            for composite in composites:
-                if composite[1] == selectedNode and composite[2] is not None:
-                    return composite[2]
-        return None
-
-    def constructComposite(self):
-        """
-         Construct the composite mask for the selected node.
-         Does not save the composite in the node.
-         Returns the composite mask if successful, otherwise None
-        """
-        colorMap = dict()
-        level = IntObject()
-        composite = \
-            self.constructCompositeForNode(self.end if self.end is not None else self.start,
-                                           level=level,
-                                           colorMap=colorMap)
-        if composite is not None:
-            return ImageWrapper(toColor(composite, intensity_map=colorMap))
-        return None
+        results = mask_rules.findBaseNodesWithCycleDetection(self.G, start if start is not None else \
+            (self.end if self.end is not None else self.start))
+        if len(results) == 0:
+            return
+        nodeids = results[0][2]
+        graph = self.G.subgraph(nodeids)
+        probes = self.getProbeSet(graph=graph,saveTargets=False)
+        return probes
 
     def executeFinalNodeRules(self):
         terminalNodes = [node for node in self.G.get_nodes() if
@@ -1417,82 +1300,22 @@ class ImageProjectModel:
         for node in terminalNodes:
             graph_rules.setFinalNodeProperties(self, node)
 
-    def constructCompositesAndDonors(self):
-        """
-          Remove all prior constructed composites.
-          Find all valid base node, leaf node tuples.
-          Construct the composite make along the paths from base to lead node.
-          Save the composite in the associated leaf nodes.
-        """
-        self._executeSkippedComparisons()
-        donors = self.constructDonors()
-        composites = list()
-        level = IntObject()
-        colorMap = dict()
-        endPointTuples = self.getTerminalAndBaseNodeTuples()
-        for baseNode in set([endPointTuple[1][0] for endPointTuple in endPointTuples]):
-            composites.extend(self._constructComposites([(baseNode, baseNode, None)], colorMap=colorMap, level=level))
-        changes = []
-        for composite in composites:
-            color_composite = toColor(composite[2], intensity_map=colorMap)
-            globalchange, changeCategory, ratio = maskChangeAnalysis(toComposite(composite[2]),
-                                                                     globalAnalysis=True)
-            changes.append((globalchange, changeCategory, ratio))
-            self._saveCompositeToFile(ImageWrapper(color_composite), composite[1] + '_composite_mask.png')
-        return composites, donors
-
-    def constructDonors(self, nodeOfInterest=None):
+    def constructDonors(self):
 
         """
           Construct donor images
           Find all valid base node, leaf node tuples
           :return computed donors in the form of tuples
           (image node id donated to, base image node, ImageWrapper mask, filename)
-          @rtype list of (str,str,ImageWapper,str)
+          @rtype list of DonorImage
         """
         self._executeSkippedComparisons()
-        donors = list()
         for edge_id in self.G.get_edges():
-            if nodeOfInterest is not None and nodeOfInterest != edge_id[1]:
+            if self.start is not None and self.start != edge_id[1]:
                 continue
-            edge = self.G.get_edge(edge_id[0], edge_id[1])
-            startMask = None
-            if edge['op'] == 'Donor':
-                startMask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)[0]
-                if startMask is None:
-                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
-            elif 'inputmaskname' in edge and \
-                            edge['inputmaskname'] is not None and \
-                            len(edge['inputmaskname']) > 0 and \
-                            edge['recordMaskInComposite'] == 'yes':
-                fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
-
-                if not os.path.exists(fullpath):
-                    raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
-                # invert because these masks are white=Keep(unchanged), Black=Remove (changed)
-                # we want to capture the 'unchanged' part, where as the other type we capture the changed part
-                startMask = self.G.openImage(fullpath, mask=False).to_mask().invert()
-                if startMask is None:
-                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
-            if startMask is not None:
-                startMask = startMask.invert().to_array()
-                donorsToNodes = {}
-                donor_masks = self._constructDonor(edge_id[0], np.asarray(startMask))
-                for donor_mask_tuple in donor_masks:
-                    donor_mask = donor_mask_tuple[1].astype('uint8')
-                    if sum(sum(donor_mask > 1)) == 0:
-                        continue
-                    baseNode = donor_mask_tuple[0]
-                    if baseNode in donorsToNodes:
-                        # same donor image, multiple paths to the image.
-                        donorsToNodes[baseNode][donor_mask > 1] = 255
-                    else:
-                        donorsToNodes[baseNode] = donor_mask.astype('uint8')
-                for baseNode, donor_mask in donorsToNodes.iteritems():
-                    wrapper = ImageWrapper(donor_mask).invert()
-                    fname = self._saveDonorToFile(edge_id[1], baseNode, wrapper)
-                    donors.append((edge_id[1], baseNode, wrapper, fname))
-        return donors
+            composite_generator = mask_rules.prepareComposite(edge_id, self.G, self.gopLoader)
+            return composite_generator.constructDonors(saveImage=False)
+        return []
 
     def fixInputMasks(self):
         """
@@ -1504,8 +1327,8 @@ class ImageProjectModel:
             if graph_rules.missing_donor_inputmask(edge, self.G.dir):
                 startimage, name = self.G.get_image(edge_id[0])
                 finalimage, fname = self.G.get_image(edge_id[1])
-                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')[0]
-                inputmaskname = name[0:name.rfind('.')] + '_inputmask.png'
+                mask = self.G.get_edge_image(edge_id[0], edge_id[1], 'maskname')
+                inputmaskname = os.path.splitext(name)[0]+ '_inputmask.png'
                 ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
                 #                if 'arguments' not in edge:
                 #                    edge['arguments'] = {}
@@ -1521,7 +1344,7 @@ class ImageProjectModel:
         for nodeid in self.G.get_nodes():
             node = self.G.get_node(nodeid)
             if 'nodetype' in node and node['nodetype'] == 'base':
-                self.getGraph().set_name(node['file'][0:node['file'].rfind('.')])
+                self.getGraph().set_name(os.path.splitext(node['file'])[0])
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
@@ -1708,27 +1531,28 @@ class ImageProjectModel:
                 arguments[k] = v
         except:
             pass
-        return self.getLinkTool(self.start, destination).compareImages(self.start, destination, self, opName,
+        return self.getLinkTool(start, destination).compareImages(start, destination, self, opName,
                                                                        arguments=arguments,
                                                                        skipDonorAnalysis=skipDonorAnalysis,
                                                                        invert=invert,
                                                                        analysis_params=analysis_params)
 
-    def reproduceMask(self, skipDonorAnalysis=False, analysis_params=dict()):
-        edge = self.G.get_edge(self.start, self.end)
+    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict()):
+        mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
+        edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
-        mask, analysis, errors = self._compareImages(self.start, self.end, edge['op'],
+        mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
                                                      arguments=arguments,
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
-        maskname = shortenName(self.start + '_' + self.end, '_mask.png', id=self.G.nextId())
-        self.G.update_mask(self.start, self.end, mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
+        maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', id=self.G.nextId())
+        self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
-                                                  (skip_data['start'], skip_data['end']) != (self.start, self.end)])
+                                                  (skip_data['start'], skip_data['end']) != mask_edge_id])
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
@@ -1748,6 +1572,9 @@ class ImageProjectModel:
             for k, v in analysis_params.iteritems():
                 if k not in analysis:
                     analysis[k] = v
+            if 'recordMaskInComposite' in mod.arguments:
+                mod.recordMaskInComposite = mod.arguments.pop('recordMaskInComposite')
+
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
             edgeErrors = [] if skipRules else graph_rules.run_rules(
@@ -1760,10 +1587,9 @@ class ImageProjectModel:
             msg = msg if len(msg) > 0 else None
             self.labelNodes(self.start)
             self.labelNodes(destination)
-            if mod.recordMaskInComposite:
-                self.assignColors()
             return msg, True
         except Exception as e:
+            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
             return 'Exception (' + str(e) + ')', False
 
     def __scan_args_callback(self, opName, arguments):
@@ -1904,9 +1730,11 @@ class ImageProjectModel:
 
     def startNew(self, imgpathname, suffixes=[], organization=None):
         """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
-        projectFile = imgpathname[0:imgpathname.rfind(".")] + ".json"
+        projectFile = os.path.splitext(imgpathname)[0] + ".json"
         projectType = fileType(imgpathname)
         self.G = self._openProject(projectFile, projectType)
+        # do it anyway
+        self._autocorrect()
         if organization is not None:
             self.G.setDataItem('organization', organization)
         self.start = None
@@ -1964,11 +1792,13 @@ class ImageProjectModel:
     def saveas(self, pathname):
         with self.lock:
             self.clear_validation_properties()
+            self.assignColors()
             self.G.saveas(pathname)
 
     def save(self):
         with self.lock:
             self.clear_validation_properties()
+            self.assignColors()
             self.G.save()
 
     def getEdgeItem(self, name, default=None):
@@ -2030,16 +1860,6 @@ class ImageProjectModel:
                 sms.append({'mask': v[0], 'node': k})
         self.G.update_edge(self.start, self.end, selectmasks=sms)
 
-    def _getUnresolvedSelectMasksForEdge(self, edge):
-        """
-             A selectMask is a mask the is used in composite mask production, overriding the default link mask
-        """
-        images = edge['selectmasks'] if 'selectmasks' in edge  else []
-        sms = {}
-        for image in images:
-            sms[image['node']] = image['mask']
-        return sms
-
     def getSelectMasks(self):
         """
         A selectMask is a mask the is used in composite mask production, overriding the default link mask
@@ -2071,7 +1891,7 @@ class ImageProjectModel:
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
-        return self.G.get_edge_image(self.start, self.end, 'maskname')[0]
+        return self.G.get_edge_image(self.start, self.end, 'maskname')
 
     def maskStats(self):
         if self.end is None:
@@ -2132,9 +1952,6 @@ class ImageProjectModel:
         :return:
         """
         self.G.setDataItem(item, value, excludeUpdate=excludeUpdate)
-
-    def get_edges(self):
-        return [self.G.get_edge(edge[0], edge[1]) for edge in self.G.get_edges()]
 
     def getVersion(self):
         """ Return the graph/software versio n"""
@@ -2211,11 +2028,20 @@ class ImageProjectModel:
     def assignColors(self):
         level = 1
         edgeMap = dict()
+        missingColors = 0
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
-            if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes':
-                edgeMap[edge_id] = (level, None)
-                level = level + 1
+            if edge['op'] == 'Donor':
+                continue
+            missingColors += 1 if 'linkcolor' not in edge else 0
+        if missingColors == 0:
+            return
+        for edge_id in self.G.get_edges():
+            edge = self.G.get_edge(edge_id[0], edge_id[1])
+            if edge['op'] == 'Donor':
+                continue
+            edgeMap[edge_id] = (level, None)
+            level = level + 1
         redistribute_intensity(edgeMap)
         for k, v in edgeMap.iteritems():
             self.G.get_edge(k[0], k[1])['linkcolor'] = str(list(v[1])).replace('[', '').replace(']', '').replace(
@@ -2239,8 +2065,7 @@ class ImageProjectModel:
             nodeData = self.G.get_node(node)
             if nodeData['nodetype'] in ['final']:
                 logging.getLogger('maskgen').info('Inspecting {}  for rename'.format(nodeData['file']))
-                suffix_pos = nodeData['file'].rfind('.')
-                suffix = nodeData['file'][suffix_pos:].lower()
+                suffix = os.path.splitext(nodeData['file'])[1].lower()
                 file_path_name = os.path.join(self.G.dir, nodeData['file'])
                 try:
                     new_file_name = md5offile(os.path.join(self.G.dir, nodeData['file'])) + suffix
@@ -2345,22 +2170,10 @@ class ImageProjectModel:
         return res
 
     def _findBaseNodes(self, node, excludeDonor=True):
-        return [item[0] for item in self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor)]
+        return [item[0] for item in mask_rules.findBaseNodesWithCycleDetection(self.G, node, excludeDonor=excludeDonor)]
 
     def _findBaseNodesAndPaths(self, node, excludeDonor=True):
-        return [(item[0], item[2]) for item in self._findBaseNodesWithCycleDetection(node, excludeDonor=excludeDonor)]
-
-    def _findBaseNodesWithCycleDetection(self, node, excludeDonor=True):
-        preds = self.G.predecessors(node)
-        res = [(node, 0, list())] if len(preds) == 0 else list()
-        for pred in preds:
-            if self.G.get_edge(pred, node)['op'] == 'Donor' and excludeDonor:
-                continue
-            for item in self._findBaseNodesWithCycleDetection(pred, excludeDonor=excludeDonor):
-                res.append((item[0], item[1] + 1, item[2]))
-        for item in res:
-            item[2].append(node)
-        return res
+        return [(item[0], item[2]) for item in mask_rules.findBaseNodesWithCycleDetection(self.G,node, excludeDonor=excludeDonor)]
 
     def isDonorEdge(self, start, end):
         edge = self.G.get_edge(start, end)
@@ -2399,17 +2212,25 @@ class ImageProjectModel:
         @type grp GroupFilter
         @type software Software
         """
+        import copy
         pairs_composite = []
         resultmsg = ''
+        kwargs_copy = copy.copy(kwargs)
         for filter in grp.filters:
             msg, pairs = self.imageFromPlugin(filter, software=software,
-                                              **kwargs)
+                                              **kwargs_copy)
             if msg is not None:
                 resultmsg += msg
+            if len(pairs) == 0:
+                break
+            mod = self.getModificationForEdge(self.start,self.end,self.G.get_edge(self.start,self.end))
+            for key,value in mod.arguments.iteritems():
+                if key in kwargs_copy:
+                    kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsg, pairs_composite
 
-    def imageFromPlugin(self, filter, software=None, **kwargs):
+    def imageFromPlugin(self, filter, software=None,**kwargs):
         """
           Create a new image from a plugin filter.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2428,10 +2249,11 @@ class ImageProjectModel:
           @type filename: str
           @rtype: list of (str, list (str,str))
         """
+
         im, filename = self.currentImage()
+        filetype= fileType(filename)
         op = plugins.getOperation(filter)
-        suffixPos = filename.rfind('.')
-        suffix = filename[suffixPos:].lower()
+        suffix = os.path.splitext(filename)[1].lower()
         preferred = plugins.getPreferredSuffix(filter)
         fullOp = buildFilterOperation(op)
         resolved, donors, graph_args = self._resolvePluginValues(kwargs, fullOp)
@@ -2443,12 +2265,15 @@ class ImageProjectModel:
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(self.start, suffix=suffix))
         shutil.copy2(filename, target)
         msg = None
-
         self.__addEdgeFilePaths(fullOp)
         try:
             extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
             msg = str(e)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+            logging.getLogger('maskgen').error(
+                'Plugin {} failed with {} given node {} for arguments {}'.format(filter, str(e),self.start, str(resolved)))
             extra_args = None
         if msg is not None:
             return self._pluginError(filter, msg), []
@@ -2457,6 +2282,9 @@ class ImageProjectModel:
             newtarget = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
             shutil.copy2(target, newtarget)
             target = newtarget
+        if extra_args is not None and 'override_target' in extra_args:
+            filename = extra_args.pop('override_target')
+            target = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
         if extra_args is not None and 'output_files' in extra_args:
             file_params = extra_args.pop('output_files')
             for name, value in file_params.iteritems():
@@ -2466,7 +2294,8 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'],
                                    category=opInfo.category,
                                    generateMask=opInfo.generateMask,
-                                   recordMaskInComposite=opInfo.recordMaskInComposite())
+                                   recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
+                                   'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
         skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
         if software is None:
@@ -2482,16 +2311,22 @@ class ImageProjectModel:
                     description.arguments[k] = v
         description.setSoftware(software)
         description.setAutomated('yes')
+        edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
+        if  'global operation' in kwargs:
+            edge_parameters['global operation'] = kwargs['global operation']
         msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
-                                         edge_parameters={'plugin_name': filter,'experiment_id': experiment_id},
+                                         edge_parameters=edge_parameters,
                                          node_parameters={
                                              'experiment_id': experiment_id} if experiment_id is not None else {})
         pairs = list()
+
         msg = '\n'.join([msg if msg else '',
                          warning_message if warning_message else '',
                          msg2 if msg2 else '']).strip()
+
+        os.remove(target)
         if status:
             pairs.append((self.start, self.end))
             for donor in donors:
@@ -2505,7 +2340,7 @@ class ImageProjectModel:
                 # really need to classify rules and skip certain categories
                 if 'donor' in msg:
                     msg = None
-        os.remove(target)
+
         return self._pluginError(filter, msg), pairs
 
     def _resolvePluginValues(self, args, operation):
@@ -2598,7 +2433,7 @@ class ImageProjectModel:
         return nfile, im
 
     def findEdgesByOperationName(self, opName):
-        return [edge for edge in self.get_edges()
+        return [edge for edge in [self.G.get_edge(edge[0], edge[1]) for edge in self.G.get_edges()]
                 if edge['op'] == opName]
 
     def export(self, location, include=[]):
@@ -2643,45 +2478,6 @@ class ImageProjectModel:
         return ((startNode['xpos'] if startNode.has_key('xpos') else 50) + augment[0],
                 (startNode['ypos'] if startNode.has_key('ypos') else 50) + augment[1])
 
-    def _extendComposite(self, compositeMask, edge, source, target,
-                         replacementEdgeMask=None,
-                         level=IntObject(),
-                         colorMap={},
-                         operationTypes=None):
-        """
-        Pulls the color from the compositescolor attribute of the edge
-        :param compositeMask:
-        :param edge:
-        :param source:
-        :param target:
-        :param level:
-        :param colorMap:
-        :param operationTypes:
-        :return:
-        """
-        if compositeMask is None:
-            imarray = self.G.get_image(source)[0].to_array()
-            compositeMask = np.zeros((imarray.shape[0], imarray.shape[1])).astype(('uint8'))
-        # merge masks first, the mask is the same size as the input image
-        # consider a cropped image.  The mask of the crop will have the change high-lighted in the border
-        # consider a rotate, the mask is either ignored or has NO change unless interpolation is used.
-        edgeMask = self.G.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)[
-            0] if target is not None else None
-        if edgeMask is not None:
-            edgeMask = edgeMask.to_array()
-        else:
-            edgeMask = replacementEdgeMask
-        if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' and \
-                (operationTypes is None or edge['op'] in operationTypes):
-            if edgeMask is None:
-                raise ValueError('Missing edge mask from ' + source + ' to ' + target)
-            compositeMask = mergeMask(compositeMask, edgeMask, level=level.increment())
-            color = [int(x) for x in edge['linkcolor'].split(' ')] if 'linkcolor' in edge else [0, 0, 0]
-            colorMap[level.value] = color
-        return mask_rules.alterComposite(edge,
-                                         self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                                         source, target, compositeMask, edgeMask, self.get_dir(),
-                                         level=level.value, graph=self.G)
 
     def getModificationForEdge(self, start, end, edge):
         """
@@ -2695,7 +2491,7 @@ class ImageProjectModel:
         """
         end_node = self.G.get_node(end)
         default_ctime = end_node['ctime'] if 'ctime' in end_node else None
-        op = self.gopLoader.getOperationWithGroups(edge['op'], warning=False)
+        op = self.gopLoader.getOperationWithGroups(edge['op'], warning=True,fake=True)
         return Modification(edge['op'],
                             edge['description'],
                             start=start,

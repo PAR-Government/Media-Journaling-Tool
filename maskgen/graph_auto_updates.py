@@ -1,7 +1,9 @@
-from image_graph import current_version,getPathValues
+from image_graph import current_version,getPathValues, getValue
 import tool_set
 import os
 import logging
+from image_wrap import openImageFile,ImageWrapper
+import numpy as np
 
 """
 Support functions for auto-updating journals created with older versions of the tool"
@@ -15,8 +17,8 @@ def updateJournal(scModel):
     """
     upgrades = scModel.getGraph().getDataItem('jt_upgrades')
     upgrades = upgrades if upgrades is not None else []
+    gopLoader = scModel.gopLoader
     if "0.3.1115" not in upgrades:
-        _fixRecordMasInComposite(scModel)
         _replace_oldops(scModel)
         upgrades.append('0.3.1115')
     if  "0.3.1213" not in upgrades:
@@ -70,10 +72,21 @@ def updateJournal(scModel):
         _fixCompression(scModel)
         upgrades.append('04.0810.9381e76724')
     if '0.4.0901.723277630c' not in upgrades:
-        _addColor(scModel)
         _fixFrameRate(scModel)
-        upgrades.append('0.4.0901.723277630c')
         _fixRaws(scModel)
+    if '0.4.1115.32eabae8e6' not in upgrades:
+        _fixRecordMasInComposite(scModel, gopLoader)
+        _fixLocalRotate(scModel)
+        upgrades.append('0.4.1115.32eabae8e6')
+    if '0.4.1204.5291b06e59' not in upgrades:
+        _addColor(scModel)
+        _fixAudioOutput(scModel, gopLoader)
+        _fixEmptyMask(scModel, gopLoader)
+        _fixGlobal(scModel, gopLoader)
+        upgrades.append('0.4.1204.5291b06e59')
+    if '0.4.1231.03ad63e6bb' not in upgrades:
+        _fixSeams(scModel)
+        upgrades.append('0.4.1231.03ad63e6bb')
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -123,8 +136,10 @@ def _fixFrameRate(scModel):
         masks = edge['videomasks'] if 'videomasks' in edge else []
         for mask in masks:
             if 'rate' in mask:
-                mask['rate'] = float(mask['rate'])*1000.0
-
+                if type(mask['rate']) == list:
+                    mask['rate'] = float(mask['rate'][0])
+                elif mask['rate']<0:
+                    mask['rate'] = float(mask['rate'])*1000.0
 
 def _fixRANSAC(scModel):
     for frm, to in scModel.G.get_edges():
@@ -153,6 +168,33 @@ def _fixRaws(scModel):
             if redo:
                 scModel.select((frm,to))
                 scModel.reproduceMask()
+
+def _fixSeams(scModel):
+    if scModel.G.get_project_type()!= 'image':
+        return
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] in [ 'TransformSeamCarving'] and edge['softwareName'] == 'maskgen':
+            bounds = getValue(edge,'arguments.percentage bounds')
+            if  bounds is not None:
+                edge['arguments'].pop('percentage bounds')
+                edge['arguments']['percentage_width'] = float(bounds)/100.0
+                edge['arguments']['percentage_height'] = float(bounds)/100.0
+            keep  =getValue(edge, 'arguments.keepSize')
+            if keep is not None:
+                edge['arguments']['keep'] = 'yes' if keep == 'no' else 'no'
+            mask = getValue(edge,'inputmaskname')
+            if mask is not None:
+                try:
+                    im = openImageFile(os.path.join(scModel.get_dir(),mask))
+                    if im is not None:
+                        oldmask = im.to_array()
+                        newmask = np.zeros(oldmask.shape,dtype=np.uint8)
+                        newmask[:,:,1] = oldmask[:,:,0]
+                        newmask[:,:,0] = oldmask[:,:,1]
+                        ImageWrapper(newmask).save(os.path.join(scModel.get_dir(),mask))
+                except Exception as e:
+                    logging.getLogger('maskgen').error('Seam Carve fix {} mask error {}'.format(mask,str(e)))
 
 def _fixVideoAudioOps(scModel):
     groups = scModel.G.getDataItem('groups')
@@ -409,6 +451,18 @@ def _fixCreator(scModel):
     if len(modifications) > 0:
        scModel.getGraph().setDataItem('creator',modifications[0].username,excludeUpdate=True)
 
+def _fixLocalRotate(scModel):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'].lower() == 'transformrotate':
+            tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+            sizeChange = tool_set.toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
+            local = 'yes' if  tm is not  None and sizeChange == (0,0) else 'no'
+            if 'arguments' not in edge:
+                edge['arguments'] = {'local' : local}
+            else:
+                edge['arguments']['local']  = local
+
 def _fixBlend(scModel):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -514,17 +568,69 @@ def _fixTransforms(scModel):
                 logging.warning("Cannot fix SIFT transforms during upgrade: " + str(e))
                 logging.warning("Transform not composed for link {} to {}".format( frm, to))
 
-def _fixRecordMasInComposite(scModel):
+def _fixRecordMasInComposite(scModel,gopLoader):
     """
     Replace true value with  'yes'
     :param scModel: Opened project model
     :return: None. Updates JSON.
     @type scModel: ImageProjectModel
+    @type gopLoader: GroupOperationsLoader
     """
     for frm, to in scModel.G.get_edges():
          edge = scModel.G.get_edge(frm, to)
          if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
             edge['recordMaskInComposite'] = 'yes'
+         op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+         if op.category in ['Output','AntiForensic','Laundering']:
+             edge['recordMaskInComposite'] = 'no'
+
+def _fixGlobal(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+        if 'global' in edge and edge['global'] == 'yes' and "maskgen.tool_set.localTransformAnalysis" in op.analysisOperations:
+            edge['global'] = 'no'
+
+def _fixEmptyMask(scModel,gopLoader):
+    import numpy as np
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'empty mask' not in edge and ('recordInCompositeMask' not in edge or edge['recordInCompositeMask'] == 'no') \
+                and  'videomasks' not in edge:
+            mask = scModel.G.get_edge_image(frm,to, 'maskname', returnNoneOnMissing=True)
+            edge['empty mask'] = 'yes' if mask is None or np.all(mask == 255) else 'no'
+
+def _fixAudioOutput(scModel,gopLoader):
+    """
+     Consolidate Audio Outputs
+    :param scModel: Opened project model
+    :return: None. Updates JSON.
+    @type scModel: ImageProjectModel
+    @type gopLoader: GroupOperationsLoader
+    """
+    for frm, to in scModel.G.get_edges():
+         edge = scModel.G.get_edge(frm, to)
+         if edge['op'] in ['OutputAIF','OutputWAV']:
+             edge['op'] = 'OutputAudioPCM'
+         elif edge['op'] in ['OutputM4']:
+             edge['op'] = 'OutputAudioCompressed'
+         if 'Start Time' in edge and edge['Start Time'] == '0':
+             edge['Start Time'] = '00:00:00'
+
+
+def _fixSeam(scModel,gopLoader):
+    """
+   Seam Carving is recorded in Composite
+    :param scModel: Opened project model
+    :return: None. Updates JSON.
+    @type scModel: ImageProjectModel
+    @type gopLoader: GroupOperationsLoader
+    """
+    for frm, to in scModel.G.get_edges():
+         edge = scModel.G.get_edge(frm, to)
+         if edge['op'] == 'TransformSeamCarving':
+             edge['recordMaskInComposite'] = 'yes'
+
 
 def _replace_oldops(scModel):
     """
@@ -564,7 +670,7 @@ def _replace_oldops(scModel):
             currentLink['op'] = 'MarkupDigitalPenDraw'
         elif oldOp == 'FillLocalRetouching':
             currentLink['op'] = 'PasteSampled'
-            currentLink['recordMaskInComposite'] = 'true'
+            currentLink['recordMaskInComposite'] = 'yes'
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             currentLink['arguments']['purpose'] = 'heal'

@@ -27,6 +27,15 @@ def getOrientationFromExif(source):
         return None
 
 
+def rotateAnalysis( orientation):
+    flip, rotate  = rotateAmount(orientation)
+    result = {}
+    if flip is not None:
+        result['flip direction'] = flip
+    if rotate  != 0:
+        result['rotation'] = rotate
+    return result
+
 def rotateAmount( orientation):
     rotation = orientation
     if rotation == 'Mirror horizontal':
@@ -104,29 +113,38 @@ def runexif(args, fix=True, ignoreError=False):
     command = [exifcommand]
     command.extend(args)
     try:
-        stdout,stderr = Popen(command,stdout=PIPE,stderr=PIPE).communicate()
+        pipe = Popen(command,stdout=PIPE,stderr=PIPE)
+        stdout,stderr = pipe.communicate()
         if stdout is not None:
             for line in stdout.splitlines():
                 logging.getLogger('maskgen').info("exif output for command " + str(command) + " = "+ line)
         if stderr is not None:
             newsetofargs = args
             for line in stderr.splitlines():
-                newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
+            #    newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
                 logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
-            #try stripping off the offenders
-            if len(newsetofargs) < len(args) and fix:
-                runexif(newsetofargs, fix=False)
+            ##try stripping off the offenders
+            #if len(newsetofargs) < len(args) and fix:
+            #    return runexif(newsetofargs, fix=False)
+            #else:
+            #    return False
+            return pipe.returncode == 0
     except OSError as e:
         logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
         if not ignoreError:
             raise e
+    return True
 
 exif_lock = RLock()
 exif_cache = LRUCache(maxsize=12)
 
+def stringifyargs(kwargs):
+    return [str(item) for item in sorted([(k,str(v)) for k,v in kwargs.iteritems()])]
+
 def sourcefilehashkey(*args, **kwargs):
+    import hashlib
     """Return a cache key for the specified hashable arguments."""
-    return args[0]
+    return hashlib.sha384(' '.join(list([str(x) for x in args]) + stringifyargs(kwargs))).hexdigest()
 
 
 @cached(exif_cache, lock=exif_lock, key=sourcefilehashkey)

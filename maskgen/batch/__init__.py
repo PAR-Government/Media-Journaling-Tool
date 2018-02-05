@@ -57,19 +57,21 @@ class BatchProcessor:
                 item_to_process = self.q.get_nowait()
                 if item_to_process is None:
                     break
-                logging.getLogger('maskgen').info('Project updating: ' + item_to_process)
+                item_id = item_to_process[0] if isinstance(item_to_process,tuple) else item_to_process
+                logging.getLogger('maskgen').info('Project updating: ' + str(item_id))
                 errors = func_to_run(item_to_process)
                 for error in errors:
-                    error_writer.write((item_to_process, error))
+                    error_writer.write((str(item_id), error))
                 with self.lock:
                     self.count += 1
                     logging.getLogger('maskgen').info(
-                        'Project updated [' + str(self.count) + '/' + str(total) + '] ' + item_to_process)
-                    done_file.write(item_to_process + '\n')
+                        'Project updated [' + str(self.count) + '/' + str(total) + '] ' + str(item_id))
+
+                    done_file.write(item_id + '\n')
                     done_file.flush()
             except Exception as e:
                 logging.getLogger('maskgen').error(str(e))
-                logging.getLogger('maskgen').error('Project skipped: ' + item_to_process)
+                logging.getLogger('maskgen').error('Project skipped: ' + str(item_id))
 
     def process(self, func):
         from Queue import Queue

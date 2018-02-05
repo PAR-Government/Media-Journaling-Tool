@@ -8,21 +8,21 @@
       "version": "7.0",
       "arguments":{
         "threshold":{
-          "type": "string",
-          "defaultvalue": null,
+          "type": "int[1:100]",
+          "defaultvalue": 1,
           "description": "Wavelet threshold."
         },
-          "Blur Type": {
+        "Blur Type": {
               "type": "text",
               "defaultvalue": "Wavelet Denoise",
               "description": ""
-            }
+        }
       },
       "transitions": ["image.image"]
     },
     "command": {
       "default":[
-        "mogrify",
+        "convert",
         "-wavelet-denoise",
         "{threshold}%",
         "{inputimage}",
@@ -30,21 +30,21 @@
       ],
       "win": [
         "magick",
-        "mogrify",
+        "convert",
         "-wavelet-denoise",
         "{threshold}%",
         "{inputimage}",
         "{outputimage}"
       ],
       "darwin":[
-        "mogrify",
+        "convert",
         "-wavelet-denoise",
         "{threshold}%",
         "{inputimage}",
         "{outputimage}"
       ],
       "linux":[
-        "mogrify",
+        "convert",
         "-wavelet-denoise",
         "{threshold}%",
         "{inputimage}",

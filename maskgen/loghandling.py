@@ -1,7 +1,9 @@
+from __future__ import print_function
 import time
 import logging
 from logging import handlers, config
 import os
+
 
 class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """
@@ -28,6 +30,10 @@ class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
             return 1
         return 0
 
+def set_logging_level(level):
+    for handler in logging.getLogger('maskgen').handlers:
+        handler.setLevel(level)
+
 def set_logging(directory=None, filename='maskgen.log'):
     logger = logging.getLogger('maskgen')
     logger.setLevel(logging.INFO)
@@ -38,7 +44,7 @@ def set_logging(directory=None, filename='maskgen.log'):
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(name)s[%(threadName)s]- %(levelname)s - %(message)s')
 
     # add formatter to ch
     ch.setFormatter(formatter)
@@ -59,7 +65,7 @@ def set_logging(directory=None, filename='maskgen.log'):
     logger.addHandler(fh)
 
     if os.path.exists('logging.config'):
-        print 'Establishing logging configuration from file'
+        print ('Establishing logging configuration from file')
         config.fileConfig('logging.config')
 
 

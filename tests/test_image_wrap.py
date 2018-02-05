@@ -4,24 +4,23 @@ import numpy as np
 from PIL import Image
 import maskgen.tool_set
 import os
+from test_support import TestSupport
 
 
 
-class TestImageWrap(unittest.TestCase):
+class TestImageWrap(TestSupport):
 
     def test_pdf(self):
-        #img = image_wrap.wand_image_extractor('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf')
-        self.assertTrue( image_wrap.pdf2_image_extractor('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf') is not None)
-        #img.save('foo.png')
+        self.assertTrue( image_wrap.pdf2_image_extractor(self.locateFile('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf')) is not None)
 
     def test_open(self):
-        wrapper = image_wrap.openImageFile('images/sample.jpg')
+        wrapper = image_wrap.openImageFile(self.locateFile('images/sample.jpg'))
         self.assertTrue(wrapper.to_image() is not None)
         im = Image.open('images/sample.jpg')
         im_array = np.asarray(im)
         self.assertTrue(wrapper.image_array.shape == im_array.shape)
 
-        wrapper = image_wrap.openImageFile('tests/images/test.png')
+        wrapper = image_wrap.openImageFile(self.locateFile('tests/images/test.png'))
         self.assertTrue(wrapper.to_image() is not None)
         im = Image.open('tests/images/test.png')
         im_array = np.asarray(im)
@@ -41,13 +40,14 @@ class TestImageWrap(unittest.TestCase):
         self.assertTrue((wrapper.image_array ==np.asarray(wrapper)).all())
         self.assertTrue((wrapper.image_array == np.array(wrapper)).all())
 
-        wrapper = image_wrap.openImageFile('tests/images/test.tif')
-        wrapper.save('tests/images/test1.tif',**wrapper.info)
+        wrapper = image_wrap.openImageFile(self.locateFile('tests/images/test.tif'))
+        self.addFileToRemove('test1.tif')
+        wrapper.save('test1.tif',**wrapper.info)
         wrapper.to_float()
         wrapper.to_rgb()
 
     def test_two_channel(self):
-        wrapper = image_wrap.openImageFile('tests/images/two_channel.jpg')
+        wrapper = image_wrap.openImageFile(self.locateFile('tests/images/two_channel.jpg'))
         wrapper.to_mask()
         wrapper.apply_transparency()
         wrapper.convert('L')
@@ -55,30 +55,16 @@ class TestImageWrap(unittest.TestCase):
         wrapper.to_float()
         wrapper.to_rgb()
 
-    # raw file not checked in
-    def xtest_check_raw(self):
-        args = {'Bits per Channel':'16'}
-        res = image_wrap.openRaw(
-            'tests/images/e957166e3eb7fd535567fc478dc506d4.arw',
-            args=args)
-        if os.path.exists('test_16.png'):
-            os.remove('test_16.png')
-        res.save('test_16.png',format='PNG')
-        self.assertTrue(os.path.exists('test_16.png'))
-        image_wrap.deleteImage('test_16.png')
-        res1 = image_wrap.openImageFile('test_16.png')
-        self.assertTrue(res.image_array.shape == res1.image_array.shape)
-        self.assertTrue(np.all(res.image_array == res1.image_array))
-        os.remove('test_16.png')
 
     def check_save(self, wrapper,foarmat):
-        fname = 'tests/images/foo.' + ('tif' if foarmat != 'PNG' else 'png')
+        dir = os.path.dirname( self.locateFile('tests/images/postfill.png'))
+        fname = os.path.join(dir,'foo.' + ('tif' if foarmat != 'PNG' else 'png'))
+        self.addFileToRemove(fname)
         wrapper.save(fname, format=foarmat)
         compareWrapper  = image_wrap.openImageFile(fname)
         self.assertTrue((compareWrapper.image_array == wrapper.image_array).all())
-        os.remove(fname)
 
-    def test_resize_images(self):
+    def test_resize_images_with_save(self):
         wrapper = image_wrap.ImageWrapper(np.random.randint(0,64444,(256,300),dtype='uint16'))
         self.assertTrue( wrapper.resize((250,250),Image.ANTIALIAS).size[1] == 250)
         self.check_save(wrapper,'TIFF')
@@ -175,6 +161,23 @@ class TestImageWrap(unittest.TestCase):
             xx[:, :, d] = xx[:, :, d] * perc
         xx[:, :, 3] = np.ones((xx.shape[0], xx.shape[1])) * 255
         return Image.fromarray(xx)
+
+
+    # raw file not checked in
+    def xtest_check_raw(self):
+        args = {'Bits per Channel':'16'}
+        res = image_wrap.openRaw(
+            self.locateFile('tests/images/e957166e3eb7fd535567fc478dc506d4.arw'),
+            args=args)
+        if os.path.exists('test_16.png'):
+            os.remove('test_16.png')
+        self.addFileToRemove('test_16.png')
+        res.save('test_16.png',format='PNG')
+        self.assertTrue(os.path.exists('test_16.png'))
+        image_wrap.deleteImage('test_16.png')
+        res1 = image_wrap.openImageFile('test_16.png')
+        self.assertTrue(res.image_array.shape == res1.image_array.shape)
+        self.assertTrue(np.all(res.image_array == res1.image_array))
 
 if __name__ == '__main__':
     unittest.main()

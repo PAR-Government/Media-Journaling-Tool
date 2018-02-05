@@ -16,9 +16,10 @@ Var USERDIR
 Var BRANCH 
 
 Section -Prerequisites
-	
+    MessageBox MB_OK "Specific versions of each prerequisite are required for$\neverything to work properly.  Please verify that any previously$\ninstalled prerequisites match the following versions:$\n$\n$\tAnaconda2$\t$\t4.4.0$\n$\tFFmpeg$\t$\t$\t3.2.X$\n$\tExiftool$\t$\t$\t10.61$\n$\tOpenCV$\t$\t$\t2.4.13.X$\n$\tGraphViz$\t$\t$\t2.38"
+
 	MessageBox MB_YESNO "Do you need the prerequisites installed?$\n(e.g. anaconda, exiftool, graphviz etc.)" /SD IDYES IDNO prereqs_installed
-	
+
     SetOutPath $INSTDIR
     ReadRegStr $0 HKLM "SOFTWARE\Python\ContinuumAnalytics\Anaconda27-64" SysVersion
     StrCmp $0 "" lbl_install_conda lbl_has_conda
@@ -76,12 +77,17 @@ Section -Prerequisites
 	Delete "$DESKTOP\opencv-2.4.13.3-vc14.exe"
 	
 	has_cvd_build:
-	IfFileExists "$PROFILE\Anaconda2\Lib\cv2.pyd" has_cv2_installed
-	Rename "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\cv2.pyd"
+    IfFileExists "$PROFILE\Anaconda2\Lib\cv2.pyd" +1 +2
+    Rename "$PROFILE\Anaconda2\Lib\cv2.pyd" "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd"
+	IfFileExists "$PROFILE\Anaconda2\Lib\site-packages\cv2.pyd" has_cv2_installed
+	CopyFiles "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\site-packages\"
 
 	has_cv2_installed:
 	ExecWait "$CONDA install -c conda-forge tifffile -y"
 	ExecWait "$CONDA remove pillow -y"
+    ExecWait "$PIP uninstall Pillow -y"
+	ExecWait "$CONDA remove PIL -y"
+    ExecWait "$CONDA install -c anaconda pillow -y"
 	ExecWait "$CONDA install scikit-image -y"
 
 	SetOutPath "$INSTDIR"
@@ -96,7 +102,7 @@ SectionEnd
 
 Section "Maskgen"
 
-	IfFileExists "$DESKTOP\install_options.txt" +4
+	IfFileExists "$DESKTOP\install_options.txt" +5
 	FileOpen $9 "$DESKTOP\install_options.txt" w
 	FileWrite $9 "$DESKTOP$\r$\n"
 	FileWrite $9 "master"
@@ -112,7 +118,7 @@ Section "Maskgen"
     ${WordReplace} $USERDIR "$\r$\n" "" "+" $USERDIR
     ${WordReplace} $BRANCH "$\r$\n" "" "+" $BRANCH
 
-	IfFileExists "$USERDIR\maskgen\*.*" 0 +1
+	IfFileExists "$USERDIR\maskgen\*.*" +1 +2
 	RMDir /r $USERDIR\maskgen
 
     SetOutPath $USERDIR
@@ -151,4 +157,7 @@ Section "Maskgen"
 	Delete "$USERDIR\jtprefs.py"
 
 	Delete "$USERDIR\$BRANCH.zip"
+    
+    MessageBox MB_OK "If this is your first installation, you will need to$\nrestart your computer to use the HP Tool."
+
 SectionEnd

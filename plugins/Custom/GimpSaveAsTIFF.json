@@ -1,0 +1,34 @@
+{
+    "name": "GimpSaveAsTIFF",
+    "operation": {
+      "name": "OutputTif",
+      "category": "Output",
+      "description": "Save Input file as TIFF",
+      "software": "GIMP",
+      "version": "2.8.20",
+      "arguments":{
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".tiff",
+    "command": {
+      "default": [
+        "gimp",
+        "-i",
+        "-f",
+        "-b",
+        "(let* ((filename \"{inputimage}\") (outfile \"{outputimage}\") (image (car (gimp-file-load RUN-NONINTERACTIVE filename filename))) (drawable (car (gimp-image-get-active-layer image)))) (gimp-file-save RUN-NONINTERACTIVE image drawable outfile outfile))",
+        "-b",
+        "(gimp-quit 0)"
+      ],
+      "darwin": [
+        "/Applications/GIMP.app/Contents/MacOS/GIMP",
+        "-i",
+        "-f",
+        "-b",
+        "(let* ((filename \"{inputimage}\") (outfile \"{outputimage}\") (image (car (gimp-file-load RUN-NONINTERACTIVE filename filename))) (drawable (car (gimp-image-get-active-layer image)))) (gimp-file-save RUN-NONINTERACTIVE image drawable outfile outfile))",
+        "-b",
+        "(gimp-quit 0)"
+      ]
+    }
+}

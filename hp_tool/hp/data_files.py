@@ -6,7 +6,7 @@ Contains simple methods and constants for accessing data and files throughout th
 
 # can be changed to set where different trello notifications are posted
 _TRELLO = {'app_key':'dcb97514b94a98223e16af6e18f9f99e',
-           'hp_list':'58f4e07b1d52493b1910598f',
+           'hp_list':'592f6f87acec4fd3c3bb5bc6',
            'prnu_list':'58dd916dee8fc7d4da953571',
            'camera_update_list':'58ecda84d8cfce408d93dd34'}
 

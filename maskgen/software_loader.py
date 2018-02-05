@@ -69,7 +69,7 @@ class ProjectProperty:
 class Operation:
     name = None
     category = None
-    includeInMask = False
+    includeInMask = {'default':False}
     description = None
     optionalparameters = {}
     mandatoryparameters = {}
@@ -77,16 +77,71 @@ class Operation:
     analysisOperations = []
     transitions = []
     compareparameters = {}
-    generateMask  = True
+    generateMask  = "all"
     groupedOperations = None
     groupedCategories = None
     maskTransformFunction = None
     compareOperations = None
+    parameter_dependencies = None
+    """
+    parameter_dependencies is a dictionary: { 'parameter name' : { 'parameter value' : 'dependenent parameter name'}}
+    If the parameter identitied by parameter name has a value if 'parameter value' then the parameter identified by
+    'dependent parameter name' is required.
+
+    compareparamaters are used to pick arguments and algorithms for link comparison and analysis functions.
+    Examples:
+         "function" :"maskgen.tool_set.cropCompare",
+         "video_function": "maskgen.video_tools.cropCompare"
+         "tolerance" : 0.0001
+
+    maskTransformFunction is a dictionary of functions associated with type of media which determines the
+    transformation function applied to a mask as it is re-alligned to the final or base image for composite or
+    donor mask construction, respectively.  Examples:
+        "image": "maskgen.mask_rules.crop_transform",
+        "video":"maskgen.mask_rules.video_crop_transform"
+
+    rules is a list of functions to apply to each link during validation.  The signature of each of function
+    is  (op, graph, frm, to)
+      op = Operation
+      graph = maskgen.image_graph.ImageGraph
+      frm = str source node id
+      to = str targe node id
+
+    transitions is a list of string of the format source type '.' target type.
+    The types identify media types (e.g. audio, video ,zip and image).    The transition identifies
+    allowed transitions supported by the specific operation.  For example, 'video.image' states that the
+    associated operation can convert a video to an image.
+
+    generateMask states whether an operation analysis requires mask generation for 'all', 'frames', 'meta' or None.
+    For the moment, all and frames are the same thing: frames and meta data is collected for each link comparing source
+    and target media.  generateMask currently only applies to video and audio.
+
+    analysisOperations is a list of function names that are used to populate the analysis dictionary collected at link
+     comparison time. Analysis can find transform matrices, shape changes, location identification, etc.
+     The results of analysis are often used by maskTransformFunction functions to construct composite and donor masks,
+     acting as the transform parameters.
+
+    groupedOperations and groupedCategories are lists of operations and categories represented by an agglomerative/composite
+    operation.
+
+    @type category: str
+    @type generateMask: tr
+    @type name: str
+    @type rules: list
+    @type transitions : list
+    @type description: str
+    @type analysisOperations: list
+    @type mandatoryparameters: dict
+    @type optionalparameters: dict
+    @type compareparameters: dict
+    @type parameter_dependencies: dict
+    @type maskTransformFunction:dict
+    """
 
     def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
-                 compareparameters=dict(),generateMask = True,groupedOperations=None, groupedCategories = None,
-                 maskTransformFunction=None):
+                 compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
+                 maskTransformFunction=None,parameter_dependencies = None):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -101,9 +156,14 @@ class Operation:
         self.groupedOperations = groupedOperations
         self.groupedCategories = groupedCategories
         self.maskTransformFunction = maskTransformFunction
+        self.parameter_dependencies = parameter_dependencies
 
-    def recordMaskInComposite(self):
-        return 'yes' if self.includeInMask else 'no'
+    def recordMaskInComposite(self,filetype):
+        if filetype in self.includeInMask :
+            return 'yes' if self.includeInMask [filetype] else 'no'
+        if 'default' in self.includeInMask :
+            return 'yes' if self.includeInMask ['default'] else 'no'
+        return 'no'
 
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
@@ -114,6 +174,12 @@ class Operation:
     def getCompareFunction(self):
         if 'function' in self.compareparameters:
             funcName = self.compareparameters['function']
+            return getRule(funcName)
+        return None
+
+    def getVideoCompareFunction(self):
+        if 'video_function' in self.compareparameters:
+            funcName = self.compareparameters['video_function']
             return getRule(funcName)
         return None
 
@@ -129,24 +195,25 @@ def getOperation(name, fake = False, warning=True):
     :param fake: Set to True to allow fake operations
     :return: Operation
     """
-    global metadataLoader
     if name == 'Donor':
-        return Operation(name='Donor', category='Donor',maskTransformFunction='maskgen.mask_rules.donor')
-    if name not in metadataLoader.operations and warning:
+        return Operation(name='Donor', category='Donor',maskTransformFunction=
+        {'image':'maskgen.mask_rules.donor',
+         'video':'maskgen.mask_rules.video_donor',
+         'audio': 'maskgen.mask_rules.audio_donor',
+         })
+    if name not in getMetDataLoader().operations and warning:
         logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
-    return metadataLoader.operations[name] if name in metadataLoader.operations else (Operation(name='name', category='Bad') if fake else None)
+    return getMetDataLoader().operations[name] if name in getMetDataLoader().operations else (Operation(name='name', category='Bad') if fake else None)
 
 
 def getOperations():
-    global metadataLoader
-    return metadataLoader.operations
+    return getMetDataLoader().operations
 
 
 def getOperationsByCategory(sourcetype, targettype):
-    global metadataLoader
     result = {}
     transition = sourcetype + '.' + targettype
-    for name, op in metadataLoader.operations.iteritems():
+    for name, op in getMetDataLoader().operations.iteritems():
         if transition in op.transitions:
             if op.category not in result:
                 result[op.category] = []
@@ -154,19 +221,16 @@ def getOperationsByCategory(sourcetype, targettype):
     return result
 
 def getPropertiesBySourceType(source):
-    global metadataLoader
-    return metadataLoader.node_properties[source]
+    return getMetDataLoader().node_properties[source]
 
 def getSoftwareSet():
-    global metadataLoader
-    return metadataLoader.softwareset
+    return getMetDataLoader().softwareset
 
 
 def saveJSON(filename):
-    global metadataLoader
-    opnamelist = list(metadataLoader.operations.keys())
+    opnamelist = list(getMetDataLoader().operations.keys())
     opnamelist.sort()
-    oplist = [metadataLoader.operations[op] for op in opnamelist]
+    oplist = [getMetDataLoader().operations[op] for op in opnamelist]
     with open(filename, 'w') as f:
         json.dump({'operations': oplist}, f, indent=2, cls=OperationEncoder)
 
@@ -204,13 +268,14 @@ def loadOperationJSON(fileName):
                                         rules=op['rules'], optionalparameters=op['optionalparameters'],
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
-                                        generateMask=op['generateMask'] if 'generateMask' in op else True,
+                                        generateMask=op['generateMask'] if 'generateMask' in op else "all",
                                         analysisOperations=op[
                                             'analysisOperations'] if 'analysisOperations' in op else [],
                                         transitions=op['transitions'] if 'transitions' in op else [],
                                         compareparameters=op[
                                             'compareparameters'] if 'compareparameters' in op else dict(),
-                                        maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None)
+                                        maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None,
+                                        parameter_dependencies=op['parameter_dependencies'] if 'parameter_dependencies' in op else None)
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 
@@ -226,19 +291,22 @@ def insertCustomRule(name,func):
     global customRuleFunc
     customRuleFunc[name] = func
 
-def noopFule(*arg,**kwargs):
+def returnNoneFunction(*arg,**kwargs):
     return None
 
-def getRule(name, globals={}):
+def getRule(name, globals={}, noopRule=returnNoneFunction):
     if name is None:
-        return None
+        return noopRule
     import importlib
     global customRuleFunc
     if name in customRuleFunc:
         return customRuleFunc[name]
     else:
         if '.' not in name:
-            return globals.get(name)
+            func = globals.get(name)
+            if func is None:
+                return noopRule
+            return func
         mod_name, func_name = name.rsplit('.', 1)
         try:
             mod = importlib.import_module(mod_name)
@@ -247,7 +315,7 @@ def getRule(name, globals={}):
             return func#globals.get(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Unable to load rule {}: {}'.format(name,str(e)))
-            return noopFule
+            return noopRule
 
 def getProjectProperties():
     """
@@ -255,23 +323,21 @@ def getProjectProperties():
     :return:
     @rtype: list of ProjectProperty
     """
-    global metadataLoader
-    return metadataLoader.projectProperties
+    return getMetDataLoader().projectProperties
 
 
 def getSemanticGroups():
     return [prop.description for prop in getProjectProperties() if prop.semanticgroup]
 
 def getFilters(filtertype):
-    global metadataLoader
     if filtertype == 'filtergroups':
-        return metadataLoader.filters
+        return getMetDataLoader().filters
     else:
         return {}
 
 def _loadSoftware( fileName):
     fileName = getFileName(fileName)
-    softwareset = {'image': {}, 'video': {}, 'audio': {}}
+    softwareset = {'image': {}, 'video': {}, 'audio': {},'zip': {}}
     with open(fileName) as f:
         line_no = 0
         for l in f.readlines():
@@ -289,9 +355,10 @@ def _loadSoftware( fileName):
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
-                types = ['image', 'video'] if software_type == 'both' else [software_type]
-                types = ['image', 'video', 'audio'] if software_type == 'all' else types
+                types = ['image', 'video', 'zip'] if software_type == 'both' else [software_type]
+                types = ['image', 'video', 'audio', 'zip'] if software_type == 'all' else types
                 types = ['video', 'audio'] if software_type == 'audio' else types
+                types = ['zip'] if software_type == 'zip' else types
                 for stype in types:
                     softwareset[stype][software_name] = versions
     return softwareset
@@ -331,14 +398,14 @@ class MetaDataLoader:
                 namesTwo[name] = versions
         for name,versions in namesTwo.iteritems():
             if name not in namesOne:
-                print 'missing ' + name
+                logging.getLogger('maskgen').warn( 'missing ' + name)
             else:
                 for version in versions:
                     if version not in namesOne[name]:
-                        print 'missing ' + str(version) + ' in ' + name
+                        logging.getLogger('maskgen').warn( 'missing ' + str(version) + ' in ' + name)
         for name, atype in bytesTwo.iteritems():
             if name  in bytesOne and atype != bytesOne[name]:
-                print 'missing ' + str(atype) + ' in ' + name
+                logging.getLogger('maskgen').warn( 'missing ' + str(atype) + ' in ' + name)
 
 
     def loadProjectProperties(self, fileName):
@@ -359,7 +426,8 @@ class MetaDataLoader:
 
 
 global metadataLoader
-metadataLoader =  MetaDataLoader()
+metadataLoader = {}
+
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
@@ -367,14 +435,17 @@ def toSoftware(columns):
 def getOS():
     return platform.system() + ' ' + platform.release() + ' ' + platform.version()
 
+def getMetDataLoader():
+    global metadataLoader
+    if 'l' not in metadataLoader:
+        metadataLoader['l'] = MetaDataLoader()
+    return metadataLoader['l']
 
 def operationVersion():
-    global metadataLoader
-    return metadataLoader.version
+    return getMetDataLoader().version
 
 def validateSoftware(softwareName, softwareVersion):
-    global metadataLoader
-    for software_type, typed_software_set in metadataLoader.softwareset.iteritems():
+    for software_type, typed_software_set in getMetDataLoader().softwareset.iteritems():
         if softwareName in typed_software_set and softwareVersion in typed_software_set[softwareName]:
             return True
     return False
@@ -432,16 +503,14 @@ class SoftwareLoader:
         return None
 
     def get_names(self, software_type):
-        global metadataLoader
         if software_type is None:
             return []
-        return list(metadataLoader.softwareset[software_type].keys())
+        return list(getMetDataLoader().softwareset[software_type].keys())
 
     def get_versions(self, name, software_type=None, version=None):
-        global metadataLoader
-        types_to_check = ['image', 'video', 'audio'] if software_type is None else [software_type]
+        types_to_check = getMetDataLoader().softwareset.keys() if software_type is None else [software_type]
         for type_to_check in types_to_check:
-            versions = metadataLoader.softwareset[type_to_check][name] if name in metadataLoader.softwareset[type_to_check] else None
+            versions = getMetDataLoader().softwareset[type_to_check][name] if name in getMetDataLoader().softwareset[type_to_check] else None
             if versions is None:
                 continue
             if version is not None and version not in versions:

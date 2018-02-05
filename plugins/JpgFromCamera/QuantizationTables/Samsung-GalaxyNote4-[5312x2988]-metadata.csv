@@ -1,0 +1,45 @@
+database,-ExifIFD:ApertureValue,2.2
+database,-ExifIFD:BrightnessValue,1.35
+database,-ExifIFD:ColorSpace,sRGB
+database,-ExifIFD:CreateDate,2016:10:08 08:47:32
+database,-ExifIFD:DateTimeOriginal,2016:10:08 08:47:32
+compute,-ExifIFD:ExifImageHeight,2988
+compute,-ExifIFD:ExifImageWidth,5312
+database,-ExifIFD:ExifVersion,0220
+source,-ExifIFD:ExposureCompensation,0
+source,-ExifIFD:ExposureMode,Auto
+source,-ExifIFD:ExposureProgram,Program AE
+source,-ExifIFD:ExposureTime,1/33
+source,-ExifIFD:FNumber,2.2
+source,-ExifIFD:Flash,No Flash
+source,-ExifIFD:FlashpixVersion,0100
+source,-ExifIFD:FocalLength,4.8 mm
+source,-ExifIFD:FocalLengthIn35mmFormat,31 mm
+source,-ExifIFD:ISO,125
+database,-ExifIFD:ImageUniqueID,H16LSHA00SM H16LSIG01SA.
+source,-ExifIFD:MaxApertureValue,2.2
+database,-ExifIFD:MeteringMode,Center-weighted average
+database,-ExifIFD:SceneCaptureType,Standard
+source,-ExifIFD:ShutterSpeedValue,1/33
+database,-ExifIFD:UserComment,
+source,-ExifIFD:WhiteBalance,Auto
+source,-IFD0:ImageHeight,2988
+source,-IFD0:ImageWidth,5312
+database,-IFD0:Make,samsung
+database,-IFD0:Model,SM-N910H
+database,-IFD0:ModifyDate,2016:10:08 08:47:32
+database,-IFD0:Orientation,Horizontal (normal)
+database,-IFD0:ResolutionUnit,inches
+database,-IFD0:Software,N910HXXS2DPH1
+database,-IFD0:XResolution,72
+database,-IFD0:YCbCrPositioning,Centered
+database,-IFD0:YResolution,72
+database,-IFD1:Compression,JPEG (old-style)
+database,-IFD1:ImageHeight,288
+database,-IFD1:ImageWidth,512
+database,-IFD1:Orientation,Horizontal (normal)
+database,-IFD1:ResolutionUnit,inches
+database,-IFD1:ThumbnailLength,9740
+database,-IFD1:ThumbnailOffset,940
+database,-IFD1:XResolution,72
+database,-IFD1:YResolution,72

@@ -3,11 +3,11 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
+from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from description_dialog import *
 from group_filter import  GroupFilterLoader
-from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen_loader import MaskGenLoader
@@ -23,6 +23,7 @@ import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
+from mask_rules import Jpeg2000CompositeBuilder, CompositeBuilder
 """
   Main UI Driver for MaskGen
 """
@@ -70,6 +71,24 @@ class UIProfile:
         parent.bind_all('<Control-j>', lambda event: parent.after(100, parent.createJPEGorTIFF))
 
 
+class UserPropertyChange(ProperyChangeAction):
+
+    """
+    Customized actions to take for specific properties.
+    When a user is changed, change the name of the user in the current memory image.
+    Prompt to see if the journal should be updated with the new name.
+    """
+
+    def __init__(self, scModel):
+        self.scModel = scModel
+
+    def setvalue(self, oldvalue, newvalue):
+        newName = newvalue.lower()
+        setPwdX(CustomPwdX(newName))
+        self.scModel.setProjectData('username', newName)
+        if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
+            self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
+
 class MakeGenUI(Frame):
     prefLoader = MaskGenLoader()
     img1 = None
@@ -101,7 +120,6 @@ class MakeGenUI(Frame):
     @type scModel: ImageProjectModel
     """
 
-    gfl = GroupFilterLoader()
 
     if prefLoader.get_key('username') is not None:
         setPwdX(CustomPwdX(prefLoader.get_key('username')))
@@ -127,8 +145,7 @@ class MakeGenUI(Frame):
             return
         self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
                               organization=self.prefLoader.get_key('organization'))
-        if self.scModel.getProjectData('typespref') is None:
-            self.scModel.setProjectData('typespref', getFileTypes())
+        self.updateFileTypePrefs()
         self._setTitle()
         self.drawState()
         self.canvas.update()
@@ -157,6 +174,15 @@ class MakeGenUI(Frame):
         #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
             #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
 
+        export_info = graph_rules.get_journal_exporttime(self.scModel.getName(), self.prefLoader.get_key("apitoken"), self.prefLoader.get_key("apiurl"))
+
+        if export_info and self.scModel.getProjectData("exporttime") is not None:
+            local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
+            browser_journal = datetime.strptime(export_info, "%Y-%m-%d %H:%M:%S")
+
+            if local_journal < browser_journal:
+                tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
                                            filetypes=[("json files", "*.json"),("tgz files", "*.tgz")])
@@ -184,8 +210,9 @@ class MakeGenUI(Frame):
                 totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
                 self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
-            except IOError:
-                tkMessageBox.showinfo("Error", "Failed to load image " + self.scModel.startImageName())
+            except IOError as e:
+                tkMessageBox.showinfo("Error", "Failed to load image {}: {}".format(self.scModel.startImageName(),
+                                                                                    str(e)))
             self.setSelectState('normal')
 
     def save(self):
@@ -215,23 +242,27 @@ class MakeGenUI(Frame):
                     self._setTitle()
             #val.close()
 
+    def recomputeallrmask(self):
+        for edge_id in self.scModel.getGraph().get_edges():
+            self.scModel.reproduceMask(edge_id=edge_id)
+
     def recomputeedgemask(self):
         analysis_params = {}
         if self.scModel.getEndType() == 'video':
             d = ItemDescriptionCaptureDialog(self,
                                              {
                                                  'video compare': self.scModel.getEdgeItem('video difference',
-                                                                                        default='ffmpeg')
+                                                                                        default='opencv')
                                              },
                                              {
                                                  "video compare": {
                                                      "type": "list",
                                                      "source": "video",
                                                      "values": [
-                                                         "ffmpeg",
-                                                         "opencv"
+                                                         "opencv",
+                                                         "ffmpeg"
                                                      ],
-                                                     "description": "FFMPEG is faster but more senstive"
+                                                     "description": "FFMPEG is faster but less accurate"
                                                  }
                                              },
                                              'Mask Reconstruct')
@@ -357,14 +388,6 @@ class MakeGenUI(Frame):
             self.canvas.add(pair[0], pair[1])
         self.drawState()
 
-    def setorganization(self):
-        name = self.prefLoader.get_key('organization')
-        if name is None:
-            name = 'Performer'
-        newName = tkSimpleDialog.askstring("Set Organization", "Name", initialvalue=name)
-        if newName is not None:
-            self.prefLoader.save('organization', newName)
-            self.scModel.setProjectData('organization', newName)
 
     def setautosave(self):
         autosave_decision = self.prefLoader.get_key('autosave')
@@ -382,18 +405,6 @@ class MakeGenUI(Frame):
             if new_autosave_decision > 0:
                  execute_every(new_autosave_decision, saveme, saver=self)
 
-
-    def setusername(self):
-        name = get_username()
-        newName = tkSimpleDialog.askstring("Set Username", "Username", initialvalue=name)
-        if newName is not None:
-            newName = newName.lower()
-            self.prefLoader.save('username', newName)
-            setPwdX(CustomPwdX(self.prefLoader.get_key('username')))
-            oldName = self.scModel.getProjectData('username')
-            self.scModel.setProjectData('username', newName)
-            if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
-                self.scModel.getGraph().replace_attribute_value('username', oldName, newName)
 
     def setproperty(self, key, value):
         token = self.prefLoader.get_key(key)
@@ -435,6 +446,14 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(self.menuindices['undo'], state='disabled')
         self.setSelectState('disabled')
 
+    def updateFileTypePrefs(self):
+        if self.scModel.getProjectData('typespref') is None:
+            preferredFT = self.prefLoader.get_key('filetypes')
+            if preferredFT is not None:
+                self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
+            else:
+                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
+
     def updateFileTypes(self, filename):
         if filename is None or len(filename) == 0:
             return
@@ -462,8 +481,6 @@ class MakeGenUI(Frame):
 
     def getPreferredFileTypes(self):
         return [tuple(x) for x in self.scModel.getProjectData('typespref')]
-
-
 
     def nextadd(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select image file",
@@ -670,7 +687,8 @@ class MakeGenUI(Frame):
             self.errorlistDialog.setItems(errorList)
 
     def getsystemproperties(self):
-        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader)
+        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader,
+                                 property_change_actions={'username': UserPropertyChange(self.scModel)})
 
     def getproperties(self):
         graph_rules.setProjectSummary(self.scModel)
@@ -680,6 +698,9 @@ class MakeGenUI(Frame):
         d = PluginBuilder(self,self.scModel.getGroupOperationLoader())
 
     def reloadplugins(self):
+        plugins.loadPlugins(reload=True)
+
+    def updates(self):
         plugins.loadPlugins(reload=True)
 
     def groupmanager(self):
@@ -733,8 +754,9 @@ class MakeGenUI(Frame):
         self.canvas.compareto()
 
     def viewcomposite(self):
-        composite = self.scModel.constructComposite()
-        if composite is not None:
+        probes = self.scModel.constructPathProbes()
+        if probes is not None:
+            composite = probes[-1].composites['color']['image']
             CompositeViewDialog(self, self.scModel.start, composite, self.scModel.startImage())
 
     def viewmaskoverlay(self):
@@ -890,7 +912,14 @@ class MakeGenUI(Frame):
             self.scModel.update_edge(d.modification)
 
     def createProbes(self):
-        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, graph_rules.Jpeg2000CompositeBuilder])
+        for edge_id in self.scModel.getGraph().get_edges():
+            edge = self.scModel.getGraph().get_edge(edge_id[0], edge_id[1])
+            op = self.scModel.gopLoader.getOperation(edge['op'])
+            if mask_rules.isEdgeLocalized(edge_id,edge, op):
+                logging.getLogger('maskgen').info('Eligible edge {} to {} op: {}'.format(
+                    edge_id[0], edge_id[1],edge['op']
+                ))
+        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
 
     def startQA(self):
         if self.scModel.getProjectData('validation') == 'yes':
@@ -948,6 +977,7 @@ class MakeGenUI(Frame):
         filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
         filemenu.add_cascade(label="System Check", command=self.systemcheck)
         filemenu.add_cascade(label="Reload Plugins", command=self.reloadplugins)
+        #filemenu.add_cascade(label="Last Updates", command=self.updates)
         filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
         filemenu.add_command(label="Quit without Save", command=self.quitnosave)
@@ -979,6 +1009,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="Clone Input Mask", command=self.cloneinputmask)
         validationmenu.add_command(label="Final Image Analysis", command=self.finalimageanalysis)
         validationmenu.add_command(label="Probes",command=self.createProbes)
+        validationmenu.add_command(label="Recompute All Masks", command=self.recomputeallrmask)
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 
@@ -1148,10 +1179,11 @@ class MakeGenUI(Frame):
                                          information='notification property'))
         return props
 
-    def __init__(self, dir, master=None, pluginops={}, base=None, uiProfile=UIProfile()):
+    def __init__(self, dir, master=None, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
-        self.mypluginops = pluginops
+        self.mypluginops = plugins.loadPlugins()
+        self.gfl = GroupFilterLoader()
         tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
                               projectModelFactory=uiProfile.getFactory(),
                               organization=self.prefLoader.get_key('organization'))
@@ -1159,12 +1191,7 @@ class MakeGenUI(Frame):
             logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)
         self.scModel = tuple[0]
-        if self.scModel.getProjectData('typespref') is None:
-            preferredFT = self.prefLoader.get_key('filetypes')
-            if preferredFT:
-                self.scModel.setProjectData('typespref', preferredFT,excludeUpdate=True)
-            else:
-                self.scModel.setProjectData('typespref', getFileTypes(),excludeUpdate=True)
+        self.updateFileTypePrefs()
         self.createWidgets()
         self.startedWithNewProject = tuple[1]
 
@@ -1242,7 +1269,7 @@ def main(argv=None):
             sys.exit(1)
         return
     root = Tk()
-    gui = MakeGenUI(imgdir, master=root, pluginops=plugins.loadPlugins(),
+    gui = MakeGenUI(imgdir, master=root,
                     base=args.base if args.base is not None else None, uiProfile=uiProfile)
 
     #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())

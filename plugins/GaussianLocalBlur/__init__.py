@@ -7,7 +7,7 @@ from maskgen import tool_set,image_wrap
 
 def transform(img,source,target,**kwargs):
   image_to_cover = numpy.asarray(img)
-  kernalsize = tool_set.toIntTuple(kwargs['kernelsize']) if 'kernelsize' in kwargs else (5, 5)
+  kernalsize = (int(kwargs['kernelsize']),int(kwargs['kernelsize'])) if 'kernelsize' in kwargs else (5, 5)
   kernel = numpy.ones(kernalsize, numpy.uint8)
   if 'inputmaskname' not in kwargs:
     blurred_region = cv2.GaussianBlur(image_to_cover, kernalsize, 0)
@@ -15,8 +15,6 @@ def transform(img,source,target,**kwargs):
     return None,None
 
   mask = tool_set.openImageFile(kwargs['inputmaskname']).to_mask()
-  if 'invertmask' in kwargs:
-      mask = mask.invert()
   mask_array = numpy.asarray(mask)
   mask_array = cv2.dilate(mask_array, kernel, iterations=5)
   region_to_blur = cv2.bitwise_and(image_to_cover, image_to_cover, mask=mask_array)
@@ -49,10 +47,15 @@ def operation():
                   'defaultvalue':None,
                   'description':'Mask image where black pixels identify region to blur'
               },
+              'kernelsize': {
+                  'type': 'int[3:101]',
+                  'defaultvalue': 5,
+                  'description': 'Kernel Size (integer)'
+              },
               'Blur Type': {
-              'type': 'text',
-              'defaultvalue': 'Gaussian',
-              'description': ''
+                  'type': 'text',
+                  'defaultvalue': 'Gaussian',
+                  'description': ''
           }},
           'transitions': [
               'image.image'

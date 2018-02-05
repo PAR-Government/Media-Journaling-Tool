@@ -1,10 +1,11 @@
 import sys
-import imp
 import os
 import json
 import subprocess
 import logging
 import tarfile
+import importlib
+import traceback
 
 """
 Manage and invoke all JT plugins that support operations on node media (images, video and audio)
@@ -48,7 +49,7 @@ def installPlugin(zippedFile):
 def _loadPluginModule(info,name,loaded):
     logging.getLogger('maskgen').info("Loading plugin " + name)
     try:
-        plugin = imp.load_module(MainModule, *info)
+        plugin = __import__(info)
         op = plugin.operation()
         loaded[name] = {}
         loaded[name]['function'] = plugin.transform
@@ -56,18 +57,24 @@ def _loadPluginModule(info,name,loaded):
         loaded[name]['suffix'] = plugin.suffix() if hasattr(plugin, 'suffix') else None
     except Exception as e:
         logging.getLogger('maskgen').error("Failed loading plugin " + name + ": " + str(e))
+    #finally:
+    #    info[0].close()
 
 def _findPluginModule(location):
     if not os.path.isdir(location) or not MainModule + ".py" in os.listdir(location):
         return None
-    return imp.find_module(MainModule, [location])
+    return os.path.basename(location) #imp.find_module(MainModule, [location])
 
-def getPlugins(reload=False):
+def getPlugins(reload=False,customFolders=[]):
     plugins = {}
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
     pluginFolders.extend([os.path.join(x,'plugins') for x in sys.path if 'maskgen' in x])
+    pluginFolders.extend(customFolders)
+    pluginFolders = set([os.path.abspath(f) for f in pluginFolders])
     for folder in pluginFolders:
         if os.path.exists(folder):
+            if folder not in sys.path:
+                sys.path.append(folder)
             possibleplugins = os.listdir(folder)
             customfolder = os.path.join(folder, 'Custom')
             customplugins = os.listdir(customfolder) if os.path.exists(customfolder) else []
@@ -112,25 +119,30 @@ def pluginSummary():
     with open('plugin.csv','w') as fp:
         csv_fp = csv.writer(fp)
         for plugin_name,plugin_def in loaded.iteritems():
+            args = plugin_def['operation']['arguments'] if 'arguments' in plugin_def['operation'] else {}
+            args = {} if args is None else args
             csv_fp.writerow([plugin_name,plugin_def['operation']['name'],
                          plugin_def['operation']['category'],
                          plugin_def['operation']['software'],
-                             plugin_def['operation']['description']])
+                         plugin_def['operation']['description'],
+                         'yes' if 'inputmaskname' in args else 'no'])
 
 
-def loadPlugins(reload=False):
+def loadPlugins(reload=False, customFolders=[]):
    global loaded
+
    if loaded is not None and not reload:
        return loaded
 
    loaded = {}
-   ps = getPlugins() 
+   ps = getPlugins(customFolders=customFolders)
    for i in ps.keys():
       if 'custom' in ps[i]:
           path = ps[i]['custom']
           loadCustom(i, path)
       else:
           _loadPluginModule(ps[i]['info'],i,loaded)
+
    return loaded
 
 def getOperations(fileType=None):
@@ -160,12 +172,19 @@ def getOperation(name):
 
 def callPlugin(name,im,source,target,**kwargs):
     global loaded
+    if loaded is None:
+        loaded = loadPlugins()
     if name not in loaded:
         raise ValueError('Request plugined not found: ' + str(name))
     if loaded[name]['function'] == 'custom':
         return runCustomPlugin(name, im, source, target, **kwargs)
     else:
-        return loaded[name]['function'](im,source,target,**kwargs)
+        try:
+            return loaded[name]['function'](im,source,target,**kwargs)
+        except Exception as e:
+            logging.getLogger('maskgen').error('Plugin {} failed with {} for arguments {}'. format(name, str(e), str(kwargs)))
+            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
+            raise e
 
 def runCustomPlugin(name, im, source, target, **kwargs):
     global loaded
@@ -175,13 +194,17 @@ def runCustomPlugin(name, im, source, target, **kwargs):
     commands = copy.deepcopy(loaded[name]['command'])
     mapping = copy.deepcopy(loaded[name]['mapping'])
     executeOk = False
-    for k, command in commands.items():
-        if sys.platform.startswith(k):
-            executeWith(command, im, source, target, mapping, **kwargs)
-            executeOk = True
-            break
-    if not executeOk:
-        executeWith(commands['default'], im, source, target, mapping, **kwargs)
+    try:
+        for k, command in commands.items():
+            if sys.platform.startswith(k):
+                executeWith(command, im, source, target, mapping, **kwargs)
+                executeOk = True
+                break
+        if not executeOk:
+            executeWith(commands['default'], im, source, target, mapping, **kwargs)
+    except Exception as e:
+        logging.getLogger('maskgen').error('Plugin {} failed with {} for arguments {}'.format(name,str(e), str(kwargs)))
+        raise e
     return None, None
 
 def executeWith(executionCommand, im, source, target, mapping, **kwargs):
@@ -190,27 +213,31 @@ def executeWith(executionCommand, im, source, target, mapping, **kwargs):
         executionCommand[0] = executionCommand[0][2:]
         shell = True
     kwargs = mapCmdArgs(kwargs, mapping)
+    kwargs['inputimage'] = source
+    kwargs['outputimage'] = target
     for i in range(len(executionCommand)):
-        if executionCommand[i] == '{inputimage}':
-            executionCommand[i] = source
-        elif executionCommand[i] == '{outputimage}':
-            executionCommand[i] = target
-
-        # Replace bracketed text with arg
-        else:
+        try:
             executionCommand[i] = executionCommand[i].format(**kwargs)
-    subprocess.call(executionCommand,shell=shell)
+        except KeyError as e:
+            logging.getLogger('maskgen').warn('Argument {} not provided for {}'.format(e.message,executionCommand[0]))
+    ret = subprocess.call(executionCommand,shell=shell)
+    if ret != 0:
+        raise RuntimeError('Plugin {} failed with code {}'.format(executionCommand[0],ret))
+
 
 def mapCmdArgs(args, mapping):
+    import copy
+    newargs = copy.copy(args)
     if mapping is not None:
         for key, val in args.iteritems():
             if key in mapping:
                 if val not in mapping[key] or mapping[key][val] is None:
                     raise ValueError('Option \"' + str(val) + '\" is not permitted for this plugin.')
-                args[key] = mapping[key][val]
-    return args
+                newargs[key] = mapping[key][val]
+    return newargs
 
 def findPlugin(pluginName):
+    import errno
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
     pluginFolders.extend([os.path.join(x,'plugins') for x in sys.path if 'maskgen' in x])
     for parent in pluginFolders:
@@ -220,4 +247,4 @@ def findPlugin(pluginName):
             if f == pluginName:
                 return os.path.join(parent, f)
                 
-    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), pluginName)
+    raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), pluginName)

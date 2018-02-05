@@ -1,5 +1,5 @@
 {
-    "name": "Level Correction",
+    "name": "LevelCorrection",
     "operation": {
       "name": "Levels",
       "category": "Intensity",
@@ -14,16 +14,17 @@
         },
         "whitepoint": {
           "type": "int[0:100]",
-          "defaultvalue": 0,
+          "defaultvalue": 100,
           "description": "Percentage"
         },
         "gamma": {
-          "type": "float[0:1]",
+          "type": "float[0:2]",
           "defaultvalue": 0.5,
-          "description": "gamma 0.0 to 1.0"
+          "description": "gamma 0.0 to 2.0"
         },
         "clip mask": {
           "type": "imagefile",
+          "defaultvalue":"",
           "description": "clip mask"
         }
       },

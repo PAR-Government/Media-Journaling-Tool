@@ -6,8 +6,9 @@ from maskgen.jpeg.utils import check_rotate
 
 
 def transform(im, source, target, **kwargs):
+    analysis= {}
     if 'donor' in kwargs and 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
-        im = check_rotate(im, kwargs['donor'])
+        im, analysis = check_rotate(im, kwargs['donor'])
     else:
         im = Image.fromarray(np.asarray(im))
     im.save(target, format='BMP')
@@ -20,7 +21,8 @@ def transform(im, source, target, **kwargs):
     createtime = exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
         exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
-    return None, None
+    analysis['Image Rotated'] = 'yes' if 'rotation' in analysis else 'no'
+    return analysis , None
 
 def operation():
     return {'name':'OutputBmp',
