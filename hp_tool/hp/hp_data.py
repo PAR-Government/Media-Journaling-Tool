@@ -74,6 +74,8 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
                 thumbnail_counter += 1
             elif i.endswith(".3d.zip"):
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
+            else:
+                print(i + " will not be copied to the output directory as it is an unrecognized file format")
 
     shutil.copy2(image, newPathName)
     return newPathName
@@ -572,7 +574,10 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         if thumbnails:
             for thumbnail in thumbnails:
                 model_path = os.path.dirname(os.path.normpath(imageList[model]))
-                new_thumbnails.append(thumbnail_conversion[model_path][thumbnail])
+                try:
+                    new_thumbnails.append(thumbnail_conversion[model_path][thumbnail])
+                except KeyError:
+                    pass
         imageInfo[model]['HP-Thumbnails'] = "; ".join(new_thumbnails)
 
     print(' done')
