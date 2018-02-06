@@ -66,7 +66,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         thumbnail_conversion[model_dir] = {}
         thumbnail_counter = 0
         for i in os.listdir(model_dir):
-            currentExt = os.path.splitext(i)[1]
+            currentExt = os.path.splitext(i)[1].lower()
             if currentExt in exts['IMAGE']:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
                 shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, newThumbnailName))
