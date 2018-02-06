@@ -40,6 +40,7 @@ class HPSpreadsheet(Toplevel):
             self.imageDir = os.path.join(self.dir, 'image')
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
+            self.modelDir = os.path.join(self.dir, 'model')
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -187,10 +188,13 @@ class HPSpreadsheet(Toplevel):
             image = os.path.join(self.videoDir, self.imName)
             if not os.path.exists(image):
                 image = os.path.join(self.audioDir, self.imName)
+                if not os.path.exists(image):
+                    image = os.path.join(self.modelDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
-            os.startfile(image)
+            if not image.endswith('.3d.zip'):
+                os.startfile(image)
         else:
             os.system('open "' + image + '"')
 
@@ -424,7 +428,12 @@ class HPSpreadsheet(Toplevel):
         for c in self.mandatoryAudioNames:
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake']
+        self.mandatoryModels = []
+        self.mandatoryModelNames = ['HP-Keywords', 'HP-PolyCount']
+        for m in self.mandatoryModelNames:
+            self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
+
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -467,7 +476,8 @@ class HPSpreadsheet(Toplevel):
                     tab.disabled_cells.append((row, col))
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
                         (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
-                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']):
+                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']) or \
+                        (colName in self.mandatoryModelNames and self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#f3f315',
                                                 outline='#084B8A',
@@ -784,7 +794,10 @@ class HPSpreadsheet(Toplevel):
             try:
                 dbData = self.master.cameras[self.pt.model.df['HP-DeviceLocalID'][row]]
             except KeyError:
-                errors[image].append(('HP-DeviceLocalID', 'Invalid Device Local ID ' + self.pt.model.df['HP-DeviceLocalID'][row]))
+                try:
+                    errors[image].append(('HP-DeviceLocalID', 'Invalid Device Local ID ' + self.pt.model.df['HP-DeviceLocalID'][row]))
+                except TypeError:
+                    pass
                 continue
             for item in dbData:
                 if dbData[item] is None or dbData[item] == 'nan':
@@ -916,8 +929,11 @@ class HPSpreadsheet(Toplevel):
         errors = []
         model = self.pt.model.df['HP-CameraModel'][row]
         if pd.isnull(model) or model.lower() == 'nan' or model == '':
-            imageName = self.pt.model.getValueAt(row, 0)
-            errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+            if self.pt.model.df['Type'][row] != "model":
+                imageName = self.pt.model.getValueAt(row, 0)
+                errors.append('No camera model entered for ' + imageName + ' (row ' + str(row + 1) + ')')
+            else:
+                pass
         elif model not in [self.devices[data]['hp_camera_model'] for data in self.devices if
                          self.devices[data]['hp_camera_model'] is not None]:
             errors.append('Invalid camera model ' + model + ' (row ' + str(row + 1) + ')')
@@ -931,12 +947,15 @@ class HPSpreadsheet(Toplevel):
         """
         errors = []
         localID = self.pt.model.df['HP-DeviceLocalID'][row]
-        if localID.lower() == 'nan' or localID == '':
-            imageName = self.pt.model.getValueAt(row, 0)
-            errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row + 1) + ')')
-        elif localID not in [self.devices[data]['hp_device_local_id'] for data in self.devices if
-                         self.devices[data]['hp_device_local_id'] is not None]:
-            errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
+        try:
+            if localID.lower() == 'nan' or localID == '':
+                imageName = self.pt.model.getValueAt(row, 0)
+                errors.append('No Device Local ID entered for ' + imageName + ' (row' + str(row + 1) + ')')
+            elif localID not in [self.devices[data]['hp_device_local_id'] for data in self.devices if
+                             self.devices[data]['hp_device_local_id'] is not None]:
+                errors.append('Invalid localID ' + localID + ' (row ' + str(row + 1) + ')')
+        except AttributeError:
+            pass
         return errors
 
 

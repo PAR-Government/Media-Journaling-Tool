@@ -2,7 +2,6 @@ import requests
 import json
 import os
 import data_files
-import tkMessageBox
 
 
 class API_Camera_Handler:

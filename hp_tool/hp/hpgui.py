@@ -84,15 +84,26 @@ class HP_Starter(Frame):
             return
         elif self.outputdir.get() == '':
                 self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
-
         self.update_model()
 
         if self.camModel.get() == '':
-            yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
-            if yes:
-                self.master.open_form()
-                self.update_model()
-            return
+            input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
+            models = all(os.path.isdir(x) for x in input_dir_files)
+            if models and not self.recBool.get():
+                errors = []
+                for model_dir in input_dir_files:
+                    if len(os.listdir(model_dir)) == 1 and os.listdir(model_dir)[0].endswith('.3d.zip'):
+                        errors.append("No Thumbnail images found in {0}.".format(os.path.basename(model_dir)))
+                if len(errors) > 0:
+                    tkMessageBox.showerror("Error", "\n".join(errors))
+                    return
+                pass
+            else:
+                yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
+                if yes:
+                    self.master.open_form()
+                    self.update_model()
+                return
 
         globalFields = ['HP-Collection', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
         kwargs = {'settings':self.settings,
@@ -136,7 +147,7 @@ class HP_Starter(Frame):
         self.recBool.set(False)
         self.inputSelector = Button(self, text='Input directory: ', command=self.load_input, width=20)
         self.inputSelector.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
-        self.recbox = Checkbutton(self, text='Include subdirectories', variable=self.recBool)
+        self.recbox = Checkbutton(self, text='Include subdirectories', variable=self.recBool, command=self.warnRecbox)
         self.recbox.grid(row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5)
         self.inputdir = Entry(self)
         self.inputdir.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=2)
@@ -145,7 +156,7 @@ class HP_Starter(Frame):
         self.outputSelector.grid(row=r, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
         self.outputdir = Entry(self, width=20)
         self.outputdir.grid(row=r, column=6, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
-        r+=1
+        r += 1
 
         self.additionallabel = Label(self, text='Additional Text to add at end of new filenames: ')
         self.additionallabel.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=3)
@@ -157,16 +168,18 @@ class HP_Starter(Frame):
 
         self.changeprefsbutton = Button(self, text='Edit Settings', command=self.open_settings)
         self.changeprefsbutton.grid(row=r, column=6)
-        r+=1
+        r += 1
 
         self.sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=r, columnspan=8, sticky='EW')
         self.descriptionFields = ['HP-Collection', 'Local Camera ID', 'Camera Model', 'Local Lens ID']
-        r+=1
+        r += 1
 
-        Label(self, text='Enter collection information. Local Camera ID is REQUIRED. If you enter a valid ID (case sensitive), the corresponding '
-                         'model will appear in the camera model box.\nIf you enter an invalid ID and Run, it is assumed '
-                         'that this is a new device, and you will be prompted to enter the new device\'s information.').grid(row=r,columnspan=8)
-        r+=1
+        Label(self,
+              text='Enter collection information. Local Camera ID is REQUIRED. If you enter a valid ID (case sensitive), the corresponding '
+        'model will appear in the camera model box.\nIf you enter an invalid ID and Run, it is assumed '
+        'that this is a new device, and you will be prompted to enter the new device\'s information.').grid(row=r,
+                                                                                                            columnspan=8)
+        r += 1
 
         self.localID = StringVar()
         self.camModel = StringVar()
@@ -194,7 +207,7 @@ class HP_Starter(Frame):
         lastLoc = self.attributes['Local Lens ID'].grid_info()
         lastRow = int(lastLoc['row'])
 
-        self.sep2 = ttk.Separator(self, orient=HORIZONTAL).grid(row=lastRow+1, columnspan=8, sticky='EW')
+        self.sep2 = ttk.Separator(self, orient=HORIZONTAL).grid(row=lastRow + 1, columnspan=8, sticky='EW')
 
         self.okbutton = Button(self, text='Run ', command=self.go, width=20, bg='green')
         self.okbutton.grid(row=lastRow+2,column=0, ipadx=5, ipady=5, sticky='E')
@@ -215,11 +228,16 @@ class HP_Starter(Frame):
             self.camModel.set('')
             self.attributes['Camera Model'].config(state=DISABLED)
 
+    def warnRecbox(self):
+        if self.recBool.get():
+            tkMessageBox.showwarning("Warning", '3D Models will not be scanned loaded if the "Include subdirectories"'
+                                                ' box is checked.')
 
 class PRNU_Uploader(Frame):
     """
     Handles the checking and uploading of PRNU data
     """
+
     def __init__(self, settings, master=None):
         Frame.__init__(self, master)
         self.master = master
@@ -235,42 +253,47 @@ class PRNU_Uploader(Frame):
 
     def create_prnu_widgets(self):
         r = 0
-        Label(self, text='Enter the absolute path of the main PRNU directory here. You can click the button to open a file select dialog.').grid(
-            row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=8)
-        r+=1
+        Label(self,
+              text='Enter the absolute path of the main PRNU directory here. You can click the button to open a file select dialog.').grid(
+            row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=8)
+        r += 1
 
         dirbutton = Button(self, text='Root PRNU Directory:', command=self.open_dir, width=20)
-        dirbutton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        dirbutton.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
         self.rootEntry = Entry(self, width=100, textvar=self.root_dir)
         self.rootEntry.grid(row=r, column=1, ipadx=5, ipady=5, padx=0, pady=5, columnspan=4)
-        r+=1
+        r += 1
 
         sep1 = ttk.Separator(self, orient=HORIZONTAL).grid(row=r, columnspan=6, sticky='EW', pady=5)
-        r+=1
+        r += 1
 
         sep2 = ttk.Separator(self, orient=VERTICAL).grid(row=r, column=2, sticky='NS', padx=5, rowspan=3)
 
-        Label(self, text='You must successfully verify the directory structure by clicking below before you can upload.\n'
-                         'If any errors are found, they must be corrected.').grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        Label(self,
+              text='You must successfully verify the directory structure by clicking below before you can upload.\n'
+                   'If any errors are found, they must be corrected.').grid(row=r, column=0, ipadx=5, ipady=5,
+                                                                            padx=5, pady=5, columnspan=2)
 
         Label(self, text='After successful verification, specify the upload location and click Start Upload.\n'
                          'Make sure you have specified your Trello token in Settings as well.').grid(
-            row=r,column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
-        r+=1
+            row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        r += 1
 
         verifyButton = Button(self, text='Verify Directory Structure', command=self.examine_dir, width=20)
-        verifyButton.grid(row=r,column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
+        verifyButton.grid(row=r, column=0, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2)
 
-        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=r,column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1)
+        self.s3Label = Label(self, text='S3 bucket/path: ').grid(row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5,
+                                                                 columnspan=1)
         self.s3Entry = Entry(self, width=40, textvar=self.s3path)
         self.s3Entry.grid(row=r, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=2, sticky=W)
-        r+=1
+        r += 1
 
         self.changeprefsbutton = Button(self, text='Edit Settings', command=self.open_settings)
         self.changeprefsbutton.grid(row=r, column=0, columnspan=2)
 
-        self.uploadButton = Button(self, text='Start Upload', command=self.upload, width=20, state=DISABLED, bg='green')
-        self.uploadButton.grid(row=r,column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
+        self.uploadButton = Button(self, text='Start Upload', command=self.upload, width=20, state=DISABLED,
+                                   bg='green')
+        self.uploadButton.grid(row=r, column=3, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=W)
 
         self.cancelButton = Button(self, text='Cancel', command=self.cancel_upload, width=20, bg='red')
         self.cancelButton.grid(row=r, column=4, ipadx=5, ipady=5, padx=5, pady=5, columnspan=1, sticky=E)
@@ -280,7 +303,8 @@ class PRNU_Uploader(Frame):
         self.s3path.set(self.settings.get('aws-prnu', notFound=''))
 
     def open_new_insert_id(self):
-        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), token=self.settings.get('trello'),
+                           browser=self.settings.get('apitoken'))
         self.master.reload_devices()
 
     def parse_vocab(self, path):
@@ -699,7 +723,8 @@ class HPGUI(Frame):
                     # csv directory and at least one of: image, video, audio folders must exist
                     if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
                                                    os.path.exists(os.path.join(d, 'video')),
-                                                   os.path.exists(os.path.join(d, 'audio'))):
+                                                   os.path.exists(os.path.join(d, 'audio')),
+                                                   os.path.exists(os.path.join(d, 'model'))):
                         raise OSError()
                 except OSError as e:
                     tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*rit.csv).')
@@ -730,7 +755,8 @@ class HPGUI(Frame):
                     # csv directory and at least one of: image, video, audio folders must exist
                     if csv is None or True not in (os.path.exists(os.path.join(d, 'image')),
                                                    os.path.exists(os.path.join(d, 'video')),
-                                                   os.path.exists(os.path.join(d, 'audio'))):
+                                                   os.path.exists(os.path.join(d, 'audio')),
+                                                   os.path.exists(os.path.join(d, 'model'))):
                         raise OSError()
                 except OSError as e:
                     tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*keywords.csv).')
