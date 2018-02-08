@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from pkg_resources import iter_entry_points
 from maskgen.maskgen_loader import MaskGenLoader
 

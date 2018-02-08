@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+
 from maskgen_loader import MaskGenLoader
 import plugins
 from software_loader import getOperations, Operation, getOperation, getOperationsByCategory, insertCustomRule, getRule,getFilters

@@ -7,7 +7,6 @@ from tests import test_support
 
 
 class MedianBlurTestCase(test_support.TestSupport):
-    filesToKill = []
 
     def setUp(self):
         plugins.loadPlugins()
@@ -16,7 +15,7 @@ class MedianBlurTestCase(test_support.TestSupport):
         filename = self.locateFile('tests/images/test_project1.jpg')
         wrapper = image_wrap.openImageFile(filename)
         filename_output = tempfile.mktemp(prefix='mstcr', suffix='.png', dir='.')
-        #self.filesToKill.append(filename_output)
+        self.addFileToRemove(filename_output)
         img = numpy.asarray(wrapper)
         image_wrap.ImageWrapper(img).save(filename_output)
         args, error = plugins.callPlugin('WienerFilter',
@@ -28,16 +27,12 @@ class MedianBlurTestCase(test_support.TestSupport):
         output = wrapper.to_array()
         self.assertEqual(output.shape, img.shape)
         diff = abs(output - img)
-        #finaldiff = numpy.zeros((500, 500))
-        #for i in range(3):
-        #    finaldiff = finaldiff + diff[:, :, i]
-        #finaldiff[finaldiff > 0] = 1
-        # self.assertTrue(abs(sum(sum(finaldiff))-62500) < 100)
+        finaldiff = numpy.zeros((diff.shape[0],diff.shape[1]))
+        for i in range(3):
+            finaldiff = finaldiff + diff[:, :, i]
+        finaldiff[finaldiff > 0] = 1
+        self.assertTrue(sum(sum(finaldiff))/(finaldiff.shape[0] * finaldiff.shape[1]) > 0.8)
 
-    def tearDown(self):
-        for f in self.filesToKill:
-            if os.path.exists(f):
-                os.remove(f)
 
 
 if __name__ == '__main__':

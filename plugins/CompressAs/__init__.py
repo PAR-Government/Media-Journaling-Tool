@@ -1,9 +1,13 @@
-"""
-PAR Government Systems
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
 
-compress_as takes in two JPEG images, and compresses the first with the q tables of the second
+# Compress_as takes in two JPEG images, and compresses the first with the q tables of the second
 
-"""
 import maskgen
 import logging
 

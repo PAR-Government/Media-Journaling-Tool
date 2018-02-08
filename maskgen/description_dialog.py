@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+
 import matplotlib
 matplotlib.use("TkAgg")
 from Tkinter import *
@@ -2212,51 +2220,57 @@ class RotateDialog(tkSimpleDialog.Dialog):
 
 
 class VerticalScrolledFrame(Frame):
-    """A pure Tkinter scrollable frame that actually works!
-
+    """
     * Use the 'interior' attribute to place widgets inside the scrollable frame
     * Construct and pack/place/grid normally
     * This frame only allows vertical scrolling
-
     """
 
     def __init__(self, parent, *args, **kw):
-        Frame.__init__(self, parent, *args, **kw)
-
+        Frame.__init__(self,parent, *args, **kw)
+        self.parent = parent
         # create a canvas object and a vertical scrollbar for scrolling it
-        vscrollbar = Scrollbar(self, orient=VERTICAL)
-        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        canvas = Canvas(self, bd=0, highlightthickness=0,
-                        yscrollcommand=vscrollbar.set)
-        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        self.canvas = canvas = Canvas(self, bd=0, highlightthickness=0)
+        vscrollbar = Scrollbar(self, orient=VERTICAL, command=canvas.yview)
+        vscrollbar.grid(row=0, column=1, sticky=N + S)
+        canvas.configure(yscrollcommand=vscrollbar.set)
+        canvas.grid(row=0,column=0,sticky=E+W+N+S)
         vscrollbar.config(command=canvas.yview)
-        canvas.pack_propagate(True)
+        canvas.grid_propagate(True)
 
         # reset the view
         canvas.xview_moveto(0)
         canvas.yview_moveto(0)
 
-        # create a frame inside the canvas which will be scrolled with it
-        self.interior = interior = Frame(canvas)
-        interior_id = canvas.create_window(0, 0, window=interior,
+        #create a frame inside the canvas which will be scrolled with it
+        self.interior = Frame(canvas)
+        interior_id = canvas.create_window(0, 0, window=self.interior,
                                            anchor=NW)
 
         # track changes to the canvas and frame width and sync them,
         # also updating the scrollbar
         def _configure_interior(event):
             # update the scrollbars to match the size of the inner frame
-            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
             canvas.config(scrollregion="0 0 %s %s" % size)
-            if interior.winfo_reqwidth() != canvas.winfo_width():
+            if self.interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the canvas's width to fit the inner frame
-                canvas.config(width=interior.winfo_reqwidth())
+                canvas.config(width=self.interior.winfo_reqwidth())
+            screen_h = self.winfo_screenheight()
+            if ((self.parent.winfo_rooty() + self.parent.winfo_height() - self.canvas.winfo_height() + self.interior.winfo_reqheight()) < screen_h):
+                self.canvas.configure(height=self.interior.winfo_reqheight())
 
-        interior.bind('<Configure>', _configure_interior)
+        self.interior.bind('<Configure>', _configure_interior)
 
         def _configure_canvas(event):
-            if interior.winfo_reqwidth() != canvas.winfo_width():
+            if self.interior.winfo_reqwidth() < self.canvas.winfo_width():
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+            elif self.interior.winfo_reqwidth() > self.canvas.winfo_width():
+                self.canvas.config(width=self.interior.winfo_reqwidth())
+            if (self.interior.winfo_reqheight() < self.canvas.winfo_height()) or (
+                self.interior.winfo_height() < self.canvas.winfo_height()):
+                self.canvas.itemconfigure(interior_id, height=self.canvas.winfo_height())
 
         canvas.bind('<Configure>', _configure_canvas)
 

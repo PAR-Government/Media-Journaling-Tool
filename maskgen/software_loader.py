@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from os.path import expanduser
 import csv
 import platform
@@ -421,8 +429,32 @@ class MetaDataLoader:
             category = data.category
             if category not in self.operationsByCategory:
                 self.operationsByCategory[category] = []
-                self.operationsByCategory[category].append(op)
+            self.operationsByCategory[category].append(op)
         return self.operations, self.filters, self.operationsByCategory
+
+    def toCSV(self,filename):
+        import csv
+        csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        with open(filename,'w') as fp:
+            fp_writer = csv.writer(fp)
+            fp_writer.writerow(['category','operation','description','transitions','argument1','argument1 description'])
+            for cat, ops in self.operationsByCategory.iteritems():
+                for opname in ops:
+                    op = self.operations[opname]
+                    opdata = [
+                        cat,
+                        op.name,
+                        op.description,
+                        ' '.join(op.transitions),
+                    ]
+                    for name, val in op.mandatoryparameters.iteritems():
+                        opdata.extend([name, val['description']])
+                    for name, val in op.optionalparameters.iteritems():
+                        opdata.extend([name, val['description']])
+                    try:
+                        fp_writer.writerow(opdata)
+                    except:
+                        print ' '.join(opdata)
 
 
 global metadataLoader

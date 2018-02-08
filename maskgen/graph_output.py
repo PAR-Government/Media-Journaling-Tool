@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+
 from image_graph import ImageGraph
 from tool_set import imageResizeRelative
 import os

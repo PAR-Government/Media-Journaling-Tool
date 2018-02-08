@@ -355,10 +355,12 @@ class MaskTracker:
         image_wrap.ImageWrapper(self.dropped_mask * 255).save(filename)
 
     def _move_pixels(self, output, input, adjuster):
-        for row in range(output.shape[0]):
-            for col in range(output.shape[1]):
-                if adjuster[0, row, col] != maxdisplacementvalue and adjuster[1, row, col] != maxdisplacementvalue:
-                    output[row,col] = input[adjuster[0, row, col],adjuster[1, row, col]]
+        adjuster_cp = np.copy(adjuster)
+        da = np.indices(input.shape)
+        adjuster_cp[adjuster_cp==maxdisplacementvalue] = da[adjuster_cp==maxdisplacementvalue]
+        #remap wants float 32
+        adjuster_cp = adjuster_cp.astype(np.float32)
+        output[:] = cv2.remap(input,adjuster_cp[1], adjuster_cp[0], cv2.INTER_LINEAR)
 
     def _rebuildInverter(self):
         self.inverter = np.array([

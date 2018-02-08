@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from maskgen import image_wrap
 import numpy as np
 from random import randint

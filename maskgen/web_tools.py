@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 import logging
 
 # tools for assisting with S3 and HTTP functionality

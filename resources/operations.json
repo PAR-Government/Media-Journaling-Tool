@@ -2605,7 +2605,7 @@
       "mandatoryparameters": {
         "resolution": {
           "type": "string",
-          "description": "Format width × height:  1280x960"
+          "description": "Format widthxheight:  1280x960"
         },
         "pixel aspect": {
           "type": "list",
@@ -2641,7 +2641,7 @@
       "mandatoryparameters": {
         "resolution": {
           "type": "string",
-          "description": "Format width × height:  1280x960"
+          "description": "Format widthxheight:  1280x960"
         },
         "pixel aspect": {
           "type": "list",
@@ -2677,7 +2677,7 @@
       "mandatoryparameters": {
         "resolution": {
           "type": "string",
-          "description": "Format width × height:  1280x960"
+          "description": "Format widthxheight: 1280x960"
         },
         "pixel aspect": {
           "type": "list",
@@ -2740,7 +2740,7 @@
       "optionalparameters": {
         "resolution": {
           "type": "string",
-          "description": "Format width × height:  1280x960"
+          "description": "Format widthxheight:  1280x960"
         },
         "pixel aspect": {
           "type": "list",
@@ -4356,7 +4356,7 @@
       "mandatoryparameters": {
         "resolution": {
           "type": "string",
-          "description": "Format width × height:  1280x960"
+          "description": "Format widthxheight:  1280x960"
         },
         "pixel aspect": {
            "type": "list",
