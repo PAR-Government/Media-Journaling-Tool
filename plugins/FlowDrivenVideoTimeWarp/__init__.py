@@ -27,7 +27,18 @@ def transform(img,source,target,**kwargs):
     else:
         et = str(int(start_time[1]) + int(add_frames))
 
-    return {'Start Time':str(kwargs['Start Time']), 'End Time': et, 'Frames to Add': int(add_frames)},None
+    return {'Start Time':str(kwargs['Start Time']),
+            'End Time': et,
+            'Frames to Add': int(add_frames),
+            'Method': 'Pixel Motion',
+            'Algorithm':'Farneback',
+            'scale':0.8,
+            'levels':7,
+            'winsize':15,
+            'iterations': 3,
+            'poly_n':7,
+            'poly_sigma':1.5,
+            'Vector Detail':100},None
 
 def suffix():
     return '.avi'

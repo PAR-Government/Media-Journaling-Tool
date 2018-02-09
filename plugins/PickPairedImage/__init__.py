@@ -9,6 +9,7 @@ Used with batch project's ImageSelectionPluginOperation
 
 
 def transform(img, source, target, **kwargs):
+
     pair_file = kwargs['pairing'] if 'pairing' in kwargs else 'pairing.csv'
     dir = kwargs['directory'] if 'directory' in kwargs else '.'
     pairingid = kwargs['pairingid']

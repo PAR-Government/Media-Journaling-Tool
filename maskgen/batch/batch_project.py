@@ -23,6 +23,7 @@ import Queue as queue
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.software_loader import getRule
 import traceback
+from functools import partial
 
 
 class IntObject:
@@ -1167,6 +1168,14 @@ def loadGlobalStateInitialers(global_state, initializers):
 def do_nothing_notify(spec_name, id, project_directory, project_name):
     pass
 
+def export_notify(url, spec_name, id, project_directory, project_name):
+    import shutil
+    if project_directory is None:
+        return
+    model = scenario_model.ImageProjectModel(os.path.join(project_directory,project_name + '.json'))
+    errors = model.exporttos3(url)
+    if len(errors) == 0:
+        shutil.rmtree(project_directory)
 
 class WaitToFinish:
     def __init__(self, count=1, name=''):
@@ -1320,6 +1329,7 @@ def main():
     parser.add_argument('--graph', required=False, action='store_true', help='create graph PNG file')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
+    parser.add_argument('--export',required=False)
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.json)
@@ -1329,11 +1339,15 @@ def main():
                        initializers=args.initializers,
                        threads_count=int(args.threads) if args.threads else 1,
                        loglevel=args.loglevel)
+
+    notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
+
     if args.graph:
         batchProject.saveGraphImage(be.workdir)
     try:
         be.runProject(batchProject,
-                      count=int(args.count) if args.count else 1
+                      count=int(args.count) if args.count else 1,
+                      notify_function=notify
                       )
     finally:
         be.finish()

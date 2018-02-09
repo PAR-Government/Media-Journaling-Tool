@@ -25,7 +25,7 @@
       "id": "1",
       "arguments": {
       }
-    },
+     },
      {
       "op_type": "PluginOperation",
       "plugin": "FlowDrivenVideoFrameDrop",
@@ -143,8 +143,14 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "PRNURemoveFromVid",
-      "id": "7"
+      "plugin": "PRNUFromDonorVid",
+      "id": "7",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "12"
+         }
+      }
      },
     {
       "op_type": "PluginOperation",
@@ -189,8 +195,18 @@
            "source": "0"
          }
       }
+     },
+     {
+      "op_type": "ImageSelection",
+      "image_directory": "{donor_dir}",
+      "picklist": "donorset",
+      "id": "12"
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "PRNURemoveFromVid",
+      "id": "13"
      }
-
   ],
   "links": [
     {
@@ -223,6 +239,10 @@
       "target": 6
     },
     {
+      "source": 6,
+      "target": 13
+     },
+     {
       "source": 6,
       "target": 7
      },
