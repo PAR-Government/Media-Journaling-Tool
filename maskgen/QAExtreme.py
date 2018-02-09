@@ -30,178 +30,6 @@ from PictureEditor import PictureEditor
 from CompositeViewer import ScrollCompositeViewer
 
 
-class QAViewDialog(Toplevel):
-    lookup = {}
-
-    def __init__(self, parent):
-        """
-
-        :param parent: MakeGenUI
-        @type parent: MakeGenUI
-        """
-        self.parent = parent
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
-        Toplevel.__init__(self, parent)
-        # self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
-        self.createWidgets()
-        self.resizable(width=False, height=False)
-
-    def getFileNameForNode(self, nodeid):
-        fn = self.parent.scModel.getFileName(nodeid)
-        self.lookup[fn] = nodeid
-        return fn
-
-    def createWidgets(self):
-        row = 0
-        col = 0
-        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
-        self.validateButton.grid(row=row, column=col, padx=10, columnspan=5, sticky='EW')
-        row = 1
-        col = 1
-        self.optionsLabel = Label(self,
-                                  text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
-        self.optionsLabel.grid(row=row, columnspan=5)
-        row += 1
-        self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.finalNodeId)]) for
-                           p in self.probes] if self.probes else []
-        donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                  self.probes if p.donorMaskImage is not None] if self.probes else []
-        donors = set(sorted(donors))
-        self.crit_links.extend([x for x in donors])
-        self.optionsBox = ttk.Combobox(self, values=self.crit_links)
-        if self.crit_links:
-            self.optionsBox.set(self.crit_links[0])
-        self.optionsBox.grid(row=row, columnspan=6, sticky='EW', padx=10)
-        self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
-        row += 1
-        self.operationVar = StringVar()
-        self.operationLabel = Label(self, textvariable=self.operationVar, justify=LEFT)
-        self.operationLabel.grid(row=row, column=0, columnspan=1, sticky='EW', padx=10)
-        row += 1
-        self.optionsLabel.grid(row=row, columnspan=5)
-        self.cImgFrame = Frame(self)
-        self.cImgFrame.grid(row=row, rowspan=8)
-        self.descriptionLabel = Label(self)
-
-        # only load the overlay if there are blue links
-        if self.crit_links:
-            self.load_overlay(initialize=True)
-
-        col = 1
-
-        self.infolabel = Label(self, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
-        row += 1
-
-        qa_list = [
-            'Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
-            'PasteSplice operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
-            'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-            'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.',
-            'All relevant semantic groups are identified.',
-            'End nodes are renamed to their MD5 value (Process->Rename Final Images).']
-        checkboxes = []
-        self.checkboxvars = []
-        for q in qa_list:
-            var = BooleanVar()
-            ck = Checkbutton(self, variable=var, command=self.check_ok)
-            ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
-            ck.grid(row=row, column=col)
-            checkboxes.append(ck)
-            self.checkboxvars.append(var)
-            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col + 1,
-                                                                   sticky='EW')  # , columnspan=4)
-            row += 1
-
-        Label(self, text='QA Signoff: ').grid(row=row, column=col, sticky='W')
-        col += 1
-
-        self.reporterStr = StringVar()
-        self.reporterStr.set(get_username())
-        self.reporterEntry = Entry(self, textvar=self.reporterStr)
-        self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
-
-        row += 1
-        col -= 1
-
-        self.acceptButton = Button(self, text='Accept', command=lambda: self.qa_done('yes'), width=15, state=DISABLED)
-        self.acceptButton.grid(row=row, column=col, columnspan=2, sticky='W')
-
-        self.rejectButton = Button(self, text='Reject', command=lambda: self.qa_done('no'), width=15)
-        self.rejectButton.grid(row=row, column=col + 2, columnspan=2, sticky='W')
-
-        row += 1
-        self.descriptionLabel.grid(row=row, column=col - 1)
-
-        row += 1
-        self.commentsLabel = Label(self, text='Comments: ')
-        self.commentsLabel.grid(row=row, column=col - 1, columnspan=5)
-        row += 1
-        textscroll = Scrollbar(self)
-        textscroll.grid(row=row, column=col + 5, sticky=NS)
-        self.commentsBox = Text(self, height=5, width=100, yscrollcommand=textscroll.set)
-        self.commentsBox.grid(row=row, column=col - 1, padx=5, pady=5, columnspan=6, sticky=NSEW)
-        textscroll.config(command=self.commentsBox.yview)
-        currentComment = self.parent.scModel.getProjectData('qacomment')
-        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
-
-        self.check_ok()
-
-    def _compose_label(self, edge):
-        op = edge['op']
-        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
-            groups = edge['semanticGroups']
-            op += ' [' + ', '.join(groups) + ']'
-        return op
-
-    def load_overlay(self, initialize=False):
-        edgeTuple = tuple(self.optionsBox.get().split('->'))
-        if len(edgeTuple) > 1:
-            probe = [probe for probe in self.probes if
-                     probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.finalNodeId == self.lookup[edgeTuple[1]]][0]
-            n = self.parent.scModel.G.get_node(probe.finalNodeId)
-            finalFile = os.path.join(self.parent.scModel.G.dir,
-                                     self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
-            final = openImage(finalFile)
-            finalResized = imageResizeRelative(final, (500, 500), final.size)
-            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500),
-                                            probe.targetMaskImage.size if probe.targetMaskImage is not None else finalResized.size)
-        else:
-            edgeTuple = tuple(self.optionsBox.get().split('<-'))
-            probe = \
-                [probe for probe in self.probes if
-                 probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.donorBaseNodeId == self.lookup[edgeTuple[1]]][0]
-            n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
-            finalFile = os.path.join(self.parent.scModel.G.dir,
-                                     self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
-            final = openImage(finalFile)
-            finalResized = imageResizeRelative(final, (500, 500), final.size)
-            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
-                                            probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
-        edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
-        self.operationVar.set(self._compose_label(edge))
-        finalResized = finalResized.overlay(imResized)
-        self.photo = ImageTk.PhotoImage(finalResized.toPIL())
-        if initialize is True:
-            self.c = Canvas(self.cImgFrame, width=510, height=510)
-            self.c.pack()
-        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
-
-    def qa_done(self, qaState):
-        self.parent.scModel.set_validation_properties(qaState, self.reporterStr.get(), self.commentsBox.get(1.0, END))
-        self.parent.scModel.save()
-        self.destroy()
-
-    def check_ok(self, event=None):
-        turn_on_ok = True
-        for b in self.checkboxvars:
-            if b.get() is False or turn_on_ok is False:
-                turn_on_ok = False
-
-        if turn_on_ok is True:
-            self.acceptButton.config(state=NORMAL)
-        else:
-            self.acceptButton.config(state=DISABLED)
-
 class QAProjectDialog(Toplevel):
 
     lookup = {}
@@ -214,12 +42,16 @@ class QAProjectDialog(Toplevel):
         print("Done")
         Toplevel.__init__(self, parent)
         self.type = self.parent.scModel.getEndType()
-        self.checkboxvars = []
+        self.checkboxvars = {}
         self.backs = {}
         self.subplots ={}
         self.pltdata = {}
         self.backsProbes={}
         self.photos = {}
+        self.commentsBoxes = {}
+        self.qaData = self.scModel.getProjectData('qaData')
+        if self.qaData is None:
+            self.qaData = {}
         self.createWidgets()
         self.resizable(width=False, height=False)
 
@@ -294,6 +126,7 @@ class QAProjectDialog(Toplevel):
         row = 0
         col = 0
         lastpage = Frame(self)
+        self.cur = lastpage
         self.validateButton = Button(lastpage, text='Check Validation', command=self.parent.validate, width=50)
         self.validateButton.grid(row=row, column=col, padx=10, columnspan=3, sticky='EW')
         row += 1
@@ -306,13 +139,14 @@ class QAProjectDialog(Toplevel):
             'End nodes are renamed to their MD5 value (Process->Rename Final Images).']
         checkboxes = []
         #self.checkboxvars = []
+        self.checkboxvars[self.cur] = []
         for q in qa_list:
             var = BooleanVar()
             ck = Checkbutton(lastpage, variable=var, command=self.check_ok)
             ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
             ck.grid(row=row, column=col)
             checkboxes.append(ck)
-            self.checkboxvars.append(var)
+            self.checkboxvars[self.cur].append(var)
             Label(lastpage, text=q, wraplength=600, justify=LEFT).grid(row=row, column=col + 1,
                                                                    sticky='W')  # , columnspan=4)
             row += 1
@@ -388,7 +222,6 @@ class QAProjectDialog(Toplevel):
         data = []
         f = Figure(figsize=(6,4), dpi=100)
         subplot = f.add_subplot(111)
-        self.subplots[self.cur] = f
         prolist = []
         for p in self.probes:
             if (self.finalNodeName == None):
@@ -459,28 +292,31 @@ class QAProjectDialog(Toplevel):
         fcanvas.get_tk_widget().grid(row=0,column=0)
         fcanvas._tkcanvas.grid(row=0, column=0)
         canvas.config(height=50,width=50)
+        self.subplots[self.cur] = f
 
 
 
     def scrollplt(self, *args):
         if (args[0] == 'moveto'):
-            #i = self.subplots[self.cur].xaxis.get_view_interval()
-            ib = self.subplots[self.cur].subplots().get_xbound()
-            ih = ib[1]*float(args[1])
-            il = ih - 2000
-            self.subplots[self.cur].subplots().xaxis.set_view_interval(il,ih)
-            self.subplots[self.cur].canvas.hide()
-        elif (args[0] == 'scroll'):
             na = self.pltdata[self.cur]
-            self.subplots[self.cur].subplots().xaxis.pan(int(args[1])*100)
-            i = self.subplots[self.cur].subplots().xaxis.get_view_interval()
-            self.subplots[self.cur].subplots().hlines(na[:,0],na[:,2],na[:,3],np.vectorize(lambda x: {0: 'red', 1: 'blue', 2: 'green'}.get(x))(na[:,1]),linewidth=10)
-            self.subplots[self.cur].subplots().xaxis.set_view_interval(i[0],i[1])
+            end = na[-1]
+            total = end[3]-end[2]
+            curframe = self.subplots[self.cur].get_children()[1].xaxis.get_view_interval()
+            # print(curframe)
+            space = curframe[1]-curframe[0]
+            # print(space)
+            total *= float(args[1])
+            # print(total,total+space)
+            self.subplots[self.cur].get_children()[1].xaxis.set_view_interval(total, total+space,ignore=True)
+            # self.subplots[self.cur].get_children()[1].xaxis.pan(int())
             self.subplots[self.cur].canvas.draw()
-            self.subplots[self.cur].canvas.flush_events()
+        elif (args[0] == 'scroll'):
+            # na = self.pltdata[self.cur]
+            self.subplots[self.cur].get_children()[1].xaxis.pan(int(args[1]))
+            self.subplots[self.cur].canvas.draw()
 
 
-        print('done')
+        #print('done')
 
     def createImagePage(self, t, p):
         self.t = t
@@ -509,7 +345,10 @@ class QAProjectDialog(Toplevel):
         textscroll = Scrollbar(p)
         textscroll.grid(row=row, column=col + 1, sticky=NS)
         self.commentBox = Text(p, height=5, width=80, yscrollcommand=textscroll.set)
+        self.commentsBoxes[self.t] = self.commentBox
         self.commentBox.grid(row=row, column=col, padx=5, pady=5, columnspan=1, sticky=NSEW)
+        currentComment = self.qaData[self.t]['Comment']
+        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
         textscroll.config(command=self.commentBox.yview)
         col = 3
         row = 0
@@ -544,7 +383,7 @@ class QAProjectDialog(Toplevel):
             self.transitionString(None)
         #thread.start_new_thread(self.loadt, ())
         try:
-            self.curOpList = operation.qalist
+            self.curOpList = operation.qaList
         except AttributeError:
             print("No QAList Found")
             self.curOpList = []
@@ -552,14 +391,18 @@ class QAProjectDialog(Toplevel):
             self.curOpList = []
         row += 5
         checkboxes = []
-        #self.checkboxvars = []
+        self.checkboxvars[self.cur] = []
         for q in self.curOpList:
+            contain = t in self.qaData.keys()
+            if not contain:
+                self.qaData[t] = {}
+                self.qaData[t]['Done'] = 'no'
             var = BooleanVar()
             ck = Checkbutton(p, variable=var, command=self.check_ok)
-            ck.select() if self.scModel.getProjectData('validation') == 'yes' else ck.deselect()
+            ck.select() if contain and (self.qaData[t]['Done'] == 'yes') else ck.deselect()
             ck.grid(row=row, column=col-1)
             checkboxes.append(ck)
-            self.checkboxvars.append(var)
+            self.checkboxvars[self.cur].append(var)
             Label(p, text=q, wraplength=250, justify=LEFT).grid(row=row, column=col, columnspan=4,
                                                                    sticky='W')  # , columnspan=4)
             row += 1
@@ -645,6 +488,25 @@ class QAProjectDialog(Toplevel):
     def move(self, dir):
         #print(len(self.pages))
         #print(self.cur)
+        finish = True
+        if self.cur in self.checkboxvars.keys():
+            for i in self.checkboxvars[self.cur]:
+                if i.get() is False:
+                    finish = False
+                    break
+        ind = self.pages.index(self.cur)
+        if 0<=ind-1<len(self.crit_links):
+            if finish and self.crit_links[ind-1] in self.qaData.keys():
+                print(self.crit_links[ind-1])
+                self.qaData[self.crit_links[ind-1]]['Done'] = 'yes'
+                self.qaData[self.crit_links[ind-1]]['Comment'] = self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END)
+                self.scModel.setProjectData('qaData', self.qaData)
+
+            if not finish:
+                print(self.crit_links[ind-1])
+                self.qaData[self.crit_links[ind-1]]['Done'] = 'no'
+                self.qaData[self.crit_links[ind-1]]['Comment'] = self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END)
+                self.scModel.setProjectData('qaData', self.qaData)
         i = self.pages.index(self.cur) + dir
         if not 0<=i<len(self.pages):
             return
@@ -653,7 +515,7 @@ class QAProjectDialog(Toplevel):
         self.cur.grid()
 
     def qa_done(self, qaState):
-        self.parent.scModel.set_validation_properties(qaState, self.reporterStr.get(), self.commentsBox.get(1.0, END))
+        self.parent.scModel.set_validation_properties(qaState, self.reporterStr.get(), self.commentsBox.get(1.0, END), self.qaData)
         self.parent.scModel.save()
         self.destroy()
 
@@ -667,9 +529,11 @@ class QAProjectDialog(Toplevel):
 
     def check_ok(self, event=None):
         turn_on_ok = True
-        for b in self.checkboxvars:
-            if b.get() is False or turn_on_ok is False:
-                turn_on_ok = False
+        for l in self.checkboxvars:
+            if l is not None:
+                for b in self.checkboxvars[l]:
+                    if b.get() is False or turn_on_ok is False:
+                        turn_on_ok = False
 
         if turn_on_ok is True:
             self.acceptButton.config(state=NORMAL)
@@ -678,6 +542,3 @@ class QAProjectDialog(Toplevel):
 
 
 
-
-class VideoQADialog(Toplevel):
-    pass

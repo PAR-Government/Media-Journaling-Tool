@@ -24,6 +24,7 @@ from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
 from mask_rules import Jpeg2000CompositeBuilder, CompositeBuilder
+from QAExtreme import QAProjectDialog
 """
   Main UI Driver for MaskGen
 """
@@ -925,7 +926,7 @@ class MakeGenUI(Frame):
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
-        d = QAViewDialog(self)
+        d = QAProjectDialog(self)
 
     def comments(self):
         d = CommentViewer(self)

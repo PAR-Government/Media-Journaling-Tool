@@ -274,7 +274,7 @@ class Modification:
         self.start = start
         self.end = end
         self.additionalInfo = additionalInfo
-        self.maskSet = maskSet
+        self.mask = maskSet
         self.automated = automated if automated else 'no'
         self.errors = errors if errors else list()
         self.operationName = operationName
@@ -2525,15 +2525,17 @@ class ImageProjectModel:
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)
+            self.getGraph().update_edge(start, end, semanticGroups=grps)
             self.notify((self.start, self.end), 'update_edge')
 
-    def set_validation_properties(self, qaState, qaPerson, qaComment):
+    def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
         import time
         self.setProjectData('validation', qaState, excludeUpdate=True)
         self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
         self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
         self.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
         self.setProjectData('qacomment', qaComment.strip())
+        self.setProjectData('qaData',qaData, excludeUpdate=False)
 
     def clear_validation_properties(self):
         import time

@@ -58,3 +58,11 @@ def getNotifier(loader):
             logging.getLogger('maskgen').error('Cannot load ' + str(entry_point) + ': ' + str(e))
 
     return CompositeMaskgenNotifer([loadEntryPoint(entry_point,loader) for entry_point in iter_entry_points(group='maskgen_notifiers', name=None)])
+
+class QANotifier:
+    def __init__(self, scmodel, notifiers):
+        self.scmodel = scmodel
+        self.notifiers = notifiers
+    def __call__(self,*args,**kwargs):
+        for notify in self.notifiers:
+            notify(self.scmodel,args[0],args[1])
