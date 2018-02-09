@@ -21,7 +21,7 @@ def transform(img,source,target,**kwargs):
                                                        kwargs['algorithm'] == 'Chroma Preserving' else MultiScaleResinexLab
 
 
-    colorBalance = toColorBalanceFromPercentage(kwargs['color balance']) if 'color balance' in kwargs else (0.01, 0.99)
+    colorBalance = toColorBalanceFromPercentage(float(kwargs['color balance'])) if 'color balance' in kwargs else (0.01, 0.99)
 
     algorithm_instance = algorithm([15, 80, 125],
                                    G=30,
