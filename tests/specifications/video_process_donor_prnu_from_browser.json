@@ -198,18 +198,35 @@
      },
      {
       "op_type": "ImageSelectionPluginOperation",
-      "plugin": "PickPairedImage",
+      "plugin": "PickMediaFromBrowser",
       "id": "12",
       "arguments": {
         "directory" : {
           "type" : "value",
           "value" :"{donor_dir}"
         },
-        "pairing" : {
+        "prefix" : {
+          "type" : "value",
+          "value" :"videos"
+        },
+         "exclusions file" : {
           "type": "value",
-          "value": "{pairing_file}"
+          "value":"{exclusions}"
+        },
+        "query json" : {
+          "type" : "value",
+          "value" : {
+            "media_type": "video",
+            "width": "{width@14}",
+            "height": "{height@14}"
+          }
         }
       }
+     },
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "VideoPropertySelector",
+      "id": "13"
      }
   ],
   "links": [
@@ -264,11 +281,16 @@
      },
      {
       "source": 0,
-      "target": 12
+      "target": 13
      },
      {
-       "source": 12,
-       "target": 7,
+      "source": 13,
+      "target": 12,
+       "connect":false
+     },
+     {
+      "source": 12,
+      "target": 7,
        "donor":true
      }
   ],

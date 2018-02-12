@@ -29,17 +29,23 @@ def get_image(apitoken, file, directory, url,prefix='images'):
         logging.getLogger('maskgen').error(str(e))
     return None
 
-def findAndDownloadImage(apitoken, baseurl, params, directory, prefix='images', skip=set()):
+def __add_query_filter(data,name, value,match_operation):
+    quotes = '"' if type(value) == str or type(value) == unicode else ''
+    comma = ',' if len(data) > 1 else ''
+    value = ('true' if value else 'false') if type(value) == bool else value
+    return data + '{}"{}": {{"type": "{}", "value": {}{}{} }}'.format(comma, name, match_operation, quotes, value, quotes)
+
+def findAndDownloadImage(apitoken, baseurl, params, directory, exclusions=None,prefix='images', skip=set()):
     try:
         url = baseurl[:-1] if baseurl.endswith('/') else baseurl
         headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
         url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
         data = '{'
         for k,v in params.iteritems():
-            quotes = '"' if type(v) == str else ''
-            comma = ',' if len(data) > 1 else ''
-            v = ('true' if v else 'false') if type(v) == bool else v
-            data += '{}"{}": {{"type": "exact", "value": {}{}{} }}'.format(comma,k,quotes,v,quotes)
+           data= __add_query_filter(data,k,v,'exact')
+        if exclusions is not None:
+            for k, v in exclusions.iteritems():
+                data = __add_query_filter(data, k, v, 'ne')
         data += '}'
         logging.getLogger('maskgen').info('checking external service APIs for ' + str(params))
         response = requests.post(url, data=data, headers=headers)
@@ -62,10 +68,10 @@ class BrowserAPI:
     def __init__(self):
         pass
 
-    def pull(self, params,directory='.', prefix='images'):
+    def pull(self, params,directory='.', exclusions=None,prefix='images',skip=set()):
         token = self.loader.get_key('apitoken')
         url = self.loader.get_key('apiurl')
-        findAndDownloadImage(token, url, params,directory, prefix=prefix)
+        return findAndDownloadImage(token, url, params,directory, exclusions=exclusions,prefix=prefix,skip=skip)
 
 
 

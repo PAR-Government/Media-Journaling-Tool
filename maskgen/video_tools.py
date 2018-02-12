@@ -902,6 +902,21 @@ def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=Non
         if input_filename != filename:
             os.remove(input_filename)
 
+def outputRaw(input_filename, output_filename):
+    ffmpegcommand = tool_set.getFFmpegTool()
+    command = [ffmpegcommand, '-y','-i', input_filename]
+    command.extend(['-vcodec', 'rawvideo'])
+    command.append(output_filename)
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    try:
+        if stderr is not None:
+            for line in stderr.splitlines():
+                logging.getLogger('maskgen').warning("FFMPEG error for {} is {}".format(input_filename, line))
+        return output_filename if p.returncode == 0 else None
+    except OSError as e:
+        logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(input_filename, str(e)))
+    return None
 
 def _runCommand(command,outputCollector=None):
     p = Popen(command, stdout=PIPE, stderr=PIPE)

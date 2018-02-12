@@ -12,6 +12,9 @@ class CV2Api:
     def findContours(self, image):
         pass
 
+    def videoWriter(self, out_file,fourcc, fps, dimensions, isColor=1):
+        pass
+
     def videoCapture(self, filename, preference=None):
         if preference is not None:
             return cv2.VideoCapture(filename, preference)
@@ -60,6 +63,9 @@ class CV2ApiV2(CV2Api):
             return 0
         return cv2.cv.CV_FOURCC(*codec)
 
+    def videoWriter(self, out_file,fourcc, fps, dimensions, isColor=1):
+        return cv2.VideoWriter(out_file, fourcc, fps,dimensions, isColor=isColor)
+
     def calcOpticalFlowFarneback(self, past, future, scale, levels, windowsize, iterations, poly_n, poly_sigma,flags=0):
         return cv2.calcOpticalFlowFarneback(past, future,
                                             scale, levels, windowsize, iterations, poly_n, poly_sigma, flags)
@@ -95,6 +101,9 @@ class CV2ApiV3(CV2Api):
         if codec == '0' or codec == 0:
             return 0
         return cv2.VideoWriter_fourcc(*codec)
+
+    def videoWriter(self, out_file,fourcc, fps, dimensions, isColor=1):
+        return cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps,dimensions, isColor=isColor)
 
     def calcOpticalFlowFarneback(self, past, future, scale, levels, windowsize, iterations, poly_n, poly_sigma,flags=0):
         return cv2.calcOpticalFlowFarneback(past, future, None,

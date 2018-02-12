@@ -20,9 +20,10 @@ class TestExternalAPI(TestSupport):
         url = self.loader.get_key('apiurl')
         params = {}
         params['width'] = 2180
-        #params['high_provenance'] =
         params['media_type'] = 'video'
-        findAndDownloadImage(token,url,params,'.',prefix='videos')
+        name  = findAndDownloadImage(token,url,params,'.',prefix='videos')
+        self.assertTrue(name is not None)
+        os.remove(name)
 
 if __name__ == '__main__':
     unittest.main()

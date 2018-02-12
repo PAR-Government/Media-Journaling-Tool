@@ -68,7 +68,7 @@ def createOutput(in_file, out_file, timeManager, codec=None):
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps, (width, height), isColor=1)
+    out_video = cv2api_delegate.videoWriter(out_file, fourcc, fps, (width, height), isColor=1)
     if not out_video.isOpened():
         err = out_file + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
               " H: " + str(height) + " W: " + str(width)
@@ -346,7 +346,7 @@ def smartAddFrames(in_file,
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps, (width, height), isColor=1)
+    out_video = cv2api_delegate.videoWriter(out_file, fourcc, fps, (width, height), isColor=1)
     time_manager = VidTimeManager(startTimeandFrame=start_time, stopTimeandFrame=end_time)
     if not out_video.isOpened():
         err = out_file + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
@@ -355,6 +355,7 @@ def smartAddFrames(in_file,
     try:
         last_frame = None
         frame_analyzer = FrameAnalyzer(start_time, end_time, fps)
+        written_count = 0
         while (cap.grab()):
             ret, frame = cap.retrieve()
             frame_analyzer.addFrame(frame)
@@ -363,9 +364,11 @@ def smartAddFrames(in_file,
             if not time_manager.isBeforeTime():
                 break
             out_video.write(frame)
+            written_count += 1
             last_frame = frame
         next_frame = frame
         if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Written {} frames '.format(written_count))
             logger.debug('Smart Add Frames ' + str(start_time) + '  to ' + str(end_time))
             logger.debug("Selected Before {}".format(hashlib.sha256(last_frame).hexdigest()))
             logger.debug("Selected After {}".format(hashlib.sha256(next_frame).hexdigest()))
@@ -376,17 +379,21 @@ def smartAddFrames(in_file,
         opticalFlow = OpticalFlow(last_frame, next_frame, frame_analyzer.jump_flow)
         frames_to_add = frame_analyzer.framesToAdd()
         lf = last_frame
+        written_count = 0
         for i in range(1, int(frames_to_add + 1)):
-            frame_scale = i / (1.0 * frames_to_add)
+            frame_scale = i / (1.0 + frames_to_add)
             frame = opticalFlow.setTime(frame_scale)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("frame {}".format(np.std(frame - lf)))
             out_video.write(frame)
             lf = frame
         out_video.write(next_frame)
+        written_count+=1
         while (cap.grab()):
             ret, frame = cap.retrieve()
             out_video.write(frame)
+            written_count += 1
+        logger.debug('Written additioning {} frames '.format(written_count))
     finally:
         cap.release()
         out_video.release()
@@ -416,7 +423,7 @@ def copyFrames(in_file,
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))
-    out_video = cv2.VideoWriter(out_file, cv2.CAP_FFMPEG, fourcc, fps, (width, height), isColor=1)
+    out_video = cv2api_delegate.videoWriter(out_file, fourcc, fps, (width, height), isColor=1)
     if not out_video.isOpened():
         err = out_file + " fourcc: " + str(fourcc) + " FPS: " + str(fps) + \
               " H: " + str(height) + " W: " + str(width)
