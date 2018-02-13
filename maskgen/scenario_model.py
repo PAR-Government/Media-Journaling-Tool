@@ -22,6 +22,7 @@ from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
 import traceback
+import notifiers
 
 def formatStat(val):
     if type(val) == float:
@@ -919,7 +920,7 @@ class ImageProjectModel:
     lock = Lock()
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None, baseImageFileName=None):
-        self.notify = notify
+        self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier()])
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
         # Group Operations are tied to models since
@@ -2529,14 +2530,16 @@ class ImageProjectModel:
             self.notify((self.start, self.end), 'update_edge')
 
     def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
-        import time
+        import qa_logic
+        qa_logic.ValidationData(self,qaState,qaPerson,None,qaComment,qaData)
+        """
         self.setProjectData('validation', qaState, excludeUpdate=True)
         self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
         self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
         self.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
         self.setProjectData('qacomment', qaComment.strip())
         self.setProjectData('qaData',qaData, excludeUpdate=False)
-
+        """
     def clear_validation_properties(self):
         import time
         validationProps = {'validation': 'no', 'validatedby': '', 'validationtime': '', 'validationdate': ''}

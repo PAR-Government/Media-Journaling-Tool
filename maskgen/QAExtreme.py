@@ -19,6 +19,7 @@ from software_loader import Software, SoftwareLoader
 import os
 import thread
 import numpy as np
+import qa_logic
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
@@ -49,9 +50,7 @@ class QAProjectDialog(Toplevel):
         self.backsProbes={}
         self.photos = {}
         self.commentsBoxes = {}
-        self.qaData = self.scModel.getProjectData('qaData')
-        if self.qaData is None:
-            self.qaData = {}
+        self.qaData = qa_logic.ValidationData(self.scModel)
         self.createWidgets()
         self.resizable(width=False, height=False)
 
@@ -347,8 +346,7 @@ class QAProjectDialog(Toplevel):
         self.commentBox = Text(p, height=5, width=80, yscrollcommand=textscroll.set)
         self.commentsBoxes[self.t] = self.commentBox
         self.commentBox.grid(row=row, column=col, padx=5, pady=5, columnspan=1, sticky=NSEW)
-        currentComment = self.qaData[self.t]['Comment']
-        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
+
         textscroll.config(command=self.commentBox.yview)
         col = 3
         row = 0
@@ -392,20 +390,20 @@ class QAProjectDialog(Toplevel):
         row += 5
         checkboxes = []
         self.checkboxvars[self.cur] = []
+        if self.curOpList is None:
+            self.qaData.set_qalink_status(t,'yes')
         for q in self.curOpList:
-            contain = t in self.qaData.keys()
-            if not contain:
-                self.qaData[t] = {}
-                self.qaData[t]['Done'] = 'no'
             var = BooleanVar()
             ck = Checkbutton(p, variable=var, command=self.check_ok)
-            ck.select() if contain and (self.qaData[t]['Done'] == 'yes') else ck.deselect()
+            ck.select() if (self.qaData.get_qalink_status(t) == 'yes') else ck.deselect()
             ck.grid(row=row, column=col-1)
             checkboxes.append(ck)
             self.checkboxvars[self.cur].append(var)
             Label(p, text=q, wraplength=250, justify=LEFT).grid(row=row, column=col, columnspan=4,
                                                                    sticky='W')  # , columnspan=4)
             row += 1
+        currentComment = self.qaData.get_qalink_caption(t)
+        self.commentBox.insert(END, currentComment) if currentComment is not None else ''
         self.acceptButton = Button(p, text='Next', command=self.nex, width=15)
         self.acceptButton.grid(row=11, column=col+2, columnspan=2, sticky='E')
         self.prevButton = Button(p, text='Previous', command=self.pre, width=15)
@@ -498,15 +496,14 @@ class QAProjectDialog(Toplevel):
         if 0<=ind-1<len(self.crit_links):
             if finish and self.crit_links[ind-1] in self.qaData.keys():
                 print(self.crit_links[ind-1])
-                self.qaData[self.crit_links[ind-1]]['Done'] = 'yes'
-                self.qaData[self.crit_links[ind-1]]['Comment'] = self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END)
-                self.scModel.setProjectData('qaData', self.qaData)
+                self.qaData.set_qalink_status(self.crit_links[ind-1],'yes')
+                self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END))
 
             if not finish:
                 print(self.crit_links[ind-1])
-                self.qaData[self.crit_links[ind-1]]['Done'] = 'no'
-                self.qaData[self.crit_links[ind-1]]['Comment'] = self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END)
-                self.scModel.setProjectData('qaData', self.qaData)
+                self.qaData.set_qalink_status(self.crit_links[ind - 1], 'no')
+                self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END))
+
         i = self.pages.index(self.cur) + dir
         if not 0<=i<len(self.pages):
             return
@@ -515,16 +512,15 @@ class QAProjectDialog(Toplevel):
         self.cur.grid()
 
     def qa_done(self, qaState):
-        self.parent.scModel.set_validation_properties(qaState, self.reporterStr.get(), self.commentsBox.get(1.0, END), self.qaData)
+        self.qaData.update_All(qaState, self.reporterStr.get(), self.commentsBox.get(1.0, END), None)
         self.parent.scModel.save()
         self.destroy()
 
-    def getPredNode(self,node):
+    def getPredNode(self, node):
         for pred in self.scModel.G.predecessors(node):
-            for pred in self.scModel.G.predecessors(node):
-                edge = self.scModel.G.get_edge(pred, node)
-                if edge['op'] != 'Donor':
-                    return self.scModel.getModificationForEdge(pred, node, edge)
+            edge = self.scModel.G.get_edge(pred, node)
+            if edge['op'] != 'Donor':
+                return self.scModel.getModificationForEdge(pred, node, edge)
         return None
 
     def check_ok(self, event=None):
@@ -539,6 +535,3 @@ class QAProjectDialog(Toplevel):
             self.acceptButton.config(state=NORMAL)
         else:
             self.acceptButton.config(state=DISABLED)
-
-
-

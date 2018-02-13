@@ -1,4 +1,5 @@
 from pkg_resources import iter_entry_points
+import qa_logic
 from maskgen.maskgen_loader import MaskGenLoader
 
 class MaskgenNotifer:
@@ -59,10 +60,76 @@ def getNotifier(loader):
 
     return CompositeMaskgenNotifer([loadEntryPoint(entry_point,loader) for entry_point in iter_entry_points(group='maskgen_notifiers', name=None)])
 
-class QANotifier:
+
+class NotifyDelegate:
     def __init__(self, scmodel, notifiers):
         self.scmodel = scmodel
         self.notifiers = notifiers
+
     def __call__(self,*args,**kwargs):
         for notify in self.notifiers:
-            notify(self.scmodel,args[0],args[1])
+            notify(self.scmodel, args)
+
+class QaNotifier:
+    def __init__(self):
+        self.qadata = None
+    def __call__(self, scmodel, args, *kwargs):
+        if args[1] != 'update_edge':
+            pass
+        else:
+            self.scmodel = scmodel
+            qadata = qa_logic.ValidationData(scmodel)
+            edge = scmodel.select(args[0])
+            cnode = scmodel.getDescription()
+            backs = self._backtrack(cnode)
+
+            critlinks = qadata.keys()
+            critdict = self._dictionaryify(qadata.keys())
+            for i in backs:
+                curl = critdict[i] if i in critdict else []
+                for fin in curl:
+                    link = '->'.join([i,fin])
+                    if link in critlinks:
+                        qadata.set_qalink_status(link,'no')
+            fwd = self._forwards(cnode)
+            for i in fwd:
+                curl = critdict[i] if i in critdict else []
+                for fin in curl:
+                    donor = '<-'.join([i,fin])
+                    if donor in critlinks:
+                        qadata.set_qalink_status(donor,'no')
+
+    def _dictionaryify(self,l):
+        d = {}
+        for k in l:
+            tup = tuple(k.split("->")) if len(k.split('->'))>1 else tuple(k.split('<-'))
+            if tup[0] in d:
+                d[tup[0]].append(tup[1])
+            else:
+                d[tup[0]] = [tup[1]]
+        return d
+
+    def _forwards(self, n):
+        fo = []
+        fo.append(self.scmodel.getFileName(n.end))
+        curs = self.scmodel.G.successors(n.end)
+        while curs != []:
+            cur = curs.pop()
+            for suc in self.scmodel.G.successors(cur):
+                if suc not in fo:
+                    curs.append(suc)
+            #curs += self.scmodel.G.successors(cur)
+            fo.append(self.scmodel.getFileName(cur))
+        return fo
+
+    def _backtrack(self, n):
+        back = []
+        back.append(self.scmodel.getFileName(n.end))
+        cur = self.scmodel.getDescriptionForPredecessor(n.start)
+        while cur is not None:
+            back.append((self.scmodel.getFileName(cur.end)))
+            cur = cur.start
+            cur = self.scmodel.getDescriptionForPredecessor(cur)
+        return back
+
+
