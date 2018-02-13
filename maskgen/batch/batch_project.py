@@ -32,6 +32,7 @@ import Queue as queue
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.software_loader import getRule
 import traceback
+from functools import partial
 
 
 class IntObject:
@@ -62,6 +63,23 @@ def loadJSONGraph(pathname):
             json_data = json.load(f)
         return BatchProject(json_data)
     return None
+
+import string
+class MyFormatter(string.Formatter):
+    def __init__(self, local_state, global_state):
+        self.local_state = local_state
+        self.global_state = global_state
+        string.Formatter.__init__(self)
+
+    def get_value(self, key, args, kwargs):
+        print args
+        print key
+        if isinstance(key, (int, long)):
+            return args[key]
+        elif '@' in key:
+            return tool_set.getValue(getNodeState(key[key.rfind('@') + 1:], self.local_state), key[:key.rfind('@')])
+        else:
+            return self.global_state[key]
 
 
 def getNoneDonorPredecessor(graph, target):
@@ -168,6 +186,22 @@ def pickArg(param_spec, node_name, spec_name, global_state, local_state):
 
 pluginSpecFuncs = {}
 
+def processValue(formatter,value,postProcess):
+    """
+    format the value, recurse if a dictionary.
+    vall postProcess on every result
+    :param formatter:
+    :param value:
+    :param postProcess:
+    :return:
+    @type formatter: MyFormatter
+    """
+    if isinstance(value,str) or isinstance(value,unicode):
+        return postProcess(formatter.vformat(value,[],{}))
+    elif isinstance(value,dict):
+        return {k:processValue(formatter,v,postProcess) for k,v in value.iteritems()}
+    else:
+        return postProcess(value)
 
 def loadCustomFunctions():
     import pkg_resources
@@ -216,25 +250,23 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             mask = mask + '.png'
         return postProcess(mask)
     elif specification['type'] == 'value':
-        if isinstance(specification['value'],str):
-            return postProcess(specification['value'].format(**global_state))
-        else:
-            return postProcess(specification['value'])
+        return processValue(MyFormatter(local_state,global_state),specification['value'], postProcess)
     elif specification['type'] == 'variable':
         if 'name' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
-        if specification['name'] not in getNodeState(specification['source'], local_state):
+        val = tool_set.getValue(getNodeState(specification['source'], local_state),specification['name'])
+        if val is None:
             raise ValueError('Missing variable {} in from {} while processing {}'.format(specification['name'],
                                                                                          specification['source'],
                                                                                          specification_name))
         if 'permutegroup' in specification:
-            source_spec = copy.copy(getNodeState(specification['source'], local_state)[specification['name']])
+            source_spec = copy.copy(val)
             source_spec['permutegroup'] = specification['permutegroup']
             return postProcess(pickArg(source_spec, node_name, specification_name, global_state, local_state))
         else:
-            return postProcess(getNodeState(specification['source'], local_state)[specification['name']])
+            return postProcess(val)
     elif specification['type'] == 'donor':
         if 'source' in specification:
             if specification['source'] == 'base':
@@ -312,6 +344,25 @@ def getNodeState(node_name, local_state):
         local_state[node_name] = my_state
     return my_state
 
+def getNodeStateFromPredecessor(current_node,local_state, graph):
+    """
+
+    :param current_node
+    :param local_state:
+    :param graph:
+    :return:
+    @type local_state: Dict
+    @type graph: DiGraph
+    @rtype: Dict
+    """
+    for pred in graph.predecessors(current_node):
+        if pred in local_state and 'node' in local_state[pred]:
+            return getNodeState(pred,local_state)
+    for pred in graph.predecessors(current_node):
+        result = getNodeStateFromPredecessor(pred,local_state,graph)
+        if result is not None:
+            return result
+    return None
 
 def pickImageIterator(specification, spec_name, global_state):
     if 'picklists' not in global_state:
@@ -455,6 +506,17 @@ class BaseAttachmentOperation(BatchOperation):
 class PreProcessedMediaOperation(BatchOperation):
     logger = logging.getLogger('maskgen')
 
+    """
+        Load target media as it conforms the source image as if the this routine called the plugin.
+        In this case, the target media is the result of specific external operation.
+        The plugin is configured with argument file and argument names.
+        The argument file is a CSV file describing the arguments used for the specific file name.
+        the first column is the image file name.
+        argument names are the names associated with columns 2..n of the file.
+        This plugin requires 'op','software' and 'software_version' parameters as well.
+        The target file is selected by sharing the same prefix as the source file from the givem
+        target media directory defined in the mandatory 'directory' parameter.
+    """
     def __init__(self):
         self.index = dict()
 
@@ -674,7 +736,10 @@ class InputMaskPluginOperation(PluginOperation):
 
         predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
                         if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
-        predecessor_state = getNodeState(connect_to_node_name, local_state)
+        if connect_to_node_name is None:
+            predecessor_state = getNodeStateFromPredecessor(node_name,local_state, graph)
+        else:
+            predecessor_state = getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
@@ -852,7 +917,8 @@ class BatchProject:
 
     def getConnectToNodes(self,op_node_name):
         return [predecessor for predecessor in self.G.predecessors(op_node_name)
-         if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' and
+         if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' and \
+         not tool_set.getValue(self.G.edge[predecessor][op_node_name], 'donor', defaultValue=False) and \
          tool_set.getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
 
     def executeForProject(self, project, nodes, workdir=None):
@@ -1084,6 +1150,8 @@ class BatchProject:
                                                                                local_state=local_state,
                                                                                global_state=global_state)
         except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
             logging.getLogger('maskgen').error(str(e))
             raise e
 
@@ -1176,6 +1244,14 @@ def loadGlobalStateInitialers(global_state, initializers):
 def do_nothing_notify(spec_name, id, project_directory, project_name):
     pass
 
+def export_notify(url, spec_name, id, project_directory, project_name):
+    import shutil
+    if project_directory is None:
+        return
+    model = scenario_model.ImageProjectModel(os.path.join(project_directory,project_name + '.json'))
+    errors = model.exporttos3(url)
+    if len(errors) == 0:
+        shutil.rmtree(project_directory)
 
 class WaitToFinish:
     def __init__(self, count=1, name=''):
@@ -1329,6 +1405,7 @@ def main():
     parser.add_argument('--graph', required=False, action='store_true', help='create graph PNG file')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
+    parser.add_argument('--export',required=False)
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.json)
@@ -1338,11 +1415,15 @@ def main():
                        initializers=args.initializers,
                        threads_count=int(args.threads) if args.threads else 1,
                        loglevel=args.loglevel)
+
+    notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
+
     if args.graph:
         batchProject.saveGraphImage(be.workdir)
     try:
         be.runProject(batchProject,
-                      count=int(args.count) if args.count else 1
+                      count=int(args.count) if args.count else 1,
+                      notify_function=notify
                       )
     finally:
         be.finish()

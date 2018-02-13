@@ -1,0 +1,90 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "alice",
+    "name": "video_flow",
+    "organization": "NIST",
+    "projectdescription" : "Optical Flow and Remove PRNU",
+    "technicalsummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "videoset",
+      "id": "0"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNUFromDonorVid",
+      "id": "1",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "2"
+         }
+      }
+     },
+     {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "PickMediaFromBrowser",
+      "id": "2",
+      "arguments": {
+        "directory" : {
+          "type" : "value",
+          "value" :"{donor_dir}"
+        },
+        "prefix" : {
+          "type" : "value",
+          "value" :"videos"
+        },
+        "exclusions file" : {
+          "type": "value",
+          "value":"/Users/ericrobertson/Downloads/foo/work/deviceid.json"
+        },
+        "query json" : {
+          "type" : "value",
+          "value" : {
+            "media_type": "video",
+            "width": "{width@3}",
+            "height": "{height@3}"
+          }
+        }
+      }
+     },
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "VideoPropertySelector",
+      "id": "3"
+     }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1
+    },
+     {
+      "source": 0,
+      "target": 2
+     },
+     {
+      "source": 0,
+      "target": 3
+     },
+     {
+      "source": 3,
+      "target": 2,
+       "connect":false
+     },
+     {
+      "source": 2,
+      "target": 1
+     }
+  ],
+  "multigraph": false
+}

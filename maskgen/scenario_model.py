@@ -1603,6 +1603,8 @@ class ImageProjectModel:
             self.labelNodes(destination)
             return msg, True
         except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            trace= traceback.format_exception(exc_type, exc_value, exc_traceback)
             logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
             return 'Exception (' + str(e) + ')', False
 

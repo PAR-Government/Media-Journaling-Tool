@@ -182,8 +182,10 @@ def callPlugin(name,im,source,target,**kwargs):
         try:
             return loaded[name]['function'](im,source,target,**kwargs)
         except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            trace= traceback.format_exception(exc_type, exc_value, exc_traceback)
             logging.getLogger('maskgen').error('Plugin {} failed with {} for arguments {}'. format(name, str(e), str(kwargs)))
-            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
+            logging.getLogger('maskgen').error(' '.join(trace))
             raise e
 
 def runCustomPlugin(name, im, source, target, **kwargs):

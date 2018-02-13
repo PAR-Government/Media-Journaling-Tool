@@ -25,7 +25,7 @@
       "id": "1",
       "arguments": {
       }
-    },
+     },
      {
       "op_type": "PluginOperation",
       "plugin": "FlowDrivenVideoFrameDrop",
@@ -143,8 +143,14 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "PRNURemoveFromVid",
-      "id": "7"
+      "plugin": "PRNUFromDonorVid",
+      "id": "7",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "12"
+         }
+      }
      },
     {
       "op_type": "PluginOperation",
@@ -175,7 +181,7 @@
       "arguments": {
          "donor": {
            "type": "donor",
-           "source": "0"
+           "source": "12"
          }
       }
       },
@@ -189,8 +195,22 @@
            "source": "0"
          }
       }
+     },
+     {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "PickPairedImage",
+      "id": "12",
+      "arguments": {
+        "directory" : {
+          "type" : "value",
+          "value" :"{donor_dir}"
+        },
+        "pairing" : {
+          "type": "value",
+          "value": "{pairing_file}"
+        }
+      }
      }
-
   ],
   "links": [
     {
@@ -222,7 +242,7 @@
       "source": 2,
       "target": 6
     },
-    {
+     {
       "source": 6,
       "target": 7
      },
@@ -241,6 +261,15 @@
      {
       "source": 6,
       "target": 11
+     },
+     {
+      "source": 0,
+      "target": 12
+     },
+     {
+       "source": 12,
+       "target": 7,
+       "donor":true
      }
   ],
   "multigraph": false
