@@ -3071,18 +3071,6 @@
             "Other Device"
           ],
           "description": "Type of image display"
-        },
-         "Resolution": {
-          "type": "text",
-          "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
-        },
-         "Capture Distance": {
-          "type": "int[0:100000]",
-          "description": "Distance in centimeters from camera to print"
-        },
-        "Magnification": {
-          "type": "float[0:100000]",
-          "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
         }
       },
       "analysisOperations": [
@@ -3092,6 +3080,18 @@
         "checkEmpty"
       ],
       "optionalparameters": {
+        "Resolution": {
+          "type": "text",
+          "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
+        },
+        "Capture Distance": {
+          "type": "int[0:100000]",
+          "description": "Distance in centimeters from camera to print"
+        },
+        "Magnification": {
+          "type": "float[0:100000]",
+          "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
+        },
         "Capture Camera ID": {
           "type": "text",
           "description": "ID of camera used to capture image if not screen shot"
