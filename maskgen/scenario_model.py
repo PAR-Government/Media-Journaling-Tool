@@ -920,7 +920,10 @@ class ImageProjectModel:
     lock = Lock()
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None, baseImageFileName=None):
-        self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier()])
+        self.notify = None
+        if notify is not None:
+            self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier()])
+
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
         # Group Operations are tied to models since
