@@ -2108,6 +2108,7 @@ class ImageProjectModel:
                             continue
                 else:
                     logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
+                    self.G.update_node(node, file=new_file_name)
         self.save()
         return renamed
 

@@ -3062,6 +3062,7 @@
         "Output Device": {
           "type": "list",
           "values": [
+            "Matte Paper",
             "Gloss Paper",
             "Flat Paper",
             "LCD",
@@ -3071,6 +3072,10 @@
             "Other Device"
           ],
           "description": "Type of image display"
+        },
+        "Capture Printer ID": {
+          "type": "text",
+          "description": "ID of printer used to compose the image"
         }
       },
       "analysisOperations": [
@@ -3080,6 +3085,14 @@
         "checkEmpty"
       ],
       "optionalparameters": {
+        "Capture Printer Make/Model": {
+          "type": "text",
+          "description": "The brand and make of the Printer used to compose the image"
+        },
+        "Antiforensic Measures": {
+          "type": "text",
+          "description": "Anything that was done to obscure the recapture"
+        },
         "Resolution": {
           "type": "text",
           "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
@@ -3095,10 +3108,6 @@
         "Capture Camera ID": {
           "type": "text",
           "description": "ID of camera used to capture image if not screen shot"
-        },
-        "Capture Printer ID": {
-          "type": "text",
-          "description": "ID of printer used to compose the image"
         },
         "Capture Printer Type": {
           "type": "list",
