@@ -61,10 +61,10 @@ class QAProjectDialog(Toplevel):
         return fn
 
     def pre(self):
-        self.move(-1)
+        self.move(-1,False)
 
     def nex(self):
-        self.move(+1)
+        self.move(+1, False)
 
     def exitProgram(self):
         self.destroy()
@@ -345,7 +345,7 @@ class QAProjectDialog(Toplevel):
         textscroll.grid(row=row, column=col + 1, sticky=NS)
         self.commentBox = Text(p, height=5, width=80, yscrollcommand=textscroll.set)
         self.commentsBoxes[self.t] = self.commentBox
-        self.commentBox.grid(row=row, column=col, padx=5, pady=5, columnspan=1, sticky=NSEW)
+        self.commentBox.grid(row=row, column=col, padx=5, pady=5, columnspan=1, rowspan = 2, sticky=NSEW)
 
         textscroll.config(command=self.commentBox.yview)
         col = 3
@@ -403,14 +403,22 @@ class QAProjectDialog(Toplevel):
                                                                    sticky='W')  # , columnspan=4)
             row += 1
         currentComment = self.qaData.get_qalink_caption(t)
+        self.commentsBox.delete(1.0,END)
         self.commentBox.insert(END, currentComment) if currentComment is not None else ''
         self.acceptButton = Button(p, text='Next', command=self.nex, width=15)
         self.acceptButton.grid(row=11, column=col+2, columnspan=2, sticky='E')
         self.prevButton = Button(p, text='Previous', command=self.pre, width=15)
-        self.prevButton.grid(row=11, column=col, columnspan=2, sticky='W')
+        self.prevButton.grid(row=11, column=col-1, columnspan=2, sticky='W')
+        #self.pagetext =
+        self.acceptnButton = Button(p, text='Next Unchecked', command=self.nexCheck, width=15)
+        self.acceptnButton.grid(row=12, column=col + 2, columnspan=2, sticky='E')
+        self.prevnButton = Button(p, text='Previous Unchecked', command=self.preCheck, width=15)
+        self.prevnButton.grid(row=12, column=col-1, columnspan=2, sticky='W')
 
 
 
+    def moveto(self, i):
+        pass
 
     def transitionString(self, probeList):
         tab = "     "
@@ -482,8 +490,13 @@ class QAProjectDialog(Toplevel):
             self.c.pack()
         self.image_on_canvas = self.c.create_image(0, 0, image=self.photos[self.t], anchor=NW, tag='imgc')
 
+    def nexCheck(self):
+        self.move(1,True)
 
-    def move(self, dir):
+    def preCheck(self):
+        self.move(-1,True)
+
+    def move(self, dir, checked):
         #print(len(self.pages))
         #print(self.cur)
         finish = True
@@ -508,6 +521,20 @@ class QAProjectDialog(Toplevel):
         if not 0<=i<len(self.pages):
             return
         self.cur.grid_forget()
+        while checked:
+            self.cur = self.pages[i]
+            finish = True
+            if self.cur in self.checkboxvars.keys():
+                for t in self.checkboxvars[self.cur]:
+                    if t.get() is False:
+                        finish = False
+                        break
+            if i == len(self.pages)-1 or i == 0:
+                break
+            if not finish:
+                break
+            i += dir
+
         self.cur = self.pages[i]
         self.cur.grid()
 
