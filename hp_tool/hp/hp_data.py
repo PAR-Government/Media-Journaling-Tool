@@ -22,7 +22,7 @@ exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
         'MODEL': ['.3d.zip']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
-RVERSION = '#@version=01.10'
+RVERSION = '#@version=01.11'
 thumbnail_conversion = {}
 
 def copyrename(image, path, usrname, org, seq, other, containsmodels):

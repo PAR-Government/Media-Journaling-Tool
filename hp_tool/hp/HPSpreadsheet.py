@@ -698,7 +698,7 @@ class HPSpreadsheet(Toplevel):
         Archive output folder into a .tar file.
         :return: string, archive filename formatted as "USR-LocalID-YYmmddHHMMSS.tar"
         """
-        val = self.pt.model.df['HP-DeviceLocalID'][0]
+        val = self.pt.model.df['HP-DeviceLocalID'][0] if type(self.pt.model.df['HP-DeviceLocalID'][0]) is str else ''
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
         archive = tarfile.open(tname, "w", errorlevel=2)
