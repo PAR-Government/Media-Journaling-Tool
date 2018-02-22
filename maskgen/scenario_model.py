@@ -1605,7 +1605,7 @@ class ImageProjectModel:
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             trace= traceback.format_exception(exc_type, exc_value, exc_traceback)
-            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
+            logging.getLogger('maskgen').error(' '.join(traceback.format_exception(exc_type,exc_value,exc_traceback)))
             return 'Exception (' + str(e) + ')', False
 
     def __scan_args_callback(self, opName, arguments):
