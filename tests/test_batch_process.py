@@ -136,19 +136,25 @@ class TestBatchProcess(TestSupport):
         if os.path.exists('test_projects'):
             shutil.rmtree('test_projects')
         os.mkdir('test_projects')
+        os.mkdir('test_projects/hdf5')
+        with open('test_projects/hdf5/test_project1.hdf5','w') as fp:
+            fp.write('foo')
 
-        be = batch_project.BatchExecutor('test_projects',global_variables= {'image_dir' :self.locateFile('tests/images')})
+        be = batch_project.BatchExecutor('test_projects',
+                                         global_variables= {'image_dir' :self.locateFile('tests/images'),
+                                                            'hdf5dir':'test_projects/hdf5'})
         batch_project.loadCustomFunctions()
         batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/external_image_batch_process.json'))
 
         self.addFileToRemove('results', preemptive=True)
-        self.addFileToRemove('test_projects', preemptive=True)
+        self.addFileToRemove('test_projects', preemptive=False)
         os.mkdir('results')
         saveAsPng(self.locateFile('tests/images/test_project1.jpg'), 'results/test_project1.png')
         with open('results/arguments.csv', 'w') as fp:
             fp.write('test_project1.png,no,16')
-        be.runProject(batchProject,20)
+        be.runProjectLocally(batchProject)
         be.finish()
+        self.assertTrue(os.path.exists('test_projects/test_project1/test_project1.hdf5'))
 
 
     def test_runwithpermutation(self):

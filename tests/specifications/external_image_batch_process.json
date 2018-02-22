@@ -1,16 +1,17 @@
 {
   "directed": true,
   "graph": {
-    "username": "yee",
+    "username": "dupre",
     "name": "sample",
-    "organization": "NIST",
+    "organization": "PAR",
     "projectDescription" : "test",
     "technicalSummary" : "Automated",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
     "manipulationcategory":"2-Unit",
-    "recompress": false
+    "recompress": false,
+    "edgeFilePaths": ["arguments.extra mask"]
   },
   "nodes": [
    {
@@ -23,6 +24,12 @@
       "op_type": "PreProcessedMediaOperation",
       "argument file": "arguments.csv",
       "argument names": ["Image Rotated","Bits per Channel"],
+      "arguments": {
+        "extra mask": {
+          "type":"value",
+          "value": "{hdf5dir}/{node@0}.hdf5"
+        }
+      },
       "directory":"results",
       "op": "OutputPng",
       "category": "Output",
