@@ -183,6 +183,29 @@ class TestToolSet(TestSupport):
         os.remove('test_ts_gw_mask_33.3666666667.'+suffix)
         os.remove('test_ts_gw_mask_33.3666666667.hdf5')
 
+    def testSIFCheck(self):
+        good_transform ={
+          'c': 3,
+          'r': 3,
+          'r0': [0.00081380729604268976, -1.0000367374350523, 449.94975699899271],
+          'r1': [1.0031702728345473, 0.0016183966076946312, -0.30844081957395447],
+          'r2': [3.1676664384933143e-06, 9.8915322781393527e-06, 1.0]
+        }
+        bad_transform = {
+        "c": 3,
+        "r": 3,
+        "r0": [
+          -3.0764931522976067, 3.2522108810844577, 6167.618028229406
+        ],
+        "r1": [
+          -1.0467579456165736, 1.1073481736839244, 2098.303251843684
+        ],
+        "r2": [
+          -0.0004988685498607748, 0.0005275910530971817,1.0
+        ]
+        }
+        self.assertTrue(tool_set.siftCheck(450,450,tool_set.deserializeMatrix(good_transform)))
+        self.assertFalse(tool_set.siftCheck( 5320,8000, tool_set.deserializeMatrix(bad_transform)))
 
 if __name__ == '__main__':
     unittest.main()

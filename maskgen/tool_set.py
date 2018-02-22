@@ -1680,6 +1680,21 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask,expectedDims, local
         func = partial(__rotateImage, rotation, expectedDims=expectedDims, cval=255)
     return applyToComposite(compositeMask, func, shape=expectedDims)
 
+def siftCheck(width,height, transform_matrix):
+    mask = np.zeros((height,width),dtype=np.uint8)
+    #box_width = width/4
+    #box_height = height/4
+    #mask[int(box_height*1.6):-int(box_height*1.6),box_width:-box_width] = 255
+    #mask[box_height:-box_height,int(box_width*1.6):-int(box_width*1.6)] = 255
+    cv2.ellipse(mask,(width/2,height/2),(int(width/5),int(height/5)),0,0,360,255,-1)
+    #ImageWrapper(mask).save('ellipse.png')
+    result = applyTransform(mask,255-mask,transform_matrix=transform_matrix,invert=True,returnRaw=True)
+    #ImageWrapper(result).save('result.png')
+    edgeL = sum(result[0,:])
+    edgeR = sum(result[-1,:])
+    edgeTop = sum(result[:,0])
+    edgeBottom = sum(result[:,-1])
+    return not (edgeL > 1 and  edgeR > 1 and edgeTop > 1 and edgeBottom > 1) and np.sum(result)>255
 
 def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False, returnRaw=False,shape=None):
     """
