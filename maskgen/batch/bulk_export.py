@@ -17,13 +17,15 @@ from maskgen.batch import pick_projects
 from maskgen.tool_set import CustomPwdX, setPwdX, get_username
 
 
-def upload_projects(s3dir, dir, qa, username, error_writer):
+def upload_projects(s3dir, dir, qa, username, organization, error_writer, updatename):
     """
     Uploads project directories to S3 bucket
     :param s3dir: bucket/dir S3 location
     :param dir: directory of project directories
     :param qa: bool for if the projects need to be qa'd
     :param username: export and qa username
+    :param updatename: change the project username to match username value
+    :param organization: change project organization
     """
 
     projects = pick_projects(dir)
@@ -36,6 +38,13 @@ def upload_projects(s3dir, dir, qa, username, error_writer):
             setPwdX(CustomPwdX(scModel.getGraph().getDataItem("username")))
         else:
             setPwdX(CustomPwdX(username))
+            if (updatename == True):
+                oldValue = scModel.getProjectData('username')
+                scModel.setProjectData('username', username)
+                scModel.getGraph().replace_attribute_value('username', oldValue, username)
+        if organization is not None:
+            scModel.setProjectData('organization', organization)
+            scModel.save()
 
         processProjectProperties(scModel)
         #scModel.renameFileImages()
@@ -55,11 +64,13 @@ def main():
     parser.add_argument('-s', '--s3',   help='bucket/path of s3 storage')
     parser.add_argument('--qa', help="option argument to QA the journal prior to uploading", required=False, action="store_true")
     parser.add_argument('-u', '--username', help="optional username", required=False)
+    parser.add_argument('-o', '--organization', help="update organization in project", required=False)
+    parser.add_argument('-n', '--updatename', help="should update username in project", required=False, action="store_true")
     args = parser.parse_args()
 
     with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
         error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        upload_projects(args.s3, args.projects, args.qa, args.username, error_writer)
+        upload_projects(args.s3, args.projects, args.qa, args.username, args.organization, error_writer, args.updatename)
 
 if __name__ == '__main__':
     main()
