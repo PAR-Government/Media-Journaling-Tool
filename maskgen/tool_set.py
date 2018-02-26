@@ -1012,27 +1012,27 @@ def redistribute_intensity(edge_map):
     levels = [x[0] for x in edge_map.values()]
     colors = [str(x[1]) for x in edge_map.values() if x[1] is not None]
     unique_colors = sorted(np.unique(colors))
+
     intensities = sorted(np.unique(levels))
-    intensity_map = {}
+    intensity_map = [0]
     if len(unique_colors) == len(intensities):
         for x in edge_map.values():
             intensity_map[x[0]] = x[1]
         return intensity_map
-    increment = int(255 / (len(intensities) + 1))
+    increment = int(16777216 / (len(intensities) + 1))
     pos = 1
-    colors = []
     for i in intensities:
-        colors.append(pos * increment)
+        v = pos * increment
+        intensity_map.append([(v%65536)/256,v/65536,(v%65536)%256])
         pos += 1
-
-    colorMap = cv2.applyColorMap(np.asarray(colors).astype('uint8'), cv2.COLORMAP_HSV)
-    pos = 0
-    for i in intensities:
-        intensity_map[i] = colorMap[pos][0]
-        pos += 1
-
     for k, v in edge_map.iteritems():
         edge_map[k] = (v[0], intensity_map[v[0]])
+    #im = np.zeros((500,500,3)).astype('uint8')
+    #pos = 0
+    #for i in intensity_map:
+    #    im[pos,:] = i
+    #    pos+=1
+    #ImageWrapper(im).save('foo.png')
     return intensity_map
 
 
@@ -1680,55 +1680,41 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask,expectedDims, local
         func = partial(__rotateImage, rotation, expectedDims=expectedDims, cval=255)
     return applyToComposite(compositeMask, func, shape=expectedDims)
 
-def line_intersection(line1, line2):
-    xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
 
-    def det(a, b):
-        return a[0] * b[1] - a[1] * b[0]
-
-    div = det(xdiff, ydiff)
-    if div == 0:
-       raise Exception('lines do not intersect')
-
-    d = (det(*line1), det(*line2))
-    x = det(d, xdiff) / div
-    y = det(d, ydiff) / div
-    return x, y
-
-def isOkHomography(points):
+def isHomographyOk(transform_matrix, h,w):
     from shapely.geometry import Point
     from shapely.geometry.polygon import Polygon
-    u = points[2]-points[0]
-    v = points[1]-points[3]
+    # convert cornore to homogenous coordinates
+    ll = np.array([0, 0, 1])
+    ul = np.array([0, w, 1])
+    lr = np.array([h, 0, 1])
+    ur = np.array([h, w, 1])
 
-    A = np.cross(points[0],
-                 points[1])
-    B = np.cross(points[2],
-                 points[3])
-    intersection_point_projective = np.cross(A,B)
+    a_ll = np.matmul(transform_matrix, ll)
+    a_ul = np.matmul(transform_matrix, ul)
+    a_ur = np.matmul(transform_matrix, ur)
+    a_lr = np.matmul(transform_matrix, lr)
+    # convert points to lines
+    a = np.cross(a_ll, a_ul)
+    b = np.cross(a_lr, a_ur)
+    # find point of intersection
+    intersection_point_projective = np.cross(a, b)
     if intersection_point_projective[2] == 0:
         return False
-    point = intersection_point_projective/float(intersection_point_projective[2])
-    point = Point(point[0],point[1])
-    points = [(d[0]/d[2],d[1]/d[2]) for d in points]
+    point = intersection_point_projective / float(intersection_point_projective[2])
+    point = Point(point[0], point[1])
+    points = [(d[0] / d[2], d[1] / d[2]) for d in [a_ll,a_ul,a_ur,a_lr]]
     polygon = Polygon(points).convex_hull
     return not polygon.contains(point)
 
-def siftCheck(width,height, transform_matrix):
-    mask = np.zeros((height,width),dtype=np.uint8)
-    box_width = width/4
-    box_height = height/4
+def siftCheck(height,width, transform_matrix):
+    #mask = np.zeros((height,width),dtype=np.uint8)
+    #box_width = width/4
+    #box_height = height/4
     #mask[int(box_height*1.6):-int(box_height*1.6),box_width:-box_width] = 255
     #mask[box_height:-box_height,int(box_width*1.6):-int(box_width*1.6)] = 255
-    cv2.ellipse(mask,(width/2,height/2),(int(width/5),int(height/5)),0,0,360,255,-1)
-    ImageWrapper(mask).save('ellipse.png')
-    r = [np.matmul(transform_matrix, np.asarray(point)) for point in [(box_width,box_height, 1),
-                                                                      (box_width,height - box_height,  1),
-                                                                      (box_width - box_width,height - box_height,  1),
-                                                                      (box_width - box_width,box_height,  1)
-                                                                      ]]
-    return isOkHomography(r)
+    #cv2.ellipse(mask,(width/2,height/2),(int(width/5),int(height/5)),0,0,360,255,-1)
+    return isHomographyOk(transform_matrix,width/2, height/2)
     #result = applyTransform(mask,255-mask,transform_matrix=transform_matrix,invert=True,returnRaw=True)
     #ImageWrapper(result).save('result.png')
     #edgeL = sum(result[0,:])

@@ -204,8 +204,8 @@ class TestToolSet(TestSupport):
           -0.0004988685498607748, 0.0005275910530971817,1.0
         ]
         }
-        self.assertTrue(tool_set.siftCheck(450,450,tool_set.deserializeMatrix(good_transform)))
-        self.assertFalse(tool_set.siftCheck( 8000,5320, tool_set.deserializeMatrix(bad_transform)))
+        self.assertTrue(tool_set.isHomographyOk(tool_set.deserializeMatrix(good_transform),450,450))
+        self.assertFalse(tool_set.isHomographyOk(  tool_set.deserializeMatrix(bad_transform),8000,5320))
 
 if __name__ == '__main__':
     unittest.main()

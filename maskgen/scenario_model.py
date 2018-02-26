@@ -2044,13 +2044,18 @@ class ImageProjectModel:
     def assignColors(self):
         level = 1
         edgeMap = dict()
-        missingColors = 0
+        foundColors = 0
+        colors = []
+        edges = 0
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
             if edge['op'] == 'Donor':
                 continue
-            missingColors += 1 if 'linkcolor' not in edge else 0
-        if missingColors == 0:
+            edges += 1
+            if 'linkcolor' in edge:
+                foundColors += 1
+                colors.append(edge['linkcolor'])
+        if edges == foundColors and len(set(colors)) ==foundColors:
             return
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
