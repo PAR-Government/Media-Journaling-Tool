@@ -205,7 +205,7 @@ class TestToolSet(TestSupport):
         ]
         }
         self.assertTrue(tool_set.siftCheck(450,450,tool_set.deserializeMatrix(good_transform)))
-        self.assertFalse(tool_set.siftCheck( 5320,8000, tool_set.deserializeMatrix(bad_transform)))
+        self.assertFalse(tool_set.siftCheck( 8000,5320, tool_set.deserializeMatrix(bad_transform)))
 
 if __name__ == '__main__':
     unittest.main()

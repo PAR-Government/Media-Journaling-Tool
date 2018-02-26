@@ -2375,6 +2375,11 @@ class ImageProjectModel:
             if k in arguments and \
                             arguments[k]['type'] == 'donor':
                 parameters[k] = self.getImageAndName(v)[1]
+                if parameters[k] is None:
+                    if os.path.exists(v):
+                        parameters[k] = v
+                    else:
+                        logging.getLogger('maskgen').error('Donor {} not found'.format(v))
                 donors.append(k)
         for arg, info in arguments.iteritems():
             if arg not in parameters and 'defaultvalue' in info and \

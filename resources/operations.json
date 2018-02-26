@@ -922,6 +922,37 @@
         "video.video"
       ]
     },
+     {
+      "category": "AntiForensic",
+      "name": "AddCameraModel",
+      "mandatoryparameters": {
+        "Camera Model": {
+          "type": "text",
+          "description": "Model Name from Browser"
+        },
+        "Camera Make": {
+          "type": "text",
+          "value": "Make Name from Browser"
+        }
+      },
+      "rules": [
+        "checkSizeAndExif",
+        "checkSameChannels"
+      ],
+      "optionalparameters": {
+      },
+       "maskTransformFunction": {
+          "video": "maskgen.mask_rules.copy_exif"
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Copy metadata information from a source.",
+      "includeInMask": {"default" : false},
+      "generateMask" : "all",
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
         {
       "category": "AntiForensic",
       "name": "AntiForensicEditExif",
@@ -3942,7 +3973,7 @@
              "nearest",
              "other"
           ],
-          "description": "Interpolation is used to resize entire composite images. 'none' indicates a canvas size increase."
+          "description": "Interpolation is used to resize entire composite images. 'none' indicates a localized change; SIFT is used"
         },
          "Start Time": {
           "type": "time",
@@ -3981,7 +4012,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.forcedSiftAnalysis"
+        "maskgen.mask_rules.resize_analysis"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.resize_transform",

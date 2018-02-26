@@ -115,9 +115,6 @@ def transform(img,source,target, **kwargs):
 
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
-   # if 'quality' in kwargs:
-    #    quality = str(kwargs['quality'])
-    #    if quality.startswith('+'):
     quality = int(kwargs['quality']) if 'quality' in kwargs else 0
     
     tables_zigzag = parse_tables(donor)

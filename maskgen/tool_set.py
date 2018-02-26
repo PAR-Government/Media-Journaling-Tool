@@ -1680,21 +1680,62 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask,expectedDims, local
         func = partial(__rotateImage, rotation, expectedDims=expectedDims, cval=255)
     return applyToComposite(compositeMask, func, shape=expectedDims)
 
+def line_intersection(line1, line2):
+    xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+    def det(a, b):
+        return a[0] * b[1] - a[1] * b[0]
+
+    div = det(xdiff, ydiff)
+    if div == 0:
+       raise Exception('lines do not intersect')
+
+    d = (det(*line1), det(*line2))
+    x = det(d, xdiff) / div
+    y = det(d, ydiff) / div
+    return x, y
+
+def isOkHomography(points):
+    from shapely.geometry import Point
+    from shapely.geometry.polygon import Polygon
+    u = points[2]-points[0]
+    v = points[1]-points[3]
+
+    A = np.cross(points[0],
+                 points[1])
+    B = np.cross(points[2],
+                 points[3])
+    intersection_point_projective = np.cross(A,B)
+    if intersection_point_projective[2] == 0:
+        return False
+    point = intersection_point_projective/float(intersection_point_projective[2])
+    point = Point(point[0],point[1])
+    points = [(d[0]/d[2],d[1]/d[2]) for d in points]
+    polygon = Polygon(points).convex_hull
+    return not polygon.contains(point)
+
 def siftCheck(width,height, transform_matrix):
     mask = np.zeros((height,width),dtype=np.uint8)
-    #box_width = width/4
-    #box_height = height/4
+    box_width = width/4
+    box_height = height/4
     #mask[int(box_height*1.6):-int(box_height*1.6),box_width:-box_width] = 255
     #mask[box_height:-box_height,int(box_width*1.6):-int(box_width*1.6)] = 255
     cv2.ellipse(mask,(width/2,height/2),(int(width/5),int(height/5)),0,0,360,255,-1)
-    #ImageWrapper(mask).save('ellipse.png')
-    result = applyTransform(mask,255-mask,transform_matrix=transform_matrix,invert=True,returnRaw=True)
+    ImageWrapper(mask).save('ellipse.png')
+    r = [np.matmul(transform_matrix, np.asarray(point)) for point in [(box_width,box_height, 1),
+                                                                      (box_width,height - box_height,  1),
+                                                                      (box_width - box_width,height - box_height,  1),
+                                                                      (box_width - box_width,box_height,  1)
+                                                                      ]]
+    return isOkHomography(r)
+    #result = applyTransform(mask,255-mask,transform_matrix=transform_matrix,invert=True,returnRaw=True)
     #ImageWrapper(result).save('result.png')
-    edgeL = sum(result[0,:])
-    edgeR = sum(result[-1,:])
-    edgeTop = sum(result[:,0])
-    edgeBottom = sum(result[:,-1])
-    return not (edgeL > 1 and  edgeR > 1 and edgeTop > 1 and edgeBottom > 1) and np.sum(result)>255
+    #edgeL = sum(result[0,:])
+    #edgeR = sum(result[-1,:])
+    #edgeTop = sum(result[:,0])
+    #edgeBottom = sum(result[:,-1])
+    #return not (edgeL > 1 and  edgeR > 1 and edgeTop > 1 and edgeBottom > 1) and np.sum(result)>255
 
 def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False, returnRaw=False,shape=None):
     """
