@@ -40,6 +40,7 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
             setPwdX(CustomPwdX(username))
             if (updatename == True):
                 oldValue = scModel.getProjectData('username')
+                scModel.setProjectData('creator', username)
                 scModel.setProjectData('username', username)
                 scModel.getGraph().replace_attribute_value('username', oldValue, username)
         if organization is not None:

@@ -82,6 +82,7 @@ def updateJournal(scModel):
     if '0.4.0901.723277630c' not in upgrades:
         _fixFrameRate(scModel)
         _fixRaws(scModel)
+        upgrades.append('0.4.0901.723277630c')
     if '0.4.1115.32eabae8e6' not in upgrades:
         _fixRecordMasInComposite(scModel, gopLoader)
         _fixLocalRotate(scModel)
