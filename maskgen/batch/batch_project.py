@@ -608,6 +608,7 @@ class PreProcessedMediaOperation(BatchOperation):
                                                                                    node_name,
                                                                                    os.path.basename(results[0]),
                                                                                    args),
+                                                    semanticGroups=node['semanticGroups'] if 'semanticGroups' in node else [],
                                                     automated='yes')
             position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
                          80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
@@ -688,6 +689,7 @@ class PluginOperation(BatchOperation):
             args['experiment_id'] = node['experiment_id']
         args['skipRules'] = True
         args['sendNotifications'] = False
+        args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []
         if (self.logger.isEnabledFor(logging.DEBUG)):
             self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                        filename,
