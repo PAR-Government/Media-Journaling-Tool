@@ -233,6 +233,29 @@ def removeValue(obj, path):
             return removeValue(current_value,path)
 
 
+def setPathValue(d, path, value):
+    pos = path.find('.')
+    lbracket = path.find('[')
+    listpos = None
+    nextpath = path[pos + 1:] if pos > 0 else None
+    if lbracket > 0 and (pos < 0 or lbracket < pos):
+        rbracket = path.find(']')
+        listpos = int(path[lbracket + 1:rbracket])
+        pos = lbracket
+    if pos < 0:
+        if listpos is not None:
+            d[path][listpos] = value
+        elif value is None:
+            d.pop(path)
+        else:
+            d[path] = value
+    elif listpos is not None:
+        setPathValue(d[path[0:pos]][listpos], nextpath, value)
+    else:
+        if path[0:pos] not in d:
+            d[path[0:pos]] = {}
+        setPathValue(d[path[0:pos]], nextpath, value)
+
 def getValue(obj, path, defaultValue=None, convertFunction=None):
     """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
         obj is a node or edge
@@ -1701,27 +1724,17 @@ def isHomographyOk(transform_matrix, h,w):
     intersection_point_projective = np.cross(a, b)
     if intersection_point_projective[2] == 0:
         return False
-    point = intersection_point_projective / float(intersection_point_projective[2])
-    point = Point(point[0], point[1])
-    points = [(d[0] / d[2], d[1] / d[2]) for d in [a_ll,a_ul,a_ur,a_lr]]
-    polygon = Polygon(points).convex_hull
-    return not polygon.contains(point)
-
-def siftCheck(height,width, transform_matrix):
-    #mask = np.zeros((height,width),dtype=np.uint8)
-    #box_width = width/4
-    #box_height = height/4
-    #mask[int(box_height*1.6):-int(box_height*1.6),box_width:-box_width] = 255
-    #mask[box_height:-box_height,int(box_width*1.6):-int(box_width*1.6)] = 255
-    #cv2.ellipse(mask,(width/2,height/2),(int(width/5),int(height/5)),0,0,360,255,-1)
-    return isHomographyOk(transform_matrix,width/2, height/2)
-    #result = applyTransform(mask,255-mask,transform_matrix=transform_matrix,invert=True,returnRaw=True)
-    #ImageWrapper(result).save('result.png')
-    #edgeL = sum(result[0,:])
-    #edgeR = sum(result[-1,:])
-    #edgeTop = sum(result[:,0])
-    #edgeBottom = sum(result[:,-1])
-    #return not (edgeL > 1 and  edgeR > 1 and edgeTop > 1 and edgeBottom > 1) and np.sum(result)>255
+    y = intersection_point_projective[0] / intersection_point_projective[2]
+    x = intersection_point_projective[1] / intersection_point_projective[2]
+    # if the resulting lines intersect inside the box, fail
+    if 0 <= x <= w and 0 <= y <= h:
+        return False
+    else:
+        return True
+    #point = Point(x,y)
+    #points = [(d[0] / d[2], d[1] / d[2]) for d in [a_ll,a_ul,a_ur,a_lr]]
+    ##polygon = Polygon(points).convex_hull
+    #return not polygon.contains(point)
 
 def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False, returnRaw=False,shape=None):
     """
