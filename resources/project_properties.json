@@ -551,6 +551,13 @@
       "semanticgroup" : true,
       "information": "Change lighting to indicate a different time of day"
     },
+     {
+      "description": "DateandTime",
+      "name": "dateandtime",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Change the date and time for ENF and time specific environment change detection"
+    },
  {
       "description": "Date Burn-in",
       "name": "dateburnin",

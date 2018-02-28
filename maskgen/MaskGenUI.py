@@ -699,7 +699,6 @@ class MakeGenUI(Frame):
                                  property_change_actions={'username': UserPropertyChange(self.scModel)})
 
     def getproperties(self):
-        graph_rules.setProjectSummary(self.scModel)
         d = PropertyDialog(self, getProjectProperties(),scModel=self.scModel, dir=self.scModel.get_dir())
 
     def pluginbuilder(self):
