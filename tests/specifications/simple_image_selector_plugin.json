@@ -50,7 +50,7 @@
       "plugin": "PasteSpliceDonor",
       "id": "3",
       "source": "2",
-      "semanticGroups": ["DateandTime"],
+      "semanticGroups": ["Date and Time"],
       "arguments": {
         "donor": {
            "type": "donor",
