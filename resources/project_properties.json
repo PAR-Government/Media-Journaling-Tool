@@ -552,7 +552,7 @@
       "information": "Change lighting to indicate a different time of day"
     },
      {
-      "description": "DateandTime",
+      "description": "Date and Time",
       "name": "dateandtime",
       "type": "yesno",
       "semanticgroup" : true,
