@@ -10,12 +10,12 @@ import random
 
 class TestToolSet(TestSupport):
 
-    def test_Sobel(self):
+    def xtest_Sobel(self):
         filename = self.locateFile('tests/algorithms/arch_sunset.resized.jpg')
         map = SobelFunc()(np.asarray(openImageFile(filename)))
         saveEnergy(map,os.path.join(os.path.dirname(filename), 'arch_e.png'))
 
-    def test_Scharr(self):
+    def xtest_Scharr(self):
         filename = self.locateFile('tests/algorithms/arch_sunset.resized.jpg')
         map = ScharrEnergyFunc()(np.asarray(openImageFile(filename)))
         saveEnergy(map,os.path.join(os.path.dirname(filename), 'arch_e.png'))
@@ -33,7 +33,7 @@ class TestToolSet(TestSupport):
                         shape=somemask.shape,
                         mask_filename=self.locateFile('tests/algorithms/cat_mask.png'))
         image, mask = sc.remove_seams()
-        somemask = sc.mask_tracker.move_pixels(somemask)
+        somemask = sc.mask_tracker.move_pixels(somemask.astype('uint8'))
         self.assertTrue(image.shape == somemask.shape)
         self.assertTrue((image.shape[0],image.shape[1]) == sc.mask_tracker.neighbors_mask.shape)
         #ImageWrapper(image).save(os.path.join(os.path.dirname(filename), 'cat_f.png'))
@@ -97,32 +97,30 @@ class TestToolSet(TestSupport):
         self.assertTrue(np.all(somemaskcopy[mask==0] == originalmask[mask==0]))
 
     def test_shrink_forward_energy_arch(self):
-        filename = self.locateFile('tests/algorithms/arch_sunset.resized.jpg')
+        #filename = self.locateFile('tests/algorithms/arch_sunset.jpg')
+        #newshape = (470, 250)
+        filename = self.locateFile('tests/algorithms/pexels-photo-746683.jpg')
+        newshape = (1450, 1950)
         img = openImageFile(filename)
-        somemask = img.to_array()
-        somemaskcopy = somemask
-        sc = SeamCarver(filename, shape=(
-        470, 250),energy_function=SobelFunc(),
-                        seam_function=foward_base_energy_function)
+        imgcopy = img.to_array()
+        sc = SeamCarver(filename, shape=newshape,energy_function=SobelFunc(),
+                        seam_function=foward_base_energy_function,keep_size=True)
         image, mask = sc.remove_seams()
         #ImageWrapper(image).save(os.path.join(os.path.dirname(filename), 'as_f.png'))
         #ImageWrapper(mask).save(os.path.join(os.path.dirname(filename), 'as_m.png'))
-        radj, cadj = sc.mask_tracker.save_adjusters('adjusters.png')
-        sc.mask_tracker.read_adjusters( radj, cadj )
+        #radj, cadj = sc.mask_tracker.save_adjusters('adjusters.png')
+        #sc.mask_tracker.read_adjusters( radj, cadj )
         sc.mask_tracker.save_neighbors_mask('as_m.png')
-        #os.remove(radj)
-        #os.remove(cadj)
-        #os.remove('twins_m.png')
-        somemask = sc.mask_tracker.move_pixels(somemask)
+        imgcopymoved = sc.mask_tracker.move_pixels(imgcopy)
         #ImageWrapper(somemask).save(os.path.join(os.path.dirname(filename), 'as_sm.png'))
-        self.assertTrue(image.shape == somemask.shape)
-        self.assertTrue(np.all(image == somemask))
+        self.assertTrue(image.shape == imgcopymoved.shape)
+        self.assertTrue(np.all(image == imgcopymoved))
         self.assertTrue((image.shape[0], image.shape[1]) == sc.mask_tracker.neighbors_mask.shape)
-        originalmask = sc.mask_tracker.invert_move_pixels(somemask)
-        self.assertTrue(somemaskcopy.shape == originalmask.shape)
-       # ImageWrapper(somemaskcopy).save(os.path.join(os.path.dirname(filename), 'as_om.png'))
+        originalmask = sc.mask_tracker.invert_move_pixels(imgcopymoved)
+        self.assertTrue(imgcopy.shape == originalmask.shape)
+        #ImageWrapper(imgcopymoved).save(os.path.join(os.path.dirname(filename), 'as_om.png'))
         #ImageWrapper(originalmask).save(os.path.join(os.path.dirname(filename), 'as_om2.png'))
-        self.assertTrue(np.all(somemaskcopy[mask==0] == originalmask[mask==0]))
+        self.assertTrue(np.all(imgcopy[mask==0] == originalmask[mask==0]))
 
     def extendRemoveSet(self, removeset,dim):
         newset = []

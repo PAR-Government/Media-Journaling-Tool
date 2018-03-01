@@ -98,6 +98,9 @@ def _processRaw(raw, isMask=False,args=None):
         return None
 
 
+def openImageMaskFile(directory, filename):
+    return openImageFile(os.path.join(directory,filename),isMask=True).to_array()
+
 def openRaw(filename, isMask=False, args=None):
     try:
         import rawpy
@@ -197,7 +200,6 @@ def getProxy(filename):
         return proxyname
     return None
 
-
 def defaultOpen(filename, isMask=False, args=None):
     with open(filename, 'rb') as f:
         im = Image.open(f)
@@ -282,7 +284,6 @@ def deleteImage(filename):
     with image_lock:
         if filename in image_cache:
             image_cache.pop(filename)
-
 
 def openImageFile(filename, isMask=False, args=None):
     """
@@ -427,13 +428,20 @@ class ImageWrapper:
             self.image_array = img_array.astype('uint8')
 
     def save(self, filename, **kwargs):
+        """
+
+        :param filename:
+        :param kwargs:
+        :return:
+        @type filename: str
+        """
         self.filename = filename
         if 'format' in kwargs:
             format = kwargs['format']
         elif getFromWriterRegistry(self.mode.lower()):
             format = self.mode.lower()
         else:
-            format = 'TIFF' if self.image_array.dtype == 'uint16' else 'PNG'
+            format = 'TIFF' if filename.lower().endswith('tif') or filename.lower().endswith('tiff') else 'PNG'
         newargs = dict(kwargs)
         newargs['format'] = format
         img_array = self.image_array
@@ -456,6 +464,8 @@ class ImageWrapper:
             #with open(filename, 'w') as f:
             #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
             #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
+        elif format == 'PNG' and self.image_array.dtype != 'uint8':
+            imsave(filename, self.image_array.astype('uint8'), **newargs)
         else:
             imsave(filename, self.image_array, **newargs)
         if os.path.exists(filename):

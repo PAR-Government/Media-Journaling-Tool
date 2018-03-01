@@ -15,7 +15,6 @@ import json
 global_image = {}
 imageLoaded = False
 
-
 class MaskGenLoader:
     def __init__(self):
         self.load()
@@ -34,15 +33,18 @@ class MaskGenLoader:
     def __iter__(self):
         return global_image.keys()
 
-    def __contains__(self,image_id):
-        return image_id in global_image
+    def __contains__(self,key):
+        return key in global_image
 
-    def __getitem__(self, image_id):
-        return global_image[image_id] if image_id in global_image else None
+    def __setitem__(self,key,value):
+        global_image[key] = value
 
-    def get_key(self, image_id, default_value=None):
+    def __getitem__(self, key):
+        return global_image[key] if key in global_image else None
+
+    def get_key(self, key, default_value=None):
         global global_image
-        return global_image[image_id] if image_id in global_image else default_value
+        return global_image[key] if key in global_image else default_value
 
     def _backup(self):
         mainfile = os.path.join(expanduser("~"), ".maskgen2")
@@ -60,9 +62,9 @@ class MaskGenLoader:
         if (okToBackup):
             shutil.copy(mainfile,backup)
 
-    def save(self, image_id, data):
+    def save(self, key, data):
         global global_image
-        global_image[image_id] = data
+        global_image[key] = data
         self._backup()
         file_path = os.path.join(expanduser("~"), ".maskgen2")
         with open(file_path, 'w') as f:
@@ -70,8 +72,8 @@ class MaskGenLoader:
 
     def saveall(self, idanddata):
         global global_image
-        for image_id, data in idanddata:
-            global_image[image_id] = data
+        for key, data in idanddata:
+            global_image[key] = data
         file_path = os.path.join(expanduser("~"), ".maskgen2")
         self._backup()
         with open(file_path, 'w') as f:

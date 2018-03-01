@@ -30,6 +30,7 @@ import sys
 from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
+from maskgen.validation.core import ValidationMessage,Severity,sortMessages
 
 
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
@@ -367,7 +368,6 @@ class MyDropDown(OptionMenu):
         self.command = command
 
 class PropertyFunction:
-
     """
     Set and Get values for a property for a given name.
     Used by general UI frames and property updaters, regardless of the source of the property (e.g. node, edge, system).
@@ -1531,10 +1531,15 @@ class MetaDiffTable(Frame):
         self.table.createTableFrame()
 
 
-class ListDialog(Toplevel):
+class ValidationListDialog(Toplevel):
     items = None
 
     def __init__(self, parent, items, name):
+        """
+        :param items:
+        :return:
+        @type items: list of ValidationMessage
+        """
         self.items = items
         self.parent = parent
         Toplevel.__init__(self, parent)
@@ -1561,10 +1566,27 @@ class ListDialog(Toplevel):
         return Button(frame, text="OK", width=10, command=self.cancel, default=ACTIVE)
 
     def setItems(self, items):
-        self.items = items
+        """
+
+        :param items:
+        :return:
+        @type items: list of ValidationMessage
+        """
+        self.items = sortMessages(items)
         self.itemBox.delete(0, END)
         for item in self.items:
-            self.itemBox.insert(END, item[2])
+            if item[1] != item[2]:
+                self.itemBox.insert(END, '{}:{}->{} {}'.format(item.Severity.name,
+                                                               self.parent.scModel.getFileName(item.Start),
+                                                               self.parent.scModel.getFileName(item.End),
+                                                               item.Message))
+            elif len(item[1])>0:
+                self.itemBox.insert(END, '{}:{} {}'.format(item.Severity.name,
+                                                           self.parent.scModel.getFileName(item.Start),
+                                                           item.Message))
+            else:
+                self.itemBox.insert(END, '{}:{}'.format(item.Severity.name,
+                                                           item.Message))
 
     def body(self, master):
         self.yscrollbar = Scrollbar(master, orient=VERTICAL)
@@ -1576,11 +1598,10 @@ class ListDialog(Toplevel):
         self.xscrollbar.grid(row=1, column=0, stick=E + W)
         self.yscrollbar.config(command=self.itemBox.yview)
         self.yscrollbar.grid(row=0, column=1, stick=N + S)
-        for item in self.items:
-            self.itemBox.insert(END, item[2])
+        self.setItems(self.items)
 
     def cancel(self):
-        self.parent.doneWithWindow(self)
+        #self.parent.doneWithWindow(self)
         self.parent.focus_set()
         self.destroy()
 
@@ -1588,14 +1609,14 @@ class ListDialog(Toplevel):
         if len(self.itemBox.curselection()) == 0:
             return
         index = int(self.itemBox.curselection()[0])
-        self.parent.selectLink(self.items[index][0], self.items[index][1])
+        self.parent.selectLink(self.items[index][1], self.items[index][2])
 
 
-class DecisionListDialog(ListDialog):
+class DecisionValidationListDialog(ValidationListDialog):
     isok = False
 
     def __init__(self, parent, items, name):
-        ListDialog.__init__(self, parent, items, name)
+        ValidationListDialog.__init__(self, parent, items, name)
 
     def setok(self):
         self.isok = True
@@ -2241,10 +2262,11 @@ class VerticalScrolledFrame(Frame):
         # reset the view
         canvas.xview_moveto(0)
         canvas.yview_moveto(0)
+        self._canvas = canvas
 
         #create a frame inside the canvas which will be scrolled with it
         self.interior = Frame(canvas)
-        interior_id = canvas.create_window(0, 0, window=self.interior,
+        self.interior_id = canvas.create_window(0, 0, window=self.interior,
                                            anchor=NW)
 
         # track changes to the canvas and frame width and sync them,
@@ -2263,18 +2285,27 @@ class VerticalScrolledFrame(Frame):
         self.interior.bind('<Configure>', _configure_interior)
 
         def _configure_canvas(event):
-            if self.interior.winfo_reqwidth() < self.canvas.winfo_width():
+            if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
                 # update the inner frame's width to fill the canvas
-                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
-            elif self.interior.winfo_reqwidth() > self.canvas.winfo_width():
+                canvas.itemconfigure(self.interior_id, width=canvas.winfo_width())
+            elif self.interior.winfo_reqwidth() != self.canvas.winfo_width():
                 self.canvas.config(width=self.interior.winfo_reqwidth())
             if (self.interior.winfo_reqheight() < self.canvas.winfo_height()) or (
-                self.interior.winfo_height() < self.canvas.winfo_height()):
-                self.canvas.itemconfigure(interior_id, height=self.canvas.winfo_height())
+                self.interior.winfo_height() != self.canvas.winfo_height()):
+                self.canvas.itemconfigure(self.interior_id, height=self.canvas.winfo_height())
 
         canvas.bind('<Configure>', _configure_canvas)
 
         return
+
+    def resize_canvas(self, height = 400, width = 400):
+        """
+        Function for the user to resize the internal Canvas widget if desired
+        :param height: new height in pixels
+        :param width: new width in pixels
+        :return:
+        """
+        self._canvas.configure(width=width, height=height)
 
 
 def notifyCB(obj,name, type, row, cb,a1,a2,a3):
@@ -2500,7 +2531,32 @@ class SystemPropertyDialog(tkSimpleDialog.Dialog):
                             propertyFunction=SystemPropertyFunction(self.prefLoader,
                                                                     self.property_change_actions),
                             dir=self.dir)
-        self.vs.grid(row=0)
+        self.wm_resizable(width=False,height=True)
+        self.master.pack_propagate(True)
+        self.master.grid_propagate(True)
+        self.vs.pack(side="top", fill="both", expand=True)
+        self.master.wm_resizable(width=False, height=False)
+
+   def buttonbox(self):
+        '''add standard button box.
+
+        override if you do not want the standard buttons
+        '''
+
+        box = Frame(self)
+
+        w = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack(expand=False)
+        box.grid_propagate(False)
+        box.pack_propagate(False)
+        box.ra
 
    def cancel(self, event=None):
     self.cancelled = True

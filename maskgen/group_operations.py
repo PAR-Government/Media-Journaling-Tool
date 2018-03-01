@@ -12,6 +12,8 @@ import exif
 import numpy as np
 import tool_set
 import logging
+from validation.core import ValidationMessage, Severity
+from scenario_model import ImageProjectModel
 
 
 class BaseOperation:
@@ -36,6 +38,11 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
     """
 
     def __init__(self, scModel):
+        """
+
+        :param scModel:
+        @type scModel: ImageProjectModel
+        """
         BaseOperation.__init__(self, scModel)
 
     def suffix(self):
@@ -58,9 +65,13 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
           Return error message valid link pairs in a tuple
         """
         newPairs = []
-        msg = None
+        msgs = None
         if not self.pairs:
-            msg = 'Could not find paths from base to terminal nodes where the the last operation is not ExifMetaCopy.'
+            msgs = [ValidationMessage(Severity.WARNING,
+                                      '',
+                                      '',
+                                      'Could not find paths from base to terminal nodes where the the last operation is not ExifMetaCopy.',
+                                      'CompressAs-Group')]
             newPairs = None
         else:
             for pair in self.pairs:
@@ -81,11 +92,11 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                     if r1 != r2:
                         rotate = 'yes'
                 if donor_filename.lower().endswith('jpg') or donor_filename.lower().endswith('jpeg'):
-                    msg, pairs = self.scModel.imageFromPlugin('CompressAs', donor=pair[1],
+                    msgs, pairs = self.scModel.imageFromPlugin('CompressAs', donor=pair[1],
                                                           sendNotifications=False, rotate=rotate,
                                                           skipRules=True)
                 elif donor_filename.lower().endswith('tiff') or donor_filename.lower().endswith('tif'):
-                    msg, pairs = self.scModel.imageFromPlugin('OutputTIFF',  donor=pair[1],
+                    msgs, pairs = self.scModel.imageFromPlugin('OutputTIFF',  donor=pair[1],
                                                                   sendNotifications=False, rotate=rotate,
                                                                   skipRules=True)
                 else:
@@ -94,5 +105,11 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                     continue
                 newPairs.extend(pairs)
             if len(newPairs) == 0:
-                msg = 'Group operation not permitted for base image nodes that are not JPEG or TIFF'
-        return (msg, newPairs)
+                if msgs is None:
+                    msgs = []
+                msgs.append(ValidationMessage(Severity.WARNING,
+                                              '',
+                                              '',
+                                              'Group operation not permitted for base image nodes that are not JPEG or TIFF',
+                                              'CompressAs-Group'))
+        return (msgs, newPairs)

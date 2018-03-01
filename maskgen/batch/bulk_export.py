@@ -15,7 +15,8 @@ from maskgen.graph_rules import processProjectProperties
 import csv
 from maskgen.batch import pick_projects
 from maskgen.tool_set import CustomPwdX, setPwdX, get_username
-
+from maskgen.validation.core import Severity, ValidationMessage,hasErrorMessages
+from maskgen.preferences_initializer import initialize
 
 def upload_projects(s3dir, dir, qa, username, organization, error_writer, updatename):
     """
@@ -37,7 +38,6 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
         if username is None:
             setPwdX(CustomPwdX(scModel.getGraph().getDataItem("username")))
         else:
-            setPwdX(CustomPwdX(username))
             if (updatename == True):
                 oldValue = scModel.getProjectData('username')
                 scModel.setProjectData('creator', username)
@@ -46,18 +46,19 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
         if organization is not None:
             scModel.setProjectData('organization', organization)
             scModel.save()
-
         processProjectProperties(scModel)
-        #scModel.renameFileImages()
         if qa:
             scModel.set_validation_properties("yes", get_username(), "QA redone via Batch Updater")
+        errors = scModel.validate(external=True)
+        for err in errors:
+            error_writer.writerow((scModel.getName(), err.Severity.name,err.Start,err.End,err.Message))
+        if hasErrorMessages(errors):
+            raise ValueError('Validation Failed')
         error_list = scModel.exporttos3(s3dir)
         if len(error_list) > 0:
             for err in error_list:
                 print (err)
             raise ValueError('Export Failed')
-        for err in scModel.validate():
-            error_writer.writerow((scModel.getName(), str(err)))
 
 def main():
     parser = argparse.ArgumentParser()
@@ -69,6 +70,7 @@ def main():
     parser.add_argument('-n', '--updatename', help="should update username in project", required=False, action="store_true")
     args = parser.parse_args()
 
+    initialize(username=args.username)
     with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
         error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         upload_projects(args.s3, args.projects, args.qa, args.username, args.organization, error_writer, args.updatename)

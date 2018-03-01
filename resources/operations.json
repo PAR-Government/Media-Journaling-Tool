@@ -3912,7 +3912,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkEmpty"
+        "checkEmpty",
+        "checkMoveMask"
       ],
       "optionalparameters": {
 

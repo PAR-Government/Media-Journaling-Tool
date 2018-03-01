@@ -9,4 +9,6 @@ import software_loader
 from image_graph import igversion
 logging.getLogger('maskgen').info('Version ' + igversion)
 from image_wrap import ImageWrapper
+from maskgen_loader import MaskGenLoader
+maskGenPreferences = MaskGenLoader()
 

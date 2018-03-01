@@ -7,11 +7,12 @@
 # ==============================================================================
 
 from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openImageFile, sizeOfChange, \
-    convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, getValue, addFrame, \
+    convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, addFrame, \
     getMilliSecondsAndFrameCount, sumMask
 import exif
 import graph_rules
-from image_wrap import ImageWrapper
+from support import getValue
+from image_wrap import ImageWrapper, openImageMaskFile
 import tool_set
 import numpy as np
 import cv2
@@ -20,6 +21,7 @@ from image_graph import ImageGraph
 import os
 import video_tools
 from collections import namedtuple
+
 
 class VideoSegment:
     """
@@ -144,6 +146,20 @@ class Probe:
 
 DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_file_name', 'media_type'])
 CompositeImage = namedtuple('CompositeImage', ['source', 'target', 'media_type', 'videomasks'])
+
+def getOrientationForEdge(edge):
+    if ('arguments' in edge and \
+                ('Image Rotated' in edge['arguments'] and \
+                             edge['arguments']['Image Rotated'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][1]
+    if ('arguments' in edge and \
+                ('rotate' in edge['arguments'] and \
+                             edge['arguments']['rotate'] == 'yes')) and \
+                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
+        return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
+            edge['exifdiff']['Orientation'][1]
+    return ''
 
 def getMasksFromEdge(graph, source, edge, media_types, channel=0, startTime=None,endTime=None):
     #TODO
@@ -997,7 +1013,7 @@ def seam_transform(edge,
                    pred_edges=None,
                    graph=None):
     from functools import partial
-    openImageFunc = partial(tool_set.openImageMaskFile,directory)
+    openImageFunc = partial(openImageMaskFile,directory)
     from maskgen.algorithms.seam_carving import MaskTracker
     targetImage = graph.get_image(target)[0]
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
@@ -1473,7 +1489,7 @@ def defaultAlterComposite(edge, edgeMask, compositeMask=None):
         args['interpolation']) > 0 else 'nearest'
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     flip = args['flip direction'] if 'flip direction' in args else None
-    orientflip, orientrotate = exif.rotateAmount(graph_rules.getOrientationForEdge(edge))
+    orientflip, orientrotate = exif.rotateAmount(getOrientationForEdge(edge))
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
     flip = flip if flip is not None else orientflip
@@ -1506,7 +1522,7 @@ def defaultAlterDonor(edge, edgeMask, donorMask=None):
     rotation = float(args['rotation'] if 'rotation' in args and args['rotation'] is not None else rotation)
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
     flip = args['flip direction'] if 'flip direction' in args else None
-    orientflip, orientrotate = exif.rotateAmount(graph_rules.getOrientationForEdge(edge))
+    orientflip, orientrotate = exif.rotateAmount(getOrientationForEdge(edge))
     orientrotate = -orientrotate if orientrotate is not None else None
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else orientrotate
     tm = None if ('global' in edge and edge['global'] == 'yes' and rotation != 0.0) else tm
@@ -1763,7 +1779,7 @@ class GraphCompositeIdAssigner:
         # targets associated with different base nodes and shape are in a different groups
         # note: target mask images will have the same shape as their final node
         for probe in probes:
-            r = np.asarray(probe.targetMaskImage)
+            r = np.asarray(probe.targetMaskImage,order='C')
             key = (probe.targetBaseNodeId, r.shape)
             if key not in target_groups:
                 target_groups[key] = {}
@@ -2152,7 +2168,7 @@ class CompositeDelegate:
             target_mask_filename = os.path.join(self.get_dir(),
                                                 shortenName(self.edge_id[0] + '_' + self.edge_id[1] + '_' + finalNodeId,
                                                             '_ps.png',
-                                                            id=self.graph.nextId()))
+                                                            identifier=self.graph.nextId()))
             target_mask = ImageWrapper(mask).invert()
             if saveTargets:
                 target_mask.save(target_mask_filename, format='PNG')
@@ -2323,7 +2339,7 @@ class CompositeDelegate:
 
     def __saveDonorImageToFile(self, recipientNode, baseNode, mask):
         if self.graph.has_node(recipientNode):
-            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png', id=self.graph.nextId())
+            fname = shortenName(recipientNode + '_' + baseNode, '_d_mask.png', identifier=self.graph.nextId())
             fname = os.path.abspath(os.path.join(self.get_dir(), fname))
             try:
                 mask.save(fname)

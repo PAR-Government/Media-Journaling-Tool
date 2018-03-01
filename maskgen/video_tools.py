@@ -460,7 +460,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     st = start_time_tuple
     et = end_time_tuple
     calculate_frames = st[0] > 0  or st[1] > 1 or et is not None
-    meta, frames = getMeta(video_file, show_streams=True,with_frames=calculate_frames)
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=calculate_frames)
     found_num = 0
     results = []
     for item in meta:
