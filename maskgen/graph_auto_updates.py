@@ -49,13 +49,15 @@ def updateJournal(scModel):
                    ("0.5.0227.c5eeafdb2e", [_addColor256,_fixDescriptions])])
     versions= list(fixes.keys())
     # find the maximum match
-    max_upgrade = max([versions.index(p) for p in upgrades if p in versions])
-    # fix what is left
-    fixes_needed = max_upgrade-len(versions) + 1
-    if fixes_needed < 0:
-        for id in fixes.keys()[fixes_needed:]:
-            for fix in fixes[id]:
-                fix(scModel, gopLoader)
+    matched_versions = [versions.index(p) for p in upgrades if p in versions]
+    if matched_versions > 0:
+        max_upgrade = max(matched_versions)
+        # fix what is left
+        fixes_needed = max_upgrade-len(versions) + 1
+        if fixes_needed < 0:
+            for id in fixes.keys()[fixes_needed:]:
+                for fix in fixes[id]:
+                    fix(scModel, gopLoader)
     #update to the max
     upgrades = fixes.keys()[-1:]
     if scModel.getGraph().getVersion() not in upgrades:
