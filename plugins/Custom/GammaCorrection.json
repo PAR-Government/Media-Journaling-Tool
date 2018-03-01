@@ -6,7 +6,12 @@
       "description": "Apply gamma adjustment so the mean image color will have a value of 50% (https://www.imagemagick.org/script/command-line-options.php#auto-gamma)",
       "software": "ImageMagick",
       "version": "7.0",
-      "arguments": {},
+      "arguments": {
+        "selection type": {
+          "type": "text",
+          "defaultvalue": "auto",
+          "description": "Auto Gamma"
+      },
       "transitions": ["image.image"]
     },
     "command": {

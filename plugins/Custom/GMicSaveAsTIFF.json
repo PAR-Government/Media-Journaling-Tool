@@ -1,9 +1,9 @@
 {
-    "name": "GimpSaveAsPNG",
+    "name": "GimpSaveAsTIFF",
     "operation": {
       "name": "OutputPng",
       "category": "Output",
-      "description": "Save Input file as PNG",
+      "description": "Save Input file as TIFF",
       "software": "GIMP",
       "version": "2.8.20",
       "arguments":{

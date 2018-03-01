@@ -60,8 +60,9 @@ class BatchProcessor:
                 item_id = item_to_process[0] if isinstance(item_to_process,tuple) else item_to_process
                 logging.getLogger('maskgen').info('Project updating: ' + str(item_id))
                 errors = func_to_run(item_to_process)
-                for error in errors:
-                    error_writer.write((str(item_id), error))
+                if errors is not None:
+                    for error in errors:
+                        error_writer.write((str(item_id), error))
                 with self.lock:
                     self.count += 1
                     logging.getLogger('maskgen').info(

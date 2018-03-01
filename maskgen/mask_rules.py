@@ -352,6 +352,16 @@ def recapture_transform(edge, source, target, edgeMask,
         return res
     return edgeMask
 
+def resize_analysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    from PIL import Image
+    tool_set.globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    sizeChange  = toIntTuple(analysis['shape change']) if 'shape change' in analysis else (0, 0)
+    canvas_change = (sizeChange != (0, 0) and ('interpolation' not in arguments or
+                     arguments['interpolation'].lower().find('none') < 0))
+    if not canvas_change:
+        mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+        matrix, matchCount = tool_set.__sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
+        analysis['transform matrix'] = tool_set.serializeMatrix(matrix)
 
 def resize_transform(edge, source, target, edgeMask,
                      compositeMask=None,
@@ -363,8 +373,10 @@ def resize_transform(edge, source, target, edgeMask,
     sizeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
     location = toIntTuple(edge['location']) if 'location' in edge and len(edge['location']) > 0 else (0, 0)
     args = edge['arguments'] if 'arguments' in edge else {}
-    canvas_change = (sizeChange != (0, 0) and 'interpolation' in args and 'none' == args['interpolation'].lower())
     tm = edge['transform matrix'] if 'transform matrix' in edge  else None
+    canvas_change = (sizeChange != (0, 0) and ('interpolation' not in args or
+                                               args['interpolation'].lower().find('none') < 0)
+                     or tm is None)
     if location != (0, 0):
         sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
     if compositeMask is not None:
