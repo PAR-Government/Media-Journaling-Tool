@@ -50,7 +50,7 @@ def updateJournal(scModel):
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
-    if matched_versions > 0:
+    if len(matched_versions) > 0:
         max_upgrade = max(matched_versions)
         # fix what is left
         fixes_needed = max_upgrade-len(versions) + 1
