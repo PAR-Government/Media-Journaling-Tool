@@ -1815,6 +1815,7 @@ class ImageProjectModel:
         with self.lock:
             self.clear_validation_properties()
             self.assignColors()
+            self.setProjectSummary()
             self.G.save()
 
     def getEdgeItem(self, name, default=None):
@@ -2316,6 +2317,7 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'],
                                    category=opInfo.category,
                                    generateMask=opInfo.generateMask,
+                                   semanticGroups=graph_args['semanticGroups'] if 'semanticGroups' in graph_args else [],
                                    recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
                                    'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
@@ -2326,7 +2328,7 @@ class ImageProjectModel:
             description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
         experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
         description.setArguments(
-            {k: v for k, v in graph_args.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
+            {k: v for k, v in graph_args.iteritems() if k not in ['semanticGroups','sendNotifications', 'skipRules', 'experiment_id']})
         if extra_args is not None and type(extra_args) == type({}):
             for k, v in extra_args.iteritems():
                 if k not in kwargs or v is not None:
@@ -2372,7 +2374,11 @@ class ImageProjectModel:
         arguments = copy.copy(operation.mandatoryparameters)
         arguments.update(operation.optionalparameters)
         for k, v in args.iteritems():
-            if k in arguments or k in {'sendNotifications', 'skipRules', 'experiment_id', 'recordInCompositeMask'}:
+            if k in arguments or k in {'sendNotifications',
+                                       'skipRules',
+                                       'semanticGroups',
+                                       'experiment_id',
+                                       'recordInCompositeMask'}:
                 parameters[k] = v
                 # if arguments[k]['type'] != 'donor':
                 stripped_args[k] = v
@@ -2553,6 +2559,14 @@ class ImageProjectModel:
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)
             self.notify((self.start, self.end), 'update_edge')
+
+    def setProjectSummary(self):
+        groups = []
+        for edgeTuple in self.getGraph().get_edges():
+            edge = self.getGraph().get_edge(edgeTuple[0], edgeTuple[1])
+            if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
+                groups.extend(edge['semanticGroups'])
+        self.setProjectData('semanticgroups', groups)
 
     def set_validation_properties(self, qaState, qaPerson, qaComment):
         import time

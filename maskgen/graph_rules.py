@@ -1820,20 +1820,6 @@ def _cleanEdges(scModel, edges):
     return [edgeTuple for edgeTuple in edges]
 
 
-def setProjectSummary(scModel):
-    """
-    :param scModel:
-    :return:
-    @type scModel: ImageProjectModel
-    """
-    groups = []
-    for edgeTuple in scModel.getGraph().get_edges():
-        edge = scModel.getGraph().get_edge(edgeTuple[0], edgeTuple[1])
-        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
-            groups.extend(edge['semanticGroups'])
-    scModel.setProjectData('semanticgroups', groups)
-
-
 def setFinalNodeProperties(scModel, finalNode):
     """
 

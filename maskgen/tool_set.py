@@ -1724,13 +1724,20 @@ def isHomographyOk(transform_matrix, h,w):
     intersection_point_projective = np.cross(a, b)
     if intersection_point_projective[2] == 0:
         return False
-    y = intersection_point_projective[0] / intersection_point_projective[2]
-    x = intersection_point_projective[1] / intersection_point_projective[2]
-    # if the resulting lines intersect inside the box, fail
-    if 0 <= x <= w and 0 <= y <= h:
+    y_vertical = intersection_point_projective[0] / intersection_point_projective[2]
+    x_vertical = intersection_point_projective[1] / intersection_point_projective[2]
+
+    a = np.cross(a_ul, a_ur)
+    b = np.cross(a_ll, a_lr)
+    # find point of intersection
+    intersection_point_projective = np.cross(a, b)
+    if intersection_point_projective[2] == 0:
         return False
-    else:
-        return True
+    y_horizontal = intersection_point_projective[0] / intersection_point_projective[2]
+    x_horizontal = intersection_point_projective[1] / intersection_point_projective[2]
+    # if the resulting lines intersect inside the box, fail
+    return not ( 0 <= x_vertical <= w and 0 <= y_vertical <= h ) and not (0 <= x_horizontal <= w and 0 <= y_horizontal <= h)
+    # Or is more appropriate to look at the hull of the shape.
     #point = Point(x,y)
     #points = [(d[0] / d[2], d[1] / d[2]) for d in [a_ll,a_ul,a_ur,a_lr]]
     ##polygon = Polygon(points).convex_hull
