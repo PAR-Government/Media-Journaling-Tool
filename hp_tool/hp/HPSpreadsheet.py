@@ -330,7 +330,7 @@ class HPSpreadsheet(Toplevel):
         elif currentCol == 'HP-Collection':
             validValues = self.collections
         elif currentCol == 'HP-License':
-            validValues = ['CC0', 'CCA']
+            validValues = ['CC-0']
 
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth', 'HP-PolyCount']:
             validValues = {'instructions':'Any integer value'}
