@@ -97,9 +97,9 @@ class SettingsWindow(Toplevel):
         self.s3Var = StringVar()
         self.s3VarPRNU = StringVar()
         self.urlVar = StringVar()
-        self.urlVar.set('https://medifor.rankone.io')
         self.tokenVar = StringVar()
         self.trelloVar = StringVar()
+        self.recipEmail = StringVar()
 
         self.imageVar = StringVar()
         self.videoVar = StringVar()
@@ -124,7 +124,8 @@ class SettingsWindow(Toplevel):
             self.settings.set('seq', '00000')
 
         defaults = {'aws':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
-                    'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar}
+                    'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar,
+                    'archive_recipient':self.recipEmail}
         for s in defaults:
             if self.settings.get(s):
                 defaults[s].set(self.settings.get(s))
@@ -173,12 +174,19 @@ class SettingsWindow(Toplevel):
         self.urlLabel = Label(self.prefsFrame, text='Browser API URL: ')
         self.urlLabel.grid(row=r, column=0, columnspan=4)
 
-        self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar, state=DISABLED)
+        self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar)
         self.urlBox.grid(row=r, column=4)
 
         r+=1
-        medi_link = 'https://medifor.rankone.io/api/login'
-        self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ', command=lambda:self.open_website(medi_link))
+
+        self.archiveRecipientButton = Button(self.prefsFrame, text="Recipient Email", command=lambda:tkMessageBox.showinfo("Recipient Email", "Enter the email address of the archive recipient for encryption."))
+        self.archiveRecipientButton.grid(row=r, column=0, columnspan=4)
+
+        self.archiveRecipBox = Entry(self.prefsFrame, textvar=self.recipEmail)
+        self.archiveRecipBox.grid(row=r, column=4)
+
+        r+=1
+        self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ', command=lambda:tkMessageBox.showinfo("Browser Token", "Enter your browser API token.  Refer to the HP Tool guide to find the location of this."))
         self.browserButton.grid(row=r, column=0, columnspan=4)
 
         self.browserBox = Entry(self.prefsFrame, textvar=self.tokenVar)
@@ -308,7 +316,8 @@ class SettingsWindow(Toplevel):
         self.settings.set('audiotypes', self.audioVar.get())
         self.settings.set('modeltypes', self.modelVar.get())
         self.settings.set('trello_login_url', 'https://trello.com/1/authorize?key='+self.trello_key+'&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
-        self.settings.set('browser_login_url', 'https://medifor.rankone.io/api/login')
+        self.settings.set('browser_login_url', self.browserBox.get())
+        self.settings.set('archive_recipient', self.archiveRecipBox.get())
 
         self.settings.set_m('copyrightnotice', self.copyrightVar.get())
         self.settings.set_m('by-line', self.bylineVar.get())

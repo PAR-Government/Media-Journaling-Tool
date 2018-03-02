@@ -514,6 +514,10 @@ class PRNU_Uploader(Frame):
         print('Archiving data...')
         archive = self.archive_prnu()
 
+        if not archive:
+            tkMessageBox.showerror("Error", "File encryption failed.  Please check your recipient setting and try again.")
+            return
+
         print('Uploading...')
         try:
             s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
@@ -571,9 +575,15 @@ class PRNU_Uploader(Frame):
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
         os.close(fd)
-        final_name = os.path.join(self.root_dir.get(), self.localID.get() + '.tar')
-        shutil.move(tname, os.path.join(self.root_dir.get(), final_name))
-        return final_name
+        tar_name = os.path.join(self.root_dir.get(), self.localID.get() + '.tar')
+        tar_path = os.path.join(self.root_dir.get(), tar_name)
+        shutil.move(tname, tar_path)
+        recipient = self.settings.get("archive_recipient") if self.settings.get("archive_recipient") else None
+        if recipient:
+            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path])
+            final_name = tar_path + ".gpg"
+            return final_name
+        return None
 
     def write_md5(self, path):
         # write md5 of archive to file
