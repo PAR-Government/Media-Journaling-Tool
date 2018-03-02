@@ -442,7 +442,7 @@ class PRNU_Uploader(Frame):
             self.rootEntry.config(state=DISABLED)
             self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
 
-    def organize_prnu_dir(self, luminance_dir, software_list):
+    def organize_prnu_dir(self, luminance_dir):
         subfolders = [os.path.normpath(os.path.join(luminance_dir, x)) for x in os.listdir(luminance_dir) if os.path.isdir(os.path.join(luminance_dir, x))]
         files_in_dir = any(os.path.isfile(os.path.join(luminance_dir, x)) for x in os.listdir(luminance_dir))
 
@@ -455,7 +455,7 @@ class PRNU_Uploader(Frame):
 
         for subdir in subfolders:
             try:
-                (width, height) = os.path.split(subdir)[1].split("x")
+                (width, height) = os.path.split(subdir)[1].lower().split("x")
             except ValueError:
                 if not os.listdir(subdir):
                     os.rmdir(subdir)
@@ -480,19 +480,19 @@ class PRNU_Uploader(Frame):
                 return error
 
             for i in xrange(0, len(width_height)):
-                if width_height[i]['Software'] not in software_list:
-                    error = "{0} is not in the approved software list for this camera.".format(width_height[i]['Software'])
-                    return error
-                elif width_height[i]['ImageWidth'] != int(width) or width_height[i]['ImageHeight'] != int(height):
+                # if width_height[i]['Software'] not in software_list:
+                #     error = "{0} is not in the approved software list for this camera.".format(width_height[i]['Software'])
+                #     return error
+                if width_height[i]['ImageWidth'] != int(width) or width_height[i]['ImageHeight'] != int(height):
                     copy_to_res(width_height[i], luminance_dir)
 
         if files_in_dir:
             width_height = json.loads(subprocess.Popen(['exiftool', '-ImageWidth', '-ImageHeight', 'Software', '-j', luminance_dir], stdout=subprocess.PIPE).communicate()[0])
             for i in range(0, len(width_height)):
-                if width_height[i]['Software'] not in software_list:
-                    error = "{0} is not in the approved software list for this camera.".format(
-                        width_height[i]['Software'])
-                    return error
+                # if width_height[i]['Software'] not in software_list:
+                #     error = "{0} is not in the approved software list for this camera.".format(
+                #         width_height[i]['Software'])
+                #     return error
                 copy_to_res(width_height[i], luminance_dir)
         return
 
@@ -756,7 +756,7 @@ class HPGUI(Frame):
                 d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
                 self.wait_window(d)
                 if d.updated:
-                    self.reload_ids()
+                    self.reload_ids(given_id=device_id)
             except KeyError:
                 tkMessageBox.showerror(title='Error', message='Invalid Device ID (case-sensitive).')
                 return
