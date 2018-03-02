@@ -62,7 +62,8 @@
     "HP-NumberOfSpeakers",
     "HP-Keywords",
     "HP-Thumbnails",
-    "HP-PolyCount"
+    "HP-PolyCount",
+    "HP-License"
   ],
   "rankone": [
     "MD5",
@@ -103,7 +104,8 @@
     "HP-Keywords",
     "ImportDate",
     "HP-Thumbnails",
-    "HP-PolyCount"
+    "HP-PolyCount",
+    "HP-License"
   ],
   "keywords": [
     "ImageFilename",

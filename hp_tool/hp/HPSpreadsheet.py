@@ -329,8 +329,10 @@ class HPSpreadsheet(Toplevel):
             validValues = ['dynamic', 'static']
         elif currentCol == 'HP-Collection':
             validValues = self.collections
+        elif currentCol == 'HP-License':
+            validValues = ['CC-0']
 
-        elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth']:
+        elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth', 'HP-PolyCount']:
             validValues = {'instructions':'Any integer value'}
         elif currentCol in ['GPSLongitude', 'GPSLatitude']:
             validValues = {'instructions':'Coodinates, specified in decimal degree format'}
@@ -429,7 +431,7 @@ class HPSpreadsheet(Toplevel):
             self.mandatoryAudio.append(self.pt.model.df.columns.get_loc(c))
 
         self.mandatoryModels = []
-        self.mandatoryModelNames = ['HP-Keywords', 'HP-PolyCount']
+        self.mandatoryModelNames = ['HP-Keywords', 'HP-PolyCount', 'HP-License']
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
