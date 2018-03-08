@@ -20,7 +20,8 @@ import data_files
 exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
         'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf','.mxf'],
         'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
-        'MODEL': ['.3d.zip']}
+        'MODEL': ['.3d.zip'],
+        'nonstandard': ['.lfr']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 RVERSION = '#@version=01.11'
 thumbnail_conversion = {}
@@ -49,15 +50,18 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     files_in_dir = [x for x in os.listdir(os.path.dirname(image))] if containsmodels else []
     if any(filename.endswith('.3d.zip') for filename in files_in_dir):
         sub = 'model'
+    elif any(os.path.splitext(filename)[1] in exts["nonstandard"] for filename in files_in_dir):
+        sub = 'nonstandard'
     elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
     else:
         sub = 'image'
-    if sub != 'model':
+    if sub not in ['model', 'nonstandard']:
         newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     else:
+        sub = 'image' if sub == 'nonstandard' else 'model'
         newFolderName = os.path.join(path, sub, '.hptemp', newNameStr)
         if not os.path.isdir(newFolderName):
             os.mkdir(newFolderName)
@@ -74,6 +78,8 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
                 thumbnail_counter += 1
             elif i.endswith(".3d.zip"):
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
+            elif os.path.splitext(i)[1] in exts["nonstandard"]:
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".lfr")
             else:
                 print(i + " will not be copied to the output directory as it is an unrecognized file format")
 
@@ -143,20 +149,19 @@ def grab_dir(inpath, outdir=None, r=False):
     """
     imageList = []
     names = os.listdir(inpath)
+    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
     if r:
-        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
                 if filename.lower().endswith(valid_exts) and not filename.startswith('.'):
                     imageList.append(os.path.join(dirname, filename))
     else:
-        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
         for f in names:
             if f.lower().endswith(valid_exts) and not f.startswith('.'):
                 imageList.append(os.path.join(inpath, f))
             elif os.path.isdir(os.path.join(inpath, f)):
                 for obj in os.listdir(os.path.join(inpath, f)):
-                    if os.path.join(inpath, f, obj).endswith('.3d.zip'):
+                    if obj.lower().endswith('.3d.zip') or os.path.splitext(obj)[1].lower() in exts["nonstandard"]:
                         imageList.append(os.path.normpath(os.path.join(inpath, f, obj)))
 
     imageList = sorted(imageList, key=str.lower)
@@ -453,7 +458,7 @@ def parse_image_info(self, imageList, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v),k) for k,v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-        if not imageList[i].endswith('.3d.zip'):
+        if not (imageList[i].endswith('.3d.zip') or os.path.splitext(imageList[i])[1] in exts["nonstandard"]):
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
             image_file_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
@@ -559,7 +564,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         # image_dir = os.path.dirname(image)
         # newFolder = copyrename(image_dir, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
-        newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
+        # newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         newNameList += [newName]
         count += 1
 
