@@ -56,5 +56,8 @@
     "HP-Orientation":"",
     "HP-DynamicStatic":"",
     "HP-NumberOfSpeakers":"",
-    "HP-Keywords":""
+    "HP-Keywords":"",
+    "HP-Thumbnails":"-Thumbnail",
+    "HP-PolyCount":"",
+    "HP-License":""
 }

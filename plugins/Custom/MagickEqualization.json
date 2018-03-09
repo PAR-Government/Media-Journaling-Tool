@@ -2,7 +2,7 @@
     "operation": {
         "category": "Intensity",
         "name": "Normalization",
-        "description": "Increase the contrast in an image by stretching the range of intensity values  using ImageMagick.",
+        "description": "Equalize histogram: https://www.imagemagick.org/Usage/color_mods/#equalize.",
         "version": "7.0", 
         "arguments": {
         }, 

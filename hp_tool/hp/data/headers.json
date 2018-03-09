@@ -59,7 +59,11 @@
     "HP-LightSource",
     "HP-Orientation",
     "HP-DynamicStatic",
-    "HP-NumberOfSpeakers"
+    "HP-NumberOfSpeakers",
+    "HP-Keywords",
+    "HP-Thumbnails",
+    "HP-PolyCount",
+    "HP-License"
   ],
   "rankone": [
     "MD5",
@@ -98,7 +102,10 @@
     "HP-DynamicStatic",
     "HP-NumberOfSpeakers",
     "HP-Keywords",
-    "ImportDate"
+    "ImportDate",
+    "HP-Thumbnails",
+    "HP-PolyCount",
+    "HP-License"
   ],
   "keywords": [
     "ImageFilename",

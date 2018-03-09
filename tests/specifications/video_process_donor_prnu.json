@@ -1,0 +1,276 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "alice",
+    "name": "video_flow",
+    "organization": "NIST",
+    "projectdescription" : "Optical Flow and Remove PRNU",
+    "technicalsummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "videoset",
+      "id": "0"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputX264",
+      "id": "1",
+      "arguments": {
+      }
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "FlowDrivenVideoFrameDrop",
+      "id": "2",
+      "arguments": {
+        "seconds to drop": {
+         "type":"int[2:4]"
+        },
+        "Start Time": {
+          "type":"value",
+          "value":0
+        },
+        "save histograms": {
+          "type" : "value",
+          "value":"no"
+        },
+        "codec" : {
+          "type":"value",
+          "value":"0"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "VideoCopyPasteFrames",
+      "id": "3",
+      "arguments": {
+         "Number of Frames": {
+           "type":"variable",
+           "source": "2",
+           "name":"Frames Dropped",
+           "function": "maskgen.tool_set.addTwo"
+        },
+        "Select Start Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"Start Time",
+          "function": "maskgen.tool_set.subtractOneFrame"
+        },
+        "Dest Paste Time": {
+          "type":"variable",
+          "source":"2",
+          "name":"Start Time",
+          "function": "maskgen.tool_set.subtractOneFrame"
+        },
+        "codec" : {
+          "type":"value",
+          "value":"0"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+         "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "4",
+      "arguments": {
+        "Frames to Add": {
+          "type":"variable",
+          "source":"2",
+          "name":"Frames to Add"
+        },
+       "Start Time": {
+          "type":"variable",
+          "source":"3",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "End Time": {
+          "type":"variable",
+          "source":"3",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "Direction": {
+          "type" : "value",
+          "value":"forward"
+        },
+        "codec" : {
+          "type":"value",
+          "value":"0"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "5",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "6",
+      "arguments": {
+        "Start Time": {
+          "type": "variable",
+          "source": "2",
+          "name": "Start Time"
+        },
+        "Frames to Add": {
+          "type": "variable",
+          "source": "2",
+          "name": "Frames to Add"
+        },
+         "codec" : {
+          "type":"value",
+          "value":"0"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNUFromDonorVid",
+      "id": "7",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "12"
+         }
+      }
+     },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "8",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "9",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "10",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "12"
+         }
+      }
+      },
+      {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "11",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+     },
+     {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "PickPairedImage",
+      "id": "12",
+      "arguments": {
+        "directory" : {
+          "type" : "value",
+          "value" :"{donor_dir}"
+        },
+        "pairing" : {
+          "type": "value",
+          "value": "{pairing_file}"
+        }
+      }
+     }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1
+    },
+    {
+      "source": 1,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 3
+    },
+    {
+       "source": 2,
+       "target": 3,
+       "connect":false
+    },
+    {
+      "source": 3,
+      "target": 4
+    },
+      {
+      "source": 4,
+      "target": 5
+    },
+      {
+      "source": 2,
+      "target": 6
+    },
+     {
+      "source": 6,
+      "target": 7
+     },
+      {
+      "source": 2,
+      "target": 8
+    },
+    {
+      "source": 3,
+      "target": 9
+     },
+     {
+      "source": 7,
+      "target": 10
+     },
+     {
+      "source": 6,
+      "target": 11
+     },
+     {
+      "source": 0,
+      "target": 12
+     },
+     {
+       "source": 12,
+       "target": 7,
+       "donor":true
+     }
+  ],
+  "multigraph": false
+}

@@ -9,15 +9,16 @@ Used with batch project's ImageSelectionPluginOperation
 
 
 def transform(img, source, target, **kwargs):
+
     pair_file = kwargs['pairing'] if 'pairing' in kwargs else 'pairing.csv'
     dir = kwargs['directory'] if 'directory' in kwargs else '.'
-    pairingid = kwargs['pairingid']
+    pairingid = kwargs['pairingid'] if 'pairingid' in kwargs else None
     if not os.path.exists(pair_file):
         raise ValueError('Cannot find pairing file {}'.format(pair_file))
-    filename = os.path.split(source)[1] if pairingid is None else pairingid
+    filename = os.path.basename(source) if pairingid is None else pairingid
     with open(pair_file) as fp:
         reader = csv.reader(fp)
-        pairs = [row[1] for row in reader if row[0] == filename]
+        pairs = [row[1] for row in reader if row[0] == filename[:len(row[0])]]
     if len(pairs) == 0:
         raise ValueError('Pairing not found for {}'.format(filename))
     if not os.path.exists(os.path.join(dir, pairs[0])):
@@ -30,6 +31,7 @@ def operation():
             'category': 'Select',
             'description': 'Select image based on a pairing to an existing image.',
             'software': 'maskgen',
+            'type': 'selector',
             'version': maskgen.__version__[0:3],
             'arguments': {'pairing': {'type': "text",
                                       'description': "name of CSV file containing the pairs image to image"},

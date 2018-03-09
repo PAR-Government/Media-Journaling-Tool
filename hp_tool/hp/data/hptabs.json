@@ -87,5 +87,12 @@
     "HP-Modifier",
     "HP-AngleofRecording",
     "HP-MicLocation"
+  ],
+  "Mandatory 3D Model Fields": [
+    "ImageFilename",
+    "HP-Thumbnails",
+    "HP-Keywords",
+    "HP-PolyCount",
+    "HP-License"
   ]
 }

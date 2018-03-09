@@ -551,7 +551,14 @@
       "semanticgroup" : true,
       "information": "Change lighting to indicate a different time of day"
     },
- {
+	{
+      "description": "Date and Time",
+      "name": "dateandtime",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Change the date and time for ENF and time specific environment change detection"
+    },
+	{
       "description": "Date Burn-in",
       "name": "dateburnin",
       "type": "yesno",
@@ -628,6 +635,20 @@
       "semanticgroup" : true,
       "information": "Manipulations to reflections."
     },
+	{
+	  "description": "Tattoos",
+      "name": "Tattoos",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Adding, Removing, or Altering  Tattoos"
+	},
+	{
+	  "description": "Personal Appearance",
+      "name": "Personal Appearance",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Skin Color Change, Dirty Clothing, Coal Dust, Dirt on Skin, Adding or Removing Hair"	
+	},
     {
       "description": "Mosaicing",
       "name": "mosaicing",

@@ -1,9 +1,13 @@
-"""
-PAR Government Systems
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
 
-compress_as takes in two JPEG images, and compresses the first with the q tables of the second
+# Compress_as takes in two JPEG images, and compresses the first with the q tables of the second
 
-"""
 import maskgen
 import logging
 
@@ -111,9 +115,6 @@ def transform(img,source,target, **kwargs):
 
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
-   # if 'quality' in kwargs:
-    #    quality = str(kwargs['quality'])
-    #    if quality.startswith('+'):
     quality = int(kwargs['quality']) if 'quality' in kwargs else 0
     
     tables_zigzag = parse_tables(donor)

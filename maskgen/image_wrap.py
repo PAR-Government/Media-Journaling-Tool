@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from PIL import Image
 import cv2
 import numpy as np
@@ -480,6 +488,10 @@ class ImageWrapper:
                                 mode=convert_type_str)
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2RGBA), mode='RGBA')
+        if self.mode == 'RGB' and convert_type_str == 'HSV':
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2HSV), mode='HSV')
+        if self.mode == 'HSV' and convert_type_str == 'RGB':
+            return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_HSV2RGB), mode='RGB')
         if self.mode == 'RGBA' and convert_type_str == 'RGB':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB), mode='RGB')
         if self.mode == 'L' and convert_type_str == 'RGB':

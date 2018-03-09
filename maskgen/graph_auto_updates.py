@@ -1,9 +1,17 @@
-from image_graph import current_version,getPathValues, getValue
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+
 import tool_set
 import os
 import logging
 from image_wrap import openImageFile,ImageWrapper
 import numpy as np
+
 
 """
 Support functions for auto-updating journals created with older versions of the tool"
@@ -15,78 +23,43 @@ def updateJournal(scModel):
      :return: None. Updates JSON.
      @type scModel: ImageProjectModel
     """
+    from collections import OrderedDict
     upgrades = scModel.getGraph().getDataItem('jt_upgrades')
     upgrades = upgrades if upgrades is not None else []
     gopLoader = scModel.gopLoader
-    if "0.3.1115" not in upgrades:
-        _replace_oldops(scModel)
-        upgrades.append('0.3.1115')
-    if  "0.3.1213" not in upgrades:
-        _fixQT(scModel)
-        _fixUserName(scModel)
-        upgrades.append('0.3.1213')
-    if  "0.4.0101" not in upgrades:
-        upgrades.append('0.4.0101')
-    if  "0.4.0101.8593b8f323" not in upgrades:
-        _fixResize(scModel)
-        _fixResolution(scModel)
-        upgrades.append('0.4.0101.8593b8f323')
-    if "0.4.0308.f7d9a62a7e" not in upgrades:
-        _fixLabels(scModel)
-        upgrades.append('0.4.0308.f7d9a62a7e')
-    if "0.4.0308.dd9555e4ba" not in upgrades:
-        _fixPasteSpliceMask(scModel)
-        upgrades.append('0.4.0308.dd9555e4ba')
-    if "0.4.0308.90e0ce497f" not in upgrades:
-        _fixTransformCrop(scModel)
-        upgrades.append('0.4.0308.90e0ce497f')
-    if "0.4.0308.adee798679" not in upgrades:
-        _fixEdgeFiles(scModel)
-        _fixBlend(scModel)
-        upgrades.append('0.4.0308.adee798679')
-    if "0.4.0308.db2133eadc" not in upgrades:
-        _fixFileArgs(scModel)
-        upgrades.append('0.4.0308.db2133eadc')
-    if "0.4.0425.d3bc2f59e1" not in upgrades:
-        _operationsChange1(scModel)
-        upgrades.append('0.4.0425.d3bc2f59e1')
-    if '0.4.0101.b4561b475b' not in upgrades:
-        _fixCreator(scModel)
-        _fixValidationTime(scModel)
-        upgrades.append('0.4.0101.b4561b475b')
-    if '04.0621.3a5c9635ef' not in upgrades:
-        _fixProvenanceCategory(scModel)
-        upgrades.append('04.0621.3a5c9635ef')
-    if '04.0720.415b6a5cc4' not in upgrades:
-        _fixRANSAC(scModel)
-        _fixHP(scModel)
-        upgrades.append('04.0720.415b6a5cc4')
-    if '04.0720.b0ec584b4e' not in upgrades:
-        _fixInsertionST(scModel)
-        upgrades.append('04.0720.b0ec584b4e')
-    if '04.0810.546e996a36' not in upgrades:
-        _fixVideoAudioOps(scModel)
-        upgrades.append('04.0810.546e996a36')
-    if '04.0810.9381e76724' not in upgrades:
-        _fixCopyST(scModel)
-        _fixCompression(scModel)
-        upgrades.append('04.0810.9381e76724')
-    if '0.4.0901.723277630c' not in upgrades:
-        _fixFrameRate(scModel)
-        _fixRaws(scModel)
-    if '0.4.1115.32eabae8e6' not in upgrades:
-        _fixRecordMasInComposite(scModel, gopLoader)
-        _fixLocalRotate(scModel)
-        upgrades.append('0.4.1115.32eabae8e6')
-    if '0.4.1204.5291b06e59' not in upgrades:
-        _addColor(scModel)
-        _fixAudioOutput(scModel, gopLoader)
-        _fixEmptyMask(scModel, gopLoader)
-        _fixGlobal(scModel, gopLoader)
-        upgrades.append('0.4.1204.5291b06e59')
-    if '0.4.1231.03ad63e6bb' not in upgrades:
-        _fixSeams(scModel)
-        upgrades.append('0.4.1231.03ad63e6bb')
+    fixes = OrderedDict( [("0.3.1115",     [_replace_oldops]),
+                   ("0.3.1213",            [_fixQT,_fixUserName]),
+                   ("0.4.0101.8593b8f323", [_fixResize,_fixResolution]),
+                   ("0.4.0308.f7d9a62a7e", [_fixLabels]),
+                   ("0.4.0308.f7d9a62a7e", [_fixPasteSpliceMask]),
+                   ("0.4.0308.90e0ce497f", [_fixTransformCrop]),
+                   ("0.4.0308.adee798679", [_fixEdgeFiles,_fixBlend]),
+                   ("0.4.0308.db2133eadc", [_fixFileArgs]),
+                   ("0.4.0425.d3bc2f59e1", [_operationsChange1]),
+                   ("0.4.0101.b4561b475b", [_fixCreator,_fixValidationTime]),
+                   ("04.0621.3a5c9635ef",  [_fixProvenanceCategory]),
+                   ("04.0720.415b6a5cc4",  [_fixRANSAC,_fixHP]),
+                   ("04.0720.b0ec584b4e",  [_fixInsertionST]),
+                   ("04.0810.546e996a36",  [_fixVideoAudioOps]),
+                   ("04.0810.9381e76724",  [_fixCopyST,_fixCompression]),
+                   ("0.4.0901.723277630c", [_fixFrameRate,_fixRaws]),
+                   ("0.4.1115.32eabae8e6", [_fixRecordMasInComposite,_fixLocalRotate]),
+                   ("0.4.1204.5291b06e59", [_addColor,_fixAudioOutput,_fixEmptyMask,_fixGlobal]),
+                   ("0.4.1231.03ad63e6bb", [_fixSeams]),
+                   ("0.5.0227.c5eeafdb2e", [_addColor256,_fixDescriptions])])
+    versions= list(fixes.keys())
+    # find the maximum match
+    matched_versions = [versions.index(p) for p in upgrades if p in versions]
+    if len(matched_versions) > 0:
+        max_upgrade = max(matched_versions)
+        # fix what is left
+        fixes_needed = max_upgrade-len(versions) + 1
+        if fixes_needed < 0:
+            for id in fixes.keys()[fixes_needed:]:
+                for fix in fixes[id]:
+                    fix(scModel, gopLoader)
+    #update to the max
+    upgrades = fixes.keys()[-1:]
     if scModel.getGraph().getVersion() not in upgrades:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
@@ -94,13 +67,13 @@ def updateJournal(scModel):
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
 
 
-def _fixValidationTime(scModel):
+def _fixValidationTime(scModel,gopLoader):
     import time
     validationdate = scModel.getProjectData('validationdate')
     if validationdate is not None and len(validationdate) > 0:
         scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
 
-def _fixProvenanceCategory(scModel):
+def _fixProvenanceCategory(scModel,gopLoader):
     from maskgen.graph_rules import  manipulationCategoryRule
     cat = scModel.getProjectData('manipulationcategory',default_value='')
     if cat is not None and cat.lower() == 'provenance':
@@ -109,7 +82,7 @@ def _fixProvenanceCategory(scModel):
         scModel.setProjectData('provenance', 'no')
     scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
 
-def _updateEdgeHomography(edge):
+def _updateEdgeHomography(edge,gopLoader):
     if 'RANSAC' in edge:
         value = edge.pop('RANSAC')
         if value == 'None' or value == 0 or value == '0':
@@ -121,16 +94,20 @@ def _updateEdgeHomography(edge):
         if 'sift_max_matches' in edge:
             edge['homography max matches'] = edge.pop('sift_max_matches')
 
-def _addColor(scModel):
+def _addColor(scModel,gopLoader):
     scModel.assignColors()
 
-def _fixHP(scModel):
+def _addColor256(scModel, gopLoader):
+    if len(scModel.getGraph().get_edges())>=256:
+        scModel.assignColors()
+
+def _fixHP(scModel,gopLoader):
     for nodename in scModel.getNodeNames():
         node= scModel.G.get_node(nodename)
         if 'HP' in node:
             node['Registered'] = node.pop('HP')
 
-def _fixFrameRate(scModel):
+def _fixFrameRate(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         masks = edge['videomasks'] if 'videomasks' in edge else []
@@ -141,7 +118,7 @@ def _fixFrameRate(scModel):
                 elif mask['rate']<0:
                     mask['rate'] = float(mask['rate'])*1000.0
 
-def _fixRANSAC(scModel):
+def _fixRANSAC(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         args = edge['arguments'] if 'arguments' in edge else dict()
@@ -150,7 +127,7 @@ def _fixRANSAC(scModel):
         if edge['op'] == 'Donor':
             edge['homography max matches'] = 20
 
-def _fixRaws(scModel):
+def _fixRaws(scModel,gopLoader):
     if scModel.G.get_project_type()!= 'image':
         return
     for frm, to in scModel.G.get_edges():
@@ -169,21 +146,21 @@ def _fixRaws(scModel):
                 scModel.select((frm,to))
                 scModel.reproduceMask()
 
-def _fixSeams(scModel):
+def _fixSeams(scModel,gopLoader):
     if scModel.G.get_project_type()!= 'image':
         return
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] in [ 'TransformSeamCarving'] and edge['softwareName'] == 'maskgen':
-            bounds = getValue(edge,'arguments.percentage bounds')
+            bounds = tool_set.getValue(edge,'arguments.percentage bounds')
             if  bounds is not None:
                 edge['arguments'].pop('percentage bounds')
                 edge['arguments']['percentage_width'] = float(bounds)/100.0
                 edge['arguments']['percentage_height'] = float(bounds)/100.0
-            keep  =getValue(edge, 'arguments.keepSize')
+            keep  =tool_set.getValue(edge, 'arguments.keepSize')
             if keep is not None:
                 edge['arguments']['keep'] = 'yes' if keep == 'no' else 'no'
-            mask = getValue(edge,'inputmaskname')
+            mask = tool_set.getValue(edge,'inputmaskname')
             if mask is not None:
                 try:
                     im = openImageFile(os.path.join(scModel.get_dir(),mask))
@@ -196,7 +173,7 @@ def _fixSeams(scModel):
                 except Exception as e:
                     logging.getLogger('maskgen').error('Seam Carve fix {} mask error {}'.format(mask,str(e)))
 
-def _fixVideoAudioOps(scModel):
+def _fixVideoAudioOps(scModel,gopLoader):
     groups = scModel.G.getDataItem('groups')
     if groups is None:
         groups = {}
@@ -227,7 +204,7 @@ def _fixVideoAudioOps(scModel):
         newgroups[k] = [op_mapping[op] if op in op_mapping else op for op in v]
     scModel.G.setDataItem('groups', newgroups)
 
-def _fixInsertionST(scModel):
+def _fixInsertionST(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         args = edge['arguments'] if 'arguments' in edge else dict()
@@ -236,13 +213,13 @@ def _fixInsertionST(scModel):
         if 'Insertion End Time' in args:
             args['End Time'] = args.pop('Insertion End Time')
 
-def _fixCompression(scModel):
+def _fixCompression(scModel,gopLoader):
     for nname in scModel.G.get_nodes():
         node = scModel.G.get_node(nname)
         if node['file'].endswith('_compressed.avi'):
             node['compressed'] = 'maskgen.video_tools.x264'
 
-def _fixCopyST(scModel):
+def _fixCopyST(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         args = edge['arguments'] if 'arguments' in edge else dict()
@@ -251,7 +228,7 @@ def _fixCopyST(scModel):
         if 'Copy End Time' in args:
             args['End Time'] = args.pop('Copy End Time')
 
-def _operationsChange1(scModel):
+def _operationsChange1(scModel,gopLoader):
     projecttype = scModel.G.getDataItem('projecttype')
     from image_graph import setPathValue
     blur_type_mapping = {
@@ -385,7 +362,7 @@ def _operationsChange1(scModel):
             newgroups[k] = [op_mapping[op] if op in op_mapping else op for op in v]
         scModel.G.setDataItem('groups', newgroups)
 
-def _pasteSpliceBlend(scModel):
+def _pasteSpliceBlend(scModel,gopLoader):
     import copy
     from group_filter import GroupFilterLoader
     gfl = GroupFilterLoader()
@@ -405,14 +382,14 @@ def _pasteSpliceBlend(scModel):
             scModel.imageFromGroup(grp, software=mod.software, **args)
 
 
-def _fixColors(scModel):
+def _fixColors(scModel,gopLoader):
     scModel.assignColors(scModel)
 
-def _fixLabels(scModel):
+def _fixLabels(scModel,gopLoader):
     for node in scModel.getNodeNames():
         scModel.labelNodes(node)
 
-def _fixFileArgs(scModel):
+def _fixFileArgs(scModel,gopLoader):
     #  add all the known file paths for now
     # rather than trying to find out which ones were actually used.
     scModel.G.addEdgeFilePath('arguments.XMP File Name','')
@@ -426,7 +403,7 @@ def _fixFileArgs(scModel):
     scModel.G.addNodeFilePath('compositemaskname', '')
     scModel.G.addNodeFilePath('donors.*', '')
 
-def _fixEdgeFiles(scModel):
+def _fixEdgeFiles(scModel,gopLoader):
     import shutil
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -441,7 +418,7 @@ def _fixEdgeFiles(scModel):
                    if os.path.exists(fullfile):
                        shutil.copy(fullfile,os.path.join(scModel.get_dir(),arguments[id]))
 
-def _fixCreator(scModel):
+def _fixCreator(scModel,gopLoader):
     """
     :param scModel:
     :return:
@@ -451,7 +428,7 @@ def _fixCreator(scModel):
     if len(modifications) > 0:
        scModel.getGraph().setDataItem('creator',modifications[0].username,excludeUpdate=True)
 
-def _fixLocalRotate(scModel):
+def _fixLocalRotate(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'].lower() == 'transformrotate':
@@ -463,7 +440,7 @@ def _fixLocalRotate(scModel):
             else:
                 edge['arguments']['local']  = local
 
-def _fixBlend(scModel):
+def _fixBlend(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'].lower() == 'blendhardlight':
@@ -479,7 +456,7 @@ def _fixBlend(scModel):
             else:
                 edge['arguments']['mode']  = 'Soft Light'
 
-def _fixTransformCrop(scModel):
+def _fixTransformCrop(scModel,gopLoader):
     """
     :param scModel:
     :return:
@@ -496,13 +473,13 @@ def _fixTransformCrop(scModel):
                 except Exception as e:
                     'Failed repair of TransformCrop ' + frm + " to " + to + ": " + str(e)
 
-def _fixResolution(scModel):
+def _fixResolution(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if 'arguments' in edge and 'scale'  in edge['arguments']:
             edge['arguments']['resolution'] = edge['arguments']['scale'].replace(':','x')
 
-def _fixResize(scModel):
+def _fixResize(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] == 'TransformResize':
@@ -511,7 +488,7 @@ def _fixResize(scModel):
             if 'interpolation' not in edge['arguments']:
                 edge['arguments']['interpolation']  = 'other'
 
-def _fixPasteSpliceMask(scModel):
+def _fixPasteSpliceMask(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] == 'PasteSplice':
@@ -524,7 +501,7 @@ def _fixPasteSpliceMask(scModel):
                     edge.pop('inputmaskownership')
 
 
-def _fixUserName(scModel):
+def _fixUserName(scModel,gopLoader):
     """
     :param scModel:
     :return:
@@ -533,7 +510,7 @@ def _fixUserName(scModel):
     if scModel.getGraph().getDataItem('username') is not None:
         scModel.getGraph().setDataItem('username',scModel.getGraph().getDataItem('username').lower())
 
-def _fixQT(scModel):
+def _fixQT(scModel,gopLoader):
     """
       :param scModel:
       :return:
@@ -545,7 +522,7 @@ def _fixQT(scModel):
             edge['arguments']['qtfile'] = os.path.split(edge['arguments']['QT File Name'])[1]
             edge['arguments'].pop('QT File Name')
 
-def _fixTransforms(scModel):
+def _fixTransforms(scModel,gopLoader):
     """
        Replace true value with  'yes'
        :param scModel: Opened project model
@@ -632,7 +609,7 @@ def _fixSeam(scModel,gopLoader):
              edge['recordMaskInComposite'] = 'yes'
 
 
-def _replace_oldops(scModel):
+def _replace_oldops(scModel,gopLoader):
     """
     Replace selected operations
     :param scModel: Opened project model
@@ -674,3 +651,24 @@ def _replace_oldops(scModel):
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             currentLink['arguments']['purpose'] = 'heal'
+
+def _fixDescriptions(scModel, gopLoader):
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        if 'plugin_name' not in currentLink:
+            continue
+        plugin_name  = currentLink['plugin_name']
+        if plugin_name == 'GammaCollection':
+            tool_set.setPathValue(currentLink,'arguments.selection type', 'auto')
+        elif plugin_name == 'MajickConstrastStretch':
+            tool_set.setPathValue(currentLink,'arguments.selection type', 'NA')
+        elif plugin_name == 'MajickEqualization':
+            tool_set.setPathValue(currentLink, 'arguments.selection type', 'NA')
+            tool_set.setPathValue(currentLink,'description',plugin_name + ': Equalize histogram: https://www.imagemagick.org/Usage/color_mods/#equalize.')
+        elif plugin_name == 'GaussianBlur' and tool_set.getPath(currentLink,'arguments.Laundering') is not None:
+            tool_set.setPathValue(currentLink, 'arguments.Laundering', 'no')
+        elif plugin_name == 'ManualGammaCorrection':
+            tool_set.setPathValue(currentLink, 'arguments.selection type', 'manual')
+            tool_set.setPathValue(currentLink, 'description',
+                                  plugin_name + ': Level gamma adjustment  (https://www.imagemagick.org/script/command-line-options.php#gamma)')
+

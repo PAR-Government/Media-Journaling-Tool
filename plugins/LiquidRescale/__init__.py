@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from __future__ import division
 from maskgen.image_wrap import ImageWrapper,openImageFile
 import subprocess

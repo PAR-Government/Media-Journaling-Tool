@@ -1,4 +1,14 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#
+#
 # adapted from https://github.com/enmasse/jpeg_read
+#==============================================================================
+
 
 import sys
 from math import *

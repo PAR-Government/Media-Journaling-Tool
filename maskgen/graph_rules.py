@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+#==============================================================================
+
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
@@ -1810,20 +1818,6 @@ def _cleanEdges(scModel, edges):
         if "pathanalysis" in node:
             node.pop("pathanalysis")
     return [edgeTuple for edgeTuple in edges]
-
-
-def setProjectSummary(scModel):
-    """
-    :param scModel:
-    :return:
-    @type scModel: ImageProjectModel
-    """
-    groups = []
-    for edgeTuple in scModel.getGraph().get_edges():
-        edge = scModel.getGraph().get_edge(edgeTuple[0], edgeTuple[1])
-        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
-            groups.extend(edge['semanticGroups'])
-    scModel.setProjectData('semanticgroups', groups)
 
 
 def setFinalNodeProperties(scModel, finalNode):

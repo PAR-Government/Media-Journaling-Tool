@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from skimage.restoration import wiener
 from scipy.signal import convolve2d
 from skimage import color, data, restoration
@@ -22,7 +30,7 @@ def transform(img,source,target,**kwargs):
     side = int(kernelSize**(1/2.0))
     psf = numpy.ones((side, side)) / kernelSize
     img = color.rgb2grey(cv_image)
-    deconvolved_img = restoration.unsupervised_wiener(img, psf)[0]
+    deconvolved_img = restoration.wiener(img, psf)[0]
     for c in range(3):
         cv_image[:,:,c] =deconvolved_img* cv_image[:,:,c] * mask + cv_image[:,:,c] * inverted_mask
     Image.fromarray(cv_image,'RGB').save(target)

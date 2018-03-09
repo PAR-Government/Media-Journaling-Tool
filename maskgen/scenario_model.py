@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 from image_graph import createGraph, current_version, getPathValues
 import exif
 import os
@@ -11,7 +19,7 @@ import plugins
 import graph_rules
 from image_wrap import ImageWrapper
 from PIL import Image
-from group_filter import  buildFilterOperation, GroupFilter, GroupOperationsLoader
+from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
 from graph_auto_updates import updateJournal
 import hashlib
 import shutil
@@ -35,7 +43,6 @@ prefLoader = MaskGenLoader()
 
 def imageProjectModelFactory(name, **kwargs):
     return ImageProjectModel(name, **kwargs)
-
 
 def defaultNotify(edge, message, **kwargs):
     return True
@@ -275,7 +282,7 @@ class Modification:
         self.start = start
         self.end = end
         self.additionalInfo = additionalInfo
-        self.mask = maskSet
+        self.maskSet = maskSet
         self.automated = automated if automated else 'no'
         self.errors = errors if errors else list()
         self.operationName = operationName
@@ -1172,15 +1179,22 @@ class ImageProjectModel:
         @rtype: list of Probe
         """
         self._executeSkippedComparisons()
-        probes = list()
+        from multiprocessing.pool import ThreadPool
+        thread_pool = ThreadPool(prefLoader.get_key('skipped_threads', 2))
+        futures = list()
         useGraph = graph if graph is not None else self.G
         for edge_id in useGraph.get_edges():
             edge = useGraph.get_edge(edge_id[0], edge_id[1])
             if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
                 composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader)
-                probes.extend(composite_generator.constructProbes(saveTargets=saveTargets,
-                                                                  inclusionFunction=inclusionFunction,
-                                                                  constructDonors=constructDonors))
+                futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
+                    'saveTargets':saveTargets,
+                    'inclusionFunction':inclusionFunction,
+                    'constructDonors':constructDonors
+                }))
+        probes = list()
+        for future in futures:
+            probes.extend(future.get(timeout=1000))
         return probes
 
     def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,
@@ -1593,7 +1607,9 @@ class ImageProjectModel:
             self.labelNodes(destination)
             return msg, True
         except Exception as e:
-            logging.getLogger('maskgen').error(' '.join(traceback.format_stack()))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            trace= traceback.format_exception(exc_type, exc_value, exc_traceback)
+            logging.getLogger('maskgen').error(' '.join(traceback.format_exception(exc_type,exc_value,exc_traceback)))
             return 'Exception (' + str(e) + ')', False
 
     def __scan_args_callback(self, opName, arguments):
@@ -1803,6 +1819,7 @@ class ImageProjectModel:
         with self.lock:
             self.clear_validation_properties()
             self.assignColors()
+            self.setProjectSummary()
             self.G.save()
 
     def getEdgeItem(self, name, default=None):
@@ -2032,13 +2049,18 @@ class ImageProjectModel:
     def assignColors(self):
         level = 1
         edgeMap = dict()
-        missingColors = 0
+        foundColors = 0
+        colors = []
+        edges = 0
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
             if edge['op'] == 'Donor':
                 continue
-            missingColors += 1 if 'linkcolor' not in edge else 0
-        if missingColors == 0:
+            edges += 1
+            if 'linkcolor' in edge:
+                foundColors += 1
+                colors.append(edge['linkcolor'])
+        if edges == foundColors and len(set(colors)) ==foundColors:
             return
         for edge_id in self.G.get_edges():
             edge = self.G.get_edge(edge_id[0], edge_id[1])
@@ -2096,6 +2118,7 @@ class ImageProjectModel:
                             continue
                 else:
                     logging.getLogger('maskgen').warning('New name ' + new_file_name + ' already exists')
+                    self.G.update_node(node, file=new_file_name)
         self.save()
         return renamed
 
@@ -2298,6 +2321,7 @@ class ImageProjectModel:
         description = Modification(op['name'], filter + ':' + op['description'],
                                    category=opInfo.category,
                                    generateMask=opInfo.generateMask,
+                                   semanticGroups=graph_args['semanticGroups'] if 'semanticGroups' in graph_args else [],
                                    recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
                                    'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
         sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
@@ -2308,7 +2332,7 @@ class ImageProjectModel:
             description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
         experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
         description.setArguments(
-            {k: v for k, v in graph_args.iteritems() if k not in ['sendNotifications', 'skipRules', 'experiment_id']})
+            {k: v for k, v in graph_args.iteritems() if k not in ['semanticGroups','sendNotifications', 'skipRules', 'experiment_id']})
         if extra_args is not None and type(extra_args) == type({}):
             for k, v in extra_args.iteritems():
                 if k not in kwargs or v is not None:
@@ -2354,7 +2378,11 @@ class ImageProjectModel:
         arguments = copy.copy(operation.mandatoryparameters)
         arguments.update(operation.optionalparameters)
         for k, v in args.iteritems():
-            if k in arguments or k in {'sendNotifications', 'skipRules', 'experiment_id', 'recordInCompositeMask'}:
+            if k in arguments or k in {'sendNotifications',
+                                       'skipRules',
+                                       'semanticGroups',
+                                       'experiment_id',
+                                       'recordInCompositeMask'}:
                 parameters[k] = v
                 # if arguments[k]['type'] != 'donor':
                 stripped_args[k] = v
@@ -2362,6 +2390,11 @@ class ImageProjectModel:
             if k in arguments and \
                             arguments[k]['type'] == 'donor':
                 parameters[k] = self.getImageAndName(v)[1]
+                if parameters[k] is None:
+                    if os.path.exists(v):
+                        parameters[k] = v
+                    else:
+                        logging.getLogger('maskgen').error('Donor {} not found'.format(v))
                 donors.append(k)
         for arg, info in arguments.iteritems():
             if arg not in parameters and 'defaultvalue' in info and \
@@ -2529,8 +2562,15 @@ class ImageProjectModel:
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)
-            self.getGraph().update_edge(start, end, semanticGroups=grps)
             self.notify((self.start, self.end), 'update_edge')
+
+    def setProjectSummary(self):
+        groups = []
+        for edgeTuple in self.getGraph().get_edges():
+            edge = self.getGraph().get_edge(edgeTuple[0], edgeTuple[1])
+            if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
+                groups.extend(edge['semanticGroups'])
+        self.setProjectData('semanticgroups', groups)
 
     def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
         import qa_logic

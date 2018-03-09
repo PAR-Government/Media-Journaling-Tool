@@ -20,6 +20,7 @@ import os
 import thread
 import numpy as np
 import qa_logic
+import video_tools
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
@@ -229,10 +230,12 @@ class QAProjectDialog(Toplevel):
             else:
                 if (self.getFileNameForNode(p.finalNodeId) == self.edgeTuple[1]):
                     prolist.append(p)
-        ts = (self.scModel.G.get_node(self.lookup[self.edgeTuple[1]])['duration'])
-        ftr = [3600, 60, 1]
+        tsec = video_tools.getMaskSetForEntireVideo(os.path.join(self.scModel.get_dir(), self.edgeTuple[1]))[0]['endtime'] /1000.0
+        #ts = (self.scModel.G.get_node(self.lookup[self.edgeTuple[1]])['duration'])
+        #ftr = [3600, 60, 1]
 
-        tsec = sum([a * b for a, b in zip(ftr, map(float, ts.split(':')))])
+        #tsec = sum([a * b for a, b in zip(ftr, map(float, ts.split(':')))])
+        #tsec = video_tools.getDuration(self.edgeTuple[1])
         ytics = []
         ytic_lbl = []
         count = 0
@@ -251,12 +254,16 @@ class QAProjectDialog(Toplevel):
                     if cur:
                         high = max(high,mvs.endtime)
                         low = min(low,mvs.starttime)
+                        subplot.text(mvs.starttime - 100, count-0.5, "F:" + str(int(mvs.startframe)))
+                        subplot.text(mvs.endtime + 100, count-0.5, "F:" + str(int(mvs.endframe)))
             else:
                 for mvs in p.targetVideoSegments:
                     data.append([count,col,mvs.starttime,mvs.endtime])
                     if cur:
                         high = max(high,mvs.endtime)
                         low = min(low,mvs.starttime)
+                        subplot.text(mvs.starttime, count-0.5, "F:" + str(int(mvs.startframe)))
+                        subplot.text( mvs.endtime,count-0.5, "F:" + str(int(mvs.endframe)))
             ytics.append(count)
             ytic_lbl.append(self.abreive(p.edgeId[0]))
 
@@ -403,7 +410,7 @@ class QAProjectDialog(Toplevel):
                                                                    sticky='W')  # , columnspan=4)
             row += 1
         currentComment = self.qaData.get_qalink_caption(t)
-        self.commentsBox.delete(1.0,END)
+        self.commentBox.delete(1.0,END)
         self.commentBox.insert(END, currentComment) if currentComment is not None else ''
         self.acceptButton = Button(p, text='Next', command=self.nex, width=15)
         self.acceptButton.grid(row=11, column=col+2, columnspan=2, sticky='E')
@@ -510,12 +517,12 @@ class QAProjectDialog(Toplevel):
             if finish and self.crit_links[ind-1] in self.qaData.keys():
                 print(self.crit_links[ind-1])
                 self.qaData.set_qalink_status(self.crit_links[ind-1],'yes')
-                self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END))
+                self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END).strip())
 
             if not finish:
                 print(self.crit_links[ind-1])
                 self.qaData.set_qalink_status(self.crit_links[ind - 1], 'no')
-                self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END))
+                self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END).strip())
 
         i = self.pages.index(self.cur) + dir
         if not 0<=i<len(self.pages):

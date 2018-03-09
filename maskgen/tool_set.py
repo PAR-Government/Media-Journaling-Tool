@@ -1,3 +1,11 @@
+# =============================================================================
+# Authors: PAR Government
+# Organization: DARPA
+#
+# Copyright (c) 2016 PAR Government
+# All rights reserved.
+# ==============================================================================
+
 import math
 import cv2
 from datetime import datetime
@@ -224,6 +232,29 @@ def removeValue(obj, path):
                 current_value = current_value[pos]
             return removeValue(current_value,path)
 
+
+def setPathValue(d, path, value):
+    pos = path.find('.')
+    lbracket = path.find('[')
+    listpos = None
+    nextpath = path[pos + 1:] if pos > 0 else None
+    if lbracket > 0 and (pos < 0 or lbracket < pos):
+        rbracket = path.find(']')
+        listpos = int(path[lbracket + 1:rbracket])
+        pos = lbracket
+    if pos < 0:
+        if listpos is not None:
+            d[path][listpos] = value
+        elif value is None:
+            d.pop(path)
+        else:
+            d[path] = value
+    elif listpos is not None:
+        setPathValue(d[path[0:pos]][listpos], nextpath, value)
+    else:
+        if path[0:pos] not in d:
+            d[path[0:pos]] = {}
+        setPathValue(d[path[0:pos]], nextpath, value)
 
 def getValue(obj, path, defaultValue=None, convertFunction=None):
     """"Return the value as referenced by the path in the embedded set of dictionaries as referenced by an object
@@ -1004,27 +1035,27 @@ def redistribute_intensity(edge_map):
     levels = [x[0] for x in edge_map.values()]
     colors = [str(x[1]) for x in edge_map.values() if x[1] is not None]
     unique_colors = sorted(np.unique(colors))
+
     intensities = sorted(np.unique(levels))
-    intensity_map = {}
+    intensity_map = [0]
     if len(unique_colors) == len(intensities):
         for x in edge_map.values():
             intensity_map[x[0]] = x[1]
         return intensity_map
-    increment = int(255 / (len(intensities) + 1))
+    increment = int(16777216 / (len(intensities) + 1))
     pos = 1
-    colors = []
     for i in intensities:
-        colors.append(pos * increment)
+        v = pos * increment
+        intensity_map.append([(v%65536)/256,v/65536,(v%65536)%256])
         pos += 1
-
-    colorMap = cv2.applyColorMap(np.asarray(colors).astype('uint8'), cv2.COLORMAP_HSV)
-    pos = 0
-    for i in intensities:
-        intensity_map[i] = colorMap[pos][0]
-        pos += 1
-
     for k, v in edge_map.iteritems():
         edge_map[k] = (v[0], intensity_map[v[0]])
+    #im = np.zeros((500,500,3)).astype('uint8')
+    #pos = 0
+    #for i in intensity_map:
+    #    im[pos,:] = i
+    #    pos+=1
+    #ImageWrapper(im).save('foo.png')
     return intensity_map
 
 
@@ -1673,6 +1704,45 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask,expectedDims, local
     return applyToComposite(compositeMask, func, shape=expectedDims)
 
 
+def isHomographyOk(transform_matrix, h,w):
+    from shapely.geometry import Point
+    from shapely.geometry.polygon import Polygon
+    # convert cornore to homogenous coordinates
+    ll = np.array([0, 0, 1])
+    ul = np.array([0, w, 1])
+    lr = np.array([h, 0, 1])
+    ur = np.array([h, w, 1])
+
+    a_ll = np.matmul(transform_matrix, ll)
+    a_ul = np.matmul(transform_matrix, ul)
+    a_ur = np.matmul(transform_matrix, ur)
+    a_lr = np.matmul(transform_matrix, lr)
+    # convert points to lines
+    a = np.cross(a_ll, a_ul)
+    b = np.cross(a_lr, a_ur)
+    # find point of intersection
+    intersection_point_projective = np.cross(a, b)
+    if intersection_point_projective[2] == 0:
+        return False
+    y_vertical = intersection_point_projective[0] / intersection_point_projective[2]
+    x_vertical = intersection_point_projective[1] / intersection_point_projective[2]
+
+    a = np.cross(a_ul, a_ur)
+    b = np.cross(a_ll, a_lr)
+    # find point of intersection
+    intersection_point_projective = np.cross(a, b)
+    if intersection_point_projective[2] == 0:
+        return False
+    y_horizontal = intersection_point_projective[0] / intersection_point_projective[2]
+    x_horizontal = intersection_point_projective[1] / intersection_point_projective[2]
+    # if the resulting lines intersect inside the box, fail
+    return not ( 0 <= x_vertical <= w and 0 <= y_vertical <= h ) and not (0 <= x_horizontal <= w and 0 <= y_horizontal <= h)
+    # Or is more appropriate to look at the hull of the shape.
+    #point = Point(x,y)
+    #points = [(d[0] / d[2], d[1] / d[2]) for d in [a_ll,a_ul,a_ur,a_lr]]
+    ##polygon = Polygon(points).convex_hull
+    #return not polygon.contains(point)
+
 def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False, returnRaw=False,shape=None):
     """
     Ceate a new mask applying the transform to only those parts of the
@@ -1924,8 +1994,9 @@ def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternat
                             img1.shape[1] == img2.shape[0] and \
                             img1.shape[0] == img2.shape[1]:
                 arguments['Image Rotated'] = 'yes'
-                return convertCompare(img1,img2,arguments)
-            mask, analysis = __diffMask(img1, img2, False, args=arguments)
+                mask, analysis =  convertCompare(img1,img2,arguments)
+            else:
+                mask, analysis = __diffMask(img1, img2, False, args=arguments)
         except Exception as e:
             logging.getLogger('maskgen').error( 'Mask generation failure ' + str(e))
             logging.getLogger('maskgen').info('Arguments ' + str(arguments))

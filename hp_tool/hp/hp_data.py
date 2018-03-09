@@ -9,6 +9,8 @@ import os
 import datetime
 import csv
 import hashlib
+import tkMessageBox
+
 import pandas as pd
 import numpy as np
 import subprocess
@@ -17,11 +19,13 @@ import data_files
 
 exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
         'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf','.mxf'],
-        'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']}
+        'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
+        'MODEL': ['.3d.zip']}
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
-RVERSION = '#@version=01.10'
+RVERSION = '#@version=01.11'
+thumbnail_conversion = {}
 
-def copyrename(image, path, usrname, org, seq, other):
+def copyrename(image, path, usrname, org, seq, other, containsmodels):
     """
     Performs the copy/rename operation
     :param image: original filename (full path)
@@ -33,19 +37,46 @@ def copyrename(image, path, usrname, org, seq, other):
     :return: full path of new file
     """
     global exts
+    global thumbnails
     newNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
                     org + usrname + '-' + seq
     if other:
         newNameStr = newNameStr + '-' + other
 
     currentExt = os.path.splitext(image)[1]
-    if currentExt.lower() in exts['VIDEO']:
+    if os.path.isdir(image):
+        return
+    files_in_dir = [x for x in os.listdir(os.path.dirname(image))] if containsmodels else []
+    if any(filename.endswith('.3d.zip') for filename in files_in_dir):
+        sub = 'model'
+    elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
     else:
         sub = 'image'
-    newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
+    if sub != 'model':
+        newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
+    else:
+        newFolderName = os.path.join(path, sub, '.hptemp', newNameStr)
+        if not os.path.isdir(newFolderName):
+            os.mkdir(newFolderName)
+
+        model_dir = os.path.normpath(os.path.dirname(image))
+        thumbnail_conversion[model_dir] = {}
+        thumbnail_counter = 0
+        for i in os.listdir(model_dir):
+            currentExt = os.path.splitext(i)[1].lower()
+            if currentExt in exts['IMAGE']:
+                newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
+                shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, newThumbnailName))
+                thumbnail_conversion[model_dir][i] = newThumbnailName
+                thumbnail_counter += 1
+            elif i.endswith(".3d.zip"):
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
+            else:
+                print(i + " will not be copied to the output directory as it is an unrecognized file format")
+
     shutil.copy2(image, newPathName)
     return newPathName
 
@@ -112,16 +143,21 @@ def grab_dir(inpath, outdir=None, r=False):
     """
     imageList = []
     names = os.listdir(inpath)
-    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
     if r:
+        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
                 if filename.lower().endswith(valid_exts) and not filename.startswith('.'):
                     imageList.append(os.path.join(dirname, filename))
     else:
+        valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
         for f in names:
             if f.lower().endswith(valid_exts) and not f.startswith('.'):
                 imageList.append(os.path.join(inpath, f))
+            elif os.path.isdir(os.path.join(inpath, f)):
+                for obj in os.listdir(os.path.join(inpath, f)):
+                    if os.path.join(inpath, f, obj).endswith('.3d.zip'):
+                        imageList.append(os.path.normpath(os.path.join(inpath, f, obj)))
 
     imageList = sorted(imageList, key=str.lower)
 
@@ -231,7 +267,7 @@ def check_create_subdirectories(path):
     :param path: directory path
     :return: None
     """
-    subs = ['image', 'video', 'audio', 'csv']
+    subs = ['image', 'video', 'audio', 'model', 'csv']
     for sub in subs:
         if not os.path.exists(os.path.join(path, sub, '.hptemp')):
             os.makedirs(os.path.join(path, sub, '.hptemp'))
@@ -246,7 +282,7 @@ def remove_temp_subs(path):
     :param path: Path containing temp subdirectories
     :return:
     """
-    subs = ['image', 'video', 'audio', 'csv']
+    subs = ['image', 'video', 'audio', 'model', 'csv']
     for sub in subs:
         for f in os.listdir(os.path.join(path,sub,'.hptemp')):
             shutil.move(os.path.join(path,sub,'.hptemp',f), os.path.join(path,sub))
@@ -298,6 +334,8 @@ def set_other_data(data, imfile):
         data['Type'] = 'audio'
     elif imext.lower() in exts['VIDEO']:
         data['Type'] = 'video'
+    elif imfile.endswith('.3d.zip'):
+        data['Type'] = 'model'
     else:
         data['Type'] = 'image'
     # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
@@ -398,15 +436,14 @@ def parse_image_info(self, imageList, **kwargs):
         if kkey in fields:
             master[kkey] = kwargs[kkey]
 
-    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software']
+    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
     exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
     # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
     try:
         exifDataResult = json.loads(exifDataResult)
     except:
-        print('Exiftool could not return data for all input. Process cancelled.')
-        return None
+        print('Exiftool could not return data for all input.')
 
     # further organize exif data into a dictionary based on source filename
     exifDict = {}
@@ -416,7 +453,13 @@ def parse_image_info(self, imageList, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v),k) for k,v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-        data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+        if not imageList[i].endswith('.3d.zip'):
+            data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+        else:
+            image_file_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
+            del image_file_list[image_file_list.index(os.path.basename(imageList[i]))]
+            data[i] = combine_exif({"Thumbnail": "; ".join(image_file_list)},
+                                   reverseLUT, master.copy())
         data[i] = set_other_data(data[i], imageList[i])
 
     return data
@@ -484,7 +527,11 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     if not imageList:
         print('No new images found')
         remove_temp_subs(outputdir)
-        check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
+        if os.path.exists(os.path.join(outputdir, 'csv')):
+            check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
+        else:
+            tkMessageBox.showerror("Directory Error", "There has been an error processing the input directory.  Please verify there is media within the directory.  If there is only 3D Models to be processed, verify that you are following the correct directory structure.")
+            return None, None
         return imageList, []
 
     # build information list. This is the bulk of the processing, and what runs exiftool
@@ -507,10 +554,32 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     # copy with renaming
     print('Copying files...')
     newNameList = []
+    searchmodels = not recursive
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo)
+        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
+        # image_dir = os.path.dirname(image)
+        # newFolder = copyrename(image_dir, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
+        newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         newNameList += [newName]
         count += 1
+
+    # Updates HP-Thumbnails tab to show renamed image names rather than the original image names.
+    for model in xrange(0, len(imageInfo)):
+        thumbnails = imageInfo[model]['HP-Thumbnails'].split("; ")
+        try:
+            del thumbnails[thumbnails.index('')]
+        except ValueError:
+            pass
+        new_thumbnails = []
+        if thumbnails:
+            for thumbnail in thumbnails:
+                model_path = os.path.dirname(os.path.normpath(imageList[model]))
+                try:
+                    new_thumbnails.append(thumbnail_conversion[model_path][thumbnail])
+                except KeyError:
+                    pass
+        imageInfo[model]['HP-Thumbnails'] = "; ".join(new_thumbnails)
+
     print(' done')
 
     self.settings.set('seq', pad_to_5_str(count))
@@ -519,7 +588,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print('Updating metadata...')
 
-    for folder in ['image', 'video', 'audio']:
+    for folder in ['image', 'video', 'audio', 'model']:
         process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get('metadata'), quiet=True)
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
