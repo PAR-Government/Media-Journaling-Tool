@@ -930,7 +930,7 @@ class ImageProjectModel:
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None, baseImageFileName=None):
         self.notify = None
         if notify is not None:
-            self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier()])
+            self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier(self)])
 
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback

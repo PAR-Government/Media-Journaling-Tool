@@ -76,16 +76,17 @@ class NotifyDelegate:
 
     def __call__(self,*args,**kwargs):
         for notify in self.notifiers:
-            notify(self.scmodel, args)
+            notify(args,kwargs)
 
 class QaNotifier:
-    def __init__(self):
+    def __init__(self, scmodel):
         self.qadata = None
-    def __call__(self, scmodel, args, *kwargs):
+        self.scmodel = scmodel
+    def __call__(self, args, *kwargs):
         if args[1] != 'update_edge':
             pass
         else:
-            self.scmodel = scmodel
+            scmodel = self.scmodel
             qadata = qa_logic.ValidationData(scmodel)
             edge = scmodel.select(args[0])
             cnode = scmodel.getDescription()
