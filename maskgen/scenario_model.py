@@ -6,6 +6,7 @@
 # All rights reserved.
 # ==============================================================================
 
+
 from image_graph import createGraph, current_version, getPathValues
 import exif
 import os
@@ -2584,21 +2585,9 @@ class ImageProjectModel:
         self.setProjectData('qaData',qaData, excludeUpdate=False)
         """
     def clear_validation_properties(self):
-        import time
-        validationProps = {'validation': 'no', 'validatedby': '', 'validationtime': '', 'validationdate': ''}
-        currentProps = {}
-        for p in validationProps:
-            currentProps[p] = self.getProjectData(p)
-        datetimeval = time.clock()
-        if currentProps['validationdate'] is not None and \
-                        len(currentProps['validationdate']) > 0:
-            datetimestr = currentProps['validationdate'] + ' ' + currentProps['validationtime']
-            datetimeval = time.strptime(datetimestr, "%m/%d/%Y %H:%M:%S")
-        if all(vp in currentProps for vp in validationProps) and \
-                        currentProps['validatedby'] != get_username() and \
-                        self.getGraph().getLastUpdateTime() > datetimeval:
-            for key, val in validationProps.iteritems():
-                self.setProjectData(key, val, excludeUpdate=True)
+        import qa_logic
+        logic = qa_logic.ValidationData(self)
+        logic.clearProperties()
 
 
 class VideoMaskSetInfo:
