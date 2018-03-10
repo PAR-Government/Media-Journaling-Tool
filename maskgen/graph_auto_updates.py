@@ -30,13 +30,13 @@ def updateJournal(scModel):
     fixes = OrderedDict( [("0.3.1115",     [_replace_oldops]),
                    ("0.3.1213",            [_fixQT,_fixUserName]),
                    ("0.4.0101.8593b8f323", [_fixResize,_fixResolution]),
+                   ("0.4.0101.b4561b475b", [_fixCreator, _fixValidationTime]),
                    ("0.4.0308.f7d9a62a7e", [_fixLabels]),
                    ("0.4.0308.f7d9a62a7e", [_fixPasteSpliceMask]),
                    ("0.4.0308.90e0ce497f", [_fixTransformCrop]),
                    ("0.4.0308.adee798679", [_fixEdgeFiles,_fixBlend]),
                    ("0.4.0308.db2133eadc", [_fixFileArgs]),
                    ("0.4.0425.d3bc2f59e1", [_operationsChange1]),
-                   ("0.4.0101.b4561b475b", [_fixCreator,_fixValidationTime]),
                    ("04.0621.3a5c9635ef",  [_fixProvenanceCategory]),
                    ("04.0720.415b6a5cc4",  [_fixRANSAC,_fixHP]),
                    ("04.0720.b0ec584b4e",  [_fixInsertionST]),
@@ -82,7 +82,7 @@ def _fixProvenanceCategory(scModel,gopLoader):
         scModel.setProjectData('provenance', 'no')
     scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
 
-def _updateEdgeHomography(edge,gopLoader):
+def _updateEdgeHomography(edge):
     if 'RANSAC' in edge:
         value = edge.pop('RANSAC')
         if value == 'None' or value == 0 or value == '0':
