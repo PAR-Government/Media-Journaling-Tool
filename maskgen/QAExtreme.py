@@ -21,6 +21,7 @@ import thread
 import numpy as np
 import qa_logic
 import video_tools
+import tool_set
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
@@ -74,9 +75,20 @@ class QAProjectDialog(Toplevel):
         page1 = Frame(self)
         page1.grid()
         self.cur = page1
-        lbl = Label(page1, text="Welcome to the QA Wizard Press Next to begin the QA Process or Quit to stop",wraplength=200).grid(column=0,row=0,rowspan=2,columnspan=2)
-        wquit = Button(page1, text='Quit', command=self.exitProgram).grid(column=0,row=2,sticky=W)
-        wnext = Button(page1, text = 'Next', command=self.nex).grid(column = 1,row=2,sticky = E)
+        lbl = Label(page1, text="Welcome to the QA Wizard Press Next to begin the QA Process or Quit to stop. This is "
+                                "Manny hes here to help you analyze your masks", wraplength=200).grid(column=0,row=0,\
+                                                                                                rowspan=2,columnspan=2)
+        filename = tool_set.get_icon('Manny_icon.jpg')
+        print(filename)
+        self.manFrame = Frame(page1)
+        self.manFrame.grid(column=0,row=2,columnspan=2)
+        self.c = Canvas(self.manFrame, width=510, height=510)
+        self.c.pack()
+        img = openImage(filename)
+        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).toPIL())
+        self.image_on_canvas = self.c.create_image(510/2,510/2, image=self.manny, anchor=CENTER,tag='imgc')
+        wquit = Button(page1, text='Quit', command=self.exitProgram).grid(column=0,row=3,sticky=W)
+        wnext = Button(page1, text = 'Next', command=self.nex).grid(column = 1,row=3,sticky = E)
         self.pages = []
         self.pages.append(page1)
         self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.finalNodeId)]) for
@@ -334,7 +346,7 @@ class QAProjectDialog(Toplevel):
             self.finalNodeName = None
         row = 0
         col = 0
-        self.optionsLabel = Label(p, text=t)
+        self.optionsLabel = Label(p, text=t, font=(None,10))
         self.optionsLabel.grid(row=row, columnspan=3, sticky='EW', padx=10)
         row += 1
         self.operationVar = StringVar()
@@ -362,7 +374,7 @@ class QAProjectDialog(Toplevel):
         # self.scrollh = Scrollbar(self, orient=HORIZONTAL)
         # self.scrollh.grid(row=row + 5, column=col,sticky= EW)
         self.pathList = Listbox(p, width=30, yscrollcommand=scroll.set)
-        self.pathList.grid(row=row, column=col-1, rowspan=5, columnspan=3)
+        self.pathList.grid(row=row, column=col-1, rowspan=5, columnspan=3, padx=(30,10), pady=(20,20))
         scroll.config(command=self.pathList.yview)
         self.transitionVar = StringVar()
         # self.pathText = Text(self, width=100, height=100,yscrollcommand=self.scroll.set)
@@ -413,14 +425,14 @@ class QAProjectDialog(Toplevel):
         self.commentBox.delete(1.0,END)
         self.commentBox.insert(END, currentComment) if currentComment is not None else ''
         self.acceptButton = Button(p, text='Next', command=self.nex, width=15)
-        self.acceptButton.grid(row=11, column=col+2, columnspan=2, sticky='E')
+        self.acceptButton.grid(row=11, column=col+2, columnspan=2, sticky='E',padx=(20,20))
         self.prevButton = Button(p, text='Previous', command=self.pre, width=15)
-        self.prevButton.grid(row=11, column=col-1, columnspan=2, sticky='W')
+        self.prevButton.grid(row=11, column=col-1, columnspan=2, sticky='W',padx=(20,20))
         #self.pagetext =
         self.acceptnButton = Button(p, text='Next Unchecked', command=self.nexCheck, width=15)
-        self.acceptnButton.grid(row=12, column=col + 2, columnspan=2, sticky='E')
+        self.acceptnButton.grid(row=12, column=col + 2, columnspan=2, sticky='E',padx=(20,20))
         self.prevnButton = Button(p, text='Previous Unchecked', command=self.preCheck, width=15)
-        self.prevnButton.grid(row=12, column=col-1, columnspan=2, sticky='W')
+        self.prevnButton.grid(row=12, column=col-1, columnspan=2, sticky='W',padx=(20,20))
 
 
 
@@ -495,7 +507,7 @@ class QAProjectDialog(Toplevel):
         if initialize is True:
             self.c = Canvas(self.cImgFrame, width=510, height=510)
             self.c.pack()
-        self.image_on_canvas = self.c.create_image(0, 0, image=self.photos[self.t], anchor=NW, tag='imgc')
+        self.image_on_canvas = self.c.create_image(205, 205, image=self.photos[self.t], anchor=CENTER, tag='imgc')
 
     def nexCheck(self):
         self.move(1,True)
