@@ -1,3 +1,5 @@
+import random
+
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -22,6 +24,7 @@ import numpy as np
 import qa_logic
 import video_tools
 import tool_set
+import random
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
@@ -37,12 +40,13 @@ class QAProjectDialog(Toplevel):
 
     lookup = {}
     def __init__(self, parent):
+        self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
         self.type = self.parent.scModel.getEndType()
-        print('Stalled?')
+        #print('Stalled?')
         self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
-        print("Done")
+        #print("Done")
         Toplevel.__init__(self, parent)
         self.type = self.parent.scModel.getEndType()
         self.checkboxvars = {}
@@ -78,14 +82,16 @@ class QAProjectDialog(Toplevel):
         lbl = Label(page1, text="Welcome to the QA Wizard Press Next to begin the QA Process or Quit to stop. This is "
                                 "Manny hes here to help you analyze your masks", wraplength=200).grid(column=0,row=0,\
                                                                                                 rowspan=2,columnspan=2)
-        filename = tool_set.get_icon('Manny_icon.jpg')
-        print(filename)
+        filename = tool_set.get_icon('Manny_icon_color.jpg')
+        filenamecol = tool_set.get_icon('Manny_icon_mask.jpg')
         self.manFrame = Frame(page1)
         self.manFrame.grid(column=0,row=2,columnspan=2)
         self.c = Canvas(self.manFrame, width=510, height=510)
         self.c.pack()
         img = openImage(filename)
-        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).toPIL())
+        imgm = openImage(filenamecol).to_mask()
+        imgm = imageResizeRelative(imgm, (500,500), imgm.size)
+        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).overlay(imgm, self.colors[random.randint(0,6)]).toPIL())
         self.image_on_canvas = self.c.create_image(510/2,510/2, image=self.manny, anchor=CENTER,tag='imgc')
         wquit = Button(page1, text='Quit', command=self.exitProgram).grid(column=0,row=3,sticky=W)
         wnext = Button(page1, text = 'Next', command=self.nex).grid(column = 1,row=3,sticky = E)
