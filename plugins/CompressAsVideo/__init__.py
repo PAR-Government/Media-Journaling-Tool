@@ -6,9 +6,101 @@
 # All rights reserved.
 # ==============================================================================
 
+import pandas as pd # For access to the pastebin
+import tkMessageBox # For popping message boxes
+from os import path
 import maskgen.video_tools
+import shlex # For handling paths with spaces
 import logging
 
+
+def validate_codec_name(codec_name, codec_type='video'):
+    """
+    Checks if a name is in the list of valid codecs.
+    :param codec_name: string, name to be checked.
+    :param codec_type: string, type of codec to check for.
+    """
+    codec_valid = codec_name in maskgen.video_tools.get_valid_codecs(codec_type)
+    if not codec_valid:
+        errmsg = 'The Operation was NOT successful \n\n' \
+                 + 'Invalid Codec- ' + codec_type + ' codec ' + codec_name + ' is not available to encode with.'
+        raise ValueError(str.strip(errmsg))
+
+
+def validate_codecs(args):
+    """
+    Attempts to validate the codec names found in the args list.
+    :param args: list of ffmpeg arguments
+    """
+    video_name = get_codec_name(args, 'video')
+    if video_name:
+        try:
+            validate_codec_name(video_name, 'video')
+        except ValueError as e:
+            logging.getLogger('maskgen').error(e.message)
+            e += '\n' + build_command_string(args)
+            raise ValueError(e.message)
+
+    audio_name = get_codec_name(args, 'audio')
+    if audio_name:
+        try:
+            validate_codec_name(audio_name, 'audio')
+        except ValueError as e:
+            logging.getLogger('maskgen').error(e.message)
+            raise ValueError(e.message)
+
+
+def get_codec_name(args, codec_type='video'):
+    """
+    Search list of arguments for the codec name.
+    :param args: list of ffmpeg arguments
+    :param codec_type: string, type of codec to check for.
+    :returns: string, name of codec.
+    """
+    try:
+        query = '-codec:v' if codec_type == 'video' else '-codec:a'
+        codec_index = args.index(query) + 1
+    except ValueError:
+        return ''
+    return args[codec_index]
+
+def replace_codec_name(args, oldName, newName):
+    """
+    Replace name of codec with another
+    :param args: list of ffmpeg arguments
+    :param oldName: string, name to be replaced
+    :param newName: string, name to replace with
+    """
+    index = args.index(oldName)
+    args[index] = newName
+
+
+def compare_codec_tags(donor_path, output_path):
+    """
+    Check the output video codec tags for similarity to the donor video, raises error if fail
+    :param donor_path: Path to the donor video file
+    :param output_path: Path to the output video file
+    """
+    donor_data = maskgen.video_tools.getMeta(donor_path, show_streams=True)[0]
+    output_data = maskgen.video_tools.getMeta(output_path, show_streams=True)[0]
+
+    donor_video_tag = (get_item(donor_data[0], 'codec_tag_string', '') + '/'
+                       + get_item(donor_data[0], 'codec_tag', ''))
+    donor_audio_tag = (get_item(donor_data[1], 'codec_tag_string', '') + '/'
+                       + get_item(donor_data[1], 'codec_tag', ''))
+    output_video_tag = (get_item(output_data[0], 'codec_tag_string', '') + '/'
+                        + get_item(output_data[0], 'codec_tag', ''))
+    output_audio_tag = (get_item(output_data[1], 'codec_tag_string', '') + '/'
+                        + get_item(output_data[1], 'codec_tag', ''))
+
+    if output_video_tag != donor_video_tag or output_audio_tag != donor_audio_tag:
+        errmsg = 'The operation was successful!\n\n'
+        if output_video_tag != donor_video_tag:
+            errmsg += "Video Codec Tags do not match: \n" + "Donor: " + donor_video_tag + "\nOutput: " + output_video_tag + '\n\n'
+        if output_audio_tag != donor_audio_tag:
+            errmsg += "Audio Codec Tags do not match: \n" + "Donor: " + donor_audio_tag + "\nOutput: " + output_audio_tag + '\n\n'
+        errmsg += 'FYI- This manipulation may be vulnerable to detection by comparing the metadata.'
+        raise ValueError(errmsg)
 
 def get_channel_data(source_data, codec_type):
     pos = 0
@@ -41,9 +133,42 @@ def get_rotation_filter(difference):
     else:
         return None
 
+def parse_override_command(command):
+    """
+    Build the FFmpeg command arguments from the override string
+    :param command: string, the override instructions from the plugin window
+    :return: list of strings, ready for passing to runffmpeg.
+    """
+    command = command.lower()
+    args = shlex.split(command, r"'")
+    for term in args:
+        if term == ' ' or term == 'ffmpeg':
+            args.remove(term)
+    return args
 
-def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
-    import maskgen.exif
+def build_command_string(args=[]):
+    """
+    Convert the list of arguments to a single string for export to the user pastebin
+    :param args: list of strings, ffmpeg arguments
+    :return: string, ready for pasting.
+    """
+    cmd = 'ffmpeg'
+    for term in args:
+        test = str(term) #to get rid of unicode
+        if path.isdir(path.split(test)[0]):
+            term = r"'" + test + r"'"
+        cmd += ' ' + term.strip()
+    return cmd.strip()
+
+def copy_command_to_pastebin(command=''):
+    """
+    Copy a string to the user pastebin
+    :param command: string of ffmpeg arguments.
+    """
+    df = pd.DataFrame([command])
+    df.to_clipboard(index=False, header=False)
+
+def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, video_codec='use donor', audio_codec='use donor', allow_override=False, override_cmd=''):
     import maskgen.video_tools
     """
     Saves image file using quantization tables
@@ -55,6 +180,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
     skipRotate = ffmpeg_version[0:3] == '3.3' or not apply_rotate
     source_data = maskgen.video_tools.getMeta(source, show_streams=True)[0]
     donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)[0]
+
     video_settings = {'-codec:v': 'codec_name', '-b:v': 'bit_rate', '-r': 'r_frame_rate', '-pix_fmt': 'pix_fmt',
                       '-profile:v': 'profile'}
     # not a dictionary for case sensistivity
@@ -68,7 +194,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
 
     # limited supported from progress to interlaced top or bottom first.
     # does not appear to support top coded first, bottom displayed first and vice versa
-    #progressive conversion if a filter conversion and not a flag.
+    # progressive conversion if a filter conversion and not a flag.
     # supposedly, some version of ffmpeg support the an deinterlace option, but not all.
     field_order_map= {'tt':['-flags', '+ilme+ildct', '-top', '1'],
                       'bb':['-flags', '+ilme+ildct', '-top', '0'],
@@ -106,7 +232,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                         if data[setting].find(tup[0]) >= 0:
                             ffargs.extend([option, tup[1]])
                             break
-                elif setting in data and data[setting] not in  ['unknown','N/A']:
+                elif setting in data and data[setting] not in ['unknown', 'N/A']:
                     ffargs.extend([option, data[setting]])
 
             try:
@@ -177,18 +303,46 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate = True):
                 if setting in data and data[setting] != 'unknown':
                     ffargs.extend([option, data[setting]])
 
-    ffargs.extend(['-map_metadata', '0:g','-y', target])
+    ffargs.extend(['-map_metadata', '0:g', '-y', target])
 
-    logging.getLogger('masken').info(str(ffargs))
-    maskgen.video_tools.runffmpeg(ffargs)
+    # Codec overrides
+    if video_codec != 'Use Donor':
+        replace_codec_name(ffargs, get_codec_name(ffargs, 'video'), video_codec)
+    if audio_codec != 'Use Donor':
+        replace_codec_name(ffargs, get_codec_name(ffargs, 'audio'), audio_codec)
 
-    maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target], ignoreError=True)
-    maskgen.exif.runexif(['-P', '-q', '-m', '-tagsFromFile', donor,  target], ignoreError=True)
-    maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m', '-XMPToolkit=', target], ignoreError=True)
+    # Total override
+    if allow_override and override_cmd != '':
+        ffargs = parse_override_command(override_cmd)
+
+    #logging.getLogger('maskgen').info("Running ffmpeg with:" + str(ffargs))
+
+    # Check Codec names before running
+    try:
+        validate_codecs(ffargs)
+    except ValueError as e:
+        answer = tkMessageBox.askquestion('INFO', e.message + '\n\n' + 'Copy the ffmpeg command string to the clipboard?', icon='error')
+        if answer == 'yes':
+            copy_command_to_pastebin(build_command_string(ffargs))
+
+    maskgen.video_tools.runffmpeg(ffargs, False)
+
+    maskgen.exif.runexif(['-overwrite_original', '-all=', target], ignoreError=True)
+    maskgen.exif.runexif(['-P', '-m', '-tagsFromFile', donor,  target], ignoreError=True)
+    maskgen.exif.runexif(['-overwrite_original','-P', '-m', '-XMPToolkit=', target], ignoreError=True)
     createtime = maskgen.exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
-        maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target],
+        maskgen.exif.runexif(['-overwrite_original', '-P', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target],
                              ignoreError=True)
+
+    # Check the codec tags after.
+    try:
+        compare_codec_tags(donor, target)
+    except ValueError as e:
+        answer = tkMessageBox.askquestion('INFO', e.message + '\n\n' + 'Copy the ffmpeg command string to the clipboard?', icon='warning')
+        if answer == 'yes':
+            copy_command_to_pastebin(build_command_string(ffargs))
+
     return {'rotate': rotated, 'rotation':diff_rotation}
 
 def transform(img, source, target, **kwargs):
@@ -196,15 +350,21 @@ def transform(img, source, target, **kwargs):
     container = kwargs['container'] if 'container' in kwargs else 'match'
     rotate = 'rotate' not in kwargs or kwargs['rotate'] == 'yes'
     matchcolor = 'match color characteristics' in kwargs and kwargs['match color characteristics'] == 'yes'
+    audio_codec_preference = kwargs['Audio Codec'] if 'Audio Codec' in kwargs else 'use donor'
+    video_codec_preference = kwargs['Video Codec'] if 'Video Codec' in kwargs else 'use donor'
+    allow_override = 'Allow Override' in kwargs and kwargs['Allow Override'] == 'yes'
+    override_command = str(kwargs['Command Override']).strip() if 'Command Override' in kwargs else str('')
     analysis = {}
     if container != 'match':
         targetname = target[0:target.rfind('.')+1] + container
         analysis = {'override_target': targetname}
     else:
-        targetname  = target
-    analysis.update(save_as_video(source, targetname, donor, matchcolor=matchcolor,apply_rotate=rotate))
-    return analysis,None
+        targetname = target
 
+    analysis.update(save_as_video(source, targetname, donor, matchcolor=matchcolor, apply_rotate=rotate,
+                                  video_codec=video_codec_preference, audio_codec=audio_codec_preference,
+                                  allow_override=allow_override, override_cmd=override_command))
+    return analysis, None
 
 
 def operation():
@@ -225,9 +385,27 @@ def operation():
                 },
                 'container': {
                     'type': 'list',
-                    'values':['match','mov','avi','mp4'],
+                    'values': ['match', 'mov', 'avi', 'mp4'],
                     'defaultvalue': 'match'
-                }
+                },
+                'Video Codec': {
+                    'type': 'list',
+                    'values': maskgen.video_tools.get_valid_codecs(codec_type='video'),
+                    'defaultvalue': 'Use Donor'
+                },
+                'Audio Codec': {
+                    'type': 'list',
+                    'values': maskgen.video_tools.get_valid_codecs(codec_type='audio'),
+                    'defaultvalue': 'Use Donor'
+                },
+                'Command Override': {
+                    'type': 'text',
+                    'values': '',
+                },
+                'Allow Override': {
+                    'type': 'yesno',
+                    'defaultvalue': 'no'
+                    }
             },
             'transitions': [
                 'video.video'
