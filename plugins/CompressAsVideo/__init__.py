@@ -6,12 +6,11 @@
 # All rights reserved.
 # ==============================================================================
 
-import pandas as pd # For access to the pastebin
-import tkMessageBox # For popping message boxes
 from os import path
 import maskgen.video_tools
 import shlex # For handling paths with spaces
 import logging
+from collections import OrderedDict
 
 
 def validate_codec_name(codec_name, codec_type='video'):
@@ -24,7 +23,7 @@ def validate_codec_name(codec_name, codec_type='video'):
     if not codec_valid:
         errmsg = 'The Operation was NOT successful \n\n' \
                  + 'Invalid Codec- ' + codec_type + ' codec ' + codec_name + ' is not available to encode with.'
-        raise ValueError(str.strip(errmsg))
+        raise ValueError(errmsg.strip())
 
 
 def validate_codecs(args):
@@ -37,8 +36,7 @@ def validate_codecs(args):
         try:
             validate_codec_name(video_name, 'video')
         except ValueError as e:
-            logging.getLogger('maskgen').error(e.message)
-            e += '\n' + build_command_string(args)
+            e.message += '\n\n' + 'FFmpeg command string: \n' + build_command_string(args) + '\n May be copied from the console or logfile'
             raise ValueError(e.message)
 
     audio_name = get_codec_name(args, 'audio')
@@ -46,7 +44,7 @@ def validate_codecs(args):
         try:
             validate_codec_name(audio_name, 'audio')
         except ValueError as e:
-            logging.getLogger('maskgen').error(e.message)
+            e.message += '\n\n' + 'FFmpeg command string: \n' + build_command_string(args) + '\n May be copied from the console or logfile'
             raise ValueError(e.message)
 
 
@@ -159,14 +157,6 @@ def build_command_string(args=[]):
             term = r"'" + test + r"'"
         cmd += ' ' + term.strip()
     return cmd.strip()
-
-def copy_command_to_pastebin(command=''):
-    """
-    Copy a string to the user pastebin
-    :param command: string of ffmpeg arguments.
-    """
-    df = pd.DataFrame([command])
-    df.to_clipboard(index=False, header=False)
 
 def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, video_codec='use donor', audio_codec='use donor', allow_override=False, override_cmd=''):
     import maskgen.video_tools
@@ -318,12 +308,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
     #logging.getLogger('maskgen').info("Running ffmpeg with:" + str(ffargs))
 
     # Check Codec names before running
-    try:
-        validate_codecs(ffargs)
-    except ValueError as e:
-        answer = tkMessageBox.askquestion('INFO', e.message + '\n\n' + 'Copy the ffmpeg command string to the clipboard?', icon='error')
-        if answer == 'yes':
-            copy_command_to_pastebin(build_command_string(ffargs))
+    validate_codecs(ffargs)
 
     maskgen.video_tools.runffmpeg(ffargs, False)
 
@@ -338,10 +323,8 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
     # Check the codec tags after.
     try:
         compare_codec_tags(donor, target)
-    except ValueError as e:
-        answer = tkMessageBox.askquestion('INFO', e.message + '\n\n' + 'Copy the ffmpeg command string to the clipboard?', icon='warning')
-        if answer == 'yes':
-            copy_command_to_pastebin(build_command_string(ffargs))
+    except ValueError:
+        logging.getLogger('maskgen').warn("Codec mismatch between output and donor. FFmepg command: \n" + build_command_string(ffargs))
 
     return {'rotate': rotated, 'rotation':diff_rotation}
 
@@ -373,40 +356,40 @@ def operation():
             'description': 'Convert video to donor filetype and copy metadata.',
             'software': 'ffmpeg',
             'version': maskgen.video_tools.get_ffmpeg_version(),
-            'arguments': {
-                'donor': {
+            'arguments': OrderedDict([
+                ('donor', {
                     'type': 'donor',
                     'defaultvalue': None,
                     'description': 'Video with desired metadata'
-                },
-                'match color characteristics': {
+                }),
+                ('match color characteristics', {
                     'type': 'yesno',
                     'defaultvalue': 'no'
-                },
-                'container': {
+                }),
+                ('container', {
                     'type': 'list',
                     'values': ['match', 'mov', 'avi', 'mp4'],
                     'defaultvalue': 'match'
-                },
-                'Video Codec': {
+                }),
+                ('Video Codec', {
                     'type': 'list',
                     'values': maskgen.video_tools.get_valid_codecs(codec_type='video'),
                     'defaultvalue': 'Use Donor'
-                },
-                'Audio Codec': {
+                }),
+                ('Audio Codec', {
                     'type': 'list',
                     'values': maskgen.video_tools.get_valid_codecs(codec_type='audio'),
                     'defaultvalue': 'Use Donor'
-                },
-                'Command Override': {
+                }),
+                ('Command Override', {
                     'type': 'text',
                     'values': '',
-                },
-                'Allow Override': {
+                }),
+                ('Allow Override', {
                     'type': 'yesno',
                     'defaultvalue': 'no'
                     }
-            },
+                 )]),
             'transitions': [
                 'video.video'
             ]
