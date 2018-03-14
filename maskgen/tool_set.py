@@ -976,12 +976,6 @@ def redistribute_intensity(edge_map):
         intensity_map.append([(v % 65536) / 256, v / 65536, (v % 65536) % 256])
     for k, v in edge_map.iteritems():
         edge_map[k] = (v[0], intensity_map[v[0]])
-    # im = np.zeros((500,500,3)).astype('uint8')
-    # pos = 0
-    # for i in intensity_map:
-    #    im[pos,:] = i
-    #    pos+=1
-    # ImageWrapper(im).save('foo.png')
     return intensity_map
 
 
@@ -1032,7 +1026,7 @@ def toIntTuple(tupleString):
     import re
     if tupleString is not None and tupleString.find(',') > 0:
         return tuple([int(re.sub('[()L]', '', x)) for x in tupleString.split(',')])
-    return (0, 0)
+    return 0, 0
 
 
 def sizeOfChange(mask):
@@ -1604,8 +1598,8 @@ def applyTransformToComposite(compositeMask, mask, transform_matrix, shape=None,
 
 
 def applyPerspectiveToComposite(compositeMask, transform_matrix, shape):
-    def perspectiveChange(compositeMask, M=None, shape=None):
-        return cv2.warpPerspective(compositeMask, M, (shape[1], shape[0]))
+    def perspectiveChange(composite_mask, M=None, shape=None):
+        return cv2.warpPerspective(composite_mask, M, (shape[1], shape[0]))
 
     from functools import partial
     func = partial(perspectiveChange, M=transform_matrix, shape=shape)
@@ -1613,8 +1607,8 @@ def applyPerspectiveToComposite(compositeMask, transform_matrix, shape):
 
 
 def applyAffineToComposite(compositeMask, transform_matrix, shape):
-    def perspectiveChange(compositeMask, M=None, shape=None):
-        return cv2.warpAffine(compositeMask, M, (shape[1], shape[0]))
+    def perspectiveChange(composite_mask, M=None, shape=None):
+        return cv2.warpAffine(composite_mask, M, (shape[1], shape[0]))
 
     from functools import partial
     func = partial(perspectiveChange, M=transform_matrix, shape=shape)
@@ -1822,11 +1816,11 @@ def __search(pixel, img2, tally, position, depth):
 def _tallySeam(img1, img2, minDepth=50):
     tally1 = np.zeros(img1.shape)
     tally2 = np.zeros(img2.shape)
-    depthx = max(img2.shape[0] - img1.shape[0], minDepth)
-    depthy = max(img2.shape[1] - img1.shape[1], minDepth)
+    depth_x = max(img2.shape[0] - img1.shape[0], minDepth)
+    depth_y = max(img2.shape[1] - img1.shape[1], minDepth)
     for x1 in range(img1.shape[0]):
         for y1 in range(img1.shape[1]):
-            pos = __search(img1[x1, y1], img2, tally2, (x1, y1), (depthx, depthy))
+            pos = __search(img1[x1, y1], img2, tally2, (x1, y1), (depth_x, depth_y))
             if pos is not None:
                 tally1[x1, y1] = 1
                 tally2[pos[0], pos[1]] = 1
@@ -1845,7 +1839,6 @@ def rotateCompare(img1, img2, arguments=dict()):
         return (mask1, analysis1) if diff < 0 or local else (mask2, analysis2)
     else:
         return __compareRotatedImage(rotation, img1, img2, arguments)
-    return None, {}
 
 
 def resizeImage(img1, shape, interpolation):

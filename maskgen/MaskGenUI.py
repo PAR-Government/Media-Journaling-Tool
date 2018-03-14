@@ -122,8 +122,6 @@ class MakeGenUI(Frame):
     filteredgemenu = None
     groupmenu = None
     canvas = None
-    errorlistDialog = None
-    exportErrorlistDialog = None
     uiProfile = UIProfile()
     notifiers = getNotifier(prefLoader)
     validator = ValidationAPIComposite(prefLoader,external=True)
@@ -348,10 +346,7 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
             if len(errorList) > 0:
-                if self.exportErrorlistDialog is None:
-                    self.exportErrorlistDialog = ValidationListDialog(self, errorList, "Export Errors")
-                else:
-                    self.exportErrorlistDialog.setItems(errorList)
+                ValidationListDialog(self, errorList, "Export Errors")
             else:
                 tkMessageBox.showinfo("Export", "Complete")
 
@@ -370,10 +365,7 @@ class MakeGenUI(Frame):
                 if uploaded is not None:
                     self.prefLoader.save('lastlogupload',uploaded)
                 if len(errorList) > 0:
-                    if self.exportErrorlistDialog is None:
-                        self.exportErrorlistDialog = ValidationListDialog(self, errorList, "Export Errors")
-                    else:
-                        self.exportErrorlistDialog.setItems(errorList)
+                        ValidationListDialog(self, errorList, "Export Errors")
                 else:
                     tkMessageBox.showinfo("Export to S3", "Complete")
                     self.prefLoader.save('s3info', val)
@@ -656,12 +648,6 @@ class MakeGenUI(Frame):
         self.l3.config(text=self.scModel.maskImageName())
         self.maskvar.set(self.scModel.maskStats())
 
-    def doneWithWindow(self, window):
-        if window == self.errorlistDialog:
-            self.errorlistDialog = None
-        if window == self.exportErrorlistDialog:
-            self.exportErrorlistDialog = None
-
     def finalimageanalysis(self):
         d = AnalsisViewDialog(self,'Final Image Analysis',self.scModel)
 
@@ -693,10 +679,7 @@ class MakeGenUI(Frame):
 
     def validate(self):
         errorList = self.scModel.validate(external=True)
-        if (self.errorlistDialog is None):
-            self.errorlistDialog = ValidationListDialog(self, errorList, "Validation Errors")
-        else:
-            self.errorlistDialog.setItems(errorList)
+        ValidationListDialog(self, errorList, "Validation Errors")
 
     def getsystemproperties(self):
         d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader,

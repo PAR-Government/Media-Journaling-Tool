@@ -1576,16 +1576,16 @@ class ValidationListDialog(Toplevel):
         self.itemBox.delete(0, END)
         for item in self.items:
             if item[1] != item[2]:
-                self.itemBox.insert(END, '{}:{}->{} {}'.format(item.Severity.name,
+                self.itemBox.insert(END, '{}: {}->{} {}'.format(item.Severity.name,
                                                                self.parent.scModel.getFileName(item.Start),
                                                                self.parent.scModel.getFileName(item.End),
                                                                item.Message))
             elif len(item[1])>0:
-                self.itemBox.insert(END, '{}:{} {}'.format(item.Severity.name,
+                self.itemBox.insert(END, '{}: {} {}'.format(item.Severity.name,
                                                            self.parent.scModel.getFileName(item.Start),
                                                            item.Message))
             else:
-                self.itemBox.insert(END, '{}:{}'.format(item.Severity.name,
+                self.itemBox.insert(END, '{}: {}'.format(item.Severity.name,
                                                            item.Message))
 
     def body(self, master):
@@ -2290,7 +2290,7 @@ class VerticalScrolledFrame(Frame):
                 canvas.itemconfigure(self.interior_id, width=canvas.winfo_width())
             elif self.interior.winfo_reqwidth() != self.canvas.winfo_width():
                 self.canvas.config(width=self.interior.winfo_reqwidth())
-            if (self.interior.winfo_reqheight() < self.canvas.winfo_height()) or (
+            if (self.interior.winfo_reqheight() != self.canvas.winfo_height()) or (
                 self.interior.winfo_height() != self.canvas.winfo_height()):
                 self.canvas.itemconfigure(self.interior_id, height=self.canvas.winfo_height())
 
@@ -2535,7 +2535,6 @@ class SystemPropertyDialog(tkSimpleDialog.Dialog):
         self.master.pack_propagate(True)
         self.master.grid_propagate(True)
         self.vs.pack(side="top", fill="both", expand=True)
-        self.master.wm_resizable(width=False, height=False)
 
    def buttonbox(self):
         '''add standard button box.
@@ -2554,9 +2553,6 @@ class SystemPropertyDialog(tkSimpleDialog.Dialog):
         self.bind("<Escape>", self.cancel)
 
         box.pack(expand=False)
-        box.grid_propagate(False)
-        box.pack_propagate(False)
-        box.ra
 
    def cancel(self, event=None):
     self.cancelled = True

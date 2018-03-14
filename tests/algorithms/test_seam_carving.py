@@ -3,7 +3,7 @@ from maskgen.algorithms.seam_carving import SeamCarver, HogEnergyFunc, SobelFunc
     createHorizontalSeamMask,createVerticalSeamMask, foward_base_energy_function
 from tests.test_support import TestSupport
 import os
-from maskgen.image_wrap import ImageWrapper, openImageFile
+from maskgen.image_wrap import ImageWrapper, openImageFile,deleteImage
 import numpy as np
 import random
 
@@ -80,7 +80,12 @@ class TestToolSet(TestSupport):
         #ImageWrapper(image).save(os.path.join(os.path.dirname(filename), 'twins_f.png'))
         #ImageWrapper(mask).save(os.path.join(os.path.dirname(filename), 'twins_m.png'))
         radj, cadj = sc.mask_tracker.save_adjusters('adjusters.png')
+        deleteImage(radj)
+        deleteImage(cadj)
+        foo = np.copy(sc.mask_tracker.dropped_adjuster)
         sc.mask_tracker.read_adjusters( radj, cadj )
+        self.assertTrue(np.all(foo == sc.mask_tracker.dropped_adjuster))
+
         sc.mask_tracker.save_neighbors_mask('twins_m.png')
         #os.remove(radj)
         #os.remove(cadj)

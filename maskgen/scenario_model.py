@@ -2000,18 +2000,14 @@ class ImageProjectModel:
         self._executeSkippedComparisons()
         logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
         total_errors = self.validator.run_graph_suite(self.getGraph(),external=external)
-
-        nodes = self.G.get_nodes()
-        anynode = nodes[0]
-
         for prop in getProjectProperties():
             if prop.mandatory:
                 item = self.G.getDataItem(prop.name)
                 if item is None or len(item.strip()) < 3:
                     total_errors.append(
                         ValidationMessage(Severity.ERROR,
-                                          str(anynode),
-                                          str(anynode),
+                                          '',
+                                          '',
                                           'Project property ' + prop.description + ' is empty or invalid',
                                           'Mandatory Property'))
 
