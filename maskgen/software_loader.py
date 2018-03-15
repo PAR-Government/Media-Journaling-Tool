@@ -384,7 +384,10 @@ class MetaDataLoader:
     projectProperties = {}
 
     def __init__(self):
-        self.operations , self.filters, self.operationsByCategory = self.loadOperations('operations.json')
+        self.reload()
+
+    def reload(self):
+        self.operations, self.filters, self.operationsByCategory = self.loadOperations('operations.json')
         self.softwareset = self.loadSoftware('software.csv')
         self.projectProperties = self.loadProjectProperties('project_properties.json')
 

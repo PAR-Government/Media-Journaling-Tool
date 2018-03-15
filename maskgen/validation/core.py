@@ -83,6 +83,13 @@ class ValidationAPI(object):
     def isExternal(self):
         return False
 
+    def reload(self):
+        """
+        Reload configuratio
+        :return:
+        """
+        pass
+
     def check_graph(self, graph):
         """
         Graph meta-data level errors only
@@ -243,6 +250,13 @@ class ValidationAPIComposite(ValidationAPI):
         for subclassinstance in self._get_subclassinstances():
             result.extend(subclassinstance.check_node(node, graph))
         return result
+
+    def reload(self):
+        """
+        :return:
+        """
+        for subclassinstance in self._get_subclassinstances():
+            subclassinstance.reload()
 
     def test(self):
         """

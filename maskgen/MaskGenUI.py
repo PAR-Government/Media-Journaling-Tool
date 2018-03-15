@@ -35,6 +35,7 @@ from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
 from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 import preferences_initializer
+from software_loader import getMetDataLoader
 
 """
   Main UI Driver for MaskGen
@@ -673,6 +674,7 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             try:
                 loadS3([val])
+                getMetDataLoader().reload()
                 self.prefLoader.save('s3info', val)
             except ClientError as e:
                 tkMessageBox.showwarning("S3 Download failure", str(e))
