@@ -11,26 +11,7 @@
     "validatedby": "", 
     "exporttime": "2016-12-27 19:17:59", 
     "jt_upgrades": [
-      "0.3.1115", 
-      "0.3.1213", 
-      "0.4.0101", 
-      "0.4.0101.8593b8f323", 
-      "0.4.0308.f7d9a62a7e", 
-      "0.4.0308.dd9555e4ba", 
-      "0.4.0308.90e0ce497f", 
-      "0.4.0308.adee798679", 
-      "0.4.0308.db2133eadc", 
-      "0.4.0425.d3bc2f59e1", 
-      "0.4.0101.b4561b475b", 
-      "04.0621.3a5c9635ef", 
-      "04.0720.415b6a5cc4", 
-      "04.0720.b0ec584b4e", 
-      "04.0710.b0ec584b4e", 
-      "04.0810.546e996a36", 
-      "04.0810.9381e76724", 
-      "0.4.1115.32eabae8e6", 
-      "0.4.1204.5291b06e59", 
-      "0.4.1231.03ad63e6bb"
+      "0.5.0227.c5eeafdb2e"
     ], 
     "autopastecloneinputmask": "no", 
     "idcount": 27, 
@@ -253,10 +234,10 @@
       "source": 2, 
       "arguments": {
         "function": "maskgen.algorithms.seam_carving.seamCompare", 
-        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_151622659143__final_mask.png", 
         "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
         "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_151622659143__adjr.png", 
-        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_151622659143__adjc.png"
+        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_151622659143__adjc.png", 
+        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_151622659143__final_mask.png"
       }, 
       "location": "(0,0)", 
       "username": "TheDoorKnob", 
@@ -554,6 +535,10 @@
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
+        "Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
         "Compression": [
           "delete", 
           "Deflate/Inflate"
@@ -605,18 +590,14 @@
           "add", 
           "0100"
         ], 
-        "Exif Byte Order": [
-          "add", 
-          "Little-endian (Intel, II)"
-        ], 
         "File Modification Date/Time": [
           "change", 
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Resolution Unit": [
+        "Exif Byte Order": [
           "add", 
-          "inches"
+          "Little-endian (Intel, II)"
         ], 
         "MIME Type": [
           "change", 

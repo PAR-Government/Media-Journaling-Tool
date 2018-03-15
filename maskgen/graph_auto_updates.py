@@ -11,7 +11,7 @@ import os
 import logging
 from image_wrap import openImageFile,ImageWrapper
 import numpy as np
-
+from support import setPathValue ,getValue
 
 """
 Support functions for auto-updating journals created with older versions of the tool"
@@ -152,15 +152,15 @@ def _fixSeams(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] in [ 'TransformSeamCarving'] and edge['softwareName'] == 'maskgen':
-            bounds = tool_set.getValue(edge,'arguments.percentage bounds')
+            bounds = getValue(edge,'arguments.percentage bounds')
             if  bounds is not None:
                 edge['arguments'].pop('percentage bounds')
                 edge['arguments']['percentage_width'] = float(bounds)/100.0
                 edge['arguments']['percentage_height'] = float(bounds)/100.0
-            keep  =tool_set.getValue(edge, 'arguments.keepSize')
+            keep  = getValue(edge, 'arguments.keepSize')
             if keep is not None:
                 edge['arguments']['keep'] = 'yes' if keep == 'no' else 'no'
-            mask = tool_set.getValue(edge,'inputmaskname')
+            mask =  getValue(edge,'inputmaskname')
             if mask is not None:
                 try:
                     im = openImageFile(os.path.join(scModel.get_dir(),mask))
@@ -230,7 +230,6 @@ def _fixCopyST(scModel,gopLoader):
 
 def _operationsChange1(scModel,gopLoader):
     projecttype = scModel.G.getDataItem('projecttype')
-    from image_graph import setPathValue
     blur_type_mapping = {
         'AdditionalEffectFilterBlur':'Other',
         'AdditionalEffectFilterSmoothing':'Smooth',
@@ -659,16 +658,16 @@ def _fixDescriptions(scModel, gopLoader):
             continue
         plugin_name  = currentLink['plugin_name']
         if plugin_name == 'GammaCollection':
-            tool_set.setPathValue(currentLink,'arguments.selection type', 'auto')
+            setPathValue(currentLink,'arguments.selection type', 'auto')
         elif plugin_name == 'MajickConstrastStretch':
-            tool_set.setPathValue(currentLink,'arguments.selection type', 'NA')
+            setPathValue(currentLink,'arguments.selection type', 'NA')
         elif plugin_name == 'MajickEqualization':
-            tool_set.setPathValue(currentLink, 'arguments.selection type', 'NA')
-            tool_set.setPathValue(currentLink,'description',plugin_name + ': Equalize histogram: https://www.imagemagick.org/Usage/color_mods/#equalize.')
-        elif plugin_name == 'GaussianBlur' and tool_set.getPath(currentLink,'arguments.Laundering') is not None:
-            tool_set.setPathValue(currentLink, 'arguments.Laundering', 'no')
+            setPathValue(currentLink, 'arguments.selection type', 'NA')
+            setPathValue(currentLink,'description',plugin_name + ': Equalize histogram: https://www.imagemagick.org/Usage/color_mods/#equalize.')
+        elif plugin_name == 'GaussianBlur' and getValue(currentLink,'arguments.Laundering') is not None:
+            setPathValue(currentLink, 'arguments.Laundering', 'no')
         elif plugin_name == 'ManualGammaCorrection':
-            tool_set.setPathValue(currentLink, 'arguments.selection type', 'manual')
-            tool_set.setPathValue(currentLink, 'description',
+            setPathValue(currentLink, 'arguments.selection type', 'manual')
+            setPathValue(currentLink, 'description',
                                   plugin_name + ': Level gamma adjustment  (https://www.imagemagick.org/script/command-line-options.php#gamma)')
 

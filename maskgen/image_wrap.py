@@ -10,10 +10,10 @@ from PIL import Image
 import cv2
 import numpy as np
 import os
+import inspect
 import subprocess
 from pkg_resources import iter_entry_points
 from cachetools import LRUCache
-from cachetools import cached
 from threading import RLock
 import logging
 import os
@@ -45,7 +45,8 @@ except ImportError:
         def __enter__(self):
             return []
 
-def _processRaw(raw, isMask=False,args=None):
+
+def _processRaw(raw, isMask=False, args=None):
     import rawpy
     try:
         if args is not None and 'Bits per Channel' in args:
@@ -98,6 +99,10 @@ def _processRaw(raw, isMask=False,args=None):
         return None
 
 
+def openImageMaskFile(directory, filename):
+    return openImageFile(os.path.join(directory, filename), isMask=True).to_array()
+
+
 def openRaw(filename, isMask=False, args=None):
     try:
         import rawpy
@@ -105,7 +110,7 @@ def openRaw(filename, isMask=False, args=None):
             if type(args) == list:
                 result = {}
                 for argitem in args:
-                    rawim = _processRaw(raw, isMask=isMask,args=argitem)
+                    rawim = _processRaw(raw, isMask=isMask, args=argitem)
                     if rawim is not None:
                         if 'outputname' in argitem:
                             rawim.save(argitem['outputname'], format='PNG')
@@ -117,6 +122,7 @@ def openRaw(filename, isMask=False, args=None):
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))
         return None
+
 
 def openTiff(filename, isMask=False, args=None):
     raw = openRaw(filename, isMask=isMask, args=args)
@@ -188,7 +194,6 @@ def convertToPDF(filename, isMask=False):
         im = Image.open(f)
         im.load()
         return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
-    return None
 
 
 def getProxy(filename):
@@ -203,7 +208,7 @@ def defaultOpen(filename, isMask=False, args=None):
         im = Image.open(f)
         im.load()
         if im.format == 'TIFF' and filename.lower().find('tif') < 0:
-            raw = openTiff(filename, isMask=isMask,args=args)
+            raw = openTiff(filename, isMask=isMask, args=args)
             if raw is not None and raw.size[0] > im.size[0] and raw.size[1] > im.size[1]:
                 return raw
     result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
@@ -212,19 +217,24 @@ def defaultOpen(filename, isMask=False, args=None):
 
 def readPNG(filename, isMask=False):
     import itertools
-    with open(filename,'rb') as f:
+    with open(filename, 'rb') as f:
         exifdata = exif.getexif(filename)
         if 'Bit Depth' in exifdata and exifdata['Bit Depth'] == '16':
             pngdata = png.Reader(file=f).asDirect()
             image_2d = np.vstack(itertools.imap(np.uint16, pngdata[2]))
-            image_3d = np.reshape(image_2d,
-                                     (pngdata[1], pngdata[0], image_2d.shape[1]/pngdata[0]))
-            result = ImageWrapper(image_3d, to_mask=isMask)
+            shape = image_2d.shape[1] / pngdata[0]
+            if shape > 1:
+                image_3d = np.reshape(image_2d,
+                                      (pngdata[1], pngdata[0], image_2d.shape[1] / pngdata[0]))
+                result = ImageWrapper(image_3d, to_mask=isMask)
+            else:
+                result = ImageWrapper(image_2d)
         else:
             im = Image.open(f)
             im.load()
             result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
     return result
+
 
 def proxyOpen(filename, isMask=False):
     proxyname = getProxy(filename)
@@ -234,7 +244,8 @@ def proxyOpen(filename, isMask=False):
 
 
 # openTiff supports raw files as well
-file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]), ('', [defaultOpen]),
+file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]),
+                 ('', [defaultOpen]),
                  ('', [openTiff]), ('', [proxyOpen])]
 file_write_registry = {}
 
@@ -248,7 +259,7 @@ for entry_point in iter_entry_points(group='maskgen_image_writer', name=None):
 def getFromWriterRegistry(format):
     return file_write_registry[format] if format in file_write_registry else None
 
-import inspect
+
 def openFromRegistry(filename, isMask=False, args=None):
     for suffixList in file_registry:
         if suffixList[0] in filename.lower():
@@ -256,8 +267,8 @@ def openFromRegistry(filename, isMask=False, args=None):
                 try:
                     if args is not None:
                         try:
-                            inspect.getcallargs(func,filename, isMask=isMask,args=args)
-                            result = func(filename, isMask=isMask,args=args)
+                            inspect.getcallargs(func, filename, isMask=isMask, args=args)
+                            result = func(filename, isMask=isMask, args=args)
                         except Exception as e:
                             result = func(filename, isMask=isMask)
                     else:
@@ -328,13 +339,21 @@ def tofloat(img_array):
     return img_array
 
 
-def totype(img_array, type):
-    if img_array.dtype == type or type is None:
+def to_data_type(img_array, data_type):
+    """
+
+    :param img_array:
+    :param data_type:
+    :return:
+    @type img_array: np.ndarray
+    @type data_type: np.dtype or str
+    """
+    if img_array.dtype == data_type or data_type is None:
         return img_array
-    if type == 'uint8':
+    if data_type == 'uint8':
         img_array = tofloat(img_array)
-        img_array = img_array * np.iinfo(type).max
-    return img_array.astype(type)
+        img_array = img_array * np.iinfo(data_type).max
+    return img_array.astype(data_type)
 
 
 def get_mode(image_array):
@@ -352,13 +371,20 @@ def get_mode(image_array):
         return 'RGB'
 
 
-
 class ImageWrapper:
     """
-    @type image_array: numpy.array
+    @type image_array: numpy.ndarray
     """
+    def __init__(self, image_array, mode=None, to_mask=False, info=None, filename=None):
+        """
 
-    def __init__(self, image_array, mode=None, to_mask=False, info=None,filename=None):
+        :param image_array:
+        :param mode:
+        :param to_mask:
+        :param info:
+        :param filename:
+        @type image_array: np.ndarray or ImageWrapper
+        """
         if str(type(image_array)) == 'ImageWrapper':
             self.image_array = image_array.image_array
         else:
@@ -369,7 +395,7 @@ class ImageWrapper:
         self.filename = filename
         if to_mask and self.mode != 'L':
             self.image_array = self.to_mask_array()
-            self.mode='L'
+            self.mode = 'L'
 
     def has_alpha(self):
         return len(self.image_array.shape) == 3 and self.mode.find('A') > 0
@@ -378,7 +404,7 @@ class ImageWrapper:
         return Image.fromarray(self.image_array, mode=self.mode)
 
     def toPIL(self):
-        return Image.fromarray(self.to_rgb(type='uint8').to_array())
+        return Image.fromarray(self.to_rgb(data_type='uint8').to_array())
 
     def to_array(self):
         return np.copy(self.image_array)
@@ -400,8 +426,8 @@ class ImageWrapper:
         img[:, :, 3] = img[:, :, 3] * mask_array
         return ImageWrapper(self.image_array)
 
-    def to_rgb(self, type=None):
-        type = self.image_array.dtype if type is None else type
+    def to_rgb(self, data_type=None):
+        data_type = self.image_array.dtype if data_type is None else data_type
         s = self.image_array.shape
         img = self.convert('RGB')
         if self.mode.find('A') > 0:
@@ -412,10 +438,10 @@ class ImageWrapper:
             for i in range(3):
                 img_array2[:, :, i] = img.image_array[:, :, i] * zeros
             img_array2 = img_array2.astype(self.image_array.dtype)
-            return ImageWrapper(totype(img_array2, type=type), mode='RGB')
+            return ImageWrapper(to_data_type(img_array2, data_type=data_type), mode='RGB')
         elif len(s) == 2:
-            return ImageWrapper(cv2.cvtColor(totype(self.image_array, type), cv2.COLOR_GRAY2RGB), mode='RGB')
-        return ImageWrapper(totype(np.copy(img.image_array), type))
+            return ImageWrapper(cv2.cvtColor(to_data_type(self.image_array, data_type), cv2.COLOR_GRAY2RGB), mode='RGB')
+        return ImageWrapper(to_data_type(np.copy(img.image_array), data_type))
 
     def touint8(self):
         if self.image_array.dtype == 'uint16':
@@ -427,35 +453,44 @@ class ImageWrapper:
             self.image_array = img_array.astype('uint8')
 
     def save(self, filename, **kwargs):
+        """
+
+        :param filename:
+        :param kwargs:
+        :return:
+        @type filename: str
+        """
         self.filename = filename
         if 'format' in kwargs:
-            format = kwargs['format']
+            image_format = kwargs['format']
         elif getFromWriterRegistry(self.mode.lower()):
-            format = self.mode.lower()
+            image_format = self.mode.lower()
         else:
-            format = 'TIFF' if self.image_array.dtype == 'uint16' else 'PNG'
+            image_format = 'TIFF' if filename.lower().endswith('tif') or filename.lower().endswith('tiff') else 'PNG'
         newargs = dict(kwargs)
-        newargs['format'] = format
+        newargs['format'] = image_format
         img_array = self.image_array
-        file_writer = getFromWriterRegistry(format.lower())
+        file_writer = getFromWriterRegistry(image_format.lower())
         if file_writer is not None:
             file_writer(filename, img_array)
             return
         if self.mode == 'F':
             img_array = img_array * 256
             img_array = img_array.astype('uint8')
-        if img_array.dtype == 'uint8' or self.mode == 'L':
-            if format == 'PDF' and self.mode != 'RGB':
+        if img_array.dtype == 'uint8' and self.mode == 'L':
+            if image_format == 'PDF' and self.mode != 'RGB':
                 self.convert('RGB').save(filename, **newargs)
             else:
                 Image.fromarray(img_array).save(filename, **newargs)
             return
         newargs.pop('format')
-        if format == 'PNG' and self.image_array.dtype == 'uint16':
-            write_png(filename,self.image_array)
-            #with open(filename, 'w') as f:
+        if image_format == 'PNG' and self.image_array.dtype == 'uint16':
+            write_png(filename, self.image_array)
+            # with open(filename, 'w') as f:
             #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
             #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
+        elif image_format == 'PNG' and self.image_array.dtype != 'uint8':
+            imsave(filename, self.image_array.astype('uint8'), **newargs)
         else:
             imsave(filename, self.image_array, **newargs)
         if os.path.exists(filename):
@@ -539,7 +574,6 @@ class ImageWrapper:
             img_array[self.image_array[:, :, s[2] - 1] == 0] = 255
             return ImageWrapper(img_array)
         return mask
-
 
     def to_mask_array(self):
         """
