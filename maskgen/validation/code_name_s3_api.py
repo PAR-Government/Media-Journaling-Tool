@@ -15,14 +15,18 @@ class ValidationCodeNameS3(ValidationAPI):
     filename = 'ManipulatorCodeNames.txt'
 
     def __init__(self,preferences):
-        import os
         ValidationAPI.__init__(self,preferences)
-        file = getFileName(ValidationCodeNameS3.filename)
         self.names = []
-        if os.path.exists(file):
-            with open(file,'r') as fp:
-                self.names = [name.strip() for name in fp.readlines() if len(name)>1]
+        self.reload()
 
+    def reload(self):
+        import os
+        self.names = []
+        file = getFileName(ValidationCodeNameS3.filename)
+        if file is not None:
+            if os.path.exists(file):
+                with open(file, 'r') as fp:
+                    self.names = [name.strip() for name in fp.readlines() if len(name) > 1]
 
     def isExternal(self):
         return False

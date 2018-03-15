@@ -761,15 +761,17 @@ def __composeArguments(mask_tracker, arguments={}):
                                                       identifier=tool_set.uniqueId()))
     args = {}
     args.update(arguments)
-    if 'row adjuster' not in arguments:
+    if 'row adjuster' not in arguments or ('mask interpolated' in arguments and arguments['mask interpolated'] == 'yes'):
         adjusternames_row, adjusternames_col = mask_tracker.save_adjusters(adjusternames)
         args.update({
             'column adjuster': os.path.basename(adjusternames_col),
-            'row adjuster': os.path.basename(adjusternames_row)})
-    if 'neighbor mask' not in arguments:
+            'row adjuster': os.path.basename(adjusternames_row),
+            'mask interpolated': 'yes'})
+    if 'neighbor mask' not in arguments or ('mask interpolated' in arguments and arguments['mask interpolated'] == 'yes'):
         mask_tracker.save_neighbors_mask(finalmaskname)
         args.update({
-            'neighbor mask': os.path.basename(finalmaskname)
+            'neighbor mask': os.path.basename(finalmaskname),
+            'mask interpolated': 'yes'
         })
     return {'arguments': args}
 

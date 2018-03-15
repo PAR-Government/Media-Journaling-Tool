@@ -22,6 +22,7 @@ import threading
 import loghandling
 import cv2api
 from maskgen.support import removeValue
+import os
 
 import platform
 
@@ -216,7 +217,6 @@ def openFile(fileName):
     """
      Open a file using a native OS associated program
     """
-    import os
     import sys
     if fileName.endswith('.hdf5'):
         fileName = convertToVideo(fileName, preferences=MaskGenLoader())
@@ -249,16 +249,12 @@ class IntObject:
 
 try:
     import pwd
-    import os
-
 
     class PwdX():
         def getpwuid(self):
             return pwd.getpwuid(os.getuid())[0]
 
 except ImportError:
-    import pwd
-    import os
 
     class PwdX():
         def getpwuid(self):

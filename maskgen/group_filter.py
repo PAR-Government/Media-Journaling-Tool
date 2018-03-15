@@ -65,6 +65,7 @@ def buildFilterOperation(pluginOp):
     for k,v in  (pluginOp['arguments']  if 'arguments' in pluginOp and pluginOp['arguments'] is not None else {}).iteritems():
         mandatory[k] = v
     optional = {k:v for k,v in realOp.optionalparameters.iteritems() if k not in mandatory}
+    logging.getLogger('maskgen').info('Build filter {}'.format(pluginOp['name']))
     return Operation(name=pluginOp['name'],
                      category=pluginOp['category'],
                      generateMask=realOp.generateMask,
@@ -176,7 +177,7 @@ class GroupFilterLoader:
         return self.groups.keys()
 
     def _getOperation(self,name, filter=True):
-        pluginOp =  plugins.getOperation(name) if filter else self.getOperation(name)
+        pluginOp = plugins.getOperation(name) if filter else self.getOperation(name)
         return buildFilterOperation(pluginOp)
 
     def _buildGroupOperation(self,grp, name, filter=True):
@@ -195,6 +196,7 @@ class GroupFilterLoader:
             ops = []
             if filter and not grp.isValid():
                 return None
+            logging.getLogger('maskgen').info('Building group {} filter {}'.format(grp, name))
             for op in grp.filters:
                 operation = self._getOperation(op)
                 ops.append(operation)
@@ -238,7 +240,11 @@ class GroupFilterLoader:
 
     def getOperation(self, name):
         grp = self.getGroup(name)
-        return self._buildGroupOperation(grp, name) if grp is not None else getOperation(name)
+        try:
+            return self._buildGroupOperation(grp, name) if grp is not None else getOperation(name)
+        except Exception as e:
+            logging.getLogger('maskgen').error('Group Filter {} is in an inconsistent state: {} '.format(name, str(e)))
+            return None
 
     def __init__(self):
         self.load()
@@ -249,10 +255,13 @@ class GroupFilterLoader:
         for grp,v in self.groups.iteritems():
             if not v.isValid():
                 continue
-            grpOp = v.getOperation()
-            transitions = [t.split('.')[0] for t in grpOp['operation']['transitions']]
-            if startType is None or startType in transitions:
-                p[grp] =grpOp
+            try:
+                grpOp = v.getOperation()
+                transitions = [t.split('.')[0] for t in grpOp['operation']['transitions']]
+                if startType is None or startType in transitions:
+                    p[grp] =grpOp
+            except Exception as e:
+                logging.getLogger('maskgen').error('Cannot load group filter {} : {}'.format(grp,str(e)))
         return p
 
     def load(self, filterFactory=lambda k,v: GroupFilter(k, v)):
@@ -300,12 +309,15 @@ class GroupFilterLoader:
         :return:
         @rtype: Operation
         """
-        op = getOperation(name, fake=False, warning=warning)
+        op = getOperation(name, fake=False, warning=False)
         if op is None:
             op = self.getOperation(name)
-        if op is None and fake:
-            return getOperation(name, fake=True, warning=warning)
+        if op is None:
+            logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
+            if fake:
+                return getOperation(name, fake=True, warning=warning)
         return op
+
 
     def getOperationsByCategoryWithGroups(self, sourcetype, targettype):
         """

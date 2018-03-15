@@ -154,6 +154,8 @@ def getOperations(fileType=None):
             continue
         transitions = loaded[l]['operation']['transitions'] if 'transitions' in loaded[l]['operation'] else []
         transitions = [t.split('.')[0] for t in transitions]
+        if len(transitions) == 0:
+            continue
         if fileType is None or fileType in transitions:
             ops[l] = loaded[l]
     return ops
