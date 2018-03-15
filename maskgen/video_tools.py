@@ -394,6 +394,36 @@ def ffmpegToolTest():
         return ffmpegcommand[0] + ' not installed properly'
     return None
 
+def get_valid_codecs(codec_type='video'):
+    """
+    Returns a list of valid Codecs given a string determining which type of codec.
+    :param codec_type: string, determines kind of codec.
+    :returns: a list of strings, codec names.
+    """
+    valid_codecs = ['Use Donor']
+    codecs = (runffmpeg(['-codecs'], False).split("\n")[10:-1]
+              + runffmpeg(['-encoders'], False).split("\n")[10:-1])
+    for line in codecs:
+        valid = parse_codec_list(line, codec_type)
+        if valid != '':
+            valid_codecs.append(valid)
+    return valid_codecs
+
+def parse_codec_list(line, codec_type='video'):
+    """
+    Parse through ffmpegs codec lists
+    :param line: string to parse
+    :param codecType: string of which codec type to look for.
+    :returns: string of codec name
+    """
+    query = "V" if codec_type == 'video' else "A"
+    testOne = "E" in line[1:7] and query in line[1:7]
+    testTwo = query == line[1:7][0]
+    if testOne or testTwo:
+        return str.strip(line[8:29])
+    else:
+        return ''
+
 def __get_channel_data(source_data, codec_type):
     for data in source_data:
         if data['codec_type'] == codec_type:
@@ -535,13 +565,15 @@ def runffmpeg(args, noOutput=True):
     command = [tool_set.getFFmpegTool()]
     command.extend(args)
     try:
-        pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
-        stdout, stderr =  pcommand.communicate()
+        pcommand = Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
+        stdout, stderr = pcommand.communicate()
         if pcommand.returncode != 0:
             error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
             raise ValueError(error)
+        if noOutput == False:
+            return stdout
     except OSError as e:
-        logging.getLogger('maskgen').error( "FFmpeg not installed")
+        logging.getLogger('maskgen').error("FFmpeg not installed")
         logging.getLogger('maskgen').error(str(e))
         raise e
 

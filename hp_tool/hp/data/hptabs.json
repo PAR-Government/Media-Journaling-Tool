@@ -92,6 +92,7 @@
     "ImageFilename",
     "HP-Thumbnails",
     "HP-Keywords",
-    "HP-PolyCount"
+    "HP-PolyCount",
+    "HP-License"
   ]
 }

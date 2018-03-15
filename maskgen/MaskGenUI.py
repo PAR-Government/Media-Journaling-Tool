@@ -1196,7 +1196,7 @@ class MakeGenUI(Frame):
             self.getsystemproperties()
         sha, message =  UpdaterGitAPI().isOutdated()
         if sha is not None:
-            tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message))
+            tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
         if self.startedWithNewProject:
             self.getproperties()
 
