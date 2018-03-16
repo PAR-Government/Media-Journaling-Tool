@@ -165,7 +165,6 @@ def getValue(obj, path, defaultValue=None, convertFunction=None):
 
 class MaskgenThreadPool:
 
-
     def __init__(self,size):
         from multiprocessing.pool import ThreadPool
         if size > 1:
@@ -181,6 +180,4 @@ class MaskgenThreadPool:
             result = AsyncResult({},False)
             result._set(0,(True,func(*args, **kwds)))
             return result
-
-
 

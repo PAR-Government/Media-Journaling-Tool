@@ -14,6 +14,7 @@ from botocore.exceptions import ClientError
 from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
+from maskgen.userinfo import get_username,setPwdX,CustomPwdX
 from description_dialog import *
 from group_filter import  GroupFilterLoader
 from tool_set import *
@@ -72,9 +73,6 @@ def fromFileTypeString(types, profileTypes):
 
 class UIProfile:
     name = 'Image/Video'
-
-    def getFactory(self):
-        return imageProjectModelFactory
 
     def addProcessCommand(self, menu, parent):
         menu.add_command(label="Create JPEG/TIFF", command=parent.createJPEGorTIFF, accelerator="Ctrl+J")
@@ -155,7 +153,8 @@ class MakeGenUI(Frame):
             tkMessageBox.showinfo("Error", "Directory already associated with a project")
             return
         self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
-                              organization=self.prefLoader.get_key('organization'))
+                              organization=self.prefLoader.get_key('organization'),
+                              username=self.get_username())
         self.updateFileTypePrefs()
         self._setTitle()
         self.drawState()
@@ -174,7 +173,7 @@ class MakeGenUI(Frame):
         self.canvas.reformat()
 
     def _open_project(self, path):
-        self.scModel.load(path)
+        self.scModel.load(path,username=self.get_username())
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
         self._setTitle()
@@ -252,6 +251,9 @@ class MakeGenUI(Frame):
                     self.scModel.saveas(dir)
                     self._setTitle()
             #val.close()
+
+    def get_username(self):
+            return self.prefLoader.get_key('username',default_value=get_username())
 
     def recomputeallrmask(self):
         for edge_id in self.scModel.getGraph().get_edges():
@@ -369,7 +371,7 @@ class MakeGenUI(Frame):
                         ValidationListDialog(self, errorList, "Export Errors")
                 else:
                     tkMessageBox.showinfo("Export to S3", "Complete")
-                    self.prefLoader.save('s3info', val)
+                self.prefLoader.save('s3info', val)
             except IOError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export.  Check log file details.")
@@ -1183,7 +1185,7 @@ class MakeGenUI(Frame):
         self.mypluginops = plugins.loadPlugins()
         self.gfl = GroupFilterLoader()
         tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
-                              projectModelFactory=uiProfile.getFactory(),
+                              username=self.get_username(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:
             logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)

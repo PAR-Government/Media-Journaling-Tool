@@ -9,7 +9,7 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed
 from support import getValue
 import numpy
 from image_graph import ImageGraph
@@ -71,15 +71,11 @@ def rotationCheck(op, graph, frm, to):
         return (Severity.ERROR,'Image was rotated. Parameter Image Rotated is set to "no"')
     return None
 
-def checkUncompressed(op,graph, frm, to):
-    def match(start,stop,edge):
-        if edge['op'] == 'Donor':
-            return 'skip'
-        elif edge['op'].startswith('Output'):
-            return 'return'
-        return 'continue'
-    if graph.findAncestor(match,frm) is None:
-        return (Severity.ERROR,'Check to see if the starting node is compressed')
+def checkUncompressed(op, graph, frm, to):
+    file = os.path.join(graph.dir, graph.get_node(frm)['file'])
+    if os.path.exists(file) and \
+        isCompressed(file):
+            return (Severity.WARNING, 'Starting node appears to be compressed')
 
 def checkFrameTimeAlignment(op,graph, frm, to):
     """

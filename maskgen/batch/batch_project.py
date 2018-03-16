@@ -37,6 +37,7 @@ from maskgen.preferences_initializer import initial_user
 from maskgen.support import getValue
 from maskgen import maskGenPreferences
 from maskgen.validation.core import Severity
+from maskgen.userinfo import get_username
 
 class IntObject:
     value = 0
@@ -59,6 +60,7 @@ class IntObject:
 
 
 def loadJSONGraph(pathname):
+    logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
             json_data = json.load(f, encoding='utf-8')
@@ -369,15 +371,21 @@ def pickImageIterator(specification, spec_name, global_state):
     if 'picklists' not in global_state:
         global_state['picklists'] = dict()
     picklist_name = specification['picklist'] if 'picklist' in specification else spec_name
+    directory = specification['image_directory'].format(**global_state)
     if picklist_name not in global_state['picklists']:
         element = FilePermuteGroupElement(spec_name,
-                                          specification['image_directory'].format(**global_state),
+                                          directory,
                                           tracking_filename=picklist_name + '.txt',
                                           fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio','video','image'],
                                           filetypes=specification[
                                               'filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
     else:
+        if picklist_name in global_state['picklists'] and \
+                        global_state['picklists'][picklist_name].directory != directory:
+            raise ValueError('Picklist {} reference else where with a different directory. {}'.format(
+                picklist_name, specification['image_directory']
+            ))
         link_element = global_state['picklists'][picklist_name]
         element = LinkedPermuteGroupElement(spec_name, link_element)
     return element
@@ -468,10 +476,13 @@ class BaseSelectionOperation(BatchOperation):
         shutil.copy2(pick, file_path_in_project)
         logging.getLogger('maskgen').info("Build project {}".format(pick_file))
         preferred_organization = maskGenPreferences.get_key('organization')
+        preferred_username=getValue(global_state,'username',defaultValue=get_username())
+        suffix = os.path.splitext(pick_file)[0]
         model = scenario_model.createProject(dir,
                                              name=name,
                                              base=file_path_in_project,
-                                             suffixes=tool_set.suffixes,
+                                             suffixes=tool_set.suffixes+ [suffix],
+                                             username=preferred_username,
                                              organization=preferred_organization)[0]
         for prop, val in local_state['project'].iteritems():
             model.setProjectData(prop, val)
@@ -988,6 +999,8 @@ class BatchProject:
                 project.export(global_state['archives'])
         except Exception as e:
             project_name = project.getName()
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             return False
         finally:
@@ -1005,6 +1018,7 @@ class BatchProject:
         mydata.current_local_state = local_state
         self.logger.info('Building project with global state: {} '.format(str(global_state)))
         base_node = self._findBase()
+        ok = False
         if base_node is None:
             self.logger.error("A suitable base node for this project {} was not found".format(self.getName()))
         try:
@@ -1014,6 +1028,7 @@ class BatchProject:
             logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
             completed = [base_node]
+            project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
                 if op_node_name in completed:
@@ -1041,24 +1056,27 @@ class BatchProject:
                 op.performOp()
             sm = local_state['model']
             sm.renameFileImages()
+            ok = True
             summary_file = os.path.join(sm.get_dir(), '_overview_.png')
             ImageGraphPainter(sm.getGraph()).output(summary_file)
             if 'archives' in global_state:
                 sm.export(global_state['archives'])
         except Exception as e:
-            project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
-            logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
-            if 'model' in local_state:
-                if 'removebadprojects' in global_state and not global_state['removebadprojects']:
-                    local_state['model'].save()
-                else:
-                    shutil.rmtree(local_state['model'].get_dir())
-            return None, project_name
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
+            if not ok:
+                logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
+                if 'model' in local_state:
+                    if 'removebadprojects' in global_state and not global_state['removebadprojects']:
+                        local_state['model'].save()
+                    else:
+                        shutil.rmtree(local_state['model'].get_dir())
+                return None, project_name
         finally:
             for file in local_state['cleanup']:
                 if os.path.exists(file):
                     os.remove(file)
-        project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
+        self.logger.info('Creation of project {} succeeded'.format(project_name))
         return local_state['model'].get_dir(), project_name
 
     def saveGraphImage(self, dir='.'):

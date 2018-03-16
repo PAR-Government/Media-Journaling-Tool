@@ -14,7 +14,7 @@ import maskgen.scenario_model
 from maskgen.graph_rules import processProjectProperties
 import csv
 from maskgen.batch import pick_projects
-from maskgen.tool_set import CustomPwdX, setPwdX, get_username
+from maskgen.userinfo import get_username, setPwdX,CustomPwdX
 from maskgen.validation.core import Severity, ValidationMessage,hasErrorMessages
 from maskgen.preferences_initializer import initialize
 
@@ -48,7 +48,8 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
             scModel.save()
         processProjectProperties(scModel)
         if qa:
-            scModel.set_validation_properties("yes", get_username(), "QA redone via Batch Updater")
+            username = username if username is not None else get_username()
+            scModel.set_validation_properties("yes", username, "QA redone via Batch Updater")
         errors = scModel.validate(external=True)
         for err in errors:
             error_writer.writerow((scModel.getName(), err.Severity.name,err.Start,err.End,err.Message))

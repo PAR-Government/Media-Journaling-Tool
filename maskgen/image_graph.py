@@ -19,9 +19,9 @@ from maskgen import __version__
 from threading import RLock
 from support import getPathValues, setPathValue, Proxy
 from image_wrap import getProxy
-from tool_set import get_username,getMilliSecondsAndFrameCount,fileType,openImage,getOS
+from tool_set import getMilliSecondsAndFrameCount,fileType,openImage,getOS
+from maskgen.userinfo import get_username
 from datetime import datetime
-
 
 igversion = __version__
 
@@ -169,7 +169,7 @@ def find_project_json(prefix, directory):
     return None
 
 
-def createGraph(pathname, projecttype=None, nodeFilePaths={}, edgeFilePaths={}, arg_checker_callback=None):
+def createGraph(pathname, projecttype=None, nodeFilePaths={}, edgeFilePaths={}, arg_checker_callback=None, username=None):
     """
       Factory for an Project Graph, existing or new.
       Supports a tgz of a project or the .json of a project
@@ -197,7 +197,9 @@ def createGraph(pathname, projecttype=None, nodeFilePaths={}, edgeFilePaths={}, 
                       projecttype=projecttype,
                       arg_checker_callback=arg_checker_callback,
                       nodeFilePaths=nodeFilePaths,
-                      edgeFilePaths=edgeFilePaths)
+                      edgeFilePaths=edgeFilePaths,
+                      username=username if username is not None else
+                      (G.graph['username'] if G is not None and 'username' in G.graph else get_username()))
 
 
 class GraphProxy(Proxy):
@@ -220,7 +222,7 @@ class ImageGraph:
         return self.G.name
 
     def __init__(self, pathname, graph=None, projecttype=None, nodeFilePaths={}, edgeFilePaths={},
-                 arg_checker_callback=None):
+                 arg_checker_callback=None,username=None):
         fname = os.path.split(pathname)[1]
         self.filesToRemove = set()
         self.U = list()
@@ -230,6 +232,7 @@ class ImageGraph:
         self.idc = 0
         self.arg_checker_callback = arg_checker_callback
         self.G = graph if graph is not None else nx.DiGraph(name=name)
+        self.username = username if username is not None else get_username()
         self._setup(pathname, projecttype, nodeFilePaths, edgeFilePaths)
 
     def addEdgeFilePath(self, path, ownership):
@@ -356,7 +359,7 @@ class ImageGraph:
                             seriesname=(origname if seriesname is None else seriesname),
                             file=fname,
                             ownership=('yes' if includePathInUndo else 'no'),
-                            username=get_username(),
+                            username=self.username,
                             filetype=filetype,
                             ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
                             **self.__filter_args(kwargs, exclude=['filetype', 'seriesname', 'username', 'ctime', 'ownership', 'file']))
@@ -562,7 +565,7 @@ class ImageGraph:
                             maskname=maskname,
                             op=op,
                             ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                            description=description, username=get_username(), opsys=getOS(),
+                            description=description, username=self.username, opsys=getOS(),
                             **kwargs)
             self.U = []
             self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
@@ -736,13 +739,14 @@ class ImageGraph:
     def subgraph(self, nodes):
         return ImageGraph(os.path.join(self.dir,self.get_name() + '_sub'),
                    graph=nx.DiGraph(self.G.subgraph(nodes)),
-                   projecttype=self.get_project_type())
+                   projecttype=self.get_project_type(),
+                   username=self.username)
 
     def getVersion(self):
         return igversion
 
     def getCreator(self):
-        return self.G.graph['creator'] if 'creator' in self.G.graph else get_username()
+        return self.G.graph['creator'] if 'creator' in self.G.graph else self.username
 
     def findAncestor(self,match, start):
         for pred in self.predecessors(start):
@@ -773,9 +777,9 @@ class ImageGraph:
             self.G.remove_node('idcount')
         self.dir = os.path.abspath(os.path.split(pathname)[0])
         if 'username' not in self.G.graph:
-            self.G.graph['username'] = get_username()
+            self.G.graph['username'] = self.username
         if 'creator' not in self.G.graph:
-            self.G.graph['creator'] = get_username()
+            self.G.graph['creator'] = self.username
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
         if 'updatetime' not in self.G.graph:
@@ -1095,7 +1099,7 @@ class ImageGraph:
             return False
         for pred in preds:
             edge = self.get_edge(pred, node_id)
-            if 'op' in edge['op'] == op:
+            if 'op' in edge and edge['op'] == op:
                 return True
             elif self.findOp( pred, op):
                 return True

@@ -302,7 +302,7 @@ class GroupFilterLoader:
 
     def getOperationWithGroups(self, name, fake=False, warning=True):
         """
-        Search groups for operaiton name, as the name may be a group operation
+        Search groups for operation name, as the name may be a group operation
         :param name:
         :param fake:
         :param warning:
@@ -313,10 +313,39 @@ class GroupFilterLoader:
         if op is None:
             op = self.getOperation(name)
         if op is None:
-            logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
             if fake:
                 return getOperation(name, fake=True, warning=warning)
+            elif warning:
+                logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
         return op
+
+    def getOperationsWithinGroup(self, name, fake=False, warning=True):
+        """
+        Return a list of operations. If a grouped operation, return the operations in the group.
+        :param name:
+        :param fake:
+        :param warning:
+        :return:
+        @rtype: Operation
+        """
+        op = getOperation(name, fake=False, warning=False)
+        if op is None:
+            grp = self.getGroup(name)
+            if grp is not None:
+                results = []
+                for filter in grp.filters:
+                    newop = self._buildGroupOperation(grp, name)
+                    if newop is not None:
+                        newop.name=filter
+                        results.append(newop)
+                return results
+        if op is None:
+            if fake:
+                return [getOperation(name, fake=True, warning=warning)]
+            else:
+                logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
+                return []
+        return [op]
 
 
     def getOperationsByCategoryWithGroups(self, sourcetype, targettype):
@@ -361,8 +390,9 @@ class GroupOperationsLoader(GroupFilterLoader):
             real_op = getOperation(op_name, fake=True)
             has_generate_mask.add(real_op.generateMask)
         ops = getOperations()
-        return [op_name for op_name in ops if op_name not in operations_used and not \
-            ("all" in has_generate_mask and ops[op_name].generateMask == "all") and not \
+        return [op_name for op_name in ops if op_name not in operations_used and (not \
+            ("all" in has_generate_mask and ops[op_name].generateMask == "all")) \
+                and not \
               getOperation(op_name, fake=True).category in groups_used]
 
     def getCategoryForGroup(self, groupName):

@@ -6,13 +6,12 @@
 # All rights reserved.
 #==============================================================================
 
-import tool_set
-import os
 import logging
 from image_wrap import openImageFile,ImageWrapper
 import numpy as np
 from support import setPathValue ,getValue
-
+import tool_set
+import os
 """
 Support functions for auto-updating journals created with older versions of the tool"
 """
@@ -27,26 +26,28 @@ def updateJournal(scModel):
     upgrades = scModel.getGraph().getDataItem('jt_upgrades')
     upgrades = upgrades if upgrades is not None else []
     gopLoader = scModel.gopLoader
-    fixes = OrderedDict( [("0.3.1115",     [_replace_oldops]),
-                   ("0.3.1213",            [_fixQT,_fixUserName]),
-                   ("0.4.0101.8593b8f323", [_fixResize,_fixResolution]),
-                   ("0.4.0101.b4561b475b", [_fixCreator, _fixValidationTime]),
-                   ("0.4.0308.f7d9a62a7e", [_fixLabels]),
-                   ("0.4.0308.f7d9a62a7e", [_fixPasteSpliceMask]),
-                   ("0.4.0308.90e0ce497f", [_fixTransformCrop]),
-                   ("0.4.0308.adee798679", [_fixEdgeFiles,_fixBlend]),
-                   ("0.4.0308.db2133eadc", [_fixFileArgs]),
-                   ("0.4.0425.d3bc2f59e1", [_operationsChange1]),
-                   ("04.0621.3a5c9635ef",  [_fixProvenanceCategory]),
-                   ("04.0720.415b6a5cc4",  [_fixRANSAC,_fixHP]),
-                   ("04.0720.b0ec584b4e",  [_fixInsertionST]),
-                   ("04.0810.546e996a36",  [_fixVideoAudioOps]),
-                   ("04.0810.9381e76724",  [_fixCopyST,_fixCompression]),
-                   ("0.4.0901.723277630c", [_fixFrameRate,_fixRaws]),
-                   ("0.4.1115.32eabae8e6", [_fixRecordMasInComposite,_fixLocalRotate]),
-                   ("0.4.1204.5291b06e59", [_addColor,_fixAudioOutput,_fixEmptyMask,_fixGlobal]),
-                   ("0.4.1231.03ad63e6bb", [_fixSeams]),
-                   ("0.5.0227.c5eeafdb2e", [_addColor256,_fixDescriptions])])
+    fixes = OrderedDict(
+        [("0.3.1115", [_replace_oldops]),
+         ("0.3.1213", [_fixQT, _fixUserName]),
+         ("0.4.0101.8593b8f323", [_fixResize, _fixResolution]),
+         ("0.4.0101.b4561b475b", [_fixCreator, _fixValidationTime]),
+         ("0.4.0308.f7d9a62a7e", [_fixLabels]),
+         ("0.4.0308.f7d9a62a7e", [_fixPasteSpliceMask]),
+         ("0.4.0308.90e0ce497f", [_fixTransformCrop]),
+         ("0.4.0308.adee798679", [_fixEdgeFiles, _fixBlend]),
+         ("0.4.0308.db2133eadc", [_fixFileArgs]),
+         ("0.4.0425.d3bc2f59e1", [_operationsChange1]),
+         ("04.0621.3a5c9635ef", [_fixProvenanceCategory]),
+         ("04.0720.415b6a5cc4", [_fixRANSAC, _fixHP]),
+         ("04.0720.b0ec584b4e", [_fixInsertionST]),
+         ("04.0810.546e996a36", [_fixVideoAudioOps]),
+         ("04.0810.9381e76724", [_fixCopyST, _fixCompression]),
+         ("0.4.0901.723277630c", [_fixFrameRate, _fixRaws]),
+         ("0.4.1115.32eabae8e6", [_fixRecordMasInComposite]),
+         ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask, _fixGlobal]),
+         ("0.4.1231.03ad63e6bb", [_fixSeams]),
+         ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
+         ('0.5.0227.6d9889731b', [_fixPNGS])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -56,6 +57,7 @@ def updateJournal(scModel):
         fixes_needed = max_upgrade-len(versions) + 1
         if fixes_needed < 0:
             for id in fixes.keys()[fixes_needed:]:
+                logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
                 for fix in fixes[id]:
                     fix(scModel, gopLoader)
     #update to the max
@@ -66,6 +68,19 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
 
+def _fixPNGS(scModel,gopLoader):
+    """
+
+    :param scModel:
+    :param gopLoader:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    import glob
+    import imghdr
+    for png_file in glob.glob(os.path.join(os.path.abspath(scModel.get_dir()) , '*.png')):
+        if imghdr.what(png_file) == 'tiff':
+            openImageFile(png_file).save(png_file,format='PNG')
 
 def _fixValidationTime(scModel,gopLoader):
     import time
@@ -428,6 +443,13 @@ def _fixCreator(scModel,gopLoader):
        scModel.getGraph().setDataItem('creator',modifications[0].username,excludeUpdate=True)
 
 def _fixLocalRotate(scModel,gopLoader):
+    """
+
+    :param scModel:
+    :param gopLoader:
+    :return:
+    @type scModel: ImageProjectModel
+    """
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'].lower() == 'transformrotate':
@@ -438,6 +460,10 @@ def _fixLocalRotate(scModel,gopLoader):
                 edge['arguments'] = {'local' : local}
             else:
                 edge['arguments']['local']  = local
+            if tm is None and  sizeChange == (0,0):
+                if 'arguments' in edge and 'homography' in edge['arguments']:
+                    edge['arguments'].pop('homography')
+                scModel.reproduceMask(edge_id=(frm, to))
 
 def _fixBlend(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():

@@ -489,8 +489,8 @@ class ImageWrapper:
             # with open(filename, 'w') as f:
             #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
             #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
-        elif image_format == 'PNG' and self.image_array.dtype != 'uint8':
-            imsave(filename, self.image_array.astype('uint8'), **newargs)
+        elif format == 'PNG':
+            Image.fromarray(self.image_array.astype('uint8')).save(filename, **newargs)
         else:
             imsave(filename, self.image_array, **newargs)
         if os.path.exists(filename):
