@@ -11,7 +11,7 @@ import tkMessageBox
 import os
 import platform
 from math import atan2, pi, cos, sin
-from description_dialog import DescriptionCaptureDialog, createCompareDialog
+from description_dialog import DescriptionCaptureDialog, createCompareDialog,ValidationListDialog
 import collections
 
 """
@@ -299,9 +299,9 @@ class MaskGraphCanvas(tk.Canvas):
                                                  self.scModel.getNodeFileType(nodeId), im, file_without_path)
                     if (
                                 d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-                        msg, ok = self.scModel.connect(nodeId, mod=d.description)
-                        if msg is not None:
-                            tkMessageBox.showwarning("Connect Error", msg)
+                        msgs, ok = self.scModel.connect(nodeId, mod=d.description)
+                        if msgs is not None:
+                            ValidationListDialog(self, msgs, 'Connect Errors')
                     else:
                         ok = False
                 elif len(preds) == 1:

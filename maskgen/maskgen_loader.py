@@ -10,11 +10,9 @@ from os.path import expanduser
 import shutil
 import os
 import json
+from maskgen import config
 
-
-global_image = {}
 imageLoaded = False
-
 
 class MaskGenLoader:
     def __init__(self, file_path=os.path.join(expanduser("~"), ".maskgen2")):
@@ -22,27 +20,31 @@ class MaskGenLoader:
         self.load()
 
     def load(self):
-        global global_image
-        global imageLoaded
-        if imageLoaded:
-            return
-        if os.path.exists(self.file_path):
-            with open(self.file_path, "r") as jsonfile:
+        global_image = config.global_config['global_image'] if 'global_image' in config.global_config else None
+        if global_image is not None:
+            return global_image
+        file_path = os.path.join(expanduser("~"), ".maskgen2")
+        if os.path.exists(file_path):
+            with open(file_path, "r") as jsonfile:
                 global_image = json.load(jsonfile)
-        imageLoaded = True
+                config.global_config['global_image'] = global_image
 
     def __iter__(self):
-        return global_image.keys()
+        return self.load().keys()
 
-    def __contains__(self,image_id):
-        return image_id in global_image
+    def __contains__(self,key):
+        return key in self.load()
 
-    def __getitem__(self, image_id):
-        return global_image[image_id] if image_id in global_image else None
+    def __setitem__(self,key,value):
+        self.load()[key] = value
 
-    def get_key(self, image_id, default_value=None):
-        global global_image
-        return global_image[image_id] if image_id in global_image else default_value
+    def __getitem__(self, key):
+        global_image = self.load()
+        return global_image[key] if key in global_image else None
+
+    def get_key(self, key, default_value=None):
+        global_image = self.load()
+        return global_image[key] if key in global_image else default_value
 
     def _backup(self):
         mainfile = self.file_path
@@ -60,17 +62,18 @@ class MaskGenLoader:
         if (okToBackup):
             shutil.copy(mainfile,backup)
 
-    def save(self, image_id, data):
-        global global_image
-        global_image[image_id] = data
+    def save(self, key, data):
+        global_image = self.load()
+        global_image[key] = data
         self._backup()
         with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
     def saveall(self, idanddata):
-        global global_image
-        for image_id, data in idanddata:
-            global_image[image_id] = data
+        global_image = self.load()
+        for key, data in idanddata:
+            global_image[key] = data
+        file_path = os.path.join(expanduser("~"), ".maskgen2")
         self._backup()
         with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)

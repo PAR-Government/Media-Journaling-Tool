@@ -9,72 +9,18 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage, getValue,getMilliSeconds
-import new
-from types import MethodType
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed
+from support import getValue
 import numpy
 from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate, getMeta,getMaskSetForEntireVideo,getDuration
+from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration
 import numpy as np
+from maskgen.validation.core import Severity
 
-rules = {}
-global_loader = SoftwareLoader()
 project_property_rules = {}
-
-
-class Proxy(object):
-    def __init__(self, target):
-        self._target = target
-
-    def __getattr__(self, name):
-        target = self._target
-        f = getattr(target, name)
-        if isinstance(f, MethodType):
-            # Rebind the method to the target.
-            return new.instancemethod(f.im_func, self, target.__class__)
-        else:
-            return f
-
-
-class GraphProxy(Proxy):
-    results = dict()
-    "Caching Proxy"
-
-    def get_image(self, name, metadata=dict()):
-        if name not in self.results:
-            self.results[name] = self._target.get_image(name, metadata=metadata)
-        return self.results[name]
-
-
-def run_rules(op, graph, frm, to):
-    """
-
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    global rules
-    if len(rules) == 0:
-        setup()
-    graph = GraphProxy(graph)
-    results = initial_check(op, graph, frm, to)
-    for rule in (rules[op.name] if op.name in rules else []):
-        if rule is None:
-            continue
-        res = rule(op, graph, frm, to)
-        if res is not None:
-            results.append(res)
-    return results
-
 
 def missing_donor_inputmask(edge, dir):
     return (('inputmaskname' not in edge or \
@@ -84,7 +30,6 @@ def missing_donor_inputmask(edge, dir):
             (edge['op'] == 'PasteSampled' and \
                 getValue(edge,'arguments.purpose') == 'clone') or
             edge['op'] == 'TransformMove')
-
 
 def eligible_donor_inputmask(edge):
     return ('inputmaskname' in edge and \
@@ -97,430 +42,7 @@ def eligible_donor_inputmask(edge):
 def eligible_for_donor(edge):
     return edge['op'] == 'Donor' or eligible_donor_inputmask(edge)
 
-
-def initial_check(op, graph, frm, to):
-    """
-
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    edge = graph.get_edge(frm, to)
-    operationResult = check_operation(edge, op, graph, frm, to)
-    if operationResult is not None:
-        return operationResult
-    versionResult = check_version(edge, op, graph, frm, to)
-    errorsResult = check_errors(edge, op, graph, frm, to)
-    mandatoryResult = check_mandatory(edge, op, graph, frm, to)
-    argResult = check_arguments(edge, op, graph, frm, to)
-    maskResult = check_masks(edge, op, graph, frm, to)
-    result = []
-    if versionResult is not None:
-        result.append(versionResult)
-    if argResult is not None:
-        result.extend(argResult)
-    if mandatoryResult is not None:
-        result.extend(mandatoryResult)
-    if errorsResult is not None:
-        result.extend(errorsResult)
-    if maskResult is not None:
-        result.extend(maskResult)
-    return result
-
-
-def check_operation(edge, op, graph, frm, to):
-    """
-
-    :param edge:
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-     @type edge: dict
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    if op.name == 'Donor':
-        return None
-    if op.category == 'Bad':
-        return ['Operation ' + op.name + ' is invalid']
-
-
-def check_errors(edge, op, graph, frm, to):
-    if 'errors' in edge and edge['errors'] and len(edge['errors']) > 0:
-        return [('Link has mask processing errors')]
-
-
-def get_journal(url, apitoken):
-    import requests
-    import json
-    headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
-    url = url[:-1] if url.endswith('/') else url
-    url = url + '?fields=name'
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == requests.codes.ok:
-            r = json.loads(response.content)
-            if 'name' in r:
-                return r['name']
-        else:
-            logging.getLogger('maskgen').error("Unable to connect to service: {}".format(response.text))
-    except Exception as e:
-        logging.getLogger('maskgen').critical("Cannot reach external service " + url)
-        logging.getLogger('maskgen').error(str(e))
-    return url
-
-
-def test_api(apitoken, url):
-    import requests
-    if url is None:
-        return "External Service URL undefined"
-    baseurl = url
-    try:
-        url = url[:-1] if url.endswith('/') else url
-        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
-        url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
-        data = '{ "file_name": {"type": "exact", "value": "' + 'test' + '" }}'
-        response = requests.post(url, data=data, headers=headers)
-        if response.status_code != requests.codes.ok:
-            return "Error calling external service {} : {}".format(baseurl, str(response.content))
-    except Exception as e:
-        return "Error calling external service: {} : {}".format(baseurl, str(e.message))
-    return None
-
-
-def get_journal_exporttime(journalname, apitoken, url):
-    import requests
-    import json
-    if url is None:
-        logging.getLogger('maskgen').critical('Missing external service URL.  Check settings')
-        return []
-    try:
-        url = url[:-1] if url.endswith('/') else url
-        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
-
-        url = url + "/journals/filters/?fields=journal"
-        data = '{ "name": { "type": "exact", "value": "' + journalname + '" }}'
-        response = requests.post(url, data=data, headers=headers)
-        if response.status_code == requests.codes.ok:
-            r = json.loads(response.content)
-            if 'results' in r:
-                for item in r['results']:
-                    return item["journal"]["graph"]["exporttime"]
-        else:
-            logging.getLogger('maskgen').error("Unable to connect to service: {}".format(response.text))
-
-    except Exception as e:
-        logging.getLogger('maskgen').error("Error calling external service: " + str(e))
-        logging.getLogger('maskgen').critical("Cannot reach external service")
-
-
-def get_fields(filename, apitoken, url):
-    import requests
-    import json
-    if url is None:
-        logging.getLogger('maskgen').critical('Missing external service URL.  Check settings')
-        return []
-    try:
-        url = url[:-1] if url.endswith('/') else url
-        headers = {'Authorization': 'Token ' + apitoken, 'Content-Type': 'application/json'}
-        url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
-        data = '{ "file_name": {"type": "exact", "value": "' + filename + '" }}'
-        logging.getLogger('maskgen').info('checking external service APIs for ' + filename)
-        response = requests.post(url, data=data, headers=headers)
-        if response.status_code == requests.codes.ok:
-            r = json.loads(response.content)
-            if 'results' in r:
-                result = []
-                for item in r['results']:
-                    info = {}
-                    result.append(info)
-                    if item['manipulation_journal'] is not None and \
-                                    len(item['manipulation_journal']) > 0:
-                        info['manipulation_journal'] = get_journal(item['manipulation_journal'], apitoken)
-                    info['high_provenance'] = item['high_provenance']
-                return result
-        else:
-            logging.getLogger('maskgen').error("Unable to connect to service: {}".format(response.text))
-    except Exception as e:
-        logging.getLogger('maskgen').error("Error calling external service: " + str(e))
-        logging.getLogger('maskgen').critical("Cannot reach external service")
-    return []
-
-
-def check_graph_rules(graph, node, external=False, prefLoader=None):
-    import re
-    import hashlib
-    """
-
-    :param graph: ImageGraph
-    :param node:
-    :param prefLoader:
-    :return:
-    @type prefLoader: MaskGenLoader
-    """
-    errors = []
-    nodeData = graph.get_node(node)
-    multiplebaseok = graph.getDataItem('provenance', default_value='no') == 'yes'
-
-    if 'file' not in nodeData:
-        errors.append('Missing file information.')
-    else:
-        pattern = re.compile(r'[\|\'\"\(\)\,\$\?]')
-        foundItems = pattern.findall(nodeData['file'])
-        if foundItems:
-            errors.append("Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file']))
-
-    if nodeData['nodetype'] == 'final':
-        fname = os.path.join(graph.dir, nodeData['file'])
-        if os.path.exists(fname):
-            with open(fname, 'rb') as rp:
-                hashname = hashlib.md5(rp.read()).hexdigest()
-                if hashname not in nodeData['file']:
-                    errors.append("[Warning] Final image {} is not composed of its MD5.".format(nodeData['file']))
-
-    isHP = ('cgi' not in nodeData or nodeData['cgi'] == 'no') and ('HP' not in nodeData or nodeData['HP'] == 'yes')
-    checked_nodes = graph.getDataItem('api_validated_node', [])
-    if nodeData['file'] not in checked_nodes:
-        if nodeData['nodetype'] == 'base' and external and isHP and \
-                        prefLoader.get_key('apitoken') is not None:
-            fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
-            if len(fields) == 0:
-                errors.append("Cannot find base media file {} in the remote system".format(nodeData['file']))
-            elif not fields[0]['high_provenance']:
-                errors.append("{} media is not HP".format(nodeData['file']))
-            else:
-                checked_nodes.append(nodeData['file'])
-                graph.setDataItem('api_validated_node', checked_nodes, excludeUpdate=True)
-
-        if nodeData['nodetype'] == 'final' and external and \
-                        prefLoader.get_key('apitoken') is not None:
-            fields = get_fields(nodeData['file'], prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl'))
-            if len(fields) > 0:
-                for journal in fields:
-                    if journal['manipulation_journal'] is not None and journal['manipulation_journal'] != graph.G.name:
-                        errors.append("Final media node {} used in journal {}".format(nodeData['file'],
-                                                                                      journal['manipulation_journal']))
-            else:
-                checked_nodes.append(nodeData['file'])
-                graph.setDataItem('api_validated_node', checked_nodes, excludeUpdate=True)
-
-    if nodeData['nodetype'] == 'base' and not multiplebaseok:
-        for othernode in graph.get_nodes():
-            othernodeData = graph.get_node(othernode)
-            if node != othernode and othernodeData['nodetype'] == 'base':
-                errors.append("Projects should only have one base image")
-    if nodeData['nodetype'] in ('base', 'final', 'donor'):
-        if 'file' not in nodeData:
-            errors.append('Missing media file')
-        else:
-            file = nodeData['file']
-            suffix_pos = file.rfind('.')
-            if suffix_pos > 0:
-                if file[suffix_pos:].lower() != file[suffix_pos:]:
-                    errors.append(nodeData['file'] + ' suffix (' + file[suffix_pos:] + ') is not lower case')
-    return errors
-
-
-def check_mandatory(edge, opInfo, graph, frm, to):
-    """
-    :param edge:
-    :param opInfo:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type edge: dict
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    if opInfo.name== 'Donor':
-        return None
-    if opInfo.category == 'Bad':
-        return [opInfo.name + ' is not a valid operation'] if opInfo.name != 'Donor' else []
-    args = edge['arguments'] if 'arguments' in edge  else []
-    frm_file = graph.get_image(frm)[1]
-    frm_file_type = fileType(frm_file)
-    missing = [param for param in opInfo.mandatoryparameters.keys() if
-               (param not in args or len(str(args[param])) == 0) and param != 'inputmaskname'
-               and ('source' not in opInfo.mandatoryparameters[param] or opInfo.mandatoryparameters[param][
-                   'source'] == frm_file_type)]
-    ruleApplies = True  # graph.getVersion() > '0.3.1200'
-    inputmasks = [param for param in opInfo.optionalparameters.keys() if param == 'inputmaskname' and
-                  'purpose' in edge and edge['purpose'] == 'clone' and ruleApplies]
-    if ('inputmaskname' in opInfo.mandatoryparameters.keys() or 'inputmaskname' in inputmasks) and (
-                            'inputmaskname' not in edge or edge['inputmaskname'] is None or len(
-                    edge['inputmaskname']) == 0 or
-                not os.path.exists(os.path.join(graph.dir, edge['inputmaskname']))):
-        missing.append('inputmaskname')
-    return [('Mandatory parameter ' + m + ' is missing') for m in missing]
-
-
-def check_version(edge, op, graph, frm, to):
-    """
-    :param edge:
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type edge: dict
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    global global_loader
-    if op.name == 'Donor':
-        return None
-    if 'softwareName' in edge and 'softwareVersion' in edge:
-        sname = edge['softwareName']
-        sversion = edge['softwareVersion']
-        if sversion not in global_loader.get_versions(sname):
-            return sversion + ' not in approved set for software ' + sname
-    return None
-
-
-def check_arguments(edge, op, graph, frm, to):
-    """
-    :param edge:
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type edge: dict
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    if op.name == 'Donor':
-        return None
-    args = [(k, v) for k, v in op.mandatoryparameters.iteritems()]
-    args.extend([(k, v) for k, v in op.optionalparameters.iteritems()])
-    results = []
-    for argName, argDef in args:
-        try:
-            argValue = getValue(edge, 'arguments.' + argName)
-            if argValue:
-                validateAndConvertTypedValue(argName, argValue, op)
-        except ValueError as e:
-            results.append(argName + str(e))
-    return results
-
-
-def check_masks(edge, op, graph, frm, to):
-    """
-      Validate a typed operation argument
-      return the type converted argument if necessary
-      raise a ValueError if invalid
-    :param edge:
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type edge: dict
-    @type op: Operation
-    @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    if not op.generateMask and graph.getNodeFileType(frm) != 'image':
-        return []
-    if 'maskname' not in edge or edge['maskname'] is None or \
-                    len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
-        return ['Link mask is missing. Recompute the link mask.']
-    inputmasknanme = edge['inputmaskname'] if 'inputmaskname' in edge  else None
-    if inputmasknanme is not None and len(inputmasknanme) > 0 and \
-            not os.path.exists(os.path.join(graph.dir, inputmasknanme)):
-        return ["Input mask file {} is missing".format(inputmasknanme)]
-    if inputmasknanme is not None and len(inputmasknanme) > 0 and \
-            os.path.exists(os.path.join(graph.dir, inputmasknanme)):
-        if fileType(os.path.join(graph.dir, inputmasknanme)) == 'audio':
-            return
-        inputmask = openImage(os.path.join(graph.dir, inputmasknanme))
-        if inputmask is None:
-            return ["Input mask file {} is missing".format(inputmasknanme)]
-        inputmask = inputmask.to_mask().to_array()
-        mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
-        if inputmask.shape != mask.shape:
-            return ['input mask name parameter has an invalid size']
-        if edge['op'] == 'TransformMove':
-            inputmask[inputmask > 0] = 1
-            mask[mask > 0] = 1
-            intersection = inputmask * mask
-            leftover_mask = mask - intersection
-            leftover_inputmask = inputmask - intersection
-            masksize = np.sum(leftover_mask)
-            inputmasksize = np.sum(leftover_inputmask)
-            intersectionsize =np.sum(intersection)
-            if inputmasksize == 0 and intersectionsize == 0:
-                return ['input mask does not represent moved pixels. It is empty.']
-            ratio_of_intersection = float(intersectionsize) / float(inputmasksize)
-            ratio_of_difference = float(masksize) / float(inputmasksize)
-            # intersection is too small or difference is too great
-            if abs(ratio_of_difference - 1.0) > 0.25:
-                return ['input mask does not represent the moved pixels']
-
-
-def setup():
-    ops = getOperations()
-    for op, data in ops.iteritems():
-        set_rules(op, data.rules)
-
-
-def set_rules(op, ruleNames):
-    global rules
-    rules[op] = [getRule(name, globals=globals()) for name in ruleNames if len(name) > 0]
-
-
-def findOp(graph, node_id, op):
-    preds = graph.predecessors(node_id)
-    if preds is None or len(preds) == 0:
-        return False
-    for pred in preds:
-        if graph.get_edge(pred, node_id)['op'] == op:
-            return True
-        elif findOp(graph, pred, op):
-            return True
-    return False
-
-
-def findBase(graph, node_id):
-    preds = graph.predecessors(node_id)
-    if preds is None or len(preds) == 0:
-        return node_id
-    for pred in preds:
-        edge = graph.get_edge(pred, node_id)
-        if edge['op'] == 'Donor':
-            continue
-        return findBase(graph, pred)
-    return node_id
-
-
-def hasCommonParent(graph, node_id):
-    preds = graph.predecessors(node_id)
-    if len(preds) == 1:
-        return False
-    base1 = findBase(graph, preds[0])
-    base2 = findBase(graph, preds[1])
-    return base1 == base2
-
-
-def rotationCheck(op,graph, frm, to):
+def rotationCheck(op, graph, frm, to):
     """
     :param op:
     :param graph:
@@ -542,22 +64,18 @@ def rotationCheck(op,graph, frm, to):
         orientation = str(orientation)
         if '270' in orientation or '90' in orientation:
             if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
-                return 'Image was not rotated as stated by the parameter Image Rotated'
+                return (Severity.ERROR,'Image was not rotated as stated by the parameter Image Rotated')
     diff_frm = frm_img.size[0] - frm_img.size[1]
     diff_to = to_img.size[0] - to_img.size[1]
     if not rotated and numpy.sign(diff_frm) != numpy.sign(diff_to):
-        return 'Image was rotated. Parameter Image Rotated is set to "no"'
+        return (Severity.ERROR,'Image was rotated. Parameter Image Rotated is set to "no"')
     return None
 
-def checkUncompressed(op,graph, frm, to):
-    def match(start,stop,edge):
-        if edge['op'] == 'Donor':
-            return 'skip'
-        elif edge['op'].startswith('Output'):
-            return 'return'
-        return 'continue'
-    if graph.findAncestor(match,frm) is None:
-        return 'Check to see if the starting node is compressed'
+def checkUncompressed(op, graph, frm, to):
+    file = os.path.join(graph.dir, graph.get_node(frm)['file'])
+    if os.path.exists(file) and \
+        isCompressed(file):
+            return (Severity.WARNING, 'Starting node appears to be compressed')
 
 def checkFrameTimeAlignment(op,graph, frm, to):
     """
@@ -611,19 +129,19 @@ def checkFrameTimeAlignment(op,graph, frm, to):
             (real_mask_end_constraints[mask['type']] if mask['type'] in real_mask_end_constraints else 0),
             mask['endtime'])
     if st is not None and len(masks) == 0:
-        return 'Change masks not generated.  Trying recomputing edge mask'
+        return (Severity.ERROR,'Change masks not generated.  Trying recomputing edge mask')
     if 'video' in mask_rates:
         mask_rates['video'] = 1000.0/mask_rates['video']
     if 'audio' in mask_rates:
         mask_rates['audio'] = 1.0
     for key, value in mask_start_constraints.iteritems():
         if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
-            return 'Start time entered does not match detected start time: {}'.format(
-                getDurationStringFromMilliseconds(mask_start_constraints[key]))
+            return (Severity.WARNING,'Start time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_start_constraints[key])))
     for key, value in real_mask_end_constraints.iteritems():
         if key in mask_end_constraints and abs(value - mask_end_constraints[key]) > mask_rates[key]:
-            return 'End time entered does not match detected start time: {}'.format(
-                getDurationStringFromMilliseconds(mask_end_constraints[key]))
+            return (Severity.WARNING,'End time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_end_constraints[key])))
 
 
 def checkVideoMasks(op,graph, frm, to):
@@ -644,7 +162,7 @@ def checkVideoMasks(op,graph, frm, to):
     edge = graph.get_edge(frm, to)
     if 'videomasks' not in edge or edge['videomasks'] is None or \
                     len(edge['videomasks']) == 0:
-        return 'Edge missing video masks'
+        return (Severity.ERROR,'Edge missing video masks')
 
 
 def checkAddFrameTime(op, graph, frm, to):
@@ -688,15 +206,15 @@ def checkAddFrameTime(op, graph, frm, to):
         mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
             getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
     if st is not None and len(masks) == 0:
-        return 'Change masks not generated.  Trying recomputing edge mask'
+        return (Severity.ERROR,'Change masks not generated.  Trying recomputing edge mask')
     if 'video' in mask_rates:
         mask_rates['video'] = 1000.0/mask_rates['video']
     if 'audio' in mask_rates:
         mask_rates['audio'] = 1.0
     for key, value in mask_start_constraints.iteritems():
         if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
-            return 'Insertion time entered does not match detected start time: {}'.format(
-                getDurationStringFromMilliseconds(mask_start_constraints[key]))
+            return (Severity.WARNING,'Insertion time entered does not match detected start time: {}'.format(
+                getDurationStringFromMilliseconds(mask_start_constraints[key])))
 
 
 def checkFrameTimes(op, graph, frm, to):
@@ -724,7 +242,7 @@ def checkFrameTimes(op, graph, frm, to):
         return None
     st = st if st is not None else (0, 1)
     if st[0] > et[0] or (st[0] == et[0] and st[1] > et[1] and st[1] > 0):
-        return 'Start Time occurs after End Time'
+        return (Severity.ERROR,'Start Time occurs after End Time')
     return None
 
 
@@ -754,13 +272,13 @@ def checkCropLength(op, graph, frm, to):
     st = st if st is not None else (0, 0)
     et = et if et is not None else (0, 0)
     if 'metadatadiff' not in edge:
-        return 'Edge missing change data.  Recompute Mask.'
+        return (Severity.ERROR,'Edge missing change data.  Recompute Mask.')
     file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     rate = getFrameRate(file, default=29.97)
     givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
     duration = getDuration(file,default=None)
     if abs(duration - givenDifference) > 1:
-        return 'Actual amount of time of cropped video is {} in milliseconds'.format(duration)
+        return (Severity.ERROR,'Actual amount of time of cropped video is {} in milliseconds'.format(duration))
     return None
 
 def checkCropSize(op, graph, frm, to):
@@ -779,7 +297,7 @@ def checkCropSize(op, graph, frm, to):
     if 'shape change' in edge:
         changeTuple = toIntTuple(edge['shape change'])
         if changeTuple[0] > 0 or changeTuple[1] > 0:
-            return 'Crop cannot increase a dimension size of the image'
+            return (Severity.ERROR,'Crop cannot increase a dimension size of the image')
 
 
 def checkResizeInterpolation(op, graph, frm, to):
@@ -800,7 +318,7 @@ def checkResizeInterpolation(op, graph, frm, to):
         changeTuple = toIntTuple(edge['shape change'])
         sizeChange = (changeTuple[0], changeTuple[1])
         if (sizeChange[0] < 0 or sizeChange[1] < 0) and 'none' in interpolation:
-            return interpolation + ' interpolation is not permitted with a decrease in size'
+            return (Severity.ERROR,interpolation + ' interpolation is not permitted with a decrease in size')
 
 
 def checkChannelLoss(op, graph, frm, to):
@@ -822,12 +340,12 @@ def checkChannelLoss(op, graph, frm, to):
     metaBefore = getFileMeta(vidBefore)
     metaAfter = getFileMeta(vidAfter)
     if len(metaBefore) > len(metaAfter):
-        return 'change in the number of streams occurred'
+        return (Severity.WARNING,'change in the number of streams occurred')
 
 def checkEmpty(op,graph, frm, to):
     edge = graph.get_edge(frm, to)
     if getValue(edge, 'empty mask')  == 'yes':
-        return "An empty change mask indicating an manipulation did not occur."
+        return (Severity.WARNING,"An empty change mask indicating an manipulation did not occur.")
 
 def checkSameChannels(op, graph, frm, to):
     """
@@ -847,12 +365,12 @@ def checkSameChannels(op, graph, frm, to):
         return
     metaAfter = getFileMeta(vidAfter)
     if fileType(vidBefore)=='zip' and len(metaAfter) != 1:
-        return 'change in the number of streams occurred'
+        return (Severity.WARNING,'change in the number of streams occurred')
     metaBefore = getFileMeta(vidBefore)
     if len(metaBefore) != len(metaAfter):
-        return 'change in the number of streams occurred'
+        return (Severity.WARNING,'change in the number of streams occurred')
     if len(metaBefore) == 0:
-        return 'streams are not detected or missing'
+        return (Severity.ERROR,'streams are not detected or missing')
 
 def checkHasVideoChannel(op,graph, frm, to):
     """
@@ -869,7 +387,7 @@ def checkHasVideoChannel(op,graph, frm, to):
     vid = graph.get_image_path(to)
     meta = getFileMeta(vid)
     if 'video' not in meta:
-        return 'video channel missing in file'
+        return (Severity.ERROR,'video channel missing in file')
 
 
 def checkAudioChannels(op,graph, frm, to):
@@ -887,7 +405,7 @@ def checkAudioChannels(op,graph, frm, to):
     vid = graph.get_image_path(to)
     meta = getFileMeta(vid)
     if 'audio' not in meta:
-        return 'audio channel not present'
+        return (Severity.ERROR,'audio channel not present')
 
 
 def checkFileTypeChangeForDonor(op, graph, frm, to):
@@ -907,13 +425,13 @@ def checkFileTypeChangeForDonor(op, graph, frm, to):
     if fileTypeChanged(to_file, frm_file):
         predecessors = graph.predecessors(to)
         if len(predecessors) < 2:
-            return 'donor image missing'
+            return (Severity.ERROR,'donor image missing')
         for pred in predecessors:
             edge = graph.get_edge(pred, to)
             if edge['op'] == 'Donor':
                 donor_file = graph.get_image(pred)[1]
                 if fileTypeChanged(donor_file, to_file):
-                    return 'operation not permitted to change the type of image or video file'
+                    return (Severity.ERROR,'operation not permitted to change the type of image or video file')
     return None
 
 
@@ -932,7 +450,7 @@ def checkFileTypeChange(op, graph, frm, to):
     frm_file = graph.get_image(frm)[1]
     to_file = graph.get_image(to)[1]
     if fileTypeChanged(to_file, frm_file):
-        return 'operation not permitted to change the type of image or video file'
+        return (Severity.ERROR,'operation not permitted to change the type of image or video file')
     return None
 
 
@@ -983,7 +501,7 @@ def checkLevelsVsCurves(op, graph, frm, to):
 
     # The lag-one autocorrelation will serve as a score and has a reasonably straightforward statistical interpretation too.
     if corrs1[1] < 0.9:
-        return '[Warning] Verify this operation was performed with Levels rather than Curves'
+        return (Severity.WARNING,'Verify this operation was performed with Levels rather than Curves')
     return None
 
 
@@ -1026,7 +544,7 @@ def checkForRawFile(op, graph, frm, to):
                                                              'RIF', 'RIFF', 'SWF',
                                                              'VOB', 'TTF', 'TTC', 'SWF',
                                                              'SEQ', 'WEBM', 'WEBP']:
-        return 'Only raw images permitted for this operation'
+        return (Severity.ERROR,'Only raw images permitted for this operation')
     return None
 
 
@@ -1047,10 +565,10 @@ def check_pastemask(op,graph, frm, to):
         from_img, from_file = graph.get_image(frm)
         file = os.path.join(graph.dir, edge['arguments']['pastemask'])
         if not os.path.exists(file):
-            return 'Pastemask file is missing'
+            return (Severity.ERROR,'Pastemask file is missing')
         pasteim = openImageFile(file)
         if pasteim.size != from_img.size:
-            return 'Pastemask image does not match the size of the source image'
+            return (Severity.ERROR,'Pastemask image does not match the size of the source image')
     return None
 
 
@@ -1070,7 +588,7 @@ def check_local_warn(op, graph, frm, to):
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
     if not is_global and not included_in_composite and op.category not in ['Output', 'AntiForensic','Laundering','PostProcessing']:
-        return '[Warning] Operation link appears to affect local area in the image; should be included in the composite mask'
+        return (Severity.WARNING, 'Operation link appears to affect local area in the image; should be included in the composite mask')
     return None
 
 
@@ -1093,7 +611,7 @@ def sampledInputMask(op,graph, frm, to):
                     'inputmaskname' in edge and \
                     edge['inputmaskname'] is not None:
         edge.pop('inputmaskname')
-        return 'Unneeded input mask. Auto-removal executed.'
+        return (Severity.ERROR,'Un-needed input mask. Auto-removal executed.')
     return None
 
 
@@ -1113,7 +631,7 @@ def check_local(op, graph, frm, to):
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
     if not is_global and not included_in_composite:
-        return 'Operation link appears affect local area in the image and should be included in the composite mask'
+        return (Severity.ERROR,'Operation link appears affect local area in the image and should be included in the composite mask')
     return None
 
 
@@ -1134,14 +652,14 @@ def check_eight_bit(op, graph, frm, to):
     if from_img.size != to_img.size and \
             to_file.lower().endswith('jpg') and \
             (to_img.size[0] % 8 > 0 or to_img.size[1] % 8 > 0):
-        return '(Warning) JPEG image size is not aligned to 8x8 pixels'
+        return (Severity.WARNING,'JPEG image size is not aligned to 8x8 pixels')
     return None
 
 
 def getDonor(graph, node):
     predecessors = graph.predecessors(node)
     if len(predecessors) < 2:
-        return 'donor image missing'
+        return None
     for pred in predecessors:
         edge = graph.get_edge(pred, node)
         if edge['op'] == 'Donor':
@@ -1163,14 +681,14 @@ def checkForDonorWithRegion(op, graph, frm, to):
     """
     pred = graph.predecessors(to)
     if len(pred) < 2:
-        return 'donor image missing'
+        return (Severity.ERROR,'donor image missing')
     donor = pred[0] if pred[1] == frm else pred[1]
     edge = graph.get_edge(frm, to)
     if 'arguments' in edge and edge['arguments'] and \
                     'purpose' in edge['arguments'] and edge['arguments']['purpose'] == 'blend':
         return None
-    if not findOp(graph, donor, 'SelectRegion'):
-        return '[Warning] SelectRegion missing on path to donor'
+    if not graph.findOp(donor, 'SelectRegion'):
+        return (Severity.WARNING, 'SelectRegion missing on path to donor')
     return None
 
 
@@ -1188,7 +706,7 @@ def checkForDonor(op, graph, frm, to):
     """
     pred = graph.predecessors(to)
     if len(pred) < 2:
-        return 'donor image/video missing'
+        return (Severity.ERROR, 'donor image/video missing')
     return None
 
 
@@ -1210,7 +728,7 @@ def checkForDonorAudio(op, graph, frm, to):
         return None
     pred = graph.predecessors(to)
     if len(pred) < 2:
-        return 'donor image/video missing'
+        return (Severity.WARNING,'donor image/video missing')
     return None
 
 
@@ -1230,7 +748,7 @@ def checkLengthSame(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
-        return "Length of video has changed"
+        return (Severity.WARNING,"Length of video has changed")
 
 
 def checkLengthSmaller(op, graph, frm, to):
@@ -1251,7 +769,7 @@ def checkLengthSmaller(op, graph, frm, to):
             (durationChangeTuple[0] == 'change' and \
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] <
                          getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
-        return "Length of video is not shorter"
+        return (Severity.ERROR,"Length of video is not shorter")
 
 
 def checkResolution(op, graph, frm, to):
@@ -1276,17 +794,15 @@ def checkResolution(op, graph, frm, to):
     resolution = getValue(edge, 'arguments.resolution')
     if resolution is None:
         return
-    split = resolution.split('X')
+    split = resolution.lower().split('x')
     if len(split) < 2:
-        split = resolution.split('x')
-        if len(split) < 2:
-            return 'resolution is not in correct format'
+        return (Severity.ERROR,'resolution is not in correct format')
     res_width = split[0]
     res_height = split[1]
     if width is not None and width[2] != res_width:
-        return 'resolution width does not match video'
+        return (Severity.WARNING,'resolution width does not match video')
     if height is not None and height[2] != res_height:
-        return 'resolution height does not match video'
+        return (Severity.WARNING,'resolution height does not match video')
 
 
 def checkForAudio(op, graph, frm, to):
@@ -1328,7 +844,7 @@ def checkForAudio(op, graph, frm, to):
                 [x for x in (idx for idx, val in enumerate(destmetadata) if val['codec_type'] != 'audio')])
     if sourcevidcount != destvidcount:
         if not isSuccessor(graph, successors, to, ['AntiForensicCopyExif', 'OutputMP4', 'Donor']):
-            return 'Video is missing from audio sample'
+            return (Severity.ERROR,'Video is missing from audio sample')
     return None
 
 
@@ -1355,18 +871,18 @@ def checkPasteFrameLength(op, graph, frm, to):
         to_duration = getMilliSeconds(to_node['duration'])
         donor_tuple = getDonor(graph, to)
         if donor_tuple is None:
-            return "Missing donor"
+            return (Severity.ERROR,"Missing donor")
         else:
             donor_node = graph.get_node(donor_tuple[0])
             if donor_node is not None and 'duration' in donor_node:
                 duration = getMilliSeconds(donor_node['duration'])
                 diff = (to_duration - from_duration) - duration
             else:
-                return "Missing duration in donor node's meta-data"
+                return (Severity.ERROR,"Missing duration in donor node's meta-data")
     # if addType == 'replace' and  diff < 0:
     #    return "Replacement should maintain or increase the size"
     if addType == 'replace' and diff > duration:
-        return "Replacement contain not increase the size of video beyond the size of the donor"
+        return (Severity.ERROR,"Replacement contain not increase the size of video beyond the size of the donor")
     if addType != 'replace':
         return checkLengthBigger(op, graph, frm, to)
 
@@ -1390,7 +906,7 @@ def checkLengthBigger(op, graph, frm, to):
             (durationChangeTuple[0] == 'change' and \
                          getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] >
                          getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
-        return "Length of video is not longer"
+        return (Severity.ERROR,"Length of video is not longer")
 
 
 def seamCarvingCheck(op, graph, frm, to):
@@ -1408,6 +924,43 @@ def seamCarvingCheck(op, graph, frm, to):
     #change = getSizeChange(graph, frm, to)
     return None
 
+def checkMoveMask(op, graph, frm,to):
+    """
+    Check move mask (input mask) is roughly the size and shape of the change mask.
+    Overlap is considered, as the move might partially overlap the area from which the pixels
+    came.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    edge = graph.get_edge(frm, to)
+    try:
+        maskname =getValue(edge,'maskname',defaultValue='')
+        inputmaskname = getValue(edge,'inputmaskname',defaultValue='')
+        if os.path.exists(os.path.join(graph.dir, inputmaskname)) and \
+            os.path.exists(os.path.join(graph.dir, maskname)):
+            mask = openImageFile(os.path.join(graph.dir, maskname)).invert().to_array()
+            inputmask = openImage(os.path.join(graph.dir, inputmaskname))
+            inputmask[inputmask > 0] = 1
+            mask[mask > 0] = 1
+            intersection = inputmask * mask
+            leftover_mask = mask - intersection
+            leftover_inputmask = inputmask - intersection
+            masksize = np.sum(leftover_mask)
+            inputmasksize = np.sum(leftover_inputmask)
+            intersectionsize = np.sum(intersection)
+            if inputmasksize == 0 and intersectionsize == 0:
+                  return (Severity.ERROR,'input mask does not represent moved pixels. It is empty.')
+            ratio_of_intersection = float(intersectionsize) / float(inputmasksize)
+            ratio_of_difference = float(masksize) / float(inputmasksize)
+            # intersection is too small or difference is too great
+            if abs(ratio_of_difference - 1.0) > 0.25:
+                  return (Severity.ERROR,'input mask does not represent the moved pixels')
+    except Exception as ex:
+        logging.getLogger('maskgen').error('Graph Validation Error checkMoveMask: ' + str(ex))
+        return (Severity.ERROR,'Cannot validate Move Masks: ' + str(ex))
 
 def checkSIFT(op, graph, frm, to):
     """
@@ -1435,7 +988,7 @@ def sizeChanged(op, graph, frm, to):
     """
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] == 0 and change[1] == 0):
-        return 'operation should change the size of the image'
+        return (Severity.ERROR,'operation should change the size of the image')
     return None
 
 
@@ -1464,7 +1017,7 @@ def checkSizeAndExif(op, graph, frm, to):
                 to_shape = graph.get_image(to)[0].size
                 if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
                     return None
-        return 'operation is not permitted to change the size of the image'
+        return (Severity.ERROR,'operation is not permitted to change the size of the image')
     return None
 
 
@@ -1482,7 +1035,7 @@ def checkSize(op, graph, frm, to):
     """
     change = getSizeChange(graph, frm, to)
     if change is not None and (change[0] != 0 or change[1] != 0):
-        return 'operation is not permitted to change the size of the image'
+        return (Severity.ERROR,'operation is not permitted to change the size of the image')
     return None
 
 
@@ -1507,9 +1060,6 @@ def getOrientationFromMetaData(edge):
                 if k.find('rotate') > 0:
                     return v[-1]
     return ''
-
-
-
 
 
 def blurLocalRule(scModel, edgeTuples):
@@ -1560,7 +1110,7 @@ def colorGlobalRule(scModel, edgeTuples):
 
 def cloneRule(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
-        if ((edgeTuple.edge['op'] == 'PasteSplice' and hasCommonParent(scModel.getGraph(), edgeTuple.end)) or \
+        if ((edgeTuple.edge['op'] == 'PasteSplice' and scModel.getGraph().predecessorsHaveCommonParent(edgeTuple.end)) or \
                     (edgeTuple.edge['op'] == 'PasteSampled' and \
                                  edgeTuple.edge['arguments']['purpose'] == 'clone')):
             return 'yes'
@@ -1593,7 +1143,7 @@ def spatialClone(scModel, edgeTuples):
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
             continue
         if edgeTuple.edge['op'] == 'PasteOverlay' and \
-                hasCommonParent(scModel.getGraph(), edgeTuple.end) and \
+                scModel.getGraph().predecessorsHaveCommonParent(edgeTuple.end) and \
                 ('arguments' not in edgeTuple.edge or \
                          ('purpose' in edgeTuple.edge['arguments'] and \
                                       edgeTuple.edge['arguments']['purpose'] == 'add')):
@@ -1611,7 +1161,7 @@ def spatialSplice(scModel, edgeTuples):
         if scModel.getNodeFileType(edgeTuple.start) != 'video':
             continue
         if edgeTuple.edge['op'] == 'PasteOverlay' and \
-                not hasCommonParent(scModel.getGraph(), edgeTuple.end) and \
+                not scModel.getGraph().predecessorsHaveCommonParent(edgeTuple.end) and \
                 ('arguments' not in edgeTuple.edge or \
                          ('purpose' in edgeTuple.edge['arguments'] and \
                                       edgeTuple.edge['arguments']['purpose'] == 'add')):
@@ -1918,18 +1468,6 @@ def getNodeSummary(scModel, node_id):
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
 
 
-def getOrientationForEdge(edge):
-    if ('arguments' in edge and \
-                ('Image Rotated' in edge['arguments'] and \
-                             edge['arguments']['Image Rotated'] == 'yes')) and \
-                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-        return edge['exifdiff']['Orientation'][1]
-    if ('arguments' in edge and \
-                ('rotate' in edge['arguments'] and \
-                             edge['arguments']['rotate'] == 'yes')) and \
-                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-        return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
-            edge['exifdiff']['Orientation'][1]
-    return ''
+
 
 

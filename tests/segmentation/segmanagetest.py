@@ -2,9 +2,9 @@ import unittest
 from maskgen import  image_wrap
 import numpy
 from maskgen.segmentation.segmanage import select_region,segmentation_classification,convert_color
+from tests.test_support import TestSupport
 
-
-class SegManageTestCase(unittest.TestCase):
+class SegManageTestCase(TestSupport):
 
 
     def test_select_region(self):
@@ -32,8 +32,10 @@ class SegManageTestCase(unittest.TestCase):
         self.assertTrue(numpy.all(result[30:40, 30:40, 3] != result[130:140, 130:140, 3]))
 
     def test_segmentation_classification(self):
-        self.assertEquals(segmentation_classification('./tests/data',[100,100,200]),'other')
-        self.assertEquals(segmentation_classification('./tests/data', [200,100,200]), 'house')
+        import os
+        filelocation = self.locateFile('./tests/data/classifications.csv')
+        self.assertEquals(segmentation_classification(os.path.dirname(filelocation),[100,100,200]),'other')
+        self.assertEquals(segmentation_classification(os.path.dirname(filelocation), [200,100,200]), 'house')
 
 
 if __name__ == '__main__':
