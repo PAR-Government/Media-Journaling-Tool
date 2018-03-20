@@ -87,15 +87,21 @@ Section -Prerequisites
 	File "Prerequisites\gpg4win-3.0.3.exe"
 	ExecWait "$DESKTOP\gpg4win-3.0.3.exe /S"
 	Delete "$DESKTOP\gpg4win-3.0.3.exe"
-	Delete "$DESKTOP\Kleopatra.lnk"
 	
 	has_gpg_installed:
+	IfFileExists "$PROFILE\medifor_ingest.gpg" has_gpg_key
+	SetOutPath "$PROFILE"
+	File "Prerequisites\medifor_ingest.gpg"
+	SetOutPath "$DESKTOP"
+	
+	has_gpg_key:
 	ExecWait "$CONDA install -c conda-forge tifffile -y"
 	ExecWait "$CONDA remove pillow -y"
     ExecWait "$PIP uninstall Pillow -y"
 	ExecWait "$CONDA remove PIL -y"
     ExecWait "$CONDA install -c anaconda pillow -y"
 	ExecWait "$CONDA install scikit-image -y"
+	ExecWait "$CONDA install shapely -y"
 
 	SetOutPath "$INSTDIR"
 	ExecWait "$PIP install graphviz"
@@ -141,7 +147,11 @@ Section "Maskgen"
     NsUnzip::Extract "$USERDIR\$BRANCH.zip" /END
 	Sleep 5000
 	Rename "$USERDIR\maskgen-$BRANCH" "$USERDIR\maskgen"
-
+	Sleep 5000
+	
+	SetOutPath "$USERDIR\maskgen\resources"
+	File "Prerequisites\ManipulatorCodeNames.txt"
+	
     SetOutPath  "$USERDIR\maskgen"
 	ExecWait "$PIP install setuptools"
 	SetOutPath "$USERDIR\maskgen\setuptools-version"
@@ -164,6 +174,7 @@ Section "Maskgen"
 	Delete "$USERDIR\jtprefs.py"
 
 	Delete "$USERDIR\$BRANCH.zip"
+	
     
     MessageBox MB_OK "If this is your first installation, you will need to$\nrestart your computer to use the HP Tool."
 
