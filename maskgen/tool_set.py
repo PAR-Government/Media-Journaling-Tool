@@ -942,6 +942,12 @@ def redistribute_intensity(edge_map):
         intensity_map.append([(v % 65536) / 256, v / 65536, (v % 65536) % 256])
     for k, v in edge_map.iteritems():
         edge_map[k] = (v[0], intensity_map[v[0]])
+    #im = np.zeros((500,500,3)).astype('uint8')
+    #pos = 0
+    #for i in intensity_map:
+    #    im[pos,:] = i
+    #    pos+=1
+    #ImageWrapper(im).save('foo.png')
     return intensity_map
 
 

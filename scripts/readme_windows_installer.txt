@@ -53,6 +53,6 @@ To modify the installer edit the "windows_installer.nsh" file with a text editor
 
 Open a command line (cygwin or cmd)
 Change directory into the folder containing "windows_installer.nsh"
-run "makensis installer.nsh"
+run "makensis windows_installer.nsh"
 
 This will output a file named "jt_installer.exe"
