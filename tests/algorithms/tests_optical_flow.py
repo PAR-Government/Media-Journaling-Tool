@@ -18,7 +18,7 @@ class TestOpticalFlow(TestSupport):
         f1 = openImageFile(self.locateFile('tests/algorithms/f1.png')).image_array
         f2 = openImageFile(self.locateFile('tests/algorithms/f2.png')).image_array
         analyzer.updateFlow(f1, f2, 'forward')
-        flow_manager = OpticalFlow(f1, f2, analyzer.jump_flow)
+        flow_manager = OpticalFlow(f1, f2, analyzer.back_flow, analyzer.jump_flow)
         frame = flow_manager.setTime(0.0)
         self.assertEqual(0, np.sum(abs(frame - f1)))
         frame = flow_manager.setTime(0.1)
