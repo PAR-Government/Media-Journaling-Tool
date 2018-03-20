@@ -11,7 +11,6 @@ from datetime import datetime
 from skimage.measure import compare_ssim
 import warnings
 from scipy import ndimage
-import getpass
 import re
 import imghdr
 import sys
@@ -21,8 +20,9 @@ from subprocess import Popen, PIPE
 import threading
 import loghandling
 import cv2api
-from maskgen.support import removeValue
+from maskgen.support import removeValue,getValue
 import os
+from maskgen.userinfo import get_username
 
 import platform
 
@@ -40,11 +40,10 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("raw audio files", "*.raw"), ("Audio Interchange File", "*.aif"),
                   ("Audio Interchange File", "*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
-zipfiletypes = [('zip of images', '*.zip'), ('zip of images', '*.gz')]
-suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc", ".gif",
-            ".raf", ".ptx", ".pef", ".mrw", ".dng", ".zip", ".gz",
-            ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts", ".tif", ".arw", ".orf", ".raw", ".rw2",
-            ".crw"]
+zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
+            ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",
+            ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
 
@@ -242,44 +241,6 @@ class IntObject:
         return self.value
 
 
-"""
-   Support UID discovery using a class that supports a method getpwuid().
-   tool_set.setPwdX(classInstance) to set the class.  By default, the os UID is used.
-"""
-
-try:
-    import pwd
-
-    class PwdX():
-        def getpwuid(self):
-            return pwd.getpwuid(os.getuid())[0]
-
-except ImportError:
-
-    class PwdX():
-        def getpwuid(self):
-            return getpass.getuser()
-
-pwdAPI = PwdX()
-
-
-class CustomPwdX:
-    uid = None
-
-    def __init__(self, uid):
-        self.uid = uid
-
-    def getpwuid(self):
-        return self.uid
-
-
-def setPwdX(api):
-    global pwdAPI
-    pwdAPI = api
-
-
-def get_username():
-    return pwdAPI.getpwuid()
 
 
 def imageResize(img, dim):
@@ -289,9 +250,18 @@ def imageResize(img, dim):
     :return:
     @rtype: ImageWrapper
     """
-
     return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
 
+
+def isCompressed(media_file):
+    """
+    TODO: Need to figure this one out more efficiently and accurately
+    :param media_file:
+    :return:
+    """
+    import exif
+    data = exif.getexif(media_file)
+    return getValue(data,'File Type') not in ['AVI','PNG','WAV']
 
 def imageResizeRelative(img, dim, otherImDim):
     """
@@ -1143,6 +1113,27 @@ def seamAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
         analysis['global'] = 'no'
 
 
+def rotateSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    import copy
+    if img1.size != img2.size:
+        return siftAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments, directory=directory)
+    globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if linktype != 'image.image':
+        return
+    mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
+    serializedMatrix = getValue(arguments,'transform matrix')
+    if serializedMatrix is  None:
+        args = copy.copy(arguments)
+        (x,y),(w,h) = boundingRegion(mask.invert().image_array)
+        if (w-x + h-y) > 0.5*(mask.size[0] + mask.size[1]):
+            args['Matcher.TREES'] = 6
+            args['Matcher.CHECKS'] = 20
+        matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=args)
+        if matrix is not None and isHomographyOk(matrix,img1.size[1],img1.size[0]):
+            analysis['transform matrix'] = serializeMatrix(matrix)
+    else:
+        analysis['transform matrix']  = serializedMatrix
+
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
@@ -1152,11 +1143,9 @@ def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
     matrix, matchCount = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
     analysis['transform matrix'] = serializeMatrix(matrix)
 
-
 def boundingRegion(mask):
     x, y, w, h = widthandheight(mask)
     return (x, y), (x + w, y + h)
-
 
 def boundingRectange(mask):
     allpoints = []
@@ -1272,10 +1261,23 @@ def createMask(img1, img2, invert=False, arguments={}, alternativeFunction=None,
     analysis['empty mask'] = 'yes' if np.all(mask == 255) else 'no'
     return ImageWrapper(mask), analysis, error
 
-def __flannMatcher(d1, d2):
+def __indexOf(source, dest):
+    positions = []
+    for spos in range(len(source)):
+        for dpos in range(len(dest)):
+            if (source[spos] == dest[dpos]).all():
+                positions.append(spos)
+                break
+    return positions
+
+def __flannMatcher(d1, d2, args=None):
     FLANN_INDEX_KDTREE = 0
     TREES = 16
     CHECKS = 50
+    if 'Matcher.CHECKS' in args:
+        CHECKS = int(args['Matcher.CHECKS'])
+    if 'Matcher.TREES' in args:
+        TREES = int(args['Matcher.TREES'])
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES)
     search_params = dict(checks=CHECKS)
     flann = cv2.FlannBasedMatcher(index_params, search_params)
@@ -1303,7 +1305,7 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     d2 /= (d2.sum(axis=1, keepdims=True) + 1e-7)
     d2 = np.sqrt(d2)
 
-    matches = matcher(d1, d2)
+    matches = matcher(d1,d2, args=arguments)
 
     # store all the good matches as per Lowe's ratio test.
     good = [m for m, n in matches if m.distance < 0.75 * n.distance]
@@ -1698,9 +1700,14 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     compositeMaskAltered = compositeMaskFlipped * maskInverted
 
     maxvalue = compositeMaskAltered.max()
-    compositeMaskAltered[compositeMaskAltered > 0] = maxvalue - 20
-    newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (shape[1], shape[0]), flags=flags,
-                                  borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+
+    compositeMaskAltered[compositeMaskAltered > 0] = maxvalue-20
+    if transform_matrix.shape[0] == 2:
+        newMask = cv2.warpAffine(compositeMaskAltered, transform_matrix, (shape[1], shape[0]), flags=flags,
+                                      borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    else:
+        newMask = cv2.warpPerspective(compositeMaskAltered, transform_matrix, (shape[1], shape[0]), flags=flags,
+                                      borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     newMask[newMask > 99] = maxvalue
     newMask[newMask < 100] = 0
     # put the areas outside the mask back into the composite
@@ -1973,19 +1980,20 @@ def rotateImage(angle, pivot, img):
 def __localrotateImage(rotation, mask, img, expectedDims=None, cval=0):
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     maskInverted[maskInverted > 0] = 1
-    x0, y0, w, h = widthandheight(maskInverted)
+    targetDims = img.shape
+    if expectedDims is not None:
+        targetDims = expectedDims
+    x0,y0,w,h = widthandheight(maskInverted)
     if w == 0 or h == 0:
         return img
-    maxsize = max(w, h)
-    subImg = img[y0:(y0 + maxsize), x0:(x0 + maxsize)]
-    # center = ( y0 + h/ 2,x0+ w / 2)
-    center = (h / 2, w / 2)
-    # rotatedSubMask = cv2.rotate(subImg*maskInverted[y0:(y0+h),x0:(x0+w)],rotation)
+    h = min(h+1, targetDims[0])
+    w = min(w+1, targetDims[1])
+    subImg = img[y0:(y0+h),x0:(x0+w)]
+    center = (h /2, w / 2)
     M = cv2.getRotationMatrix2D(center, rotation, 1.0)
-    rotatedSubMask = cv2.warpAffine(subImg * maskInverted[y0:(y0 + maxsize), x0:(x0 + maxsize)], M, (maxsize, maxsize),
-                                    flags=cv2api.cv2api_delegate.inter_linear)
+    rotatedSubMask = cv2.warpAffine(subImg*maskInverted[y0:(y0+h),x0:(x0+w)], M, (w,h),flags=cv2api.cv2api_delegate.inter_linear)
     rotatedMask = np.zeros(mask.shape)
-    rotatedMask[y0:y0 + maxsize, x0:x0 + maxsize] = rotatedSubMask
+    rotatedMask[y0:y0+h,x0:x0+w] = rotatedSubMask
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
     return (rotatedMask + img * maskAltered).astype('uint8')

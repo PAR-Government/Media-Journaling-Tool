@@ -30,6 +30,7 @@ import mask_rules
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
+from maskgen.userinfo import get_username
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 import traceback
 from support import MaskgenThreadPool
@@ -43,9 +44,6 @@ def formatStat(val):
 prefLoader = MaskGenLoader()
 
 
-def imageProjectModelFactory(name, **kwargs):
-    return ImageProjectModel(name, **kwargs)
-
 def defaultNotify(edge, message, **kwargs):
     return True
 
@@ -55,7 +53,7 @@ def loadProject(projectFileName, notify=None):
       @rtype: ImageProjectModel
     """
     graph = createGraph(projectFileName)
-    return ImageProjectModel(projectFileName, graph=graph,notify=notify)
+    return ImageProjectModel(projectFileName, graph=graph, notify=notify)
 
 
 def consolidate(dict1, dict2):
@@ -73,7 +71,8 @@ def consolidate(dict1, dict2):
 EdgeTuple = collections.namedtuple('EdgeTuple', ['start', 'end', 'edge'])
 
 
-def createProject(path, notify=None, base=None, name=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
+def createProject(path, notify=None, base=None, name=None, suffixes=[],
+                  username=None,
                   organization=None):
     """
         This utility function creates a ProjectModel given a directory.
@@ -100,10 +99,10 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json") and \
                         filename != 'operations.json' and filename != 'project_properties.json']
         if len(selectionSet) == 0:
-            return projectModelFactory(os.path.join('.', 'Untitled.json'), notify=notify), True
+            return ImageProjectModel(os.path.join('.', 'Untitled.json'), notify=notify, username=username), True
     else:
         if (path.endswith(".json")):
-            return projectModelFactory(os.path.abspath(path), notify=notify), False
+            return ImageProjectModel(os.path.abspath(path), notify=notify, username=username), False
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
         logging.getLogger('maskgen').warning('Cannot add base image/video to an existing project')
@@ -138,7 +137,7 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
             projectFile = os.path.splitext(projectFile)[0] + ".json"
         else:
             projectFile = os.path.abspath(os.path.join(path, name + ".json"))
-    model = projectModelFactory(projectFile, notify=notify, baseImageFileName=image)
+    model = ImageProjectModel(projectFile, notify=notify, baseImageFileName=image, username=username)
     if organization is not None:
         model.setProjectData('organization', organization)
     if image is not None:
@@ -927,7 +926,8 @@ class ImageProjectModel:
     """
     lock = Lock()
 
-    def __init__(self, projectFileName, graph=None, importImage=False, notify=None, baseImageFileName=None):
+    def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
+                 baseImageFileName=None, username=None):
         self.notify = notify
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
@@ -935,6 +935,7 @@ class ImageProjectModel:
         # group operations are created by a local instance and stored in the graph model
         # when used.
         self.gopLoader = GroupOperationsLoader()
+        self.username = username if username is not None else get_username()
         self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName)
 
 
@@ -1759,11 +1760,11 @@ class ImageProjectModel:
         self.end = edge[1]
         return True
 
-    def startNew(self, imgpathname, suffixes=[], organization=None):
+    def startNew(self, imgpathname, suffixes=[], organization=None, username=None):
         """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
         projectFile = os.path.splitext(imgpathname)[0] + ".json"
         projectType = fileType(imgpathname)
-        self.G = self._openProject(projectFile, projectType)
+        self.G = self._openProject(projectFile, projectType, username=username)
         # do it anyway
         self._autocorrect()
         if organization is not None:
@@ -1774,25 +1775,27 @@ class ImageProjectModel:
                               suffixes=suffixes, \
                               sortalg=lambda f: os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
 
-    def load(self, pathname):
+    def load(self, pathname, username=None):
+        self.username = username if username is not None else self.username
         """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
         self._setup(pathname)
 
-    def _openProject(self, projectFileName, projecttype):
+    def _openProject(self, projectFileName, projecttype, username=None):
         return createGraph(projectFileName,
                            projecttype=projecttype,
                            arg_checker_callback=self.__scan_args_callback,
                            edgeFilePaths={'inputmaskname': 'inputmaskownership',
                                           'selectmasks.mask': '',
                                           'videomasks.videosegment': ''},
-                           nodeFilePaths={'donors.*': ''})
+                           nodeFilePaths={'donors.*': ''},
+                           username=username if username is not None else self.username)
 
     def _autocorrect(self):
         updateJournal(self)
 
     def _setup(self, projectFileName, graph=None, baseImageFileName=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
-        self.G = self._openProject(projectFileName, projecttype) if graph is None else graph
+        self.G = self._openProject(projectFileName, projecttype, username=self.username) if graph is None else graph
         self._autocorrect()
         self.start = None
         self.end = None
@@ -2568,7 +2571,7 @@ class ImageProjectModel:
             datetimestr = currentProps['validationdate'] + ' ' + currentProps['validationtime']
             datetimeval = time.strptime(datetimestr, "%m/%d/%Y %H:%M:%S")
         if all(vp in currentProps for vp in validationProps) and \
-                        currentProps['validatedby'] != get_username() and \
+                        currentProps['validatedby'] != self.username and \
                         self.getGraph().getLastUpdateTime() > datetimeval:
             for key, val in validationProps.iteritems():
                 self.setProjectData(key, val, excludeUpdate=True)

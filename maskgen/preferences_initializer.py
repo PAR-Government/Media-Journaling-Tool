@@ -5,7 +5,7 @@
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
 #==============================================================================
-from maskgen.tool_set import setPwdX,CustomPwdX
+from maskgen.userinfo import setPwdX,CustomPwdX
 from maskgen.validation.core import setValidators
 from maskgen.validation.browser_api import ValidationBrowserAPI
 from maskgen.validation.code_name_s3_api import ValidationCodeNameS3

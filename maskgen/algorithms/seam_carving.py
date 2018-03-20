@@ -482,7 +482,7 @@ class SeamCarver:
 
         # read in image and store as np.float64 format
         img = tool_set.openImageFile(filename).to_array()
-        self.img_type = img.dtyepe
+        self.img_type = img.dtype
         self.image = img.astype(np.float64)
         if shape is None:
             self.shape = (self.image.shape[0], self.image.shape[1])

@@ -6,21 +6,22 @@
 # All rights reserved.
 # ==============================================================================
 
+import logging
+import os
+from collections import namedtuple
+
+import cv2
+import exif
+import graph_rules
+import numpy as np
+import tool_set
+import video_tools
+from image_graph import ImageGraph
+from image_wrap import ImageWrapper, openImageMaskFile
+from support import getValue
 from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openImageFile, sizeOfChange, \
     convertToMask,maskChangeAnalysis,  mergeColorMask, maskToColorArray, IntObject, addFrame, \
     getMilliSecondsAndFrameCount, sumMask
-import exif
-import graph_rules
-from support import getValue
-from image_wrap import ImageWrapper, openImageMaskFile
-import tool_set
-import numpy as np
-import cv2
-import logging
-from image_graph import ImageGraph
-import os
-import video_tools
-from collections import namedtuple
 
 
 class VideoSegment:
@@ -374,7 +375,7 @@ def resize_analysis(analysis, img1, img2, mask=None, linktype=None, arguments=di
     sizeChange  = toIntTuple(analysis['shape change']) if 'shape change' in analysis else (0, 0)
     canvas_change = (sizeChange != (0, 0) and ('interpolation' not in arguments or
                      arguments['interpolation'].lower().find('none') < 0))
-    if not canvas_change:
+    if not canvas_change or getValue(arguments,'homography',defaultValue='None') != 'None':
         mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
         matrix, matchCount = tool_set.__sift(img1, img2, mask1=mask, mask2=mask2, arguments=arguments)
         analysis['transform matrix'] = tool_set.serializeMatrix(matrix)
@@ -401,7 +402,7 @@ def resize_transform(edge, source, target, edgeMask,
         if canvas_change:
             newRes = np.zeros(expectedSize).astype('uint8')
             upperBound = (min(res.shape[0] + location[0], newRes.shape[0]),
-                          min(res.shape[1] + location[1]), newRes.shape[1])
+                          min(res.shape[1] + location[1], newRes.shape[1]))
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
@@ -1772,7 +1773,6 @@ class GraphCompositeIdAssigner:
         :param baseNodes:
         :return:
         """
-        import hashlib
         fileid = IntObject()
         target_groups = dict()
         group_bits = {}
@@ -1833,7 +1833,6 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         return compositeIdAssigner.updateProbes(probes, self.composite_type)
 
     def build(self, passcount, probe, edge):
-        import math
         """
 
         :param passcount:
@@ -2089,13 +2088,15 @@ class CompositeDelegate:
             edge = self.graph.get_edge(source, target)
             if edge['op'] == 'Donor':
                 continue
-            newMask = alterComposite(self.graph,
-                                     edge,
-                                     self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                                     source,
-                                     target,
-                                     compositeMask,
-                                     self.get_dir())
+            newMask = compositeMask
+            for op in self.gopLoader.getOperationsWithinGroup(edge['op'], fake=True):
+                newMask = alterComposite(self.graph,
+                                         edge,
+                                         op,
+                                         source,
+                                         target,
+                                         newMask,
+                                         self.get_dir())
             results.extend(self.constructTransformedMask((source, target), newMask, saveTargets=saveTargets))
         return results if len(successors) > 0 else [
             self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets)]
@@ -2112,13 +2113,15 @@ class CompositeDelegate:
                 edge.update(override_args)
             elif len(override_args) > 0:
                 edge = override_args
-            altered_composite = alterComposite(self.graph,
-                           edge,
-                           self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
-                           source,
-                           target,
-                           compositeMask,
-                           self.get_dir())
+            altered_composite = compositeMask
+            for innerop in self.gopLoader.getOperationsWithinGroup(edge['op'], fake=True):
+                altered_composite = alterComposite(self.graph,
+                                                   edge,
+                                                   innerop,
+                                                   source,
+                                                   target,
+                                                   altered_composite,
+                                                   self.get_dir())
             target_mask, target_mask_filename, finalNodeId, nodetype = self._finalizeCompositeMask(altered_composite,target)
             new_probe.targetMaskImage = target_mask if nodetype == 'image' else tool_set.getSingleFrameFromMask(
                 target_mask.videomasks)
@@ -2409,7 +2412,6 @@ class CompositeDelegate:
 
 
 def prepareComposite(edge_id, graph, gopLoader):
-    import os
     """
     Depending on the edge properties, construct the composite mask
     :param graph

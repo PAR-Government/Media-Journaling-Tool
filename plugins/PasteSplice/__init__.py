@@ -223,13 +223,19 @@ def performPaste(img,img_to_paste,approach,segment_algorithm):
                 # The weight between two adjacent regions represents how similar or dissimilar two
                 # regions are depending on the mode parameter.
 
-                cutThresh = 0.000000005
+                cutThresh = 0.00000001
                 labelset = np.unique(labels1)
-                while len(labels1) > 100000 or len(labelset) > 500:
+                sizeOfLabelSet = len(labelset)
+                increment = 0.0000005
+                while increment < 0.01 and (len(labels1) > 100000 or sizeOfLabelSet > 1000) :
                     g = graph.rag_mean_color(denoise_img, labels1, mode='similarity')
                     labels1 = graph.cut_threshold(labels1, g, cutThresh)
                     labelset = np.unique(labels1)
-                    cutThresh += 0.00000001
+                    # too slow of a change
+                    if sizeOfLabelSet - len(labelset) < 5:
+                        increment*=10
+                    sizeOfLabelSet = len(labelset)
+                    cutThresh += increment
                 labelset = np.unique(labels1)
                 for label in labelset:
                     if label == 0:

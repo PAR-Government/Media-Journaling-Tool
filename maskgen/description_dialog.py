@@ -16,7 +16,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
 from software_loader import Software, SoftwareLoader
 import os
@@ -1824,7 +1824,7 @@ class QAViewDialog(Toplevel):
         col+=1
 
         self.reporterStr = StringVar()
-        self.reporterStr.set(get_username())
+        self.reporterStr.set(self.parent.get_username())
         self.reporterEntry = Entry(self, textvar=self.reporterStr)
         self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
 

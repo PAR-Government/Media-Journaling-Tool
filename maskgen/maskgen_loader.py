@@ -10,9 +10,8 @@ from os.path import expanduser
 import shutil
 import os
 import json
+from maskgen import config
 
-
-global_image = {}
 imageLoaded = False
 
 class MaskGenLoader:
@@ -20,30 +19,30 @@ class MaskGenLoader:
         self.load()
 
     def load(self):
-        global global_image
-        global imageLoaded
-        if imageLoaded:
-            return
+        global_image = config.global_config['global_image'] if 'global_image' in config.global_config else None
+        if global_image is not None:
+            return global_image
         file_path = os.path.join(expanduser("~"), ".maskgen2")
         if os.path.exists(file_path):
             with open(file_path, "r") as jsonfile:
                 global_image = json.load(jsonfile)
-        imageLoaded = True
+                config.global_config['global_image'] = global_image
 
     def __iter__(self):
-        return global_image.keys()
+        return self.load().keys()
 
     def __contains__(self,key):
-        return key in global_image
+        return key in self.load()
 
     def __setitem__(self,key,value):
-        global_image[key] = value
+        self.load()[key] = value
 
     def __getitem__(self, key):
+        global_image = self.load()
         return global_image[key] if key in global_image else None
 
     def get_key(self, key, default_value=None):
-        global global_image
+        global_image = self.load()
         return global_image[key] if key in global_image else default_value
 
     def _backup(self):
@@ -63,7 +62,7 @@ class MaskGenLoader:
             shutil.copy(mainfile,backup)
 
     def save(self, key, data):
-        global global_image
+        global_image = self.load()
         global_image[key] = data
         self._backup()
         file_path = os.path.join(expanduser("~"), ".maskgen2")
@@ -71,7 +70,7 @@ class MaskGenLoader:
             json.dump(global_image, f, indent=2)
 
     def saveall(self, idanddata):
-        global global_image
+        global_image = self.load()
         for key, data in idanddata:
             global_image[key] = data
         file_path = os.path.join(expanduser("~"), ".maskgen2")

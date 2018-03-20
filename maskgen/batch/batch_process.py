@@ -26,7 +26,7 @@ import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import loadJSONGraph, BatchProject
 from maskgen.image_graph import extract_archive
-from maskgen.tool_set import setPwdX, CustomPwdX
+from maskgen.userinfo import setPwdX, CustomPwdX
 
 
 

@@ -4076,7 +4076,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.rotateSiftAnalysis"
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": {"default" : false},
