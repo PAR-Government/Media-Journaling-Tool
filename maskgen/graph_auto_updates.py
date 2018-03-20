@@ -97,7 +97,7 @@ def _fixProvenanceCategory(scModel,gopLoader):
         scModel.setProjectData('provenance', 'no')
     scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
 
-def _updateEdgeHomography(edge,gopLoader):
+def _updateEdgeHomography(edge):
     if 'RANSAC' in edge:
         value = edge.pop('RANSAC')
         if value == 'None' or value == 0 or value == '0':
@@ -167,7 +167,7 @@ def _fixSeams(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] in [ 'TransformSeamCarving'] and edge['softwareName'] == 'maskgen':
-            bounds = tool_set.getValue(edge,'arguments.percentage bounds')
+            bounds = getValue(edge,'arguments.percentage bounds')
             if  bounds is not None:
                 edge['arguments'].pop('percentage bounds')
                 edge['arguments']['percentage_width'] = float(bounds)/100.0
