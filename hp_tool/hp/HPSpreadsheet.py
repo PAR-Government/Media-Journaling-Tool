@@ -699,6 +699,8 @@ class HPSpreadsheet(Toplevel):
         Archive output folder into a .tar file.
         :return: string, archive filename formatted as "USR-LocalID-YYmmddHHMMSS.tar"
         """
+        import subprocess
+
         val = self.pt.model.df['HP-DeviceLocalID'][0] if type(self.pt.model.df['HP-DeviceLocalID'][0]) is str else ''
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
@@ -707,9 +709,15 @@ class HPSpreadsheet(Toplevel):
         archive.close()
         os.close(fd)
         final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
-        shutil.move(tname, os.path.join(self.dir, final_name))
+        tar_path = os.path.join(self.dir, final_name)
+        shutil.move(tname, tar_path)
 
-        return final_name
+        recipient = self.settings.get("archive_recipient") if self.settings.get("archive_recipient") else None
+        if recipient:
+            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
+            final_name = tar_path + ".gpg"
+            return final_name
+        return None
 
     def validate(self):
         """

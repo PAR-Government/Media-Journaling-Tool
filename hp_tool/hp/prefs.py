@@ -55,6 +55,7 @@ class SettingsWindow(Toplevel):
         self.urlVar = StringVar()
         self.tokenVar = StringVar()
         self.trelloVar = StringVar()
+        self.recipEmail = StringVar()
 
         self.imageVar = StringVar()
         self.videoVar = StringVar()
@@ -77,10 +78,11 @@ class SettingsWindow(Toplevel):
             self.seqVar.set(self.settings.get_key('seq'))
         else:
             self.settings.save('seq', '00000')
-
+            
         defaults = {'aws-hp':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
                     'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar,
-                    'copyrightnotice':self.copyrightVar, 'by - line':self.bylineVar, 'credit':self.creditVar}
+                    'archive_recipient':self.recipEmail,'copyrightnotice':self.copyrightVar, 'by - line':self.bylineVar, 
+                    'credit':self.creditVar}
         for s in defaults:
             if self.settings.get_key(s):
                 defaults[s].set(self.settings.get_key(s))
@@ -126,6 +128,14 @@ class SettingsWindow(Toplevel):
 
         self.urlBox = Entry(self.prefsFrame, textvar=self.urlVar)
         self.urlBox.grid(row=r, column=4)
+
+        r+=1
+
+        self.archiveRecipientButton = Button(self.prefsFrame, text="Recipient Email", command=lambda:tkMessageBox.showinfo("Recipient Email", "Enter the email address of the archive recipient for encryption."))
+        self.archiveRecipientButton.grid(row=r, column=0, columnspan=4)
+
+        self.archiveRecipBox = Entry(self.prefsFrame, textvar=self.recipEmail)
+        self.archiveRecipBox.grid(row=r, column=4)
 
         r+=1
         self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ')
@@ -244,6 +254,7 @@ class SettingsWindow(Toplevel):
 
         settings_data = {'seq': self.seqVar.get(), 'aws-hp': self.s3Var.get(), 'aws-prnu': self.s3VarPRNU.get(),
                          'apiurl': self.urlVar.get(), 'apitoken': self.tokenVar.get(), 'trello': self.trelloVar.get(),
+                         'archive_recipient':self.archiveRecipBox.get(),
                          'imagetypes': self.imageVar.get(), 'videotypes': self.videoVar.get(), 'audiotypes':
                          self.audioVar.get(), 'modeltypes': self.modelVar.get(), 'hp_trello_login_url': 'https://'
                          'trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration='
