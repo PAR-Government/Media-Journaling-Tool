@@ -273,6 +273,8 @@ class OpticalFlow:
         self.bkflow = bkflow
         self.hight = flow.shape[0]
         self.width = flow.shape[1]
+        h, w = flow.shape[:2]
+        self.coords = (np.swapaxes(np.indices((w, h), np.float32), 0, 2))
 
     def setFrames(self, prvs_frame, next_frame, flow, bkflow):
         self.prvs_frame = prvs_frame
@@ -281,25 +283,15 @@ class OpticalFlow:
         self.bkflow = bkflow
 
     def warpFlow(self, img, flow):
-        h, w = flow.shape[:2]
-        #flow = -flow
-        flow[:, :, 0] += np.arange(w)
-        flow[:, :, 1] += np.arange(h)[:, np.newaxis]
-        adj = self.adjustFlow(flow)
-        res = cv2.remap(img, adj, None, cv2.INTER_LINEAR)
-        return res
+        adj = self.coords + flow
+        underoverflow_width = np.logical_or(adj[:, :, 0] >= self.coords.shape[1],
+                                            adj[:, :, 0] < 0)
+        underoverflow_height = np.logical_or(adj[:, :, 1] >= self.coords.shape[0],
+                                             adj[:, :, 1] < 0)
+        adj[underoverflow_width] = self.coords[underoverflow_width]
+        adj[underoverflow_height] = self.coords[underoverflow_height]
+        return cv2.remap(img, adj, None, cv2.INTER_LINEAR)
 
-    def adjustFlow(self, flow):
-        h, w = flow.shape[:2]
-        #cpy = np.copy(flow)#
-        cpy = (np.swapaxes(np.indices((w, h), np.float32), 0, 2))
-        for x in range(len(flow)):
-            row = flow[x]
-            for y in range(len(row)):
-                point = row[y]
-                if int(point[1]) < len(flow) and int(point[0]) <len(row) and not (np.array_equal(point, [y,x])):
-                    cpy[int(point[1])][int(point[0])] = [y,x]
-        return cpy
 
     def setTime(self, frame_time):
         forward_flow = np.multiply(self.flow, 1 - frame_time)
