@@ -64,8 +64,11 @@ def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, arg
     if op.parameter_dependencies is not None:
         for param_name, param_requirements in op.parameter_dependencies.iteritems():
             if param_name in argvalues and argvalues[param_name] in param_requirements:
-                check_name = param_requirements[argvalues[param_name]]
-                ok &= (check_name in argvalues and argvalues[check_name] is not None and len(str(argvalues[check_name])) > 0)
+                checks = param_requirements[argvalues[param_name]]
+                if type(checks) == 'str':
+                    checks = [checks]
+                for check_name in checks:
+                    ok &= (check_name in argvalues and argvalues[check_name] is not None and len(str(argvalues[check_name])) > 0)
     return ok
 
 def checkValue(name, value_type, value):
@@ -2252,12 +2255,13 @@ class VerticalScrolledFrame(Frame):
         self.parent = parent
         # create a canvas object and a vertical scrollbar for scrolling it
         self.canvas = canvas = Canvas(self, bd=0, highlightthickness=0)
-        vscrollbar = Scrollbar(self, orient=VERTICAL, command=canvas.yview)
-        vscrollbar.grid(row=0, column=1, sticky=N + S)
-        canvas.configure(yscrollcommand=vscrollbar.set)
-        canvas.grid(row=0,column=0,sticky=E+W+N+S)
+        vscrollbar = Scrollbar(self, orient=VERTICAL)
+        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+        canvas = Canvas(self, bd=0, highlightthickness=0,
+                        yscrollcommand=vscrollbar.set)
+        #canvas.configure(yscrollcommand=vscrollbar.set)
         vscrollbar.config(command=canvas.yview)
-        canvas.grid_propagate(True)
+        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
         # reset the view
         canvas.xview_moveto(0)

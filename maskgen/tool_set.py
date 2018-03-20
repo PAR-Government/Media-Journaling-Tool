@@ -31,7 +31,8 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("Raw 2 Panasonic", "*.rw2"), ("ORF Olympus", "*.orf"), ("MDC Minolta", "*.mdc"),
                   ("PTX Pentax", "*.ptx"),
                   ("PEF Pentax", "*.pef"), ("MRW Minolta", "*.nrw"), ("Adobe", "*.dng"),
-                  ("bmp files", "*.bmp"), ("pdf files", "*.pdf"), ('cr2', '*.cr2'), ('raf Fuji', '*.raf')]
+                  ("bmp files", "*.bmp"), ("pdf files", "*.pdf"), ('cr2', '*.cr2'), ('raf Fuji', '*.raf'),
+                  ("NITF files","*.ntf"),("NITF files","*.nitf")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts'), ('3gp', '*.3gp'),
@@ -167,7 +168,7 @@ def getFFprobeTool():
 
 
 def isVideo(filename):
-    ffmpegcommand = [getFFprobeTool, filename]
+    ffmpegcommand = [getFFprobeTool(), filename]
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
@@ -184,11 +185,11 @@ def getMimeType(filename):
         result = subprocess.check_output(cmd)
         return (result.split(':')[1]).split('/')[0].strip()
     except Exception as e:
-        logging.getLogger('maskgen').error('Cannot determine file type for {}: {}'.format(
+        logging.getLogger('maskgen').error('Cannot determine file type for "{}": {}'.format(
             filename,
             str(e)
         ))
-        raise ValueError('Cannot determine file type for {}'.format(
+        raise ValueError('Cannot determine file type for "{}"'.format(
             filename
         ))
 

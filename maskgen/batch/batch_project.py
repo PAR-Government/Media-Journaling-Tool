@@ -483,7 +483,8 @@ class BaseSelectionOperation(BatchOperation):
                                              base=file_path_in_project,
                                              suffixes=tool_set.suffixes+ [suffix],
                                              username=preferred_username,
-                                             organization=preferred_organization)[0]
+                                             organization=preferred_organization,
+                                             tool='jtproject')[0]
         for prop, val in local_state['project'].iteritems():
             model.setProjectData(prop, val)
         if 'edgeFilePaths' in graph.graph:
@@ -1443,6 +1444,7 @@ def main():
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
     parser.add_argument('--export',required=False)
+    parser.add_argument('--keep_failed',required=False,action='store_true')
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.json)
@@ -1451,7 +1453,8 @@ def main():
                        global_variables=args.global_variables,
                        initializers=args.initializers,
                        threads_count=int(args.threads) if args.threads else 1,
-                       loglevel=args.loglevel)
+                       loglevel=args.loglevel,
+                       removeBadProjects=not args.keep_failed)
 
     notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
 

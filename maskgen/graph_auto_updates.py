@@ -47,7 +47,8 @@ def updateJournal(scModel):
          ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask, _fixGlobal]),
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
-         ('0.5.0227.6d9889731b', [_fixPNGS])])
+         ('0.5.0227.6d9889731b', [_fixPNGS]),
+         ('0.5.0227.bf007ef4cd', [_fixTool])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -81,6 +82,35 @@ def _fixPNGS(scModel,gopLoader):
     for png_file in glob.glob(os.path.join(os.path.abspath(scModel.get_dir()) , '*.png')):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
+
+
+def _fixTool(scModel,gopLoader):
+    """
+
+    :param scModel:
+    :param gopLoader:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+    summary = scModel.getProjectData('technicalsummary',default_value=scModel.getProjectData('technicalSummary'))
+    scModel.setProjectData('technicalsummary',summary)
+    description = scModel.getProjectData('projectdescription', default_value=scModel.getProjectData('projectDescription'))
+    scModel.setProjectData('projectdescription', description)
+    tool_name = 'jtui'
+    if summary.lower().startswith('automate'):
+        tool_name = 'jtproject'
+    modifier_tools = [tool_name]
+    #hasauto = False
+    #for frm, to in scModel.getGraph().get_edges():
+    #    edge = scModel.G.get_edge(frm, to)
+    #    hasauto |= (getValue(edge,'automated',defaultValue='no') == 'yes')
+    #if hasauto:
+    #    modifier_tools.append('jtprocess')
+    if scModel.getGraph().getDataItem('modifier_tools') is None:
+        scModel.getGraph().setDataItem('creator_tool', tool_name)
+        scModel.getGraph().setDataItem('modifier_tools', modifier_tools)
+
+
 
 def _fixValidationTime(scModel,gopLoader):
     import time

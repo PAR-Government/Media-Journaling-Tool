@@ -599,8 +599,13 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print('Updating metadata...')
 
+    metadata = {"usageterms": self.settings.get_key("usageterms"), "copyrightnotice":
+                self.settings.get_key("copyrightnotice"), "credit": self.settings.get_key("credit"),
+                "artist": self.settings.get_key("artist"), "copyright": self.settings.get_key("copyright"),
+                "by-line": self.settings.get_key("by-line")}
+
     for folder in ['image', 'video', 'audio', 'model']:
-        process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get_key('metadata'), quiet=True)
+        process_metadata(os.path.join(outputdir, folder, '.hptemp'), metadata, quiet=True)
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
 

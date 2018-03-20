@@ -10,6 +10,8 @@ from maskgen.tool_set import *
 import numpy as np
 import PIL
 from maskgen.jpeg.utils import check_rotate
+from maskgen.support import getValue
+import copy
 
 
 def tiff_save_as(source_img, source, target, donor_file, rotate):
@@ -25,7 +27,7 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
         donor_img = openImageFile(donor_file)
         if rotate:
             source_img,analysis = check_rotate(source_img, donor_file)
-        source_img.save(target, format='TIFF', **donor_img.info)
+        source_img.save(target, format='TIFF')
         maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         maskgen.exif.runexif(['-overwrite_original','-q', '-all=', target])
         maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])

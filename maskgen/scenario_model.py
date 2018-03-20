@@ -72,6 +72,7 @@ EdgeTuple = collections.namedtuple('EdgeTuple', ['start', 'end', 'edge'])
 
 
 def createProject(path, notify=None, base=None, name=None, suffixes=[],
+                  tool=None,
                   username=None,
                   organization=None):
     """
@@ -93,33 +94,35 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[],
      @type notify: (str, str) -> None
      @rtype (ImageProjectModel, bool)
     """
-
     if path is None:
         path = '.'
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json") and \
-                        filename != 'operations.json' and filename != 'project_properties.json']
+                        filename not in  ['operations.json','project_properties.json']]
         if len(selectionSet) == 0:
-            return ImageProjectModel(os.path.join('.', 'Untitled.json'), notify=notify, username=username), True
+            return ImageProjectModel(os.path.join('.', 'Untitled.json'), notify=notify, username=username, tool=tool), True
     else:
-        if (path.endswith(".json")):
-            return ImageProjectModel(os.path.abspath(path), notify=notify, username=username), False
+        if (path.endswith(".json")) and os.path.exists(path):
+            return ImageProjectModel(os.path.abspath(path), notify=notify, username=username, tool=tool), False
+        # just a directory
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
         logging.getLogger('maskgen').warning('Cannot add base image/video to an existing project')
         return None
+    # JSON file not found and base image not provided
     if len(selectionSet) == 0 and base is None:
         logging.getLogger('maskgen').info(
             'No project found and base image/video not provided; Searching for a base image/video')
         suffixPos = 0
+        # look for a viable media file to create the project
         while len(selectionSet) == 0 and suffixPos < len(suffixes):
             suffix = suffixes[suffixPos]
             selectionSet = [filename for filename in os.listdir(path) if filename.lower().endswith(suffix)]
             selectionSet.sort()
             suffixPos += 1
-        projectFile = selectionSet[0] if len(selectionSet) > 0 else None
-        if projectFile is None:
+        if len(selectionSet) == 0:
             logging.getLogger('maskgen').warning('Could not find a base image/video')
             return None
+        projectFile = selectionSet[0]
     # add base is not None
     elif len(selectionSet) == 0:
         projectFile = os.path.split(base)[1]
@@ -137,9 +140,10 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[],
             projectFile = os.path.splitext(projectFile)[0] + ".json"
         else:
             projectFile = os.path.abspath(os.path.join(path, name + ".json"))
-    model = ImageProjectModel(projectFile, notify=notify, baseImageFileName=image, username=username)
+    model = ImageProjectModel(projectFile, notify=notify, baseImageFileName=image, username=username, tool=tool)
     if organization is not None:
         model.setProjectData('organization', organization)
+
     if image is not None:
         model.addImagesFromDir(path, baseImageFileName=os.path.split(image)[1], suffixes=suffixes, \
                                sortalg=lambda f: os.stat(os.path.join(path, f)).st_mtime)
@@ -927,7 +931,7 @@ class ImageProjectModel:
     lock = Lock()
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
-                 baseImageFileName=None, username=None):
+                 baseImageFileName=None, username=None,tool=None):
         self.notify = notify
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
@@ -936,7 +940,7 @@ class ImageProjectModel:
         # when used.
         self.gopLoader = GroupOperationsLoader()
         self.username = username if username is not None else get_username()
-        self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName)
+        self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName,tool=tool)
 
 
     def get_dir(self):
@@ -1760,11 +1764,11 @@ class ImageProjectModel:
         self.end = edge[1]
         return True
 
-    def startNew(self, imgpathname, suffixes=[], organization=None, username=None):
+    def startNew(self, imgpathname, suffixes=[], organization=None, username=None, tool=None):
         """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
         projectFile = os.path.splitext(imgpathname)[0] + ".json"
         projectType = fileType(imgpathname)
-        self.G = self._openProject(projectFile, projectType, username=username)
+        self.G = self._openProject(projectFile, projectType, username=username,tool=tool)
         # do it anyway
         self._autocorrect()
         if organization is not None:
@@ -1775,12 +1779,12 @@ class ImageProjectModel:
                               suffixes=suffixes, \
                               sortalg=lambda f: os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
 
-    def load(self, pathname, username=None):
+    def load(self, pathname, username=None,tool=None):
         self.username = username if username is not None else self.username
         """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
-        self._setup(pathname)
+        self._setup(pathname,tool=tool)
 
-    def _openProject(self, projectFileName, projecttype, username=None):
+    def _openProject(self, projectFileName, projecttype, username=None,tool=None):
         return createGraph(projectFileName,
                            projecttype=projecttype,
                            arg_checker_callback=self.__scan_args_callback,
@@ -1788,14 +1792,15 @@ class ImageProjectModel:
                                           'selectmasks.mask': '',
                                           'videomasks.videosegment': ''},
                            nodeFilePaths={'donors.*': ''},
-                           username=username if username is not None else self.username)
+                           username=username if username is not None else self.username,
+                           tool=tool)
 
     def _autocorrect(self):
         updateJournal(self)
 
-    def _setup(self, projectFileName, graph=None, baseImageFileName=None):
+    def _setup(self, projectFileName, graph=None, baseImageFileName=None,tool=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
-        self.G = self._openProject(projectFileName, projecttype, username=self.username) if graph is None else graph
+        self.G = self._openProject(projectFileName, projecttype, username=self.username,tool=tool) if graph is None else graph
         self._autocorrect()
         self.start = None
         self.end = None
@@ -1994,6 +1999,10 @@ class ImageProjectModel:
         return self.G.getVersion()
 
     def getGraph(self):
+        """
+        :return: underlying graph
+        @rtype: ImageGraph
+        """
         return self.G
 
     def validate(self, external=False):
@@ -2337,7 +2346,8 @@ class ImageProjectModel:
                 _end = self.end
                 _start = self.start
                 self.selectImage(kwargs[donor])
-                self.connect(_end)
+                mod = Modification('Donor', '',category='Donor',automated='yes')
+                self.connect(_end,mod=mod)
                 pairs.append((kwargs[donor], _end))
                 self.select((_start, _end))
                 # donor error message is removed.  This annoys me (rwgdrummer).
