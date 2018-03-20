@@ -1,56 +1,13 @@
 import webbrowser
 from Tkinter import *
 import ttk
-import os
 import datetime
+
+import maskgen
+
 import hp_data
 import tkMessageBox
-import json
 import data_files
-
-class SettingsManager():
-    """
-    Handles reading/writing of user settings.
-    """
-    def __init__(self, settingsFile=None):
-        if settingsFile is None:
-            self.settingsFile = os.path.join(os.path.expanduser('~'), '.hpsettings')
-        else:
-            self.settingsFile = settingsFile
-        self.load_settings()
-
-    def load_settings(self):
-        try:
-            with open(self.settingsFile) as j:
-                self.settings = json.load(j)
-        except IOError:
-            self.settings = {}
-            self.settings['metadata'] = {}
-
-    def get(self, key, notFound=None):
-        # call with notFound param to change what value is returned if setting is not valid
-        try:
-            return self.settings[key]
-        except KeyError:
-            return notFound
-
-    def get_m(self, key, notFound=None):
-        """get metadata item"""
-        try:
-            return self.settings['metadata'][key]
-        except KeyError:
-            return notFound
-
-    def set(self, setting, val):
-        self.settings[setting] = val
-        with open(self.settingsFile, 'w') as j:
-            json.dump(self.settings, j, indent=4)
-
-    def set_m(self, setting, val):
-        """set metadata item"""
-        self.settings['metadata'][setting] = val
-        with open(self.settingsFile, 'w') as j:
-            json.dump(self.settings, j, indent=4)
 
 
 class SettingsWindow(Toplevel):
@@ -91,7 +48,6 @@ class SettingsWindow(Toplevel):
         self.orgVar.trace('w', self.update_org)
         self.usrVar.trace('w', self.update_preview)
         self.usrVar.trace('w', self.update_metadata)
-        self.usrVar.trace('w', self.limit_length)
         self.seqVar.trace('w', self.update_preview)
 
         self.s3Var = StringVar()
@@ -112,28 +68,24 @@ class SettingsWindow(Toplevel):
         self.usageVar = StringVar()
 
     def set_defaults(self):
-        self.usrVar.set(self.settings.get('username', notFound=''))
+        self.usrVar.set(self.settings.get_key('username'))
         try:
-            self.orgVar.set(self.settings.get('fullorgname', notFound=''))
+            self.orgVar.set(self.settings.get_key('fullorgname'))
         except KeyError:
-            self.orgVar.set(self.settings.get('organization'))
+            self.orgVar.set(self.settings.get_key('hp-organization'))
 
-        if self.settings.get('seq'):
-            self.seqVar.set(self.settings.get('seq'))
+        if self.settings.get_key('seq'):
+            self.seqVar.set(self.settings.get_key('seq'))
         else:
-            self.settings.set('seq', '00000')
-
+            self.settings.save('seq', '00000')
+            
         defaults = {'aws':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
                     'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar,
-                    'archive_recipient':self.recipEmail}
+                    'archive_recipient':self.recipEmail,'copyrightnotice':self.copyrightVar, 'by - line':self.bylineVar, 
+                    'credit':self.creditVar}
         for s in defaults:
-            if self.settings.get(s):
-                defaults[s].set(self.settings.get(s))
-
-        metadata = {'copyrightnotice':self.copyrightVar, 'by-line':self.bylineVar, 'credit':self.creditVar}
-        for m in metadata:
-            if self.settings.get_m(m):
-                metadata[m].set(self.settings.get_m(m))
+            if self.settings.get_key(s):
+                defaults[s].set(self.settings.get_key(s))
         self.update_metadata()
 
         self.usageVar.set('CC0 1.0 Universal. https://creativecommons.org/publicdomain/zero/1.0/')
@@ -141,7 +93,7 @@ class SettingsWindow(Toplevel):
     def create_widgets(self):
         r = 0
         Label(self.prefsFrame, text='* indicates a required field.')
-        self.usrLabel = Label(self.prefsFrame, text='Initials*: ')
+        self.usrLabel = Label(self.prefsFrame, text='Username*: ')
         self.usrLabel.grid(row=r, column=0)
         self.usrEntry = Entry(self.prefsFrame, textvar=self.usrVar, width=5)
         self.usrEntry.grid(row=r, column=1)
@@ -186,7 +138,7 @@ class SettingsWindow(Toplevel):
         self.archiveRecipBox.grid(row=r, column=4)
 
         r+=1
-        self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ', command=lambda:tkMessageBox.showinfo("Browser Token", "Enter your browser API token.  Refer to the HP Tool guide to find the location of this."))
+        self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ')
         self.browserButton.grid(row=r, column=0, columnspan=4)
 
         self.browserBox = Entry(self.prefsFrame, textvar=self.tokenVar)
@@ -246,20 +198,16 @@ class SettingsWindow(Toplevel):
         webbrowser.open(link)
 
     def show_default_types(self):
-        imExts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf']
-        vidExts = ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf', '.mxf']
-        audExts = ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga']
+        imExts = [x[1][1:] for x in maskgen.tool_set.imagefiletypes]
+        vidExts = [x[1][1:] for x in maskgen.tool_set.videofiletypes]
+        audExts = [x[1][1:] for x in maskgen.tool_set.audiofiletypes]
         modelExts = ['.3d.zip']
         tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
-                                                    'Image: ' + ', '.join(imExts) + '\n' +
-                                                    'Video: ' + ', '.join(vidExts) + '\n' +
-                                                    'Audio: ' + ', '.join(audExts) + '\n' +
+                                                    'Image: ' + ', '.join(imExts) + '\n\n' +
+                                                    'Video: ' + ', '.join(vidExts) + '\n\n' +
+                                                    'Audio: ' + ', '.join(audExts) + '\n\n' +
                                                     '3D Models: ' + ', '.join(modelExts))
 
-    def limit_length(self, *args):
-        s = self.usrVar.get()
-        if len(s) > 3:
-            self.usrVar.set(s[0:3])
 
     def update_preview(self, *args):
         try:
@@ -269,11 +217,11 @@ class SettingsWindow(Toplevel):
         self.prevVar.set('*New filenames will appear as:\n' + datetime.datetime.now().strftime('%Y%m%d')[
                                                               2:] + '-' + org + self.usrVar.get() + '-' + self.seqVar.get())
     def update_org(self, *args):
-        self.settings.set('fullorgname', self.orgVar.get())
+        self.settings.save('fullorgname', self.orgVar.get())
         try:
-            self.settings.set('organization', self.orgVar.get()[-2])
+            self.settings.save('hp-organization', self.orgVar.get()[-2])
         except IndexError:
-            self.settings.set('organization', self.orgVar.get())
+            self.settings.save('hp-organization', self.orgVar.get())
 
     def update_metadata(self, *args):
         initials = self.usrVar.get()
@@ -299,31 +247,21 @@ class SettingsWindow(Toplevel):
         Write out settings
         """
         if self.usrEntry.get():
-            self.settings.set('username', self.usrVar.get().upper())
+            self.settings.save('username', self.usrVar.get())
         else:
             tkMessageBox.showerror(title='Error', message='Initials must be specified.')
             return
 
-        update = self.orgVar.get()
-        self.settings.set('seq', self.seqVar.get())
-        self.settings.set('aws', self.s3Var.get())
-        self.settings.set('aws-prnu', self.s3VarPRNU.get())
-        self.settings.set('apiurl', self.urlVar.get())
-        self.settings.set('apitoken', self.tokenVar.get())
-        self.settings.set('trello', self.trelloVar.get())
-        self.settings.set('imagetypes', self.imageVar.get())
-        self.settings.set('videotypes', self.videoVar.get())
-        self.settings.set('audiotypes', self.audioVar.get())
-        self.settings.set('modeltypes', self.modelVar.get())
-        self.settings.set('trello_login_url', 'https://trello.com/1/authorize?key='+self.trello_key+'&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token')
-        self.settings.set('browser_login_url', self.browserBox.get())
-        self.settings.set('archive_recipient', self.archiveRecipBox.get())
+        settings_data = {'seq': self.seqVar.get(), 'aws-hp': self.s3Var.get(), 'aws-prnu': self.s3VarPRNU.get(),
+                         'apiurl': self.urlVar.get(), 'apitoken': self.tokenVar.get(), 'trello': self.trelloVar.get(),
+                         'archive_recipient':self.archiveRecipBox.get(),
+                         'imagetypes': self.imageVar.get(), 'videotypes': self.videoVar.get(), 'audiotypes':
+                         self.audioVar.get(), 'modeltypes': self.modelVar.get(), 'hp_trello_login_url': 'https://'
+                         'trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration='
+                         'never&response_type=token', 'copyrightnotice': self.copyrightVar.get(), 'by-line':
+                         self.bylineVar.get(), 'credit': self.creditVar.get(), 'usageterms': self.usageVar.get(),
+                         'copyright': '', 'artist': ''}
 
-        self.settings.set_m('copyrightnotice', self.copyrightVar.get())
-        self.settings.set_m('by-line', self.bylineVar.get())
-        self.settings.set_m('credit', self.creditVar.get())
-        self.settings.set_m('usageterms', self.usageVar.get())
-        self.settings.set_m('copyright', '')
-        self.settings.set_m('artist', '')
+        self.settings.saveall(settings_data.items())
 
         self.destroy()

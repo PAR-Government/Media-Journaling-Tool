@@ -33,7 +33,11 @@ from maskgen.graph_output import ImageGraphPainter
 from maskgen.software_loader import getRule
 import traceback
 from functools import partial
-
+from maskgen.preferences_initializer import initial_user
+from maskgen.support import getValue
+from maskgen import maskGenPreferences
+from maskgen.validation.core import Severity
+from maskgen.userinfo import get_username
 
 class IntObject:
     value = 0
@@ -56,6 +60,7 @@ class IntObject:
 
 
 def loadJSONGraph(pathname):
+    logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
             json_data = json.load(f, encoding='utf-8')
@@ -75,7 +80,7 @@ class MyFormatter(string.Formatter):
         if isinstance(key, (int, long)):
             return args[key]
         elif '@' in key:
-            return tool_set.getValue(getNodeState(key[key.rfind('@') + 1:], self.local_state), key[:key.rfind('@')])
+            return getValue(getNodeState(key[key.rfind('@') + 1:], self.local_state), key[:key.rfind('@')])
         else:
             return self.global_state[key]
 
@@ -242,7 +247,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
         source = getNoneDonorPredecessor(getGraphFromLocalState(local_state), target)
         invert = specification['invert'] if 'invert' in specification else False
         edge = getGraphFromLocalState(local_state).get_edge(source,target)
-        mask = os.path.join(local_state['model'].get_dir(), tool_set.getValue(edge,'maskname',defaultValue=''))
+        mask = os.path.join(local_state['model'].get_dir(), getValue(edge,'maskname',defaultValue=''))
         if invert:
             tool_set.openImageFile(mask, isMask=True).invert().save(mask + '.png')
             mask = mask + '.png'
@@ -254,7 +259,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
-        val = tool_set.getValue(getNodeState(specification['source'], local_state),specification['name'])
+        val = getValue(getNodeState(specification['source'], local_state),specification['name'])
         if val is None:
             raise ValueError('Missing variable {} in from {} while processing {}'.format(specification['name'],
                                                                                          specification['source'],
@@ -342,7 +347,7 @@ def getNodeState(node_name, local_state):
         local_state[node_name] = my_state
     return my_state
 
-def getNodeStateFromPredecessor(current_node,local_state, graph):
+def getNodeStateFromPredecessor(current_node, local_state, graph):
     """
 
     :param current_node
@@ -355,9 +360,9 @@ def getNodeStateFromPredecessor(current_node,local_state, graph):
     """
     for pred in graph.predecessors(current_node):
         if pred in local_state and 'node' in local_state[pred]:
-            return getNodeState(pred,local_state)
+            return getNodeState(pred, local_state)
     for pred in graph.predecessors(current_node):
-        result = getNodeStateFromPredecessor(pred,local_state,graph)
+        result = getNodeStateFromPredecessor(pred, local_state, graph)
         if result is not None:
             return result
     return None
@@ -366,15 +371,21 @@ def pickImageIterator(specification, spec_name, global_state):
     if 'picklists' not in global_state:
         global_state['picklists'] = dict()
     picklist_name = specification['picklist'] if 'picklist' in specification else spec_name
+    directory = specification['image_directory'].format(**global_state)
     if picklist_name not in global_state['picklists']:
         element = FilePermuteGroupElement(spec_name,
-                                          specification['image_directory'].format(**global_state),
+                                          directory,
                                           tracking_filename=picklist_name + '.txt',
                                           fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio','video','image'],
                                           filetypes=specification[
                                               'filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
     else:
+        if picklist_name in global_state['picklists'] and \
+                        global_state['picklists'][picklist_name].directory != directory:
+            raise ValueError('Picklist {} reference else where with a different directory. {}'.format(
+                picklist_name, specification['image_directory']
+            ))
         link_element = global_state['picklists'][picklist_name]
         element = LinkedPermuteGroupElement(spec_name, link_element)
     return element
@@ -464,11 +475,15 @@ class BaseSelectionOperation(BatchOperation):
         file_path_in_project = os.path.join(dir, pick_file)
         shutil.copy2(pick, file_path_in_project)
         logging.getLogger('maskgen').info("Build project {}".format(pick_file))
+        preferred_organization = maskGenPreferences.get_key('organization')
+        preferred_username=getValue(global_state,'username',defaultValue=get_username())
+        suffix = os.path.splitext(pick_file)[0]
         model = scenario_model.createProject(dir,
-                                                            name=name,
-                                                            base=file_path_in_project,
-                                                            suffixes=tool_set.suffixes)[0]
-
+                                             name=name,
+                                             base=file_path_in_project,
+                                             suffixes=tool_set.suffixes+ [suffix],
+                                             username=preferred_username,
+                                             organization=preferred_organization)[0]
         for prop, val in local_state['project'].iteritems():
             model.setProjectData(prop, val)
         if 'edgeFilePaths' in graph.graph:
@@ -696,14 +711,22 @@ class PluginOperation(BatchOperation):
                                                                        str(args)))
         errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
-            raise ValueError("Plugin " + plugin_name + " failed:" + str(errors))
+            real_error = None
+            for error in errors:
+                if error.Severity == Severity.ERROR:
+                    real_error = error.Message
+                    self.logger.error("Plugin " + plugin_name + " failed: {}".format(
+                        error.Message
+                    ))
+            if real_error is not None:
+                raise ValueError("Plugin " + plugin_name + " failed:" + real_error)
         my_state['node'] = pairs[0][1]
         edge  = local_state['model'].getGraph().get_edge(pairs[0][0],pairs[0][1])
-        for k,v in tool_set.getValue(edge,'arguments',defaultValue={}).iteritems():
+        for k,v in getValue(edge,'arguments',defaultValue={}).iteritems():
             my_state[k] = v
         if (self.logger.isEnabledFor(logging.DEBUG)):
             self.logger.debug('Plugin {} returned {}'.format(plugin_name,
-                                                                       str(tool_set.getValue(edge,'arguments',defaultValue={}))))
+                                                                       str(getValue(edge,'arguments',defaultValue={}))))
         my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
             local_state['model'].selectImage(predecessor)
@@ -910,8 +933,9 @@ class BatchProject:
             self.G = json_data
         else:
             self.G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
-        tool_set.setPwdX(tool_set.CustomPwdX(self.G.graph['username']))
-
+        initial_user(maskGenPreferences,
+                     username=getValue(self.G.graph,'username',
+                                                      defaultValue=maskGenPreferences.get_key('username')))
     def _buildLocalState(self):
         local_state = {'cleanup': list()}
         local_state['project'] = {}
@@ -926,8 +950,8 @@ class BatchProject:
     def getConnectToNodes(self,op_node_name):
         return [predecessor for predecessor in self.G.predecessors(op_node_name)
          if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' and \
-         not tool_set.getValue(self.G.edge[predecessor][op_node_name], 'donor', defaultValue=False) and \
-         tool_set.getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
+         not getValue(self.G.edge[predecessor][op_node_name], 'donor', defaultValue=False) and \
+         getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
 
     def executeForProject(self, project, nodes, workdir=None):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
@@ -975,6 +999,8 @@ class BatchProject:
                 project.export(global_state['archives'])
         except Exception as e:
             project_name = project.getName()
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             return False
         finally:
@@ -992,6 +1018,7 @@ class BatchProject:
         mydata.current_local_state = local_state
         self.logger.info('Building project with global state: {} '.format(str(global_state)))
         base_node = self._findBase()
+        ok = False
         if base_node is None:
             self.logger.error("A suitable base node for this project {} was not found".format(self.getName()))
         try:
@@ -1001,6 +1028,7 @@ class BatchProject:
             logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
             completed = [base_node]
+            project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
             while len(queue) > 0:
                 op_node_name = queue.pop(0)
                 if op_node_name in completed:
@@ -1028,24 +1056,27 @@ class BatchProject:
                 op.performOp()
             sm = local_state['model']
             sm.renameFileImages()
+            ok = True
             summary_file = os.path.join(sm.get_dir(), '_overview_.png')
             ImageGraphPainter(sm.getGraph()).output(summary_file)
             if 'archives' in global_state:
                 sm.export(global_state['archives'])
         except Exception as e:
-            project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
-            logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
-            if 'model' in local_state:
-                if 'removebadprojects' in global_state and not global_state['removebadprojects']:
-                    local_state['model'].save()
-                else:
-                    shutil.rmtree(local_state['model'].get_dir())
-            return None, project_name
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
+            if not ok:
+                logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
+                if 'model' in local_state:
+                    if 'removebadprojects' in global_state and not global_state['removebadprojects']:
+                        local_state['model'].save()
+                    else:
+                        shutil.rmtree(local_state['model'].get_dir())
+                return None, project_name
         finally:
             for file in local_state['cleanup']:
                 if os.path.exists(file):
                     os.remove(file)
-        project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
+        self.logger.info('Creation of project {} succeeded'.format(project_name))
         return local_state['model'].get_dir(), project_name
 
     def saveGraphImage(self, dir='.'):
@@ -1233,7 +1264,6 @@ def thread_worker(iq):
         'Starting Thread')
     QueueThreadWorker(iq).execute()
 
-
 def loadGlobalStateInitialers(global_state, initializers):
     import importlib
     if initializers is None:
@@ -1247,7 +1277,6 @@ def loadGlobalStateInitialers(global_state, initializers):
         except Exception as e:
             logging.getLogger('maskgen').error('Unable to load initializer {}: {}'.format(initializer, str(e)))
     return global_state
-
 
 def do_nothing_notify(spec_name, id, project_directory, project_name):
     pass

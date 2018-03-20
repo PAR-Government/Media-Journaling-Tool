@@ -26,7 +26,7 @@ import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import loadJSONGraph, BatchProject
 from maskgen.image_graph import extract_archive
-from maskgen.tool_set import setPwdX, CustomPwdX
+from maskgen.userinfo import setPwdX, CustomPwdX
 
 
 
@@ -363,7 +363,11 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
         sm.selectImage(lastNode)
         errors, pairs = sm.imageFromPlugin(plugin, **arguments)
         if errors is not None and len(errors) > 0:
-            logging.getLogger('maskgen').error( 'Plugin {} on project {} failed: {}'.format(plugin,sm.getName(), errors))
+            for error in errors:
+                logging.getLogger('maskgen').error( 'Plugin {} on project {} failed: {}:{}'.format(plugin,
+                                                                                                sm.getName(),
+                                                                                                error[0].name,
+                                                                                                error[3]))
         sm.save()
         if errors is None or len(errors) == 0:
             logging.getLogger('maskgen').info('Plugin operation {} on project {} complete ({}/{})'.format(
@@ -413,7 +417,6 @@ def parse_properties(sourceDir, endDir, plugin, specification, **kwargs):
                 if p.name not in properties:
                     sys.exit('Error: {} is required for new projects.'.format(p.name))
     return properties
-
 
 def main():
     parser = argparse.ArgumentParser()

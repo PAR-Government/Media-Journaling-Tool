@@ -1909,7 +1909,6 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkInputMask",
         "check_local",
         "sampledInputMask",
         "checkSameChannels",
@@ -3908,11 +3907,11 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "checkInputMask",
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkEmpty"
+        "checkEmpty",
+        "checkMoveMask"
       ],
       "optionalparameters": {
 
@@ -4077,7 +4076,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.rotateSiftAnalysis"
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": {"default" : false},

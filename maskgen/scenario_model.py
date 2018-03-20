@@ -6,7 +6,8 @@
 # All rights reserved.
 # ==============================================================================
 
-from image_graph import createGraph, current_version, getPathValues
+from image_graph import createGraph
+from support import getPathValues
 import exif
 import os
 import numpy as np
@@ -29,7 +30,10 @@ import mask_rules
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
 import copy
+from maskgen.userinfo import get_username
+from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 import traceback
+from support import MaskgenThreadPool
 
 def formatStat(val):
     if type(val) == float:
@@ -40,9 +44,6 @@ def formatStat(val):
 prefLoader = MaskGenLoader()
 
 
-def imageProjectModelFactory(name, **kwargs):
-    return ImageProjectModel(name, **kwargs)
-
 def defaultNotify(edge, message, **kwargs):
     return True
 
@@ -52,7 +53,7 @@ def loadProject(projectFileName, notify=None):
       @rtype: ImageProjectModel
     """
     graph = createGraph(projectFileName)
-    return ImageProjectModel(projectFileName, graph=graph,notify=notify)
+    return ImageProjectModel(projectFileName, graph=graph, notify=notify)
 
 
 def consolidate(dict1, dict2):
@@ -70,7 +71,8 @@ def consolidate(dict1, dict2):
 EdgeTuple = collections.namedtuple('EdgeTuple', ['start', 'end', 'edge'])
 
 
-def createProject(path, notify=None, base=None, name=None, suffixes=[], projectModelFactory=imageProjectModelFactory,
+def createProject(path, notify=None, base=None, name=None, suffixes=[],
+                  username=None,
                   organization=None):
     """
         This utility function creates a ProjectModel given a directory.
@@ -97,10 +99,10 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json") and \
                         filename != 'operations.json' and filename != 'project_properties.json']
         if len(selectionSet) == 0:
-            return projectModelFactory(os.path.join('.', 'Untitled.json'), notify=notify), True
+            return ImageProjectModel(os.path.join('.', 'Untitled.json'), notify=notify, username=username), True
     else:
         if (path.endswith(".json")):
-            return projectModelFactory(os.path.abspath(path), notify=notify), False
+            return ImageProjectModel(os.path.abspath(path), notify=notify, username=username), False
         selectionSet = [filename for filename in os.listdir(path) if filename.endswith(".json")]
     if len(selectionSet) != 0 and base is not None:
         logging.getLogger('maskgen').warning('Cannot add base image/video to an existing project')
@@ -135,7 +137,7 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[], projectM
             projectFile = os.path.splitext(projectFile)[0] + ".json"
         else:
             projectFile = os.path.abspath(os.path.join(path, name + ".json"))
-    model = projectModelFactory(projectFile, notify=notify, baseImageFileName=image)
+    model = ImageProjectModel(projectFile, notify=notify, baseImageFileName=image, username=username)
     if organization is not None:
         model.setProjectData('organization', organization)
     if image is not None:
@@ -168,7 +170,6 @@ class MetaDiff:
             new = new.encode('ascii', 'xmlcharrefreplace')
             d[k] = {'Operation': v[0], 'Old': old, 'New': new}
         return d
-
 
 class VideoMetaDiff:
     """
@@ -925,7 +926,8 @@ class ImageProjectModel:
     """
     lock = Lock()
 
-    def __init__(self, projectFileName, graph=None, importImage=False, notify=None, baseImageFileName=None):
+    def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
+                 baseImageFileName=None, username=None):
         self.notify = notify
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
@@ -933,6 +935,7 @@ class ImageProjectModel:
         # group operations are created by a local instance and stored in the graph model
         # when used.
         self.gopLoader = GroupOperationsLoader()
+        self.username = username if username is not None else get_username()
         self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName)
 
 
@@ -1175,8 +1178,7 @@ class ImageProjectModel:
         @rtype: list of Probe
         """
         self._executeSkippedComparisons()
-        from multiprocessing.pool import ThreadPool
-        thread_pool = ThreadPool(prefLoader.get_key('skipped_threads', 2))
+        thread_pool = MaskgenThreadPool(int(prefLoader.get_key('skipped_threads', 2)))
         futures = list()
         useGraph = graph if graph is not None else self.G
         for edge_id in useGraph.get_edges():
@@ -1367,7 +1369,7 @@ class ImageProjectModel:
              Connect the new image node to the end of the currently selected edge.  A node is selected, not an edge, then connect
              to the currently selected node.  Create the mask, inverting the mask if requested.
              Send a notification to the register caller if requested.
-             Return an error message on failure, otherwise return None
+             Return a list of validation messages on failure, otherwise return None
         """
         if (self.end is not None):
             self.start = self.end
@@ -1379,9 +1381,9 @@ class ImageProjectModel:
             params[k] = v
         destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
         analysis_params = dict({ k:v for k,v in edge_parameters.iteritems() if v is not None})
-        msg, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
+        msgs, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules, analysis_params=analysis_params)
-        return msg, status
+        return msgs, status
 
     def getLinkType(self, start, end):
         return self.getNodeFileType(start) + '.' + self.getNodeFileType(end)
@@ -1403,12 +1405,12 @@ class ImageProjectModel:
         myfiles = dict()
         for nodeid in self.getGraph().get_nodes():
             mynode = self.getGraph().get_node(nodeid)
-            myfiles[mynode['file']] = (nodeid, md5offile(os.path.join(self.G.dir, mynode['file']),
-                                                         raiseError=False))
+            myfiles[mynode['file']] = (nodeid, md5_of_file(os.path.join(self.G.dir, mynode['file']),
+                                                           raiseError=False))
         for nodeid in project.getGraph().get_nodes():
             theirnode = project.getGraph().get_node(nodeid)
-            theirfilemd5 = md5offile(os.path.join(project.get_dir(), theirnode['file']),
-                                     raiseError=False)
+            theirfilemd5 = md5_of_file(os.path.join(project.get_dir(), theirnode['file']),
+                                       raiseError=False)
             if theirnode['file'] in myfiles:
                 if myfiles[theirnode['file']][1] != theirfilemd5:
                     logging.getLogger('maskgen').warn(
@@ -1473,7 +1475,7 @@ class ImageProjectModel:
                         skipDonorAnalysis=edge_data['skipDonorAnalysis'],
                         invert=edge_data['invert'],
                         analysis_params=edge_data['analysis_params'])
-                    maskname = shortenName(edge_data['start'] + '_' + edge_data['end'], '_mask.png', id=self.G.nextId())
+                    maskname = shortenName(edge_data['start'] + '_' + edge_data['end'], '_mask.png', identifier=self.G.nextId())
                     self.G.update_mask(edge_data['start'], edge_data['end'], mask=mask, maskname=maskname, errors=errors,
                                        **consolidate(analysis, edge_data['analysis_params']))
                 else:
@@ -1562,7 +1564,7 @@ class ImageProjectModel:
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
-        maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', id=self.G.nextId())
+        maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
         self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
@@ -1572,8 +1574,20 @@ class ImageProjectModel:
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
                           skipDonorAnalysis=False,
                           analysis_params={}):
+        """
+
+        :param destination:
+        :param mod:
+        :param invert:
+        :param sendNotifications:
+        :param skipRules:
+        :param skipDonorAnalysis:
+        :param analysis_params:
+        :return: Error message and success or failure
+        @rtype: (str, bool)
+        """
         try:
-            maskname = shortenName(self.start + '_' + destination, '_mask.png',id=self.G.nextId())
+            maskname = shortenName(self.start + '_' + destination, '_mask.png', identifier=self.G.nextId())
             if mod.inputMaskName is not None:
                 mod.arguments['inputmaskname'] = mod.inputMaskName
             mask, analysis, errors = self._compareImages(self.start, destination, mod.operationName,
@@ -1591,22 +1605,21 @@ class ImageProjectModel:
 
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-            edgeErrors = [] if skipRules else graph_rules.run_rules(
-                self.gopLoader.getOperationWithGroups(mod.operationName, fake=True), self.G, self.start, destination)
-            msgFromRules = os.linesep.join(edgeErrors) if len(edgeErrors) > 0 else ''
+            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start, destination), 'connect')
-            msgFromErrors = "Comparison errors occured" if errors and len(errors) > 0 else ''
-            msg = os.linesep.join([msgFromRules, msgFromErrors]).strip()
-            msg = msg if len(msg) > 0 else None
+            edgeErrors = edgeErrors if len(edgeErrors) > 0 else None
             self.labelNodes(self.start)
             self.labelNodes(destination)
-            return msg, True
+            return edgeErrors, True
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            trace= traceback.format_exception(exc_type, exc_value, exc_traceback)
             logging.getLogger('maskgen').error(' '.join(traceback.format_exception(exc_type,exc_value,exc_traceback)))
-            return 'Exception (' + str(e) + ')', False
+            return [ValidationMessage(Severity.ERROR,
+                                      self.start,
+                                      destination,
+                                      'Exception (' + str(e) + ')',
+                                      'Change Mask')], False
 
     def __scan_args_callback(self, opName, arguments):
         """
@@ -1741,14 +1754,17 @@ class ImageProjectModel:
             self.notify((s, e), 'undo')
 
     def select(self, edge):
+        if self.getGraph().get_node(edge[0]) == None:
+            return False
         self.start = edge[0]
         self.end = edge[1]
+        return True
 
-    def startNew(self, imgpathname, suffixes=[], organization=None):
+    def startNew(self, imgpathname, suffixes=[], organization=None, username=None):
         """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
         projectFile = os.path.splitext(imgpathname)[0] + ".json"
         projectType = fileType(imgpathname)
-        self.G = self._openProject(projectFile, projectType)
+        self.G = self._openProject(projectFile, projectType, username=username)
         # do it anyway
         self._autocorrect()
         if organization is not None:
@@ -1759,25 +1775,27 @@ class ImageProjectModel:
                               suffixes=suffixes, \
                               sortalg=lambda f: os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
 
-    def load(self, pathname):
+    def load(self, pathname, username=None):
+        self.username = username if username is not None else self.username
         """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
         self._setup(pathname)
 
-    def _openProject(self, projectFileName, projecttype):
+    def _openProject(self, projectFileName, projecttype, username=None):
         return createGraph(projectFileName,
                            projecttype=projecttype,
                            arg_checker_callback=self.__scan_args_callback,
                            edgeFilePaths={'inputmaskname': 'inputmaskownership',
                                           'selectmasks.mask': '',
                                           'videomasks.videosegment': ''},
-                           nodeFilePaths={'donors.*': ''})
+                           nodeFilePaths={'donors.*': ''},
+                           username=username if username is not None else self.username)
 
     def _autocorrect(self):
         updateJournal(self)
 
     def _setup(self, projectFileName, graph=None, baseImageFileName=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
-        self.G = self._openProject(projectFileName, projecttype) if graph is None else graph
+        self.G = self._openProject(projectFileName, projecttype, username=self.username) if graph is None else graph
         self._autocorrect()
         self.start = None
         self.end = None
@@ -1795,6 +1813,7 @@ class ImageProjectModel:
         # inject loaded groups into the group operations manager
         for group, ops in self.G.getDataItem('groups', default_value={}).iteritems():
             self.gopLoader.injectGroup(group, ops)
+        self.validator = Validator(prefLoader, self.gopLoader)
 
     def getStartType(self):
         return self.G.getNodeFileType(self.start) if self.start is not None else 'image'
@@ -1978,68 +1997,23 @@ class ImageProjectModel:
         return self.G
 
     def validate(self, external=False):
-        """ Return the list of errors from all validation rules on the graph. """
-
+        """ Return the list of errors from all validation rules on the graph.
+        @rtype: list of ValidationMessage
+        """
         self._executeSkippedComparisons()
         logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
-        total_errors = list()
-
-        finalNodes = list()
-        if len(self.G.get_nodes()) == 0:
-            return total_errors
-
-        for node in self.G.get_nodes():
-            if not self.G.has_neighbors(node):
-                total_errors.append((str(node), str(node), str(node) + ' is not connected to other nodes'))
-            predecessors = self.G.predecessors(node)
-            if len(predecessors) == 1 and self.G.get_edge(predecessors[0], node)['op'] == 'Donor':
-                total_errors.append((str(predecessors[0]), str(node), str(node) +
-                                     ' donor links must coincide with another link to the same destintion node'))
-            successors = self.G.successors(node)
-            if len(successors) == 0:
-                finalNodes.append(node)
-
-        project_type = self.G.get_project_type()
-        matchedType = [node for node in finalNodes if
-                       fileType(os.path.join(self.get_dir(), self.G.get_node(node)['file'])) == project_type]
-        if len(matchedType) == 0 and len(finalNodes) > 0:
-            self.G.setDataItem('projecttype',
-                               fileType(os.path.join(self.get_dir(), self.G.get_node(finalNodes[0])['file'])))
-
-        nodes = self.G.get_nodes()
-        anynode = nodes[0]
-        nodeSet = set(nodes)
-
+        total_errors = self.validator.run_graph_suite(self.getGraph(),external=external)
         for prop in getProjectProperties():
             if prop.mandatory:
                 item = self.G.getDataItem(prop.name)
                 if item is None or len(item.strip()) < 3:
                     total_errors.append(
-                        (str(anynode), str(anynode), 'Project property ' + prop.description + ' is empty or invalid'))
+                        ValidationMessage(Severity.ERROR,
+                                          '',
+                                          '',
+                                          'Project property ' + prop.description + ' is empty or invalid',
+                                          'Mandatory Property'))
 
-        for found in self.G.findRelationsToNode(nodeSet.pop()):
-            if found in nodeSet:
-                nodeSet.remove(found)
-
-        for node in nodeSet:
-            total_errors.append((str(node), str(node), str(node) + ' is part of an unconnected subgraph'))
-
-        total_errors.extend(self.G.file_check())
-
-        cycleNode = self.G.getCycleNode()
-        if cycleNode is not None:
-            total_errors.append((str(cycleNode), str(cycleNode), "Graph has a cycle"))
-
-        for node in self.G.get_nodes():
-            for error in graph_rules.check_graph_rules(self.G, node, external=external, prefLoader=prefLoader):
-                total_errors.append((str(node), str(node), error))
-
-        for frm, to in self.G.get_edges():
-            edge = self.G.get_edge(frm, to)
-            op = edge['op']
-            errors = graph_rules.run_rules(self.gopLoader.getOperationWithGroups(op, fake=True), self.G, frm, to)
-            if len(errors) > 0:
-                total_errors.extend([(str(frm), str(to), str(frm) + ' => ' + str(to) + ': ' + err) for err in errors])
         return total_errors
 
     def assignColors(self):
@@ -2090,7 +2064,7 @@ class ImageProjectModel:
                 suffix = os.path.splitext(nodeData['file'])[1].lower()
                 file_path_name = os.path.join(self.G.dir, nodeData['file'])
                 try:
-                    new_file_name = md5offile(os.path.join(self.G.dir, nodeData['file'])) + suffix
+                    new_file_name = md5_of_file(os.path.join(self.G.dir, nodeData['file'])) + suffix
                     fullname = os.path.join(self.G.dir, new_file_name)
                 except:
                     logging.getLogger('maskgen').error(
@@ -2237,13 +2211,13 @@ class ImageProjectModel:
         """
         import copy
         pairs_composite = []
-        resultmsg = ''
+        resultmsgs = []
         kwargs_copy = copy.copy(kwargs)
         for filter in grp.filters:
             msg, pairs = self.imageFromPlugin(filter, software=software,
                                               **kwargs_copy)
             if msg is not None:
-                resultmsg += msg
+                resultmsgs.extend(msg)
             if len(pairs) == 0:
                 break
             mod = self.getModificationForEdge(self.start,self.end,self.G.get_edge(self.start,self.end))
@@ -2251,7 +2225,7 @@ class ImageProjectModel:
                 if key in kwargs_copy:
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
-        return resultmsg, pairs_composite
+        return resultmsgs, pairs_composite
 
     def imageFromPlugin(self, filter, software=None,**kwargs):
         """
@@ -2270,7 +2244,7 @@ class ImageProjectModel:
           @type filter: str
           @type im: ImageWrapper
           @type filename: str
-          @rtype: list of (str, list (str,str))
+          @rtype: list of (ValidationMessage, list of (str,str))
         """
 
         im, filename = self.currentImage()
@@ -2338,7 +2312,7 @@ class ImageProjectModel:
         edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
         if  'global operation' in kwargs:
             edge_parameters['global operation'] = kwargs['global operation']
-        msg2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
+        results2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
                                          edge_parameters=edge_parameters,
@@ -2346,9 +2320,15 @@ class ImageProjectModel:
                                              'experiment_id': experiment_id} if experiment_id is not None else {})
         pairs = list()
 
-        msg = '\n'.join([msg if msg else '',
-                         warning_message if warning_message else '',
-                         msg2 if msg2 else '']).strip()
+        errors = []
+        if warning_message is not None:
+            errors.append(ValidationMessage(Severity.WARNING,
+                                            self.start,
+                                            self.start,
+                                            warning_message,
+                                            'Plugin {}'.format(filter)))
+        if results2 is not None:
+            errors.extend(results2)
 
         os.remove(target)
         if status:
@@ -2360,12 +2340,11 @@ class ImageProjectModel:
                 self.connect(_end)
                 pairs.append((kwargs[donor], _end))
                 self.select((_start, _end))
-                # donor error message is skipped.  This annoys me (rwgdrummer).
+                # donor error message is removed.  This annoys me (rwgdrummer).
                 # really need to classify rules and skip certain categories
-                if 'donor' in msg:
-                    msg = None
+                errors = removeErrorMessages(errors,lambda msg: 'donor' in msg)
 
-        return self._pluginError(filter, msg), pairs
+        return errors, pairs
 
     def _resolvePluginValues(self, args, operation):
         parameters = {}
@@ -2400,7 +2379,11 @@ class ImageProjectModel:
 
     def _pluginError(self, filter, msg):
         if msg is not None and len(msg) > 0:
-            return 'Plugin ' + filter + ' Error:\n' + msg
+            return [ValidationMessage(Severity.ERROR,
+                                      self.start,
+                                      self.start,
+                                      'Plugin ' + filter + ': ' + msg,
+                                      'Plugin {}'.format(filter))]
         return None
 
     def scanNextImageUnConnectedImage(self):
@@ -2474,7 +2457,7 @@ class ImageProjectModel:
             self.clear_validation_properties()
             self.compress(all=True)
             path, errors = self.G.create_archive(location, include=include)
-            return errors
+            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export') for error in errors]
 
     def exporttos3(self, location, tempdir=None):
         import boto3
@@ -2496,7 +2479,7 @@ class ImageProjectModel:
                                    location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1]):
                     errors = [('', '',
                                'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
-            return errors
+            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export') for error in errors]
 
     def export_path(self, location):
         if self.end is None and self.start is not None:
@@ -2588,7 +2571,7 @@ class ImageProjectModel:
             datetimestr = currentProps['validationdate'] + ' ' + currentProps['validationtime']
             datetimeval = time.strptime(datetimestr, "%m/%d/%Y %H:%M:%S")
         if all(vp in currentProps for vp in validationProps) and \
-                        currentProps['validatedby'] != get_username() and \
+                        currentProps['validatedby'] != self.username and \
                         self.getGraph().getLastUpdateTime() > datetimeval:
             for key, val in validationProps.iteritems():
                 self.setProjectData(key, val, excludeUpdate=True)

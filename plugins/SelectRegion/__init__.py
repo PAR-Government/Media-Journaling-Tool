@@ -59,7 +59,8 @@ def transform(img, source, target, **kwargs):
 
     dims = (math.ceil(denoise_img.shape[0] / 500.0) * 500.0, math.ceil(denoise_img.shape[1] / 500.0) * 500.0)
     sigma = max(0.75, math.log10(dims[0] * dims[1] / 10000.0) - 0.5)
-    min_size = max(100.0, math.ceil(sigma * 10.0) * 10)
+
+    min_size = max(min(1000.0, 0.05*denoise_img.shape[0]*denoise_img.shape[1]), math.ceil(sigma * 10.0) * 10)
     segments_fz = felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
     unique_labels, label_counts = numpy.unique(segments_fz, return_counts=True)
 

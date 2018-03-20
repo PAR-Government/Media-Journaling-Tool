@@ -16,7 +16,7 @@ Var USERDIR
 Var BRANCH 
 
 Section -Prerequisites
-    MessageBox MB_OK "Specific versions of each prerequisite are required for$\neverything to work properly.  Please verify that any previously$\ninstalled prerequisites match the following versions:$\n$\n$\tAnaconda2$\t$\t4.4.0$\n$\tFFmpeg$\t$\t$\t3.2.X$\n$\tExiftool$\t$\t$\t10.61$\n$\tOpenCV$\t$\t$\t2.4.13.X$\n$\tGraphViz$\t$\t$\t2.38"
+    MessageBox MB_OK "Specific versions of each prerequisite are required for$\neverything to work properly.  Please verify that any previously$\ninstalled prerequisites match the following versions:$\n$\n$\tAnaconda2$\t$\t4.4.0$\n$\tFFmpeg$\t$\t$\t3.2.X$\n$\tExiftool$\t$\t$\t10.6X$\n$\tOpenCV$\t$\t$\t2.4.13.X$\n$\tGraphViz$\t$\t$\t2.38"
 
 	MessageBox MB_YESNO "Do you need the prerequisites installed?$\n(e.g. anaconda, exiftool, graphviz etc.)" /SD IDYES IDNO prereqs_installed
 
@@ -39,11 +39,11 @@ Section -Prerequisites
 	StrCpy $PYTHON "$PROFILE\Anaconda2\python.exe"
 
 	IfFileExists "$PROGRAMFILES64\Exiftool\*.*" has_exiftool
-    File "Prerequisites\exiftool-10.61.zip"
-    NsUnzip::Extract "$INSTDIR\exiftool-10.61.zip" /END
+    File "Prerequisites\exiftool-10.63.zip"
+    NsUnzip::Extract "$INSTDIR\exiftool-10.63.zip" /END
 	CreateDirectory "$PROGRAMFILES64\Exiftool"
 	Rename "$INSTDIR\exiftool (-k).exe" "$PROGRAMFILES64\Exiftool\exiftool.exe"
-	Delete "$INSTDIR\exiftool-10.61.zip"
+	Delete "$INSTDIR\exiftool-10.63.zip"
     ${EnvVarUpdate} $0 "PATH" "A" "HKCU" "C:\Program Files\Exiftool"
     
 	has_exiftool:
@@ -83,6 +83,13 @@ Section -Prerequisites
 	CopyFiles "$PROGRAMFILES64\opencv\build\python\2.7\x64\cv2.pyd" "$PROFILE\Anaconda2\Lib\site-packages\"
 
 	has_cv2_installed:
+	IfFileExists "$PROGRAMFILES\GnuPG\bin\gpg.exe" has_gpg_installed
+	File "Prerequisites\gpg4win-3.0.3.exe"
+	ExecWait "$DESKTOP\gpg4win-3.0.3.exe /S"
+	Delete "$DESKTOP\gpg4win-3.0.3.exe"
+	Delete "$DESKTOP\Kleopatra.lnk"
+	
+	has_gpg_installed:
 	ExecWait "$CONDA install -c conda-forge tifffile -y"
 	ExecWait "$CONDA remove pillow -y"
     ExecWait "$PIP uninstall Pillow -y"

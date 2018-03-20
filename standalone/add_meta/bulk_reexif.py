@@ -6,7 +6,7 @@ from maskgen.software_loader import *
 from maskgen import graph_rules, plugins
 import os
 from maskgen.batch import pick_projects
-from maskgen.tool_set import getValue
+from maskgen.support import getValue
 
 
 def rerunexif( project):

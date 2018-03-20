@@ -14,14 +14,17 @@ from botocore.exceptions import ClientError
 from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
+from maskgen.userinfo import get_username,setPwdX,CustomPwdX
 from description_dialog import *
 from group_filter import  GroupFilterLoader
 from tool_set import *
 from group_manager import GroupManagerDialog
-from maskgen_loader import MaskGenLoader
+from maskgen import maskGenPreferences
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
+from maskgen.validation.browser_api import ValidationAPI
+from validation.core import ValidationAPIComposite
 from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
@@ -31,7 +34,10 @@ import logging
 from AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
-from mask_rules import Jpeg2000CompositeBuilder, CompositeBuilder
+from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
+import preferences_initializer
+from software_loader import getMetDataLoader
+
 """
   Main UI Driver for MaskGen
 """
@@ -68,9 +74,6 @@ def fromFileTypeString(types, profileTypes):
 class UIProfile:
     name = 'Image/Video'
 
-    def getFactory(self):
-        return imageProjectModelFactory
-
     def addProcessCommand(self, menu, parent):
         menu.add_command(label="Create JPEG/TIFF", command=parent.createJPEGorTIFF, accelerator="Ctrl+J")
         menu.add_separator()
@@ -98,7 +101,7 @@ class UserPropertyChange(ProperyChangeAction):
             self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
 
 class MakeGenUI(Frame):
-    prefLoader = MaskGenLoader()
+    prefLoader = maskGenPreferences
     img1 = None
     img2 = None
     img3 = None
@@ -118,10 +121,9 @@ class MakeGenUI(Frame):
     filteredgemenu = None
     groupmenu = None
     canvas = None
-    errorlistDialog = None
-    exportErrorlistDialog = None
     uiProfile = UIProfile()
     notifiers = getNotifier(prefLoader)
+    validator = ValidationAPIComposite(prefLoader,external=True)
     menuindices = {}
     scModel = None
     """
@@ -129,8 +131,7 @@ class MakeGenUI(Frame):
     """
 
 
-    if prefLoader.get_key('username') is not None:
-        setPwdX(CustomPwdX(prefLoader.get_key('username')))
+
 
     def _check_dir(self, dir):
         set = [filename for filename in os.listdir(dir) if filename.endswith('.json')]
@@ -152,7 +153,8 @@ class MakeGenUI(Frame):
             tkMessageBox.showinfo("Error", "Directory already associated with a project")
             return
         self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
-                              organization=self.prefLoader.get_key('organization'))
+                              organization=self.prefLoader.get_key('organization'),
+                              username=self.get_username())
         self.updateFileTypePrefs()
         self._setTitle()
         self.drawState()
@@ -171,7 +173,7 @@ class MakeGenUI(Frame):
         self.canvas.reformat()
 
     def _open_project(self, path):
-        self.scModel.load(path)
+        self.scModel.load(path,username=self.get_username())
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
         self._setTitle()
@@ -182,7 +184,7 @@ class MakeGenUI(Frame):
         #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
             #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
 
-        export_info = graph_rules.get_journal_exporttime(self.scModel.getName(), self.prefLoader.get_key("apitoken"), self.prefLoader.get_key("apiurl"))
+        export_info = self.validator.get_journal_exporttime(self.scModel.getName())
 
         if export_info and self.scModel.getProjectData("exporttime") is not None:
             local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
@@ -249,6 +251,9 @@ class MakeGenUI(Frame):
                     self.scModel.saveas(dir)
                     self._setTitle()
             #val.close()
+
+    def get_username(self):
+            return self.prefLoader.get_key('username',default_value=get_username())
 
     def recomputeallrmask(self):
         for edge_id in self.scModel.getGraph().get_edges():
@@ -328,7 +333,7 @@ class MakeGenUI(Frame):
                 return False
         errorList = self.scModel.validate(external=True)
         if errorList is not None and len(errorList) > 0:
-            errorlistDialog = DecisionListDialog(self, errorList, "Validation Errors")
+            errorlistDialog = DecisionValidationListDialog(self, errorList, "Validation Errors")
             errorlistDialog.wait(self)
             if not errorlistDialog.isok:
                 return
@@ -344,10 +349,7 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             errorList = self.scModel.export(val)
             if len(errorList) > 0:
-                if self.exportErrorlistDialog is None:
-                    self.exportErrorlistDialog = ListDialog(self, errorList, "Export Errors")
-                else:
-                    self.exportErrorlistDialog.setItems(errorList)
+                ValidationListDialog(self, errorList, "Export Errors")
             else:
                 tkMessageBox.showinfo("Export", "Complete")
 
@@ -366,13 +368,10 @@ class MakeGenUI(Frame):
                 if uploaded is not None:
                     self.prefLoader.save('lastlogupload',uploaded)
                 if len(errorList) > 0:
-                    if self.exportErrorlistDialog is None:
-                        self.exportErrorlistDialog = ListDialog(self, errorList, "Export Errors")
-                    else:
-                        self.exportErrorlistDialog.setItems(errorList)
+                        ValidationListDialog(self, errorList, "Export Errors")
                 else:
                     tkMessageBox.showinfo("Export to S3", "Complete")
-                    self.prefLoader.save('s3info', val)
+                self.prefLoader.save('s3info', val)
             except IOError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export.  Check log file details.")
@@ -385,9 +384,9 @@ class MakeGenUI(Frame):
         return dialog.rotate
 
     def createJPEGorTIFF(self):
-        msg, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(promptFunc=self._promptRotate)
-        if msg is not None:
-            tkMessageBox.showwarning("Error", msg)
+        msgs, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(promptFunc=self._promptRotate)
+        if msgs is not None:
+            ValidationListDialog(self,msgs, 'Compression Errors')
             if not pairs:
                 return
         if len(pairs) == 0:
@@ -502,9 +501,9 @@ class MakeGenUI(Frame):
                                       im, os.path.split(file)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg, status = self.scModel.addNextImage(file, mod=d.description)
-            if msg is not None:
-                tkMessageBox.showwarning("Auto Connect", msg)
+            msgs, status = self.scModel.addNextImage(file, mod=d.description)
+            if msgs is not None:
+                ValidationListDialog(self,msgs,'Connect Errors')
             if status:
                 self.drawState()
                 self.canvas.add(self.scModel.start, self.scModel.end)
@@ -552,9 +551,9 @@ class MakeGenUI(Frame):
                                      im, os.path.split(filename)[1])
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
-            msg, status = self.scModel.addNextImage(filename, mod=d.description, position=self.scModel._getCurrentPosition((0,75)))
-            if msg is not None:
-                tkMessageBox.showwarning("Auto Connect", msg)
+            msgs, status = self.scModel.addNextImage(filename, mod=d.description, position=self.scModel._getCurrentPosition((0,75)))
+            if msgs is not None:
+                ValidationListDialog(self,msgs,'Connect Errors')
             if status:
                 self.drawState()
                 self.canvas.add(self.scModel.start, self.scModel.end)
@@ -585,11 +584,11 @@ class MakeGenUI(Frame):
             grp = self.gfl.getGroup(d.optocall)
             if grp is None:
                 grp = GroupFilter(d.optocall,[d.optocall])
-            msg,pairs =self.scModel.imageFromGroup(grp, software=d.softwaretouse,
+            msgs,pairs =self.scModel.imageFromGroup(grp, software=d.softwaretouse,
                                                           **self.resolvePluginValues(d.argvalues))
             self._addPairs(pairs)
-            if msg is not None and len(msg) > 1:
-                tkMessageBox.showwarning("Next Filter {}".format(filter), msg)
+            if msgs is not None and len(msgs) > 0:
+                ValidationListDialog(self, msgs, 'Group Errors')
             self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nextfiltergroup(self):
@@ -605,10 +604,10 @@ class MakeGenUI(Frame):
             end = None
             ok = False
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-                msg, pairs = self.scModel.imageFromPlugin(filter)
+                msgs, pairs = self.scModel.imageFromPlugin(filter)
                 self._addPairs(pairs)
-                if msg is not None:
-                    tkMessageBox.showwarning("Next Filter", msg)
+                if msgs is not None:
+                    ValidationListDialog(self, msgs, "Plugin Errors")
                     break
                 ok = True
                 end = self.scModel.nextId()
@@ -652,12 +651,6 @@ class MakeGenUI(Frame):
         self.l3.config(text=self.scModel.maskImageName())
         self.maskvar.set(self.scModel.maskStats())
 
-    def doneWithWindow(self, window):
-        if window == self.errorlistDialog:
-            self.errorlistDialog = None
-        if window == self.exportErrorlistDialog:
-            self.exportErrorlistDialog = None
-
     def finalimageanalysis(self):
         d = AnalsisViewDialog(self,'Final Image Analysis',self.scModel)
 
@@ -683,16 +676,14 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             try:
                 loadS3([val])
+                getMetDataLoader().reload()
                 self.prefLoader.save('s3info', val)
             except ClientError as e:
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
     def validate(self):
         errorList = self.scModel.validate(external=True)
-        if (self.errorlistDialog is None):
-            self.errorlistDialog = ListDialog(self, errorList, "Validation Errors")
-        else:
-            self.errorlistDialog.setItems(errorList)
+        ValidationListDialog(self, errorList, "Validation Errors")
 
     def getsystemproperties(self):
         d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader,
@@ -784,8 +775,10 @@ class MakeGenUI(Frame):
         self._setTitle()
 
     def systemcheck(self):
-        errors = [graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
-                  video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+        errors = [self.validator.test(),
+                  video_tools.ffmpegToolTest(),
+                  exif.toolCheck(),
+                  selfVideoTest(),
                   check_graph_status(),
                   self.notifiers.check_status()]
         error_count = 0
@@ -826,13 +819,13 @@ class MakeGenUI(Frame):
     def selectLink(self, start, end):
         if start == end:
             end = None
-        self.scModel.select((start, end))
-        self.drawState()
-        if end is not None:
-            self.canvas.showEdge(start, end)
-        else:
-            self.canvas.showNode(start)
-        self.setSelectState('normal')
+        if self.scModel.select((start, end)):
+            self.drawState()
+            if end is not None:
+                self.canvas.showEdge(start, end)
+            else:
+                self.canvas.showNode(start)
+            self.setSelectState('normal')
 
     def selectgroup(self):
         d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.', getSemanticGroups())
@@ -1192,7 +1185,7 @@ class MakeGenUI(Frame):
         self.mypluginops = plugins.loadPlugins()
         self.gfl = GroupFilterLoader()
         tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
-                              projectModelFactory=uiProfile.getFactory(),
+                              username=self.get_username(),
                               organization=self.prefLoader.get_key('organization'))
         if tuple is None:
             logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
@@ -1214,7 +1207,6 @@ class MakeGenUI(Frame):
 
 def saveme(saver=None):
     """
-
     :param gui:
     :return:
     @type gui: MakeGenUI
@@ -1232,7 +1224,8 @@ def do_every (interval, worker_func, iterations = 0):
 
 def headless_systemcheck(prefLoader):
     notifiers = getNotifier(prefLoader)
-    errors = [graph_rules.test_api(prefLoader.get_key('apitoken'), prefLoader.get_key('apiurl')),
+    validator = ValidationAPIComposite(prefLoader,external=True)
+    errors = [validator.test(),
               video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
               check_graph_status(),
               notifiers.check_status()]
@@ -1268,9 +1261,8 @@ def main(argv=None):
         loadS3(args.s3)
 
     loadAnalytics()
-    graph_rules.setup()
-
-    prefLoader = MaskGenLoader()
+    prefLoader = maskGenPreferences
+    preferences_initializer.initialize(prefLoader)
     if args.test:
         if not headless_systemcheck(prefLoader):
             sys.exit(1)
