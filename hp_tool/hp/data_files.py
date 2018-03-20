@@ -31,3 +31,5 @@ _KINEMATICS = get_data('Kinematics.csv')
 _LENSFILTERS = get_data('LensFilters.csv')
 _PRNUVOCAB = get_data('prnu_vocab.csv')
 _COLLECTIONS = get_data('collections.json')
+_FILETYPES = get_data('filetypes.json')
+

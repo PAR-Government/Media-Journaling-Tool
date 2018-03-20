@@ -58,5 +58,7 @@
     "HP-NumberOfSpeakers":"",
     "HP-Keywords":"",
     "HP-Thumbnails":"-Thumbnail",
-    "HP-PolyCount":""
+    "HP-PolyCount":"",
+    "HP-License":"",
+	"HP-username":"HP-username"
 }

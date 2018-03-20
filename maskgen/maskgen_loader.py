@@ -17,7 +17,8 @@ imageLoaded = False
 
 
 class MaskGenLoader:
-    def __init__(self):
+    def __init__(self, file_path=os.path.join(expanduser("~"), ".maskgen2")):
+        self.file_path = file_path
         self.load()
 
     def load(self):
@@ -25,9 +26,8 @@ class MaskGenLoader:
         global imageLoaded
         if imageLoaded:
             return
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
-        if os.path.exists(file_path):
-            with open(file_path, "r") as jsonfile:
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r") as jsonfile:
                 global_image = json.load(jsonfile)
         imageLoaded = True
 
@@ -45,8 +45,8 @@ class MaskGenLoader:
         return global_image[image_id] if image_id in global_image else default_value
 
     def _backup(self):
-        mainfile = os.path.join(expanduser("~"), ".maskgen2")
-        backup  = os.path.join(expanduser("~"), ".maskgen2.bak")
+        mainfile = self.file_path
+        backup  = self.file_path + ".bak"
         if os.path.exists(mainfile):
             if os.path.exists(backup):
                 # A mild protection against backing-up a corrupted file. These files do not shrink much normally
@@ -64,17 +64,15 @@ class MaskGenLoader:
         global global_image
         global_image[image_id] = data
         self._backup()
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
-        with open(file_path, 'w') as f:
+        with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
     def saveall(self, idanddata):
         global global_image
         for image_id, data in idanddata:
             global_image[image_id] = data
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
         self._backup()
-        with open(file_path, 'w') as f:
+        with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
 def main():

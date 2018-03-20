@@ -99,29 +99,6 @@ def extract_and_list_archive(fname, dir):
     return l
 
 
-def setPathValue(d, path, value):
-    pos = path.find('.')
-    lbracket = path.find('[')
-    listpos = None
-    nextpath = path[pos + 1:] if pos > 0 else None
-    if lbracket > 0 and (pos < 0 or lbracket < pos):
-        rbracket = path.find(']')
-        listpos = int(path[lbracket + 1:rbracket])
-        pos = lbracket
-    if pos < 0:
-        if listpos is not None:
-            d[path][listpos] = value
-        elif value is None:
-            d.pop(path)
-        else:
-            d[path] = value
-    elif listpos is not None:
-        setPathValue(d[path[0:pos]][listpos], nextpath, value)
-    else:
-        if path[0:pos] not in d:
-            d[path[0:pos]] = {}
-        setPathValue(d[path[0:pos]], nextpath, value)
-
 
 def getPathValues(d, path):
     """

@@ -72,8 +72,6 @@ class MyFormatter(string.Formatter):
         string.Formatter.__init__(self)
 
     def get_value(self, key, args, kwargs):
-        print args
-        print key
         if isinstance(key, (int, long)):
             return args[key]
         elif '@' in key:
@@ -466,12 +464,17 @@ class BaseSelectionOperation(BatchOperation):
         file_path_in_project = os.path.join(dir, pick_file)
         shutil.copy2(pick, file_path_in_project)
         logging.getLogger('maskgen').info("Build project {}".format(pick_file))
-        local_state['model'] = scenario_model.createProject(dir,
+        model = scenario_model.createProject(dir,
                                                             name=name,
                                                             base=file_path_in_project,
                                                             suffixes=tool_set.suffixes)[0]
+
         for prop, val in local_state['project'].iteritems():
-            local_state['model'].setProjectData(prop, val)
+            model.setProjectData(prop, val)
+        if 'edgeFilePaths' in graph.graph:
+            for path in graph.graph['edgeFilePaths']:
+                model.getGraph().addEdgeFilePath(path,'')
+        local_state['model'] = model
         getNodeState(node_name, local_state)['node'] = local_state['model'].getNodeNames()[0]
         return local_state['model']
 
@@ -568,7 +571,10 @@ class PreProcessedMediaOperation(BatchOperation):
                         if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
         predecessor_state = getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
-        im, filename = local_state['model'].currentImage()
+        if 'usebaseimage' in node and node['usebaseimage']:
+            im, filename = local_state['model'].getImageAndName(local_state['model'].getBaseNode(local_state['model'].start))
+        else:
+            im, filename = local_state['model'].currentImage()
         filename = os.path.basename(filename)
         directory = node['directory'].format(**global_state)
         if not os.path.exists(directory):
@@ -602,6 +608,7 @@ class PreProcessedMediaOperation(BatchOperation):
                                                                                    node_name,
                                                                                    os.path.basename(results[0]),
                                                                                    args),
+                                                    semanticGroups=node['semanticGroups'] if 'semanticGroups' in node else [],
                                                     automated='yes')
             position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
                          80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
@@ -682,6 +689,7 @@ class PluginOperation(BatchOperation):
             args['experiment_id'] = node['experiment_id']
         args['skipRules'] = True
         args['sendNotifications'] = False
+        args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []
         if (self.logger.isEnabledFor(logging.DEBUG)):
             self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                        filename,
@@ -908,7 +916,7 @@ class BatchProject:
         local_state = {'cleanup': list()}
         local_state['project'] = {}
         for k in self.G.graph:
-            if k not in ['recompress', 'name']:
+            if k not in ['recompress', 'name', 'edgeFilePaths']:
                 local_state['project'][k] = self.G.graph[k]
         return local_state
 

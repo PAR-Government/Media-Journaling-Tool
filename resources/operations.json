@@ -922,6 +922,37 @@
         "video.video"
       ]
     },
+     {
+      "category": "AntiForensic",
+      "name": "AddCameraModel",
+      "mandatoryparameters": {
+        "Camera Model": {
+          "type": "text",
+          "description": "Model Name from Browser"
+        },
+        "Camera Make": {
+          "type": "text",
+          "value": "Make Name from Browser"
+        }
+      },
+      "rules": [
+        "checkSizeAndExif",
+        "checkSameChannels"
+      ],
+      "optionalparameters": {
+      },
+       "maskTransformFunction": {
+          "video": "maskgen.mask_rules.copy_exif"
+      },
+      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "description": "Copy metadata information from a source.",
+      "includeInMask": {"default" : false},
+      "generateMask" : "all",
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
         {
       "category": "AntiForensic",
       "name": "AntiForensicEditExif",
@@ -3062,6 +3093,7 @@
         "Output Device": {
           "type": "list",
           "values": [
+            "Matte Paper",
             "Gloss Paper",
             "Flat Paper",
             "LCD",
@@ -3072,17 +3104,9 @@
           ],
           "description": "Type of image display"
         },
-         "Resolution": {
+        "Capture Printer ID": {
           "type": "text",
-          "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
-        },
-         "Capture Distance": {
-          "type": "int[0:100000]",
-          "description": "Distance in centimeters from camera to print"
-        },
-        "Magnification": {
-          "type": "float[0:100000]",
-          "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
+          "description": "ID of printer used to compose the image"
         }
       },
       "analysisOperations": [
@@ -3092,13 +3116,29 @@
         "checkEmpty"
       ],
       "optionalparameters": {
+        "Capture Printer Make/Model": {
+          "type": "text",
+          "description": "The brand and make of the Printer used to compose the image"
+        },
+        "Antiforensic Measures": {
+          "type": "text",
+          "description": "Anything that was done to obscure the recapture"
+        },
+        "Resolution": {
+          "type": "text",
+          "description": "Resolution of output device e.g. 300 DPI of print or PPI of screen. https://www.noteloop.com/kit/display/pixel-density/"
+        },
+        "Capture Distance": {
+          "type": "int[0:100000]",
+          "description": "Distance in centimeters from camera to print"
+        },
+        "Magnification": {
+          "type": "float[0:100000]",
+          "description": "Magnification = (hi/ho) = -(di/do), where hi = image height, ho = object height, and di and do = image and object distance"
+        },
         "Capture Camera ID": {
           "type": "text",
           "description": "ID of camera used to capture image if not screen shot"
-        },
-        "Capture Printer ID": {
-          "type": "text",
-          "description": "ID of printer used to compose the image"
         },
         "Capture Printer Type": {
           "type": "list",
@@ -3933,7 +3973,7 @@
              "nearest",
              "other"
           ],
-          "description": "Interpolation is used to resize entire composite images. 'none' indicates a canvas size increase."
+          "description": "Interpolation is used to resize entire composite images. 'none' indicates a localized change; SIFT is used"
         },
          "Start Time": {
           "type": "time",
@@ -3972,7 +4012,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.forcedSiftAnalysis"
+        "maskgen.mask_rules.resize_analysis"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.resize_transform",
