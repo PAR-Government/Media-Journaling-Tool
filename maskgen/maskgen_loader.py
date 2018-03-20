@@ -23,9 +23,8 @@ class MaskGenLoader:
         global_image = config.global_config['global_image'] if 'global_image' in config.global_config else None
         if global_image is not None:
             return global_image
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
-        if os.path.exists(file_path):
-            with open(file_path, "r") as jsonfile:
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r") as jsonfile:
                 global_image = json.load(jsonfile)
                 config.global_config['global_image'] = global_image
 
@@ -73,7 +72,6 @@ class MaskGenLoader:
         global_image = self.load()
         for key, data in idanddata:
             global_image[key] = data
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
         self._backup()
         with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
