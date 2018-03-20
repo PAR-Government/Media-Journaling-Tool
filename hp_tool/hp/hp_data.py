@@ -17,14 +17,15 @@ import subprocess
 import json
 import data_files
 
-exts = {'IMAGE':['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
-        'VIDEO':['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf','.mxf'],
-        'AUDIO':['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
+exts = {'IMAGE': ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
+        'VIDEO': ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf', '.mxf'],
+        'AUDIO': ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
         'MODEL': ['.3d.zip'],
         'nonstandard': ['.lfr']}
-orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
+orgs = {'RIT': 'R', 'Drexel': 'D', 'U of M': 'M', 'PAR': 'P', 'CU Denver': 'C'}
 RVERSION = '#@version=01.11'
 thumbnail_conversion = {}
+
 
 def copyrename(image, path, usrname, org, seq, other, containsmodels):
     """
@@ -40,7 +41,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     global exts
     global thumbnails
     newNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
-                    org + usrname + '-' + seq
+                 org + usrname + '-' + seq
     if other:
         newNameStr = newNameStr + '-' + other
 
@@ -62,26 +63,27 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     else:
         sub = 'image' if sub == 'nonstandard' else 'model'
-        newFolderName = os.path.join(path, sub, '.hptemp', newNameStr)
-        if not os.path.isdir(newFolderName):
-            os.mkdir(newFolderName)
+        thumbnail_folder = os.path.join(path, sub, '.hptemp', newNameStr) if sub == 'model' else os.path.join(path, 'thumbnails', '.hptemp')
+        if not os.path.isdir(thumbnail_folder):
+            os.mkdir(thumbnail_folder)
 
-        model_dir = os.path.normpath(os.path.dirname(image))
-        thumbnail_conversion[model_dir] = {}
+        file_dir = os.path.normpath(os.path.dirname(image))
+        thumbnail_conversion[file_dir] = {}
         thumbnail_counter = 0
-        for i in os.listdir(model_dir):
+        for i in os.listdir(file_dir):
             currentExt = os.path.splitext(i)[1].lower()
             if currentExt in exts['IMAGE']:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
-                shutil.copy2(os.path.join(model_dir, i), os.path.join(newFolderName, newThumbnailName))
-                thumbnail_conversion[model_dir][i] = newThumbnailName
+                shutil.copy2(os.path.join(file_dir, i), os.path.join(thumbnail_folder, newThumbnailName))
+                thumbnail_conversion[file_dir][i] = newThumbnailName
                 thumbnail_counter += 1
             elif i.endswith(".3d.zip"):
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
             elif os.path.splitext(i)[1] in exts["nonstandard"]:
-                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".lfr")
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".lfr")
             else:
-                print(i + " will not be copied to the output directory as it is an unrecognized file format")
+                tkMessageBox.showwarning("File Copy Error", i + " will not be copied to the output directory as it is"
+                                                                "an unrecognized file format")
 
     shutil.copy2(image, newPathName)
     return newPathName
@@ -102,6 +104,7 @@ def check_settings(self):
     add_types(self.settings.get('videotypes'), 'video')
     add_types(self.settings.get('audiotypes'), 'audio')
 
+
 def add_types(data, mformat):
     global exts
     mformat = mformat.upper()
@@ -109,6 +112,7 @@ def add_types(data, mformat):
     for i in data:
         if i not in exts[mformat] and len(i) > 0:
             exts[mformat].append(i)
+
 
 # def convert_GPS(coordinate):
 #     """
@@ -138,6 +142,7 @@ def pad_to_5_str(num):
     """
 
     return '{:=05d}'.format(num)
+
 
 def grab_dir(inpath, outdir=None, r=False):
     """
@@ -169,7 +174,7 @@ def grab_dir(inpath, outdir=None, r=False):
     if outdir:
         repeated = []
         ritCSV = None
-        if  os.path.exists(outdir):
+        if os.path.exists(outdir):
             for f in os.listdir(outdir):
                 if f.endswith('.csv') and 'rit' in f:
                     ritCSV = os.path.join(outdir, f)
@@ -188,6 +193,7 @@ def grab_dir(inpath, outdir=None, r=False):
             imageList.remove(imageName)
     return imageList
 
+
 def find_rit_file(outdir):
     """
     Find a file ending in a dir, ending with 'rit.csv'
@@ -201,6 +207,7 @@ def find_rit_file(outdir):
         if f.endswith('rit.csv'):
             rit_file = os.path.join(outdir, f)
     return rit_file
+
 
 def build_keyword_file(image, keywords, csvFile):
     """
@@ -217,6 +224,7 @@ def build_keyword_file(image, keywords, csvFile):
                 keywordWriter.writerow([image, word])
         else:
             keywordWriter.writerow([image])
+
 
 def build_csv_file(self, oldNameList, newNameList, info, csvFile, type):
     """
@@ -272,14 +280,15 @@ def check_create_subdirectories(path):
     :param path: directory path
     :return: None
     """
-    subs = ['image', 'video', 'audio', 'model', 'csv']
+    subs = ['image', 'video', 'audio', 'model', 'thumbnails', 'csv']
     for sub in subs:
         if not os.path.exists(os.path.join(path, sub, '.hptemp')):
             os.makedirs(os.path.join(path, sub, '.hptemp'))
-        for f in os.listdir(os.path.join(path, sub,'.hptemp')):
+        for f in os.listdir(os.path.join(path, sub, '.hptemp')):
             oldFile = os.path.join(path, sub, '.hptemp', f)
             if os.path.isfile(oldFile):
                 os.remove(oldFile)
+
 
 def remove_temp_subs(path):
     """
@@ -287,13 +296,14 @@ def remove_temp_subs(path):
     :param path: Path containing temp subdirectories
     :return:
     """
-    subs = ['image', 'video', 'audio', 'model', 'csv']
+    subs = ['image', 'video', 'audio', 'model', 'thumbnails', 'csv']
     for sub in subs:
-        for f in os.listdir(os.path.join(path,sub,'.hptemp')):
-            shutil.move(os.path.join(path,sub,'.hptemp',f), os.path.join(path,sub))
-        os.rmdir(os.path.join(path,sub,'.hptemp'))
-        if not os.listdir(os.path.join(path,sub)):
-            os.rmdir(os.path.join(path,sub))
+        for f in os.listdir(os.path.join(path, sub, '.hptemp')):
+            shutil.move(os.path.join(path, sub, '.hptemp', f), os.path.join(path, sub))
+        os.rmdir(os.path.join(path, sub, '.hptemp'))
+        if not os.listdir(os.path.join(path, sub)):
+            os.rmdir(os.path.join(path, sub))
+
 
 def load_json_dictionary(path):
     """
@@ -305,6 +315,7 @@ def load_json_dictionary(path):
         data = json.load(j)
     return data
 
+
 def remove_dash(item):
     """
     Remove the first character in a string.
@@ -312,6 +323,7 @@ def remove_dash(item):
     :return: input string, with first character removed
     """
     return item[1:]
+
 
 def combine_exif(exif_data, lut, d):
     """
@@ -325,6 +337,7 @@ def combine_exif(exif_data, lut, d):
         if k in exif_data and exif_data[k] != '-':
             d[lut[k]] = exif_data[k]
     return d
+
 
 def set_other_data(data, imfile):
     """
@@ -362,6 +375,7 @@ def set_other_data(data, imfile):
 
     return data
 
+
 def check_outdated(ritCSV, path):
     """
     If an old CSV directory is loaded, check for any updates.
@@ -377,13 +391,14 @@ def check_outdated(ritCSV, path):
 
     for new_item in diff:
         if new_item == 'HP-Collection':
-            rit_data.rename(columns={'HP-CollectionRequestID':'HP-Collection'}, inplace=True)
+            rit_data.rename(columns={'HP-CollectionRequestID': 'HP-Collection'}, inplace=True)
             print('Updating: Changed HP-CollectionRequestID to HP-Collection.')
         elif new_item == 'CameraMake':
             add_exif_column(rit_data, 'CameraMake', '-Make', path)
 
     if diff:
         rit_data.to_csv(ritCSV, index=False, quoting=csv.QUOTE_ALL)
+
 
 def add_exif_column(df, title, exif_tag, path):
     """
@@ -395,7 +410,8 @@ def add_exif_column(df, title, exif_tag, path):
     :return: None
     """
     print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
-    exifDataResult = subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
+    exifDataResult = \
+    subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
     exifDataResult = json.loads(exifDataResult)
     exifDict = {}
     for item in exifDataResult:
@@ -419,6 +435,7 @@ def add_exif_column(df, title, exif_tag, path):
     df[title] = new
     print('done')
 
+
 def parse_image_info(self, imageList, **kwargs):
     """
     One of the critical backend functions for the HP tool. Parses out exifdata all of the images, and sorts into
@@ -441,8 +458,10 @@ def parse_image_info(self, imageList, **kwargs):
         if kkey in fields:
             master[kkey] = kwargs[kkey]
 
-    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
-    exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
+    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs[
+        'rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
+    exifDataResult = \
+    subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
     # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
     try:
@@ -456,7 +475,7 @@ def parse_image_info(self, imageList, **kwargs):
         exifDict[os.path.normpath(item['SourceFile'])] = item
 
     data = {}
-    reverseLUT = dict((remove_dash(v),k) for k,v in fields.iteritems() if v)
+    reverseLUT = dict((remove_dash(v), k) for k, v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
         if not (imageList[i].endswith('.3d.zip') or os.path.splitext(imageList[i])[1] in exts["nonstandard"]):
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
@@ -503,6 +522,7 @@ def process_metadata(dir, metadata, recursive=False, quiet=False):
     # run exiftool
     subprocess.call(exifToolInput)
 
+
 def process(self, cameraData, imgdir='', outputdir='', recursive=False,
             keywords='', additionalInfo='', **kwargs):
     """
@@ -535,7 +555,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         if os.path.exists(os.path.join(outputdir, 'csv')):
             check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
         else:
-            tkMessageBox.showerror("Directory Error", "There has been an error processing the input directory.  Please verify there is media within the directory.  If there is only 3D Models to be processed, verify that you are following the correct directory structure.")
+            tkMessageBox.showerror("Directory Error", "There has been an error processing the input directory.  Please verify there is media within the directory.  If there is only 3D Models or Lytro images to be processed, verify that you are following the correct directory structure.")
             return None, None
         return imageList, []
 
@@ -561,7 +581,8 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     newNameList = []
     searchmodels = not recursive
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
+        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'),
+                             pad_to_5_str(count), additionalInfo, searchmodels)
         # image_dir = os.path.dirname(image)
         # newFolder = copyrename(image_dir, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         # newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
@@ -598,7 +619,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
 
-    for csv_type in  ['rit', 'rankone', 'keywords']:
+    for csv_type in ['rit', 'rankone', 'keywords']:
         print('Writing ' + csv_type + ' file')
         csv_path = os.path.join(outputdir, 'csv', '-'.join(
             (dt, self.settings.get('organization') + self.settings.get('username'), csv_type + '.csv')))
