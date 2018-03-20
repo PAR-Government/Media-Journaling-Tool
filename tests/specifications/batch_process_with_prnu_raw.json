@@ -77,6 +77,10 @@
       "plugin": "PRNU-AddFromDonor",
       "id": "6",
       "arguments": {
+         "convert to png": {
+          "type":"value",
+          "value":"yes"
+        },
         "donor" : {
            "type": "donor",
            "source": "0"
@@ -93,7 +97,7 @@
           "type": "donor",
           "source": "0"
         },
-        "rotate": {
+        "Image Rotated": {
           "type": "value",
           "value": "yes"
         }
@@ -155,7 +159,7 @@
            "type": "donor",
            "source": "0"
          },
-        "rotate" : {
+        "Image Rotated" : {
           "type" : "value",
           "value" :"yes"
         }
