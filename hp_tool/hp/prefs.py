@@ -79,7 +79,7 @@ class SettingsWindow(Toplevel):
         else:
             self.settings.save('seq', '00000')
             
-        defaults = {'aws':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
+        defaults = {'aws-hp':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
                     'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar,
                     'archive_recipient':self.recipEmail,'copyrightnotice':self.copyrightVar, 'by - line':self.bylineVar, 
                     'credit':self.creditVar}
