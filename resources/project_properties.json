@@ -647,7 +647,14 @@
       "name": "Personal Appearance",
       "type": "yesno",
       "semanticgroup" : true,
-      "information": "Skin Color Change, Dirty Clothing, Coal Dust, Dirt on Skin, Adding or Removing Hair"	
+      "information": "Skin Color Change, Dirty Clothing, Coal Dust, Dirt on Skin, Adding or Removing Hair"		
+	},
+	{
+	  "description": "Building Destruction",
+      "name": "Building Destruction",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Destroying a building to look like it was attacked or collapsed"	
 	},
     {
       "description": "Mosaicing",
