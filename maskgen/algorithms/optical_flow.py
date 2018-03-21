@@ -266,31 +266,38 @@ def dropFrames(in_file, out_file,
 
 
 class OpticalFlow:
-    def __init__(self, prvs_frame, next_frame, flow):
+    def __init__(self, prvs_frame, next_frame, flow, bkflow):
         self.prvs_frame = prvs_frame
         self.next_frame = next_frame
         self.flow = flow
+        self.bkflow = bkflow
         self.hight = flow.shape[0]
         self.width = flow.shape[1]
+        h, w = flow.shape[:2]
+        self.coords = (np.swapaxes(np.indices((w, h), np.float32), 0, 2))
 
-    def setFrames(self, prvs_frame, next_frame, flow):
+    def setFrames(self, prvs_frame, next_frame, flow, bkflow):
         self.prvs_frame = prvs_frame
         self.next_frame = next_frame
         self.flow = flow
+        self.bkflow = bkflow
 
     def warpFlow(self, img, flow):
-        h, w = flow.shape[:2]
-        flow = -flow
-        flow[:, :, 0] += np.arange(w)
-        flow[:, :, 1] += np.arange(h)[:, np.newaxis]
-        res = cv2.remap(img, flow, None, cv2.INTER_LINEAR)
-        return res
+        adj = self.coords + flow
+        underoverflow_width = np.logical_or(adj[:, :, 0] >= self.coords.shape[1],
+                                            adj[:, :, 0] < 0)
+        underoverflow_height = np.logical_or(adj[:, :, 1] >= self.coords.shape[0],
+                                             adj[:, :, 1] < 0)
+        adj[underoverflow_width] = self.coords[underoverflow_width]
+        adj[underoverflow_height] = self.coords[underoverflow_height]
+        return cv2.remap(img, adj, None, cv2.INTER_LINEAR)
+
 
     def setTime(self, frame_time):
-        forward_flow = np.multiply(self.flow, frame_time)
-        backward_flow = np.multiply(self.flow, -(1 - frame_time))
-        from_prev = self.warpFlow(self.prvs_frame, forward_flow)
-        from_next = self.warpFlow(self.next_frame, backward_flow)
+        forward_flow = np.multiply(self.flow, 1 - frame_time)
+        backward_flow = np.multiply(self.bkflow, frame_time)
+        from_prev = self.warpFlow(self.prvs_frame, backward_flow)
+        from_next = self.warpFlow(self.next_frame, forward_flow)
         from_prev = np.multiply(from_prev, (1 - frame_time))
         from_next = np.multiply(from_next, frame_time)
         frame = (np.add(from_prev, from_next)).astype(np.uint8)
@@ -330,6 +337,9 @@ class FrameAnalyzer:
             next_frame_gray = cv2.cvtColor(next_frame, cv2.COLOR_BGR2GRAY)
         self.jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame_gray,
                                                                   next_frame_gray,
+                                                                  0.8, 7, 15, 3, 7, 1.5, 2)
+        self.back_flow = cv2api_delegate.calcOpticalFlowFarneback(next_frame_gray,
+                                                                  prev_frame_gray,
                                                                   0.8, 7, 15, 3, 7, 1.5, 2)
 
 
@@ -384,7 +394,7 @@ def smartAddFrames(in_file,
             ImageWrapper(next_frame).save('after_' + str(time.clock()) + '.png')
             logger.debug("STD after and before {}".format(np.std(last_frame - next_frame)))
         frame_analyzer.updateFlow(last_frame, next_frame, direction)
-        opticalFlow = OpticalFlow(last_frame, next_frame, frame_analyzer.jump_flow)
+        opticalFlow = OpticalFlow(last_frame, next_frame, frame_analyzer.back_flow, frame_analyzer.jump_flow)
         frames_to_add = frame_analyzer.framesToAdd()
         lf = last_frame
         written_count = 0

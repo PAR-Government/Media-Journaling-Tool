@@ -15,16 +15,16 @@ from maskgen import config
 imageLoaded = False
 
 class MaskGenLoader:
-    def __init__(self):
+    def __init__(self, file_path=os.path.join(expanduser("~"), ".maskgen2")):
+        self.file_path = file_path
         self.load()
 
     def load(self):
         global_image = config.global_config['global_image'] if 'global_image' in config.global_config else None
         if global_image is not None:
             return global_image
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
-        if os.path.exists(file_path):
-            with open(file_path, "r") as jsonfile:
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r") as jsonfile:
                 global_image = json.load(jsonfile)
                 config.global_config['global_image'] = global_image
 
@@ -46,8 +46,8 @@ class MaskGenLoader:
         return global_image[key] if key in global_image else default_value
 
     def _backup(self):
-        mainfile = os.path.join(expanduser("~"), ".maskgen2")
-        backup  = os.path.join(expanduser("~"), ".maskgen2.bak")
+        mainfile = self.file_path
+        backup  = self.file_path + ".bak"
         if os.path.exists(mainfile):
             if os.path.exists(backup):
                 # A mild protection against backing-up a corrupted file. These files do not shrink much normally
@@ -65,17 +65,15 @@ class MaskGenLoader:
         global_image = self.load()
         global_image[key] = data
         self._backup()
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
-        with open(file_path, 'w') as f:
+        with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
     def saveall(self, idanddata):
         global_image = self.load()
         for key, data in idanddata:
             global_image[key] = data
-        file_path = os.path.join(expanduser("~"), ".maskgen2")
         self._backup()
-        with open(file_path, 'w') as f:
+        with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
 def main():

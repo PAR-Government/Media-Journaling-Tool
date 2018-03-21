@@ -942,6 +942,12 @@ def redistribute_intensity(edge_map):
         intensity_map.append([(v % 65536) / 256, v / 65536, (v % 65536) % 256])
     for k, v in edge_map.iteritems():
         edge_map[k] = (v[0], intensity_map[v[0]])
+    #im = np.zeros((500,500,3)).astype('uint8')
+    #pos = 0
+    #for i in intensity_map:
+    #    im[pos,:] = i
+    #    pos+=1
+    #ImageWrapper(im).save('foo.png')
     return intensity_map
 
 
@@ -1409,20 +1415,20 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     return None, None
 
 
-def applyResizeComposite(compositeMask, size):
+def applyResizeComposite(compositeMask, shape):
     """
     Resize the composite mask
     :param compositeMask:
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(size).astype('uint8')
+    newMask = np.zeros(shape).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 1024
-        newLevelMask = cv2.resize(levelMask, (size[1], size[0]))
+        newLevelMask = cv2.resize(levelMask, (shape[1], shape[0]))
         newMask[newLevelMask > 150] = level
     return newMask
 
@@ -2281,7 +2287,7 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpol
                           min(res.shape[1], expectedSize[1] + location[1]))
             res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if transformMatrix is not None and not cut and flip is None:
-        res = applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
+        res = applyTransformToComposite(compositeMask, edgeMask, transformMatrix)
     elif abs(rotation) > 0.001:
         if sizeChange[0] != 0 or abs(rotation) % 90 < 0.001:
             res = __rotateImage(rotation, compositeMask,
@@ -2325,7 +2331,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
     if transformMatrix is not None and not cut and flip is None:
-        res = applyTransform(res, mask=edgeMask, transform_matrix=deserializeMatrix(transformMatrix), invert=True,
+        res = applyTransform(res, mask=edgeMask, transform_matrix=transformMatrix, invert=True,
                              returnRaw=False)
     elif abs(rotation) > 0.001:
         res = __rotateImage(-rotation, res, expectedDims=expectedSize, cval=0)
@@ -2338,7 +2344,7 @@ def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), locat
         # The transfrom will convert to the target mask size of the donor path.
         res = applyMask(res, edgeMask)
         if transformMatrix is not None:
-            res = cv2.warpPerspective(res, deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
+            res = cv2.warpPerspective(res, transformMatrix, (targetSize[1], targetSize[0]),
                                       flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
     # need to use target size since the expected does ot align with the donor paths.

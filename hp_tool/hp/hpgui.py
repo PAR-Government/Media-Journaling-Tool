@@ -8,6 +8,9 @@ import rawpy
 from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
+
+from maskgen.maskgen_loader import MaskGenLoader
+
 matplotlib.use("TkAgg")
 import ttk
 import tkFileDialog
@@ -18,7 +21,7 @@ from hp_data import *
 from HPSpreadsheet import HPSpreadsheet, TrelloSignInPrompt, ProgressPercentage
 from KeywordsSheet import KeywordsSheet
 from ErrorWindow import ErrorWindow
-from prefs import SettingsWindow, SettingsManager
+from prefs import SettingsWindow
 from CameraForm import HP_Device_Form, Update_Form
 from camera_handler import API_Camera_Handler
 from data_files import *
@@ -41,15 +44,15 @@ class HP_Starter(Frame):
         self.bind('<Return>', self.go)
 
     def update_defaults(self):
-        self.settings.set('inputdir', self.inputdir.get())
-        self.settings.set('outputdir', self.outputdir.get())
+        self.settings.save('inputdir', self.inputdir.get())
+        self.settings.save('outputdir', self.outputdir.get())
 
     def load_defaults(self):
-        if self.settings.get('inputdir') is not None:
-            self.inputdir.insert(END, self.settings.get('inputdir'))
+        if self.settings.get_key('inputdir') is not None:
+            self.inputdir.insert(END, self.settings.get_key('inputdir'))
 
-        if self.settings.get('outputdir') is not None:
-            self.outputdir.insert(END, self.settings.get('outputdir'))
+        if self.settings.get_key('outputdir') is not None:
+            self.outputdir.insert(END, self.settings.get_key('outputdir'))
 
     def load_input(self):
         initial = self.inputdir.get() if self.inputdir.get() else os.getcwd()
@@ -67,16 +70,16 @@ class HP_Starter(Frame):
 
     def preview_filename(self):
         testNameStr = 'Please update settings with username and organization.'
-        if self.settings.get('seq') is not None:
+        if self.settings.get_key('seq') is not None:
             testNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
-                          self.settings.get('organization') + self.settings.get('username') + '-' + self.settings.get('seq')
+                          self.settings.get_key('hp-organization') + self.settings.get_key('username') + '-' + self.settings.get_key('seq')
             if self.additionalinfo.get():
                 testNameStr += '-' + self.additionalinfo.get()
         tkMessageBox.showinfo('Filename Preview', testNameStr)
 
     def go(self, event=None):
-        if not self.settings.get('username') or not self.settings.get('organization'):
-            tkMessageBox.showerror(title='Error', message='Please enter initials and organization in settings before running.')
+        if not self.settings.get_key('username') or not self.settings.get_key('hp-organization'):
+            tkMessageBox.showerror(title='Error', message='Please enter username and organization in settings before running.')
             return
 
         if self.inputdir.get() == '':
@@ -249,7 +252,7 @@ class PRNU_Uploader(Frame):
         self.newCam.set(0)
         self.parse_vocab(data_files._PRNUVOCAB)
         self.create_prnu_widgets()
-        self.s3path.set(self.settings.get('aws-prnu', notFound=''))
+        self.s3path.set(self.settings.get_key('aws-prnu'))
 
     def create_prnu_widgets(self):
         r = 0
@@ -300,11 +303,11 @@ class PRNU_Uploader(Frame):
 
     def open_settings(self):
         SettingsWindow(self.settings, master=self.master)
-        self.s3path.set(self.settings.get('aws-prnu', notFound=''))
+        self.s3path.set(self.settings.get_key('aws-prnu', notFound=''))
 
     def open_new_insert_id(self):
-        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), token=self.settings.get('trello'),
-                           browser=self.settings.get('apitoken'))
+        d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), token=self.settings.get_key('trello'),
+                           browser=self.settings.get_key('apitoken'))
         self.master.reload_devices()
 
     def parse_vocab(self, path):
@@ -375,7 +378,7 @@ class PRNU_Uploader(Frame):
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
                         msgs.append('Invalid reference type: ' + sub)
-                    elif sub.lower().startswith('rgb_no_lens'):
+                    elif sub.lower().startswith('rgb_no_lens') or sub.lower().startswith('roof_tile'):
                         luminance_folders.append(os.path.join(path, sub))
                 if files:
                     for f in files:
@@ -390,8 +393,6 @@ class PRNU_Uploader(Frame):
 
             # check bottom level directory, should only have files
             elif last.lower() in self.vocab:
-                if dirs:
-                    msgs.append('There should be no additional subfolders in folder ' + path)
                 if files:
                     for f in files:
                         if f.startswith('.') or f.lower() == 'thumbs.db':
@@ -399,13 +400,19 @@ class PRNU_Uploader(Frame):
                                 os.remove(os.path.join(path, f))
                             except OSError:
                                 pass
-                else:
+                if not files and not dirs:
                     msgs.append('There are no images or videos in: ' + path + '. If this is intentional, delete the folder.')
+
+        # software_whitelist = csv.reader() 
 
         for folder in luminance_folders:
             res = self.check_luminance(folder)
             if res is not None:
                 msgs.append(res)
+            organization_error = self.organize_prnu_dir(folder)
+            if organization_error:
+                tkMessageBox.showerror('Organization Error', organization_error)
+                return
 
         if not self.newCam.get() and not self.local_id_used():
             msgs = 'Invalid local ID: ' + self.localID.get() + '. This field is case sensitive, and must also match the name of the directory. Would you like to add a new device?'
@@ -437,6 +444,60 @@ class PRNU_Uploader(Frame):
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
             self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
+
+    def organize_prnu_dir(self, luminance_dir):
+        subfolders = [os.path.normpath(os.path.join(luminance_dir, x)) for x in os.listdir(luminance_dir) if os.path.isdir(os.path.join(luminance_dir, x))]
+        files_in_dir = any(os.path.isfile(os.path.join(luminance_dir, x)) for x in os.listdir(luminance_dir))
+
+        def copy_to_res(image_data, root_dir):
+            correct_res_dir = os.path.join(root_dir, "{0}x{1}".format(image_data['ImageWidth'], image_data['ImageHeight']))
+            if not os.path.exists(correct_res_dir):
+                os.mkdir(correct_res_dir)
+            filename = os.path.split(image_data['SourceFile'])[1]
+            shutil.move(image_data['SourceFile'], os.path.join(correct_res_dir, filename))
+
+        for subdir in subfolders:
+            try:
+                (width, height) = os.path.split(subdir)[1].lower().split("x")
+            except ValueError:
+                if not os.listdir(subdir):
+                    os.rmdir(subdir)
+                    return
+                else:
+                    error = "{0} is not a resolution directory.  Please check this folder and run the verification " \
+                            "again.  If these contain PRNU images, put them in: {1}.".format(subdir,
+                                                                                             os.path.split(subdir)[0])
+                    return error
+
+            for f in os.listdir(subdir):
+                if f.startswith(".") or f.lower() == "thumbs.db":
+                    try:
+                        os.remove(os.path.join(subdir, f))
+                    except OSError:
+                        pass
+
+            if all(os.path.isfile(os.path.join(subdir, x)) for x in os.listdir(subdir)):
+                width_height = json.loads(subprocess.Popen(['exiftool', '-ImageWidth', '-ImageHeight', '-Software', '-j', subdir], stdout=subprocess.PIPE).communicate()[0])
+            else:
+                error = "There should be no subdirectories in:\n{0}\n\nPlease check this directory and try again".format(subdir)
+                return error
+
+            for i in xrange(0, len(width_height)):
+                # if width_height[i]['Software'] not in software_list:
+                #     error = "{0} is not in the approved software list for this camera.".format(width_height[i]['Software'])
+                #     return error
+                if width_height[i]['ImageWidth'] != int(width) or width_height[i]['ImageHeight'] != int(height):
+                    copy_to_res(width_height[i], luminance_dir)
+
+        if files_in_dir:
+            width_height = json.loads(subprocess.Popen(['exiftool', '-ImageWidth', '-ImageHeight', 'Software', '-j', luminance_dir], stdout=subprocess.PIPE).communicate()[0])
+            for i in range(0, len(width_height)):
+                # if width_height[i]['Software'] not in software_list:
+                #     error = "{0} is not in the approved software list for this camera.".format(
+                #         width_height[i]['Software'])
+                #     return error
+                copy_to_res(width_height[i], luminance_dir)
+        return
 
     def check_luminance(self, foldername):
         """
@@ -501,7 +562,7 @@ class PRNU_Uploader(Frame):
         self.capitalize_dirs()
         val = self.s3path.get()
         if (val is not None and len(val) > 0):
-            self.settings.set('aws-prnu', val)
+            self.settings.save('aws-prnu', val)
 
         # parse path
         s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
@@ -514,11 +575,15 @@ class PRNU_Uploader(Frame):
         print('Archiving data...')
         archive = self.archive_prnu()
 
+        if not archive:
+            tkMessageBox.showerror("Error", "File encryption failed.  Please check your recipient setting and try again.")
+            return
+
         print('Uploading...')
         try:
             s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
         except Exception as e:
-            tkMessageBox.showerror(title='Error', message='Could not complete upload.')
+            tkMessageBox.showerror(title='Error', message='Could not complete upload.  (' + e + ')')
             return
 
         if tkMessageBox.askyesno(title='Complete',
@@ -538,23 +603,23 @@ class PRNU_Uploader(Frame):
         :param path: S3 bucket/path (used for card description only)
         :return: Status code, if bad. Otherwise None.
         """
-        if self.settings.get('trello') is None:
+        if self.settings.get_key('trello') is None:
             t = TrelloSignInPrompt(self)
             token = t.token.get()
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
 
         # post the new card
         list_id = data_files._TRELLO['prnu_list']
         new = os.path.splitext(os.path.basename(archive_path))[0]
         desc = path
-        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
+        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get_key('trello')),
                              data=dict(name=new, idList=list_id, desc=desc))
         if resp.status_code == requests.codes.ok:
-            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.settings.get('trello')))
+            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.settings.get_key('trello')))
             member_id = json.loads(me.content)['id']
             new_card_id = json.loads(resp.content)['id']
             resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
-                                  params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
+                                  params=dict(key=self.master.trello_key, token=self.settings.get_key('trello')),
                                   data=dict(value=member_id))
             return None
         else:
@@ -571,9 +636,15 @@ class PRNU_Uploader(Frame):
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
         os.close(fd)
-        final_name = os.path.join(self.root_dir.get(), self.localID.get() + '.tar')
-        shutil.move(tname, os.path.join(self.root_dir.get(), final_name))
-        return final_name
+        tar_name = os.path.join(self.root_dir.get(), self.localID.get() + '.tar')
+        tar_path = os.path.join(self.root_dir.get(), tar_name)
+        shutil.move(tname, tar_path)
+        recipient = self.settings.get("archive_recipient") if self.settings.get("archive_recipient") else None
+        if recipient:
+            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path])
+            final_name = tar_path + ".gpg"
+            return final_name
+        return None
 
     def write_md5(self, path):
         # write md5 of archive to file
@@ -621,7 +692,7 @@ class HPGUI(Frame):
         Frame.__init__(self, master, **kwargs)
         self.master = master
         self.trello_key = data_files._TRELLO['app_key']
-        self.settings = SettingsManager()
+        self.settings = MaskGenLoader()
         self.cam_local_id = ""
         self.create_widgets()
         self.statusBox.println('See terminal/command prompt window for progress while processing.')
@@ -629,7 +700,7 @@ class HPGUI(Frame):
             with open(data_files._LOCALDEVICES, "r") as j:
                 self.cameras = json.load(j)
         except (ValueError, IOError):
-            if self.settings.get("apitoken") != "":
+            if self.settings.get_key("apitoken") != "":
                 self.load_ids("download_locally")
             print("Failed to load local device list from file.")
 
@@ -642,7 +713,7 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
-        self.fileMenu.add_command(label='Download HP Device List for Offline Use', command=lambda: API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'), given_id="download_locally"))
+        self.fileMenu.add_command(label='Download HP Device List for Offline Use', command=lambda: API_Camera_Handler(self, self.settings.get_key('apiurl'), self.settings.get_key('apitoken'), given_id="download_locally"))
         self.master.config(menu=self.menubar)
 
         self.statusFrame = Frame(self)
@@ -663,11 +734,11 @@ class HPGUI(Frame):
         Open the form for uploading a new HP device. Requires browser login.
         :return: None
         """
-        if self.settings.get('apitoken') in (None, ''):
+        if self.settings.get_key('apitoken') in (None, ''):
             tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
             return
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'))
         h.wait_window()
         if h.camera_added:
             self.reload_ids()
@@ -677,7 +748,7 @@ class HPGUI(Frame):
         Opens the form for updating an existing HP device with alternate exif metadata.
         :return: None
         """
-        token = self.settings.get('apitoken')
+        token = self.settings.get_key('apitoken')
         if token is None:
             tkMessageBox.showerror(title='Error', message='You must be logged into browser to use this feature. Please enter your browser token in settings.')
             return
@@ -689,16 +760,16 @@ class HPGUI(Frame):
         self.cam_local_id = device_id
 
         # before opening the camera update form, make sure the most up-to-date camera list is available
-        source = self.reload_ids()
+        source = self.reload_ids(local_id=device_id)
         if source == 'local':
             tkMessageBox.showerror(title='Error', message='Could not get camera from browser.')
             return
         else:
             try:
-                d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
+                d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get_key('trello'))
                 self.wait_window(d)
                 if d.updated:
-                    self.reload_ids()
+                    self.reload_ids(local_id=device_id)
             except KeyError:
                 tkMessageBox.showerror(title='Error', message='Invalid Device ID (case-sensitive).')
                 return
@@ -778,7 +849,7 @@ class HPGUI(Frame):
         :return: string containing source of camera data ('local' or 'remote')
         """
         self.cam_local_id = local_id
-        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'), given_id=self.cam_local_id)
+        cams = API_Camera_Handler(self, self.settings.get_key('apiurl'), self.settings.get_key('apitoken'), given_id=self.cam_local_id)
         self.cameras = cams.get_all()
         if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
@@ -794,7 +865,7 @@ class HPGUI(Frame):
         if local_id != "":
             self.cam_local_id = local_id
         self.cameras = None
-        return self.load_ids(self.cam_local_id)
+        return self.load_ids(local_id)
 
 
 class ReadOnlyText(Text):

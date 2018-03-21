@@ -210,6 +210,55 @@
     },
     {
       "category": "Audio",
+      "name": "AudioEffects",
+      "mandatoryparameters": {
+        "Effects Type": {
+          "type": "list",
+          "values" : ["Flange", "Modulation","Pitch"],
+          "description": "Type of filter"
+        },
+        "Start Time": {
+          "type": "time",
+          "defaultvalue":"00:00:00",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "checkFrameTimeAlignment",
+        "checkSameChannels",
+        "checkUncompressed"
+      ],
+      "optionalparameters": {
+        "Frequency": {
+          "type": "int[0:10000000]",
+          "description": "Frequency"
+        },
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "analysisOperations": [],
+      "description": "Apply an effect to audio stream",
+      "includeInMask": {"default" : true},
+      "generateMask" : "all",
+      "compareparameters": {
+          "video_function" :"maskgen.video_tools.audioCompare"
+      },
+      "transitions": [
+        "video.video",
+        "audio.audio"
+      ]
+    },
+    {
+      "category": "Audio",
       "name": "AudioFilter",
       "mandatoryparameters": {
 
@@ -373,6 +422,12 @@
           "type": "time",
           "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+        },
+        "Subtype": {
+          "type": "list",
+          "values" : ["delay","reverb","echo"],
+          "defaultvalue": "reverb",
+          "description": "Damping filters applied."
         }
       },
       "rules": [
@@ -4445,6 +4500,12 @@
       "category": "Transform",
       "name": "TransformReverse",
       "mandatoryparameters": {
+         "Channels" : {
+           "type" : "list",
+           "values": ["left", "right", "all"],
+           "source": "audio",
+           "description" : "all includes mono and stereo, depending on available streams"
+        }
       },
       "rules": [
         "checkSameChannels"
@@ -4467,12 +4528,16 @@
            "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
-      "maskTransformFunction": {"video": "maskgen.mask_rules.reverse_transform"},
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.reverse_transform",
+        "audio": "maskgen.mask_rules.reverse_transform"
+      },
       "description": "Reverse the direction of video play.",
       "includeInMask": {"default" : false},
       "generateMask" : "frames",
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio"
       ]
     }
   ],
