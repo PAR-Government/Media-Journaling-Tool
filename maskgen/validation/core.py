@@ -6,7 +6,7 @@
 # All rights reserved.
 # ==============================================================================
 
-from maskgen.software_loader import getOperations, SoftwareLoader, getRule
+from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
 from maskgen.support import getValue
 from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue
 from maskgen.image_graph import ImageGraph, GraphProxy
@@ -613,7 +613,7 @@ def check_version(edge, op, graph, frm, to):
         return []
     if 'softwareName' in edge and 'softwareVersion' in edge:
         sname = edge['softwareName']
-        sversion = edge['softwareVersion']
+        sversion = strip_version(edge['softwareVersion'])
         if sversion not in global_loader.get_versions(sname):
             return [ValidationMessage(Severity.WARNING,
                                       '',

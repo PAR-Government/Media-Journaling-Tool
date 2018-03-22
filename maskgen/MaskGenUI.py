@@ -154,7 +154,8 @@ class MakeGenUI(Frame):
             return
         self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
                               organization=self.prefLoader.get_key('organization'),
-                              username=self.get_username())
+                              username=self.get_username(),
+                              tool='jtui')
         self.updateFileTypePrefs()
         self._setTitle()
         self.drawState()
@@ -173,7 +174,7 @@ class MakeGenUI(Frame):
         self.canvas.reformat()
 
     def _open_project(self, path):
-        self.scModel.load(path,username=self.get_username())
+        self.scModel.load(path,username=self.get_username(),tool='jtui')
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
         self._setTitle()
@@ -1186,7 +1187,8 @@ class MakeGenUI(Frame):
         self.gfl = GroupFilterLoader()
         tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
                               username=self.get_username(),
-                              organization=self.prefLoader.get_key('organization'))
+                              organization=self.prefLoader.get_key('organization'),
+                              tool='jtui')
         if tuple is None:
             logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)

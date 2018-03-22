@@ -71,7 +71,7 @@ def main():
     parser.add_argument('-n', '--updatename', help="should update username in project", required=False, action="store_true")
     args = parser.parse_args()
 
-    initialize(username=args.username)
+    initialize(maskGenPreferences, username=args.username)
     with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
         error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         upload_projects(args.s3, args.projects, args.qa, args.username, args.organization, error_writer, args.updatename)

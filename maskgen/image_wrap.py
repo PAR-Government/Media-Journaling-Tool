@@ -202,7 +202,6 @@ def getProxy(filename):
         return proxyname
     return None
 
-
 def defaultOpen(filename, isMask=False, args=None):
     with open(filename, 'rb') as f:
         im = Image.open(f)
@@ -239,9 +238,8 @@ def readPNG(filename, isMask=False):
 def proxyOpen(filename, isMask=False):
     proxyname = getProxy(filename)
     if proxyname is not None:
-        return openImageFile(filename, isMask=isMask)
+        return openImageFile(proxyname, isMask=isMask)
     return None
-
 
 # openTiff supports raw files as well
 file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]),

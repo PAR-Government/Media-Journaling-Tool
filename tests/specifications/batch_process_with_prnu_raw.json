@@ -4,8 +4,8 @@
     "username": "dupre",
     "name": "sample",
     "organization": "Wonderland",
-    "projectDescription" : "test",
-    "technicalSummary" : "Automated: PasteSplice",
+    "projectdescription" : "test",
+    "technicalsummary" : "Automated: PasteSplice",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
@@ -50,6 +50,10 @@
       "id": "4",
       "op_type": "PluginOperation",
       "arguments": {
+         "op": {
+           "type":"value",
+           "value": "slic"
+         }
       },
       "plugin": "SelectRegion"
     },
@@ -77,6 +81,10 @@
       "plugin": "PRNU-AddFromDonor",
       "id": "6",
       "arguments": {
+         "convert to png": {
+          "type":"value",
+          "value":"yes"
+        },
         "donor" : {
            "type": "donor",
            "source": "0"
@@ -93,7 +101,7 @@
           "type": "donor",
           "source": "0"
         },
-        "rotate": {
+        "Image Rotated": {
           "type": "value",
           "value": "yes"
         }
@@ -123,10 +131,10 @@
           "value": "yes"
         },
         "percentage_width": {
-            "type" : "float[0.9:0.95]"
+            "type" : "float[0.92:0.95]"
         },
         "percentage_height": {
-            "type" : "float[0.9:0.97]"
+            "type" : "float[0.92:0.97]"
         },
         "energy": {
           "type": "value",
@@ -156,7 +164,7 @@
            "source": "0"
          },
         "rotate" : {
-          "type" : "value",
+          "type" : "Image Rotated",
           "value" :"yes"
         }
       }

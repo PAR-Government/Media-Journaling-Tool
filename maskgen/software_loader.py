@@ -17,6 +17,9 @@ class OperationEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__
 
+def strip_version(version):
+    return '.'.join(version.split('.')[:2]) if version is not None else ''
+
 def getFileName(fileName, path=None):
     import sys
     if (os.path.exists(fileName)):
@@ -363,7 +366,7 @@ def _loadSoftware( fileName):
                     'Invalid software description on line ' + str(line_no) + ': ' + l)
             software_type = columns[0].strip()
             software_name = columns[1].strip()
-            versions = [x.strip() for x in columns[2:] if len(x) > 0]
+            versions = [strip_version(x.strip()) for x in columns[2:] if len(x) > 0]
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
@@ -549,7 +552,7 @@ class SoftwareLoader:
             versions = getMetDataLoader().softwareset[type_to_check][name] if name in getMetDataLoader().softwareset[type_to_check] else None
             if versions is None:
                 continue
-            if version is not None and version not in versions:
+            if version is not None and strip_version(version) not in versions:
                 versions = list(versions)
                 versions.append(version)
                 logging.getLogger('maskgen').warning( version + ' not in approved set for software ' + name)
