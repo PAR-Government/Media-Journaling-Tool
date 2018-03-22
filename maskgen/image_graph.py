@@ -380,6 +380,7 @@ class ImageGraph:
                 shutil.copy2(pathname, newpathname)
         self._setUpdate(nname, update_type='node')
         self.__recordTool()
+        updated_args = self._updateNodePathValue(kwargs)
         with self.lock:
             self.G.add_node(nname,
                             seriesname=(origname if seriesname is None else seriesname),
@@ -388,9 +389,9 @@ class ImageGraph:
                             username=self.username,
                             filetype=filetype,
                             ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
-                            **self.__filter_args(kwargs, exclude=['filetype', 'seriesname', 'username', 'ctime', 'ownership', 'file']))
+                            **self.__filter_args(updated_args, exclude=['filetype', 'seriesname', 'username', 'ctime', 'ownership', 'file']))
 
-            self.__scan_args('node', kwargs)
+            self.__scan_args('node', updated_args)
 
             if proxypathname is not None:
                 self.G.node[nname]['proxyfile'] = proxypathname
@@ -400,14 +401,6 @@ class ImageGraph:
             # adding back a file that was targeted for removal
             if newpathname in self.filesToRemove:
                 self.filesToRemove.remove(newpathname)
-            for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
-                vals = getPathValues(kwargs, path)
-                if len(vals) > 0:
-                    pathvalue, ownershipvalue = self._handle_inputfile(vals[0])
-                    if vals[0]:
-                        kwargs[path] = pathvalue
-                        if len(ownership) > 0:
-                            kwargs[ownership] = ownershipvalue
         return nname
 
     def undo(self):
@@ -482,7 +475,8 @@ class ImageGraph:
         self._setUpdate(node, update_type='node')
         if self.G.has_node(node):
             self.__scan_args('node', kwargs)
-            for k, v in kwargs.iteritems():
+            updated_args = self._updateNodePathValue(kwargs)
+            for k, v in updated_args.iteritems():
                 self.G.node[node][k] = v
 
     def update_edge(self, start, end, **kwargs):
@@ -960,15 +954,22 @@ class ImageGraph:
     def _archive_node(self, nname, archive, names_added=list()):
         node = self.G.node[nname]
         errors = list()
-        if os.path.exists(os.path.join(self.dir, node['file'])):
-            archive.add(os.path.join(self.dir, node['file']), arcname=os.path.join(self.G.name, node['file']))
+        filename = os.path.join(self.dir, node['file'])
+        if os.path.exists(filename):
+            archive.add(filename, arcname=os.path.join(self.G.name, node['file']))
             names_added.append(os.path.join(self.G.name, node['file']))
         else:
             errors.append((str(nname), str(nname), str(nname) + " missing file"))
+        proxyname = os.path.splitext(filename)[0] + '_proxy.png'
+        if os.path.exists(proxyname):
+            proxyfile = os.path.splitext(node['file'])[0] + '_proxy.png'
+            archive.add(proxyname, arcname=os.path.join(self.G.name, proxyfile))
+            names_added.append(os.path.join(self.G.name, proxyfile))
         for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
             for pathvalue in getPathValues(node, path):
                 if not pathvalue or len(pathvalue) == 0:
                     continue
+                pathvalue= pathvalue.strip()
                 newpathname = os.path.join(self.dir, pathvalue)
                 if os.path.exists(newpathname):
                     archive.add(newpathname, arcname=os.path.join(self.G.name, pathvalue))
@@ -1076,6 +1077,16 @@ class ImageGraph:
                         setPathValue(edge, revisedPath, filenamevalue)
                         if len(ownershippath) > 0:
                             setPathValue(edge, ownershippath, ownershipvalue)
+
+    def _updateNodePathValue(self, args):
+        import copy
+        result = copy.copy(args)
+        for path in self.G.graph['nodeFilePaths']:
+            vals = getPathValues(args, path)
+            if len(vals) > 0:
+                pathvalue, ownershipvalue = self._handle_inputfile(vals[0])
+                result[path] = pathvalue
+        return result
 
     def _updateEdgePathValue(self, edge, path, value):
         setPathValue(edge, path, value)

@@ -92,14 +92,19 @@ def _fixTool(scModel,gopLoader):
     :return:
     @type scModel: ImageProjectModel
     """
-    summary = scModel.getProjectData('technicalsummary',default_value=scModel.getProjectData('technicalSummary'))
-    scModel.setProjectData('technicalsummary',summary)
-    description = scModel.getProjectData('projectdescription', default_value=scModel.getProjectData('projectDescription'))
-    scModel.setProjectData('projectdescription', description)
+    summary = scModel.getProjectData('technicalsummary',
+                                     default_value=scModel.getProjectData('technicalSummary',default_value=''))
+    if len(summary) > 0:
+        scModel.setProjectData('technicalsummary',summary)
+    description = scModel.getProjectData('projectdescription',
+                                         default_value=scModel.getProjectData('projectDescription'))
+    if description is not None:
+        scModel.setProjectData('projectdescription', description)
     tool_name = 'jtui'
     if summary.lower().startswith('automate'):
         tool_name = 'jtproject'
     modifier_tools = [tool_name]
+    # no easy way to find extensions, since all extensions are plugins
     #hasauto = False
     #for frm, to in scModel.getGraph().get_edges():
     #    edge = scModel.G.get_edge(frm, to)
@@ -446,6 +451,7 @@ def _fixFileArgs(scModel,gopLoader):
     scModel.G.addEdgeFilePath('videomasks.videosegment', '')
     scModel.G.addNodeFilePath('compositemaskname', '')
     scModel.G.addNodeFilePath('donors.*', '')
+    scModel.G.addNodeFilePath('KML File', '')
 
 def _fixEdgeFiles(scModel,gopLoader):
     import shutil

@@ -874,8 +874,11 @@ class AddTool:
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         meta = video_tools.getMeta(media,show_streams=True)[0]
-        if (type(meta)) == list and len(meta) > 0:
-            meta = meta[0]
+        if (type(meta)) == list:
+            if len(meta) > 0:
+                meta = meta[0]
+            else:
+                meta= {}
         meta['shape'] = video_tools.getShape(media)
         return meta
 
@@ -1638,6 +1641,19 @@ class ImageProjectModel:
         if len(arguments) > 0 and opName != 'node':
             self.__addEdgeFilePaths(self.gopLoader.getOperationWithGroups(opName, fake=True))
 
+
+    def __addNodeFilePaths(self, op):
+        for k, v in op.mandatoryparameters.iteritems():
+            if k == 'inputmaskname':
+                continue
+            if v['type'].startswith('fileset:') or v['type'].startswith('file:'):
+                self.G.addEdgeFilePath('arguments.' + k, '')
+        for k, v in op.optionalparameters.iteritems():
+            if k == 'inputmaskname':
+                continue
+            if v['type'].startswith('fileset:') or v['type'].startswith('file:'):
+                self.G.addEdgeFilePath('arguments.' + k, '')
+
     def __addEdgeFilePaths(self, op):
         for k, v in op.mandatoryparameters.iteritems():
             if k == 'inputmaskname':
@@ -2262,8 +2278,10 @@ class ImageProjectModel:
         suffix = os.path.splitext(filename)[1].lower()
         preferred = plugins.getPreferredSuffix(filter)
         fullOp = buildFilterOperation(op)
-        resolved, donors, graph_args = self._resolvePluginValues(kwargs, fullOp)
-        if preferred is not None:
+        resolved, donors, graph_args, suffix_override = self._resolvePluginValues(kwargs, fullOp)
+        if suffix_override is not None:
+            suffix = suffix_override
+        elif preferred is not None:
             if preferred in donors:
                 suffix = os.path.splitext(resolved[preferred])[1].lower()
             else:
@@ -2364,6 +2382,7 @@ class ImageProjectModel:
         arguments.update(operation.optionalparameters)
         for k, v in args.iteritems():
             if k in arguments or k in {'sendNotifications',
+                                       'override_suffix',
                                        'skipRules',
                                        'semanticGroups',
                                        'experiment_id',
@@ -2385,7 +2404,7 @@ class ImageProjectModel:
             if arg not in parameters and 'defaultvalue' in info and \
                             info['defaultvalue'] is not None:
                 parameters[arg] = info['defaultvalue']
-        return parameters, donors, stripped_args
+        return parameters, donors, stripped_args, args['override_suffix'] if 'override_suffix' in args else None
 
     def _pluginError(self, filter, msg):
         if msg is not None and len(msg) > 0:
