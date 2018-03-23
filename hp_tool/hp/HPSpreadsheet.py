@@ -434,7 +434,7 @@ class HPSpreadsheet(Toplevel):
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -589,11 +589,11 @@ class HPSpreadsheet(Toplevel):
         if cancelled:
             return
 
-        initial = self.settings.get('hp-aws', notFound='')
+        initial = self.settings.get_key('aws-hp')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial, parent=self)
 
         if (val is not None and len(val) > 0):
-            self.settings.set('hp-aws', val)
+            self.settings.save('aws-hp', val)
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
@@ -626,11 +626,11 @@ class HPSpreadsheet(Toplevel):
         Prompt for Trello comment, while also checking that trello credential exists
         :return: string, comment to be posted to trello with upload information
         """
-        if self.settings.get('trello', notFound='') == '':
+        if self.settings.get_key('trello') == '':
             token = self.get_trello_token()
             if token == '':
                 return None
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
 
@@ -643,11 +643,11 @@ class HPSpreadsheet(Toplevel):
         :return: status code if error occurs, else None
         """
 
-        if self.settings.get('trello') is None:
+        if self.settings.get_key('trello') is None:
             token = self.get_trello_token()
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
         else:
-            token = self.settings.get('trello')
+            token = self.settings.get_key('trello')
 
         # list ID for "New Devices" list
         list_id = data_files._TRELLO['hp_list']
@@ -708,11 +708,11 @@ class HPSpreadsheet(Toplevel):
         archive.add(self.dir, arcname=os.path.split(self.dir)[1])
         archive.close()
         os.close(fd)
-        final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
+        final_name = os.path.join(self.dir, '-'.join((self.settings.get_key('username'), val, dt)) + '.tar')
         tar_path = os.path.join(self.dir, final_name)
         shutil.move(tname, tar_path)
 
-        recipient = self.settings.get("archive_recipient") if self.settings.get("archive_recipient") else None
+        recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
         if recipient:
             subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
             final_name = tar_path + ".gpg"

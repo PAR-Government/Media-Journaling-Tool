@@ -639,7 +639,7 @@ class PRNU_Uploader(Frame):
         tar_name = os.path.join(self.root_dir.get(), self.localID.get() + '.tar')
         tar_path = os.path.join(self.root_dir.get(), tar_name)
         shutil.move(tname, tar_path)
-        recipient = self.settings.get("archive_recipient") if self.settings.get("archive_recipient") else None
+        recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
         if recipient:
             subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path])
             final_name = tar_path + ".gpg"
