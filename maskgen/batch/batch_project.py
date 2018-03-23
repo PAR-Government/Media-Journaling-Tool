@@ -59,6 +59,38 @@ class IntObject:
             return self.value
 
 
+def remap_links(json_data):
+    """
+    Networkx usings links that reference nodes by position.
+    The incoming JSON data allows the user to load by id.
+    How to tell the difference: The source and target are strings.
+    :param json_data: networkx compliant dictionary
+    :return:
+    @type: dict
+    @rtype: dict
+    """
+    node_list = json_data['nodes']
+    node_index = {}
+    for pos in range(len(node_list)):
+        node_index[node_list[pos]['id']] = pos
+    link_list = json_data['links']
+
+    def remap_link(link, key, node_index):
+        if key in link and type(link[key]) in [str,unicode]:
+            if link[key] not in node_index:
+                raise IndexError('Node ID {} not found in link'.format(link['source']))
+            return node_index[link[key]]
+        return link[key]
+
+    new_linked_list = []
+    for item in link_list:
+        new_linked_list.append({
+            'source':remap_link(item, 'source', node_index),
+            'target':remap_link(item, 'target', node_index)
+        })
+    json_data['links'] = new_linked_list
+    return json_data
+
 def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
@@ -273,7 +305,6 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     elif specification['type'] == 'donor':
         if 'source' in specification:
             if specification['source'] == 'base':
-                # return  local_state['model'].getImageAndName(local_state['model'].getBaseNode(local_state['model'].start))[1]
                 return local_state['model'].getBaseNode(local_state['model'].start)
             return getNodeState(specification['source'], local_state)['node']
         if len(predecessors) != 1:
@@ -933,7 +964,7 @@ class BatchProject:
         if isinstance(json_data, nx.Graph):
             self.G = json_data
         else:
-            self.G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
+            self.G = json_graph.node_link_graph(remap_links(json_data), multigraph=False, directed=True)
         initial_user(maskGenPreferences,
                      username=getValue(self.G.graph,'username',
                                                       defaultValue=maskGenPreferences.get_key('username')))
@@ -1196,7 +1227,7 @@ class BatchProject:
             raise e
 
 
-def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True):
+def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True,stopOnError=False):
     """
 
     :param projectDirectory: directory for resulting projects
@@ -1206,6 +1237,7 @@ def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True):
     return {'projects': projectDirectory,
             'workdir': stateDirectory,
             'removebadprojects' : removeBadProjects,
+            'stoponerror': stopOnError,
             'permutegroupsmanager': PermuteGroupManager(dir=stateDirectory)}
 
 
@@ -1249,6 +1281,8 @@ class QueueThreadWorker:
                     id))
                 flushLogs()
                 project_directory, project_name = self.__executeOnce(globalState)
+                if project_directory is None and getValue(globalState,'stoponerror',defaultValue=False):
+                    exit=True
                 if 'notify_function' in globalState:
                     globalState['notify_function'](batchProject.getName(),id, project_directory, project_name)
 
@@ -1324,7 +1358,8 @@ class BatchExecutor:
                  initializers=None,
                  loglevel=50,
                  threads_count=1,
-                 removeBadProjects=True):
+                 removeBadProjects=True,
+                 stopOnError=False):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1332,12 +1367,16 @@ class BatchExecutor:
         :param initializers: list of functions (or a comma-separated list of namespace qualified function names
         :param loglevel: 0-100 (see python logging)
         :param threads_count: number of threads
+        :param removeBadProjects: projects that failed are removed
+        :param stopOnError: stop processing if an error occurs
         @type results : str
         @type workdir : str
         @type global_variables : dict
         @type initializers : list of functions
         @type loglevel: int
         @type threads_count: int
+        @type removeBadProjects: bool
+        @type stopOnError: bool
         """
         if not os.path.exists(results) or not os.path.isdir(results):
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
@@ -1353,7 +1392,10 @@ class BatchExecutor:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
             set_logging_level(logging.INFO if loglevel is None else int(loglevel))
         self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
-        self.initialState = createGlobalState(results,self.workdir,removeBadProjects=removeBadProjects)
+        self.initialState = createGlobalState(results,
+                                              self.workdir,
+                                              removeBadProjects=removeBadProjects,
+                                              stopOnError=stopOnError)
         if global_variables is not None:
             if type(global_variables) == str:
                 self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \
@@ -1445,6 +1487,7 @@ def main():
     parser.add_argument('--initializers', required=False, help='global state initialization')
     parser.add_argument('--export',required=False)
     parser.add_argument('--keep_failed',required=False,action='store_true')
+    parser.add_argument('--stop_on_error', required=False, action='store_true')
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.json)
@@ -1454,6 +1497,7 @@ def main():
                        initializers=args.initializers,
                        threads_count=int(args.threads) if args.threads else 1,
                        loglevel=args.loglevel,
+                       stopOnError=args.stop_on_error,
                        removeBadProjects=not args.keep_failed)
 
     notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify

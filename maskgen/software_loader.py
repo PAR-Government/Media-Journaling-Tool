@@ -12,6 +12,7 @@ from maskgen_loader import MaskGenLoader
 from json import JSONEncoder
 import json
 import logging
+from maskgen.config import global_config
 
 class OperationEncoder(JSONEncoder):
     def default(self, o):
@@ -384,7 +385,6 @@ class MetaDataLoader:
     operations = {}
     filters = {}
     operationsByCategory = {}
-    projectProperties = {}
 
     def __init__(self):
         self.reload()
@@ -427,6 +427,12 @@ class MetaDataLoader:
 
 
     def loadProjectProperties(self, fileName):
+        """
+
+        :param fileName:
+        :return:
+        @rtype: list of ProjectProperty
+        """
         loadCustomRules()
         self.projectProperties = loadProjectPropertyJSON(fileName)
         return self.projectProperties
@@ -467,18 +473,17 @@ class MetaDataLoader:
                         print ' '.join(opdata)
 
 
-global metadataLoader
-metadataLoader = {}
-
-
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
 
 def getMetDataLoader():
-    global metadataLoader
-    if 'l' not in metadataLoader:
-        metadataLoader['l'] = MetaDataLoader()
-    return metadataLoader['l']
+    """
+    :return:
+    @rtype: MetaDataLoader
+    """
+    if 'metadataLoader' not in global_config:
+        global_config['metadataLoader'] = MetaDataLoader()
+    return global_config['metadataLoader']
 
 def operationVersion():
     return getMetDataLoader().version

@@ -52,7 +52,6 @@ class PermuteGroupElement:
         self.dependent = dependent
         self.current = local()
         self.toSave = False
-        #self.current = self.iterator.next()
 
     def next(self,chained=False):
         """

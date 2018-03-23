@@ -1641,19 +1641,6 @@ class ImageProjectModel:
         if len(arguments) > 0 and opName != 'node':
             self.__addEdgeFilePaths(self.gopLoader.getOperationWithGroups(opName, fake=True))
 
-
-    def __addNodeFilePaths(self, op):
-        for k, v in op.mandatoryparameters.iteritems():
-            if k == 'inputmaskname':
-                continue
-            if v['type'].startswith('fileset:') or v['type'].startswith('file:'):
-                self.G.addEdgeFilePath('arguments.' + k, '')
-        for k, v in op.optionalparameters.iteritems():
-            if k == 'inputmaskname':
-                continue
-            if v['type'].startswith('fileset:') or v['type'].startswith('file:'):
-                self.G.addEdgeFilePath('arguments.' + k, '')
-
     def __addEdgeFilePaths(self, op):
         for k, v in op.mandatoryparameters.iteritems():
             if k == 'inputmaskname':

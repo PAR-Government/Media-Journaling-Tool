@@ -67,7 +67,7 @@ def transform(img, source, target, **kwargs):
         segment_labels = felzenszwalb(gray, scale=min_size, sigma=sigma, min_size=int(min_size))
         unique_labels, label_counts = numpy.unique(segment_labels, return_counts=True)
     else:
-        numsegments = max(16,int(imgsize * 0.00015))
+        numsegments = max(16,int(imgsize * 0.000025))
         segment_labels = slic(img, compactness=5, n_segments=numsegments)
         unique_labels, label_counts = numpy.unique(segment_labels, return_counts=True)
 
