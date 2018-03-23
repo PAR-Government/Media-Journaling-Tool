@@ -12,6 +12,7 @@ import sys
 import argparse
 import maskgen.scenario_model
 from maskgen.graph_rules import processProjectProperties
+from  maskgen import maskGenPreferences
 import csv
 from maskgen.batch import pick_projects
 from maskgen.userinfo import get_username, setPwdX,CustomPwdX

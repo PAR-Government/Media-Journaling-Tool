@@ -82,26 +82,25 @@ def compare_codec_tags(donor_path, output_path):
     donor_data = maskgen.video_tools.getMeta(donor_path, show_streams=True)[0]
     output_data = maskgen.video_tools.getMeta(output_path, show_streams=True)[0]
 
-    try:
-        donor_video_tag = (get_item(donor_data[0], 'codec_tag_string', '') + '/'
-                        + get_item(donor_data[0], 'codec_tag', ''))
-    except IndexError:
-        donor_video_tag = ''
-    try:
-        donor_audio_tag = (get_item(donor_data[1], 'codec_tag_string', '') + '/'
-                       + get_item(donor_data[1], 'codec_tag', ''))
-    except IndexError:
-        donor_audio_tag = ''
-    try:
-        output_video_tag = (get_item(output_data[0], 'codec_tag_string', '') + '/'
-                        + get_item(output_data[0], 'codec_tag', ''))
-    except IndexError:
-        output_video_tag = ''
-    try:
-        output_audio_tag = (get_item(output_data[1], 'codec_tag_string', '') + '/'
-                        + get_item(output_data[1], 'codec_tag', ''))
-    except IndexError:
-        output_audio_tag = ''
+    donor_video_data = get_channel_data(donor_data, 'video')
+    donor_audio_data = get_channel_data(donor_data, 'audio')
+    output_video_data = get_channel_data(output_data, 'video')
+    output_audio_data = get_channel_data(output_data, 'audio')
+
+    donor_video_tag = donor_audio_tag = output_video_tag = output_audio_tag = ''
+
+    if donor_video_data != None:
+        donor_video_tag = (donor_video_data[0]['codec_tag_string'] + '/'
+                        + donor_video_data[0]['codec_tag'])
+    if donor_audio_data != None:
+        donor_audio_tag = (donor_audio_data[0]['codec_tag_string'] + '/'
+                        + donor_audio_data[0]['codec_tag'])
+    if output_video_data != None:
+        output_video_tag = (output_video_data[0]['codec_tag_string'] + '/'
+                        + output_video_data[0]['codec_tag'])
+    if output_audio_data != None:
+        output_audio_tag = (output_audio_data[0]['codec_tag_string'] + '/'
+                        + output_audio_data[0]['codec_tag'])
 
     if output_video_tag != donor_video_tag or output_audio_tag != donor_audio_tag:
         errmsg = 'The operation was successful!\n\n'
