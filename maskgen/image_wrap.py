@@ -482,15 +482,15 @@ class ImageWrapper:
                 Image.fromarray(img_array).save(filename, **newargs)
             return
         newargs.pop('format')
-        if image_format == 'PNG' and self.image_array.dtype == 'uint16':
-            write_png(filename, self.image_array)
+        if image_format == 'PNG' and img_array.dtype == 'uint16':
+            write_png(filename, img_array)
             # with open(filename, 'w') as f:
             #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
             #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
-        elif format == 'PNG':
-            Image.fromarray(self.image_array.astype('uint8')).save(filename, **newargs)
+        elif image_format == 'PNG':
+            Image.fromarray(img_array.astype('uint8')).save(filename, **newargs)
         else:
-            imsave(filename, self.image_array, **newargs)
+            imsave(filename, img_array, **newargs)
         if os.path.exists(filename):
             with image_lock:
                 image_cache[filename] = (self, os.stat(filename).st_mtime)
