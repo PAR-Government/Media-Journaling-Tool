@@ -82,14 +82,26 @@ def compare_codec_tags(donor_path, output_path):
     donor_data = maskgen.video_tools.getMeta(donor_path, show_streams=True)[0]
     output_data = maskgen.video_tools.getMeta(output_path, show_streams=True)[0]
 
-    donor_video_tag = (get_item(donor_data[0], 'codec_tag_string', '') + '/'
-                       + get_item(donor_data[0], 'codec_tag', ''))
-    donor_audio_tag = (get_item(donor_data[1], 'codec_tag_string', '') + '/'
+    try:
+        donor_video_tag = (get_item(donor_data[0], 'codec_tag_string', '') + '/'
+                        + get_item(donor_data[0], 'codec_tag', ''))
+    except IndexError:
+        donor_video_tag = ''
+    try:
+        donor_audio_tag = (get_item(donor_data[1], 'codec_tag_string', '') + '/'
                        + get_item(donor_data[1], 'codec_tag', ''))
-    output_video_tag = (get_item(output_data[0], 'codec_tag_string', '') + '/'
+    except IndexError:
+        donor_audio_tag = ''
+    try:
+        output_video_tag = (get_item(output_data[0], 'codec_tag_string', '') + '/'
                         + get_item(output_data[0], 'codec_tag', ''))
-    output_audio_tag = (get_item(output_data[1], 'codec_tag_string', '') + '/'
+    except IndexError:
+        output_video_tag = ''
+    try:
+        output_audio_tag = (get_item(output_data[1], 'codec_tag_string', '') + '/'
                         + get_item(output_data[1], 'codec_tag', ''))
+    except IndexError:
+        output_audio_tag = ''
 
     if output_video_tag != donor_video_tag or output_audio_tag != donor_audio_tag:
         errmsg = 'The operation was successful!\n\n'
