@@ -31,7 +31,7 @@ else:
         exts = json.load(f)
 
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
-RVERSION = '#@version=01.12'
+RVERSION = '#@version=01.11'
 thumbnail_conversion = {}
 
 def copyrename(image, path, usrname, org, seq, other, containsmodels):
@@ -350,7 +350,7 @@ def set_other_data(self, data, imfile):
     # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
     # data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
 
-    data['HP-username'] = self.settings.get_key('username')
+    data['HP-Username'] = self.settings.get_key('username')
 
     try:
         if int(data['ImageWidth']) < int(data['ImageHeight']):
