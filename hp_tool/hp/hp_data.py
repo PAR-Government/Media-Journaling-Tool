@@ -31,7 +31,7 @@ else:
         exts = json.load(f)
 
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
-RVERSION = '#@version=01.11'
+RVERSION = '#@version=01.12'
 thumbnail_conversion = {}
 
 def copyrename(image, path, usrname, org, seq, other, containsmodels):

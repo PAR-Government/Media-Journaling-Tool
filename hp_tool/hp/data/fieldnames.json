@@ -57,7 +57,8 @@
     "HP-DynamicStatic":"",
     "HP-NumberOfSpeakers":"",
     "HP-Keywords":"",
-    "HP-Thumbnails":"-Thumbnail",
+    "HP-Thumbnails":"",
     "HP-PolyCount":"",
-    "HP-License":""
+    "HP-License":"",
+	"HP-Username":""
 }

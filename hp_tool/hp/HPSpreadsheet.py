@@ -434,7 +434,7 @@ class HPSpreadsheet(Toplevel):
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
