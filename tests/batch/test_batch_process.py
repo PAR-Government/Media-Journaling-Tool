@@ -8,7 +8,7 @@ from maskgen.batch.permutations import *
 from threading import Lock
 from maskgen import plugins
 from maskgen.tool_set import openImageFile
-from test_support import TestSupport
+from tests.test_support import TestSupport
 from networkx.readwrite import json_graph
 
 
@@ -59,6 +59,10 @@ class TestBatchProcess(TestSupport):
         manager.next()
         self.assertEqual(6.6, batch_project.executeParamSpec('test_float_spec', spec,
                                                              global_state, local_state, 'test_node', []))
+
+    def test_value_shortcut(self):
+        self.assertEqual('foo', batch_project.executeParamSpec('test_value_spec', 'foo',
+                                                               {}, {}, 'test_node', []))
 
     def test_list_picker(self):
         manager = PermuteGroupManager()
