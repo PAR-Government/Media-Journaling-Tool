@@ -2,7 +2,7 @@ from maskgen import tool_set
 import unittest
 import os
 import shutil
-
+import json
 
 from maskgen.batch.permutations import *
 
@@ -116,8 +116,20 @@ class TestToolSet(unittest.TestCase):
         self.assertTrue(manager.hasNext())
         self.assertEquals('3', manager.current('group_a', '2.list'))
         self.assertEquals(3, manager.current('group_a', '2.num_4_iterator'))
+        manager.retainFailedState('failures.txt')
+        with open('pgm/failures.txt') as fp:
+            line = fp.readline()
+        failed_state =  json.loads(line)
+        self.assertEquals(3,failed_state["group_a"]["2.num_4_iterator"])
+        self.assertEquals('3', failed_state["group_a"]["2.list"])
+        manager.loadFromFailedState('failures.txt')
+        manager.next()
+        self.assertTrue(manager.hasNext())
+        self.assertEquals('3', manager.current('group_a', '2.list'))
+        self.assertEquals(3, manager.current('group_a', '2.num_4_iterator'))
+        manager.next()
+        self.assertFalse(manager.hasNext())
         shutil.rmtree('pgm')
-
 
 
     def test_unchained(self):

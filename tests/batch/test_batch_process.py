@@ -8,7 +8,8 @@ from maskgen.batch.permutations import *
 from threading import Lock
 from maskgen import plugins
 from maskgen.tool_set import openImageFile
-from test_support import TestSupport
+from tests.test_support import TestSupport
+from networkx.readwrite import json_graph
 
 
 def saveAsPng(source, target):
@@ -58,6 +59,10 @@ class TestBatchProcess(TestSupport):
         manager.next()
         self.assertEqual(6.6, batch_project.executeParamSpec('test_float_spec', spec,
                                                              global_state, local_state, 'test_node', []))
+
+    def test_value_shortcut(self):
+        self.assertEqual('foo', batch_project.executeParamSpec('test_value_spec', 'foo',
+                                                               {}, {}, 'test_node', []))
 
     def test_list_picker(self):
         manager = PermuteGroupManager()
@@ -180,6 +185,31 @@ class TestBatchProcess(TestSupport):
             batchProject.executeOnce(global_state)
         self.assertTrue(global_state['permutegroupsmanager'].hasNext())
 
+    def test_remap(self):
+        network = {
+            "directed": True,
+            "graph": {
+                "username": "test",
+            },
+            "nodes": [
+                {
+                    "id": "A"
+                },
+                {
+                    "id": "B"
+                }
+            ],
+            "links": [
+                {
+                    "source": "A",
+                    "target": "B"
+                }
+            ],
+            "multigraph": False
+        }
+        remapped = batch_project.remap_links(network)
+        G = json_graph.node_link_graph(remapped, multigraph=False, directed=True)
+        self.assertTrue(G.edge['A']['B'] is not None)
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,7 +16,7 @@ from  maskgen import maskGenPreferences
 import csv
 from maskgen.batch import pick_projects
 from maskgen.userinfo import get_username, setPwdX,CustomPwdX
-from maskgen.validation.core import Severity, ValidationMessage,hasErrorMessages
+from maskgen.validation.core import Severity, ValidationMessage, hasErrorMessages
 from maskgen.preferences_initializer import initialize
 
 def upload_projects(s3dir, dir, qa, username, organization, error_writer, updatename):
