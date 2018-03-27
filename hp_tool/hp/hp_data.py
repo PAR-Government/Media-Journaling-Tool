@@ -17,18 +17,12 @@ import subprocess
 import json
 import data_files
 
-if not os.path.exists(data_files._FILETYPES):
-    exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
-            'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
-            'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
-            'MODEL': ['.3d.zip']}
-    with open(data_files._FILETYPES, "w") as f:
-        j_exts = json.dumps(exts, indent=4)
-        f.write(j_exts)
 
-else:
-    with open(data_files._FILETYPES, "r") as f:
-        exts = json.load(f)
+exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
+        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
+        'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
+        'MODEL': ['.3d.zip'],
+        'nonstandard': ['.lfr']}
 
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
@@ -593,7 +587,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     newNameList = []
     searchmodels = not (recursive or cameraData)
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'),
+        newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('organization'),
                              pad_to_5_str(count), additionalInfo, searchmodels)
         if os.path.split(newName)[1] == os.path.split(image)[1]:
             name = os.path.split(image)[1]

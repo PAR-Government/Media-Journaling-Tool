@@ -731,6 +731,9 @@ class HPSpreadsheet(Toplevel):
             subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
             final_name = tar_path + ".gpg"
             return final_name
+
+        tkMessageBox.showerror("No Recipient", "The HP Tool cannot upload archives unless they are encrypted to a"
+                                               "recipient.  Enter your recipient in the settings menu.")
         return None
 
     def validate(self):
