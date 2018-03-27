@@ -587,7 +587,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     newNameList = []
     searchmodels = not (recursive or cameraData)
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('organization'),
+        newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('hp-organization'),
                              pad_to_5_str(count), additionalInfo, searchmodels)
         if os.path.split(newName)[1] == os.path.split(image)[1]:
             name = os.path.split(image)[1]
