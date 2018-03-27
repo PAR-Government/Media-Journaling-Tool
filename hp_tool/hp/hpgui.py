@@ -8,6 +8,7 @@ import rawpy
 from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
+
 matplotlib.use("TkAgg")
 import ttk
 import tkFileDialog
@@ -23,11 +24,12 @@ from CameraForm import HP_Device_Form, Update_Form
 from camera_handler import API_Camera_Handler
 from data_files import *
 
+
 class HP_Starter(Frame):
 
     def __init__(self, settings, master=None):
         Frame.__init__(self, master)
-        self.master=master
+        self.master = master
         self.settings = settings
         self.grid()
         self.oldImageNames = []
@@ -69,48 +71,62 @@ class HP_Starter(Frame):
         testNameStr = 'Please update settings with username and organization.'
         if self.settings.get('seq') is not None:
             testNameStr = datetime.datetime.now().strftime('%Y%m%d')[2:] + '-' + \
-                          self.settings.get('organization') + self.settings.get('username') + '-' + self.settings.get('seq')
+                          self.settings.get('organization') + self.settings.get('username') + '-' + self.settings.get(
+                'seq')
             if self.additionalinfo.get():
                 testNameStr += '-' + self.additionalinfo.get()
         tkMessageBox.showinfo('Filename Preview', testNameStr)
 
     def go(self, event=None):
         if not self.settings.get('username') or not self.settings.get('organization'):
-            tkMessageBox.showerror(title='Error', message='Please enter initials and organization in settings before running.')
+            tkMessageBox.showerror(title='Error',
+                                   message='Please enter initials and organization in settings before running.')
             return
 
         if self.inputdir.get() == '':
-            tkMessageBox.showerror(title='Error', message='Please specify an input directory. This should contain data from only one camera.')
+            tkMessageBox.showerror(title='Error',
+                                   message='Please specify an input directory. This should contain data from only one camera.')
             return
         elif self.outputdir.get() == '':
-                self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
+            self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
         self.update_model()
 
         if self.camModel.get() == '':
             input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
             models = all(os.path.isdir(x) for x in input_dir_files)
-            if models and not self.recBool.get():
-                errors = []
-                for model_dir in input_dir_files:
-                    if len(os.listdir(model_dir)) == 1 and os.listdir(model_dir)[0].endswith('.3d.zip'):
-                        errors.append("No Thumbnail images found in {0}.".format(os.path.basename(model_dir)))
-                if len(errors) > 0:
-                    tkMessageBox.showerror("Error", "\n".join(errors))
-                    return
-                pass
-            else:
-                yes = tkMessageBox.askyesno(title='Error', message='Invalid Device Local ID. Would you like to add a new device?')
+
+            def needed_cammodel():
+                yes = tkMessageBox.askyesno(title='Error',
+                                            message='Invalid Device Local ID. Would you like to add a new device?')
                 if yes:
                     self.master.open_form()
                     self.update_model()
                 return
 
+            if models and not self.recBool.get():
+                errors = []
+                for model_dir in input_dir_files:
+                    if len(os.listdir(model_dir)) == 1 and (os.listdir(model_dir)[0].endswith('.3d.zip') or
+                                                            os.path.splitext(os.listdir(model_dir)[0])[1] in exts[
+                                                                'nonstandard']):
+                        errors.append("No Thumbnail images found in {0}.".format(os.path.basename(model_dir)))
+                    if not any([fname.endswith('.3d.zip') for fname in os.listdir(model_dir)]):
+                        needed_cammodel()
+                        return
+                if len(errors) > 0:
+                    tkMessageBox.showerror("Error", "\n".join(errors))
+                    return
+                pass
+            else:
+                needed_cammodel()
+                return
+
         globalFields = ['HP-Collection', 'HP-DeviceLocalID', 'HP-CameraModel', 'HP-LensLocalID']
-        kwargs = {'settings':self.settings,
-                  'imgdir':self.inputdir.get(),
-                  'outputdir':self.outputdir.get(),
-                  'recursive':self.recBool.get(),
-                  'additionalInfo':self.additionalinfo.get(),
+        kwargs = {'settings': self.settings,
+                  'imgdir': self.inputdir.get(),
+                  'outputdir': self.outputdir.get(),
+                  'recursive': self.recBool.get(),
+                  'additionalInfo': self.additionalinfo.get(),
                   }
         for fieldNum in xrange(len(globalFields)):
             val = self.attributes[self.descriptionFields[fieldNum]].get()
@@ -130,7 +146,8 @@ class HP_Starter(Frame):
         keySheet.close()
 
     def open_keywords_sheet(self):
-        keywords = KeywordsSheet(self.settings, dir=self.outputdir.get(), master=self.master, newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
+        keywords = KeywordsSheet(self.settings, dir=self.outputdir.get(), master=self.master,
+                                 newImageNames=self.newImageNames, oldImageNames=self.oldImageNames)
         keywords.open_spreadsheet()
         return keywords
 
@@ -138,10 +155,12 @@ class HP_Starter(Frame):
         SettingsWindow(self.settings, master=self.master)
 
     def createWidgets(self):
-        r=0
-        Label(self, text='***ONLY PROCESS DATA FROM ONE DEVICE PER RUN***', font=('bold', 16)).grid(row=r, columnspan=8, pady=2)
-        r+=1
-        Label(self, text='Specify a different output directory for each different device.').grid(row=r, columnspan=8, pady=2)
+        r = 0
+        Label(self, text='***ONLY PROCESS DATA FROM ONE DEVICE PER RUN***', font=('bold', 16)).grid(row=r, columnspan=8,
+                                                                                                    pady=2)
+        r += 1
+        Label(self, text='Specify a different output directory for each different device.').grid(row=r, columnspan=8,
+                                                                                                 pady=2)
         r += 1
         self.recBool = BooleanVar()
         self.recBool.set(False)
@@ -176,9 +195,10 @@ class HP_Starter(Frame):
 
         Label(self,
               text='Enter collection information. Local Camera ID is REQUIRED. If you enter a valid ID (case sensitive), the corresponding '
-        'model will appear in the camera model box.\nIf you enter an invalid ID and Run, it is assumed '
-        'that this is a new device, and you will be prompted to enter the new device\'s information.').grid(row=r,
-                                                                                                            columnspan=8)
+                   'model will appear in the camera model box.\nIf you enter an invalid ID and Run, it is assumed '
+                   'that this is a new device, and you will be prompted to enter the new device\'s information.').grid(
+            row=r,
+            columnspan=8)
         r += 1
 
         self.localID = StringVar()
@@ -193,7 +213,7 @@ class HP_Starter(Frame):
                 self.attributes[field].set('None')
             else:
                 self.attributes[field] = Entry(self, width=10)
-            self.attributes[field].grid(row=r, column=col+1, ipadx=0, ipady=5, padx=5, pady=5)
+            self.attributes[field].grid(row=r, column=col + 1, ipadx=0, ipady=5, padx=5, pady=5)
 
             if field == 'Local Camera ID':
                 self.attributes[field].config(textvar=self.localID)
@@ -210,12 +230,13 @@ class HP_Starter(Frame):
         self.sep2 = ttk.Separator(self, orient=HORIZONTAL).grid(row=lastRow + 1, columnspan=8, sticky='EW')
 
         self.okbutton = Button(self, text='Run ', command=self.go, width=20, bg='green')
-        self.okbutton.grid(row=lastRow+2,column=0, ipadx=5, ipady=5, sticky='E')
+        self.okbutton.grid(row=lastRow + 2, column=0, ipadx=5, ipady=5, sticky='E')
         self.cancelbutton = Button(self, text='Cancel', command=self.quit, width=20, bg='red')
-        self.cancelbutton.grid(row=lastRow+2, column=6, ipadx=5, ipady=5, padx=5, sticky='W')
+        self.cancelbutton.grid(row=lastRow + 2, column=6, ipadx=5, ipady=5, padx=5, sticky='W')
 
-        self.keywordsbutton = Button(self, text='Enter Keywords', command=self.open_keywords_sheet, state=DISABLED, width=20)
-        self.keywordsbutton.grid(row=lastRow+2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
+        self.keywordsbutton = Button(self, text='Enter Keywords', command=self.open_keywords_sheet, state=DISABLED,
+                                     width=20)
+        self.keywordsbutton.grid(row=lastRow + 2, column=2, ipadx=5, ipady=5, padx=5, sticky='E')
 
     def update_model(self, *args):
         self.master.load_ids(self.localID.get())
@@ -232,6 +253,7 @@ class HP_Starter(Frame):
         if self.recBool.get():
             tkMessageBox.showwarning("Warning", '3D Models will not be scanned loaded if the "Include subdirectories"'
                                                 ' box is checked.')
+
 
 class PRNU_Uploader(Frame):
     """
@@ -352,7 +374,8 @@ class PRNU_Uploader(Frame):
                             except OSError:
                                 pass
                         else:
-                            msgs.append('There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
+                            msgs.append(
+                                'There should be no files in the root directory. Only \"Images\" and \"Video\" folders.')
                             break
 
             # check first level content. should contain primary and secondary folders only.
@@ -367,7 +390,8 @@ class PRNU_Uploader(Frame):
                             except OSError:
                                 pass
                         else:
-                            msgs.append('There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
+                            msgs.append(
+                                'There should be no additional files in the ' + last + ' directory. Only \"Primary\" and \"Secondary\".')
                             break
 
             # check second level directory, should have folders named with valid vocab
@@ -385,7 +409,8 @@ class PRNU_Uploader(Frame):
                             except OSError:
                                 pass
                         else:
-                            msgs.append('There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
+                            msgs.append(
+                                'There should be no additional files in the ' + last + ' directory. Only PRNU reference type folders (White_Screen, Blue_Sky, etc).')
                             break
 
             # check bottom level directory, should only have files
@@ -400,7 +425,8 @@ class PRNU_Uploader(Frame):
                             except OSError:
                                 pass
                 else:
-                    msgs.append('There are no images or videos in: ' + path + '. If this is intentional, delete the folder.')
+                    msgs.append(
+                        'There are no images or videos in: ' + path + '. If this is intentional, delete the folder.')
 
         for folder in luminance_folders:
             res = self.check_luminance(folder)
@@ -433,7 +459,8 @@ class PRNU_Uploader(Frame):
                 tkMessageBox.showerror(title='Complete', message='Correct the errors and re-verify to enable upload.')
                 self.master.statusBox.println('PRNU directory validation failed for ' + self.root_dir.get())
         else:
-            tkMessageBox.showinfo(title='Complete', message='Everything looks good. Click \"Start Upload\" to begin upload.')
+            tkMessageBox.showinfo(title='Complete',
+                                  message='Everything looks good. Click \"Start Upload\" to begin upload.')
             self.uploadButton.config(state=NORMAL)
             self.rootEntry.config(state=DISABLED)
             self.master.statusBox.println('PRNU directory successfully validated: ' + self.root_dir.get())
@@ -454,8 +481,8 @@ class PRNU_Uploader(Frame):
             target = int(foldername.split("_")[-1])
         except ValueError:
             return 'Warning: Luminance of ' + foldername + ' could not be verified.'
-        min_value = target-10
-        max_value = target+10
+        min_value = target - 10
+        max_value = target + 10
 
         for f in os.listdir(foldername):
             ext = os.path.splitext(f.lower())[1]
@@ -484,7 +511,6 @@ class PRNU_Uploader(Frame):
                 results = "Warning: {0} has incorrect luminance values of R:{1}, G:{2}, B:{3} where it appears " \
                           "the target was {4}".format(foldername, red_per, green_per, blue_per, target)
                 return results
-
 
     def has_same_contents(self, list1, list2):
         # set both lists to lowercase strings and checks if they have the same items, in any order
@@ -547,10 +573,12 @@ class PRNU_Uploader(Frame):
         list_id = data_files._TRELLO['prnu_list']
         new = os.path.splitext(os.path.basename(archive_path))[0]
         desc = path
-        resp = requests.post("https://trello.com/1/cards", params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
+        resp = requests.post("https://trello.com/1/cards",
+                             params=dict(key=self.master.trello_key, token=self.settings.get('trello')),
                              data=dict(name=new, idList=list_id, desc=desc))
         if resp.status_code == requests.codes.ok:
-            me = requests.get("https://trello.com/1/members/me", params=dict(key=self.master.trello_key, token=self.settings.get('trello')))
+            me = requests.get("https://trello.com/1/members/me",
+                              params=dict(key=self.master.trello_key, token=self.settings.get('trello')))
             member_id = json.loads(me.content)['id']
             new_card_id = json.loads(resp.content)['id']
             resp2 = requests.post("https://trello.com/1/cards/%s/idMembers" % (new_card_id),
@@ -566,7 +594,7 @@ class PRNU_Uploader(Frame):
 
     def archive_prnu(self):
         fd, tname = tempfile.mkstemp(suffix='.tar')
-        #ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
+        # ftar = os.path.join(os.path.split(self.root_dir.get())[0], self.localID.get() + '.tar')
         archive = tarfile.open(tname, "w", errorlevel=2)
         archive.add(self.root_dir.get(), arcname=os.path.split(self.root_dir.get())[1])
         archive.close()
@@ -617,6 +645,7 @@ class HPGUI(Frame):
     """
     The main HP GUI Window. Contains the initial UI setup, the camera list updating, and the file menu options.
     """
+
     def __init__(self, master=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
@@ -637,12 +666,16 @@ class HPGUI(Frame):
         self.menubar = Menu(self)
         self.fileMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='File', menu=self.fileMenu)
-        self.fileMenu.add_command(label='Open HP Data Spreadsheet for Editing', command=self.open_old_rit_csv, accelerator='ctrl-o')
+        self.fileMenu.add_command(label='Open HP Data Spreadsheet for Editing', command=self.open_old_rit_csv,
+                                  accelerator='ctrl-o')
         self.fileMenu.add_command(label='Open Keywords Spreadsheet for Editing', command=self.open_old_keywords_csv)
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
-        self.fileMenu.add_command(label='Download HP Device List for Offline Use', command=lambda: API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'), given_id="download_locally"))
+        self.fileMenu.add_command(label='Download HP Device List for Offline Use',
+                                  command=lambda: API_Camera_Handler(self, self.settings.get('apiurl'),
+                                                                     self.settings.get('apitoken'),
+                                                                     given_id="download_locally"))
         self.master.config(menu=self.menubar)
 
         self.statusFrame = Frame(self)
@@ -664,10 +697,12 @@ class HPGUI(Frame):
         :return: None
         """
         if self.settings.get('apitoken') in (None, ''):
-            tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
+            tkMessageBox.showerror(title='Error',
+                                   message='Browser login is required to use this feature. Enter this in settings.')
             return
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get('trello'), browser=self.settings.get('apitoken'))
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get('trello'),
+                           browser=self.settings.get('apitoken'))
         h.wait_window()
         if h.camera_added:
             self.reload_ids()
@@ -679,7 +714,8 @@ class HPGUI(Frame):
         """
         token = self.settings.get('apitoken')
         if token is None:
-            tkMessageBox.showerror(title='Error', message='You must be logged into browser to use this feature. Please enter your browser token in settings.')
+            tkMessageBox.showerror(title='Error',
+                                   message='You must be logged into browser to use this feature. Please enter your browser token in settings.')
             return
 
         device_id = tkSimpleDialog.askstring(title='Device ID', prompt='Please enter device local ID:')
@@ -695,7 +731,8 @@ class HPGUI(Frame):
             return
         else:
             try:
-                d = Update_Form(self, device_data=self.cameras[device_id], browser=token, trello=self.settings.get('trello'))
+                d = Update_Form(self, device_data=self.cameras[device_id], browser=token,
+                                trello=self.settings.get('trello'))
                 self.wait_window(d)
                 if d.updated:
                     self.reload_ids()
@@ -708,7 +745,8 @@ class HPGUI(Frame):
         Open an existing set of HP data for spreadsheet editing. user selects root output directory.
         :return: None
         """
-        open_data = tkMessageBox.askokcancel(title='Data Selection', message='Select data to open. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
+        open_data = tkMessageBox.askokcancel(title='Data Selection',
+                                             message='Select data to open. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
         if open_data:
             d = tkFileDialog.askdirectory(title='Select Root Data Folder')
             if d is None:
@@ -727,7 +765,8 @@ class HPGUI(Frame):
                                                    os.path.exists(os.path.join(d, 'model'))):
                         raise OSError()
                 except OSError as e:
-                    tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*rit.csv).')
+                    tkMessageBox.showerror(title='Error',
+                                           message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*rit.csv).')
                     return
                 check_outdated(csv, d)
                 h = HPSpreadsheet(self.settings, dir=d, ritCSV=csv, master=self, devices=self.cameras)
@@ -740,7 +779,8 @@ class HPGUI(Frame):
         Open existing keyword data for spreadsheet editing. User selects root output directory.
         :return: None
         """
-        open_data = tkMessageBox.askokcancel(title='Data Selection', message='Select data to edit keywords. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
+        open_data = tkMessageBox.askokcancel(title='Data Selection',
+                                             message='Select data to edit keywords. Select the root OUTPUT directory - the one with csv, image, etc. folders.')
         if open_data:
             d = tkFileDialog.askdirectory(title='Select Root Data Folder')
             if d is None:
@@ -759,14 +799,14 @@ class HPGUI(Frame):
                                                    os.path.exists(os.path.join(d, 'model'))):
                         raise OSError()
                 except OSError as e:
-                    tkMessageBox.showerror(title='Error', message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*keywords.csv).')
+                    tkMessageBox.showerror(title='Error',
+                                           message='Directory must contain csv directory and at least one of image, video, or audio directories. The csv folder must contain the data file (*keywords.csv).')
                     return
 
                 k = KeywordsSheet(self.settings, dir=d, keyCSV=csv, master=self)
                 k.open_spreadsheet()
         else:
             return
-
 
     def open_settings(self):
         SettingsWindow(master=self.master, settings=self.settings)
@@ -778,13 +818,15 @@ class HPGUI(Frame):
         :return: string containing source of camera data ('local' or 'remote')
         """
         self.cam_local_id = local_id
-        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'), given_id=self.cam_local_id)
+        cams = API_Camera_Handler(self, self.settings.get('apiurl'), self.settings.get('apitoken'),
+                                  given_id=self.cam_local_id)
         self.cameras = cams.get_all()
         if cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
         else:
-            self.statusBox.println('Camera data loaded from local device list.\nIf you have never connected before, this'
-                                   ' list is empty and you will not be able to process your data!')
+            self.statusBox.println(
+                'Camera data loaded from local device list.\nIf you have never connected before, this'
+                ' list is empty and you will not be able to process your data!')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
         return cams.source
@@ -801,9 +843,10 @@ class ReadOnlyText(Text):
     """
     The Notifications box on main HP GUI
     """
+
     def __init__(self, master, **kwargs):
         Text.__init__(self, master, **kwargs)
-        self.master=master
+        self.master = master
         self.config(state='disabled')
 
     def println(self, text):
@@ -819,6 +862,7 @@ def main():
     root.wm_title('HP GUI')
     HPGUI(master=root).pack(side=TOP, fill=BOTH, expand=TRUE)
     root.mainloop()
+
 
 if __name__ == '__main__':
     main()

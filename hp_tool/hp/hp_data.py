@@ -48,7 +48,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     currentExt = os.path.splitext(image)[1]
     if os.path.isdir(image):
         return
-    files_in_dir = [x for x in os.listdir(os.path.dirname(image))] if containsmodels else []
+    files_in_dir = os.listdir(os.path.dirname(image)) if containsmodels else []
     if any(filename.endswith('.3d.zip') for filename in files_in_dir):
         sub = 'model'
     elif any(os.path.splitext(filename)[1] in exts["nonstandard"] for filename in files_in_dir):
@@ -57,8 +57,10 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
-    else:
+    elif currentExt.lower() in exts['IMAGE']:
         sub = 'image'
+    else:
+        return image
     if sub not in ['model', 'nonstandard']:
         newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     else:
@@ -579,10 +581,22 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     # copy with renaming
     print('Copying files...')
     newNameList = []
-    searchmodels = not recursive
+    searchmodels = not (recursive or cameraData)
     for image in imageList:
         newName = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'),
                              pad_to_5_str(count), additionalInfo, searchmodels)
+        if os.path.split(newName)[1] == os.path.split(image)[1]:
+            name = os.path.split(image)[1]
+            if name.endswith('.3d.zip'):
+                tkMessageBox.showerror("Improper 3D Model Processing", "In order to process 3D models, you must have "
+                                                                       "no device lcoal ID and the 'Include "
+                                                                       "Subdirectories' box must NOT be checked")
+            else:
+                tkMessageBox.showerror("Unrecognized data type", "An unrecognized data type {0} was found in the input "
+                                                                 "directory.  Please add this extension to the list of "
+                                                                 "addition extensions.".format(os.path.splitext(image)[1]))
+
+            return
         # image_dir = os.path.dirname(image)
         # newFolder = copyrename(image_dir, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         # newImage = copyrename(image, outputdir, self.settings.get('username'), self.settings.get('organization'), pad_to_5_str(count), additionalInfo, searchmodels)
