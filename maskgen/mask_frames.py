@@ -8,13 +8,13 @@
 
 import ttk
 from Tkinter import *
-import  tkSimpleDialog
+import tkSimpleDialog
 import tkFont
-from scenario_model import ImageProjectModel,Modification
+from scenario_model import ImageProjectModel, Modification
+
 
 class HistoryDialog(Toplevel):
-
-    def __init__(self, master,scModel):
+    def __init__(self, master, scModel):
         """
 
         :param master:
@@ -43,8 +43,8 @@ class HistoryDialog(Toplevel):
                                   master.winfo_rooty() + 50))
 
     def body(self, master):
-        self.history_frame  =  HistoryFrame(master,self.scModel)
-        self.history_frame.grid(row=0,sticky=NSEW)
+        self.history_frame = HistoryFrame(master, self.scModel)
+        self.history_frame.grid(row=0, sticky=NSEW)
 
     def buttons(self, frame):
         return Button(frame, text="OK", width=10, command=self.cancel, default=ACTIVE)
@@ -57,13 +57,13 @@ class HistoryDialog(Toplevel):
     def wait(self, root):
         root.wait_window(self)
 
-class HistoryFrame(Frame):
 
+class HistoryFrame(Frame):
     """ Display a table of operations, in lieu of the graph view
     """
     modifications = []
 
-    def __init__(self, master,scModel):
+    def __init__(self, master, scModel):
         """
                :param master:
                :param scModel:
@@ -74,18 +74,19 @@ class HistoryFrame(Frame):
         self.loadData(scModel)
 
     def focus(self):
-       return self.tree.focus()
+        return self.tree.focus()
 
     def createWidgets(self):
         # create the tree and scrollbars
-        self.dataCols = ('Operation', 'Start', 'End', 'Time','User','Description')
-        self.tree = ttk.Treeview(self, columns=self.dataCols,show='headings',selectmode='browse',displaycolumns='#all')
-        self.tree.column('Operation', width=120,stretch=False,minwidth=120  )
-        self.tree.column('Start', width=120,stretch=False ,minwidth=120 )
-        self.tree.column('End', width=120,minwidth=120 )
+        self.dataCols = ('Operation', 'Start', 'End', 'Time', 'User', 'Description')
+        self.tree = ttk.Treeview(self, columns=self.dataCols, show='headings', selectmode='browse',
+                                 displaycolumns='#all')
+        self.tree.column('Operation', width=120, stretch=False, minwidth=120)
+        self.tree.column('Start', width=120, stretch=False, minwidth=120)
+        self.tree.column('End', width=120, minwidth=120)
         self.tree.column('User', width=120)
-        self.tree.column('Time', width=140,stretch=False)
-        self.tree.column('Description', width=400,minwidth=400)
+        self.tree.column('Time', width=140, stretch=False)
+        self.tree.column('Description', width=400, minwidth=400)
 
         self.tree.heading("Operation", text="Operation")
         self.tree.heading("Start", text="Start")
@@ -94,22 +95,22 @@ class HistoryFrame(Frame):
         self.tree.heading("Time", text="Time")
         self.tree.heading("Description", text="Description")
 
-        self.ysb = ttk.Scrollbar(self,orient=VERTICAL, command= self.tree.yview)
-        self.xsb = ttk.Scrollbar(self,orient=HORIZONTAL, command= self.tree.xview)
+        self.ysb = ttk.Scrollbar(self, orient=VERTICAL, command=self.tree.yview)
+        self.xsb = ttk.Scrollbar(self, orient=HORIZONTAL, command=self.tree.xview)
         self.tree['yscroll'] = self.ysb.set
         self.tree['xscroll'] = self.xsb.set
-         
+
         # add tree and scrollbars to frame
         self.tree.grid(row=0, column=0, sticky=NSEW)
-        self.ysb.grid( row=0, column=1, sticky=NS)
+        self.ysb.grid(row=0, column=1, sticky=NS)
         self.xsb.grid(row=1, column=0, sticky=EW)
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
-         
+
     def clearData(self):
-       for mod in self.modifications:
-         self.tree.delete(mod.maskFileName)
-       self.modifications = []
+        for mod in self.modifications:
+            self.tree.delete(mod.maskFileName)
+        self.modifications = []
 
     def loadData(self, scModel):
         """
@@ -131,11 +132,10 @@ class HistoryFrame(Frame):
         @type end: str
         @type mod: Modification
         """
-        item = (mod.operationName, mod.start,mod.end, mod.ctime, mod.username, mod.additionalInfo)
-        self.tree.insert('', 'end',iid=mod.changeMaskName, values=item)
+        item = (mod.operationName, mod.start, mod.end, mod.ctime, mod.username, mod.additionalInfo)
+        self.tree.insert('', 'end', iid=mod.changeMaskName, values=item)
         # and adjust column widths if necessary
         for idx, val in enumerate(item):
             iwidth = tkFont.Font().measure(val)
             if self.tree.column(self.dataCols[idx], 'width') < iwidth:
-               self.tree.column(self.dataCols[idx], width = iwidth)
-         
+                self.tree.column(self.dataCols[idx], width=iwidth)

@@ -210,6 +210,95 @@
     },
     {
       "category": "Audio",
+      "name": "AudioEffect",
+      "mandatoryparameters": {
+        "Effects Type": {
+          "type": "list",
+          "values" : ["Flange", "Modulation", "Pitch", "Distortion", "Custom"],
+          "description": "Type of filter"
+        },
+        "Start Time": {
+          "type": "time",
+          "defaultvalue":"00:00:00",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "checkFrameTimeAlignment",
+        "checkSameChannels",
+        "checkUncompressed"
+      ],
+      "parameter_dependencies" : {
+        "Effects Type" : {
+          "Custom": "Tool Name",
+          "Distortion": "Distortion Type",
+          "Pitch": "Frequency",
+          "Flange": [
+            "Rate",
+            "Delay"
+          ]
+        }
+      },
+      "optionalparameters": {
+        "Frequency": {
+          "type": "int[0:10000000]",
+          "description": "Frequency"
+        },
+        "Rate": {
+          "type": "int[0:10000000]",
+          "description": "Hertz"
+        },
+        "Delay": {
+          "type": "int[0:10000000]",
+          "description": "MS"
+        },
+        "Distortion Type": {
+          "type" : "list",
+          "values": ["Harmonic", "Phase", "Frequency Response", "Amplitude", "Other"],
+          "description": "Distortion Type"
+        },
+        "Tool Name": {
+          "type": "text",
+          "description": "Specific Name of Plugin for Software"
+        },
+        "Sample Rate": {
+          "type": "int[0:10000000]",
+          "description": "Hertz"
+        },
+        "Sample Size": {
+          "type": "int[2:64]",
+          "description": "Bits"
+        },
+        "Anti Aliasing": {
+          "type": "int[1:100]",
+          "description": "Percent"
+        },
+        "Stream" : {
+          "type" : "list",
+          "values": ["left", "right", "all"],
+          "description" : "all includes mono and stereo, depending on available streams"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "analysisOperations": [],
+      "description": "Apply an effect to audio stream",
+      "includeInMask": {"default" : true},
+      "generateMask" : "all",
+      "compareparameters": {
+          "video_function" :"maskgen.video_tools.audioCompare"
+      },
+      "transitions": [
+        "video.video",
+        "audio.audio"
+      ]
+    },
+    {
+      "category": "Audio",
       "name": "AudioFilter",
       "mandatoryparameters": {
 
@@ -373,6 +462,12 @@
           "type": "time",
           "defaultvalue":"00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+        },
+        "Subtype": {
+          "type": "list",
+          "values" : ["delay","reverb","echo"],
+          "defaultvalue": "reverb",
+          "description": "Damping filters applied."
         }
       },
       "rules": [
@@ -1909,7 +2004,6 @@
         "checkLengthSame",
         "checkFileTypeChange",
         "checkFrameTimes",
-        "checkInputMask",
         "check_local",
         "sampledInputMask",
         "checkSameChannels",
@@ -3908,11 +4002,11 @@
       "rules": [
         "checkSize",
         "checkFileTypeChange",
-        "checkInputMask",
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkEmpty"
+        "checkEmpty",
+        "checkMoveMask"
       ],
       "optionalparameters": {
 
@@ -4077,7 +4171,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.siftAnalysis"
+        "maskgen.tool_set.rotateSiftAnalysis"
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
       "includeInMask": {"default" : false},
@@ -4446,6 +4540,12 @@
       "category": "Transform",
       "name": "TransformReverse",
       "mandatoryparameters": {
+         "Channels" : {
+           "type" : "list",
+           "values": ["left", "right", "all"],
+           "source": "audio",
+           "description" : "all includes mono and stereo, depending on available streams"
+        }
       },
       "rules": [
         "checkSameChannels"
@@ -4468,12 +4568,16 @@
            "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
-      "maskTransformFunction": {"video": "maskgen.mask_rules.reverse_transform"},
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.reverse_transform",
+        "audio": "maskgen.mask_rules.reverse_transform"
+      },
       "description": "Reverse the direction of video play.",
       "includeInMask": {"default" : false},
       "generateMask" : "frames",
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio"
       ]
     }
   ],
@@ -4520,6 +4624,18 @@
       "urls": {
         "type": "urls",
         "description" : "CGI Object files"
+      },
+      "Rendering Software": {
+        "type" : "text",
+        "description": "Type of software used to render the image"
+      },
+      "Recording Software": {
+        "type" : "text",
+        "description": "Name of software to recapture screen"
+      },
+      "KML File": {
+        "type" : "file:kwl",
+        "description": "Name of KML File"
       }
     },
     "image": {

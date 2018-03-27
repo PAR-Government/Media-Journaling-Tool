@@ -466,6 +466,16 @@ class Update_Form(Toplevel):
         if r.status_code in (requests.codes.ok, requests.codes.created):
             if tkMessageBox.askyesno(title='Done!', message='Camera updated. Post notification to Trello?', parent=self):
                 self.camupdate_notify_trello(url)
+
+            with open(data_files._LOCALDEVICES, 'r+') as j:
+                local = json.load(j)
+                for item in local:
+                    if item == self.device_data['hp_device_local_id']:
+                        local[item] = data
+                        break
+                new = json.dumps(local, indent=4)
+                j.write(new)
+
             self.updated = True
             self.destroy()
         else:
@@ -592,7 +602,7 @@ class VerticalScrolledFrame(Frame):
                         yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command=self.canvas.yview)
-        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+        self.canvas.bind("<MouseWheel>", self.on_mousewheel)
 
         # reset the view
         self.canvas.xview_moveto(0)

@@ -26,7 +26,7 @@ import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import loadJSONGraph, BatchProject
 from maskgen.image_graph import extract_archive
-from maskgen.tool_set import setPwdX, CustomPwdX
+from maskgen.userinfo import setPwdX, CustomPwdX
 
 
 
@@ -181,7 +181,7 @@ def _processProject(batchSpecification, extensionRules, project, workdir=None):
     :return:
     @type batchSpecification: BatchProject
     """
-    sm = maskgen.scenario_model.ImageProjectModel(project)
+    sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
     nodes = findNodesToExtend(sm, extensionRules)
     print ('extending {}'.format(' '.join(nodes)))
     if not batchSpecification.executeForProject(sm, nodes,workdir=workdir):
@@ -291,7 +291,7 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
 
         # open the project
         new = not os.path.exists(project)
-        sm = maskgen.scenario_model.ImageProjectModel(project)
+        sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
         if new:
             logging.getLogger('maskgen').info( 'Creating {}'.format(project))
             lastNodeName = sm.addImage(os.path.join(sourceDir, sImg))
@@ -352,18 +352,22 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
         if new:
             sImgName = ''.join(i.split('.')[:-1])
             project = find_json_path(sImgName, projects)
-            sm = maskgen.scenario_model.ImageProjectModel(project)
+            sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
             for prop, val in props.iteritems():
                 sm.setProjectData(prop, val)
             lastNode = sm.addImage(os.path.join(sourceDir, i))
         else:
-            sm = maskgen.scenario_model.ImageProjectModel(i)
+            sm = maskgen.scenario_model.ImageProjectModel(i,tool='jtprocess')
             lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
 
         sm.selectImage(lastNode)
         errors, pairs = sm.imageFromPlugin(plugin, **arguments)
         if errors is not None and len(errors) > 0:
-            logging.getLogger('maskgen').error( 'Plugin {} on project {} failed: {}'.format(plugin,sm.getName(), errors))
+            for error in errors:
+                logging.getLogger('maskgen').error( 'Plugin {} on project {} failed: {}:{}'.format(plugin,
+                                                                                                sm.getName(),
+                                                                                                error[0].name,
+                                                                                                error[3]))
         sm.save()
         if errors is None or len(errors) == 0:
             logging.getLogger('maskgen').info('Plugin operation {} on project {} complete ({}/{})'.format(
@@ -413,7 +417,6 @@ def parse_properties(sourceDir, endDir, plugin, specification, **kwargs):
                 if p.name not in properties:
                     sys.exit('Error: {} is required for new projects.'.format(p.name))
     return properties
-
 
 def main():
     parser = argparse.ArgumentParser()

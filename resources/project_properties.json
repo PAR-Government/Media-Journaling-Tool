@@ -4,14 +4,14 @@
       "description": "Last Update User Name",
       "name": "username",
       "type": "string",
-      "readonly": "true",
+      "readonly": true,
       "information":  "This property may be changed under File->Settings->Username"
     },
      {
       "description": "Creator",
       "name": "creator",
       "type": "string",
-      "readonly": "true",
+      "readonly": true,
       "information":  "This property cannot be changed"
     },
     {
@@ -47,19 +47,19 @@
       "description": "Validation",
       "name": "validation",
       "type": "yesno",
-      "readonly": "true"
+      "readonly": true
     },
     {
       "description": "Validated By",
       "name": "validatedby",
       "type": "string",
-      "readonly": "true"
+      "readonly": true
     },
     {
       "description": "Validation Date",
       "name": "validationdate",
       "type": "string",
-      "readonly": "true"
+      "readonly": true
     },
     {
       "description": "Semantic Restaging",
@@ -84,7 +84,7 @@
       "description" : "Paste Clone Auto Input Mask",
       "name": "autopastecloneinputmask",
       "type":"yesno",
-      "readonly":"true",
+      "readonly":true,
       "information": "if the input mask was guessed"
     },
     {
@@ -551,14 +551,14 @@
       "semanticgroup" : true,
       "information": "Change lighting to indicate a different time of day"
     },
-     {
+	{
       "description": "Date and Time",
       "name": "dateandtime",
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Change the date and time for ENF and time specific environment change detection"
     },
- {
+	{
       "description": "Date Burn-in",
       "name": "dateburnin",
       "type": "yesno",
@@ -635,6 +635,27 @@
       "semanticgroup" : true,
       "information": "Manipulations to reflections."
     },
+	{
+	  "description": "Tattoos",
+      "name": "Tattoos",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Adding, Removing, or Altering  Tattoos"
+	},
+	{
+	  "description": "Personal Appearance",
+      "name": "Personal Appearance",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Skin Color Change, Dirty Clothing, Coal Dust, Dirt on Skin, Adding or Removing Hair"		
+	},
+	{
+	  "description": "Building Destruction",
+      "name": "Building Destruction",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Destroying a building to look like it was attacked or collapsed"	
+	},
     {
       "description": "Mosaicing",
       "name": "mosaicing",

@@ -63,7 +63,8 @@
     "HP-Keywords",
     "HP-Thumbnails",
     "HP-PolyCount",
-    "HP-License"
+    "HP-License",
+	"HP-Username"
   ],
   "rankone": [
     "MD5",
@@ -105,7 +106,8 @@
     "ImportDate",
     "HP-Thumbnails",
     "HP-PolyCount",
-    "HP-License"
+    "HP-License",
+	"HP-Username"
   ],
   "keywords": [
     "ImageFilename",

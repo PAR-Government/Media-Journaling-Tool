@@ -10,7 +10,8 @@ from __future__ import division
 from maskgen.image_wrap import ImageWrapper
 import os
 import numpy as np
-from maskgen.tool_set import shortenName,uniqueId,getValue
+from maskgen.tool_set import shortenName,uniqueId
+from maskgen.support import getValue
 import maskgen
 
 from maskgen.algorithms.seam_carving import SeamCarver, SobelFunc, \
@@ -40,9 +41,11 @@ def carveSeams(source,target,shape,mask_filename, approach='backward', energy='S
         texc_type, exc_value, exc_traceback = sys.exc_info()
         traceback.print_tb(exc_traceback, limit=10, file=sys.stdout)
         raise ex
-    maskname = os.path.join(os.path.dirname(source),shortenName(os.path.basename(source),'_real_mask.png', id=uniqueId()))
-    adjusternames= os.path.join(os.path.dirname(source),shortenName(os.path.basename(source), '.png',id=uniqueId()))
-    finalmaskname = os.path.join(os.path.dirname(source),shortenName(os.path.basename(source), '_final_mask.png',id=uniqueId()))
+    maskname = os.path.join(os.path.dirname(source), shortenName(os.path.basename(source),'_real_mask.png', identifier=uniqueId()))
+    adjusternames= os.path.join(os.path.dirname(source), shortenName(os.path.basename(source), '.png',
+                                                                     identifier=uniqueId()))
+    finalmaskname = os.path.join(os.path.dirname(source), shortenName(os.path.basename(source), '_final_mask.png',
+                                                                      identifier=uniqueId()))
     ImageWrapper(mask).save(os.path.join(os.path.dirname(source), maskname))
     adjusternames_row, adjusternames_col = sc.mask_tracker.save_adjusters(adjusternames)
     sc.mask_tracker.save_neighbors_mask(finalmaskname)

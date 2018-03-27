@@ -10,19 +10,28 @@ import datetime
 import csv
 import hashlib
 import tkMessageBox
-
+import maskgen.tool_set
 import pandas as pd
 import numpy as np
 import subprocess
 import json
 import data_files
 
-exts = {'IMAGE': ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.nef', '.crw', '.cr2', '.dng', '.arw', '.srf', '.raf'],
-        'VIDEO': ['.avi', '.mov', '.mp4', '.mpg', '.mts', '.asf', '.mxf'],
-        'AUDIO': ['.wav', '.mp3', '.flac', '.webm', '.aac', '.amr', '.3ga'],
-        'MODEL': ['.3d.zip'],
-        'nonstandard': ['.lfr']}
-orgs = {'RIT': 'R', 'Drexel': 'D', 'U of M': 'M', 'PAR': 'P', 'CU Denver': 'C'}
+if not os.path.exists(data_files._FILETYPES):
+    exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
+            'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
+            'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
+            'MODEL': ['.3d.zip']}
+    with open(data_files._FILETYPES, "w") as f:
+        j_exts = json.dumps(exts, indent=4)
+        f.write(j_exts)
+
+else:
+    with open(data_files._FILETYPES, "r") as f:
+        exts = json.load(f)
+
+orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
+
 RVERSION = '#@version=01.11'
 thumbnail_conversion = {}
 
@@ -97,14 +106,14 @@ def check_settings(self):
     :param self: reference to HP GUI
     """
     # reset sequence if date is new
-    if self.settings.get('date') != datetime.datetime.now().strftime('%Y%m%d')[2:]:
-        self.settings.set('seq', '00000')
+    if self.settings.get_key('date') != datetime.datetime.now().strftime('%Y%m%d')[2:]:
+        self.settings.save('seq', '00000')
     else:
-        self.settings.set('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
+        self.settings.save('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
 
-    add_types(self.settings.get('imagetypes'), 'image')
-    add_types(self.settings.get('videotypes'), 'video')
-    add_types(self.settings.get('audiotypes'), 'audio')
+    add_types(self.settings.get_key('imagetypes'), 'image')
+    add_types(self.settings.get_key('videotypes'), 'video')
+    add_types(self.settings.get_key('audiotypes'), 'audio')
 
 
 def add_types(data, mformat):
@@ -340,8 +349,7 @@ def combine_exif(exif_data, lut, d):
             d[lut[k]] = exif_data[k]
     return d
 
-
-def set_other_data(data, imfile):
+def set_other_data(self, data, imfile):
     """
     Set implicit metadata to data.
     :param data: Dictionary of field data from one image
@@ -360,6 +368,8 @@ def set_other_data(data, imfile):
         data['Type'] = 'image'
     # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
     # data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
+
+    data['HP-Username'] = self.settings.get_key('username')
 
     try:
         if int(data['ImageWidth']) < int(data['ImageHeight']):
@@ -486,7 +496,7 @@ def parse_image_info(self, imageList, **kwargs):
             del image_file_list[image_file_list.index(os.path.basename(imageList[i]))]
             data[i] = combine_exif({"Thumbnail": "; ".join(image_file_list)},
                                    reverseLUT, master.copy())
-        data[i] = set_other_data(data[i], imageList[i])
+        data[i] = set_other_data(self, data[i], imageList[i])
 
     return data
 
@@ -573,10 +583,10 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     # prepare for the copy operation
     try:
-        count = int(self.settings.get('seq'))
+        count = int(self.settings.get_key('seq'))
     except TypeError:
         count = 0
-        self.settings.set('seq', '00000')
+        self.settings.save('seq', '00000')
 
     # copy with renaming
     print('Copying files...')
@@ -622,21 +632,26 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print(' done')
 
-    self.settings.set('seq', pad_to_5_str(count))
-    self.settings.set('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
+    self.settings.save('seq', pad_to_5_str(count))
+    self.settings.save('date', datetime.datetime.now().strftime('%Y%m%d')[2:])
     print('Settings updated with new sequence number')
 
     print('Updating metadata...')
 
+    metadata = {"usageterms": self.settings.get_key("usageterms"), "copyrightnotice":
+                self.settings.get_key("copyrightnotice"), "credit": self.settings.get_key("credit"),
+                "artist": self.settings.get_key("artist"), "copyright": self.settings.get_key("copyright"),
+                "by-line": self.settings.get_key("by-line")}
+
     for folder in ['image', 'video', 'audio', 'model']:
-        process_metadata(os.path.join(outputdir, folder, '.hptemp'), self.settings.get('metadata'), quiet=True)
+        process_metadata(os.path.join(outputdir, folder, '.hptemp'), metadata, quiet=True)
 
     dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
 
     for csv_type in ['rit', 'rankone', 'keywords']:
         print('Writing ' + csv_type + ' file')
         csv_path = os.path.join(outputdir, 'csv', '-'.join(
-            (dt, self.settings.get('organization') + self.settings.get('username'), csv_type + '.csv')))
+            (dt, self.settings.get_key('hp-organization') + self.settings.get_key('username'), csv_type + '.csv')))
         build_csv_file(self, imageList, newNameList, imageInfo, csv_path, csv_type)
 
     # move out of tempfolder

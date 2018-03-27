@@ -52,7 +52,7 @@ class API_Camera_Handler:
     def load_data(self):
         try:
             headers = {'Authorization': 'Token ' + self.token, 'Content-Type': 'application/json'}
-            url = self.url + '/api/cameras/filters/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
+            url = self.url + '/cameras/filters/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
             camera_data = {"hp_device_local_id": {"type": "exact", "value": self.given_id}}
             print 'Updating camera list from browser API... ',
 
@@ -72,15 +72,6 @@ class API_Camera_Handler:
                 else:
                     raise requests.HTTPError()
             print 'complete.'
-
-            with open(data_files._LOCALDEVICES, 'a+') as j:
-                found = False
-                for item in json.load(j):
-                    if item == self.all.items()[0][0]:
-                        found = True
-                        break
-                if not found:
-                    json.dump(self.all, j, indent=4)
 
             self.source = 'remote'
         except:

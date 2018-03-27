@@ -19,7 +19,6 @@ import tempfile
 import shutil
 from PIL import Image, ImageTk
 from ErrorWindow import ErrorWindow
-from CameraForm import HP_Device_Form
 import hp_data
 import datetime
 import threading
@@ -449,7 +448,7 @@ class HPSpreadsheet(Toplevel):
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -604,11 +603,11 @@ class HPSpreadsheet(Toplevel):
         if cancelled:
             return
 
-        initial = self.settings.get('aws', notFound='')
+        initial = self.settings.get_key('aws-hp')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial, parent=self)
 
         if (val is not None and len(val) > 0):
-            self.settings.set('aws', val)
+            self.settings.save('aws-hp', val)
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
@@ -641,11 +640,11 @@ class HPSpreadsheet(Toplevel):
         Prompt for Trello comment, while also checking that trello credential exists
         :return: string, comment to be posted to trello with upload information
         """
-        if self.settings.get('trello', notFound='') == '':
+        if self.settings.get_key('trello') == '':
             token = self.get_trello_token()
             if token == '':
                 return None
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
 
@@ -658,11 +657,11 @@ class HPSpreadsheet(Toplevel):
         :return: status code if error occurs, else None
         """
 
-        if self.settings.get('trello') is None:
+        if self.settings.get_key('trello') is None:
             token = self.get_trello_token()
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
         else:
-            token = self.settings.get('trello')
+            token = self.settings.get_key('trello')
 
         # list ID for "New Devices" list
         list_id = data_files._TRELLO['hp_list']
@@ -714,6 +713,8 @@ class HPSpreadsheet(Toplevel):
         Archive output folder into a .tar file.
         :return: string, archive filename formatted as "USR-LocalID-YYmmddHHMMSS.tar"
         """
+        import subprocess
+
         val = self.pt.model.df['HP-DeviceLocalID'][0] if type(self.pt.model.df['HP-DeviceLocalID'][0]) is str else ''
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
@@ -721,10 +722,16 @@ class HPSpreadsheet(Toplevel):
         archive.add(self.dir, arcname=os.path.split(self.dir)[1])
         archive.close()
         os.close(fd)
-        final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
-        shutil.move(tname, os.path.join(self.dir, final_name))
+        final_name = os.path.join(self.dir, '-'.join((self.settings.get_key('username'), val, dt)) + '.tar')
+        tar_path = os.path.join(self.dir, final_name)
+        shutil.move(tname, tar_path)
 
-        return final_name
+        recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
+        if recipient:
+            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
+            final_name = tar_path + ".gpg"
+            return final_name
+        return None
 
     def validate(self):
         """
@@ -766,6 +773,38 @@ class HPSpreadsheet(Toplevel):
                 currentColName = list(self.pt.model.df.columns.values)[coord[1]]
                 errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
                             coord[0] + 1) + '. This cell is mandatory.')
+
+        files_in_dir = []
+        files_in_csv = []
+
+        for root, dirs, files in os.walk(self.dir):
+            for f in files:
+                if os.path.splitext(f)[1] not in ['.csv', '.tar']:
+                    if "model" not in os.path.normpath(root).split("\\"):
+                        files_in_dir.append(f)
+                    elif os.path.normpath(root) not in files_in_dir:
+                            files_in_dir.append(os.path.normpath(root))
+
+        for r in range(0, self.pt.rows):
+            name = self.pt.model.df['ImageFilename'][r] if self.pt.model.df["Type"][r] != "model" else os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][r].split(".")[0]))
+            files_in_csv.append(name)
+
+        dif_list = [x for x in files_in_dir if x not in files_in_csv]
+
+        if dif_list:
+            ans = tkMessageBox.askyesno("Missing Data", "There have been files found in the output directory that are not in the csv.  Would you like to delete them?")
+            if ans:
+                for root, dirs, files in os.walk(self.dir):
+                    for f in files:
+                        if f in dif_list:
+                            os.remove(os.path.join(root, f))
+                    if os.path.normpath(root) in dif_list:
+                        shutil.rmtree(root, ignore_errors=True)
+            else:
+                dif_errs = []
+                for dif in dif_list:
+                    dif_errs.append("Addition file ({0}) found in directory, and not in CSV.".format(dif))
+                errors.extend(dif_errs)
 
         if len(uniqueIDs) > 1:
             errors.append('Multiple cameras identified. Each processed dataset should contain data from only one camera.')
@@ -1097,8 +1136,12 @@ class CustomTable(pandastable.Table):
         col = self.getSelectedColumn()
         row = self.getSelectedRow()
         val = val if val is not None else self.model.getValueAt(row, col)
-        for row in range(self.startrow,self.endrow+1):
-            for col in range(self.startcol, self.endcol+1):
+        max_row = max(self.startrow, self.endrow)
+        min_row = min(self.startrow, self.endrow)
+        max_col = max(self.startcol, self.endcol)
+        min_col = min(self.startcol, self.endcol)
+        for row in range(min_row, max_row + 1):
+            for col in range(min_col, max_col + 1):
                 if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
                     continue
                 self.undo.append((self.model.getValueAt(row, col), row, col))

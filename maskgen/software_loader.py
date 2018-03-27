@@ -6,18 +6,20 @@
 # All rights reserved.
 # ==============================================================================
 
-from os.path import expanduser
-import csv
-import platform
+
 import os
 from maskgen_loader import MaskGenLoader
 from json import JSONEncoder
 import json
 import logging
+from maskgen.config import global_config
 
 class OperationEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__
+
+def strip_version(version):
+    return '.'.join(version.split('.')[:2]) if version is not None else ''
 
 def getFileName(fileName, path=None):
     import sys
@@ -302,7 +304,7 @@ def insertCustomRule(name,func):
 def returnNoneFunction(*arg,**kwargs):
     return None
 
-def getRule(name, globals={}, noopRule=returnNoneFunction):
+def getRule(name, globals={}, noopRule=returnNoneFunction, default_module=None):
     if name is None:
         return noopRule
     import importlib
@@ -311,11 +313,17 @@ def getRule(name, globals={}, noopRule=returnNoneFunction):
         return customRuleFunc[name]
     else:
         if '.' not in name:
+            mod_name = default_module
+            func_name = name
             func = globals.get(name)
             if func is None:
-                return noopRule
-            return func
-        mod_name, func_name = name.rsplit('.', 1)
+                if default_module is None:
+                    logging.getLogger('maskgen').error('Rule Function {} not found'.format(name))
+                    return noopRule
+            else:
+                return func
+        else:
+            mod_name, func_name = name.rsplit('.', 1)
         try:
             mod = importlib.import_module(mod_name)
             func = getattr(mod, func_name)
@@ -359,7 +367,7 @@ def _loadSoftware( fileName):
                     'Invalid software description on line ' + str(line_no) + ': ' + l)
             software_type = columns[0].strip()
             software_name = columns[1].strip()
-            versions = [x.strip() for x in columns[2:] if len(x) > 0]
+            versions = [strip_version(x.strip()) for x in columns[2:] if len(x) > 0]
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
@@ -377,10 +385,12 @@ class MetaDataLoader:
     operations = {}
     filters = {}
     operationsByCategory = {}
-    projectProperties = {}
 
     def __init__(self):
-        self.operations , self.filters, self.operationsByCategory = self.loadOperations('operations.json')
+        self.reload()
+
+    def reload(self):
+        self.operations, self.filters, self.operationsByCategory = self.loadOperations('operations.json')
         self.softwareset = self.loadSoftware('software.csv')
         self.projectProperties = self.loadProjectProperties('project_properties.json')
 
@@ -417,6 +427,12 @@ class MetaDataLoader:
 
 
     def loadProjectProperties(self, fileName):
+        """
+
+        :param fileName:
+        :return:
+        @rtype: list of ProjectProperty
+        """
         loadCustomRules()
         self.projectProperties = loadProjectPropertyJSON(fileName)
         return self.projectProperties
@@ -457,21 +473,17 @@ class MetaDataLoader:
                         print ' '.join(opdata)
 
 
-global metadataLoader
-metadataLoader = {}
-
-
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
 
-def getOS():
-    return platform.system() + ' ' + platform.release() + ' ' + platform.version()
-
 def getMetDataLoader():
-    global metadataLoader
-    if 'l' not in metadataLoader:
-        metadataLoader['l'] = MetaDataLoader()
-    return metadataLoader['l']
+    """
+    :return:
+    @rtype: MetaDataLoader
+    """
+    if 'metadataLoader' not in global_config:
+        global_config['metadataLoader'] = MetaDataLoader()
+    return global_config['metadataLoader']
 
 def operationVersion():
     return getMetDataLoader().version
@@ -545,7 +557,7 @@ class SoftwareLoader:
             versions = getMetDataLoader().softwareset[type_to_check][name] if name in getMetDataLoader().softwareset[type_to_check] else None
             if versions is None:
                 continue
-            if version is not None and version not in versions:
+            if version is not None and strip_version(version) not in versions:
                 versions = list(versions)
                 versions.append(version)
                 logging.getLogger('maskgen').warning( version + ' not in approved set for software ' + name)

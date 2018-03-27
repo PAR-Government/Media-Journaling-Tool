@@ -4,15 +4,16 @@
 #
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
-#==============================================================================
+# ==============================================================================
 
-from subprocess import call, Popen, PIPE
-import os
-import numpy as np
 import logging
-from cachetools import cached
-from cachetools import LRUCache
+import os
+from subprocess import call, Popen, PIPE
 from threading import RLock
+
+import numpy as np
+from cachetools import LRUCache
+from cachetools import cached
 
 
 def getOrientationFromExif(source):
@@ -35,35 +36,37 @@ def getOrientationFromExif(source):
         return None
 
 
-def rotateAnalysis( orientation):
-    flip, rotate  = rotateAmount(orientation)
+def rotateAnalysis(orientation):
+    flip, rotate = rotateAmount(orientation)
     result = {}
     if flip is not None:
         result['flip direction'] = flip
-    if rotate  != 0:
+    if rotate != 0:
         result['rotation'] = rotate
     return result
 
-def rotateAmount( orientation):
+
+def rotateAmount(orientation):
     rotation = orientation
     if rotation == 'Mirror horizontal':
-        return 'horizontal',0
+        return 'horizontal', 0
     elif rotation == 'Rotate 180':
         return None, 180.0
     elif rotation == 'Mirror vertical':
-        return 'vertical',0
+        return 'vertical', 0
     elif rotation == 'Mirror horizontal and rotate 270 CW':
         return 'horizontal', 270.0
     elif rotation == 'Rotate 90 CW':
-        return None,90.0
+        return None, 90.0
     elif rotation == 'Mirror horizontal and rotate 90 CW':
         return 'horizontal', 90.0
     elif rotation == 'Rotate 270 CW':
         return None, 270.0
     try:
-        return None, float (orientation)
+        return None, float(orientation)
     except:
-        return None,0
+        return None, 0
+
 
 def rotateAccordingToExif(img_array, orientation, counter=False):
     rotation = orientation
@@ -85,7 +88,7 @@ def rotateAccordingToExif(img_array, orientation, counter=False):
     elif rotation == 'Mirror horizontal and rotate 90 CW':
         rotatedArr = np.fliplr(img_array)
         amount = 3 if counter else 1
-        rotatedArr = np.rot90(rotatedArr,amount)
+        rotatedArr = np.rot90(rotatedArr, amount)
     elif rotation == 'Rotate 270 CW':
         amount = 1 if counter else 3
         rotatedArr = np.rot90(img_array, amount)
@@ -116,38 +119,42 @@ def toolCheck():
     except:
         return exifcommand + ' is not installed'
 
+
 def runexif(args, fix=True, ignoreError=False):
     exifcommand = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
     command = [exifcommand]
     command.extend(args)
     try:
-        pipe = Popen(command,stdout=PIPE,stderr=PIPE)
-        stdout,stderr = pipe.communicate()
+        pipe = Popen(command, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = pipe.communicate()
         if stdout is not None:
             for line in stdout.splitlines():
-                logging.getLogger('maskgen').info("exif output for command " + str(command) + " = "+ line)
+                logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
         if stderr is not None:
             newsetofargs = args
             for line in stderr.splitlines():
-            #    newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
+                #    newsetofargs = [item for item in newsetofargs if item[1:item.find ('=')] not in line]
                 logging.getLogger('maskgen').info("exif output for command " + str(command) + " = " + line)
             ##try stripping off the offenders
-            #if len(newsetofargs) < len(args) and fix:
+            # if len(newsetofargs) < len(args) and fix:
             #    return runexif(newsetofargs, fix=False)
-            #else:
+            # else:
             #    return False
             return pipe.returncode == 0
     except OSError as e:
-        logging.getLogger('maskgen').error("Exiftool failure. Is it installed? "+ str(e))
+        logging.getLogger('maskgen').error("Exiftool failure. Is it installed? " + str(e))
         if not ignoreError:
             raise e
     return True
 
+
 exif_lock = RLock()
 exif_cache = LRUCache(maxsize=12)
 
+
 def stringifyargs(kwargs):
-    return [str(item) for item in sorted([(k,str(v)) for k,v in kwargs.iteritems()])]
+    return [str(item) for item in sorted([(k, str(v)) for k, v in kwargs.iteritems()])]
+
 
 def sourcefilehashkey(*args, **kwargs):
     import hashlib
@@ -164,7 +171,7 @@ def getexif(source, args=None, separator=': '):
     command.append(source)
     meta = {}
     try:
-        stdout, stderr = Popen(command,stdout=PIPE,stderr=PIPE).communicate()
+        stdout, stderr = Popen(command, stdout=PIPE, stderr=PIPE).communicate()
         if stdout is not None:
             for line in stdout.splitlines():
                 try:
