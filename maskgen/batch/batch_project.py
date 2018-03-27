@@ -1120,9 +1120,15 @@ class BatchProject:
         self.logger.info('Creation of project {} succeeded'.format(project_name))
         return local_state['model'].get_dir(), project_name
 
-    def saveGraphImage(self, dir='.'):
+    def saveGraphImage(self, dir='.', use_id=False):
+        """
+
+        :param dir:
+        :param use_id: True if the ID is used as a node name
+        :return:
+        """
         filename = os.path.join(dir, self.getName() + '.png')
-        self._draw().write_png(filename)
+        self._draw(use_id=use_id).write_png(filename)
         filename = os.path.join(dir, self.getName() + '.csv')
         position = 0
         with open(filename, 'w') as f:
@@ -1133,17 +1139,23 @@ class BatchProject:
 
     colors_bytype = {'InputMaskPluginOperation': 'blue'}
 
-    def _draw(self):
+    def _draw(self,use_id=False):
         import pydot
         pydot_nodes = {}
         pygraph = pydot.Dot(graph_type='digraph')
         for node_id in self.G.nodes():
             node = self.G.node[node_id]
-            name = op_type = node['op_type']
-            if op_type in ['PluginOperation', 'InputMaskPluginOperation']:
-                name = node['plugin']
-                if 'description'  in node:
-                    name = node['description']
+            op_type = node['op_type']
+            if use_id:
+                name = node_id
+            else:
+                name = op_type
+                if op_type in ['PluginOperation', 'InputMaskPluginOperation']:
+                    name = node['plugin']
+                    if 'description'  in node:
+                        name = node['description']
+                elif op_type in ['PreProcessedMediaOperation']:
+                    name = node['plugin']
             color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
                                               shape='plain',

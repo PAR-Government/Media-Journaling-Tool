@@ -67,7 +67,7 @@ class BatchConverter:
 
     def toID(self,name):
         self.id+=1
-        return '%s %d' % (name, self.id)
+        return '%s_%d' % (name, self.id)
 
     def _convertGraph(self,name=None):
         properties = getMetDataLoader().projectProperties
@@ -145,9 +145,14 @@ class BatchConverter:
             new_operation_node['id'] = self.toID(edge['op'])
             op = getOperation(edge['op'],fake=True)
             new_operation_node['category'] = op.category
+            new_operation_node['op'] = op.name
             new_operation_node['sofware'] = edge['softwareName']
             new_operation_node['software version'] = edge['softwareVersion']
             new_operation_node['description'] = edge['description']
+            semanticGroups = getValue(edge,'semanticGroups',None)
+            if semanticGroups is not None and len(semanticGroups) > 0:
+                new_operation_node['semanticGroups'] = semanticGroups
+            new_operation_node['directory'] = "{" +  new_operation_node['id'] + "}".replace(' ','_')
             if 'recordMaskInComposite' in edge:
                 new_operation_node['recordMaskInComposite'] = edge['recordMaskInComposite']
         arguments = {}
@@ -198,7 +203,7 @@ def main():
     converter = BatchConverter(model)
     batch = converter.convertAndSave(name=args.name)
     bp = BatchProject(batch)
-    bp.saveGraphImage('.')
+    bp.saveGraphImage('.',use_id=True)
 
 if __name__ == '__main__':
     main()
