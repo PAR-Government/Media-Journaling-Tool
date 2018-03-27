@@ -247,7 +247,7 @@ class ImageGraph:
         self.arg_checker_callback = arg_checker_callback
         self.G = graph if graph is not None else nx.DiGraph(name=name)
         self.username = username if username is not None else get_username()
-        self.tool = tool
+        self.tool = tool if tool is not None else 'jtapi'
         self._setup(pathname, projecttype, nodeFilePaths, edgeFilePaths)
 
     def addEdgeFilePath(self, path, ownership):
@@ -586,6 +586,7 @@ class ImageGraph:
                             op=op,
                             ctime=datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
                             description=description, username=self.username, opsys=getOS(),
+                            tool=self.tool,
                             **kwargs)
             self.U = []
             self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
