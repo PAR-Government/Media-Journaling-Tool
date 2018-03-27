@@ -350,7 +350,7 @@ def set_other_data(self, data, imfile):
     # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
     # data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
 
-    data['HP-username'] = self.settings.get_key('username')
+    data['HP-Username'] = self.settings.get_key('username')
 
     try:
         if int(data['ImageWidth']) < int(data['ImageHeight']):
