@@ -16,6 +16,7 @@ import numpy as np
 import subprocess
 import json
 import data_files
+from PIL import Image
 
 
 exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
@@ -51,7 +52,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     currentExt = os.path.splitext(image)[1]
     if os.path.isdir(image):
         return
-    files_in_dir = os.listdir(os.path.dirname(image)) if containsmodels else []
+    files_in_dir = os.listdir(os.path.dirname(image))
     if any(filename.endswith('.3d.zip') for filename in files_in_dir):
         sub = 'model'
     elif any(os.path.splitext(filename)[1] in exts["nonstandard"] for filename in files_in_dir):
@@ -79,7 +80,13 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
             currentExt = os.path.splitext(i)[1].lower()
             if currentExt in exts['IMAGE']:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
-                shutil.copy2(os.path.join(file_dir, i), os.path.join(thumbnail_folder, newThumbnailName))
+                dest = os.path.join(thumbnail_folder, newThumbnailName)
+                with Image.open(os.path.join(file_dir, i)) as im:
+                    if im.width > 264:
+                        im.thumbnail((264, 192), Image.ANTIALIAS)
+                        im.save(dest)
+                    else:
+                        shutil.copy2(os.path.join(file_dir, i), dest)
                 thumbnail_conversion[file_dir][i] = newThumbnailName
                 thumbnail_counter += 1
             elif i.endswith(".3d.zip"):
@@ -593,7 +600,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
             name = os.path.split(image)[1]
             if name.endswith('.3d.zip'):
                 tkMessageBox.showerror("Improper 3D Model Processing", "In order to process 3D models, you must have "
-                                                                       "no device lcoal ID and the 'Include "
+                                                                       "no device local ID and the 'Include "
                                                                        "Subdirectories' box must NOT be checked")
             else:
                 tkMessageBox.showerror("Unrecognized data type", "An unrecognized data type {0} was found in the input "
