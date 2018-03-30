@@ -220,7 +220,8 @@ class HPSpreadsheet(Toplevel):
         self.currentImageNameVar.set('Current Image: ' + current_file)
         maxSize = 480
         try:
-            if type == "image" and "." + self.pt.model.getValueAt(row, 13) not in hp_data.exts['nonstandard']:
+            ext_col = 13
+            if type == "image" and "." + self.pt.model.getValueAt(row, ext_col) not in hp_data.exts['nonstandard']:
                 im = Image.open(os.path.join(self.imageDir, self.imName))
             elif type == "model":
                 im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
