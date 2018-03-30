@@ -131,8 +131,7 @@ class HP_Device_Form(Toplevel):
 
         Label(self.f.interior, text='Browser Login Token*', font=(20)).pack()
         Label(self.f.interior, text='This allows for the creation of the new device.').pack()
-        browser_link = 'https://medifor.rankone.io/api/login/'
-        browserTokenButton = Button(self.f.interior, text='Get Browser Token', command=lambda: self.open_link(browser_link))
+        browserTokenButton = Button(self.f.interior, text='Get Browser Token', command=lambda: tkMessageBox.showinfo("Get Browser Token", "Refer to the HP Tool guide to retrieve your browser token."))
         browserTokenButton.pack()
         browserEntry = Entry(self.f.interior, textvar=self.browser_token)
         browserEntry.pack()
@@ -220,7 +219,7 @@ class HP_Device_Form(Toplevel):
         Handles the browser interaction
         :return: requests.post() response
         """
-        url = 'https://medifor.rankone.io/api/cameras/'
+        url = self.master.settings.get_key("apiurl") + '/cameras/'
         headers = {
             'Content-Type': 'application/json',
             'Authorization': 'Token ' + self.browser_token.get(),
@@ -266,11 +265,9 @@ class HP_Device_Form(Toplevel):
         :return: (string) Error message (if error), otherwise None
         """
         print 'Verifying local ID is not already in use...'
-        c = API_Camera_Handler(self, token=self.browser_token.get(), url='https://medifor.rankone.io', given_id=self.questions["Local ID*"].get())
+        c = API_Camera_Handler(self, token=self.browser_token.get(), url=self.master.settings.get_key("apiurl"), given_id=self.questions["Local ID*"].get())
         local_id_reference = c.get_local_ids()
-        if not local_id_reference:
-            return 'Could not successfully connect to Medifor browser. Please check credentials.'
-        elif self.questions['Local ID*'].get().lower() in [i.lower() for i in local_id_reference]:
+        if self.questions['Local ID*'].get().lower() in [i.lower() for i in local_id_reference]:
             return 'Local ID ' + self.questions['Local ID*'].get() + ' already in use.'
 
     def open_link(self, link):
@@ -453,7 +450,7 @@ class Update_Form(Toplevel):
         Posts the camera update, and notifies trello if option is selected.
         :return: None. Should pop up box with status when complete.
         """
-        url = 'https://medifor.rankone.io/api/cameras/' + str(self.device_data['id']) + '/'
+        url = self.master.settings.get_key('apiurl') + '/cameras/' + str(self.device_data['id']) + '/'
         headers = {
             'Content-Type': 'application/json',
             'Authorization': 'Token ' + self.browser,
