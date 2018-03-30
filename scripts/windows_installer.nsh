@@ -101,7 +101,8 @@ Section -Prerequisites
 	ExecWait "$CONDA remove PIL -y"
     ExecWait "$CONDA install -c anaconda pillow -y"
 	ExecWait "$CONDA install scikit-image -y"
-	ExecWait "$CONDA install shapely -y"
+	ExecWait "$CONDA install -c condo-forge shapely –y"
+	ExecWait "$CONDA install scikit-image"
 
 	SetOutPath "$INSTDIR"
 	ExecWait "$PIP install graphviz"
@@ -174,7 +175,7 @@ Section "Maskgen"
 	Delete "$USERDIR\jtprefs.py"
 
 	Delete "$USERDIR\$BRANCH.zip"
-	
+	Delete "$DESTOP\maskgen.log"
     
     MessageBox MB_OK "If this is your first installation, you will need to$\nrestart your computer to use the HP Tool."
 
