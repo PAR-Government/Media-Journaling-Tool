@@ -657,6 +657,13 @@
       "information": "Destroying a building to look like it was attacked or collapsed"	
 	},
     {
+	  "description": "Manhattan World",
+      "name": "Manhattan World",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Putting a object with corners and depth into a Manhattan World image example: table, box, frame"	
+	},
+    {
       "description": "Mosaicing",
       "name": "mosaicing",
       "type": "yesno",
