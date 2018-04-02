@@ -515,7 +515,7 @@ class Update_Form(Toplevel):
         # list ID for "New Devices" list
         trello_key = data_files._TRELLO['app_key']
         list_id = data_files._TRELLO['camera_update_list']
-        link = 'https://medifor.rankone.io/camera/' + str(self.device_data['id'])
+        link = self.master.settings.get_key("apiurl")[:-4] + '/camera/' + str(self.device_data['id'])
 
         # post the new card
         title = 'Camera updated: ' + self.device_data['hp_device_local_id']
