@@ -40,6 +40,7 @@ class HPSpreadsheet(Toplevel):
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
             self.modelDir = os.path.join(self.dir, 'model')
+            self.thumbnailDir = os.path.join(self.dir, 'thumbnails')
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -188,12 +189,17 @@ class HPSpreadsheet(Toplevel):
             if not os.path.exists(image):
                 image = os.path.join(self.audioDir, self.imName)
                 if not os.path.exists(image):
-                    image = os.path.join(self.modelDir, self.imName)
+                    image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
+                    if not os.path.exists(image):
+                        image = os.path.join(self.thumbnailDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
-            if not image.endswith('.3d.zip'):
+            try:
                 os.startfile(image)
+            except WindowsError:
+                print("Image could not be opened")
+
         else:
             os.system('open "' + image + '"')
 
@@ -203,15 +209,24 @@ class HPSpreadsheet(Toplevel):
         :param event: event trigger
         :return: None
         """
+        import hp.hp_data
         if self.on_main_tab:
             row = self.pt.getSelectedRow()
         else:
             row = self.tabpt.getSelectedRow()
-        self.imName = str(self.pt.model.getValueAt(row, 0))
-        self.currentImageNameVar.set('Current Image: ' + self.imName)
+        type = self.pt.model.getValueAt(row, 32)
+        current_file = str(self.pt.model.getValueAt(row, 0))
+        self.imName = str(self.pt.model.getValueAt(row, 0) if (type == "image" and "." + self.pt.model.getValueAt(row, 13) not in hp_data.exts['nonstandard']) else self.pt.model.getValueAt(row, 61).split(";")[0])
+        self.currentImageNameVar.set('Current Image: ' + current_file)
         maxSize = 480
         try:
-            im = Image.open(os.path.join(self.imageDir, self.imName))
+            ext_col = 13
+            if type == "image" and "." + self.pt.model.getValueAt(row, ext_col) not in hp_data.exts['nonstandard']:
+                im = Image.open(os.path.join(self.imageDir, self.imName))
+            elif type == "model":
+                im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
+            else:
+                im = Image.open(os.path.join(self.thumbnailDir, self.imName))
         except (IOError, AttributeError):
             im = Image.open(data_files._REDX)
         if im.size[0] > maxSize or im.size[1] > maxSize:
@@ -717,6 +732,9 @@ class HPSpreadsheet(Toplevel):
             subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
             final_name = tar_path + ".gpg"
             return final_name
+
+        tkMessageBox.showerror("No Recipient", "The HP Tool cannot upload archives unless they are encrypted to a"
+                                               "recipient.  Enter your recipient in the settings menu.")
         return None
 
     def validate(self):
