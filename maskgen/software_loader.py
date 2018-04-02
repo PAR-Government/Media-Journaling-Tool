@@ -12,10 +12,14 @@ from maskgen_loader import MaskGenLoader
 from json import JSONEncoder
 import json
 import logging
+from maskgen.config import global_config
 
 class OperationEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__
+
+def strip_version(version):
+    return '.'.join(version.split('.')[:2]) if version is not None else ''
 
 def getFileName(fileName, path=None):
     import sys
@@ -363,7 +367,7 @@ def _loadSoftware( fileName):
                     'Invalid software description on line ' + str(line_no) + ': ' + l)
             software_type = columns[0].strip()
             software_name = columns[1].strip()
-            versions = [x.strip() for x in columns[2:] if len(x) > 0]
+            versions = [strip_version(x.strip()) for x in columns[2:] if len(x) > 0]
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
@@ -381,7 +385,6 @@ class MetaDataLoader:
     operations = {}
     filters = {}
     operationsByCategory = {}
-    projectProperties = {}
 
     def __init__(self):
         self.reload()
@@ -424,6 +427,12 @@ class MetaDataLoader:
 
 
     def loadProjectProperties(self, fileName):
+        """
+
+        :param fileName:
+        :return:
+        @rtype: list of ProjectProperty
+        """
         loadCustomRules()
         self.projectProperties = loadProjectPropertyJSON(fileName)
         return self.projectProperties
@@ -464,18 +473,17 @@ class MetaDataLoader:
                         print ' '.join(opdata)
 
 
-global metadataLoader
-metadataLoader = {}
-
-
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
 
 def getMetDataLoader():
-    global metadataLoader
-    if 'l' not in metadataLoader:
-        metadataLoader['l'] = MetaDataLoader()
-    return metadataLoader['l']
+    """
+    :return:
+    @rtype: MetaDataLoader
+    """
+    if 'metadataLoader' not in global_config:
+        global_config['metadataLoader'] = MetaDataLoader()
+    return global_config['metadataLoader']
 
 def operationVersion():
     return getMetDataLoader().version
@@ -549,7 +557,7 @@ class SoftwareLoader:
             versions = getMetDataLoader().softwareset[type_to_check][name] if name in getMetDataLoader().softwareset[type_to_check] else None
             if versions is None:
                 continue
-            if version is not None and version not in versions:
+            if version is not None and strip_version(version) not in versions:
                 versions = list(versions)
                 versions.append(version)
                 logging.getLogger('maskgen').warning( version + ' not in approved set for software ' + name)

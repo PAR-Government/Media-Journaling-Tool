@@ -10,6 +10,8 @@ from maskgen.tool_set import *
 import numpy as np
 import PIL
 from maskgen.jpeg.utils import check_rotate
+from maskgen.support import getValue
+import copy
 
 
 def tiff_save_as(source_img, source, target, donor_file, rotate):

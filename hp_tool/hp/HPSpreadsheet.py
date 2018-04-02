@@ -40,6 +40,7 @@ class HPSpreadsheet(Toplevel):
             self.videoDir = os.path.join(self.dir, 'video')
             self.audioDir = os.path.join(self.dir, 'audio')
             self.modelDir = os.path.join(self.dir, 'model')
+            self.thumbnailDir = os.path.join(self.dir, 'thumbnails')
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -188,12 +189,17 @@ class HPSpreadsheet(Toplevel):
             if not os.path.exists(image):
                 image = os.path.join(self.audioDir, self.imName)
                 if not os.path.exists(image):
-                    image = os.path.join(self.modelDir, self.imName)
+                    image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
+                    if not os.path.exists(image):
+                        image = os.path.join(self.thumbnailDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
-            if not image.endswith('.3d.zip'):
+            try:
                 os.startfile(image)
+            except WindowsError:
+                print("Image could not be opened")
+
         else:
             os.system('open "' + image + '"')
 
@@ -203,15 +209,24 @@ class HPSpreadsheet(Toplevel):
         :param event: event trigger
         :return: None
         """
+        import hp.hp_data
         if self.on_main_tab:
             row = self.pt.getSelectedRow()
         else:
             row = self.tabpt.getSelectedRow()
-        self.imName = str(self.pt.model.getValueAt(row, 0))
-        self.currentImageNameVar.set('Current Image: ' + self.imName)
+        type = self.pt.model.getValueAt(row, 32)
+        current_file = str(self.pt.model.getValueAt(row, 0))
+        self.imName = str(self.pt.model.getValueAt(row, 0) if (type == "image" and "." + self.pt.model.getValueAt(row, 13) not in hp_data.exts['nonstandard']) else self.pt.model.getValueAt(row, 61).split(";")[0])
+        self.currentImageNameVar.set('Current Image: ' + current_file)
         maxSize = 480
         try:
-            im = Image.open(os.path.join(self.imageDir, self.imName))
+            ext_col = 13
+            if type == "image" and "." + self.pt.model.getValueAt(row, ext_col) not in hp_data.exts['nonstandard']:
+                im = Image.open(os.path.join(self.imageDir, self.imName))
+            elif type == "model":
+                im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
+            else:
+                im = Image.open(os.path.join(self.thumbnailDir, self.imName))
         except (IOError, AttributeError):
             im = Image.open(data_files._REDX)
         if im.size[0] > maxSize or im.size[1] > maxSize:
@@ -434,7 +449,7 @@ class HPSpreadsheet(Toplevel):
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -589,11 +604,11 @@ class HPSpreadsheet(Toplevel):
         if cancelled:
             return
 
-        initial = self.settings.get('hp-aws', notFound='')
+        initial = self.settings.get_key('aws-hp')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial, parent=self)
 
         if (val is not None and len(val) > 0):
-            self.settings.set('hp-aws', val)
+            self.settings.save('aws-hp', val)
             s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
@@ -626,11 +641,11 @@ class HPSpreadsheet(Toplevel):
         Prompt for Trello comment, while also checking that trello credential exists
         :return: string, comment to be posted to trello with upload information
         """
-        if self.settings.get('trello', notFound='') == '':
+        if self.settings.get_key('trello') == '':
             token = self.get_trello_token()
             if token == '':
                 return None
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
 
@@ -643,11 +658,11 @@ class HPSpreadsheet(Toplevel):
         :return: status code if error occurs, else None
         """
 
-        if self.settings.get('trello') is None:
+        if self.settings.get_key('trello') is None:
             token = self.get_trello_token()
-            self.settings.set('trello', token)
+            self.settings.save('trello', token)
         else:
-            token = self.settings.get('trello')
+            token = self.settings.get_key('trello')
 
         # list ID for "New Devices" list
         list_id = data_files._TRELLO['hp_list']
@@ -708,15 +723,18 @@ class HPSpreadsheet(Toplevel):
         archive.add(self.dir, arcname=os.path.split(self.dir)[1])
         archive.close()
         os.close(fd)
-        final_name = os.path.join(self.dir, '-'.join((self.settings.get('username'), val, dt)) + '.tar')
+        final_name = os.path.join(self.dir, '-'.join((self.settings.get_key('username'), val, dt)) + '.tar')
         tar_path = os.path.join(self.dir, final_name)
         shutil.move(tname, tar_path)
 
-        recipient = self.settings.get("archive_recipient") if self.settings.get("archive_recipient") else None
+        recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
         if recipient:
             subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
             final_name = tar_path + ".gpg"
             return final_name
+
+        tkMessageBox.showerror("No Recipient", "The HP Tool cannot upload archives unless they are encrypted to a"
+                                               "recipient.  Enter your recipient in the settings menu.")
         return None
 
     def validate(self):

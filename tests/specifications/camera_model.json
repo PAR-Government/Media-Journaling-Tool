@@ -6,7 +6,7 @@
     "semanticrefabrication": "no",
     "semanticrestaging": "no",
     "organization": "PAR",
-    "technicalSummary": "Automated: Camera Model Attack",
+    "technicalsummary": "Automated: Camera Model Attack",
     "projectdescription":"Change camera model of image",
     "name": "Camera Model Attack"
   },

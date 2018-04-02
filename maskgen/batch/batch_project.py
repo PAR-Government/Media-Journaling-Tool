@@ -59,6 +59,38 @@ class IntObject:
             return self.value
 
 
+def remap_links(json_data):
+    """
+    Networkx usings links that reference nodes by position.
+    The incoming JSON data allows the user to load by id.
+    How to tell the difference: The source and target are strings.
+    :param json_data: networkx compliant dictionary
+    :return:
+    @type: dict
+    @rtype: dict
+    """
+    node_list = json_data['nodes']
+    node_index = {}
+    for pos in range(len(node_list)):
+        node_index[node_list[pos]['id']] = pos
+    link_list = json_data['links']
+
+    def remap_link(link, key, node_index):
+        if key in link and type(link[key]) in [str,unicode]:
+            if link[key] not in node_index:
+                raise IndexError('Node ID {} not found in link'.format(link['source']))
+            return node_index[link[key]]
+        return link[key]
+
+    new_linked_list = []
+    for item in link_list:
+        new_linked_list.append({
+            'source':remap_link(item, 'source', node_index),
+            'target':remap_link(item, 'target', node_index)
+        })
+    json_data['links'] = new_linked_list
+    return json_data
+
 def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
@@ -236,11 +268,18 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     @rtype : tuple(image_wrap.ImageWrapper,str)
     @type predecessors: List[str]
     """
+    if type(specification) != dict:
+        specification = {'value':specification}
     if 'type' not in specification:
-        raise ValueError('type attribute missing in  {}'.format(specification_name))
+        if 'value' not in specification:
+            raise ValueError('type attribute missing in  {}'.format(specification_name))
+        else:
+            spec_type = 'value'
+    else:
+        spec_type = specification['type']
     donothing = lambda x:  x
     postProcess = getRule(specification['function'],noopRule=donothing)  if 'function' in specification else donothing
-    if specification['type'] == 'mask':
+    if spec_type == 'mask':
         if 'source' not in specification:
             raise ValueError('source attribute missing in  {}'.format(specification_name))
         target = getNodeState(specification['source'], local_state)['node']
@@ -252,9 +291,9 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             tool_set.openImageFile(mask, isMask=True).invert().save(mask + '.png')
             mask = mask + '.png'
         return postProcess(mask)
-    elif specification['type'] == 'value':
+    elif spec_type == 'value':
         return processValue(MyFormatter(local_state,global_state),specification['value'], postProcess)
-    elif specification['type'] == 'variable':
+    elif spec_type == 'variable':
         if 'name' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         if 'source' not in specification:
@@ -270,27 +309,26 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             return postProcess(pickArg(source_spec, node_name, specification_name, global_state, local_state))
         else:
             return postProcess(val)
-    elif specification['type'] == 'donor':
+    elif spec_type == 'donor':
         if 'source' in specification:
             if specification['source'] == 'base':
-                # return  local_state['model'].getImageAndName(local_state['model'].getBaseNode(local_state['model'].start))[1]
                 return local_state['model'].getBaseNode(local_state['model'].start)
             return getNodeState(specification['source'], local_state)['node']
         if len(predecessors) != 1:
             raise ValueError('Donor specification {} missing source '.format(specification['name']))
         return postProcess(predecessors[0])
-    elif specification['type'] == 'imagefile':
+    elif spec_type == 'imagefile':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         source = getNodeState(specification['source'], local_state)['node']
         return postProcess(getGraphFromLocalState(local_state).get_image(source)[1])
-    elif specification['type'] == 'input':
+    elif spec_type == 'input':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         return postProcess(getNodeState(specification['source'], local_state)['output'])
-    elif specification['type'] == 'plugin':
+    elif spec_type == 'plugin':
         return postProcess(callPluginSpec(specification, local_state))
-    elif specification['type'].startswith('global'):
+    elif spec_type.startswith('global'):
         if 'name' not in specification:
             raise ValueError('source attribute missing in {}'.format(specification_name))
         return global_state[specification['name']]
@@ -483,7 +521,8 @@ class BaseSelectionOperation(BatchOperation):
                                              base=file_path_in_project,
                                              suffixes=tool_set.suffixes+ [suffix],
                                              username=preferred_username,
-                                             organization=preferred_organization)[0]
+                                             organization=preferred_organization,
+                                             tool='jtproject')[0]
         for prop, val in local_state['project'].iteritems():
             model.setProjectData(prop, val)
         if 'edgeFilePaths' in graph.graph:
@@ -932,7 +971,7 @@ class BatchProject:
         if isinstance(json_data, nx.Graph):
             self.G = json_data
         else:
-            self.G = json_graph.node_link_graph(json_data, multigraph=False, directed=True)
+            self.G = json_graph.node_link_graph(remap_links(json_data), multigraph=False, directed=True)
         initial_user(maskGenPreferences,
                      username=getValue(self.G.graph,'username',
                                                       defaultValue=maskGenPreferences.get_key('username')))
@@ -1010,8 +1049,9 @@ class BatchProject:
         return True
 
     def executeOnce(self, global_state=dict()):
-        global_state['permutegroupsmanager'].save()
-        global_state['permutegroupsmanager'].next()
+        permuteGroupManager = global_state['permutegroupsmanager']
+        permuteGroupManager.save()
+        permuteGroupManager.next()
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         local_state = self._buildLocalState()
         mydata = local()
@@ -1066,6 +1106,7 @@ class BatchProject:
             self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
             if not ok:
                 logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
+                permuteGroupManager.retainFailedState()
                 if 'model' in local_state:
                     if 'removebadprojects' in global_state and not global_state['removebadprojects']:
                         local_state['model'].save()
@@ -1079,9 +1120,15 @@ class BatchProject:
         self.logger.info('Creation of project {} succeeded'.format(project_name))
         return local_state['model'].get_dir(), project_name
 
-    def saveGraphImage(self, dir='.'):
+    def saveGraphImage(self, dir='.', use_id=False):
+        """
+
+        :param dir:
+        :param use_id: True if the ID is used as a node name
+        :return:
+        """
         filename = os.path.join(dir, self.getName() + '.png')
-        self._draw().write_png(filename)
+        self._draw(use_id=use_id).write_png(filename)
         filename = os.path.join(dir, self.getName() + '.csv')
         position = 0
         with open(filename, 'w') as f:
@@ -1092,17 +1139,23 @@ class BatchProject:
 
     colors_bytype = {'InputMaskPluginOperation': 'blue'}
 
-    def _draw(self):
+    def _draw(self,use_id=False):
         import pydot
         pydot_nodes = {}
         pygraph = pydot.Dot(graph_type='digraph')
         for node_id in self.G.nodes():
             node = self.G.node[node_id]
-            name = op_type = node['op_type']
-            if op_type in ['PluginOperation', 'InputMaskPluginOperation']:
-                name = node['plugin']
-                if 'description'  in node:
-                    name = node['description']
+            op_type = node['op_type']
+            if use_id:
+                name = node_id
+            else:
+                name = op_type
+                if op_type in ['PluginOperation', 'InputMaskPluginOperation']:
+                    name = node['plugin']
+                    if 'description'  in node:
+                        name = node['description']
+                elif op_type in ['PreProcessedMediaOperation']:
+                    name = node['plugin']
             color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
                                               shape='plain',
@@ -1195,18 +1248,27 @@ class BatchProject:
             raise e
 
 
-def createGlobalState(projectDirectory, stateDirectory,removeBadProjects=True):
+def createGlobalState(projectDirectory, stateDirectory,
+                      permuteGroupManager=None,
+                      removeBadProjects=True,
+                      stopOnError=False,
+                      fromFailedStateFile=None):
     """
-
     :param projectDirectory: directory for resulting projects
     :param stateDirectory:  directory for maintaining picklists and other state
+    :param fromFailedStateFile: a failed permutation state file in the state directory, if available
     :return:
+    @type projectDirectory: str
+    @type stateDirectory: str
+    @type fromFailedStateFile: str
     """
     return {'projects': projectDirectory,
             'workdir': stateDirectory,
             'removebadprojects' : removeBadProjects,
-            'permutegroupsmanager': PermuteGroupManager(dir=stateDirectory)}
-
+            'stoponerror': stopOnError,
+            'permutegroupsmanager': permuteGroupManager if permuteGroupManager is not None else \
+                                                        PermuteGroupManager(dir=stateDirectory,
+                                                        fromFailedStateFile=fromFailedStateFile)}
 
 class QueueThreadWorker:
     def __init__(self, iq):
@@ -1248,6 +1310,8 @@ class QueueThreadWorker:
                     id))
                 flushLogs()
                 project_directory, project_name = self.__executeOnce(globalState)
+                if project_directory is None and getValue(globalState,'stoponerror',defaultValue=False):
+                    exit=True
                 if 'notify_function' in globalState:
                     globalState['notify_function'](batchProject.getName(),id, project_directory, project_name)
 
@@ -1323,7 +1387,9 @@ class BatchExecutor:
                  initializers=None,
                  loglevel=50,
                  threads_count=1,
-                 removeBadProjects=True):
+                 removeBadProjects=True,
+                 stopOnError=False,
+                 fromFailedStateFile=None):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1331,12 +1397,18 @@ class BatchExecutor:
         :param initializers: list of functions (or a comma-separated list of namespace qualified function names
         :param loglevel: 0-100 (see python logging)
         :param threads_count: number of threads
+        :param removeBadProjects: projects that failed are removed
+        :param stopOnError: stop processing if an error occurs
+        :param fromFailedStateFile: a file containing failed state of permutations groups from which to run
         @type results : str
         @type workdir : str
         @type global_variables : dict
         @type initializers : list of functions
         @type loglevel: int
         @type threads_count: int
+        @type removeBadProjects: bool
+        @type stopOnError: bool
+        @type fromFailedStateFile: str
         """
         if not os.path.exists(results) or not os.path.isdir(results):
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
@@ -1351,8 +1423,13 @@ class BatchExecutor:
         if loglevel is not None:
             logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
             set_logging_level(logging.INFO if loglevel is None else int(loglevel))
-        self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir)
-        self.initialState = createGlobalState(results,self.workdir,removeBadProjects=removeBadProjects)
+        self.permutegroupsmanager = PermuteGroupManager(dir=self.workdir,fromFailedStateFile=fromFailedStateFile)
+        self.initialState = createGlobalState(results,
+                                              self.workdir,
+                                              permuteGroupManager=self.permutegroupsmanager,
+                                              removeBadProjects=removeBadProjects,
+                                              stopOnError=stopOnError,
+                                              fromFailedStateFile=fromFailedStateFile)
         if global_variables is not None:
             if type(global_variables) == str:
                 self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \
@@ -1442,7 +1519,10 @@ def main():
     parser.add_argument('--graph', required=False, action='store_true', help='create graph PNG file')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
+    parser.add_argument('--from_state', required=False, help='permutation state file')
     parser.add_argument('--export',required=False)
+    parser.add_argument('--keep_failed',required=False,action='store_true')
+    parser.add_argument('--stop_on_error', required=False, action='store_true')
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.json)
@@ -1451,7 +1531,10 @@ def main():
                        global_variables=args.global_variables,
                        initializers=args.initializers,
                        threads_count=int(args.threads) if args.threads else 1,
-                       loglevel=args.loglevel)
+                       loglevel=args.loglevel,
+                       stopOnError=args.stop_on_error,
+                       removeBadProjects=not args.keep_failed,
+                       fromFailedStateFile=args.from_state)
 
     notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
 

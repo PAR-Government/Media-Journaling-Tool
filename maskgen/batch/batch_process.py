@@ -181,7 +181,7 @@ def _processProject(batchSpecification, extensionRules, project, workdir=None):
     :return:
     @type batchSpecification: BatchProject
     """
-    sm = maskgen.scenario_model.ImageProjectModel(project)
+    sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
     nodes = findNodesToExtend(sm, extensionRules)
     print ('extending {}'.format(' '.join(nodes)))
     if not batchSpecification.executeForProject(sm, nodes,workdir=workdir):
@@ -291,7 +291,7 @@ def process(sourceDir, endDir, projectDir, op, software, version, opDescr, input
 
         # open the project
         new = not os.path.exists(project)
-        sm = maskgen.scenario_model.ImageProjectModel(project)
+        sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
         if new:
             logging.getLogger('maskgen').info( 'Creating {}'.format(project))
             lastNodeName = sm.addImage(os.path.join(sourceDir, sImg))
@@ -352,12 +352,12 @@ def process_plugin(sourceDir, projects, plugin, props, arguments):
         if new:
             sImgName = ''.join(i.split('.')[:-1])
             project = find_json_path(sImgName, projects)
-            sm = maskgen.scenario_model.ImageProjectModel(project)
+            sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
             for prop, val in props.iteritems():
                 sm.setProjectData(prop, val)
             lastNode = sm.addImage(os.path.join(sourceDir, i))
         else:
-            sm = maskgen.scenario_model.ImageProjectModel(i)
+            sm = maskgen.scenario_model.ImageProjectModel(i,tool='jtprocess')
             lastNode = [n for n in sm.G.get_nodes() if len(sm.G.successors(n)) == 0][-1]
 
         sm.selectImage(lastNode)

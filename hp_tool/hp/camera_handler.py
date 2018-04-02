@@ -99,7 +99,7 @@ class API_Camera_Handler:
     def write_devices(self):
         try:
             headers = {'Authorization': 'Token ' + self.token, 'Content-Type': 'application/json'}
-            url = self.url + '/api/cameras/filters/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
+            url = self.url + '/cameras/filters/?fields=hp_device_local_id, hp_camera_model, exif_device_serial_number, exif_camera_model, exif_camera_make/'
             camera_data = {"high_provenance": {"type": "exact", "value": True}}
 
             print 'Downloading camera list from browser API... ',
@@ -116,9 +116,15 @@ class API_Camera_Handler:
                         break
                 else:
                     raise requests.HTTPError()
+
+            with open(data_files._LOCALDEVICES, 'w') as j:
+                json.dump(self.all, j, indent=4)
+
+            self.source = 'remote'
+
             print 'complete.'
         except:
             print 'Could not connect to browser.  Try again later.'
+            self.source = 'local'
 
-        with open(data_files._LOCALDEVICES, 'w') as j:
-            json.dump(self.all, j, indent=4)
+
