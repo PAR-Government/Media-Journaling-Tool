@@ -43,6 +43,7 @@ class QAProjectDialog(Toplevel):
 
     lookup = {}
     def __init__(self, parent):
+        self.valid = False
         self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
@@ -62,10 +63,10 @@ class QAProjectDialog(Toplevel):
         self.qaData = qa_logic.ValidationData(self.scModel)
         self.resizable(width=False, height=False)
         #print(self)
-        t = threading.Thread(target=self.createWidgets)
-        t.start()
+        #t = threading.Thread(target=self.createWidgets)
+        #t.start()
         #t = threading._start_new_thread(self.createWidgets, () )
-        #self.createWidgets()
+        self.createWidgets()
 
 
     def getProbes(self):
@@ -86,7 +87,7 @@ class QAProjectDialog(Toplevel):
         self.destroy()
 
     def createWidgets(self):
-        print(self)
+        #print(self)
         page1 = Frame(self)
         page1.grid()
         self.cur = page1
@@ -156,18 +157,17 @@ class QAProjectDialog(Toplevel):
         #page1.grid_forget()
         for link in self.crit_links:
             #page.grid_forget()
-            print('creating page ' + str(count))
             page = Frame(self)
-            print('setting page ' + str(count))
+            #print('setting page ' + str(count))
             self.cur = page
-            print('making page ' + str(count))
-            threa = threading.Thread(args = tuple([link,page]), target = self.createImagePage)
-            threa.start()
-            threa.join()
+            #print('making page ' + str(count))
+            #threa = threading.Thread(args = tuple([link,page]), target = self.createImagePage)
+            #threa.start()
+            #threa.join()
             self.createImagePage(link,page)
             #threading._start_new_thread(self.createImagePage, tuple([link,page]))
-            print('appending page ' + str(count))
-            print(self.cur)
+            #print('appending page ' + str(count))
+            #print(self.cur)
             self.pages.append(page)
             count += 1
 
@@ -176,7 +176,7 @@ class QAProjectDialog(Toplevel):
         col = 0
         lastpage = Frame(self)
         self.cur = lastpage
-        self.validateButton = Button(lastpage, text='Check Validation', command=self.parent.validate, width=50)
+        self.validateButton = Button(lastpage, text='Check Validation', command=self.validategoodtimes, width=50)
         self.validateButton.grid(row=row, column=col, padx=10, columnspan=3, sticky='EW')
         row += 1
         self.infolabel = Label(lastpage, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
@@ -228,16 +228,23 @@ class QAProjectDialog(Toplevel):
         textscroll.config(command=self.commentsBox.yview)
         currentComment = self.parent.scModel.getProjectData('qacomment')
         self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
-        print('done with final page')
+        #print('done with final page')
         self.check_ok()
         self.pages.append(lastpage)
         self.cur=page1
         wnext.config(state=NORMAL)
         #self.cur.grid()
-        print(len(self.pages))
-        print(len(self.photos))
-        print(len(self.crit_links))
+        #print(len(self.pages))
+        #print(len(self.photos))
+        #print(len(self.crit_links))
 
+    def validategoodtimes(self):
+        v = self.parent.validate()
+        self.check_ok()
+        if v is not None:
+            self.valid = False
+        else:
+            self.valid = True
 
     def createVideoPage(self, t, p):
         self.edgeTuple = tuple(t.split("<-"))
@@ -628,7 +635,7 @@ class QAProjectDialog(Toplevel):
                     if b.get() is False or turn_on_ok is False:
                         turn_on_ok = False
 
-        if turn_on_ok is True:
+        if turn_on_ok is True and self.valid is True:
             self.acceptButton.config(state=NORMAL)
         else:
             self.acceptButton.config(state=DISABLED)
