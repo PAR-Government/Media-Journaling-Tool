@@ -1006,7 +1006,8 @@
         }
       },
        "maskTransformFunction": {
-          "video": "maskgen.mask_rules.copy_exif"
+          "video": "maskgen.mask_rules.copy_exif",
+          "image": "maskgen.mask_rules.exif_transform"
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
@@ -1037,7 +1038,8 @@
       "optionalparameters": {
       },
        "maskTransformFunction": {
-          "video": "maskgen.mask_rules.copy_exif"
+          "video": "maskgen.mask_rules.copy_exif",
+           "image": "maskgen.mask_rules.exif_transform"
       },
       "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
       "description": "Copy metadata information from a source.",
@@ -1114,6 +1116,10 @@
         "check_eight_bit"
       ],
       "optionalparameters": {},
+      "maskTransformFunction": {
+          "video": "maskgen.mask_rules.copy_exif",
+           "image": "maskgen.mask_rules.exif_transform"
+      },
       "description": "Alter Image to be compliant with another images quantization and EXIF",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -2540,6 +2546,9 @@
       ],
       "optionalparameters": {
       },
+       "maskTransformFunction": {
+          "image": "maskgen.mask_rules.copy_transform"
+      },
       "description": "Export the image in the in the same format. Used to branch off a final image  node",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -2567,6 +2576,9 @@
       },
       "compareparameters" : {
          "function" :"maskgen.tool_set.convertCompare"
+      },
+      "maskTransformFunction": {
+          "image": "maskgen.mask_rules.output_transform"
       },
       "description": "Export the image in the bmp format.",
       "includeInMask": {"default" : false},
@@ -2643,6 +2655,9 @@
           "description": "XMP file provided when exporting from a raw image."
         }
       },
+      "maskTransformFunction": {
+          "image": "maskgen.mask_rules.copy_transform"
+      },
       "description": "Export the image in the jpeg format.",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -2667,6 +2682,9 @@
           "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
+      },
+      "maskTransformFunction": {
+          "image": "maskgen.mask_rules.copy_transform"
       },
        "compareparameters" : {
          "function" :"maskgen.tool_set.convertCompare"
@@ -2709,6 +2727,9 @@
         "checkSizeAndExif",
         "rotationCheck"
       ],
+      "maskTransformFunction": {
+          "image": "maskgen.mask_rules.copy_transform"
+      },
       "optionalparameters": {
         "XMP File Name": {
           "type": "file:xmp",
@@ -3776,6 +3797,7 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {"image": "maskgen.mask_rules.affine_transform"},
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -3931,6 +3953,9 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+       "maskTransformFunction": {
+        "image": "maskgen.mask_rules.distort_transform"
+      },
       "description": "Alter the shape and dimensions of a given selection or image.",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -3975,7 +4000,8 @@
         "maskgen.tool_set.globalTransformAnalysis"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.video_flip_transform"
+        "video": "maskgen.mask_rules.video_flip_transform",
+        "image": "maskgen.mask_rules.flip_transform"
       },
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
       "includeInMask": {"default" : false},
@@ -4114,7 +4140,7 @@
        },
        "compareparameters" : {
         "function":"maskgen.tool_set.resizeCompare"
-      },
+       },
       "description": "Alter the dimensions of an image.",
       "includeInMask": {"default" : false},
       "generateMask" : "frames",
@@ -4233,6 +4259,9 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+       "maskTransformFunction": {
+        "image": "maskgen.mask_rules.scale_transform"
+      },
       "description": "Change the size of an image or layer while preserving dimensions.",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -4363,6 +4392,9 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.shear_transform"
+      },
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
       "includeInMask": {"default" : false},
       "transitions": [
@@ -4418,6 +4450,9 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.skew_transform"
+      },
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
       "includeInMask": {"default" : false},
       "transitions": [

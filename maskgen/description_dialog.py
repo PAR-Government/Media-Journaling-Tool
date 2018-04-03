@@ -1756,7 +1756,7 @@ class QAViewDialog(Toplevel):
         @type parent: MakeGenUI
         """
         self.parent = parent
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
+        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False, keepFailures=True)
         Toplevel.__init__(self, parent)
         #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
         self.createWidgets()
