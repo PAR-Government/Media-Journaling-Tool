@@ -9,7 +9,10 @@
 import numpy as np
 from subprocess import call, Popen, PIPE
 import os
+import sys
+import tempfile
 import json
+import StringIO
 from datetime import datetime
 import tool_set
 import time
@@ -435,19 +438,32 @@ def __get_metadata_item(data, item, default_value):
     return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False):
+    def runProbeWithFrames(func, args=None):
+        ffmpegcommand = [tool_set.getFFprobeTool(), file]
+        if args != None:
+            ffmpegcommand.append(args)
+        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut')
+        stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr')
+        p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
+        p.wait()
+        os.close(stdout_fd)
+        os.close(stder_fd)
+        try:
+            return func(os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r'), os.fdopen(os.open(stder_path, os.O_RDONLY), 'r'))
+        finally:
+            os.remove(stdout_path)
+            os.remove(stder_path)
+
+
     def runProbe(func, args=None):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
-        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
-        try:
-            return func(p.stdout,p.stderr)
-        finally:
-            p.stdout.close()
-            p.stderr.close()
+        stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
+        return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
     if with_frames:
-        frames = runProbe(processFrames,args='-show_frames')
+        frames = runProbeWithFrames(processFrames,args='-show_frames')
     else:
         frames = {}
     if show_streams:
