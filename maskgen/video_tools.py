@@ -444,13 +444,19 @@ def getMeta(file, with_frames=False, show_streams=False):
             ffmpegcommand.append(args)
         stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut')
         stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr')
-        p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
-        p.wait()
-        os.close(stdout_fd)
-        os.close(stder_fd)
         try:
-            return func(os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r'), os.fdopen(os.open(stder_path, os.O_RDONLY), 'r'))
+            p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
+            p.wait()
         finally:
+            os.close(stdout_fd)
+            os.close(stder_fd)
+        try:
+            stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
+            stder_fd = os.fdopen(os.open(stder_path, os.O_RDONLY), 'r')
+            return func(stdout_fd,stder_fd)
+        finally:
+            stdout_fd.close()
+            stder_fd.close()
             os.remove(stdout_path)
             os.remove(stder_path)
 
