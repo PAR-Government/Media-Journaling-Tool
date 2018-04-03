@@ -472,6 +472,11 @@ class MetaDataLoader:
                     except:
                         print ' '.join(opdata)
 
+    def getProperty(self, propertyname):
+        for prop in self.projectProperties:
+            if propertyname == prop.name:
+                return prop
+
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]
