@@ -621,6 +621,7 @@ class ImageGraph:
             return None, None
         node = self.G.node[name]
         filename = os.path.abspath(os.path.join(self.dir, node['file']))
+
         proxy = getProxy(filename)
         if proxy and 'proxyfile' not in node:
             # do not assume the proxy will be open but make sure
