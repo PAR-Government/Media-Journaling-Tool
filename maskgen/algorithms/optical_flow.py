@@ -5,11 +5,20 @@
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
 #==============================================================================
+import csv
 
 import numpy as np
 import cv2
 import logging
 import os
+
+import sys
+
+import subprocess
+
+import time
+from scipy import spatial
+
 from maskgen.cv2api import cv2api_delegate
 from maskgen.image_wrap import ImageWrapper
 from maskgen.tool_set import VidTimeManager, differenceInFramesBetweenMillisecondsAndFrame
@@ -145,7 +154,7 @@ def computeNormalDiffs(histograms, num_frames, logger=None):
     return [avg_flow, sigma_flow]
 
 
-def selectBestMatches(differences, selection=10):
+def selectBestMatches(differences, selection=50):
     """
      return the 'selection' best results. Needs to be updated to try to find the longest
      rop that should work
@@ -165,6 +174,8 @@ def selectBestFlow(frames, best_matches, logger):
         future = cv2.cvtColor(frames[best_matches[i, 1]], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
+        #flow = runCPM(past,future)
+        #flow = future - past
         flow_list[i] = np.std(flow)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('FOR {} to {}, STD={}'.format(best_matches[i, 0], best_matches[i, 1], flow_list[i]))
@@ -179,17 +190,19 @@ def getNormalFlow(frames):
         future = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
+        #flow = runCPM(past,future)
         flow_list[i - 1] = np.std(flow)
     return np.mean(flow_list)
 
 
 def calculateOptimalFrameReplacement(frames, start, stop):
+    #Slooooow
     avg_flow = getNormalFlow(frames[start:stop])
     prev_frame = cv2.cvtColor(frames[start], cv2.COLOR_BGR2GRAY)
     next_frame = cv2.cvtColor(frames[stop], cv2.COLOR_BGR2GRAY)
     jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame, next_frame,
                                                          0.8, 7, 15, 3, 7, 1.5, flags=2)
-
+    #jump_flow = runCPM(prev_frame,next_frame)
     std_jump_flow = np.std(jump_flow)
     frames_to_add = int(np.rint(std_jump_flow / avg_flow))
     return frames_to_add
@@ -232,7 +245,7 @@ def smartDropFrames(in_file, out_file,
     differences = scanHistList(histograms, distance, offset,
                                saveHistFile=in_file[0:in_file.rfind('.')] + '-hist.csv' if savehistograms else None)
     logger.info('Finding best matches')
-    best_matches = selectBestMatches(differences, selection=10)
+    best_matches = selectBestMatches(differences, selection=50)
     logger.info('Starting optical flow search')
     if best_matches is not None:
         best_flow = selectBestFlow(frames, best_matches, logger)
@@ -292,7 +305,6 @@ class OpticalFlow:
         adj[underoverflow_height] = self.coords[underoverflow_height]
         return cv2.remap(img, adj, None, cv2.INTER_LINEAR)
 
-
     def setTime(self, frame_time):
         forward_flow = np.multiply(self.flow, 1 - frame_time)
         backward_flow = np.multiply(self.bkflow, frame_time)
@@ -305,6 +317,109 @@ class OpticalFlow:
         return frame
 
         # return the average sigma(optical flow)
+
+class kdtreeOpticalFlow:
+    def __init__(self, prvs_frame, next_frame, flow, bkflow):
+        self.logger = logging.getLogger('maskgen')
+        self.prvs_frame = prvs_frame
+        self.next_frame = next_frame
+        self.flow = flow
+        self.bkflow = bkflow
+        self.hight = flow.shape[0]
+        self.width = flow.shape[1]
+        self.count = 0
+        h, w = flow.shape[:2]
+        self.coords = (np.swapaxes(np.indices((w, h), np.float32), 0, 2))
+
+    def setFrames(self, prvs_frame, next_frame, flow, bkflow):
+        self.prvs_frame = prvs_frame
+        self.next_frame = next_frame
+        self.flow = flow
+        self.bkflow = bkflow
+
+    def warpFlow(self, img, flow):
+        #s = time.time()
+        res = self.adjustFlow_G(flow)
+        #d = time.time() - s
+        #self.logger.info('Inverse Took {} seconds'.format(d))
+        adj = res[0] + self.coords
+        mp = res[1]
+        return cv2.remap(img, adj, None, cv2.INTER_LINEAR), mp
+
+    def adjustFlow_G(self, flow, p=3.0, k=5):
+        p = p
+        k = k
+        h, w = flow.shape[:2]
+        coord = (np.swapaxes(np.indices((w, h), np.float32), 0, 2))
+        cpy = np.copy(flow)
+        cpy += coord
+        ktree = spatial.cKDTree(np.reshape(cpy, (w * h, 2)))
+        reverse = np.swapaxes(np.indices((w, h), np.float32), 0, 2)
+        reverse[:][:] = -1000.0
+        nearest = ktree.query(coord, k=k)  # ,distance_upper_bound=2.0**0.5)
+        mp = np.any((nearest[0] < 1.0), axis=2)
+        # identify points that have source points close enough to use
+        close_enough = np.any((nearest[0] < 1.0), axis=2)
+        # id points that have at least one match 0 away
+        exact = np.any((nearest[0] == 0.0), axis=2)
+        values = np.asarray([nearest[1] % w, nearest[1] / w])
+
+        for x in range(h):
+            for y in range(w):
+                found = False
+                dist = nearest[0][x, y]
+                # skip points too far away
+                if not close_enough[x, y]:
+                    continue
+
+                # process exact matches
+                if exact[x, y]:
+                    # find max distance of the k closest source points
+                    md_k = np.argmax(((values[1, x, y] - x) ** 2 + (values[0, x, y] - y) ** 2) ** .5)
+
+                    # if mapped distance ==0 and source distance is the greatest, use it
+                    if dist[md_k] == 0:
+                        reverse[x, y, :] = values[:, x, y, md_k]
+                        #                       reverse[x][y][0] = values[0,x,y,md_k]
+                        found = True
+
+                # process interpolation points
+                if not found:
+                    weight_accum = np.sum(1 / dist[np.where(dist[:] > 0)] ** p)
+                    w_xyk = np.sum((values[:, x, y, np.where(dist[:] > 0)]) /
+                                   (dist[np.where(dist[:] > 0)] ** p), axis=2)
+                    reverse[x][y] = (w_xyk / weight_accum)[:, 0]
+
+        return reverse - coord, mp
+
+    def setTime(self, frame_time, truth=None):
+        forward_flow = np.multiply(self.flow, 1 - frame_time)
+        # cv2.imwrite('fwd_frame.png',imageafy(forward_flow,self.next_frame))
+        backward_flow = np.multiply(self.bkflow, frame_time)
+        # cv2.imwrite('bwd_frame.png', imageafy(backward_flow, self.next_frame))
+        from_prev, mpp = self.warpFlow(self.prvs_frame, backward_flow)
+        from_next, mpn = self.warpFlow(self.next_frame, forward_flow)
+        # cv2.imwrite('bwd_frame_real' + 'new' + str(self.count) + '.png', from_prev)
+        # cv2.imwrite('fwd_frame_real' + 'new' + str(self.count) + '.png', from_next)
+        truth = self.next_frame if truth is None else truth
+        f = self.frameadjust(from_next, self.prvs_frame, mpp)
+        n = self.frameadjust(from_prev, truth, mpn)
+        from_next = f
+        from_prev = n
+        from_prev = np.multiply(from_prev, (1 - frame_time))
+        from_next = np.multiply(from_next, frame_time)
+
+        frame = (np.add(from_prev, from_next)).astype(np.uint8)
+        self.count += 1
+        return frame
+
+    def frameadjust(self, frame, alterframe, mp):
+        cpy = np.copy(frame)
+        for x in range(len(frame)):
+            for y in range(len(frame[0])):
+                if np.array_equal(frame[x][y], np.zeros(len(frame[x][y]))):
+                    cpy[x][y] = alterframe[x][y]
+        return cpy
 
 
 class FrameAnalyzer:
@@ -338,7 +453,15 @@ class FrameAnalyzer:
         self.jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame_gray,
                                                                   next_frame_gray,
                                                                   0.8, 7, 15, 3, 7, 1.5, 2)
-        self.back_flow = cv2api_delegate.calcOpticalFlowFarneback(next_frame_gray,
+        #jump_flow_next = runCPM(last_frame,next_frame)
+        #print(np.std(jump_flow_next))
+        #print(np.std(self.jump_flow))
+        #if (abs(np.std(jump_flow_next) - np.std(self.jump_flow))>2000000):
+         #   self.jump_flow = jump_flow_next
+         #   self.back_flow = runCPM(next_frame_gray,prev_frame_gray)
+        #else:
+        self.back_flow =self.jump_flow
+        self.jump_flow = cv2api_delegate.calcOpticalFlowFarneback(next_frame_gray,
                                                                   prev_frame_gray,
                                                                   0.8, 7, 15, 3, 7, 1.5, 2)
 
@@ -394,7 +517,7 @@ def smartAddFrames(in_file,
             ImageWrapper(next_frame).save('after_' + str(time.clock()) + '.png')
             logger.debug("STD after and before {}".format(np.std(last_frame - next_frame)))
         frame_analyzer.updateFlow(last_frame, next_frame, direction)
-        opticalFlow = OpticalFlow(last_frame, next_frame, frame_analyzer.back_flow, frame_analyzer.jump_flow)
+        opticalFlow = kdtreeOpticalFlow(last_frame, next_frame, frame_analyzer.jump_flow, frame_analyzer.back_flow)
         frames_to_add = frame_analyzer.framesToAdd()
         lf = last_frame
         written_count = 0
