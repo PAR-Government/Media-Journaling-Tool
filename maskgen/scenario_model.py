@@ -1232,8 +1232,9 @@ class ImageProjectModel:
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
-        for compositeBuilder in localCompositeBuilders:
-            compositeBuilder.finalize(probes)
+        if replacement_probes is None:
+            for compositeBuilder in localCompositeBuilders:
+                compositeBuilder.finalize(probes)
         return probes
 
     def getPredecessorNode(self):
