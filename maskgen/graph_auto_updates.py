@@ -48,19 +48,22 @@ def updateJournal(scModel):
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
          ('0.5.0227.6d9889731b', [_fixPNGS]),
-         ('0.5.0227.bf007ef4cd', [_fixTool])])
+         ('0.5.0227.bf007ef4cd', [_fixTool]),
+         ('0.5.0401.db02ad8372', [_fixContrastPlugin])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
     if len(matched_versions) > 0:
         max_upgrade = max(matched_versions)
+    else:
+        max_upgrade = 0
         # fix what is left
-        fixes_needed = max_upgrade-len(versions) + 1
-        if fixes_needed < 0:
-            for id in fixes.keys()[fixes_needed:]:
-                logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
-                for fix in fixes[id]:
-                    fix(scModel, gopLoader)
+    fixes_needed = max_upgrade-len(versions) + 1
+    if fixes_needed < 0:
+        for id in fixes.keys()[fixes_needed:]:
+            logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
+            for fix in fixes[id]:
+                fix(scModel, gopLoader)
     #update to the max
     upgrades = fixes.keys()[-1:]
     if scModel.getGraph().getVersion() not in upgrades:
@@ -347,6 +350,7 @@ def _operationsChange1(scModel,gopLoader):
         'ColorReplace':'Hue',
         'ColorHue':'Hue',
         'ColorMatch':'Hue',
+        'ColorOpacity': 'LayerOpacity',
         'ColorVibranceContentBoosting':'Vibrance',
         'ColorVibranceReduction':'Vibrance',
         'IntensityDesaturate':'Saturation',
@@ -373,7 +377,6 @@ def _operationsChange1(scModel,gopLoader):
         'IntensityContrast':'Contrast',
         'IntensityCurves':'Curves',
         'IntensityLuminosity':'Luminosity',
-        'IntensityExposure': 'Exposure',
         'MarkupDigitalPenDraw':'DigitalPenDraw',
         'MarkupHandwriting':'Handwriting',
         'MarkupOverlayObject': 'OverlayObject',
@@ -712,6 +715,14 @@ def _replace_oldops(scModel,gopLoader):
             if 'arguments' not in currentLink:
                 currentLink['arguments'] = {}
             currentLink['arguments']['purpose'] = 'heal'
+
+
+def _fixContrastPlugin(scModel, gopLoader):
+    for edge in scModel.getGraph().get_edges():
+        currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
+        oldOp = currentLink['op']
+        if oldOp == 'ColorBalance' and getValue(currentLink,'plugin_name') == 'Contrast':
+            currentLink['op'] = 'Contrast'
 
 def _fixDescriptions(scModel, gopLoader):
     for edge in scModel.getGraph().get_edges():

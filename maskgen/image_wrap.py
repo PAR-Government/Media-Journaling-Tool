@@ -20,9 +20,11 @@ import os
 import png
 import exif
 from numpngw import write_png
+from maskgen import config
 
-image_lock = RLock()
-image_cache = LRUCache(maxsize=24)
+
+image_lock = config.getAndSet('image_lock', RLock())
+image_cache = config.getAndSet('image_cache', LRUCache(maxsize=24))
 
 try:
     from tifffile import TiffFile, imsave

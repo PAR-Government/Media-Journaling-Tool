@@ -22,8 +22,8 @@ def transform(img, source, target, **kwargs):
     return None,None
 
 def operation():
-    return {'name':'Color',
-          'category':'Color',
+    return {'name':'Blend',
+          'category':'Layer',
           'description':'Convert a gray image into a single color channel',
           'software':'OpenCV',
           'version':cv2.__version__,
@@ -33,7 +33,8 @@ def operation():
                   "defaultvalue":"green",
                   "values": ["red","green","blue"],
                   "description": "which channel is set to the gray image"
-              }
+              },
+              "mode": { "type": "text",  "defaultvalue":"Color" }
           },
           'transitions': [
               'image.image'
