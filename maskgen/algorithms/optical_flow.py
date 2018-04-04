@@ -5,20 +5,11 @@
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
 #==============================================================================
-import csv
-
 import numpy as np
 import cv2
 import logging
 import os
-
-import sys
-
-import subprocess
-
-import time
 from scipy import spatial
-
 from maskgen.cv2api import cv2api_delegate
 from maskgen.image_wrap import ImageWrapper
 from maskgen.tool_set import VidTimeManager, differenceInFramesBetweenMillisecondsAndFrame
@@ -174,8 +165,6 @@ def selectBestFlow(frames, best_matches, logger):
         future = cv2.cvtColor(frames[best_matches[i, 1]], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
-        #flow = runCPM(past,future)
-        #flow = future - past
         flow_list[i] = np.std(flow)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('FOR {} to {}, STD={}'.format(best_matches[i, 0], best_matches[i, 1], flow_list[i]))
@@ -190,19 +179,16 @@ def getNormalFlow(frames):
         future = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
-        #flow = runCPM(past,future)
         flow_list[i - 1] = np.std(flow)
     return np.mean(flow_list)
 
 
 def calculateOptimalFrameReplacement(frames, start, stop):
-    #Slooooow
     avg_flow = getNormalFlow(frames[start:stop])
     prev_frame = cv2.cvtColor(frames[start], cv2.COLOR_BGR2GRAY)
     next_frame = cv2.cvtColor(frames[stop], cv2.COLOR_BGR2GRAY)
     jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame, next_frame,
                                                          0.8, 7, 15, 3, 7, 1.5, flags=2)
-    #jump_flow = runCPM(prev_frame,next_frame)
     std_jump_flow = np.std(jump_flow)
     frames_to_add = int(np.rint(std_jump_flow / avg_flow))
     return frames_to_add
@@ -453,13 +439,6 @@ class FrameAnalyzer:
         self.jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame_gray,
                                                                   next_frame_gray,
                                                                   0.8, 7, 15, 3, 7, 1.5, 2)
-        #jump_flow_next = runCPM(last_frame,next_frame)
-        #print(np.std(jump_flow_next))
-        #print(np.std(self.jump_flow))
-        #if (abs(np.std(jump_flow_next) - np.std(self.jump_flow))>2000000):
-         #   self.jump_flow = jump_flow_next
-         #   self.back_flow = runCPM(next_frame_gray,prev_frame_gray)
-        #else:
         self.back_flow =self.jump_flow
         self.jump_flow = cv2api_delegate.calcOpticalFlowFarneback(next_frame_gray,
                                                                   prev_frame_gray,
