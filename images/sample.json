@@ -9,10 +9,11 @@
       "donors.*": ""
     }, 
     "validatedby": "", 
-    "exporttime": "2016-12-27 19:17:59", 
+    "exporttime": "2018-04-05 15:54:54", 
     "jt_upgrades": [
-      "0.5.0227.c5eeafdb2e"
+      "0.5.0227.bf007ef4cd"
     ], 
+    "creator_tool": "jtui", 
     "autopastecloneinputmask": "no", 
     "idcount": 41, 
     "provenance": "no", 
@@ -20,7 +21,7 @@
       "input_mod_2_25.jpg", 
       "56884521ef4db89e5ff5e34266a940fb.jpg"
     ], 
-    "manipulationcategory": "", 
+    "manipulationcategory": "4-Unit", 
     "edgeFilePaths": {
       "maskname": "", 
       "videomasks.videosegment": "", 
@@ -34,11 +35,11 @@
     }, 
     "skipped_edges": [], 
     "username": "ericrobertson", 
-    "igversion": "0.5.0227.c5eeafdb2e", 
+    "igversion": "0.5.0227.bf007ef4cd", 
     "validationdate": "", 
-    "semanticgroups": [], 
+    "semanticgroups": "[]", 
     "groups": {}, 
-    "updatetime": "2018-03-15 18:26:43", 
+    "updatetime": "2018-04-05 15:54:50", 
     "projecttype": "image", 
     "name": "sample", 
     "typespref": [
@@ -59,7 +60,10 @@
         "*.*"
       ]
     ], 
-    "organization": "PAR", 
+    "modifier_tools": [
+      "jtui"
+    ], 
+    "organization": "Wonderland", 
     "validation": "no", 
     "creator": "ericrobertson"
   }, 
@@ -68,6 +72,7 @@
       "xpos": 325, 
       "nodetype": "base", 
       "ctime": "2016-07-28 13:06:28", 
+      "proxyfile": "orig_input.png", 
       "ypos": 14, 
       "seriesname": "sample", 
       "ownership": "no", 
@@ -98,12 +103,90 @@
     {
       "xpos": 354, 
       "nodetype": "final", 
-      "ownership": "yes", 
+      "ctime": "2016-11-29 14:45:00", 
       "ypos": 570, 
       "seriesname": "orig_input", 
+      "ownership": "yes", 
       "file": "56884521ef4db89e5ff5e34266a940fb.jpg", 
       "id": "input_mod_2_25", 
-      "ctime": "2016-11-29 14:45:00"
+      "pathanalysis": {
+        "postprocesscompression": "no", 
+        "dialogchange": "no", 
+        "crowdrelocation": "no", 
+        "people": "no", 
+        "color": "yes", 
+        "antiforensicaddcamfingerprintprnu": "no", 
+        "otherenhancements": "no", 
+        "blurlocal": "no", 
+        "audioclone": "no", 
+        "Tattoos": "no", 
+        "compositepixelsize": "large", 
+        "audiosplice": "no", 
+        "seamcarving": "yes", 
+        "imagecompressiontable": "yes", 
+        "landscape": "no", 
+        "imagecompression": "yes", 
+        "audioactivity": "no", 
+        "temporalother": "no", 
+        "audiovoiceover": "no", 
+        "postprocesscropframes": "no", 
+        "othersubjects": "no", 
+        "antiforensicaberrationcorrection": "no", 
+        "dateandtime": "no", 
+        "wound": "no", 
+        "dataembeddingwatermark": "no", 
+        "antiforensiccfacorrection": "no", 
+        "launderingsocialmedia": "no", 
+        "temporalremove": "no", 
+        "antiforensicother": "no", 
+        "Personal Appearance": "no", 
+        "audioothers": "no", 
+        "imagereformat": "no", 
+        "audioremoval": "no", 
+        "audiovoiceswapping": "no", 
+        "dateburnin": "no", 
+        "spatialother": "no", 
+        "ambienceaudioswap": "no", 
+        "antiforensicnoiserestoration": "no", 
+        "temporalreorder": "no", 
+        "locationchange": "no", 
+        "healinglocal": "no", 
+        "semanticrefabrication": null, 
+        "aging": "no", 
+        "clone": "no", 
+        "manmade": "yes", 
+        "spatialsplice": "no", 
+        "semanticrepurposing": null, 
+        "spatialclone": "no", 
+        "spatialmovingobject": "no", 
+        "spatialremove": "no", 
+        "antiforensicillumination": "no", 
+        "histogramnormalizationglobal": "no", 
+        "launderingmedianfiltering": "no", 
+        "facemanipulations": "no", 
+        "cadaver": "no", 
+        "temporalclone": "no", 
+        "recapture": "no", 
+        "mosaicing": "no", 
+        "weatherchanges": "no", 
+        "manipulationcategory": "4-Unit", 
+        "natural": "no", 
+        "timeofday": "no", 
+        "voiceaudioswap": "no", 
+        "largemanmade": "no", 
+        "postprocessstabilization": "no", 
+        "contrastenhancement": "no", 
+        "buildingrelocation": "no", 
+        "remove": "no", 
+        "face": "no", 
+        "reflectionmanipulations": "no", 
+        "dataembeddingsteganography": "no", 
+        "semanticrestaging": null, 
+        "spatialmovingcamera": "no", 
+        "moodchange": "no", 
+        "temporalsplice": "no", 
+        "shadowmanipulations": "no"
+      }
     }, 
     {
       "xpos": 538, 
@@ -373,11 +456,11 @@
       "location": "(0,0)", 
       "arguments": {
         "function": "maskgen.algorithms.seam_carving.seamCompare", 
-        "mask interpolated": "yes", 
         "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_152113837226__final_mask.png", 
+        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png", 
+        "mask interpolated": "yes", 
         "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
-        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png", 
-        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png"
+        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png"
       }, 
       "username": "TheDoorKnob", 
       "description": "", 
@@ -602,9 +685,9 @@
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Exif Byte Order": [
+        "Resolution Unit": [
           "add", 
-          "Little-endian (Intel, II)"
+          "inches"
         ], 
         "MIME Type": [
           "change", 
@@ -644,9 +727,9 @@
           "delete", 
           "8"
         ], 
-        "Resolution Unit": [
+        "Exif Byte Order": [
           "add", 
-          "inches"
+          "Little-endian (Intel, II)"
         ], 
         "X Resolution": [
           "add", 

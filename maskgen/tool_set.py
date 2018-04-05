@@ -197,8 +197,6 @@ def getMimeType(filename):
 def fileType(fileName):
     suffix = os.path.splitext(fileName)[1].lower()
     suffix = '*' + suffix if len(suffix) > 0 else ''
-    if not os.path.exists(fileName):
-        return None
     file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
     if suffix in [x[1] for x in imagefiletypes] or imghdr.what(fileName) is not None:
         file_type = 'image'

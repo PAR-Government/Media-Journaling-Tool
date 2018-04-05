@@ -510,6 +510,12 @@ class MakeGenUI(Frame):
                 self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
+    def nodeproxy(self):
+        d = FileCaptureDialog(self,'Proxy',self.scModel.get_dir(),self.scModel.getProxy())
+        if not d.cancelled:
+            self.scModel.setProxy(d.current_file)
+            self.drawState()
+
     def nodeedit(self):
         im, filename = self.scModel.currentImage()
         if (im is None):
@@ -1078,6 +1084,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Compress", command=self.compress)
         self.nodemenu.add_command(label="Analyze", command=self.imageanalysis)
         self.nodemenu.add_command(label="Edit", command=self.nodeedit)
+        self.nodemenu.add_command(label="Proxy", command=self.nodeproxy)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
