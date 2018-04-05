@@ -357,7 +357,6 @@ class ImageGraph:
         self.arg_checker_callback(op, args)
 
     def add_node(self, pathname, nodeid=None, seriesname=None, **kwargs):
-        proxypathname = getProxy(pathname)
         fname = os.path.split(pathname)[1]
         origdir = os.path.split(os.path.abspath(pathname))[0]
         filetype = fileType(pathname)
@@ -392,10 +391,6 @@ class ImageGraph:
                             **self.__filter_args(updated_args, exclude=['filetype', 'seriesname', 'username', 'ctime', 'ownership', 'file']))
 
             self.__scan_args('node', updated_args)
-
-            if proxypathname is not None:
-                self.G.node[nname]['proxyfile'] = proxypathname
-
             self.U = []
             self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
             # adding back a file that was targeted for removal
@@ -621,13 +616,10 @@ class ImageGraph:
             return None, None
         node = self.G.node[name]
         filename = os.path.abspath(os.path.join(self.dir, node['file']))
-
-        proxy = getProxy(filename)
-        if proxy and 'proxyfile' not in node:
-            # do not assume the proxy will be open but make sure
-            # it is preserved, since it may have been added after
-            # the node was added to the project
-            node['proxyfile'] = os.path.split(proxy)[1]
+        if 'proxyfile' in node and os.path.exists(os.path.abspath(os.path.join(self.dir, node['proxyfile']))):
+            im = self.openImage(os.path.abspath(os.path.join(self.dir, node['proxyfile'])), metadata=metadata)
+            if im is not None:
+                return im,filename
         im = self.openImage(filename, metadata=metadata)
         return im, filename
 
@@ -958,15 +950,12 @@ class ImageGraph:
         errors = list()
         filename = os.path.join(self.dir, node['file'])
         if os.path.exists(filename):
-            archive.add(filename, arcname=os.path.join(self.G.name, node['file']))
-            names_added.append(os.path.join(self.G.name, node['file']))
+            name_to_add = os.path.join(self.G.name, node['file'])
+            if name_to_add not in names_added:
+                archive.add(filename, arcname=name_to_add)
+                names_added.append(name_to_add)
         else:
             errors.append((str(nname), str(nname), str(nname) + " missing file"))
-        proxyname = os.path.splitext(filename)[0] + '_proxy.png'
-        if os.path.exists(proxyname):
-            proxyfile = os.path.splitext(node['file'])[0] + '_proxy.png'
-            archive.add(proxyname, arcname=os.path.join(self.G.name, proxyfile))
-            names_added.append(os.path.join(self.G.name, proxyfile))
         for path, ownership in self.G.graph['nodeFilePaths'].iteritems():
             for pathvalue in getPathValues(node, path):
                 if not pathvalue or len(pathvalue) == 0:
@@ -974,8 +963,10 @@ class ImageGraph:
                 pathvalue= pathvalue.strip()
                 newpathname = os.path.join(self.dir, pathvalue)
                 if os.path.exists(newpathname):
-                    archive.add(newpathname, arcname=os.path.join(self.G.name, pathvalue))
-                    names_added.append(os.path.join(self.G.name, pathvalue))
+                    name_to_add = os.path.join(self.G.name, pathvalue)
+                    if name_to_add not in names_added:
+                        archive.add(newpathname, arcname=name_to_add)
+                        names_added.append(name_to_add)
                 else:
                     errors.append(
                         (str(nname), str(nname), str(nname) + ' missing ' + pathvalue))

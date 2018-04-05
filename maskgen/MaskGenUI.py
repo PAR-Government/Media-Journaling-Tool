@@ -203,9 +203,12 @@ class MakeGenUI(Frame):
             try:
                 self._open_project(val)
             except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logging.getLogger('maskgen').error(
+                    ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                 backup = val + '.bak'
                 if os.path.exists(backup):
-                    if tkMessageBox.askquestion('Project Corruption Error',str(e) + ".  Do you want to restore from the backup?") == 'yes':
+                    if tkMessageBox.askquestion('Possible Project Corruption Error',str(e) + ".  Do you want to restore from the backup?") == 'yes':
                         shutil.copy(backup, val)
                         self._open_project(val)
                 else:
@@ -512,6 +515,12 @@ class MakeGenUI(Frame):
                 self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
+    def nodeproxy(self):
+        d = FileCaptureDialog(self,'Proxy',self.scModel.get_dir(),self.scModel.getProxy())
+        if not d.cancelled:
+            self.scModel.setProxy(d.current_file)
+            self.drawState()
+
     def nodeedit(self):
         im, filename = self.scModel.currentImage()
         if (im is None):
@@ -651,8 +660,11 @@ class MakeGenUI(Frame):
             fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL()
 
         mask_cache_name = start_cache_name+ '#mask' if self.scModel.end is None else start_cache_name + self.scModel.end
-        mim = self.image_cache[mask_cache_name] if mask_cache_name in self.image_cache else \
-            fixTransparency(imageResizeRelative(self.scModel.maskImage(), (250, 250), None)).toPIL()
+        if mask_cache_name in self.image_cache:
+            mim = self.image_cache[mask_cache_name]
+        else:
+            im = self.scModel.maskImage()
+            mim = fixTransparency(imageResizeRelative(im, (250, 250), im.size if im is not None else sim.size)).toPIL()
 
         self.img1 = ImageTk.PhotoImage(sim)
         self.img2 = ImageTk.PhotoImage(nim)
@@ -1094,6 +1106,7 @@ class MakeGenUI(Frame):
         self.nodemenu.add_command(label="Compress", command=self.compress)
         self.nodemenu.add_command(label="Analyze", command=self.imageanalysis)
         self.nodemenu.add_command(label="Edit", command=self.nodeedit)
+        self.nodemenu.add_command(label="Proxy", command=self.nodeproxy)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
