@@ -270,6 +270,8 @@ def imageResizeRelative(img, dim, otherImDim):
     :return: Resized relative to width given the maximum constraints
      @rtype: ImageWrapper
     """
+    if otherImDim is None:
+        otherImDim = img.size
     if img is None:
         img = ImageWrapper(np.zeros((otherImDim[1], otherImDim[0]), dtype=np.uint8))
     wmax = max(img.size[0], otherImDim[0])

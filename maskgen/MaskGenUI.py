@@ -37,6 +37,7 @@ from maskgen.updater import UpdaterGitAPI
 from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 import preferences_initializer
 from software_loader import getMetDataLoader
+from cachetools import LRUCache
 
 """
   Main UI Driver for MaskGen
@@ -119,6 +120,7 @@ class MakeGenUI(Frame):
     nodemenu = None
     edgemenu = None
     filteredgemenu = None
+    image_cache = LRUCache(maxsize=36)
     groupmenu = None
     canvas = None
     uiProfile = UIProfile()
@@ -645,11 +647,25 @@ class MakeGenUI(Frame):
             openFile(os.path.join(self.scModel.get_dir(),imname))
 
     def drawState(self):
-        sim = self.scModel.startImage()
-        nim = self.scModel.nextImage()
-        self.img1 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(sim, (250, 250), sim.size)).toPIL())
-        self.img2 = ImageTk.PhotoImage(fixTransparency(imageResizeRelative(nim, (250, 250), nim.size)).toPIL())
-        self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
+
+        start_cache_name = self.scModel.start if self.scModel.start else '#empty@'
+        sim = self.image_cache[start_cache_name] if start_cache_name in self.image_cache else \
+            fixTransparency(imageResizeRelative(self.scModel.startImage(), (250, 250), None)).toPIL()
+
+        end_cache_name = start_cache_name + '#end' if self.scModel.end is None else self.scModel.end
+        nim = self.image_cache[end_cache_name] if end_cache_name in self.image_cache else \
+            fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL()
+
+        mask_cache_name = start_cache_name+ '#mask' if self.scModel.end is None else start_cache_name + self.scModel.end
+        mim = self.image_cache[mask_cache_name] if mask_cache_name in self.image_cache else \
+            fixTransparency(imageResizeRelative(self.scModel.maskImage(), (250, 250), None)).toPIL()
+
+        self.img1 = ImageTk.PhotoImage(sim)
+        self.img2 = ImageTk.PhotoImage(nim)
+        self.img3 = ImageTk.PhotoImage(mim)
+        self.image_cache[mask_cache_name] = mim
+        self.image_cache[start_cache_name] = sim
+        self.image_cache[end_cache_name] = nim
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
         self.img3c.config(image=self.img3)
