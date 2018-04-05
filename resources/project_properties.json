@@ -4,14 +4,14 @@
       "description": "Last Update User Name",
       "name": "username",
       "type": "string",
-      "readonly": "true",
+      "readonly": true,
       "information":  "This property may be changed under File->Settings->Username"
     },
      {
       "description": "Creator",
       "name": "creator",
       "type": "string",
-      "readonly": "true",
+      "readonly": true,
       "information":  "This property cannot be changed"
     },
     {
@@ -47,19 +47,19 @@
       "description": "Validation",
       "name": "validation",
       "type": "yesno",
-      "readonly": "true"
+      "readonly": true
     },
     {
       "description": "Validated By",
       "name": "validatedby",
       "type": "string",
-      "readonly": "true"
+      "readonly": true
     },
     {
       "description": "Validation Date",
       "name": "validationdate",
       "type": "string",
-      "readonly": "true"
+      "readonly": true
     },
     {
       "description": "Semantic Restaging",
@@ -84,7 +84,7 @@
       "description" : "Paste Clone Auto Input Mask",
       "name": "autopastecloneinputmask",
       "type":"yesno",
-      "readonly":"true",
+      "readonly":true,
       "information": "if the input mask was guessed"
     },
     {
@@ -647,7 +647,21 @@
       "name": "Personal Appearance",
       "type": "yesno",
       "semanticgroup" : true,
-      "information": "Skin Color Change, Dirty Clothing, Coal Dust, Dirt on Skin, Adding or Removing Hair"	
+      "information": "Skin Color Change, Dirty Clothing, Coal Dust, Dirt on Skin, Adding or Removing Hair"		
+	},
+	{
+	  "description": "Building Destruction",
+      "name": "Building Destruction",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Destroying a building to look like it was attacked or collapsed"	
+	},
+    {
+	  "description": "Manhattan World",
+      "name": "Manhattan World",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Putting a object with corners and depth into a Manhattan World image example: table, box, frame"	
 	},
     {
       "description": "Mosaicing",

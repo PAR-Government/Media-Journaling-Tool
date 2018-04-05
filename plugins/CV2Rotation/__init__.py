@@ -1,6 +1,6 @@
 import cv2
 from maskgen.image_wrap import ImageWrapper
-from maskgen.tool_set import resizeImage,rotateImage
+from maskgen.tool_set import resizeImage,rotateImage,serializeMatrix
 
 def transform(img,source,target,**kwargs):
     rotation = int(kwargs['rotation'])
@@ -15,7 +15,8 @@ def transform(img,source,target,**kwargs):
         #out_img = cv2.cvtColor(rotated_img, cv2.COLOR_GRAY2RGB)
         # display(out_img, 'rotation')
     ImageWrapper(rotated_img).save(target)
-    return None, None
+    return {'transform matrix': serializeMatrix(
+        M)}, None
 
 # the actual link name to be used.
 # the category to be shown

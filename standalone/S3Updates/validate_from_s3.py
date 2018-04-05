@@ -3,6 +3,7 @@ import argparse
 import os
 import maskgen.scenario_model
 from maskgen.tool_set import *
+from maskgen.userinfo import get_username, CustomPwdX, setPwdX
 from maskgen import video_tools
 import tempfile
 from maskgen.scenario_model import ImageProjectModel

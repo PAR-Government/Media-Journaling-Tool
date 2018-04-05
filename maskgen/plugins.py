@@ -6,6 +6,7 @@ import logging
 import tarfile
 import importlib
 import traceback
+import config
 
 """
 Manage and invoke all JT plugins that support operations on node media (images, video and audio)
@@ -13,10 +14,7 @@ Manage and invoke all JT plugins that support operations on node media (images, 
 
 MainModule = "__init__"
 
-loaded = None
-
 def installPlugin(zippedFile):
-    global loaded
     def extract_archive(fname, dir):
         try:
             archive = tarfile.open(fname, "r:gz", errorlevel=2)
@@ -35,6 +33,7 @@ def installPlugin(zippedFile):
         archive.close()
         return list(pluginnames)
 
+    loaded = config.global_config.get('plugins', {})
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
     pluginFolders.extend([os.path.join(x, 'plugins') for x in sys.path if 'maskgen' in x])
     for folder in pluginFolders:
@@ -96,8 +95,10 @@ def loadCustom(plugin, path):
     """
     loads a custom plugin
     """
-    global loaded
+    loaded = config.global_config.get('plugins',{})
     logging.getLogger('maskgen').info("Loading plugin " + plugin)
+    if plugin == 'LevelCorrection':
+        pass
     try:
         with open(path) as jfile:
             data = json.load(jfile)
@@ -129,12 +130,11 @@ def pluginSummary():
 
 
 def loadPlugins(reload=False, customFolders=[]):
-   global loaded
-
-   if loaded is not None and not reload:
-       return loaded
+   if 'plugins' in config.global_config and not reload:
+       return config.global_config['plugins']
 
    loaded = {}
+   config.global_config['plugins'] = loaded
    ps = getPlugins(customFolders=customFolders)
    for i in ps.keys():
       if 'custom' in ps[i]:
@@ -146,7 +146,7 @@ def loadPlugins(reload=False, customFolders=[]):
    return loaded
 
 def getOperations(fileType=None):
-    global loaded
+    loaded = config.global_config['plugins']
     ops = {}
     for l in loaded.keys():
         if 'operation' not in loaded[l]:
@@ -154,24 +154,26 @@ def getOperations(fileType=None):
             continue
         transitions = loaded[l]['operation']['transitions'] if 'transitions' in loaded[l]['operation'] else []
         transitions = [t.split('.')[0] for t in transitions]
+        if len(transitions) == 0:
+            continue
         if fileType is None or fileType in transitions:
             ops[l] = loaded[l]
     return ops
 
 
 def getPreferredSuffix(name):
-    global loaded
+    loaded = config.global_config['plugins']
     return loaded[name]['suffix'] if 'suffix' in loaded[name] else None
 
 def getOperation(name):
-    global loaded
+    loaded = config.global_config['plugins']
     if name not in loaded:
         logging.getLogger('maskgen').warning('Requested plugin not found: ' + str(name))
         return None
     return loaded[name]['operation']
 
 def callPlugin(name,im,source,target,**kwargs):
-    global loaded
+    loaded = config.global_config['plugins']
     if loaded is None:
         loaded = loadPlugins()
     if name not in loaded:
@@ -189,8 +191,8 @@ def callPlugin(name,im,source,target,**kwargs):
             raise e
 
 def runCustomPlugin(name, im, source, target, **kwargs):
-    global loaded
     import copy
+    loaded = config.global_config['plugins']
     if name not in loaded:
         raise ValueError('Request plugined not found: ' + str(name))
     commands = copy.deepcopy(loaded[name]['command'])

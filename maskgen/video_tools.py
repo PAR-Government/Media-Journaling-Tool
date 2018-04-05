@@ -9,7 +9,10 @@
 import numpy as np
 from subprocess import call, Popen, PIPE
 import os
+import sys
+import tempfile
 import json
+import StringIO
 from datetime import datetime
 import tool_set
 import time
@@ -394,6 +397,36 @@ def ffmpegToolTest():
         return ffmpegcommand[0] + ' not installed properly'
     return None
 
+def get_valid_codecs(codec_type='video'):
+    """
+    Returns a list of valid Codecs given a string determining which type of codec.
+    :param codec_type: string, determines kind of codec.
+    :returns: a list of strings, codec names.
+    """
+    valid_codecs = ['Use Donor']
+    codecs = (runffmpeg(['-codecs'], False).split("\n")[10:-1]
+              + runffmpeg(['-encoders'], False).split("\n")[10:-1])
+    for line in codecs:
+        valid = parse_codec_list(line, codec_type)
+        if valid != '':
+            valid_codecs.append(valid)
+    return valid_codecs
+
+def parse_codec_list(line, codec_type='video'):
+    """
+    Parse through ffmpegs codec lists
+    :param line: string to parse
+    :param codecType: string of which codec type to look for.
+    :returns: string of codec name
+    """
+    query = "V" if codec_type == 'video' else "A"
+    testOne = "E" in line[1:7] and query in line[1:7]
+    testTwo = query == line[1:7][0]
+    if testOne or testTwo:
+        return str.strip(line[8:29])
+    else:
+        return ''
+
 def __get_channel_data(source_data, codec_type):
     for data in source_data:
         if data['codec_type'] == codec_type:
@@ -405,19 +438,38 @@ def __get_metadata_item(data, item, default_value):
     return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False):
+    def runProbeWithFrames(func, args=None):
+        ffmpegcommand = [tool_set.getFFprobeTool(), file]
+        if args != None:
+            ffmpegcommand.append(args)
+        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut')
+        stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr')
+        try:
+            p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
+            p.wait()
+        finally:
+            os.close(stdout_fd)
+            os.close(stder_fd)
+        try:
+            stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
+            stder_fd = os.fdopen(os.open(stder_path, os.O_RDONLY), 'r')
+            return func(stdout_fd,stder_fd)
+        finally:
+            stdout_fd.close()
+            stder_fd.close()
+            os.remove(stdout_path)
+            os.remove(stder_path)
+
+
     def runProbe(func, args=None):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
-        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
-        try:
-            return func(p.stdout,p.stderr)
-        finally:
-            p.stdout.close()
-            p.stderr.close()
+        stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
+        return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
     if with_frames:
-        frames = runProbe(processFrames,args='-show_frames')
+        frames = runProbeWithFrames(processFrames,args='-show_frames')
     else:
         frames = {}
     if show_streams:
@@ -460,7 +512,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     st = start_time_tuple
     et = end_time_tuple
     calculate_frames = st[0] > 0  or st[1] > 1 or et is not None
-    meta, frames = getMeta(video_file, show_streams=True,with_frames=calculate_frames)
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=calculate_frames)
     found_num = 0
     results = []
     for item in meta:
@@ -535,13 +587,15 @@ def runffmpeg(args, noOutput=True):
     command = [tool_set.getFFmpegTool()]
     command.extend(args)
     try:
-        pcommand =  Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
-        stdout, stderr =  pcommand.communicate()
+        pcommand = Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
+        stdout, stderr = pcommand.communicate()
         if pcommand.returncode != 0:
             error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
             raise ValueError(error)
+        if noOutput == False:
+            return stdout
     except OSError as e:
-        logging.getLogger('maskgen').error( "FFmpeg not installed")
+        logging.getLogger('maskgen').error("FFmpeg not installed")
         logging.getLogger('maskgen').error(str(e))
         raise e
 

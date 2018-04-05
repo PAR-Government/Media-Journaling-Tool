@@ -1,0 +1,213 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "sample",
+    "organization": "Wonderland",
+    "projectdescription" : "test",
+    "technicalsummary" : "Automated: PasteSplice",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "0"
+    },
+    {
+      "op_type": "ImageSelection",
+      "image_directory": "{donor_dir}",
+      "picklist": "donorset",
+      "id": "1"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-RemoveFromDonor",
+      "id": "2",
+      "arguments": {
+        "convert to png": {
+          "type":"value",
+          "value":"yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-RemoveFromDonor",
+      "id": "3",
+      "arguments": {
+        "convert to png": {
+          "type":"value",
+          "value":"yes"
+        }
+      }
+    },
+    {
+      "id": "4",
+      "op_type": "PluginOperation",
+      "arguments": {
+      },
+      "plugin": "SelectRegion"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PasteSplice",
+      "id": "5",
+      "arguments": {
+        "approach": {
+           "type":"value",
+           "value": "texture"
+         },
+        "segment": {
+           "type":"value",
+           "value": "felzenszwalb"
+         },
+         "donor" : {
+           "type": "donor",
+           "source": "4"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id": "6",
+      "arguments": {
+        "donor" : {
+           "type": "donor",
+           "source": "0"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "7",
+      "experiment_id": "1a",
+      "arguments": {
+        "donor": {
+          "type": "donor",
+          "source": "0"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "yes"
+        }
+      }
+    },
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "ConvertToColor",
+      "id": "8",
+       "arguments": {
+          "mask": {
+            "type": "mask",
+            "invert": true,
+            "source": "5"
+        }
+       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SeamCarve",
+      "id": "9",
+      "experiment_id":"1a",
+      "description": "SeamCarve (remove)",
+      "arguments": {
+        "keepSize": {
+          "type": "value",
+          "value": "yes"
+        },
+        "percentage_width": {
+            "type" : "float[0.9:0.95]"
+        },
+        "percentage_height": {
+            "type" : "float[0.9:0.97]"
+        },
+        "energy": {
+          "type": "value",
+          "description": "seam_carve_remove",
+          "value": "Scharr"
+        },
+        "recordInCompositeMask": {
+          "type": "value",
+          "description": "seam_carve_remove",
+          "value": "yes"
+        },
+        "inputmaskname": {
+          "type": "input",
+          "source": "8",
+          "description": "localized blur"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "10",
+      "experiment_id":"1a",
+      "arguments": {
+         "donor" : {
+           "type": "donor",
+           "source": "0"
+         },
+        "rotate" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 3
+    },
+    {
+      "source": 3,
+      "target": 4
+    },
+    {
+      "source": 2,
+      "target": 5
+    },
+    {
+      "source": 4,
+      "target": 5,
+      "donor":true
+    },
+     {
+      "source": 5,
+      "target": 6
+    },
+    {
+      "source": 6,
+      "target": 7
+    },
+    {
+      "source": 5,
+      "target": 8
+    },
+     {
+      "source": 5,
+      "target": 9
+    },
+    {
+      "source": 8,
+      "target": 9
+    },
+     {
+      "source": 9,
+      "target": 10
+    }
+  ],
+  "multigraph": false
+}
