@@ -2712,8 +2712,8 @@ class CompositeDelegate:
                 startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
                 if startMask is None:
                     raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
-            if startMask is not None and edgeMask.shape != startMask.shape:
-                raise ValueError('Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                if startMask is not None and edgeMask.shape != startMask.shape:
+                    raise ValueError('Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1])
             if startMask is not None:
                 if _is_empty_composite(startMask):
                     startMask = None

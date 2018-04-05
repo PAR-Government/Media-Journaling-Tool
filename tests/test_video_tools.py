@@ -192,6 +192,8 @@ class TestVideoTools(TestSupport):
         return writer_main.filename, files
 
     def test_meta(self):
+        meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'), with_frames=True)
+        self.assertEqual(803, len(frames['0']))
         meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'),show_streams=True)
         self.assertEqual('yuv420p',meta[0]['pix_fmt'])
 

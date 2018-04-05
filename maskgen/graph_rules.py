@@ -140,7 +140,7 @@ def checkFrameTimeAlignment(op,graph, frm, to):
                 getDurationStringFromMilliseconds(mask_start_constraints[key])))
     for key, value in real_mask_end_constraints.iteritems():
         if key in mask_end_constraints and abs(value - mask_end_constraints[key]) > mask_rates[key]:
-            return (Severity.WARNING,'End time entered does not match detected start time: {}'.format(
+            return (Severity.WARNING,'End time entered does not match detected end time: {}'.format(
                 getDurationStringFromMilliseconds(mask_end_constraints[key])))
 
 
