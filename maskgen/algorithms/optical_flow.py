@@ -165,7 +165,10 @@ def selectBestFlow(frames, best_matches, logger):
         future = cv2.cvtColor(frames[best_matches[i, 1]], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
-        flow_list[i] = np.std(flow)
+        #flow_list[i] = np.std(flow)
+        flow_list[i] = np.mean(flow**2)
+
+
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('FOR {} to {}, STD={}'.format(best_matches[i, 0], best_matches[i, 1], flow_list[i]))
     return np.argmin(flow_list)
@@ -496,7 +499,7 @@ def smartAddFrames(in_file,
             ImageWrapper(next_frame).save('after_' + str(time.clock()) + '.png')
             logger.debug("STD after and before {}".format(np.std(last_frame - next_frame)))
         frame_analyzer.updateFlow(last_frame, next_frame, direction)
-        opticalFlow = kdtreeOpticalFlow(last_frame, next_frame, frame_analyzer.jump_flow, frame_analyzer.back_flow)
+        opticalFlow = kdtreeOpticalFlow(last_frame, next_frame, frame_analyzer.back_flow, frame_analyzer.jump_flow)
         frames_to_add = frame_analyzer.framesToAdd()
         lf = last_frame
         written_count = 0
