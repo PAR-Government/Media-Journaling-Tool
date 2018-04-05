@@ -1800,7 +1800,8 @@ class ImageProjectModel:
                            tool=tool)
 
     def _autocorrect(self):
-        updateJournal(self)
+        if not updateJournal(self):
+            raise AttributeError('Cannot auto update journal')
 
     def _setup(self, projectFileName, graph=None, baseImageFileName=None,tool=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)

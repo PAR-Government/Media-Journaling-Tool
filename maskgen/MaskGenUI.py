@@ -203,9 +203,12 @@ class MakeGenUI(Frame):
             try:
                 self._open_project(val)
             except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logging.getLogger('maskgen').error(
+                    ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                 backup = val + '.bak'
                 if os.path.exists(backup):
-                    if tkMessageBox.askquestion('Project Corruption Error',str(e) + ".  Do you want to restore from the backup?") == 'yes':
+                    if tkMessageBox.askquestion('Possible Project Corruption Error',str(e) + ".  Do you want to restore from the backup?") == 'yes':
                         shutil.copy(backup, val)
                         self._open_project(val)
                 else:
@@ -657,8 +660,11 @@ class MakeGenUI(Frame):
             fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL()
 
         mask_cache_name = start_cache_name+ '#mask' if self.scModel.end is None else start_cache_name + self.scModel.end
-        mim = self.image_cache[mask_cache_name] if mask_cache_name in self.image_cache else \
-            fixTransparency(imageResizeRelative(self.scModel.maskImage(), (250, 250), None)).toPIL()
+        if mask_cache_name in self.image_cache:
+            mim = self.image_cache[mask_cache_name]
+        else:
+            im = self.scModel.maskImage()
+            mim = fixTransparency(imageResizeRelative(im, (250, 250), im.size if im is not None else sim.size)).toPIL()
 
         self.img1 = ImageTk.PhotoImage(sim)
         self.img2 = ImageTk.PhotoImage(nim)

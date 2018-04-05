@@ -128,6 +128,41 @@ def buildMasksFromCombinedVideoOld(filename):
     hist = h / pc
     return __buildMasks(filename, hist)
 
+def getFramesFromSegment(segment):
+    if 'frames' not in segment:
+        if 'rate' in segment or ('startframe' in segment and 'endframe' in segment):
+            return getEndFrameFromSegment(segment) - getStartFrameFromSegment(segment)
+        return 1
+    return segment['frames']
+
+def getStartFrameFromSegment(segment):
+    from math import floor
+    if 'startframe' not in segment:
+        rate = getRateFromSegment(segment)
+        segment['startframe'] = int(floor(segment['starttime']*rate/1000.0)) + 1
+    return segment['startframe']
+
+def getEndFrameFromSegment(segment):
+    from math import floor
+    if 'endframe' not in segment:
+        rate = getRateFromSegment(segment)
+        segment['endframe'] = int(floor(segment['endtime']*rate/1000.0))
+    return segment['endframe']
+
+def getStartTimeFromSegment(segment):
+    if 'starttime' not in segment:
+        segment['starttime'] = (segment['startframe']-1)*1000.0/segment['rate']
+    return segment['starttime']
+
+def getEndTimeFromSegment(segment):
+    if 'endtime' not in segment:
+        segment['endtime'] = segment['endframe']*1000.0/segment['rate']
+    return segment['endtime']
+
+def getRateFromSegment(segment):
+    if 'rate' not in segment:
+        segment['rate'] = (segment['endtime'] - segment['starttime'])/float(segment['frames'])
+    return segment['rate']
 
 def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=True):
     """
