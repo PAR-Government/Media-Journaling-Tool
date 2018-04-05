@@ -289,12 +289,12 @@ def _compositeImageToVideoSegment(compositeImage):
     """
     if compositeImage is None:
         return []
-    return [VideoSegment(item['rate'],
-                         item['starttime'],
-                         item['startframe'],
-                         item['endtime'],
-                         item['endframe'],
-                         item['frames'],
+    return [VideoSegment(video_tools.getRateFromSegment(item),
+                         video_tools.getStartTimeFromSegment(item),
+                         video_tools.getStartFrameFromSegment(item),
+                         video_tools.getEndTimeFromSegment(item),
+                         video_tools.getEndFrameFromSegment(item),
+                         video_tools.getFramesFromSegment(item),
                          item['videosegment'] if 'videosegment' in item else None,
                          item['type']) for item in compositeImage.videomasks]
 

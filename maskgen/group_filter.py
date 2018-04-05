@@ -109,6 +109,7 @@ class OperationGroupFilter(GroupFilter):
 
     def __init__(self, name, filters):
         GroupFilter.__init__(self,name,filters)
+        self.operation = None
 
     def isValid(self):
         for filter in self.filters:
@@ -176,6 +177,8 @@ class GroupFilterLoader:
 
     def _buildGroupOperation(self,grp, name, filter=True):
         if grp is not None:
+            if grp.operation is not None:
+                return grp.operation
             includeInMask = dict()
             includeInMask['default'] = False
             rules = set()
@@ -234,6 +237,7 @@ class GroupFilterLoader:
                              analysisOperations=analysisOperations,
                              maskTransformFunction=customFunctions,
                              parameter_dependencies=dependencies)
+            return grp.operation
         return getOperation(name,fake=True)
 
     def getOperation(self, name):

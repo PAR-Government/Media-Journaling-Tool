@@ -393,6 +393,7 @@ class MetaDataLoader:
         self.operations, self.filters, self.operationsByCategory = self.loadOperations('operations.json')
         self.softwareset = self.loadSoftware('software.csv')
         self.projectProperties = self.loadProjectProperties('project_properties.json')
+        self.manipulator_names = self.loadManipulators('ManipulatorCodeNames.txt')
 
     def loadSoftware(self, fileName):
         self.softwareset = _loadSoftware(fileName)
@@ -425,6 +426,13 @@ class MetaDataLoader:
             if name  in bytesOne and atype != bytesOne[name]:
                 logging.getLogger('maskgen').warn( 'missing ' + str(atype) + ' in ' + name)
 
+
+    def loadManipulators(self,filename):
+        file = getFileName(filename)
+        if file is not None:
+            if os.path.exists(file):
+                with open(file, 'r') as fp:
+                    return [name.strip() for name in fp.readlines() if len(name) > 1]
 
     def loadProjectProperties(self, fileName):
         """

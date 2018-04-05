@@ -1746,6 +1746,52 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
 
 
+class FileCaptureDialog(tkSimpleDialog.Dialog):
+
+    def __init__(self, parent, name, dir, current_file=None ):
+        """
+        :param parent:
+        :param scModel:
+        @type scModel : ImageProjectModel
+        """
+        self.dir = dir
+        self.cancelled = True
+        self.current_file = os.path.basename(current_file) if current_file is not None else None
+        tkSimpleDialog.Dialog.__init__(self, parent, name)
+
+    def body(self, master):
+        self.item = StringVar()
+        self.item.set(self.current_file if self.current_file is not None else '')
+        label1 = Label(master, text='File', justify=LEFT)
+        label1.grid(row=0, column=0, columnspan=1, sticky='EW', padx=10)
+        label2 = Label(master, textvariable=self.item, justify=LEFT)
+        label2.grid(row=0, column=1, columnspan=2, sticky='EW', padx=10)
+        self.bc = Button(master, text="Change File", command=self.changefile, relief=RAISED)
+        self.bc.grid(row=1, column=0,sticky='EW', padx=10)
+        self.bd = Button(master, text="Forget File", command=self.forgetfile, relief=RAISED)
+        self.bd.grid(row=1, column=1,sticky='EW', padx=10)
+
+    def forgetfile(self):
+        self.item.set('')
+        self.current_file = None
+
+    def changefile(self):
+        val = tkFileDialog.askopenfilename(initialdir=self.dir, title="Select File",
+                                           filetypes=getMaskFileTypes())
+        #suffixes = [type_tuple[1][1:] for type_tuple in getMaskFileTypes()]
+        if (val != None and len(val) > 0):
+            #if os.path.splitext(val)[1] not in suffixes:
+            #    return
+            self.current_file = os.path.basename(val)
+            self.item.set(self.current_file )
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+
+
 class QAViewDialog(Toplevel):
     lookup = {}
 

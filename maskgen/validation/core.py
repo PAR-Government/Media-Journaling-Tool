@@ -26,7 +26,7 @@ class Severity(Enum):
 
 ValidationMessage = namedtuple('ValidationMessage', ['Severity', 'Start', 'End', 'Message', 'Module'], verbose=False)
 
-def hasErrorMessages(validationMessageList, contentCheck=lambda x: False):
+def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     """
     True if messages as errors and contentCheck(Message)
     :param validationMessageList:
