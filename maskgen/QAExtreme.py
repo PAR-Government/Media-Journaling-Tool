@@ -78,7 +78,7 @@ class QAProjectDialog(Toplevel):
 
 
     def getProbes(self):
-        return self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
+        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
 
     def getFileNameForNode(self, nodeid):
         fn = self.scModel.getFileName(nodeid)
@@ -128,6 +128,8 @@ class QAProjectDialog(Toplevel):
         t = threading.Thread(target=self.getProbes)
         t.start()
         t.join()
+
+        #self.getProbes()
         #print(self.probes)
         if self.probes is None:
             raise ValueError("We couldn't generate the probes sorry about that")
