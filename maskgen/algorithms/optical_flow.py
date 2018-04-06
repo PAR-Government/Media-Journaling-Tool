@@ -499,7 +499,7 @@ def smartAddFrames(in_file,
             ImageWrapper(next_frame).save('after_' + str(time.clock()) + '.png')
             logger.debug("STD after and before {}".format(np.std(last_frame - next_frame)))
         frame_analyzer.updateFlow(last_frame, next_frame, direction)
-        opticalFlow = kdtreeOpticalFlow(last_frame, next_frame, frame_analyzer.back_flow, frame_analyzer.jump_flow)
+        opticalFlow = kdtreeOpticalFlow(last_frame, next_frame, frame_analyzer.jump_flow, frame_analyzer.back_flow)
         frames_to_add = frame_analyzer.framesToAdd()
         lf = last_frame
         written_count = 0
