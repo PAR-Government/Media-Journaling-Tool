@@ -664,6 +664,13 @@
       "information": "Putting a object with corners and depth into a Manhattan World image example: table, box, frame"	
 	},
     {
+	  "description": "ENF",
+      "name": "ENF",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Tests suitable for electric network frequency"
+	},
+    {
       "description": "Mosaicing",
       "name": "mosaicing",
       "type": "yesno",
