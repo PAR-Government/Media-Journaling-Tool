@@ -146,7 +146,7 @@ class BatchConverter:
             op = getOperation(edge['op'],fake=True)
             new_operation_node['category'] = op.category
             new_operation_node['op'] = op.name
-            new_operation_node['sofware'] = edge['softwareName']
+            new_operation_node['software'] = edge['softwareName']
             new_operation_node['software version'] = edge['softwareVersion']
             new_operation_node['description'] = edge['description']
             semanticGroups = getValue(edge,'semanticGroups',None)

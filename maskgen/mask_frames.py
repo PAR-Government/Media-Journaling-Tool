@@ -50,7 +50,6 @@ class HistoryDialog(Toplevel):
         return Button(frame, text="OK", width=10, command=self.cancel, default=ACTIVE)
 
     def cancel(self):
-        self.parent.doneWithWindow(self)
         self.parent.focus_set()
         self.destroy()
 
