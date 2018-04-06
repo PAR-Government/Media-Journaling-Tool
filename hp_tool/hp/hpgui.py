@@ -322,12 +322,12 @@ class PRNU_Uploader(Frame):
 
     def open_settings(self):
         SettingsWindow(self.settings, master=self.master)
-        self.s3path.set(self.settings.get_key('aws-prnu', notFound=''))
+        self.s3path.set(self.settings.get_key('aws-prnu'))
 
     def open_new_insert_id(self):
         d = HP_Device_Form(self, validIDs=self.master.cameras.keys(), token=self.settings.get_key('trello'),
                            browser=self.settings.get_key('apitoken'))
-        self.master.reload_devices()
+        self.master.reload_ids()
 
     def parse_vocab(self, path):
         """
@@ -663,7 +663,7 @@ class PRNU_Uploader(Frame):
         shutil.move(tname, tar_path)
         recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
         if recipient:
-            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path])
+            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
             final_name = tar_path + ".gpg"
             return final_name
         return None
@@ -700,6 +700,7 @@ class PRNU_Uploader(Frame):
         self.master.statusBox.println('done')
 
     def local_id_used(self):
+        self.master.load_ids(local_id=self.localID.get())
         if self.localID.get().lower() in [i.lower() for i in self.master.cameras.keys()]:
             return True
         else:
@@ -737,6 +738,7 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
+        
         self.fileMenu.add_command(label='Download HP Device List for Offline Use',
                                   command=lambda: API_Camera_Handler(self, self.settings.get('apiurl'),
                                                                      self.settings.get('apitoken'),
@@ -898,6 +900,37 @@ class HPGUI(Frame):
             self.cam_local_id = local_id
         self.cameras = None
         return self.load_ids(local_id)
+
+    def system_check(self):
+        errors = []
+        warnings = []
+        try:
+            subprocess.Popen(['exiftool'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        except WindowsError:
+            errors.append("Exiftool is not installed.")
+
+        try:
+            keys = subprocess.Popen(['gpg', '--list-keys'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+            if not keys[0]:
+                errors.append('There are no GnuPG recipient keys installed.  The HP Tool cannot encrypt to a recipient'
+                              ' without a key, leading to archives not being uploaded.')
+        except WindowsError:
+            errors.append("GnuPG is not installed.  The HP Tool cannot encrypt archives without GnuPG, leading to "
+                          "archives not being uploaded.")
+
+        if self.load_ids('AS-ONE') != 'remote':
+            errors.append('Cannot connect to {0} with API token {1}.'.format(self.settings.get_key('apiurl'),
+                                                                             self.settings.get_key('apitoken')))
+
+        if self.settings.get_key('archive_recipient') in (None, ""):
+            warnings.append("No archive recipient found.  The HP Tool cannot upload archives without a recipient.")
+
+        if errors:
+            tkMessageBox.showerror("Error", "\n\n".join(errors))
+        if warnings:
+            tkMessageBox.showwarning("Warning", "\n\n".join(warnings))
+        elif not (warnings or errors):
+            tkMessageBox.showinfo("Success", "No errors have been found in this installation.")
 
 
 class ReadOnlyText(Text):

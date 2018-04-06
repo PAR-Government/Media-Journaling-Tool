@@ -1232,8 +1232,9 @@ class ImageProjectModel:
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
-        for compositeBuilder in localCompositeBuilders:
-            compositeBuilder.finalize(probes)
+        if replacement_probes is None:
+            for compositeBuilder in localCompositeBuilders:
+                compositeBuilder.finalize(probes)
         return probes
 
     def getPredecessorNode(self):
@@ -1799,7 +1800,8 @@ class ImageProjectModel:
                            tool=tool)
 
     def _autocorrect(self):
-        updateJournal(self)
+        if not updateJournal(self):
+            raise AttributeError('Cannot auto update journal')
 
     def _setup(self, projectFileName, graph=None, baseImageFileName=None,tool=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
@@ -1882,6 +1884,16 @@ class ImageProjectModel:
 
     def getStartImageFile(self):
         return os.path.join(self.G.dir, self.G.get_node(self.start)['file'])
+
+    def getProxy(self):
+        return getValue(self.G.get_node(self.start),'proxyfile')
+
+    def setProxy(self, filename):
+        if filename is None:
+            if self.getProxy() is not None:
+                self.G.get_node(self.start).pop('proxyfile')
+            return
+        self.G.update_node(self.start,proxyfile=os.path.basename(filename))
 
     def getNextImageFile(self):
         return os.path.join(self.G.dir, self.G.get_node(self.end)['file'])

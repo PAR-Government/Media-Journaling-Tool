@@ -9,7 +9,10 @@
 import numpy as np
 from subprocess import call, Popen, PIPE
 import os
+import sys
+import tempfile
 import json
+import StringIO
 from datetime import datetime
 import tool_set
 import time
@@ -125,6 +128,41 @@ def buildMasksFromCombinedVideoOld(filename):
     hist = h / pc
     return __buildMasks(filename, hist)
 
+def getFramesFromSegment(segment):
+    if 'frames' not in segment:
+        if 'rate' in segment or ('startframe' in segment and 'endframe' in segment):
+            return getEndFrameFromSegment(segment) - getStartFrameFromSegment(segment)
+        return 1
+    return segment['frames']
+
+def getStartFrameFromSegment(segment):
+    from math import floor
+    if 'startframe' not in segment:
+        rate = getRateFromSegment(segment)
+        segment['startframe'] = int(floor(segment['starttime']*rate/1000.0)) + 1
+    return segment['startframe']
+
+def getEndFrameFromSegment(segment):
+    from math import floor
+    if 'endframe' not in segment:
+        rate = getRateFromSegment(segment)
+        segment['endframe'] = int(floor(segment['endtime']*rate/1000.0))
+    return segment['endframe']
+
+def getStartTimeFromSegment(segment):
+    if 'starttime' not in segment:
+        segment['starttime'] = (segment['startframe']-1)*1000.0/segment['rate']
+    return segment['starttime']
+
+def getEndTimeFromSegment(segment):
+    if 'endtime' not in segment:
+        segment['endtime'] = segment['endframe']*1000.0/segment['rate']
+    return segment['endtime']
+
+def getRateFromSegment(segment):
+    if 'rate' not in segment:
+        segment['rate'] = (segment['endtime'] - segment['starttime'])/float(segment['frames'])
+    return segment['rate']
 
 def buildMasksFromCombinedVideo(filename,time_manager, fidelity=1, morphology=True):
     """
@@ -435,19 +473,38 @@ def __get_metadata_item(data, item, default_value):
     return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False):
+    def runProbeWithFrames(func, args=None):
+        ffmpegcommand = [tool_set.getFFprobeTool(), file]
+        if args != None:
+            ffmpegcommand.append(args)
+        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut')
+        stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr')
+        try:
+            p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
+            p.wait()
+        finally:
+            os.close(stdout_fd)
+            os.close(stder_fd)
+        try:
+            stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
+            stder_fd = os.fdopen(os.open(stder_path, os.O_RDONLY), 'r')
+            return func(stdout_fd,stder_fd)
+        finally:
+            stdout_fd.close()
+            stder_fd.close()
+            os.remove(stdout_path)
+            os.remove(stder_path)
+
+
     def runProbe(func, args=None):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
-        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
-        try:
-            return func(p.stdout,p.stderr)
-        finally:
-            p.stdout.close()
-            p.stderr.close()
+        stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
+        return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
     if with_frames:
-        frames = runProbe(processFrames,args='-show_frames')
+        frames = runProbeWithFrames(processFrames,args='-show_frames')
     else:
         frames = {}
     if show_streams:

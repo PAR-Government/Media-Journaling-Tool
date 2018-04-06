@@ -26,7 +26,7 @@ class Severity(Enum):
 
 ValidationMessage = namedtuple('ValidationMessage', ['Severity', 'Start', 'End', 'Message', 'Module'], verbose=False)
 
-def hasErrorMessages(validationMessageList, contentCheck=lambda x: False):
+def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     """
     True if messages as errors and contentCheck(Message)
     :param validationMessageList:
@@ -352,6 +352,14 @@ class Validator:
             graph.setDataItem('projecttype',
                               fileType(os.path.join(graph.dir, graph.get_node(finalNodes[0])['file'])))
 
+        finalfiles = set()
+        duplicates = dict()
+        for node in finalNodes:
+            filename = graph.get_node(node)['file']
+            if filename in finalfiles and filename not in duplicates:
+                duplicates[filename] = node
+            finalfiles.add(filename)
+
         nodeSet = set(graph.get_nodes())
 
         # check graph cuts
@@ -383,6 +391,15 @@ class Validator:
                                                   str(cycleNode),
                                                   "Graph has a cycle",
                                                   'Graph'))
+
+        # check duplicate final end nodes
+        if len(duplicates) > 0:
+            for filename,node in duplicates.iteritems():
+                total_errors.append(ValidationMessage(Severity.ERROR,
+                                                      str(node),
+                                                      str(node),
+                                                      "Duplicate final end node file %s" % filename,
+                                                      'Graph'))
 
         valiation_apis = ValidationAPIComposite(self.preferences, external=external)
 

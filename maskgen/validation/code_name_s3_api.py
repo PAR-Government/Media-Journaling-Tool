@@ -6,9 +6,11 @@
 # All rights reserved.
 #==============================================================================
 
-from maskgen.software_loader import getFileName
+from maskgen.software_loader import getFileName,getMetDataLoader
 from maskgen.image_graph import ImageGraph
 from core import ValidationAPI,ValidationMessage,Severity
+
+loader = getMetDataLoader()
 
 class ValidationCodeNameS3(ValidationAPI):
 
@@ -20,13 +22,7 @@ class ValidationCodeNameS3(ValidationAPI):
         self.reload()
 
     def reload(self):
-        import os
-        self.names = []
-        file = getFileName(ValidationCodeNameS3.filename)
-        if file is not None:
-            if os.path.exists(file):
-                with open(file, 'r') as fp:
-                    self.names = [name.strip() for name in fp.readlines() if len(name) > 1]
+        self.names = loader.manipulator_names
 
     def isExternal(self):
         return False
@@ -36,7 +32,7 @@ class ValidationCodeNameS3(ValidationAPI):
         :return: return true if validator is configured an usable
         @rtype: bool
         """
-        return len(self.names) > 1
+        return self.names is not None
 
     def check_graph(self,graph):
         """
