@@ -7,6 +7,8 @@ from maskgen.userinfo import get_username, CustomPwdX, setPwdX
 from maskgen import video_tools
 import tempfile
 from maskgen.scenario_model import ImageProjectModel
+from maskgen import maskGenPreferences
+from maskgen.validation import code_name_s3_api
 from maskgen.image_graph import extract_archive
 from maskgen.graph_rules import processProjectProperties
 from maskgen.batch import BatchProcessor, pick_projects
@@ -192,58 +194,57 @@ def recompressAsVideo(scModel):
             scModel.imageFromPlugin('CompressAsVideo',donor=donor)
 
 
-def perform_update(project, args, tempdir):
+def perform_update(project, args):
     errors = []
     scModel = maskgen.scenario_model.ImageProjectModel(project)
-    for edge_id in scModel.getGraph().get_edges():
+    creatorName = None
+    if str(scModel.getProjectData('creator')).lower() in code_name_s3_api.ValidationCodeNameS3(maskGenPreferences).names:
+        creatorName = str(scModel.getProjectData('creator')).lower()
+    graph = scModel.getGraph()
+    for edge_id in graph.get_edges():
+        if len(code_name_s3_api.ValidationCodeNameS3(maskGenPreferences).check_edge('', graph, edge_id[0], edge_id[1])) != 0:
+            if creatorName != None:
+                badname = graph.get_edge(edge_id[0], edge_id[1])['username']
+                if str(badname).lower() in code_name_s3_api.ValidationCodeNameS3(maskGenPreferences).names:
+                    graph.replace_attribute_value('username', badname, str(badname).lower())
+                else:
+                    graph.replace_attribute_value('username', badname, creatorName)
         try:
           errs = scModel.reproduceMask(edge_id=edge_id)
           if len(errs) > 0:
               for e in errs:
                 errors.append(e)
-        except:
-            pass
-    errs = scModel.validate(external=False)
-    if len(errs) > 0:
-        for e in errs:
-            errors.append(e)
+        except Exception as e:
+            errors.append(e.message)
+            scModel = maskgen.scenario_model.ImageProjectModel(project)
+            break
+    scModel.renameFileImages()
+    try:
+        errs = scModel.validate(external=False)
+        if len(errs) > 0:
+            for e in errs:
+                errors.append(str(e))
+    except Exception as e:
+        errors.append('Journal could not be validated')
+        errors.append(e.message)
     try:
         probes = scModel.getProbeSet()
         if len(probes) > 0:
             try:
-                errs = scModel.exporttos3(args.uploadfolder, tempdir)
+                errs = scModel.exporttos3(args.uploadfolder, args.tempfolder)
                 if len(errs) > 0:
-                    for e in errs:
-                        errors.append(e)
-            except:
-                pass
-    except:
-        pass
-    return errors
-
-    """print ('User: ' + scModel.getGraph().getDataItem('username'))
-    validator = scModel.getProjectData('validatedby')
-    if not args.validate:
-        if validator is not None:
-            setPwdX(CustomPwdX(validator))
+                    errors.append(errs)
+            except Exception as e:
+                errors.append(e.message)
         else:
-            setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
-    for function in functions:
-        function(scModel)
-    if args.validate:
-        scModel.set_validation_properties('yes', get_username(), 'QA redone via Batch Updater')
-
+            msg = 'No Probes, ' + scModel.getName() + ' has failed and will not upload'
+            errors.append(msg)
+    except Exception as e:
+        errors.append(e.message)
+        errors.append('Probes failed to generate')
     scModel.save()
-    if args.updategraph:
-        if os.path.exists(os.path.join(scModel.get_dir(),'_overview_.png')):
-            return
-    if args.export:
-        error_list = scModel.exporttos3(args.uploadfolder, tempdir)
-        if len(error_list) > 0:
-            for err in error_list:
-                print (err)
-            raise ValueError('Export Failed')
-    return scModel.validate()"""
+
+    return errors
 
 def fetchfromS3(dir, location, file):
     import boto3
@@ -253,7 +254,7 @@ def fetchfromS3(dir, location, file):
     my_bucket = s3.Bucket(BUCKET)
     my_bucket.download_file(DIR + file, os.path.join(dir, file))
 
-def processProject(args, file_to_process, tempdir):
+def processProject(args, file_to_process):
     """
 
     :param args:
@@ -262,28 +263,32 @@ def processProject(args, file_to_process, tempdir):
     :return:
     @type file_to_process : str
     """
-    for projectname in file_to_process:
-        if not projectname.endswith('tgz') and os.path.exists(os.path.join(args.tempfolder,projectname)):
-            dir = os.path.join(args.tempfolder,projectname)
-            fetch = False
-        else:
-            dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
-            fetch = True
-        try:
-            if fetch:
-                fetchfromS3(dir, args.downloadfolder,projectname)
-                extract_archive(os.path.join(dir, projectname), dir)
-            for project in pick_projects(dir):
-                log = perform_update(project, args, tempdir)
-                print(log)
-        finally:
-            if fetch:
+    if not file_to_process.endswith('tgz') and os.path.exists(os.path.join(args.tempfolder,file_to_process)):
+        dir = os.path.join(args.tempfolder,file_to_process)
+        fetch = False
+    else:
+        dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
+        fetch = True
+    try:
+        file_to_process = (file_to_process + '.tgz')
+        if fetch:
+            fetchfromS3(dir, args.downloadfolder, file_to_process)
+            extract_archive(os.path.join(dir, file_to_process), dir)
+        for project in pick_projects(dir):
+            log = perform_update(project, args)
+            print(log)
+            return log
+    finally:
+        if fetch:
+            try:
                 shutil.rmtree(dir)
+            except OSError:
+                pass
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',  '--file', required=True, help='File of projects')
-    parser.add_argument('-df', '--threads', required=True, help='Download folder')
+    parser.add_argument('-df', '--downloadfolder', required=True, help='Download folder')
     #parser.add_argument('-ug', '--updategraph', required=False, help='Upload Graph',action='store_true')
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
     #parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')
@@ -303,7 +308,7 @@ def main():
     files_to_process = [x.strip() for x in files_to_process]
 
     processor = BatchProcessor(args.completefile,files_to_process)
-    func = partial(processProject,args,functions)
+    func = partial(processProject,args)
     processor.process(func)
 
 if __name__ == '__main__':

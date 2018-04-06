@@ -62,7 +62,7 @@ class BatchProcessor:
                 errors = func_to_run(item_to_process)
                 if errors is not None:
                     for error in errors:
-                        error_writer.write((str(item_id), error))
+                        error_writer.writerow((str(item_id), error))
                 with self.lock:
                     self.count += 1
                     logging.getLogger('maskgen').info(
