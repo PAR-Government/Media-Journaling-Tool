@@ -19,7 +19,6 @@ from functools import partial
 from maskgen import plugins
 
 
-
 def reproduceMask(scModel):
     """
     Rebuild all edge masks
@@ -193,12 +192,39 @@ def recompressAsVideo(scModel):
             scModel.imageFromPlugin('CompressAsVideo',donor=donor)
 
 
-def perform_update(project,args, functions,  tempdir):
+def perform_update(project, args, tempdir):
+    errors = []
     scModel = maskgen.scenario_model.ImageProjectModel(project)
-    print ('User: ' + scModel.getGraph().getDataItem('username'))
+    for edge_id in scModel.getGraph().get_edges():
+        try:
+          errs = scModel.reproduceMask(edge_id=edge_id)
+          if len(errs) > 0:
+              for e in errs:
+                errors.append(e)
+        except:
+            pass
+    errs = scModel.validate(external=False)
+    if len(errs) > 0:
+        for e in errs:
+            errors.append(e)
+    try:
+        probes = scModel.getProbeSet()
+        if len(probes) > 0:
+            try:
+                errs = scModel.exporttos3(args.uploadfolder, tempdir)
+                if len(errs) > 0:
+                    for e in errs:
+                        errors.append(e)
+            except:
+                pass
+    except:
+        pass
+    return errors
+
+    """print ('User: ' + scModel.getGraph().getDataItem('username'))
     validator = scModel.getProjectData('validatedby')
     if not args.validate:
-        if validator is  not None:
+        if validator is not None:
             setPwdX(CustomPwdX(validator))
         else:
             setPwdX(CustomPwdX(scModel.getGraph().getDataItem('username')))
@@ -206,6 +232,7 @@ def perform_update(project,args, functions,  tempdir):
         function(scModel)
     if args.validate:
         scModel.set_validation_properties('yes', get_username(), 'QA redone via Batch Updater')
+
     scModel.save()
     if args.updategraph:
         if os.path.exists(os.path.join(scModel.get_dir(),'_overview_.png')):
@@ -216,7 +243,7 @@ def perform_update(project,args, functions,  tempdir):
             for err in error_list:
                 print (err)
             raise ValueError('Export Failed')
-    return scModel.validate()
+    return scModel.validate()"""
 
 def fetchfromS3(dir, location, file):
     import boto3
@@ -226,7 +253,7 @@ def fetchfromS3(dir, location, file):
     my_bucket = s3.Bucket(BUCKET)
     my_bucket.download_file(DIR + file, os.path.join(dir, file))
 
-def processProject(args, functions, file_to_process):
+def processProject(args, file_to_process, tempdir):
     """
 
     :param args:
@@ -235,33 +262,35 @@ def processProject(args, functions, file_to_process):
     :return:
     @type file_to_process : str
     """
-    if not file_to_process.endswith('tgz') and os.path.exists(os.path.join(args.tempfolder,file_to_process)):
-        dir = os.path.join(args.tempfolder,file_to_process)
-        fetch = False
-    else:
-        dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
-        fetch = True
-    try:
-        if fetch:
-            fetchfromS3(dir, args.downloadfolder,file_to_process)
-            extract_archive(os.path.join(dir, file_to_process), dir)
-        for project in pick_projects(dir):
-            perform_update(project, args,functions, dir)
-    finally:
-        if fetch:
-            shutil.rmtree(dir)
+    for projectname in file_to_process:
+        if not projectname.endswith('tgz') and os.path.exists(os.path.join(args.tempfolder,projectname)):
+            dir = os.path.join(args.tempfolder,projectname)
+            fetch = False
+        else:
+            dir = tempfile.mkdtemp(dir=args.tempfolder) if args.tempfolder else tempfile.mkdtemp()
+            fetch = True
+        try:
+            if fetch:
+                fetchfromS3(dir, args.downloadfolder,projectname)
+                extract_archive(os.path.join(dir, projectname), dir)
+            for project in pick_projects(dir):
+                log = perform_update(project, args, tempdir)
+                print(log)
+        finally:
+            if fetch:
+                shutil.rmtree(dir)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',  '--file', required=True, help='File of projects')
     parser.add_argument('-df', '--threads', required=True, help='Download folder')
-    parser.add_argument('-ug', '--updategraph', required=False, help='Upload Graph',action='store_true')
+    #parser.add_argument('-ug', '--updategraph', required=False, help='Upload Graph',action='store_true')
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
-    parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')
+    #parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')
     parser.add_argument('-tf', '--tempfolder', required=False, help='Temp Holder')
     parser.add_argument('-e',  '--functions', required=False, help='List of function')
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
-    parser.add_argument('-x', '--export', required=False, action='store_true', help='Export Results')
+    #parser.add_argument('-x', '--export', required=False, action='store_true', help='Export Results')
     args = parser.parse_args()
 
     functions_map = {}
