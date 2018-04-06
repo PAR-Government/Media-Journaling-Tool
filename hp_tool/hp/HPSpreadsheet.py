@@ -779,8 +779,10 @@ class HPSpreadsheet(Toplevel):
             val = str(self.pt.model.getValueAt(coord[0], coord[1]))
             if val == '':
                 currentColName = list(self.pt.model.df.columns.values)[coord[1]]
-                errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
-                            coord[0] + 1) + '. This cell is mandatory.')
+                err = 'Invalid entry at column ' + currentColName + ', row ' + str(
+                            coord[0] + 1) + '. This cell is mandatory.'
+                if err not in errors:
+                    errors.append(err)
 
         files_in_dir = []
         files_in_csv = []
