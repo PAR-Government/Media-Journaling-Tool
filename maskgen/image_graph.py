@@ -846,11 +846,12 @@ class ImageGraph:
         backup = filename + '.bak'
         if os.path.exists(filename):
             shutil.copy(filename, backup)
+        usedfiles =set([self.G.node[node_id]['file'] for node_id in self.G.nodes()])
         with self.lock:
             with open(filename, 'w') as f:
                 jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
             for f in self.filesToRemove:
-                if os.path.exists(f):
+                if os.path.exists(f) and os.path.basename(f) not in usedfiles:
                     os.remove(f)
             self.filesToRemove.clear()
 
