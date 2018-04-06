@@ -53,9 +53,9 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     if os.path.isdir(image):
         return
     files_in_dir = os.listdir(os.path.dirname(image))
-    if any(filename.endswith('.3d.zip') for filename in files_in_dir):
+    if any(filename.lower().endswith('.3d.zip') for filename in files_in_dir):
         sub = 'model'
-    elif any(os.path.splitext(filename)[1] in exts["nonstandard"] for filename in files_in_dir):
+    elif any(os.path.splitext(filename)[1].lower() in exts["nonstandard"] for filename in files_in_dir):
         sub = 'nonstandard'
     elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'
@@ -89,13 +89,13 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
                         shutil.copy2(os.path.join(file_dir, i), dest)
                 thumbnail_conversion[file_dir][i] = newThumbnailName
                 thumbnail_counter += 1
-            elif i.endswith(".3d.zip"):
+            elif i.lower().endswith(".3d.zip"):
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
-            elif os.path.splitext(i)[1] in exts["nonstandard"]:
+            elif os.path.splitext(i)[1].lower() in exts["nonstandard"]:
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".lfr")
             else:
                 tkMessageBox.showwarning("File Copy Error", i + " will not be copied to the output directory as it is"
-                                                                "an unrecognized file format")
+                                                                " an unrecognized file format")
 
     shutil.copy2(image, newPathName)
     return newPathName
@@ -363,7 +363,7 @@ def set_other_data(self, data, imfile):
         data['Type'] = 'audio'
     elif imext.lower() in exts['VIDEO']:
         data['Type'] = 'video'
-    elif imfile.endswith('.3d.zip'):
+    elif imfile.lower().endswith('.3d.zip'):
         data['Type'] = 'model'
     else:
         data['Type'] = 'image'
@@ -490,7 +490,7 @@ def parse_image_info(self, imageList, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v), k) for k, v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-        if not (imageList[i].endswith('.3d.zip') or os.path.splitext(imageList[i])[1] in exts["nonstandard"]):
+        if not (imageList[i].lower().endswith('.3d.zip') or os.path.splitext(imageList[i])[1].lower() in exts["nonstandard"]):
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
             image_file_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
@@ -598,7 +598,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
                              pad_to_5_str(count), additionalInfo, searchmodels)
         if os.path.split(newName)[1] == os.path.split(image)[1]:
             name = os.path.split(image)[1]
-            if name.endswith('.3d.zip'):
+            if name.lower().endswith('.3d.zip'):
                 tkMessageBox.showerror("Improper 3D Model Processing", "In order to process 3D models, you must have "
                                                                        "no device local ID and the 'Include "
                                                                        "Subdirectories' box must NOT be checked")
