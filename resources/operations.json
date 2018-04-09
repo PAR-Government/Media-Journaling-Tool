@@ -3377,6 +3377,36 @@
     },
     {
       "category": "Select",
+      "name": "SelectCutFrames",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkLengthSmaller",
+        "checkFrameTimes",
+        "checkSameChannels",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+        "Threshold": {
+          "type": "int[0,100]",
+          "description": "Threshold to determine how alike the frames have to be lower threshold more alike"
+        }
+      },
+      "compareparameters" : {
+         "video_function" :"maskgen.video_tools.cutCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.select_cut_frames",
+        "audio": "maskgen.mask_rules.delete_audio"
+      },
+      "description": "Remove any frames that are near duplicates of the previous frame.",
+      "includeInMask": {"default" : false},
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Select",
       "name": "SelectCropFrames",
       "mandatoryparameters": {
          "Start Time": {
