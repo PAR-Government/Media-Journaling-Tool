@@ -216,12 +216,16 @@ class HPSpreadsheet(Toplevel):
             row = self.tabpt.getSelectedRow()
         type = self.pt.model.getValueAt(row, 32)
         current_file = str(self.pt.model.getValueAt(row, 0))
-        self.imName = str(self.pt.model.getValueAt(row, 0) if (type == "image" and "." + self.pt.model.getValueAt(row, 13) not in hp_data.exts['nonstandard']) else self.pt.model.getValueAt(row, 61).split(";")[0])
+
+        self.imName = str(self.pt.model.getValueAt(row, 0) if (type == "image" and "." + self.pt.model.getValueAt(row, 13).lower() not in hp_data.exts['nonstandard']) else self.pt.model.getValueAt(row, 61).split(";")[0])
+
         self.currentImageNameVar.set('Current Image: ' + current_file)
         maxSize = 480
         try:
             ext_col = 13
-            if type == "image" and "." + self.pt.model.getValueAt(row, ext_col) not in hp_data.exts['nonstandard']:
+
+            if type == "image" and "." + self.pt.model.getValueAt(row, ext_col).lower() not in hp_data.exts['nonstandard']:
+
                 im = Image.open(os.path.join(self.imageDir, self.imName))
             elif type == "model":
                 im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
@@ -775,8 +779,10 @@ class HPSpreadsheet(Toplevel):
             val = str(self.pt.model.getValueAt(coord[0], coord[1]))
             if val == '':
                 currentColName = list(self.pt.model.df.columns.values)[coord[1]]
-                errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
-                            coord[0] + 1) + '. This cell is mandatory.')
+                err = 'Invalid entry at column ' + currentColName + ', row ' + str(
+                            coord[0] + 1) + '. This cell is mandatory.'
+                if err not in errors:
+                    errors.append(err)
 
         files_in_dir = []
         files_in_csv = []

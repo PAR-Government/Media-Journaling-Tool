@@ -738,11 +738,11 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
-        self.fileMenu.add_command(label='Download HP Device List for Offline Use', 
-                                  command=lambda: API_Camera_Handler(self, self.settings.get_key('apiurl'), 
-                                                                     self.settings.get_key('apitoken'), 
+        
+        self.fileMenu.add_command(label='Download HP Device List for Offline Use',
+                                  command=lambda: API_Camera_Handler(self, self.settings.get('apiurl'),
+                                                                     self.settings.get('apitoken'),
                                                                      given_id="download_locally"))
-        self.fileMenu.add_command(label='System Check', command=self.system_check)
         self.master.config(menu=self.menubar)
 
         self.statusFrame = Frame(self)
