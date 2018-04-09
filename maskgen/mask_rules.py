@@ -24,6 +24,15 @@ from tool_set import toIntTuple, alterMask, alterReverseMask, shortenName, openI
     getMilliSecondsAndFrameCount, sumMask, applyFlipComposite
 
 
+class EdgeMaskError(ValueError):
+    def __init__(self, message, edge_id):
+        ValueError.__init__(self, message)
+        self.edge_id = edge_id
+
+def raiseError(caller, message, edge_id):
+    logging.getLogger('maskgen').error('{} reporting {} for edge {} to {}'.format( caller, message, edge_id[0], edge_id[1]))
+    raise EdgeMaskError(message, edge_id)
+
 class VideoSegment:
     """
       USED FOR AUDIO.
@@ -1130,7 +1139,7 @@ def crop_transform(buildState):
     location = buildState.location()
     if buildState.isComposite:
         res = buildState.compositeMask
-        res = res[location[0]:buildState.targetShape[0], location[1]:buildState.targetShape[1]]
+        res = res[location[0]:buildState.targetShape[0]+location[0], location[1]:buildState.targetShape[1]+location[1]]
         return res
     elif buildState.donorMask is not None:
         res = buildState.donorMask
@@ -1247,20 +1256,7 @@ def warp_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
-    res = None
-    if buildState.isComposite:
-        tm = buildState.transformMatrix()
-        res = tool_set.applyInterpolateToCompositeImage(buildState.compositeMask,
-                                                        buildState.graph.get_image(buildState.source)[0],
-                                                        buildState.graph.get_image(buildState.target)[0],
-                                                        buildState.edgeMask,
-                                                        inverse=False,
-                                                        arguments=buildState.arguments(),
-                                                        defaultTransform=tm)
-    if res is None or len(np.unique(res)) == 1:
-        return scale_transform(buildState)
-    return res
-
+    return cas_transform(buildState)
 
 def cas_transform(buildState):
     """
@@ -1271,14 +1267,14 @@ def cas_transform(buildState):
     """
     res = None
     tm = buildState.transformMatrix()
-    if buildState.isComposite:
-        res = tool_set.applyInterpolateToCompositeImage(buildState.compositeMask,
-                                                        buildState.graph.get_image(buildState.source)[0],
-                                                        buildState.graph.get_image(buildState.target)[0],
-                                                        buildState.edgeMask,
-                                                        inverse=buildState.donorMask is not None,
-                                                        arguments=buildState.arguments(),
-                                                        defaultTransform=tm)
+    masktowarp = buildState.compositeMask if buildState.isComposite else buildState.donorMask
+    res = tool_set.applyInterpolateToCompositeImage(masktowarp,
+                                                    ImageWrapper(buildState.source) if type(buildState.source) not in ['str', 'unicode'] else buildState.graph.get_image(buildState.source)[0],
+                                                    ImageWrapper(buildState.target) if type(buildState.target) not in ['str','unicode'] else buildState.graph.get_image(buildState.target)[0],
+                                                    buildState.edgeMask,
+                                                    inverse=not buildState.isComposite,
+                                                    arguments=buildState.arguments(),
+                                                    defaultTransform=tm)
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
     return res
@@ -1443,7 +1439,7 @@ def paste_splice(buildState):
         return buildState.compositeMask
     elif buildState.donorMask is not None:
         # during a paste splice, the edge mask can split up the donor.
-        # although I am wondeing if the edgemask needs to be inverted.
+        # although I am wondering if the edgemask needs to be inverted.
         # this effectively sets the donorMask pixels to 0 where the edge mask is 0 (which is 'changed')
         donorMask = tool_set.applyMask(buildState.donorMask, buildState.edgeMask)
     else:
@@ -1777,8 +1773,7 @@ def defaultAlterComposite(buildState):
                               targetShape=buildState.targetShape,
                               interpolation=interpolation,
                               flip=orientflip,
-                              location=location,
-                              transformMatrix=tm)
+                              location=location)
     return compositeMask
 
 
@@ -1865,7 +1860,7 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
 
     try:
         if edgeMask is None:
-            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+            raise EdgeMaskError('Missing edge mask from ' + source + ' to ' + target, (source,target))
 
         if transformFunction is not None:
             return transformFunction(buildState)
@@ -2007,7 +2002,7 @@ def alterComposite(graph,
 
     try:
         if edgeMask is None:
-            raise ValueError('Missing edge mask from ' + source + ' to ' + target)
+            raise EdgeMaskError('Missing edge mask from ' + source + ' to ' + target, (source,target))
         if transformFunction is not None:
             return transformFunction(buildState)
         return copy_transform(buildState)
@@ -2187,7 +2182,7 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
             try:
                 img[(byteplane&bit)>0]  = 0
                 if not np.all(img==probe.targetMaskImage.image_array):
-                    raise ValueError('Not march on {}:{}'.format(file, str(probe.edgeId)))
+                    raise EdgeMaskError('Not march on {}:{}'.format(file, str(probe.edgeId)),probe.edgeId)
             except Exception as ex:
                 print ex
 
@@ -2453,9 +2448,11 @@ class CompositeDelegate:
                 except Exception as e:
                     logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
             try:
-                donors = self.constructDonors(saveImage=saveTargets,inclusionFunction=inclusionFunction) if constructDonors else []
+                donors = self.constructDonors(saveImage=saveTargets,
+                                              inclusionFunction=inclusionFunction) if constructDonors else []
             except Exception as ex:
                 if keepFailures:
+                    failure = True
                     logging.getLogger('maskgen').error(str(ex))
                     donors = []
                 else:
@@ -2563,8 +2560,8 @@ class CompositeDelegate:
         """
         Walks up the tree assembling donor masks
         """
-        def fillEmptyMasks(pred, node,masks):
-            return [(x[0],self.__getDonorMaskForEdge((pred, node),returnEmpty=True)  \
+        def fillEmptyMasks(pred_node, curr_node, masks):
+            return [(x[0],self.__getDonorMaskForEdge((pred_node, curr_node), returnEmpty=True)
                 if x[1] is None else x[1]) for x in masks]
         result = []
         preds = self.graph.predecessors(node)
@@ -2574,7 +2571,7 @@ class CompositeDelegate:
         for pred in preds:
             edge = self.graph.get_edge(pred, node)
             if mask is None:
-                donorMask = self.__getDonorMaskForEdge((pred, node),returnEmpty=False)
+                donorMask = self.__getDonorMaskForEdge((pred, node), returnEmpty=False)
             else:
                 donorMask = alterDonor(mask,
                                        self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
@@ -2598,7 +2595,7 @@ class CompositeDelegate:
                                         fillWithUserBoundaries=False)
         startMask = self.graph.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)
         if startMask is None:
-            raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
+            raise EdgeMaskError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
         op = self.gopLoader.getOperationWithGroups(edge['op'],fake=True)
         if op.category == 'Select':
             return startMask.to_array()
@@ -2686,7 +2683,7 @@ class CompositeDelegate:
             donors.append(DonorImage(target, baseNode, mask_wrapper, fname, media_type))
         return donors
 
-    def constructDonors(self, saveImage=True,inclusionFunction=isEdgeComposite):
+    def constructDonors(self, saveImage=True, inclusionFunction=isEdgeComposite, errorNotifier=raiseError):
         """
           Construct donor images
           Find all valid base node, leaf node tuples
@@ -2706,26 +2703,31 @@ class CompositeDelegate:
                          inclusionFunction(edge_id,edge,self.gopLoader.getOperationWithGroups(edge['op'],fake=True))):
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
                 if not os.path.exists(fullpath):
-                    raise ValueError('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                    errorNotifier('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     # we do need to invert because these masks are white=Keep(unchanged), Black=Remove (changed)
                     # we want to capture the 'unchanged' part, where as the other type we capture the changed part
                 startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
                 if startMask is None:
-                    raise ValueError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                    errorNotifier('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                 if startMask is not None and edgeMask.shape != startMask.shape:
-                    raise ValueError('Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1])
+                    errorNotifier('Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
             if startMask is not None:
                 if _is_empty_composite(startMask):
                     startMask = None
-                donor_masks = self._constructDonor(edge_id[0], startMask)
-                imageDonorToNodes = self.__processImageDonor(donor_masks)
-                videoDonorToNodes = self.__processVideoDonor(donor_masks)
-                donors.extend(self.__saveDonors(edge_id[1], imageDonorToNodes, self.__imagePreprocess,
-                                                self.__saveDonorImageToFile if saveImage else self.__saveDonorImageToFile,
-                                                'image'))
-                donors.extend(self.__saveDonors(edge_id[1], videoDonorToNodes, self.__videoPreprocess,
-                                                self.__saveDonorVideoToFile if saveImage else self.__doNothingSave,
-                                                'video'))
+                try:
+                    donor_masks = self._constructDonor(edge_id[0], startMask)
+                    imageDonorToNodes = self.__processImageDonor(donor_masks)
+                    videoDonorToNodes = self.__processVideoDonor(donor_masks)
+                    donors.extend(self.__saveDonors(edge_id[1], imageDonorToNodes, self.__imagePreprocess,
+                                                    self.__saveDonorImageToFile if saveImage else self.__saveDonorImageToFile,
+                                                    'image'))
+                    donors.extend(self.__saveDonors(edge_id[1], videoDonorToNodes, self.__videoPreprocess,
+                                                    self.__saveDonorVideoToFile if saveImage else self.__doNothingSave,
+                                                    'video'))
+                except EdgeMaskError as e:
+                    errorNotifier(e.message,e.edge_id)
+                except Exception as e:
+                    errorNotifier(str(e), edge_id)
         return donors
 
 

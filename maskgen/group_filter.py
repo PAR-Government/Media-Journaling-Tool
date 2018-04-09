@@ -390,6 +390,8 @@ class GroupOperationsLoader(GroupFilterLoader):
             real_op = getOperation(op_name, fake=True)
             has_generate_mask.add(real_op.generateMask)
         ops = getOperations()
+        if len(operations_used) > 1:
+            return []
         return [op_name for op_name in ops if op_name not in operations_used and (not \
             ("all" in has_generate_mask and ops[op_name].generateMask == "all")) \
                 and not \

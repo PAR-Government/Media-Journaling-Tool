@@ -2519,9 +2519,10 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
         change['type'] = mask_set['type']
         change['rate'] = mask_set['rate']
         change['videosegment'] = mask_set['videosegment']
+        mask_file_name = mask_set['videosegment']
+        reader = tool_set.GrayBlockReader(mask_set['videosegment'])
         try:
-            mask_file_name = mask_set['videosegment']
-            reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+            writer = None
             mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
             writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
                                                   reader.fps)
@@ -2546,7 +2547,8 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
             logging.getLogger('maskgen').error(e)
         finally:
             reader.close()
-            writer.close()
+            if writer is not None:
+                writer.close()
     return new_mask_set
 
 

@@ -2656,7 +2656,7 @@
         }
       },
       "maskTransformFunction": {
-          "image": "maskgen.mask_rules.copy_transform"
+          "image": "maskgen.mask_rules.output_transform"
       },
       "description": "Export the image in the jpeg format.",
       "includeInMask": {"default" : false},
@@ -2684,7 +2684,7 @@
         }
       },
       "maskTransformFunction": {
-          "image": "maskgen.mask_rules.copy_transform"
+          "image": "maskgen.mask_rules.output_transform"
       },
        "compareparameters" : {
          "function" :"maskgen.tool_set.convertCompare"
@@ -2728,7 +2728,7 @@
         "rotationCheck"
       ],
       "maskTransformFunction": {
-          "image": "maskgen.mask_rules.copy_transform"
+          "image": "maskgen.mask_rules.output_transform"
       },
       "optionalparameters": {
         "XMP File Name": {

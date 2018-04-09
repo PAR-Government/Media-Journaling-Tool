@@ -1342,6 +1342,26 @@ class ImageProjectModel:
             return composite_generator.constructDonors(saveImage=False)
         return []
 
+    def invertInputMask(self):
+        """
+        Temporary: Add missing input masks
+        :return:
+        """
+        if self.start is not None and self.end is not None:
+            start_im = self.startImage()
+            edge = self.G.get_edge(self.start, self.end)
+            if edge is not None:
+                maskname= getValue(edge,'inputmaskname')
+                if maskname is not None:
+                    mask = openImageMaskFile(self.get_dir(),maskname)
+                    if mask is not None:
+                        expected_shape = start_im.image_array.shape[0:2]
+                        if expected_shape != mask.shape:
+                            mask = cv2.resize(mask,tuple(reversed(expected_shape)))
+                        mask = ImageWrapper(mask)
+                        mask = mask.invert()
+                        mask.save(os.path.join(self.get_dir(),maskname))
+
     def fixInputMasks(self):
         """
         Temporary: Add missing input masks
@@ -1944,7 +1964,7 @@ class ImageProjectModel:
         edge = self.G.get_edge(self.start, self.end)
         return edge['maskname'] if 'maskname' in edge else ''
 
-    def maskImage(self):
+    def maskImage(self, inputmask=False):
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))

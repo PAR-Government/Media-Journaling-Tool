@@ -780,6 +780,9 @@ class MakeGenUI(Frame):
     def compareto(self):
         self.canvas.compareto()
 
+    def invertinput(self):
+        self.scModel.invertInputMask()
+
     def viewcomposite(self):
         probes = self.scModel.constructPathProbes()
         if probes is not None:
@@ -1117,6 +1120,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
+        self.edgemenu.add_command(label="Invert Input Mask", command=self.invertinput)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)

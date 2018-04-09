@@ -1481,11 +1481,12 @@ def applyFlipComposite(compositeMask, mask, flip):
     """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     flipper = Flipper(maskInverted, flip)
-    flipCompositeMask = flipper.flip(compositeMask)
-    maskInverted[maskInverted > 0] = 1
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    return (flipCompositeMask + compositeMask * maskAltered).astype('uint8')
+    def work(levelMask):
+        flipCompositeMask = flipper.flip(levelMask)
+        return (flipCompositeMask + levelMask * maskAltered).astype('uint8')
+    return applyToComposite(compositeMask,work)
 
 
 def applyToComposite(compositeMask, func, shape=None):
