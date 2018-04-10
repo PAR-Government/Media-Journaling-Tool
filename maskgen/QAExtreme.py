@@ -665,12 +665,12 @@ class QAProjectDialog(Toplevel):
 
         if not 0<=i<len(self.pages):
             return
-        self.cur.grid_forget()
+        nex = self.cur
         while checked:
-            self.cur = self.pages[i]
+            nex = self.pages[i]
             finish = True
-            if self.cur in self.checkboxvars.keys():
-                for t in self.checkboxvars[self.cur]:
+            if nex in self.checkboxvars.keys():
+                for t in self.checkboxvars[nex]:
                     if t.get() is False:
                         finish = False
                         break
@@ -680,6 +680,7 @@ class QAProjectDialog(Toplevel):
                 break
             i += dir
         #print(i)
+        self.cur.grid_forget()
         self.cur = self.pages[i]
         self.cur.grid()
 
