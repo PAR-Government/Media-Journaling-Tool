@@ -7,12 +7,14 @@
 # ==============================================================================
 
 
-import os
-from maskgen_loader import MaskGenLoader
-from json import JSONEncoder
 import json
 import logging
+import os
+from json import JSONEncoder
+
 from maskgen.config import global_config
+from maskgen_loader import MaskGenLoader
+
 
 class OperationEncoder(JSONEncoder):
     def default(self, o):
@@ -246,6 +248,12 @@ def saveJSON(filename):
 
 
 def loadProjectPropertyJSON(fileName):
+    """
+
+    :param fileName:
+    :return:
+    @rtype: list of ProjectProperty
+    """
     res = list()
     fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
@@ -269,6 +277,12 @@ def loadProjectPropertyJSON(fileName):
 
 
 def loadOperationJSON(fileName):
+    """
+
+    :param fileName:
+    :return:
+    @rtype: dict of str:Operation
+    """
     operations = {}
     fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
@@ -439,7 +453,7 @@ class MetaDataLoader:
 
         :param fileName:
         :return:
-        @rtype: list of ProjectProperty
+        @rtype: list ProjectProperty
         """
         loadCustomRules()
         self.projectProperties = loadProjectPropertyJSON(fileName)
@@ -456,7 +470,27 @@ class MetaDataLoader:
             self.operationsByCategory[category].append(op)
         return self.operations, self.filters, self.operationsByCategory
 
-    def toCSV(self,filename):
+    def propertiesToCSV(self, filename):
+        import csv
+        csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        with open(filename, 'w') as fp:
+            fp_writer = csv.writer(fp)
+            fp_writer.writerow(['JSON Name', 'Full Name', 'level', 'description', 'type', 'operations'])
+            for property in self.projectProperties:
+                opdata = [
+                    property.name,
+                    property.description,
+                    'semantic group' if property.semanticgroup else 'node' if property.node else 'project',
+                    property.information,
+                    property.type,
+                    ' '.join(property.operations) if property.operations is not None else ''
+                ]
+                try:
+                    fp_writer.writerow(opdata)
+                except:
+                    print ' '.join(opdata)
+
+    def operationsToCSV(self,filename):
         import csv
         csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
         with open(filename,'w') as fp:

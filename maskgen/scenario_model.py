@@ -2493,7 +2493,7 @@ class ImageProjectModel:
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
-            path, errors = self.G.create_archive(tempfile.gettempdir() if tempdir is None else tempdir)
+            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir)
             if len(errors) == 0:
                 config = TransferConfig()
                 s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
