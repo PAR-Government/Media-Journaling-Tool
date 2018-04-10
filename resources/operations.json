@@ -3376,9 +3376,13 @@
       ]
     },
     {
-      "category": "Select",
-      "name": "SelectCutFrames",
+      "category": "PostProcessing",
+      "name": "DuplicateFrameDrop",
       "mandatoryparameters": {
+        "Threshold": {
+          "type": "int[0:100]",
+          "description": "Threshold to determine how alike the frames have to be lower threshold more alike"
+        }
       },
       "rules": [
         "checkLengthSmaller",
@@ -3387,10 +3391,6 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-        "Threshold": {
-          "type": "int[0,100]",
-          "description": "Threshold to determine how alike the frames have to be lower threshold more alike"
-        }
       },
       "compareparameters" : {
          "video_function" :"maskgen.video_tools.cutCompare"
