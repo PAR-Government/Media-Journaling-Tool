@@ -468,8 +468,10 @@ class ImageImageLinkTool(LinkTool):
                         mask, analysis = interpolateMask(
                             mask, startIm, destIm,
                             arguments=consolidate(arguments, analysis_params), invert=invert)
-                        if mask is not None:
+                        if mask is not None and mask.shape != (0,0):
                             mask = ImageWrapper(mask)
+                        else:
+                            mask = None
                         break
             if mask is None:
                 analysis = {}
