@@ -18,18 +18,21 @@
       "description": "Organization",
       "name": "organization",
       "type": "string",
-      "mandatory": true
+      "mandatory": true,
+      "information":"Journal Creation Organzation"
     },
     {
       "description":"Description",
       "name": "projectdescription",
       "type": "text",
-      "mandatory": true
+      "mandatory": true,
+      "information": "Journal Description"
     },
     {
       "description": "Technical Summary",
       "name": "technicalsummary",
-      "type": "text"
+      "type": "text",
+      "information": "Journal Technical Summary"
     },
     {
       "description": "Provenance",

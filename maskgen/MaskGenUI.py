@@ -1202,7 +1202,12 @@ class MakeGenUI(Frame):
                                 information='Validation API URL'),
                 ProjectProperty(name='apitoken', type='text',
                                 description="API Token",
-                                information = 'Validation API URL')
+                                information = 'Validation API URL'),
+                  ProjectProperty(name='temp.dir',
+                                  type='folder:' + os.path.expanduser('~'),
+                                  description="Tempoary Directory for Export",
+                                  information='Tempoary Directory for Export')
+
                 ]
         for k, v in self.notifiers.get_properties().iteritems():
             props.append(ProjectProperty(name=k, type='text', description=k,
