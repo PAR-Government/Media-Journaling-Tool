@@ -76,6 +76,13 @@ class MaskGenLoader:
         with open(self.file_path, 'w') as f:
             json.dump(global_image, f, indent=2)
 
+    def getTempDir(self):
+        import tempfile
+        dir = self.get_key('temp.dir',None)
+        if os.path.isdir(dir) and os.access(dir, os.W_OK):
+            return dir
+        return tempfile.gettempdir()
+
 def main():
     import sys
     loader = MaskGenLoader()
