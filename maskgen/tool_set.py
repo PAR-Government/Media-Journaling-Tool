@@ -896,8 +896,8 @@ def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
             h = maxpoint[1] - minpoint[1] + 1
             x = minpoint[0]
             y = minpoint[1]
-            if (startIm.size[0] - w) < 2 and (startIm.size[1] - h) < 2:
-                return mask[x:x + h, y:y + w], {}
+            if (startIm.size[0] - w) == 0 and (startIm.size[1] - h) == 0:
+                return mask[y:y + h, x:x + w], {}
         except:
             return None, None
         return None, None
