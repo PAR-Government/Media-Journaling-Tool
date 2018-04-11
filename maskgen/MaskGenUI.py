@@ -265,6 +265,10 @@ class MakeGenUI(Frame):
         for edge_id in self.scModel.getGraph().get_edges():
             self.scModel.reproduceMask(edge_id=edge_id)
 
+    def fixit(self):
+        video_tools.fixVideoMasks(self.scModel.getGraph(),self.scModel.start,
+                                  self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end))
+
     def recomputeedgemask(self):
         analysis_params = {}
         if self.scModel.getEndType() == 'video':
@@ -1117,6 +1121,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
+        self.edgemenu.add_command(label="Fix It", command=self.fixit)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)

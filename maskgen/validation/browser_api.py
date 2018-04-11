@@ -48,13 +48,15 @@ class ValidationBrowserAPI(ValidationAPI):
                                                     node,
                                                     node,
                                                     "Cannot find base media file {} in the remote system".format(nodeData['file']),
-                                                    'Browser API'))
+                                                    'Browser API',
+                                                    None))
                 elif not fields[0]['high_provenance']:
                     errors.append(ValidationMessage(Severity.ERROR,
                                                     node,
                                                     node,
                                                     "{} media is not HP".format(nodeData['file']),
-                                                    'Browser API'))
+                                                    'Browser API',
+                                                    None))
                 else:
                     checked_nodes.append(nodeData['file'])
                     graph.setDataItem('api_validated_node', checked_nodes, excludeUpdate=True)
@@ -70,7 +72,8 @@ class ValidationBrowserAPI(ValidationAPI):
                                                     node,
                                                     "Final media node {} used in journal {}".format(nodeData['file'],
                                                                                           journal['manipulation_journal']),
-                                                    'Browser API'))
+                                                    'Browser API',
+                                                    None))
                 else:
                     checked_nodes.append(nodeData['file'])
                     graph.setDataItem('api_validated_node', checked_nodes, excludeUpdate=True)

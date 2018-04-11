@@ -1629,7 +1629,8 @@ class ImageProjectModel:
                                       self.start,
                                       destination,
                                       'Exception (' + str(e) + ')',
-                                      'Change Mask')], False
+                                      'Change Mask',
+                                      None)], False
 
     def __scan_args_callback(self, opName, arguments):
         """
@@ -2038,7 +2039,8 @@ class ImageProjectModel:
                                           '',
                                           '',
                                           'Project property ' + prop.description + ' is empty or invalid',
-                                          'Mandatory Property'))
+                                          'Mandatory Property',
+                                          None))
 
         return total_errors
 
@@ -2354,7 +2356,8 @@ class ImageProjectModel:
                                             self.start,
                                             self.start,
                                             warning_message,
-                                            'Plugin {}'.format(filter)))
+                                            'Plugin {}'.format(filter),
+                                            None))
         if results2 is not None:
             errors.extend(results2)
 
@@ -2413,7 +2416,8 @@ class ImageProjectModel:
                                       self.start,
                                       self.start,
                                       'Plugin ' + filter + ': ' + msg,
-                                      'Plugin {}'.format(filter))]
+                                      'Plugin {}'.format(filter),
+                                      None)]
         return None
 
     def scanNextImageUnConnectedImage(self):
@@ -2487,7 +2491,7 @@ class ImageProjectModel:
             self.clear_validation_properties()
             self.compress(all=True)
             path, errors = self.G.create_archive(location, include=include)
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export') for error in errors]
+            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def exporttos3(self, location, tempdir=None):
         import boto3
@@ -2509,7 +2513,7 @@ class ImageProjectModel:
                                    location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1]):
                     errors = [('', '',
                                'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export') for error in errors]
+            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def export_path(self, location):
         if self.end is None and self.start is not None:

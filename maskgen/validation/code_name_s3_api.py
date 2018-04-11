@@ -46,7 +46,8 @@ class ValidationCodeNameS3(ValidationAPI):
                                       '',
                                       '',
                                       'user name {} not valid'.format(graph.getDataItem('username','')),
-                                      'User')]
+                                      'User',
+                                      None)]
         return []
 
     def check_edge(self, op, graph, frm, to):
@@ -68,7 +69,8 @@ class ValidationCodeNameS3(ValidationAPI):
                                       frm,
                                       to,
                                       'user name {} not valid'.format( edge['username']),
-                                      'User')]
+                                      'User',
+                                      None)]
         return []
 
     def check_node(self, node, graph):
