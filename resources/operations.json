@@ -3376,6 +3376,28 @@
       ]
     },
     {
+      "category": "PostProcessing",
+      "name": "DuplicateFrameDrop",
+      "mandatoryparameters": {
+        "Threshold": {
+          "type": "int[0:100]",
+          "description": "Threshold to determine how alike the frames have to be lower threshold more alike"
+        }
+      },
+      "rules": [
+        "checkLengthSmaller",
+        "checkEmpty",
+        "checkSameChannels"
+      ],
+      "optionalparameters": {
+      },
+      "description": "Remove any frames that are near duplicates of the previous frame.",
+      "includeInMask": {"default" : false},
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
       "category": "Select",
       "name": "SelectCropFrames",
       "mandatoryparameters": {
