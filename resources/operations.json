@@ -1738,6 +1738,82 @@
       ]
     },
     {
+      "category":"CGI",
+      "name":"SynthesizeGAN",
+      "mandatoryparameters":{
+        "urls": {
+          "type": "urls",
+          "description" : "URL of GAN"
+        },
+        "Name" : {
+          "type" : "text",
+          "description" : "Name of GAN"
+        }
+      },
+      "optionalparameters":{
+        "Random seed value": {
+          "type" : "float",
+          "description" : "The random fed to the GAN to produce the output"
+        }
+      },
+      "includeInMask": {"default" : false},
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "rules" : [
+        "checkSize",
+        "checkFileTypeChange"
+      ]
+    },
+    {
+      "category":"CGI",
+      "name":"SynthesizeVideo",
+      "mandatoryparameters":{
+        "urls": {
+          "type": "urls",
+          "description" : "URL used to create the flight path simulated"
+        },
+        "Recording Software": {
+          "type" : "text",
+          "description": "Name of software to recapture screen"
+        },
+        "KML File": {
+          "type" : "file:kml",
+          "description": "Name of KML File"
+        },
+        "Rendering Software": {
+          "type" : "text",
+          "description" : "Name of software used to render the video"
+        }
+      },
+      "optionalparameters":{
+        "Time Settings": {
+          "type" : "list",
+          "values" : ["Default time", "Morning","Evening","Night","Early Morning","Late Morning", "Late Evening", "Early Evening"],
+          "description" : "The time setting used if changed",
+          "defaultvalue" : "Default time"
+        },
+        "Video Location": {
+          "type" : "text",
+          "description": "Where the video is supposed to take place"
+        },
+        "Time of Sun": {
+          "type" : "text",
+          "description" : "Time of day video was taken if unknown leave blank"
+        }
+      },
+      "includeInMask": {"default" : false},
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "rules" : [
+        "checkSize",
+        "checkFileTypeChange"
+      ]
+    },
+    {
       "category": "Color",
       "name": "Hue",
       "mandatoryparameters": {

@@ -1,0 +1,153 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "unicorn",
+    "name": "synthetic_video",
+    "organization": "PAR",
+    "projectDescription" : "Runs some basic operation to turn a Synthetic Video into an extendable journal",
+    "technicalSummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes":[
+	{
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "videoset",
+      "id": "0"
+    },
+	{
+	  "op_type": "PreProcessedMediaOperation",
+	  "id": "1",
+	  "arguments":{
+		"urls":  "https://www.nonesence.com",
+        "Recording Software": {
+          "type" : "value",
+          "value": "Name of software to recapture screen"
+        },
+        "KML File": {
+          "type" : "value",
+          "value": "file.kml"
+        },
+        "Rendering Software": {
+          "type" : "value",
+          "value" : "rendering software"
+        },
+        "Time Settings": {
+          "type" : "value",
+          "value" : "Default time"
+        }
+      },
+	  "description":"Generating a synthetic video",
+      "argument file": "PAR_Video_Sample.txt",
+	  "directory": "{AllDir}",
+	  "op": "SynthesizeVideo",
+	  "category": "PostProcessing",
+	  "software": "SyntheticVidSpec",
+	  "software version": "1.0",
+	  "argument names": ["Rendering Software","Recording Software","Video Location","KML File","urls","Time Settings","Time of Sun"]
+	},
+	{
+	  "op_type": "PluginOperation",
+      "plugin": "FrameDuplicateDrop",
+      "id": "2",
+      "arguments": {
+	    "Threshold": {
+          "type" : "value",
+          "value" : 3
+        }
+      }
+	},
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "DonorlessOperation",
+      "connect": false,
+      "id":"3",
+      "arguments": {
+        "Directory": {
+          "type" : "global",
+          "name" : "PRNUDir"
+        },
+        "Pick Preference" : {
+          "type" : "value",
+          "value" : "Random"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNUFromDonorVid",
+      "id":"4",
+      "arguments": {
+        "donor": {
+          "type" : "variable",
+          "name" : "Donator",
+          "source": "3"
+        },
+        "Capture Camera ID" : {
+          "type" : "variable",
+          "name" : "Device Local ID",
+          "source" :"3"
+        }
+      }
+    },
+	{
+	  "op_type": "PluginOperation",
+      "plugin": "OutputX264",
+      "id": "5",
+      "arguments": {
+      }
+	},
+	{
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "6",
+      "arguments": {
+        "donor": {
+          "type" : "variable",
+          "name" : "Donator",
+          "source": "3"
+        }
+      }
+	}
+  ],
+  "links":[
+	{
+	  "source":0,
+	  "target":1
+	},
+	{
+	  "source":1,
+	  "target":2
+	},
+    {
+      "source":0,
+      "target":3,
+      "connect": false
+    },
+    {
+      "source":3,
+      "target":4,
+      "connect": false
+    },
+    {
+      "source":3,
+      "target":6,
+      "connect": false
+    },
+    {
+      "source":2,
+      "target":4
+    },
+	{
+	  "source":4,
+	  "target":5
+	},
+    {
+      "source": 4,
+      "target": 6
+    }
+  ]
+}
