@@ -68,13 +68,14 @@ class QAProjectDialog(Toplevel):
         self.edges = {}
         self.qaData = qa_logic.ValidationData(self.scModel)
         self.resizable(width=False, height=False)
+        self.progressBars = []
         #print(self)
-        threading.stack_size(0x2000000)
+        #threading.stack_size(0x2000000)
 
-        t = threading.Thread(target=self.createWidgets)
-        t.start()
+        #t = threading.Thread(target=self.createWidgets)
+        #t.start()
         #t = threading._start_new_thread(self.createWidgets, () )
-        #self.createWidgets()
+        self.createWidgets()
 
 
     def getProbes(self):
@@ -104,7 +105,7 @@ class QAProjectDialog(Toplevel):
         page1.grid()
         self.cur = page1
         lbl = Label(page1, text="Welcome to the QA Wizard Press Next to begin the QA Process or Quit to stop. This is "
-                                "Manny hes here to help you analyze your masks. If you give him a click he will take "
+                                "Manny hes here to help you analyze your masks. If you give him a few clicks he will take "
                                 "you to a guide about QA. We are currently generating the probes "
                                 "this could take a while, when the next button is enabled you may begin.", wraplength=400).grid(column=0,row=0,\
                                                                                                 rowspan=2,columnspan=2)
@@ -231,9 +232,10 @@ class QAProjectDialog(Toplevel):
         col -= 1
         self.acceptButton = Button(lastpage, text='Accept', command=lambda: self.qa_done('yes'), width=15, state=DISABLED)
         self.acceptButton.grid(row=row, column=col+2, columnspan=2, sticky='W')
-
-        self.rejectButton = Button(lastpage, text='Previous', command=self.pre, width=15)
-        self.rejectButton.grid(row=row, column=col, columnspan=2, sticky='W')
+        self.rejectButton = Button(lastpage, text='Reject', command=lambda: self.qa_done('no'), width=15)
+        self.rejectButton.grid(row=row, column=col + 1, columnspan=2, sticky='E')
+        self.previButton = Button(lastpage, text='Previous', command=self.pre, width=15)
+        self.previButton.grid(row=row, column=col, columnspan=2, sticky='W')
 
         row += 1
         # self.descriptionLabel.grid(row=row, column=col - 1)
@@ -300,6 +302,7 @@ class QAProjectDialog(Toplevel):
             return(str[:5]+ "...\n" + str[-6:])
 
     def setUpPlot(self,t):
+
         data = []
         f = Figure(figsize=(6,4), dpi=100)
         subplot = f.add_subplot(111)
@@ -387,7 +390,7 @@ class QAProjectDialog(Toplevel):
         if (args[0] == 'moveto'):
             na = self.pltdata[self.cur]
             end = na[-1]
-            total = end[3]-end[2]
+            total = end[3]-end[2] + 20000
             curframe = self.subplots[self.cur].get_children()[1].xaxis.get_view_interval()
             # print(curframe)
             space = curframe[1]-curframe[0]
@@ -459,15 +462,15 @@ class QAProjectDialog(Toplevel):
         self.collapseFrame.append_chords([self.groupFrame])
         self.collapseFrame.grid(row=row+1, column=0, columnspan=2
                                 , sticky=E,rowspan=1)
-        row += 1
-        self.operationLabel.grid(row=row, columnspan=3, sticky='W', padx=10)
-        row += 1
+        row += 2
         self.cImgFrame = Frame(p)
         # self.load_overlay(initialize= True)
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionVar = StringVar()
         self.descriptionLabel = Label(p, textvariable=self.operationVar, justify=LEFT)
         row += 8
+        self.operationLabel.grid(row=row, columnspan=3, sticky='W', padx=10)
+        row += 1
         textscroll = Scrollbar(p)
         textscroll.grid(row=row, column=col + 1, sticky=NS)
         self.commentBox = Text(p, height=5, width=80, yscrollcommand=textscroll.set)
@@ -499,11 +502,14 @@ class QAProjectDialog(Toplevel):
              self.lookup[
                  self.edgeTuple[1]]][0]
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
+        self.operationVar.set(self.operationVar.get() + self._compose_label(edge))
         self.edges[p] = [edge,self.listbox]
         for sg in edge['semanticGroups'] if 'semanticGroups' in edge else []:
             self.listbox.insert(ANCHOR, sg)
         #print (edge['op'])
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
+        print(self.type
+        )
         #print(operation)
         if self.type == 'image':
             self.loadt(t)
@@ -550,36 +556,64 @@ class QAProjectDialog(Toplevel):
         self.acceptnButton.grid(row=12, column=col + 2, columnspan=2, sticky='E',padx=(20,20))
         self.prevnButton = Button(p, text='Previous Unchecked', command=self.preCheck, width=15)
         self.prevnButton.grid(row=12, column=col-1, columnspan=2, sticky='W',padx=(20,20))
+        row = 14
+        pb = ttk.Progressbar(p,orient='horizontal', mode='determinate')
+        pb.grid(row = row, column = 0, sticky=EW,columnspan=8)
+        pb.step(self.getProgress()*100)
+        print(self.getProgress()*100)
+        #pb.start(100)
+        self.progressBars.append(pb)
 
 
+
+
+    def getProgress(self):
+        count = 0.0
+        for k in self.qaData.keys():
+            print(self.qaData.get_qalink_status(k))
+            count += 1 if self.qaData.get_qalink_status(k)=='yes' else 0
+        return count/len(self.crit_links)
 
     def moveto(self, i):
         pass
 
     def transitionString(self, probeList):
         tab = "     "
-
+        current = 0
+        c = 0
         if self.finalNodeName == None:
-            self.pathList.insert(END, self.edgeTuple[1]  )
+            self._add_to_listBox(self.pathList, self.edgeTuple[1])
             self.pathList.insert(END, 2*tab + "|")
             self.pathList.insert(END, tab + "Donor")
             self.pathList.insert(END, 2*tab + "|")
             self.pathList.insert(END, 2*tab + "V")
-            self.pathList.insert(END, self.edgeTuple[0])
+            self._add_to_listBox(self.pathList, self.edgeTuple[0])
+            self.pathList.selection_set(5)
             return self.edgeTuple[0] + "\n|\nPasteSplice\n|\nV\n" + self.edgeTuple[1]
         self.pathList.insert(END,self.getFileNameForNode( self.backs[self.finalNodeName][0].start)[0:15]+"...")
         self.pathList.insert(END, tab + self.getFileNameForNode(self.backs[self.finalNodeName][0].start)[-10:])
         for p in self.backs[self.finalNodeName]:
             edge = self.scModel.getGraph().get_edge(p.start, p.end)
             self.pathList.insert(END, 2 * tab + "|")
-            self.pathList.insert(END, tab + edge['op'])
+            c += self._add_to_listBox(self.pathList, edge['op'])
             self.pathList.insert(END, 2 * tab + "|")
             self.pathList.insert(END, 2 * tab + "V")
-            self.pathList.insert(END, self.getFileNameForNode(p.end)[0:15]+ "...")
-            self.pathList.insert(END, tab + self.getFileNameForNode(p.end)[-10:])
+            c += 3
+            c += self._add_to_listBox(self.pathList, self.getFileNameForNode(p.end))
+            if p.end == self.edgeTuple[0]:
+                current = c
             str = ""
+        self.pathList.selection_set(current)
         return str
 
+
+    def _add_to_listBox(self, box, string):
+        if len(string) < 20:
+            box.insert(END, string)
+            return 1
+        box.insert(END, string[0:15]+"...")
+        box.insert(END, "    " + string[max(15-int(len(string)),-10)])
+        return 2
 
     def _compose_label(self,edge):
         op  = edge['op']
@@ -593,7 +627,6 @@ class QAProjectDialog(Toplevel):
         self.load_overlay(True, t)
 
     def load_overlay(self, initialize,t):
-
         edgeTuple = self.edgeTuple
         if (len(t.split('->')) > 1):
             probe = [probe for probe in self.probes if
@@ -650,17 +683,24 @@ class QAProjectDialog(Toplevel):
                     finish = False
                     break
         ind = self.pages.index(self.cur)
+        step = 0
         if 0<=ind-1<len(self.crit_links):
             if finish and self.crit_links[ind-1] in self.qaData.keys():
                 #print(self.crit_links[ind-1])
+                if self.qaData.get_qalink_status(self.crit_links[ind-1]) == 'no':
+                    step = 1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind-1],'yes')
                 self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END).strip())
 
             if not finish:
                 #print(self.crit_links[ind-1])
+                if self.qaData.get_qalink_status(self.crit_links[ind-1]) == 'yes':
+                    step = -1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind - 1], 'no')
                 self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END).strip())
-
+        for p in self.progressBars:
+            print("stepping {}".format(step))
+            p.step(step*100)
         i = self.pages.index(self.cur) + dir
 
         if not 0<=i<len(self.pages):
