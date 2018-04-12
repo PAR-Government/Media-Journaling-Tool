@@ -182,17 +182,18 @@ def getNormalFlow(frames):
         future = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
-        flow_list[i - 1] = np.std(flow)
+        flow_list[i - 1] = np.mean(flow**2)
     return np.mean(flow_list)
 
 
 def calculateOptimalFrameReplacement(frames, start, stop):
-    avg_flow = getNormalFlow(frames[start:stop])
+    avg_flow = np.mean([getNormalFlow(frames[max(0,start-30): start]),getNormalFlow(frames[stop: min(stop+30,len(frames))])])
+
     prev_frame = cv2.cvtColor(frames[start], cv2.COLOR_BGR2GRAY)
     next_frame = cv2.cvtColor(frames[stop], cv2.COLOR_BGR2GRAY)
     jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame, next_frame,
                                                          0.8, 7, 15, 3, 7, 1.5, flags=2)
-    std_jump_flow = np.std(jump_flow)
+    std_jump_flow = np.mean(jump_flow**2)
     frames_to_add = int(np.rint(std_jump_flow / avg_flow))
     return frames_to_add
 
@@ -429,7 +430,7 @@ class FrameAnalyzer:
         if self.end_time is not None:
             return differenceInFramesBetweenMillisecondsAndFrame(self.end_time, self.start_time, self.fps) + 1
         avg_flow = getNormalFlow(self.last_frames)
-        std_jump_flow = np.std(self.jump_flow)
+        std_jump_flow = np.mean(self.jump_flow**2)
         return int(np.rint(std_jump_flow / avg_flow))
 
     def updateFlow(self, last_frame, next_frame, direction):
