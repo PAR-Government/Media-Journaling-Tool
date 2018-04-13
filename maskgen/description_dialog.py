@@ -1363,9 +1363,10 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
 
 
 class ActionableTableCanvas(TableCanvas):
-    def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.', **kwargs):
+    def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.', allowSave=False, **kwargs):
         self.openColumn = openColumn
         self.dir = dir
+        self.allowSave = True
         TableCanvas.__init__(self, parent=parent, model=model, width=width, height=height, **kwargs)
 
     def handle_double_click(self, event):
@@ -1378,6 +1379,9 @@ class ActionableTableCanvas(TableCanvas):
         if f is not None and len(str(f)) > 0:
           openFile(os.path.join(self.dir, f))
 
+    def saveAll(self):
+        self.model.saveAll()
+
     def popupMenu(self, event, rows=None, cols=None, outside=None):
         """Add left and right click behaviour for canvas, should not have to override
             this function, it will take its values from defined dicts in constructor"""
@@ -1386,6 +1390,7 @@ class ActionableTableCanvas(TableCanvas):
                           "Set Text Color": lambda: self.setcellColor(rows, cols, key='fg'),
                           "Open": lambda: self.openFile(row),
                           "Copy": lambda: self.copyCell(rows, cols),
+                          "Save": self.saveAll,
                           "View Record": lambda: self.getRecordInfo(row),
                           "Select All": self.select_All,
                           "Filter Records": self.showFilteringBar,
@@ -1401,7 +1406,7 @@ class ActionableTableCanvas(TableCanvas):
         else:
             main = ["Set Fill Color", "Set Text Color", "Copy"]
         general = ["Select All", "Filter Records", "Preferences"]
-        filecommands = ['Export csv']
+        filecommands = ['Export csv','Save'] if self.allowSave else ['Export csv']
         plotcommands = ['Plot Selected', 'Plot Options']
         utilcommands = ["View Record", "Formulae->Value"]
 
@@ -1481,6 +1486,24 @@ def compareNumString(numstringa,numstringb):
 def sortMask(a,b):
     return compareNumString(toNumString(a),toNumString(b))
 
+class ExtendedTableModel(TableModel):
+
+    def __init__(self, datasource):
+        TableModel.__init__(self)
+        self.changes = {}
+        self.datasource = datasource
+
+    def setValueAt(self, value, rowIndex, columnIndex):
+        TableModel.setValueAt(self,value,rowIndex,columnIndex)
+        if rowIndex not in self.changes:
+            self.changes[rowIndex] = {}
+        self.changes[rowIndex][columnIndex] = value
+
+    def saveAll(self):
+        for row in self.changes:
+            for col in self.changes[row]:
+                self.datasource.update(row,col, self.changes[row][col])
+
 class MaskSetTable(Frame):
     section = None
 
@@ -1489,15 +1512,16 @@ class MaskSetTable(Frame):
         Frame.__init__(self, master, **kwargs)
         self._drawMe(dir, openColumn)
 
+
     def _drawMe(self, dir, openColumn):
-        model = TableModel()
+        model = ExtendedTableModel( self.items)
         for c in self.items.columnNames:
             model.addColumn(c)
         model.importDict(self.items.columnValues)
         model.reclist = sorted(model.reclist)
 
         self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125,
-                                           openColumn=openColumn, dir=dir)
+                                           openColumn=openColumn, dir=dir, allowSave=True)
         self.table.updateModel(model)
         self.table.createTableFrame()
 
@@ -1529,7 +1553,7 @@ class MetaDiffTable(Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125)
+        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125, allowSave=True)
         self.table.updateModel(model)
         self.table.createTableFrame()
 
@@ -2578,20 +2602,30 @@ class ValidationFrame(VerticalScrolledFrame):
         self.parent = parent
         self.body(self.interior, items)
 
-    def fix(self, item):
-        print item.Message
+    def fix(self, row, item):
+        """
+        :param row:
+        :param item:
+        :return:
+        @type item: ValidationMessage
+        """
+        try:
+            item.applyFix(self.parent.scModel.getGraph())
+            self.buttons[row-1].config(state=DISABLED)
+        except Exception as ex:
+            tkMessageBox.showwarning('Error' ,str(ex))
 
     def body(self,master, items):
         """
-
         :param parent:
         :param items:
         :return:
         @type items: list of ValidationMessage
         """
         row = 1
+        self.buttons = []
         for item in items:
-            if item[1] != item[2]:
+            if item.Start != item.End:
                 item_text='{}: {}->{} {}'.format(item.Severity.name,
                                                                 self.parent.scModel.getFileName(item.Start),
                                                                 self.parent.scModel.getFileName(item.End),
@@ -2605,10 +2639,12 @@ class ValidationFrame(VerticalScrolledFrame):
                                                          item.Message)
 
             cb = partial(self.parent.selectLink,item.Start,item.End)
-            cbfix = partial(self.fix,item)
+            cbfix = partial(self.fix,row,item)
             widget = Button(master, text=item_text, command=cb)
             widget.config(relief=SUNKEN)
             button = Button(master, text='Fix', takefocus=False, command=cbfix)
+            button.config(state=DISABLED if item.Fix is None else ACTIVE)
+            self.buttons.append(button)
             button.grid(row=row, column=2,sticky=E)
             widget.grid(row=row, column=1,sticky=W)
             row+=1

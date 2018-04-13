@@ -7,10 +7,13 @@
 #==============================================================================
 
 from maskgen.software_loader import getFileName,getMetDataLoader
+from maskgen import maskGenPreferences
 from maskgen.image_graph import ImageGraph
 from core import ValidationAPI,ValidationMessage,Severity
 
 loader = getMetDataLoader()
+
+
 
 class ValidationCodeNameS3(ValidationAPI):
 
@@ -33,6 +36,7 @@ class ValidationCodeNameS3(ValidationAPI):
         @rtype: bool
         """
         return self.names is not None
+
 
     def check_graph(self,graph):
         """
@@ -70,7 +74,7 @@ class ValidationCodeNameS3(ValidationAPI):
                                       to,
                                       'user name {} not valid'.format( edge['username']),
                                       'User',
-                                      None)]
+                                      self.fixUserName)]
         return []
 
     def check_node(self, node, graph):
@@ -87,6 +91,11 @@ class ValidationCodeNameS3(ValidationAPI):
     def test(self):
         return None if self.isConfigured() else 'Checking usernames not configured.  Missing ' + ValidationCodeNameS3.filename
 
-
+    def fixUserName(self, graph, start, end):
+        user = graph.getDataItem('username', maskGenPreferences.get_key('username', 'NA'))
+        if user not in self.names:
+            raise ValueError('Cannot fix name until the project username is correct in the project properties')
+        edge = graph.get_edge(start, end)
+        edge['username'] = user
 
 ValidationAPI.register(ValidationCodeNameS3)

@@ -8,13 +8,13 @@
 
 from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
 from maskgen.support import getValue
-from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue
+from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask
 from maskgen.image_graph import ImageGraph, GraphProxy
 import os
-from collections import namedtuple
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from maskgen import MaskGenLoader
+from maskgen.image_wrap import ImageWrapper
 
 global_loader = SoftwareLoader()
 
@@ -24,7 +24,21 @@ class Severity(Enum):
     ERROR = 3
     CRITICAL = 4
 
-ValidationMessage = namedtuple('ValidationMessage', ['Severity', 'Start', 'End', 'Message', 'Module', 'Fix'], verbose=False)
+class ValidationMessage:
+
+    def __init__(self,Severity, Start, End, Message, Module,Fix=None):
+        self.Severity = Severity
+        self.Start = Start
+        self.End = End
+        self.Message = Message
+        self.Module = Module
+        self.Fix = Fix
+
+    def __getitem__(self, item):
+        return [self.Severity,self.Start,self.End,self.Message,self.Module,self.Fix][item]
+
+    def applyFix(self,graph):
+        self.Fix(graph,self.Start,self.End)
 
 def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     """
@@ -280,6 +294,25 @@ class ValidationAPIComposite(ValidationAPI):
             if result is not None:
                 return result
 
+
+def repairMask(graph,start,end):
+    """
+      :param graph:
+      :param start:
+      :param end:
+      :return:
+      @type graph: ImageGraph
+      @type start: str
+      @type end: str
+      """
+    edge = graph.get_edge(start,end)
+    startimage, name = graph.get_image(start)
+    finalimage, fname = graph.get_image(end)
+    mask = graph.get_edge_image(start,end, 'maskname')
+    inputmaskname = os.path.splitext(name)[0] + '_inputmask.png'
+    ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
+    edge['inputmaskname'] = os.path.split(inputmaskname)[1]
+    graph.setDataItem('autopastecloneinputmask', 'yes')
 
 class Validator:
     """
@@ -684,7 +717,6 @@ def check_arguments(edge, op, graph, frm, to):
                                              None))
     return results
 
-
 def check_masks(edge, op, graph, frm, to):
     """
       Validate a typed operation argument
@@ -721,10 +753,11 @@ def check_masks(edge, op, graph, frm, to):
                                   to,
                                   "Input mask file {} is missing".format(inputmaskname),
                                   'Input Mask',
-                                  None)]
+                                  repairMask)]
     if inputmaskname is not None and len(inputmaskname) > 0 and \
             os.path.exists(os.path.join(graph.dir, inputmaskname)):
-        if fileType(os.path.join(graph.dir, inputmaskname)) == 'audio':
+        ft = fileType(os.path.join(graph.dir, inputmaskname))
+        if ft == 'audio':
             return []
         inputmask = openImage(os.path.join(graph.dir, inputmaskname))
         if inputmask is None:
@@ -733,7 +766,7 @@ def check_masks(edge, op, graph, frm, to):
                                       to,
                                       "Input mask file {} is missing".format(inputmaskname),
                                       'Input Mask',
-                                      None)]
+                                      repairMask if ft == 'image' else None)]
         inputmask = inputmask.to_mask().to_array()
         mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
         if inputmask.shape != mask.shape:
@@ -742,7 +775,7 @@ def check_masks(edge, op, graph, frm, to):
                                       to,
                                       'input mask name parameter has an invalid size',
                                       'Input Mask',
-                                      None)]
+                                      repairMask if ft == 'image' else None)]
     return []
 
 

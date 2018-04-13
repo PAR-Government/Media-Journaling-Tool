@@ -2615,11 +2615,15 @@ class VideoMaskSetInfo:
     """
     Set of change masks video clips
     """
+
     columnNames = ['Start', 'End', 'Frames', 'File']
+    func = [float,float,int,str]
+    columnKeys = ['starttime', 'endtime', 'frames', 'File']
     columnValues = {}
 
     def __init__(self, maskset):
         self.columnValues = {}
+        self.maskset = maskset
         for i in range(len(maskset)):
             self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
 
@@ -2627,6 +2631,11 @@ class VideoMaskSetInfo:
         return {'Start': self.tofloat(item['starttime']), 'End': self.tofloat(item['endtime']),
                 'Frames': item['frames'],
                 'File': item['videosegment'] if 'videosegment' in item else ''}
+
+
+    def update(self, item_number, column, value):
+        self.maskset[item_number][self.columnKeys[column]] = self.func[column](value)
+        self.maskset[item_number]['rate'] = (self.maskset[item_number]['endtime'] - self.maskset[item_number]['starttime'])/self.maskset[item_number]['frames']
 
     def tofloat(self, o):
         return o if o is None else float(o)
