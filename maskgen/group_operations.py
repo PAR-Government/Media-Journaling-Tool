@@ -71,7 +71,8 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                                       '',
                                       '',
                                       'Could not find paths from base to terminal nodes where the the last operation is not ExifMetaCopy.',
-                                      'CompressAs-Group')]
+                                      'CompressAs-Group',
+                                      None)]
             newPairs = None
         else:
             for pair in self.pairs:
@@ -111,5 +112,6 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                                               '',
                                               '',
                                               'Group operation not permitted for base image nodes that are not JPEG or TIFF',
-                                              'CompressAs-Group'))
+                                              'CompressAs-Group',
+                                              None))
         return (msgs, newPairs)

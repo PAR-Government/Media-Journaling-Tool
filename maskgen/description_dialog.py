@@ -1363,9 +1363,10 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
 
 
 class ActionableTableCanvas(TableCanvas):
-    def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.', **kwargs):
+    def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.', allowSave=False, **kwargs):
         self.openColumn = openColumn
         self.dir = dir
+        self.allowSave = True
         TableCanvas.__init__(self, parent=parent, model=model, width=width, height=height, **kwargs)
 
     def handle_double_click(self, event):
@@ -1378,6 +1379,9 @@ class ActionableTableCanvas(TableCanvas):
         if f is not None and len(str(f)) > 0:
           openFile(os.path.join(self.dir, f))
 
+    def saveAll(self):
+        self.model.saveAll()
+
     def popupMenu(self, event, rows=None, cols=None, outside=None):
         """Add left and right click behaviour for canvas, should not have to override
             this function, it will take its values from defined dicts in constructor"""
@@ -1386,6 +1390,7 @@ class ActionableTableCanvas(TableCanvas):
                           "Set Text Color": lambda: self.setcellColor(rows, cols, key='fg'),
                           "Open": lambda: self.openFile(row),
                           "Copy": lambda: self.copyCell(rows, cols),
+                          "Save": self.saveAll,
                           "View Record": lambda: self.getRecordInfo(row),
                           "Select All": self.select_All,
                           "Filter Records": self.showFilteringBar,
@@ -1401,7 +1406,7 @@ class ActionableTableCanvas(TableCanvas):
         else:
             main = ["Set Fill Color", "Set Text Color", "Copy"]
         general = ["Select All", "Filter Records", "Preferences"]
-        filecommands = ['Export csv']
+        filecommands = ['Export csv','Save'] if self.allowSave else ['Export csv']
         plotcommands = ['Plot Selected', 'Plot Options']
         utilcommands = ["View Record", "Formulae->Value"]
 
@@ -1481,6 +1486,24 @@ def compareNumString(numstringa,numstringb):
 def sortMask(a,b):
     return compareNumString(toNumString(a),toNumString(b))
 
+class ExtendedTableModel(TableModel):
+
+    def __init__(self, datasource):
+        TableModel.__init__(self)
+        self.changes = {}
+        self.datasource = datasource
+
+    def setValueAt(self, value, rowIndex, columnIndex):
+        TableModel.setValueAt(self,value,rowIndex,columnIndex)
+        if rowIndex not in self.changes:
+            self.changes[rowIndex] = {}
+        self.changes[rowIndex][columnIndex] = value
+
+    def saveAll(self):
+        for row in self.changes:
+            for col in self.changes[row]:
+                self.datasource.update(row,col, self.changes[row][col])
+
 class MaskSetTable(Frame):
     section = None
 
@@ -1489,15 +1512,16 @@ class MaskSetTable(Frame):
         Frame.__init__(self, master, **kwargs)
         self._drawMe(dir, openColumn)
 
+
     def _drawMe(self, dir, openColumn):
-        model = TableModel()
+        model = ExtendedTableModel( self.items)
         for c in self.items.columnNames:
             model.addColumn(c)
         model.importDict(self.items.columnValues)
         model.reclist = sorted(model.reclist)
 
         self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125,
-                                           openColumn=openColumn, dir=dir)
+                                           openColumn=openColumn, dir=dir, allowSave=True)
         self.table.updateModel(model)
         self.table.createTableFrame()
 
@@ -1529,112 +1553,10 @@ class MetaDiffTable(Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125)
+        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125, allowSave=True)
         self.table.updateModel(model)
         self.table.createTableFrame()
 
-
-class ValidationListDialog(Toplevel):
-    items = None
-
-    def __init__(self, parent, items, name):
-        """
-        :param items:
-        :return:
-        @type items: list of ValidationMessage
-        """
-        self.items = items
-        self.parent = parent
-        Toplevel.__init__(self, parent)
-        self.resizable(width=True, height=True)
-        self.title(name)
-        self.parent = parent
-        body = Frame(self)
-        self.body(body)
-        body.grid(row=0, column=0, sticky=N + E + S + W)
-        self.grid_propagate(True)
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-        body.grid_rowconfigure(0, weight=1)
-        body.grid_columnconfigure(0, weight=1)
-        w = self.buttons(body)
-        w.grid(row=2, column=0)
-        self.bind("<Return>", self.cancel)
-        self.bind("<Escape>", self.cancel)
-        self.protocol("WM_DELETE_WINDOW", self.cancel)
-        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50,
-                                  parent.winfo_rooty() + 50))
-
-    def buttons(self, frame):
-        return Button(frame, text="OK", width=10, command=self.cancel, default=ACTIVE)
-
-    def setItems(self, items):
-        """
-
-        :param items:
-        :return:
-        @type items: list of ValidationMessage
-        """
-        self.items = sortMessages(items)
-        self.itemBox.delete(0, END)
-        for item in self.items:
-            if item[1] != item[2]:
-                self.itemBox.insert(END, '{}: {}->{} {}'.format(item.Severity.name,
-                                                               self.parent.scModel.getFileName(item.Start),
-                                                               self.parent.scModel.getFileName(item.End),
-                                                               item.Message))
-            elif len(item[1])>0:
-                self.itemBox.insert(END, '{}: {} {}'.format(item.Severity.name,
-                                                           self.parent.scModel.getFileName(item.Start),
-                                                           item.Message))
-            else:
-                self.itemBox.insert(END, '{}: {}'.format(item.Severity.name,
-                                                           item.Message))
-
-    def body(self, master):
-        self.yscrollbar = Scrollbar(master, orient=VERTICAL)
-        self.xscrollbar = Scrollbar(master, orient=HORIZONTAL)
-        self.itemBox = Listbox(master, width=80, yscrollcommand=self.yscrollbar.set, xscrollcommand=self.xscrollbar.set)
-        self.itemBox.bind("<Double-Button-1>", self.change)
-        self.itemBox.grid(row=0, column=0, sticky=E + W + N + S)
-        self.xscrollbar.config(command=self.itemBox.xview)
-        self.xscrollbar.grid(row=1, column=0, stick=E + W)
-        self.yscrollbar.config(command=self.itemBox.yview)
-        self.yscrollbar.grid(row=0, column=1, stick=N + S)
-        self.setItems(self.items)
-
-    def cancel(self):
-        #self.parent.doneWithWindow(self)
-        self.parent.focus_set()
-        self.destroy()
-
-    def change(self, event):
-        if len(self.itemBox.curselection()) == 0:
-            return
-        index = int(self.itemBox.curselection()[0])
-        self.parent.selectLink(self.items[index][1], self.items[index][2])
-
-
-class DecisionValidationListDialog(ValidationListDialog):
-    isok = False
-
-    def __init__(self, parent, items, name):
-        ValidationListDialog.__init__(self, parent, items, name)
-
-    def setok(self):
-        self.isok = True
-        self.cancel()
-
-    def wait(self, root):
-        root.wait_window(self)
-
-    def buttons(self, frame):
-        box = Frame(frame)
-        w1 = Button(box, text="Cancel", width=10, command=self.cancel, default=ACTIVE)
-        w2 = Button(box, text="Continue", width=10, command=self.setok, default=ACTIVE)
-        w1.pack(side=LEFT, padx=5, pady=5)
-        w2.pack(side=RIGHT, padx=5, pady=5)
-        return box
 
 class CompositeCaptureDialog(tkSimpleDialog.Dialog):
     im = None
@@ -2671,3 +2593,121 @@ class NodePropertyFunction(PropertyFunction):
 
     def setValue(self, name,value):
         self.lookup_values[name] = value
+
+
+class ValidationFrame(VerticalScrolledFrame):
+
+    def __init__(self, master, parent,items,**kwargs):
+        VerticalScrolledFrame.__init__(self, master, **kwargs)
+        self.parent = parent
+        self.body(self.interior, items)
+
+    def fix(self, row, item):
+        """
+        :param row:
+        :param item:
+        :return:
+        @type item: ValidationMessage
+        """
+        try:
+            item.applyFix(self.parent.scModel.getGraph())
+            self.buttons[row-1].config(state=DISABLED)
+        except Exception as ex:
+            tkMessageBox.showwarning('Error' ,str(ex))
+
+    def body(self,master, items):
+        """
+        :param parent:
+        :param items:
+        :return:
+        @type items: list of ValidationMessage
+        """
+        row = 1
+        self.buttons = []
+        for item in items:
+            if item.Start != item.End:
+                item_text='{}: {}->{} {}'.format(item.Severity.name,
+                                                                self.parent.scModel.getFileName(item.Start),
+                                                                self.parent.scModel.getFileName(item.End),
+                                                                item.Message)
+            elif len(item[1]) > 0:
+                item_text=  '{}: {} {}'.format(item.Severity.name,
+                                                            self.parent.scModel.getFileName(item.Start),
+                                                            item.Message)
+            else:
+                item_text= '{}: {}'.format(item.Severity.name,
+                                                         item.Message)
+
+            cb = partial(self.parent.selectLink,item.Start,item.End)
+            cbfix = partial(self.fix,row,item)
+            widget = Button(master, text=item_text, command=cb)
+            widget.config(relief=SUNKEN)
+            button = Button(master, text='Fix', takefocus=False, command=cbfix)
+            button.config(state=DISABLED if item.Fix is None else ACTIVE)
+            self.buttons.append(button)
+            button.grid(row=row, column=2,sticky=E)
+            widget.grid(row=row, column=1,sticky=W)
+            row+=1
+
+
+class ValidationListDialog(Toplevel):
+    items = None
+
+    def __init__(self, parent, items, name):
+        """
+        :param items:
+        :return:
+        @type items: list of ValidationMessage
+        """
+        self.items = items
+        self.parent = parent
+        Toplevel.__init__(self, parent)
+        self.resizable(width=True, height=True)
+        self.title(name)
+        self.parent = parent
+        body = Frame(self)
+        body.pack(padx=5, pady=5, fill=BOTH, expand=True)
+        itemsframe = ValidationFrame(body, parent,items)
+        itemsframe.grid(row=0, column=0, sticky=N + E + S + W)
+        self.grid_propagate(True)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        body.grid_rowconfigure(0, weight=1)
+        body.grid_columnconfigure(0, weight=1)
+        w = self.buttons(body)
+        w.grid(row=2, column=0)
+        self.bind("<Return>", self.cancel)
+        self.bind("<Escape>", self.cancel)
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
+        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50,
+                                  parent.winfo_rooty() + 50))
+
+    def buttons(self, frame):
+        return Button(frame, text="OK", width=10, command=self.cancel, default=ACTIVE)
+
+    def cancel(self):
+        # self.parent.doneWithWindow(self)
+        self.parent.focus_set()
+        self.destroy()
+
+
+class DecisionValidationListDialog(ValidationListDialog):
+    isok = False
+
+    def __init__(self, parent, items, name):
+        ValidationListDialog.__init__(self, parent, items, name)
+
+    def setok(self):
+        self.isok = True
+        self.cancel()
+
+    def wait(self, root):
+        root.wait_window(self)
+
+    def buttons(self, frame):
+        box = Frame(frame)
+        w1 = Button(box, text="Cancel", width=10, command=self.cancel, default=ACTIVE)
+        w2 = Button(box, text="Continue", width=10, command=self.setok, default=ACTIVE)
+        w1.pack(side=LEFT, padx=5, pady=5)
+        w2.pack(side=RIGHT, padx=5, pady=5)
+        return box

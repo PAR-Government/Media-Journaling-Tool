@@ -8,13 +8,13 @@
 
 from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
 from maskgen.support import getValue
-from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue
+from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask
 from maskgen.image_graph import ImageGraph, GraphProxy
 import os
-from collections import namedtuple
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from maskgen import MaskGenLoader
+from maskgen.image_wrap import ImageWrapper
 
 global_loader = SoftwareLoader()
 
@@ -24,7 +24,21 @@ class Severity(Enum):
     ERROR = 3
     CRITICAL = 4
 
-ValidationMessage = namedtuple('ValidationMessage', ['Severity', 'Start', 'End', 'Message', 'Module'], verbose=False)
+class ValidationMessage:
+
+    def __init__(self,Severity, Start, End, Message, Module,Fix=None):
+        self.Severity = Severity
+        self.Start = Start
+        self.End = End
+        self.Message = Message
+        self.Module = Module
+        self.Fix = Fix
+
+    def __getitem__(self, item):
+        return [self.Severity,self.Start,self.End,self.Message,self.Module,self.Fix][item]
+
+    def applyFix(self,graph):
+        self.Fix(graph,self.Start,self.End)
 
 def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     """
@@ -281,6 +295,25 @@ class ValidationAPIComposite(ValidationAPI):
                 return result
 
 
+def repairMask(graph,start,end):
+    """
+      :param graph:
+      :param start:
+      :param end:
+      :return:
+      @type graph: ImageGraph
+      @type start: str
+      @type end: str
+      """
+    edge = graph.get_edge(start,end)
+    startimage, name = graph.get_image(start)
+    finalimage, fname = graph.get_image(end)
+    mask = graph.get_edge_image(start,end, 'maskname')
+    inputmaskname = os.path.splitext(name)[0] + '_inputmask.png'
+    ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
+    edge['inputmaskname'] = os.path.split(inputmaskname)[1]
+    graph.setDataItem('autopastecloneinputmask', 'yes')
+
 class Validator:
     """
     Manage JT Project validators configured through
@@ -332,14 +365,16 @@ class Validator:
             if not graph.has_neighbors(node):
                 total_errors.append(ValidationMessage(Severity.ERROR, str(node), str(node),
                                                       str(node) + ' is not connected to other nodes',
-                                                      'Graph'))
+                                                      'Graph',
+                                                      None))
             predecessors = graph.predecessors(node)
             if len(predecessors) == 1 and graph.get_edge(predecessors[0], node)['op'] == 'Donor':
                 total_errors.append(ValidationMessage(Severity.ERROR,
                                                       str(predecessors[0]),
                                                       str(node), str(node) +
                                                       ' donor links must coincide with another link to the same destintion node',
-                                                      'Graph'))
+                                                      'Graph',
+                                                      None))
             successors = graph.successors(node)
             if len(successors) == 0:
                 finalNodes.append(node)
@@ -373,7 +408,8 @@ class Validator:
                                                   str(node),
                                                   str(node),
                                                   str(node) + ' is part of an unconnected subgraph',
-                                                  'Graph'))
+                                                  'Graph',
+                                                  None))
 
         # check all files accounted for
         for file_error_tuple in graph.file_check():
@@ -381,7 +417,8 @@ class Validator:
                                                   file_error_tuple[0],
                                                   file_error_tuple[1],
                                                   file_error_tuple[2],
-                                                  'Graph'))
+                                                  'Graph',
+                                                  None))
 
         # check cycles
         cycleNode = graph.getCycleNode()
@@ -390,7 +427,8 @@ class Validator:
                                                   str(cycleNode),
                                                   str(cycleNode),
                                                   "Graph has a cycle",
-                                                  'Graph'))
+                                                  'Graph',
+                                                  None))
 
         # check duplicate final end nodes
         if len(duplicates) > 0:
@@ -399,7 +437,8 @@ class Validator:
                                                       str(node),
                                                       str(node),
                                                       "Duplicate final end node file %s" % filename,
-                                                      'Graph'))
+                                                      'Graph',
+                                                      None))
 
         valiation_apis = ValidationAPIComposite(self.preferences, external=external)
 
@@ -410,7 +449,7 @@ class Validator:
             for error in run_node_rules(graph, node, external=external, preferences=self.preferences):
                 if type(error) != tuple:
                     error = (Severity.ERROR, str(error))
-                total_errors.append(ValidationMessage(error[0], str(node), str(node), error[1],'Node'))
+                total_errors.append(ValidationMessage(error[0], str(node), str(node), error[1],'Node',None))
 
         for frm, to in graph.get_edges():
             edge = graph.get_edge(frm, to)
@@ -531,9 +570,9 @@ def run_all_edge_rules(op, rules, graph, frm, to):
         res = rule(op, graph, frm, to)
         if res is not None:
             if type(res) == str:
-                res = ValidationMessage(Severity.ERROR, frm, to, res,rule.__name__)
+                res = ValidationMessage(Severity.ERROR, frm, to, res,rule.__name__,None)
             else:
-                res = ValidationMessage(res[0], frm, to, res[1],rule.__name__)
+                res = ValidationMessage(res[0], frm, to, res[1],rule.__name__,None)
             results.append(res)
     return results
 
@@ -587,7 +626,8 @@ def check_operation(edge, op, graph, frm, to):
                                  frm,
                                  to,
                                  'Operation ' + op.name + ' is invalid',
-                                 'Operation')
+                                 'Operation',
+                                 None)
 
 
 def check_link_errors(edge, op, graph, frm, to):
@@ -606,7 +646,8 @@ def check_link_errors(edge, op, graph, frm, to):
                                   frm,
                                   to,
                                   'Link has mask processing errors',
-                                  'Change Mask')]
+                                  'Change Mask',
+                                  None)]
     return []
 
 
@@ -636,7 +677,8 @@ def check_version(edge, op, graph, frm, to):
                                       '',
                                       '',
                                       sversion + ' not in approved set for software ' + sname,
-                                      'Software')]
+                                      'Software',
+                                      None)]
     return []
 
 
@@ -671,9 +713,9 @@ def check_arguments(edge, op, graph, frm, to):
                                              frm,
                                              to,
                                              argName + str(e),
-                                             'Argument {}'.format(argName)))
+                                             'Argument {}'.format(argName),
+                                             None))
     return results
-
 
 def check_masks(edge, op, graph, frm, to):
     """
@@ -701,7 +743,8 @@ def check_masks(edge, op, graph, frm, to):
                                   frm,
                                   to,
                                   'Link mask is missing. Recompute the link mask.',
-                                  'Change Mask')]
+                                  'Change Mask',
+                                  None)]
     inputmaskname = edge['inputmaskname'] if 'inputmaskname' in edge  else None
     if inputmaskname is not None and len(inputmaskname) > 0 and \
             not os.path.exists(os.path.join(graph.dir, inputmaskname)):
@@ -709,10 +752,12 @@ def check_masks(edge, op, graph, frm, to):
                                   frm,
                                   to,
                                   "Input mask file {} is missing".format(inputmaskname),
-                                  'Input Mask')]
+                                  'Input Mask',
+                                  repairMask)]
     if inputmaskname is not None and len(inputmaskname) > 0 and \
             os.path.exists(os.path.join(graph.dir, inputmaskname)):
-        if fileType(os.path.join(graph.dir, inputmaskname)) == 'audio':
+        ft = fileType(os.path.join(graph.dir, inputmaskname))
+        if ft == 'audio':
             return []
         inputmask = openImage(os.path.join(graph.dir, inputmaskname))
         if inputmask is None:
@@ -720,7 +765,8 @@ def check_masks(edge, op, graph, frm, to):
                                       frm,
                                       to,
                                       "Input mask file {} is missing".format(inputmaskname),
-                                      'Input Mask')]
+                                      'Input Mask',
+                                      repairMask if ft == 'image' else None)]
         inputmask = inputmask.to_mask().to_array()
         mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
         if inputmask.shape != mask.shape:
@@ -728,7 +774,8 @@ def check_masks(edge, op, graph, frm, to):
                                       frm,
                                       to,
                                       'input mask name parameter has an invalid size',
-                                      'Input Mask')]
+                                      'Input Mask',
+                                      repairMask if ft == 'image' else None)]
     return []
 
 
@@ -757,7 +804,8 @@ def check_mandatory(edge, opInfo, graph, frm, to):
                                   frm,
                                   to,
                                   opInfo.name + ' is not a valid operation',
-                                  'Mandatory')] if opInfo.name != 'Donor' else []
+                                  'Mandatory',
+                                  None)] if opInfo.name != 'Donor' else []
     args = edge['arguments'] if 'arguments' in edge  else []
     frm_file = graph.get_image(frm)[1]
     frm_file_type = fileType(frm_file)
@@ -781,4 +829,5 @@ def check_mandatory(edge, opInfo, graph, frm, to):
                               frm,
                               to,
                               'Mandatory parameter ' + m + ' is missing',
-                              'Mandatory') for m in missing]
+                              'Mandatory',
+                              None) for m in missing]

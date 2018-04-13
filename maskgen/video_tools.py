@@ -24,6 +24,7 @@ import cv2
 from cachetools import LRUCache
 from cachetools import cached
 from threading import RLock
+from support import getValue
 
 meta_lock = RLock()
 meta_cache = LRUCache(maxsize=24)
@@ -1411,6 +1412,58 @@ def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
 
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
+
+def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
+        video_masks = getMaskSetForEntireVideo(graph.get_image_path(source),
+                                                           start_time=getValue(edge, 'arguments.Start Time',
+                                                                               defaultValue='00:00:00.000'),
+                                                           end_time=getValue(edge, 'arguments.End Time'),
+                                                           media_types=media_types,
+                                                           channel=channel)
+
+        def justFixIt(graph, source, start_time, end_time, media_types):
+            """
+
+            :param graph:
+            :param source:
+            :return:
+            @type graph: ImageGraph
+            """
+
+            def findBase(graph, node):
+                """
+
+                :param graph:
+                :param node:
+                :return:
+                @type graph: ImageGraph
+                @rtype : str
+                """
+                preds = graph.predecessors(node)
+                if len(preds) == 0:
+                    return node
+                for pred in preds:
+                    if getValue(graph.get_edge(pred, node), 'op', 'Donor') != 'Donor':
+                        return findBase(graph, pred)
+
+            base = findBase(graph, source)
+            if base is not None:
+                return getMaskSetForEntireVideo(
+                    os.path.join(graph.dir, getValue(graph.get_node(base), 'file')),
+                    start_time=start_time, end_time=end_time, media_types=media_types)
+            return []
+
+        if video_masks is None or len(video_masks) == 0:
+            video_masks = justFixIt(graph, source,
+                                    getValue(edge, 'arguments.Start Time',
+                                             defaultValue='00:00:00.000'),
+                                    getValue(edge, 'arguments.End Time'),
+                                    media_types)
+        for item in video_masks:
+            item.pop('mask')
+        edge['masks count'] = len(video_masks)
+        edge['videomasks'] = video_masks
+
 
 def formMaskDiff(fileOne,
                  fileTwo,

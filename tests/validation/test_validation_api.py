@@ -161,9 +161,9 @@ class TestValidationAPI(TestSupport):
 
     def test_support_functions(self):
         messages = removeErrorMessages([
-            ValidationMessage(Severity.ERROR,'','', 'big'),
-            ValidationMessage(Severity.ERROR, '', '', 'bad'),
-            ValidationMessage(Severity.ERROR, '', '', 'wolf')
+            ValidationMessage(Severity.ERROR,'','', 'big','mod1'),
+            ValidationMessage(Severity.ERROR, '', '', 'bad','mod1'),
+            ValidationMessage(Severity.ERROR, '', '', 'wolf','mod1')
         ],lambda x : x == 'big')
         self.assertTrue(hasErrorMessages(messages,lambda  x: x == 'bad'))
         self.assertTrue(hasErrorMessages(messages, lambda x: x == 'wolf'))

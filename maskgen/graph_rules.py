@@ -9,7 +9,7 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,composeCloneMask
 from support import getValue
 import numpy
 from image_graph import ImageGraph
@@ -19,6 +19,7 @@ import logging
 from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration
 import numpy as np
 from maskgen.validation.core import Severity
+from image_wrap import ImageWrapper
 
 project_property_rules = {}
 
@@ -37,6 +38,7 @@ def eligible_donor_inputmask(edge):
             len(edge['inputmaskname']) > 0 and \
             edge['op'] == 'PasteSampled' and \
             getValue(edge,'arguments.purpose') == 'clone')
+
 
 
 def eligible_for_donor(edge):
