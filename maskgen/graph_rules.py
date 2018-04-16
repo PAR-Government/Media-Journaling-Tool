@@ -109,6 +109,8 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     if fileType(file) not in ['audio','video']:
         return
     real_masks = getMaskSetForEntireVideo(file,start_time=st, end_time=et,media_types=['video','audio'])
+    if real_masks is None:
+        return
     for mask in masks:
         mask_start_constraints[ mask['type']] = min(
             (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
