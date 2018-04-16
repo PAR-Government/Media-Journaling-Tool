@@ -1744,6 +1744,51 @@
       ]
     },
     {
+      "category":"CGI",
+      "name":"Synthesize",
+      "mandatoryparameters":{
+        "is3D": {
+          "type":"yesno",
+          "description":"Indicates if the CGI is a 3D model with light sources, etc."
+        },
+        "isGan": {
+          "type":"yesno",
+          "description":"Whether of not the image or video GAN generated"
+        }
+      },
+      "optionalparameters":{
+        "urls": {
+          "type": "urls",
+          "description" : "CGI Object files"
+        },
+        "Recording Software": {
+          "type" : "text",
+          "description": "Name of software to recapture screen"
+        },
+        "KML File": {
+          "type" : "file:kml",
+          "description": "Name of KML File"
+        },
+        "Model File": {
+          "type" : "file:*",
+          "description" : "The model file of the GAN that made the file"
+        }
+      },
+      "includeInMask": {"default" : false},
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "parameter_dependencies" : {
+        "isGan" : {"yes": "Model File"},
+        "isCGI" : {"yes": "urls"}
+      },
+      "rules" : [
+        "checkSize",
+        "checkFileTypeChange"
+      ]
+    },
+    {
       "category": "Color",
       "name": "Hue",
       "mandatoryparameters": {

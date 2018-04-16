@@ -1,10 +1,12 @@
 import os
+import tkFileDialog
 from Tkinter import *
 import tkMessageBox
 import json
 import requests
 import subprocess
 import maskgen.maskgen_loader
+from tkinter import ttk
 
 key = os.path.join(os.path.expanduser("~"), "medifor_ingest.gpg")
 hp_settings = os.path.join(os.path.expanduser("~"), ".hpsettings")
@@ -15,6 +17,7 @@ class Window(Frame):
         Frame.__init__(self, parent)
         self.parent = parent
         self.parent.title("Settings")
+        self.valid_usernames = []
         self.setup_window()
         maskgen.maskgen_loader.imageLoaded = False
         self.loader = maskgen.maskgen_loader.MaskGenLoader()
@@ -28,6 +31,11 @@ class Window(Frame):
         info_text.grid(row=r, columnspan=2, pady=5)
         r += 1
 
+        # Get Maskgen Directory
+        self.maskgen_button = Button(text="Select Maskgen Folder", command=self.get_maskgen)
+        self.maskgen_button.grid(row=r, columnspan=2)
+        r+=1
+
         # General Header
         general_label = Label(text="General Setup")
         general_label.grid(row=r, columnspan=2)
@@ -36,28 +44,28 @@ class Window(Frame):
         # API URL
         self.apiurl_label = Button(text="API URL*", command=lambda: self.get_info("apiurl"))
         self.apiurl_label.grid(row=r, column=0, padx=10)
-        self.apiurl_field = Entry(self.parent)
+        self.apiurl_field = Entry()
         self.apiurl_field.grid(row=r, column=1, padx=10)
         r += 1
 
         # Browser Username
         self.busername_label = Button(text="Browser Username*", command=lambda: self.get_info("busername"))
         self.busername_label.grid(row=r, column=0, padx=10)
-        self.busername_field = Entry(self.parent)
+        self.busername_field = Entry()
         self.busername_field.grid(row=r, column=1, padx=10)
         r += 1
 
         # Browser Password
         self.bpassword_label = Button(text="Browser Password*", command=lambda: self.get_info("bpassword"))
         self.bpassword_label.grid(row=r, column=0, padx=10)
-        self.bpassword_field = Entry(self.parent, show="*")
+        self.bpassword_field = Entry(show="*")
         self.bpassword_field.grid(row=r, column=1, padx=10)
         r += 1
 
-        # Journaling Username
+        # Username
         self.username_label = Button(text="Username*", command=lambda: self.get_info("username"))
         self.username_label.grid(row=r, column=0, padx=10)
-        self.username_field = Entry(self.parent)
+        self.username_field = ttk.Combobox(self.valid_usernames)
         self.username_field.grid(row=r, column=1, padx=10)
         r += 1
 
@@ -69,14 +77,14 @@ class Window(Frame):
         # Organization
         self.organization_label = Button(text="Organization*", command=lambda: self.get_info("organization"))
         self.organization_label.grid(row=r, column=0, padx=10)
-        self.organization_field = Entry(self.parent)
+        self.organization_field = Entry()
         self.organization_field.grid(row=r, column=1, padx=10)
         r += 1
 
         # Journal Upload Folder
         self.jt_uploadfolder_label = Button(text="Journal Upload Folder", command=lambda: self.get_info("uploadfolder"))
         self.jt_uploadfolder_label.grid(row=r, column=0, padx=10)
-        self.jt_uploadfolder_field = Entry(self.parent)
+        self.jt_uploadfolder_field = Entry()
         self.jt_uploadfolder_field.grid(row=r, column=1, padx=10)
         r += 1
 
@@ -138,6 +146,10 @@ class Window(Frame):
         if not all([self.username, self.organization, self.apiurl, self.busername, self.bpassword]):
             tkMessageBox.showerror("Missing Fields", "One or more fields are missing required information.")
             return
+
+        if self.username not in self.valid_usernames:
+            tkMessageBox.showerror("Invalid Username", "Username not in list of valid usernames.")
+
         elif not self.eemail:
             ans = tkMessageBox.askyesno("No Recipient", "The encryption file was not found.  You can continue with"
                                                         " out an encryption file, but the HP Tool media will not be"
@@ -192,6 +204,30 @@ class Window(Frame):
                     self.hpupload_folder, "aws-prnu": self.prnuupload_folder}
         self.loader.saveall(data.items())
 
+    def get_maskgen(self):
+        maskgen_dir = tkFileDialog.askdirectory()
+
+        if maskgen_dir:
+            namefile = os.path.join(maskgen_dir, "resources", "ManipulatorCodeNames.txt")
+            if not os.path.isfile(namefile):
+                tkMessageBox.showerror("Usernames Not Found", "Could not find username text file at {0}.".format(
+                    namefile))
+                return
+            with open(namefile) as f:
+                self.valid_usernames = sorted(f.read().splitlines())
+                self.username_field['values'] = self.valid_usernames
+
+def updateUserName():
+    import json
+    from maskgen.software_loader import getFileName
+    property_file = getFileName('project_properties.json')
+    with open(property_file, 'r') as f:
+        props = json.load(f)
+        for prop in props['properties']:
+            if prop['name'] == 'username':
+                prop['type'] = 'listfromfile:ManipulatorCodeNames.txt'
+    with open(property_file, 'w') as f:
+        json.dump(props, f, indent=2, encoding='utf-8')
 
 def setup():
     if os.path.isfile(key):
@@ -199,7 +235,6 @@ def setup():
                                          stderr=subprocess.PIPE).communicate()
         if not key_installed[0]:
             subprocess.Popen(["gpg", "--import", key])
-            print(key_installed[0])
         else:
             os.remove(key)
 
@@ -211,6 +246,7 @@ def setup():
         os.remove(os.path.join(os.path.expanduser("~"), "Desktop", "HP_Tool.cmd"))
     with open(os.path.join(os.path.expanduser("~"), "Desktop", "HP_Tool.cmd"), "a+") as starthp:
         starthp.writelines(["title HP Tool\n", "cd {0}\n".format(os.path.expanduser("~")), "cls\n", "hpgui"])
+    updateUserName()
 
 
 def combine_settings():
