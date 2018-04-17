@@ -660,26 +660,32 @@ class MakeGenUI(Frame):
     def drawState(self):
 
         start_cache_name = self.scModel.start if self.scModel.start else '#empty@'
-        sim = self.image_cache[start_cache_name] if start_cache_name in self.image_cache else \
-            fixTransparency(imageResizeRelative(self.scModel.startImage(), (250, 250), None)).toPIL()
+        sim,sim_time = self.image_cache[start_cache_name] if start_cache_name in self.image_cache else \
+            (fixTransparency(imageResizeRelative(self.scModel.startImage(), (250, 250), None)).toPIL(),0)
 
         end_cache_name = start_cache_name + '#end' if self.scModel.end is None else self.scModel.end
-        nim = self.image_cache[end_cache_name] if end_cache_name in self.image_cache else \
-            fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL()
+        nim,nim_time = self.image_cache[end_cache_name] if end_cache_name in self.image_cache else \
+            (fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL(),0)
 
         mask_cache_name = start_cache_name+ '#mask' if self.scModel.end is None else start_cache_name + self.scModel.end
+        mim_time = self.scModel.maskImageFileTime()
         if mask_cache_name in self.image_cache:
-            mim = self.image_cache[mask_cache_name]
+            mim,cache_mim_time = self.image_cache[mask_cache_name]
+            if cache_mim_time<mim_time:
+                im = self.scModel.maskImage()
+                mim = fixTransparency(
+                    imageResizeRelative(im, (250, 250), im.size if im is not None else sim.size)).toPIL()
         else:
             im = self.scModel.maskImage()
+            mim_time = self.scModel.maskImageFileTime()
             mim = fixTransparency(imageResizeRelative(im, (250, 250), im.size if im is not None else sim.size)).toPIL()
 
         self.img1 = ImageTk.PhotoImage(sim)
         self.img2 = ImageTk.PhotoImage(nim)
         self.img3 = ImageTk.PhotoImage(mim)
-        self.image_cache[mask_cache_name] = mim
-        self.image_cache[start_cache_name] = sim
-        self.image_cache[end_cache_name] = nim
+        self.image_cache[mask_cache_name] = (mim,mim_time)
+        self.image_cache[start_cache_name] = (sim,sim_time)
+        self.image_cache[end_cache_name] = (nim,nim_time)
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
         self.img3c.config(image=self.img3)

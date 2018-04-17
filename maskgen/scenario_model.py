@@ -1967,6 +1967,11 @@ class ImageProjectModel:
         edge = self.G.get_edge(self.start, self.end)
         return edge['maskname'] if 'maskname' in edge else ''
 
+    def maskImageFileTime(self):
+        if self.end is None:
+            return 0
+        return self.G.get_edge_image_file_time(self.start, self.end, 'maskname')
+
     def maskImage(self, inputmask=False):
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
