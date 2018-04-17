@@ -2519,7 +2519,7 @@ class ImageProjectModel:
             path, errors = self.G.create_archive(location, include=include)
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
-    def exporttos3(self, location, tempdir=None):
+    def exporttos3(self, location, tempdir=None, additional_message=None):
         import boto3
         from boto3.s3.transfer import S3Transfer, TransferConfig
         with self.lock:
@@ -2536,7 +2536,8 @@ class ImageProjectModel:
                 s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
                 os.remove(path)
                 if self.notify is not None and not self.notify(self.getName(), 'export',
-                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1]):
+                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
+                                                               additional_message=additional_message):
                     errors = [('', '',
                                'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]

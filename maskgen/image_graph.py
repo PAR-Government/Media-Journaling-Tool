@@ -470,7 +470,7 @@ class ImageGraph:
             value = values[0]
             fullpath = os.path.abspath(os.path.join(self.dir, value))
             if returnNoneOnMissing and not os.path.exists(fullpath):
-                return None, None
+                return None
             im = self.openImage(fullpath, mask=True)
             return im
         return None
