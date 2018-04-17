@@ -541,7 +541,9 @@ class DescriptionCaptureDialog(Toplevel):
 
     def group_add(self):
         d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
-                         getSemanticGroups())
+                         getSemanticGroups(), information=["test test test", ["semantic_groups\\add.png",
+                                                                              "semantic_groups\\leftarrow.png",
+                                                                              "semantic_groups\\RedX.png"]])
         res = d.choice
         if res is not None:
             self.listbox.insert(END,res)
@@ -2174,21 +2176,55 @@ class ButtonFrame(Frame):
 class SelectDialog(tkSimpleDialog.Dialog):
     cancelled = True
 
-    def __init__(self, parent, name, description, values, initial_value=None):
+    def __init__(self, parent, name, description, values, initial_value=None, information=None):
         self.description = description
         self.values = values
         self.parent = parent
         self.initial_value = initial_value
         self.name = name
+        self.information = information
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        desc_lines = '\n'.join(self.description.split('.'))
-        Label(master, text=desc_lines, wraplength=400).grid(row=0, sticky=W)
+        self.desc_lines = '\n'.join(self.description.split('.'))
+        self.desc_label = Label(master, text=self.desc_lines, wraplength=400)
+        self.desc_label.grid(row=0, sticky=N)
         self.var1 = StringVar()
         self.var1.set(self.values[0] if self.initial_value is None or self.initial_value not in self.values else self.initial_value)
         self.e1 = OptionMenu(master, self.var1, *self.values)
-        self.e1.grid(row=1, column=0,sticky=EW)
+        self.e1.grid(row=1, column=0, sticky=N)
+
+        if self.information:
+            self.load_info(master)
+
+    def load_info(self, master):
+        import PIL.Image
+
+        r = 2
+        if self.information[0]:
+            self.info_text = Label(master, text=self.information[0])
+            self.info_text.grid(row=r, column=0, columnspan=1 if not self.information[1] else len(self.information[1]))
+            r += 1
+        if self.information[1]:
+            self.e1.grid_configure(columnspan=len(self.information[1]))
+            self.desc_label.grid_configure(columnspan=len(self.information[1]))
+            c=0
+            for item in self.information[1]:
+                info_image = Button(master)
+                try:
+                    path = getFileName(item)
+                    with PIL.Image.open(path, "r") as i:
+                        i = i.resize((480, 360), PIL.Image.ANTIALIAS)
+                        tkimg = ImageTk.PhotoImage(i)
+                    info_image.configure(image=tkimg, command=lambda path=path: openFile(path))
+                    info_image.image = tkimg
+                    info_image.grid(row=r, column=c)
+                    c+=1
+                except IOError as e:
+                    tkMessageBox.showerror("Could not load image", "Could not load image {0}.\n\n{1}".format(item, e))
+
+            r += 1
+
         self.lift()
 
     def cancel(self):
