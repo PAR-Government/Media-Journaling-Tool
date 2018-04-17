@@ -15,6 +15,7 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from maskgen import MaskGenLoader
 from maskgen.image_wrap import ImageWrapper
+import logging
 
 global_loader = SoftwareLoader()
 
@@ -194,12 +195,42 @@ def getRegisteredValidatorClasses(preferences):
         getClassFromName(name) for name in names
         ]
 
+class ValidationStatus:
+
+    def __init__(self,module_name, component, percentage):
+        self.module_name = module_name
+        self.component = component
+        self.percentage = percentage
+
+
+def ignoreStatus(validation_status):
+    """
+
+    :param validation_status:
+    :return:
+    @type validation_status: ValidationStatus
+    """
+    pass
+
+def logStatus(validation_status):
+    """
+    :param validation_status:
+    :return:
+    @type validation_status: ValidationStatus
+    """
+    logging.getLogger('maskgen').info(
+        'Validation module {} for component {}: {}% Complete'.format(validation_status.module_name,
+                                                                     validation_status.component,
+                                                                     validation_status.percentage))
 
 class ValidationAPIComposite(ValidationAPI):
-    def __init__(self, preferences, external=False):
+
+
+    def __init__(self, preferences, external=False, status_cb=logStatus):
         self.preferences = preferences
         self.external = external
         self.instances = []
+        self.status_cb = status_cb
 
         selector = getRegisteredValidatorClasses(self.preferences)
         for subclass in selector:
@@ -237,6 +268,7 @@ class ValidationAPIComposite(ValidationAPI):
         """
         result = []
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__,'edge {}:{}'.format(frm,to),0))
             result.extend(subclassinstance.check_edge(op, graph, frm, to))
         return result
 
@@ -249,6 +281,7 @@ class ValidationAPIComposite(ValidationAPI):
         """
         result = []
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'graph', 0))
             result.extend(subclassinstance.check_graph(graph))
         return result
 
@@ -262,6 +295,7 @@ class ValidationAPIComposite(ValidationAPI):
         """
         result = []
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'node {}'.format(node), 0))
             result.extend(subclassinstance.check_node(node, graph))
         return result
 
@@ -289,10 +323,16 @@ class ValidationAPIComposite(ValidationAPI):
         @type journalname: str
         @rtype: str
         """
+        complete = 0.0
+        advance = 100.0/len(self.instances)
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'graph export time', complete))
             result = subclassinstance.get_journal_exporttime(journalname)
+            complete += advance
             if result is not None:
-                return result
+                break
+        self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'graph export time', 100.0))
+        return result
 
 
 def repairMask(graph,start,end):
@@ -313,6 +353,23 @@ def repairMask(graph,start,end):
     ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
     edge['inputmaskname'] = os.path.split(inputmaskname)[1]
     graph.setDataItem('autopastecloneinputmask', 'yes')
+
+
+class ValidationCallback:
+
+    def __init__(self,advance_percent=1.0,start_percent=0.0, status_cb=logStatus):
+        self.advance_percent = advance_percent
+        self.current_percent = start_percent
+        self.status_cb = status_cb
+
+    def update_state(self,validation_status):
+        """
+        :param validation_status:
+        :return:
+        @type validation_status : ValidationStatus
+        """
+        self.status_cb(ValidationStatus(validation_status.module_name,validation_status.component,self.current_percent))
+        self.current_percent += self.advance_percent
 
 class Validator:
     """
@@ -339,7 +396,7 @@ class Validator:
         rules = [getRule(name, globals=globals(), default_module='maskgen.graph_rules') for name in ruleNames if len(name) > 0]
         self.rules[op] = [rule for rule in rules if rule is not None]
 
-    def run_graph_suite(self, graph, external=None):
+    def run_graph_suite(self, graph, external=None, status_cb=None):
         """
         Run the validation suite including rules determined by operation definitions associated
         with each edge in the graph.
@@ -354,13 +411,21 @@ class Validator:
         @type preferences: MaskGenLoader
         @rtype:  list of ValidationMessage
         """
-        if len(graph.get_nodes()) == 0:
+        if status_cb is None and ('log.validation' not in self.preferences or self.preferences['log.validation'] == 'yes'):
+            status_cb = logStatus
+        else:
+            status_cb  = ignoreStatus
+        nodeSet = set(graph.get_nodes())
+        nodecount = len(nodeSet)
+        edgecount = len(graph.get_edges())
+        if nodecount == 0:
             return []
 
         total_errors = []
         finalNodes = []
         # check for disconnected nodes
         # check to see if predecessors > 1 consist of donors
+        status_cb(ValidationStatus('Connectivity', 'graph', 0))
         for node in graph.get_nodes():
             if not graph.has_neighbors(node):
                 total_errors.append(ValidationMessage(Severity.ERROR, str(node), str(node),
@@ -379,6 +444,7 @@ class Validator:
             if len(successors) == 0:
                 finalNodes.append(node)
 
+        status_cb(ValidationStatus('Project Type','Graph',4))
         # check project type
         project_type = graph.get_project_type()
         matchedType = [node for node in finalNodes if
@@ -387,16 +453,7 @@ class Validator:
             graph.setDataItem('projecttype',
                               fileType(os.path.join(graph.dir, graph.get_node(finalNodes[0])['file'])))
 
-        finalfiles = set()
-        duplicates = dict()
-        for node in finalNodes:
-            filename = graph.get_node(node)['file']
-            if filename in finalfiles and filename not in duplicates:
-                duplicates[filename] = node
-            finalfiles.add(filename)
-
-        nodeSet = set(graph.get_nodes())
-
+        status_cb(ValidationStatus('Graph Cuts', 'Graph', 5))
         # check graph cuts
         for found in graph.findRelationsToNode(nodeSet.pop()):
             if found in nodeSet:
@@ -411,6 +468,7 @@ class Validator:
                                                   'Graph',
                                                   None))
 
+        status_cb(ValidationStatus('File Check', 'Graph', 6))
         # check all files accounted for
         for file_error_tuple in graph.file_check():
             total_errors.append(ValidationMessage(Severity.ERROR,
@@ -420,6 +478,7 @@ class Validator:
                                                   'Graph',
                                                   None))
 
+        status_cb(ValidationStatus('Cycle Check', 'Graph', 8))
         # check cycles
         cycleNode = graph.getCycleNode()
         if cycleNode is not None:
@@ -429,6 +488,15 @@ class Validator:
                                                   "Graph has a cycle",
                                                   'Graph',
                                                   None))
+
+        status_cb(ValidationStatus('Final Node Check', 'Duplicates', 9))
+        finalfiles = set()
+        duplicates = dict()
+        for node in finalNodes:
+            filename = graph.get_node(node)['file']
+            if filename in finalfiles and filename not in duplicates:
+                duplicates[filename] = node
+            finalfiles.add(filename)
 
         # check duplicate final end nodes
         if len(duplicates) > 0:
@@ -440,12 +508,16 @@ class Validator:
                                                       'Graph',
                                                       None))
 
-        valiation_apis = ValidationAPIComposite(self.preferences, external=external)
+
+        validation_callback = ValidationCallback(advance_percent=90.0/(nodecount + edgecount),start_percent=10.0,status_cb=status_cb)
+        valiation_apis = ValidationAPIComposite(self.preferences, external=external, status_cb=validation_callback.update_state)
+        validation_callback.advance_percent = 90.0/((nodecount + edgecount)*(1+len(valiation_apis.instances)) + len(valiation_apis.instances))
 
         total_errors.extend(valiation_apis.check_graph(graph))
 
         for node in graph.get_nodes():
             total_errors.extend(valiation_apis.check_node(node, graph))
+            validation_callback.update_state(ValidationStatus('Internal','node {}'.format(node),0))
             for error in run_node_rules(graph, node, external=external, preferences=self.preferences):
                 if type(error) != tuple:
                     error = (Severity.ERROR, str(error))
@@ -455,11 +527,13 @@ class Validator:
             edge = graph.get_edge(frm, to)
             op = edge['op']
             total_errors.extend(valiation_apis.check_edge(op, graph, frm, to))
+            validation_callback.update_state(ValidationStatus('Internal', 'edge {}:{}'.format(frm, to),0))
             errors = run_all_edge_rules(self.gopLoader.getOperationWithGroups(op, fake=True),
                                     self.rules[op] if op in self.rules else [],
                                     graph, frm, to)
             if len(errors) > 0:
                 total_errors.extend(errors)
+        validation_callback.status_cb(ValidationStatus('Validation','Complete',100.0))
         return total_errors
 
     def run_edge_rules(self,graph, frm, to):

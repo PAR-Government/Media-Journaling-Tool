@@ -520,7 +520,7 @@ def _fixLocalRotate(scModel,gopLoader):
         if edge['op'].lower() == 'transformrotate':
             tm = edge['transform matrix'] if 'transform matrix' in edge  else None
             sizeChange = tool_set.toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
-            local = 'yes' if  tm is not  None and sizeChange == (0,0) else 'no'
+            local = 'yes' if  tm is not None and sizeChange == (0, 0) else 'no'
             if 'arguments' not in edge:
                 edge['arguments'] = {'local' : local}
             else:

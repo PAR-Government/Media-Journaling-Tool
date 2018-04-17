@@ -2044,13 +2044,13 @@ class ImageProjectModel:
         """
         return self.G
 
-    def validate(self, external=False):
+    def validate(self, external=False, status_cb=None):
         """ Return the list of errors from all validation rules on the graph.
         @rtype: list of ValidationMessage
         """
         self._executeSkippedComparisons()
         logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
-        total_errors = self.validator.run_graph_suite(self.getGraph(),external=external)
+        total_errors = self.validator.run_graph_suite(self.getGraph(), external=external, status_cb=status_cb)
         for prop in getProjectProperties():
             if prop.mandatory:
                 item = self.G.getDataItem(prop.name)

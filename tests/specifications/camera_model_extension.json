@@ -1,0 +1,851 @@
+{
+  "directed": true, 
+  "graph": {
+    "username": "dupre",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "semanticrestaging": "no",
+    "organization": "PAR",
+    "technicalsummary": "Automated: Camera Model Attack",
+    "projectdescription":"Change camera model of image",
+    "name": "Camera Model Attack"
+  },
+  "nodes": [
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel5.OutputJpg"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel2.OutputJpg"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel6.OutputJpg"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Apple-iPhone-6s-[4032x3024]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel10.JpgFromCamera"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel8.OutputJpg"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel9.OutputCopy"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel7.OutputCopy"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel4.OutputCopy"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel9.OutputJpg"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel4.OutputJpg"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel3.OutputJpg"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Olympus-Stylus-1050SW-[3648x2736]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel3.JpgFromCamera"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel1.OutputJpg"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Samsung-Galaxy-S4-[4128x2322]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel8.JpgFromCamera"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel6.OutputCopy"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel2.OutputCopy"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel10.OutputCopy"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Canon_EOS_SL1",
+      "description": "Canon EOS REBEL SL1",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel9",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Canon_EOS_SL1"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Canon EOS REBEL SL1"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Canon"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Canon_EOS_SL1}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Samsung_Galaxy_S4",
+      "description": "Samsung Galaxy S4",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel8",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Samsung_Galaxy_S4"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Samsung Galaxy S4"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Samsung"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Samsung_Galaxy_S4}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Kodak_M1063",
+      "description": "Kodak EasyShare M1063",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel5",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Kodak_M1063"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Kodak EasyShare M1063"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Kodak"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Kodak_M1063}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Samsung_Digimax_L74_Wide",
+      "description": "Samsung Digimax L74 Wide",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel4",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Samsung_Digimax_L74_Wide"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Digimax L74 Wide"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Samsung"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Samsung_Digimax_L74_Wide}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Motorola_Droid_MAXX",
+      "description": "Motorola_Droid_MAXX",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel7",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Motorola_Droid_MAXX"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Motorola DROID MAXX"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Motorola"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Motorola_Droid_MAXX}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Panasonic_DMC_FZ50",
+      "description": "Panasonic DMC-FZ50",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel6",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Panasonic_DMC_FZ50"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "DMC-FZ50"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Panasonic"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Panasonic_DMC_FZ50}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Sony_NEX_5TL",
+      "description": "Sony NEX-5TL",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel1",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Sony_NEX_5TL"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "NEX-5TL"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Sony"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Sony_NEX_5TL}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Olympus_Stylus_1050SW",
+      "description": "Olympus Stylus 1050SW",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel3",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Olympus_Stylus_1050SW"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Olympus Stylus 1050SW"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Olympus"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Olympus_Stylus_1050SW}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "Praktica_DCZ_59",
+      "description": "Praktica DCZ 5.8",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel2",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Praktica_DCZ_59"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "DCZ 5.9"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Praktica"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{Praktica_DCZ_59}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Panasonic-DMC-FZ50-[3648x2736]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel6.JpgFromCamera"
+    },
+    {
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel1.OutputCopy"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Motorola-Droid-Maxx-[5344x4008]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel7.JpgFromCamera"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Sony-NEX-5TL-[4912x3264]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel1.JpgFromCamera"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Samsung-Digimax-L74_Wide-[3072x2304]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel4.JpgFromCamera"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+       "qtfile": {
+          "value": "{qtfiles}/Kodak-EasyShare-M1063-[3664x2748]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel5.JpgFromCamera"
+    },
+    {
+      "plugin": "OutputCopy",
+      "autojtoutput": false,
+      "arguments": {},
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel3.OutputCopy"
+    },
+    {
+      "category": "Antiforensic",
+      "autojtspecid": "iPhone6s",
+      "description": "iPhone 6s",
+      "software version": "0.1",
+      "autojtoutput": false,
+      "id": "base_PNG.AddCameraModel10",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "iPhone6s"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "iPhone 6s"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "iPhone"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PreProcessedMediaOperation",
+      "directory": "{iPhone6s}",
+      "software": "DrexelCameraModel",
+      "usebaseimage": true,
+      "op": "AddCameraModel"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel10.OutputJpg"
+    },
+    {
+      "plugin": "OutputJpg",
+      "autojtoutput": false,
+      "arguments": {
+        "quality": {
+          "type": "int[80:100]"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel7.OutputJpg"
+    },
+    {
+      "experiment_id": 1,
+      "plugin": "OutputPNG",
+      "autojtoutput": true,
+      "arguments": {
+        "Image Rotated": {
+          "type": "value",
+          "value": "yes"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Praktica-DCZ-59-[2560x1920]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "base_PNG.AddCameraModel2.JpgFromCamera"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Canon-EOS-SL1-[5184x3456]-QT.txt",
+          "type": "value"
+        }, 
+        "rotate": {
+          "type": "value", 
+          "value": "no"
+        }
+      }, 
+      "autojtselector": false, 
+      "op_type": "PluginOperation", 
+      "id": "base_PNG.AddCameraModel9.JpgFromCamera"
+    }, 
+    {
+      "plugin": "OutputCopy", 
+      "autojtoutput": false, 
+      "arguments": {}, 
+      "autojtselector": false, 
+      "op_type": "PluginOperation", 
+      "id": "base_PNG.AddCameraModel8.OutputCopy"
+    }, 
+    {
+      "plugin": "OutputCopy", 
+      "autojtoutput": false, 
+      "arguments": {}, 
+      "autojtselector": false, 
+      "op_type": "PluginOperation", 
+      "id": "base_PNG.AddCameraModel5.OutputCopy"
+    }
+  ], 
+  "links": [
+    {
+      "source": 17, 
+      "target": 8
+    }, 
+    {
+      "source": 17, 
+      "target": 39
+    }, 
+    {
+      "source": 17, 
+      "target": 5
+    }, 
+    {
+      "source": 18, 
+      "target": 4
+    }, 
+    {
+      "source": 18, 
+      "target": 13
+    }, 
+    {
+      "source": 18, 
+      "target": 40
+    }, 
+    {
+      "source": 19, 
+      "target": 32
+    }, 
+    {
+      "source": 19, 
+      "target": 0
+    }, 
+    {
+      "source": 19, 
+      "target": 41
+    }, 
+    {
+      "source": 20, 
+      "target": 7
+    }, 
+    {
+      "source": 20, 
+      "target": 9
+    }, 
+    {
+      "source": 20, 
+      "target": 31
+    }, 
+    {
+      "source": 21, 
+      "target": 36
+    }, 
+    {
+      "source": 21, 
+      "target": 29
+    }, 
+    {
+      "source": 21, 
+      "target": 6
+    }, 
+    {
+      "source": 22, 
+      "target": 26
+    }, 
+    {
+      "source": 22, 
+      "target": 14
+    }, 
+    {
+      "source": 22, 
+      "target": 2
+    }, 
+    {
+      "source": 23, 
+      "target": 12
+    }, 
+    {
+      "source": 23, 
+      "target": 30
+    }, 
+    {
+      "source": 23, 
+      "target": 28
+    }, 
+    {
+      "source": 24, 
+      "target": 33
+    }, 
+    {
+      "source": 24, 
+      "target": 10
+    }, 
+    {
+      "source": 24, 
+      "target": 11
+    }, 
+    {
+      "source": 25, 
+      "target": 15
+    }, 
+    {
+      "source": 25, 
+      "target": 38
+    }, 
+    {
+      "source": 25, 
+      "target": 1
+    }, 
+    {
+      "source": 27, 
+      "target": 37
+    }, 
+    {
+      "source": 34, 
+      "target": 35
+    }, 
+    {
+      "source": 34, 
+      "target": 16
+    }, 
+    {
+      "source": 34, 
+      "target": 3
+    }, 
+    {
+      "source": 37, 
+      "target": 17
+    }, 
+    {
+      "source": 37, 
+      "target": 18
+    }, 
+    {
+      "source": 37, 
+      "target": 19
+    }, 
+    {
+      "source": 37, 
+      "target": 20
+    }, 
+    {
+      "source": 37, 
+      "target": 21
+    }, 
+    {
+      "source": 37, 
+      "target": 22
+    }, 
+    {
+      "source": 37, 
+      "target": 23
+    }, 
+    {
+      "source": 37, 
+      "target": 34
+    }, 
+    {
+      "source": 37, 
+      "target": 24
+    }, 
+    {
+      "source": 37, 
+      "target": 25
+    }
+  ], 
+  "multigraph": false
+}

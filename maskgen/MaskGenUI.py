@@ -182,19 +182,23 @@ class MakeGenUI(Frame):
         self._setTitle()
         self.drawState()
         self.canvas.update()
-        if (self.scModel.start is not None):
+        if self.scModel.start is not None:
             self.setSelectState('normal')
-        #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
-            #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+        try:
+            export_info = self.validator.get_journal_exporttime(self.scModel.getName())
 
-        export_info = self.validator.get_journal_exporttime(self.scModel.getName())
+            if export_info is not None:
+                if self.scModel.getProjectData("exporttime") is None:
+                    tkMessageBox.showwarning("Journal Version Warning",
+                                             "This version of the journal was not exported. Please check the browser for the latest version.")
+                else:
+                    local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
+                    browser_journal = datetime.strptime(export_info, "%Y-%m-%d %H:%M:%S")
 
-        if export_info and self.scModel.getProjectData("exporttime") is not None:
-            local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
-            browser_journal = datetime.strptime(export_info, "%Y-%m-%d %H:%M:%S")
-
-            if local_journal < browser_journal:
-                tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+                    if local_journal < browser_journal:
+                        tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+        except:
+            tkMessageBox.showwarning("Journal Version Warning", "Unable to contact browser to verify if browser has a newer version of the journal.")
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
@@ -1206,6 +1210,9 @@ class MakeGenUI(Frame):
                 ProjectProperty(name='organization', type='text',
                                 description='Organization',
                                 information="journal user's organization"),
+                ProjectProperty(name='log.validation', type='yesno',
+                                  description="Log Validation Status",
+                                  information='Log Validation'),
                 ProjectProperty(name='apiurl', type='text',
                                 description="API URL",
                                 information='Validation API URL'),
@@ -1243,9 +1250,12 @@ class MakeGenUI(Frame):
     def initCheck(self):
         if self.prefLoader.get_key('username',None) is None:
             self.getsystemproperties()
-        sha, message =  UpdaterGitAPI().isOutdated()
-        if sha is not None:
-            tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+        try:
+            sha, message = UpdaterGitAPI().isOutdated()
+            if sha is not None:
+                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+        except:
+            tkMessageBox.showwarning('JT Update Status','Unable to verify latest version of JT due to connection error to GitHub. See logs for details')
         if self.startedWithNewProject:
             self.getproperties()
 

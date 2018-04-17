@@ -1122,20 +1122,26 @@ def seamAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
 
 def rotateSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     import copy
-    if img1.size != img2.size:
-        return siftAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments, directory=directory)
+    rot = float(getValue(arguments,'rotation',-1))
+    is_local = getValue(arguments,'local',True)
     globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if abs(rot % 90)<0.001 and not is_local:
+        return
+    if is_local:
+        return siftAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments, directory=directory)
+    # global case and not a factor of 90
+    # skip video
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
     serializedMatrix = getValue(arguments,'transform matrix')
-    if serializedMatrix is  None:
+    if serializedMatrix is None:
         args = copy.copy(arguments)
         (x,y),(w,h) = boundingRegion(mask.invert().image_array)
         if (w-x + h-y) > 0.5*(mask.size[0] + mask.size[1]):
             args['Matcher.TREES'] = 6
             args['Matcher.CHECKS'] = 20
-        matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=args)
+        matrix,matchCount = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=args)
         if matrix is not None and isHomographyOk(matrix,img1.size[1],img1.size[0]):
             analysis['transform matrix'] = serializeMatrix(matrix)
     else:

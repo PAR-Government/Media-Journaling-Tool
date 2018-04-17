@@ -26,20 +26,20 @@ class UpdaterGitAPI:
         pass
 
     def _get_version_file(self):
-        resp = requests.get(self.file)
+        resp = requests.get(self.file, timeout=2)
         if resp.status_code == requests.codes.ok:
             return  resp.content.strip()
 
     def _get_tag(self):
         url =  self.url + '/' + self.repos + '/tags'
-        resp = requests.get(url)
+        resp = requests.get(url,timeout=2)
         if resp.status_code == requests.codes.ok:
             content = json.loads(resp.content)
             content[0]['name']
 
     def _getCommitMessage(self, sha):
         url = self.url + '/' + self.repos + '/commits/' + sha
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=2)
         if resp.status_code == requests.codes.ok:
             content = json.loads(resp.content)
             return content['commit']['message']
@@ -67,13 +67,17 @@ class UpdaterGitAPI:
 
     def _get_lastcommit(self):
         url = self.url + '/' + self.repos + '/pulls?state=closed'
-        resp = requests.get(url)
+        resp = requests.get(url,timeout=2)
         if resp.status_code == requests.codes.ok:
             content = json.loads(resp.content)
             return self._parseCommits(content)
 
     def isOutdated(self):
-        merge_sha = self._get_version_file()
-        if self._hasNotPassed( merge_sha):
-            return (merge_sha, self._getCommitMessage(merge_sha))
-        return None,None
+        try:
+            merge_sha = self._get_version_file()
+            if self._hasNotPassed(merge_sha):
+                return merge_sha, self._getCommitMessage(merge_sha)
+            return None, None
+        except Exception as ex:
+            logging.getLogger('maskgen').error('Error validating JT version: {}'.format(ex.message))
+            raise EnvironmentError(ex.message)

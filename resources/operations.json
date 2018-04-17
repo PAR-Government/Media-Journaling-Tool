@@ -4225,7 +4225,7 @@
         },
         "local": {
           "type": "yesno",
-          "description": "Rotate entire image or a local selection"
+          "description": "Rotate entire image or a local selection.  Use 'yes' if global but masks in QA created through the rotation are incorrect."
         },
          "Start Time": {
           "type": "time",

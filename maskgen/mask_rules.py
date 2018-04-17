@@ -1269,8 +1269,8 @@ def cas_transform(buildState):
     tm = buildState.transformMatrix()
     masktowarp = buildState.compositeMask if buildState.isComposite else buildState.donorMask
     res = tool_set.applyInterpolateToCompositeImage(masktowarp,
-                                                    ImageWrapper(buildState.source) if type(buildState.source) not in ['str', 'unicode'] else buildState.graph.get_image(buildState.source)[0],
-                                                    ImageWrapper(buildState.target) if type(buildState.target) not in ['str','unicode'] else buildState.graph.get_image(buildState.target)[0],
+                                                    ImageWrapper(buildState.source) if type(buildState.source) not in [str, unicode] else buildState.graph.get_image(buildState.source)[0],
+                                                    ImageWrapper(buildState.target) if type(buildState.target) not in [str, unicode] else buildState.graph.get_image(buildState.target)[0],
                                                     buildState.edgeMask,
                                                     inverse=not buildState.isComposite,
                                                     arguments=buildState.arguments(),
