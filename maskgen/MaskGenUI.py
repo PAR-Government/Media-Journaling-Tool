@@ -98,8 +98,9 @@ class UserPropertyChange(ProperyChangeAction):
         newName = newvalue.lower()
         setPwdX(CustomPwdX(newName))
         self.scModel.setProjectData('username', newName)
-        if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
-            self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
+        if oldvalue != newvalue:
+            if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
+                self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
 
 class MakeGenUI(Frame):
     prefLoader = maskGenPreferences

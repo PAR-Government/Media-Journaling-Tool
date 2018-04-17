@@ -8,7 +8,7 @@
 
 from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
 from maskgen.support import getValue
-from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask
+from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask,md5_of_file
 from maskgen.image_graph import ImageGraph, GraphProxy
 import os
 from abc import ABCMeta, abstractmethod
@@ -335,6 +335,42 @@ class ValidationAPIComposite(ValidationAPI):
         return result
 
 
+def renameToMD5(graph,start,end):
+    """
+       :param graph:
+       :param start:
+       :param end:
+       :return:
+       @type graph: ImageGraph
+       @type start: str
+       @type end: str
+    """
+    import shutil
+    file_path_name =graph.get_image_path(start)
+    filename = os.path.basename(file_path_name)
+    if os.path.exists(file_path_name):
+        try:
+            suffix = os.path.splitext(filename)[1]
+            new_file_name = md5_of_file(file_path_name) + suffix
+            fullname = os.path.join(graph.dir, new_file_name)
+        except:
+            logging.getLogger('maskgen').error(
+                'Missing file or invalid permission: {} '.format(file_path_name))
+            return
+        try:
+            os.rename(file_path_name, fullname)
+            logging.getLogger('maskgen').info(
+                'Renamed {} to {} '.format(filename, new_file_name))
+            graph.update_node(start, file=new_file_name)
+        except Exception as e:
+            logging.getLogger('maskgen').error(
+                    ('Failure to rename file {} : {}.  Trying copy').format(file_path_name, str(e)))
+            shutil.copy2(file_path_name, fullname)
+            logging.getLogger('maskgen').info(
+                    'Renamed {} to {} '.format(filename, new_file_name))
+            graph.update_node(start, file=new_file_name)
+
+
 def repairMask(graph,start,end):
     """
       :param graph:
@@ -521,7 +557,7 @@ class Validator:
             for error in run_node_rules(graph, node, external=external, preferences=self.preferences):
                 if type(error) != tuple:
                     error = (Severity.ERROR, str(error))
-                total_errors.append(ValidationMessage(error[0], str(node), str(node), error[1],'Node',None))
+                total_errors.append(ValidationMessage(error[0], str(node), str(node), error[1],'Node',None if len(error) == 2 else error[2]))
 
         for frm, to in graph.get_edges():
             edge = graph.get_edge(frm, to)
@@ -600,7 +636,8 @@ def run_node_rules(graph, node, external=False, preferences=None):
                 hashname = hashlib.md5(rp.read()).hexdigest()
                 if hashname not in nodeData['file']:
                     errors.append(
-                        (Severity.WARNING, "Final image {} is not composed of its MD5.".format(nodeData['file'])))
+                        (Severity.WARNING, "Final image {} is not composed of its MD5.".format(nodeData['file']),
+                         renameToMD5))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():

@@ -2339,6 +2339,8 @@ class CompositeDelegate:
         else:
             edgeMask = self.graph.get_edge_image(self.edge_id[0], self.edge_id[1],
                                                  'maskname', returnNoneOnMissing=True)
+            if edgeMask is None:
+                raiseError('_getComposite','Edge Mask is Missing',self.edge_id)
             mask = edgeMask.invert().to_array()
             args = {}
             args.update(self.gopLoader.getOperationWithGroups(self.edge['op']).mandatoryparameters)

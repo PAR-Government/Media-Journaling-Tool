@@ -13,8 +13,6 @@ from core import ValidationAPI,ValidationMessage,Severity
 
 loader = getMetDataLoader()
 
-
-
 class ValidationCodeNameS3(ValidationAPI):
 
     filename = 'ManipulatorCodeNames.txt'
@@ -51,7 +49,7 @@ class ValidationCodeNameS3(ValidationAPI):
                                       '',
                                       'user name {} not valid'.format(graph.getDataItem('username','')),
                                       'User',
-                                      None)]
+                                      self.fixUserNameGraph)]
         return []
 
     def check_edge(self, op, graph, frm, to):
@@ -74,7 +72,7 @@ class ValidationCodeNameS3(ValidationAPI):
                                       to,
                                       'user name {} not valid'.format( edge['username']),
                                       'User',
-                                      self.fixUserName)]
+                                      self.fixUserNameEdge)]
         return []
 
     def check_node(self, node, graph):
@@ -91,7 +89,22 @@ class ValidationCodeNameS3(ValidationAPI):
     def test(self):
         return None if self.isConfigured() else 'Checking usernames not configured.  Missing ' + ValidationCodeNameS3.filename
 
-    def fixUserName(self, graph, start, end):
+
+    def fixUserNameGraph(self, graph, start, end):
+        """
+
+        :param graph:
+        :param start:
+        :param end:
+        :return:
+        @type graph: ImageGraph
+        """
+        user = maskGenPreferences.get_key('username', 'NA')
+        if user not in self.names:
+            raise ValueError('Cannot fix name until the username is correct in the system settings')
+        graph.setDataItem('username',user)
+
+    def fixUserNameEdge(self, graph, start, end):
         user = graph.getDataItem('username', maskGenPreferences.get_key('username', 'NA'))
         if user not in self.names:
             raise ValueError('Cannot fix name until the project username is correct in the project properties')
