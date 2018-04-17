@@ -478,23 +478,28 @@ def getMeta(file, with_frames=False, show_streams=False):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
-        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut')
-        stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr')
+        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut'+str(os.getpid()))
         try:
-            p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
-            p.wait()
+            stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr'+str(os.getpid()))
+            try:
+                p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
+                p.wait()
+            finally:
+                os.close(stder_fd)
         finally:
             os.close(stdout_fd)
-            os.close(stder_fd)
+
+        stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
         try:
-            stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
             stder_fd = os.fdopen(os.open(stder_path, os.O_RDONLY), 'r')
-            return func(stdout_fd,stder_fd)
+            try:
+                return func(stdout_fd,stder_fd)
+            finally:
+                stder_fd.close()
+                os.remove(stder_path)
         finally:
             stdout_fd.close()
-            stder_fd.close()
             os.remove(stdout_path)
-            os.remove(stder_path)
 
 
     def runProbe(func, args=None):
@@ -547,7 +552,8 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     """
     st = start_time_tuple
     et = end_time_tuple
-    calculate_frames = st[0] > 0  or st[1] > 1 or et is not None
+    # calculate frames if there is a start other than 0 or an end time.
+    calculate_frames = st[0] > 0 or st[1] > 1 or et is not None
     meta, frames = getMeta(video_file, show_streams=True, with_frames=calculate_frames)
     found_num = 0
     results = []

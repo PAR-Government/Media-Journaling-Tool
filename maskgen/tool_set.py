@@ -32,7 +32,7 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("PTX Pentax", "*.ptx"),
                   ("PEF Pentax", "*.pef"), ("MRW Minolta", "*.nrw"), ("Adobe", "*.dng"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf"), ('cr2', '*.cr2'), ('raf Fuji', '*.raf'),
-                  ("NITF files","*.ntf"),("NITF files","*.nitf")]
+                  ("NITF files","*.ntf"),("NITF files","*.nitf"),('JP2','*.jp2')]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts'), ('3gp', '*.3gp'),
@@ -43,7 +43,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
-            ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",
+            ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
