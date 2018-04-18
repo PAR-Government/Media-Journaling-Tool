@@ -255,7 +255,7 @@ class QAProjectDialog(Toplevel):
         row += 1
         textscroll = Scrollbar(lastpage)
         textscroll.grid(row=row, column=col + 4, sticky=NS)
-        self.commentsBox = Text(lastpage, height=5, width=100, yscrollcommand=textscroll.set)
+        self.commentsBox = Text(lastpage, height=5, width=100, yscrollcommand=textscroll.set,relief=SUNKEN)
         self.commentsBox.grid(row=row, column=col, padx=5, pady=5, columnspan=3, sticky=NSEW)
         textscroll.config(command=self.commentsBox.yview)
         currentComment = self.parent.scModel.getProjectData('qacomment')
@@ -466,7 +466,7 @@ class QAProjectDialog(Toplevel):
         self.popup.add_command(label="Add", command=self.group_add)
         self.popup.add_command(label="Remove", command=self.group_remove)
         self.operationLabel = Label(p, textvariable=self.operationVar, justify=LEFT)
-        self.collapseFrame = Accordion(p)  # ,height=100,width=100)
+        self.collapseFrame = Accordion(p)# ,height=100,width=100)
         self.groupFrame = Chord(self.collapseFrame, title='Semantic Groups')
         self.gscrollbar = Scrollbar(self.groupFrame, orient=VERTICAL)
         self.listbox = Listbox(self.groupFrame, yscrollcommand=self.gscrollbar.set, height=3,selectmode=EXTENDED,exportselection=0)
@@ -477,7 +477,7 @@ class QAProjectDialog(Toplevel):
         self.gscrollbar.grid(row=0, column=1, stick=N + S)
         self.collapseFrame.append_chords([self.groupFrame])
         self.collapseFrame.grid(row=row+1, column=0, columnspan=2
-                                , sticky=E,rowspan=1)
+                                , sticky=N+W,rowspan=1,pady=10)
         row += 2
         self.cImgFrame = Frame(p)
         # self.load_overlay(initialize= True)
@@ -489,7 +489,7 @@ class QAProjectDialog(Toplevel):
         row += 1
         textscroll = Scrollbar(p)
         textscroll.grid(row=row, column=col + 1, sticky=NS)
-        self.commentBox = Text(p, height=5, width=80, yscrollcommand=textscroll.set)
+        self.commentBox = Text(p, height=5, width=80, yscrollcommand=textscroll.set, relief=SUNKEN)
         self.commentsBoxes[t] = self.commentBox
         self.commentBox.grid(row=row, column=col, padx=5, pady=5, columnspan=1, rowspan = 2, sticky=NSEW)
 
