@@ -229,7 +229,8 @@ class MakeGenUI(Frame):
             self.updateFileTypes(val[0])
             try:
                 totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
-                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
+                ids = [self.scModel.addImage(f,cgi=cgi) for f in totalSet]
+                self.canvas.select(ids[-1])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError as e:
                 tkMessageBox.showinfo("Error", "Failed to load image {}: {}".format(self.scModel.startImageName(),
@@ -411,8 +412,8 @@ class MakeGenUI(Frame):
                 return
         if len(pairs) == 0:
             tkMessageBox.showwarning("Warning", "Leaf image nodes with base JPEG or TIFF images do not exist in this project")
-        for pair in pairs:
-            self.canvas.add(pair[0], pair[1])
+        #for pair in pairs:
+        #    self.canvas.add(pair[0], pair[1])
         self.drawState()
 
 
@@ -526,7 +527,7 @@ class MakeGenUI(Frame):
                 ValidationListDialog(self,msgs,'Connect Errors')
             if status:
                 self.drawState()
-                self.canvas.add(self.scModel.start, self.scModel.end)
+                #self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nodeproxy(self):
@@ -564,7 +565,7 @@ class MakeGenUI(Frame):
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.connect(destination, mod=d.description)
             self.drawState()
-            self.canvas.add(self.scModel.start, self.scModel.end)
+            #self.canvas.add(self.scModel.start, self.scModel.end)
             self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nextautofromfile(self):
@@ -582,7 +583,7 @@ class MakeGenUI(Frame):
                 ValidationListDialog(self,msgs,'Connect Errors')
             if status:
                 self.drawState()
-                self.canvas.add(self.scModel.start, self.scModel.end)
+                #self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def resolvePluginValues(self, args):
@@ -912,7 +913,7 @@ class MakeGenUI(Frame):
                     self.scModel.save()
                 except Exception as e:
                     logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
-        if eventType == 'export':
+        elif eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
             validation_person = self.scModel.getProjectData('validatedby')
             comment = 'Exported by ' + self.prefLoader.get_key('username')
@@ -925,8 +926,10 @@ class MakeGenUI(Frame):
                                                  self.scModel.getGraph().getCreator().lower(),
                                                  comment,
                                                  self.scModel.getGraph().get_project_type())
-        #        elif eventType == 'connect':
-        #           self.canvas.showEdge(recipient[0],recipient[1])
+        if eventType == 'connect':
+            self.canvas.add(recipient[0],recipient[1])
+        elif eventType == 'add':
+            self.canvas.addNew(recipient)
         return True
 
     def remove(self):

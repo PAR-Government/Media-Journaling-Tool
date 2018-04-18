@@ -149,7 +149,7 @@ class MaskGraphCanvas(tk.Canvas):
             node['xpos'] = center[0]
             node['ypos'] = center[1]
             self.lastNodeAdded = node
-            self._mark(self._draw_node(id))
+            self._draw_node(id)
             center = (center[0], center[1] + 30)
 
     def add(self, start, end):
@@ -270,6 +270,14 @@ class MaskGraphCanvas(tk.Canvas):
             self.config(cursor='')
             for k, v in self.itemToCanvas.items():
                 v.config(cursor='')
+
+    def selectLink(self, start, end):
+        if start == end:
+            end = None
+        if end is not None:
+            self.showEdge(start, end)
+        else:
+            self.showNode(start)
 
     def onNodeButtonPress(self, event):
         """Being drag of an object"""
@@ -398,6 +406,9 @@ class MaskGraphCanvas(tk.Canvas):
             if self.marked in self.itemToCanvas:
                 self.itemToCanvas[self.marked].unmark()
             self.marked = None
+
+    def select(self,item):
+        self._mark(item)
 
     def _mark(self, item):
         self._unmark()

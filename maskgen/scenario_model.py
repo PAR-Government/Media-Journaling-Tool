@@ -971,24 +971,24 @@ class ImageProjectModel:
                              not filename.endswith('_mask' + suffix) and \
                              not filename.endswith('_proxy' + suffix)])
         totalSet = sorted(totalSet, key=sortalg)
-        added = 0
+        added = []
         for filename in totalSet:
             try:
                 pathname = os.path.abspath(os.path.join(dir, filename))
                 additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
                 nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
+                added.append(nname)
                 ypos += 50
                 if ypos == 450:
                     ypos = initialYpos
                     xpos += 50
-                added=True
                 if filename == baseImageFileName:
                     self.start = nname
                     self.end = None
             except Exception as ex:
                 logging.getLogger('maskgen').warn('Failed to add media file {}'.format(filename))
-        if added and self.notify is not None:
-            self.notify((self.start, None), 'add')
+            if self.notify is not None:
+                self.notify(added, 'add')
 
 
     def addImage(self, pathname, cgi=False):
@@ -1002,7 +1002,7 @@ class ImageProjectModel:
         self.start = nname
         self.end = None
         if self.notify is not None:
-            self.notify((self.start, None), 'add')
+            self.notify([self.start], 'add')
         return nname
 
     def getEdgesBySemanticGroup(self):
@@ -1411,6 +1411,8 @@ class ImageProjectModel:
         for k, v in self.getAddTool(pathname).getAdditionalMetaData(pathname).iteritems():
             params[k] = v
         destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
+        if self.notify is not None:
+            self.notify([destination],'add')
         analysis_params = dict({ k:v for k,v in edge_parameters.iteritems() if v is not None})
         msgs, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules, analysis_params=analysis_params)
@@ -1636,9 +1638,9 @@ class ImageProjectModel:
 
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start, destination), 'connect')
+            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
             edgeErrors = edgeErrors if len(edgeErrors) > 0 else None
             self.labelNodes(self.start)
             self.labelNodes(destination)
