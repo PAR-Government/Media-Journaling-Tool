@@ -2618,9 +2618,44 @@ class NodePropertyFunction(PropertyFunction):
 class ValidationFrame(VerticalScrolledFrame):
 
     def __init__(self, master, parent,items,**kwargs):
+        """
+
+        :param master:
+        :param parent:
+        :param items:
+        :param kwargs:
+        @type items: list of ValidationMessage
+        """
         VerticalScrolledFrame.__init__(self, master, **kwargs)
         self.parent = parent
         self.body(self.interior, items)
+        self.fixes = []
+        self.items = items
+
+    def errorMessagesIncomplete(self):
+        """
+              Unrepaired error messages still in the list?
+              :return: bool
+              @rtype: bool
+              """
+        for row in range(len(self.items)):
+            item = self.items[row]
+            if item.Severity in [Severity.CRITICAL,Severity.ERROR] and row not in self.fixes:
+                return True
+        return False
+
+    def autofixesComplete(self):
+        """
+        Are some repairable errors not repaired?
+        :return: bool
+        @rtype: bool
+        """
+        for row in range(len(self.items)):
+            item = self.items[row]
+            if item.Fix is not None and row not in self.fixes:
+                return False
+        return True
+
 
     def fix(self, row, item):
         """
@@ -2631,7 +2666,9 @@ class ValidationFrame(VerticalScrolledFrame):
         """
         try:
             item.applyFix(self.parent.scModel.getGraph())
-            self.buttons[row-1].config(state=DISABLED)
+            self.widgets[row - 1].grid_forget()
+            self.buttons[row - 1].grid_forget()#config(state=DISABLED)
+            self.fixes.append(row - 1)
         except Exception as ex:
             tkMessageBox.showwarning('Error' ,str(ex))
 
@@ -2644,6 +2681,7 @@ class ValidationFrame(VerticalScrolledFrame):
         """
         row = 1
         self.buttons = []
+        self.widgets = []
         for item in items:
             if item.Start != item.End:
                 item_text='{}: {}->{} {}'.format(item.Severity.name,
@@ -2665,6 +2703,7 @@ class ValidationFrame(VerticalScrolledFrame):
             button = Button(master, text='Fix', takefocus=False, command=cbfix)
             button.config(state=DISABLED if item.Fix is None else ACTIVE)
             self.buttons.append(button)
+            self.widgets.append(widget)
             button.grid(row=row, column=2,sticky=E)
             widget.grid(row=row, column=1,sticky=W)
             row+=1
@@ -2687,8 +2726,8 @@ class ValidationListDialog(Toplevel):
         self.parent = parent
         body = Frame(self)
         body.pack(padx=5, pady=5, fill=BOTH, expand=True)
-        itemsframe = ValidationFrame(body, parent,items)
-        itemsframe.grid(row=0, column=0, sticky=N + E + S + W)
+        self.itemsframe = ValidationFrame(body, parent,items)
+        self.itemsframe.grid(row=0, column=0, sticky=N + E + S + W)
         self.grid_propagate(True)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -2716,6 +2755,12 @@ class DecisionValidationListDialog(ValidationListDialog):
 
     def __init__(self, parent, items, name):
         ValidationListDialog.__init__(self, parent, items, name)
+
+    def autofixesComplete(self):
+        return self.itemsframe.autofixesComplete()
+
+    def errorMessagesIncomplete(self):
+        return self.itemsframe.errorMessagesIncomplete()
 
     def setok(self):
         self.isok = True

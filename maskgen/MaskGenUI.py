@@ -347,18 +347,22 @@ class MakeGenUI(Frame):
                                                           'The link analysis will begin now and may take a while.'):
                 return False
         errorList = self.scModel.validate(external=True)
+        message = None
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionValidationListDialog(self, errorList, "Validation Errors")
             errorlistDialog.wait(self)
-            if not errorlistDialog.isok:
+            if errorlistDialog.errorMessagesIncomplete():
+                message = 'Validation Errors Exist'
+            if not errorlistDialog.isok or not errorlistDialog.autofixesComplete():
                 return
         self.scModel.executeFinalNodeRules()
         processProjectProperties(self.scModel)
         self.getproperties()
-        return True
+        return True, message
 
     def export(self):
-        if not self._preexport():
+        status, message = self._preexport()
+        if not status:
             return
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
@@ -369,14 +373,15 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
-        if not self._preexport():
+        status, message = self._preexport()
+        if not status:
             return
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
         if (val is not None and len(val) > 0):
             try:
-                errorList = self.scModel.exporttos3(val)
+                errorList = self.scModel.exporttos3(val,additional_message=message)
                 uploaded = self.prefLoader.get_key('lastlogupload')
                 uploaded = exportlogsto3(val,uploaded)
                 # preserve the file uploaded
