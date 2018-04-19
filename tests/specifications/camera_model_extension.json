@@ -207,10 +207,8 @@
       "id": "base_PNG.AddCameraModel10.OutputCopy"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Canon_EOS_SL1",
-      "description": "Canon EOS REBEL SL1",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel9",
       "source": "base_PNG",
@@ -225,20 +223,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Canon"
-        }
+        },
+        "model": "{gan_models}/Canon EOS SL1.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Canon_EOS_SL1}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Samsung_Galaxy_S4",
-      "description": "Samsung Galaxy S4",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel8",
       "source": "base_PNG",
@@ -253,20 +246,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Samsung"
-        }
+        },
+        "model": "{gan_models}/Samsung Galaxy S4.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Samsung_Galaxy_S4}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Kodak_M1063",
-      "description": "Kodak EasyShare M1063",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel5",
       "source": "base_PNG",
@@ -281,20 +269,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Kodak"
-        }
+        },
+        "model": "{gan_models}/Kodak M1063.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Kodak_M1063}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Samsung_Digimax_L74_Wide",
-      "description": "Samsung Digimax L74 Wide",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel4",
       "source": "base_PNG",
@@ -309,20 +292,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Samsung"
-        }
+        },
+         "model": "{gan_models}/Samsung L74wide.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Samsung_Digimax_L74_Wide}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Motorola_Droid_MAXX",
-      "description": "Motorola_Droid_MAXX",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel7",
       "source": "base_PNG",
@@ -337,20 +315,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Motorola"
-        }
+        },
+        "model": "{gan_models}/Motorola Droid Maxx.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Motorola_Droid_MAXX}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Panasonic_DMC_FZ50",
-      "description": "Panasonic DMC-FZ50",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel6",
       "source": "base_PNG",
@@ -364,21 +337,16 @@
         },
         "Camera Make": {
           "type": "value",
-          "value": "Panasonic"
+          "value": "Panasonic",
+          "model": "{gan_models}/Panasonic DMC-FZ50.npz"
         }
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Panasonic_DMC_FZ50}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+       "plugin": "CameraModelGan",
       "autojtspecid": "Sony_NEX_5TL",
-      "description": "Sony NEX-5TL",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel1",
       "source": "base_PNG",
@@ -393,20 +361,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Sony"
-        }
+        },
+        "model": "{gan_models}/Sony NEX-5TL.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Sony_NEX_5TL}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Olympus_Stylus_1050SW",
-      "description": "Olympus Stylus 1050SW",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel3",
       "source": "base_PNG",
@@ -421,20 +384,15 @@
         "Camera Make": {
           "type": "value",
           "value": "Olympus"
-        }
+        },
+        "model": "{gan_models}/Olympus mju-1050SW.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Olympus_Stylus_1050SW}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "Praktica_DCZ_59",
-      "description": "Praktica DCZ 5.8",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel2",
       "source": "base_PNG",
@@ -449,14 +407,11 @@
         "Camera Make": {
           "type": "value",
           "value": "Praktica"
-        }
+        },
+         "model": "{gan_models}/Praktica DCZ5.9.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{Praktica_DCZ_59}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
       "plugin": "JpgFromCamera",
@@ -565,10 +520,8 @@
       "id": "base_PNG.AddCameraModel3.OutputCopy"
     },
     {
-      "category": "Antiforensic",
+      "plugin": "CameraModelGan",
       "autojtspecid": "iPhone6s",
-      "description": "iPhone 6s",
-      "software version": "0.1",
       "autojtoutput": false,
       "id": "base_PNG.AddCameraModel10",
       "source": "base_PNG",
@@ -583,14 +536,11 @@
         "Camera Make": {
           "type": "value",
           "value": "iPhone"
-        }
+        },
+         "model": "{gan_models}/Apple6.npz"
       },
       "autojtselector": false,
-      "op_type": "PreProcessedMediaOperation",
-      "directory": "{iPhone6s}",
-      "software": "DrexelCameraModel",
-      "usebaseimage": true,
-      "op": "AddCameraModel"
+      "op_type": "PluginOperation"
     },
     {
       "plugin": "OutputJpg",

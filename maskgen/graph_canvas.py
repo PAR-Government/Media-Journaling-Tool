@@ -146,8 +146,11 @@ class MaskGraphCanvas(tk.Canvas):
             center = (center[0] + 75, center[1])
         for id in ids:
             node = self.scModel.getGraph().get_node(id)
-            node['xpos'] = center[0]
-            node['ypos'] = center[1]
+            if 'xpos' not in node or 'ypos' not in node:
+                node['xpos'] = center[0]
+                node['ypos'] = center[1]
+            else:
+                center = (node['xpos'],node['ypos'])
             self.lastNodeAdded = node
             self._draw_node(id)
             center = (center[0], center[1] + 30)
@@ -541,6 +544,8 @@ class MaskGraphCanvas(tk.Canvas):
         return wid
 
     def _draw_edge(self, u, v):
+        if (u,v) in self.toItemIds:
+            return
         edge = self.scModel.getGraph().get_edge(u, v)
         x1, y1 = self._node_center(u)
         x2, y2 = self._node_center(v)
@@ -552,7 +557,6 @@ class MaskGraphCanvas(tk.Canvas):
         self.itemToEdgeIds[wid] = (u, v)
         self.itemToCanvas[wid] = lineC
         return wid
-
 
 class NodeObj(tk.Canvas):
     node_name = ''

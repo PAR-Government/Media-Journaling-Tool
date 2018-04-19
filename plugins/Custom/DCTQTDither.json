@@ -1,0 +1,26 @@
+{
+    "name": "DCTQTDither",
+    "operation": {
+      "name": "AntiForensicDither",
+      "category": "AntiForensic",
+      "description": "The DCT coefficients of a host JPEG file will be modified to ameliorate double-compression artifacts caused by incorporation of data from a donor JPEGfile",
+      "software": "JPEG_DCT_Modify",
+      "version": "0.1",
+      "arguments":{
+         "donor": {
+           "type":"donor",
+           "description": "Donor quantization table file."
+         }
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".jpg",
+    "command": {
+      "default": [
+        "JPEG_DCT_Modify",
+        "{inputimage}",
+        "{donor}",
+        "{outputimage}"
+      ]
+    }
+}

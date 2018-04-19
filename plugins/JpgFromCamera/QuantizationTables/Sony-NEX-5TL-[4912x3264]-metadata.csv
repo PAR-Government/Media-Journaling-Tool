@@ -1,0 +1,174 @@
+compute,-File:ImageHeight,#CalcHeight
+database,-File:FileTypeExtension,JPG
+database,-ExifIFD:BrightnessValue,0.2671875
+database,-Sony:Brightness,0
+database,-ExifIFD:UserComment,
+database,-ExifIFD:ExifVersion,0230
+database,-Sony:SonyISO,3200
+database,-IFD0:Orientation,1
+database,-Sony:AFAreaModeSetting,0
+database,-Sony:SequenceLength,1
+database,-MPF0:MPFVersion,0100
+database,-ExifIFD:SceneType,1
+compute,-Sony:SonyImageWidth,#ComputeWidth
+database,-Sony:HighISONoiseReduction,2
+database,-ExifIFD:ColorSpace,1
+database,-Sony:FlashStatus,0
+database,-Sony:PreviewImageSize,1616 1080
+database,-IFD0:ResolutionUnit,2
+database,-Composite:Megapixels,16.032768
+database,-Sony:LensType2,32793
+database,-Sony:ColorTemperature,0
+compute,-ExifIFD:ExposureTime,0.008
+database,-ExifIFD:DigitalZoomRatio,1
+database,-Sony:Quality,2
+database,-Sony:WhiteBalanceFineTune,0
+database,-MPImage2:DependentImage2EntryNumber,0
+database,-Sony:ModelReleaseYear,12
+database,-Sony:FocusMode,2
+database,-ExifIFD:FNumber,4
+database,-IFD0:ImageDescription,
+compute,-Sony:SelfTimer,0
+database,-Sony:ImageStabilization,1
+database,-Sony:ZoneMatching,0
+database,-ExifIFD:Flash,16
+database,-Sony:LensSpec,c3 16 50 3.5 5.6 00
+database,-Sony:Quality2,0
+database,-ExifIFD:ExposureMode,1
+compute,-ExifIFD:DateTimeOriginal,2015:05:22 13:22:00
+database,-Sony:SonyFNumber,4.06001307916325
+database,-Sony:ColorCompensationFilter,0
+database,-ExifIFD:FlashpixVersion,0100
+database,-File:BitsPerSample,8
+database,-Sony:LensFirmwareVersion,1
+database,-Sony:HDR,0 0
+database,-Sony:LensMount2,4
+database,-IFD0:Model,NEX-5T
+database,-PrintIM:PrintIMVersion,0300
+database,-Sony:FlexibleSpotPosition,0 0
+database,-Composite:LensID,65535
+database,-Sony:PictureProfile,0
+database,-IFD1:ThumbnailOffset,37028
+database,-Composite:RedBalance,2.34375
+database,-Sony:FullImageSize,4912 3264
+database,-Sony:InternalSerialNumber,219 254 73 13
+database,-ExifIFD:CustomRendered,0
+database,-Sony:SoftSkinEffect,0
+database,-Sony:CameraE-mountVersion,304
+database,-File:FileType,JPEG
+compute,-ExifIFD:ExifImageWidth,4912
+database,-Sony:FaceInfoLength,37
+database,-Sony:LensType3,32793
+database,-IFD0:Software,NEX-5T v1.00
+compute,-Sony:SonyExposureTime,0.0078125
+database,-ExifIFD:FileSource,3
+database,-Composite:ScaleFactor35efl,1.47619047619048
+database,-MPImage2:MPImageFlags,1073741824
+database,-File:MIMEType,image/jpeg
+database,-Sony:AFZoneSelected,0
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:SceneCaptureType,0
+database,-File:ExifByteOrder,II
+database,-Sony:ReleaseMode2,0
+database,-Sony:ReleaseMode3,0
+database,-ExifIFD:ISO,3200
+database,-Sony:ShotNumberSincePowerUp,3
+database,-Sony:Teleconverter,0
+database,-Sony:StopsAboveBaseISO,5
+database,-MPF0:NumberOfImages,2
+database,-Sony:Anti-Blur,2
+database,-IFD0:Make,SONY
+database,-Composite:FocusDistance2,0.702710751280699
+database,-Sony:DistortionCorrection,1
+database,-Composite:LightValue,5.96578428466209
+database,-Sony:Rating,0
+database,-Sony:WB_RGBLevels,600 256 433
+database,-Composite:CircleOfConfusion,0.0203539184905225
+database,-Sony:LongExposureNoiseReduction,1
+database,-Sony:WBShiftAB_GM,0 0
+database,-IFD0:YCbCrPositioning,2
+database,-ExifIFD:CompressedBitsPerPixel,3
+database,-Composite:FOV,60.282822022872
+database,-Sony:CameraOrientation,1
+database,-ExifIFD:MeteringMode,5
+database,-Sony:AFPointsUsed,0 0 0 0 0 0 0 0 0 0
+database,-Sony:DynamicRangeOptimizer,3
+database,-Sony:SequenceFileNumber,1
+database,-MPImage2:MPImageStart,5396480
+database,-Sony:ImageCount,1226
+database,-ExifIFD:FocalLengthIn35mmFormat,31
+database,-Sony:PictureEffect,0
+database,-MPImage2:MPImageFormat,0
+database,-ExifIFD:LensInfo,16 50 3.5 5.6
+database,-Sony:DigitalZoom,0
+compute,-File:ImageWidth,#ComputeWidth
+database,-Sony:SceneMode,0
+database,-Sony:FlashMode,1
+database,-Composite:ShutterSpeed,0.008
+database,-Sony:DistortionCorrectionSetting,2
+database,-MPImage2:DependentImage1EntryNumber,0
+database,-Sony:VignettingCorrection,2
+database,-IFD1:ThumbnailImage,(Binary data 9606 bytes, use -b option to extract)
+database,-ExifIFD:FocalLength,21
+database,-ExifIFD:RecommendedExposureIndex,3200
+database,-Composite:Aperture,4
+database,-Sony:LensE-mountVersion,288
+database,-Sony:SequenceImageNumber,1
+database,-Sony:BatteryTemperature,32.2222222222222
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-MPImage2:MPImageLength,904948
+database,-File:YCbCrSubSampling,2 1
+database,-Sony:FileFormat,3 3 1 0
+database,-Sony:LensFormat,1
+database,-System:FileSize,6324224
+database,-Sony:CreativeStyle,Standard
+database,-Sony:FaceInfoOffset,94
+database,-Sony:MetaVersion,DC7303320222000
+database,-ExifIFD:SensitivityType,2
+database,-Sony:LensZoomPosition,237
+database,-Composite:HyperfocalDistance,5.41664741613937
+database,-Sony:AmbientTemperature,24
+database,-ExifIFD:LensModel,E PZ 16-50mm F3.5-5.6 OSS
+database,-ExifIFD:LightSource,0
+database,-Sony:SonyModelID,307
+database,-File:EncodingProcess,0
+database,-MPImage2:MPImageType,65538
+database,-Sony:FlashExposureComp,0
+database,-Sony:FocusPosition2,151
+compute,-ExifIFD:ExifImageHeight,3264
+database,-Sony:IntelligentAuto,0
+database,-Sony:BatteryLevel,34
+database,-MPImage2:PreviewImage,(Binary data 904948 bytes, use -b option to extract)
+database,-ExifIFD:ExposureProgram,1
+database,-Sony:FacesDetected,0
+database,-Sony:LateralChromaticAberration,2
+database,-InteropIFD:InteropIndex,R98
+database,-Sony:ImageCount3,1225
+database,-Composite:BlueBalance,1.69140625
+database,-ExifIFD:MaxApertureValue,4
+database,-ExifIFD:Contrast,0
+database,-ExifIFD:Sharpness,0
+database,-Sony:WhiteBalance,0
+database,-IFD0:XResolution,350
+database,-Sony:AFAreaMode,0
+database,-Sony:SequenceNumber,0
+database,-IFD0:YResolution,350
+database,-Sony:PictureEffect2,0
+database,-Composite:FocalLength35efl,31.0000000000001
+database,-File:ColorComponents,3
+compute,-Sony:SonyImageHeight,#CalcHeight
+database,-InteropIFD:InteropVersion,0100
+database,-Sony:ColorMode,0
+database,-Sony:FlashLevel,0
+database,-Sony:FlashAction,0
+database,-ExifIFD:ExposureCompensation,0
+database,-Sony:LensType,65535
+database,-Sony:MultiFrameNoiseReduction,0
+database,-IFD1:ThumbnailLength,9606
+database,-ExifIFD:Saturation,0
+database,-IFD1:Compression,6
+database,-Sony:ReleaseMode,0
+database,-Sony:LensMount,2
+database,-Sony:AutoPortraitFramed,0
+database,-Sony:HDRSetting,0
+database,-Sony:LensSpecFeatures,c3 00

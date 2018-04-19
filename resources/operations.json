@@ -1028,7 +1028,7 @@
         },
         "Camera Make": {
           "type": "text",
-          "value": "Make Name from Browser"
+          "description": "Make Name from Browser"
         }
       },
       "rules": [

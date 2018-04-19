@@ -149,9 +149,9 @@ def get_args_calculated(tag, val, source, target):
     with Image.open(target) as im:
         (width, height) = im.size
     totalSize = width*height
-    if tag == '-ExifIFD:ExifImageHeight' or val == '#CalcHeight':
+    if tag == '-ExifIFD:ExifImageHeight' or val in ['#ComputeHeight','#CalcHeight']:
         args.append(tag + '=' + str(height))
-    elif tag == '-ExifIFD:ExifImageWidth' or val == '#CalcWidth':
+    elif tag == '-ExifIFD:ExifImageWidth' or val in ['#ComputeWidth','#CalcWidth']:
         args.append(tag + '=' + str(width))
     elif val == '#CalcSizePixels':
         args.append(tag + '=' + str(totalSize))

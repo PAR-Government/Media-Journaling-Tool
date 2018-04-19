@@ -2374,8 +2374,8 @@ class PropertyFrame(VerticalScrolledFrame):
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('file:'):
-               typematch = '*.' + prop.name[prop.name.find(':')+1:]
-               typename =  prop.name[prop.name.find(':') + 1:].upper()
+               typematch = '*.' + prop.type[prop.type.find(':')+1:]
+               typename =  prop.name[prop.type.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)

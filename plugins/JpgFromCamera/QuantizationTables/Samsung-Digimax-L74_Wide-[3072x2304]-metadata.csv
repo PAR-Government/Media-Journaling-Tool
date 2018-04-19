@@ -1,0 +1,74 @@
+compute,-IFD0:ModifyDate,2009:01:06 12:57:32
+database,-ExifIFD:WhiteBalance,0
+database,-ExifIFD:LightSource,0
+compute,-File:ImageHeight,#ComputeHeight
+database,-File:FileTypeExtension,JPG
+database,-ExifIFD:MeteringMode,5
+database,-ExifIFD:DigitalZoomRatio,0
+database,-Samsung:PreviewImageLength,78240
+database,-IFD0:Model,<Samsung L74, Samsung VLUU L74>
+database,-ExifIFD:ExifVersion,0220
+database,-ExifIFD:SensingMethod,2
+compute,-ExifIFD:ExifImageHeight,2304
+database,-IFD0:Orientation,1
+database,-Composite:CircleOfConfusion,0.0050434794627026
+database,-ExifIFD:ExposureProgram,2
+database,-Composite:Megapixels,7.077888
+database,-InteropIFD:InteropIndex,R98
+database,-IFD1:ThumbnailOffset,41050
+database,-Composite:ShutterSpeed,0.002857142857
+database,-Composite:FocalLength35efl,28
+database,-File:EncodingProcess,0
+database,-ExifIFD:MaxApertureValue,2.80888975147599
+database,-Samsung:PreviewImageStart,3258739
+compute,-File:ImageWidth,#ComputeWidth
+database,-Composite:FOV,65.4705078447874
+compute,-ExifIFD:DateTimeOriginal,2009:01:06 12:57:32
+compute,-ExifIFD:ExifImageWidth,3072
+database,-ExifIFD:ColorSpace,1
+database,-ExifIFD:ExposureIndex,1
+database,-IFD1:ThumbnailLength,3422
+database,-IFD0:Software,706081
+database,-Composite:HyperfocalDistance,0.782127276677574
+database,-ExifIFD:FileSource,3
+database,-Samsung:PreviewImage,(Binary data 78240 bytes, use -b option to extract)
+database,-ExifIFD:RelatedSoundFile,RelatedSound
+database,-IFD0:ResolutionUnit,2
+database,-ExifIFD:SceneCaptureType,0
+database,-IFD0:YResolution,96
+database,-File:MIMEType,image/jpeg
+database,-IFD1:ThumbnailImage,(Binary data 3422 bytes, use -b option to extract)
+database,-IFD0:XResolution,96
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:FocalLength,4.7
+database,-Composite:Aperture,5.6
+database,-File:ColorComponents,3
+compute,-ExifIFD:ExposureTime,0.002857142857
+database,-InteropIFD:InteropVersion,0100
+database,-File:ExifByteOrder,II
+database,-ExifIFD:ShutterSpeedValue,0.00276213586400995
+database,-ExifIFD:ISO,80
+database,-ExifIFD:FNumber,5.6
+database,-ExifIFD:SceneType,1
+database,-IFD0:ImageDescription,<Samsung L74, Samsung VLUU L74>
+database,-ExifIFD:ExposureCompensation,0
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-File:YCbCrSubSampling,2 1
+database,-ExifIFD:Flash,24
+database,-IFD1:Compression,6
+database,-IFD0:Make,Samsung Techwin
+database,-ExifIFD:ApertureValue,1
+database,-ExifIFD:Sharpness,0
+database,-System:FileSize,3336979
+database,-Samsung:MakerNoteVersion,STMN0100
+database,-ExifIFD:Saturation,0
+database,-IFD0:Copyright,COPYRIGHT, 2007
+database,-ExifIFD:ExposureMode,0
+database,-File:FileType,JPEG
+database,-Composite:ScaleFactor35efl,5.95744680851064
+database,-ExifIFD:FlashpixVersion,0100
+database,-IFD0:YCbCrPositioning,2
+database,-File:BitsPerSample,8
+database,-ExifIFD:CompressedBitsPerPixel,3.632360388
+database,-Composite:LightValue,13.7439928611323
+database,-ExifIFD:FocalLengthIn35mmFormat,28

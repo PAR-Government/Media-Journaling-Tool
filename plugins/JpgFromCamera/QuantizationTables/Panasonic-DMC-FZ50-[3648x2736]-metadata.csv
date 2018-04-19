@@ -1,0 +1,104 @@
+compute,-IFD0:ModifyDate,2009:02:07 09:47:59
+compute,-File:ImageHeight,2736
+database,-File:FileTypeExtension,JPG
+database,-Panasonic:Audio,2
+database,-PrintIM:PrintIMVersion,0250
+database,-ExifIFD:ExifVersion,0221
+database,-IFD0:Orientation,1
+database,-Panasonic:NoiseReduction,0
+database,-Panasonic:ImageStabilization,2
+database,-ExifIFD:SceneType,1
+database,-Panasonic:SequenceNumber,0
+database,-IFD1:ThumbnailOffset,8096
+database,-Composite:Aperture,5
+database,-Panasonic:ConversionLens,1
+database,-ExifIFD:ColorSpace,1
+database,-IFD0:ResolutionUnit,2
+database,-ExifIFD:GainControl,0
+database,-IFD0:XResolution,72
+compute,-ExifIFD:ExposureTime,0.005
+database,-ExifIFD:DigitalZoomRatio,0
+database,-Panasonic:WhiteBalance,1
+database,-ExifIFD:FNumber,5
+database,-Panasonic:WBShiftGM,0
+database,-ExifIFD:Flash,16
+database,-Panasonic:Rotation,1
+compute,-Panasonic:TimeSincePowerOn,303.6
+compute,-ExifIFD:DateTimeOriginal,2009:02:07 09:47:59
+database,-ExifIFD:FlashpixVersion,0100
+database,-File:BitsPerSample,8
+database,-IFD0:Model,DMC-FZ50
+database,-Panasonic:WBBlueLevel,1631
+database,-ExifIFD:ExposureMode,0
+database,-Panasonic:WBRedLevel,2434
+database,-ExifIFD:CustomRendered,0
+database,-Panasonic:InternalSerialNumber,S020805140449
+database,-Panasonic:ColorMode,0
+compute,-ExifIFD:ExifImageWidth,3648
+database,-ExifIFD:SensingMethod,2
+database,-IFD0:Software,Ver.1.0
+database,-ExifIFD:FileSource,3
+database,-Composite:ScaleFactor35efl,4.72972972972973
+database,-File:MIMEType,image/jpeg
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:SceneCaptureType,0
+database,-File:ExifByteOrder,II
+database,-ExifIFD:ISO,100
+compute,-Panasonic:SelfTimer,1
+database,-IFD0:Make,Panasonic
+database,-Composite:LightValue,12.2877123795495
+database,-Panasonic:FocusMode,1
+database,-Composite:CircleOfConfusion,0.00635263796153179
+database,-IFD0:YCbCrPositioning,2
+database,-ExifIFD:CompressedBitsPerPixel,4
+database,-Panasonic:WBGreenLevel,1054
+database,-Composite:FOV,54.4322690915858
+database,-Panasonic:FlashBias,0
+database,-ExifIFD:MeteringMode,5
+database,-ExifIFD:FocalLengthIn35mmFormat,35
+database,-Panasonic:ShootingMode,6
+database,-Panasonic:SceneMode,0
+database,-Panasonic:ColorEffect,1
+database,-Panasonic:FlashFired,1
+compute,-File:ImageWidth,3648
+database,-Panasonic:MakerNoteVersion,0100
+database,-Composite:ShutterSpeed,0.005
+database,-Panasonic:BabyAge,9999:99:99 00:00:00
+database,-Panasonic:TravelDay,65535
+database,-IFD1:ThumbnailImage,(Binary data 7307 bytes, use -b option to extract)
+database,-ExifIFD:FocalLength,7.4
+database,-Panasonic:AFAssistLamp,2
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-Panasonic:ImageQuality,2
+database,-Composite:RedBalance,2.30929791271347
+database,-Panasonic:AFAreaMode,16 0
+database,-System:FileSize,4640703
+database,-Panasonic:FirmwareVersion,0 1 0 9
+database,-Panasonic:ContrastMode,0
+database,-Composite:HyperfocalDistance,1.72400820986801
+database,-ExifIFD:LightSource,0
+database,-File:EncodingProcess,0
+database,-Panasonic:BurstMode,0
+compute,-ExifIFD:ExifImageHeight,2736
+database,-ExifIFD:ExposureProgram,2
+database,-Composite:Megapixels,9.980928
+database,-InteropIFD:InteropIndex,R98
+database,-Panasonic:WBShiftAB,0
+database,-Composite:BlueBalance,1.54743833017078
+database,-ExifIFD:MaxApertureValue,2.82842712474619
+database,-ExifIFD:Contrast,0
+database,-ExifIFD:Sharpness,0
+database,-File:YCbCrSubSampling,2 1
+database,-Panasonic:OpticalZoomMode,1
+database,-IFD0:YResolution,72
+database,-Panasonic:DataDump,(Binary data 6152 bytes, use -b option to extract)
+database,-Composite:FocalLength35efl,35
+database,-Panasonic:MacroMode,2
+database,-File:ColorComponents,3
+database,-InteropIFD:InteropVersion,0100
+database,-ExifIFD:ExposureCompensation,0
+database,-File:FileType,JPEG
+database,-IFD1:ThumbnailLength,7307
+database,-ExifIFD:Saturation,0
+database,-IFD1:Compression,6
+database,-Panasonic:PanasonicExifVersion,0210
