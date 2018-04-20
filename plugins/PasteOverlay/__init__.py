@@ -9,13 +9,27 @@
 from maskgen.image_wrap import ImageWrapper, openImageFile
 import numpy as np
 import maskgen
-
+from maskgen.tool_set import createMask
+import logging
+import os
 """
 Create an intermediate image given the final image, after a paste splice blend, source image and a mask.
 """
 def transform(img,source,target, **kwargs):
-    pastemask = openImageFile(kwargs['inputmaskname']).to_array()
-    finalimage = openImageFile(kwargs['Final Image']).to_array()
+    finalimage = openImageFile(kwargs['Final Image'])
+    output  = None
+    if 'inputmaskname' not in kwargs:
+        pastemask, analsys, error = createMask(img,finalimage)
+        if error:
+            logging.getLogger('maskgen').error("Error creating inputmask " + error)
+        splits = os.path.split(source)
+        pastemask.invert()
+        pastemask.save(splits[0] + '_inputmask.png')
+        pastemask = pastemask.to_array()
+        output = {'inputmaskname':splits[0] + '_inputmask.png'}
+    else:
+        pastemask = openImageFile(kwargs['inputmaskname']).to_array()
+    finalimage = finalimage.to_array()
     sourceimg = np.copy(img.to_array()).astype('float')
     if len(pastemask.shape) > 2:
         if pastemask.shape[2] > 3:
@@ -29,7 +43,7 @@ def transform(img,source,target, **kwargs):
              (sourceimg[:,:,dim]*(1.0-mult)).astype('uint8') + \
              (finalimage[:,:,dim]*(mult)).astype('uint8')
     ImageWrapper(sourceimg.astype('uint8')).save(target)
-    return None,None
+    return output,None
     
 def operation():
     return {'name':'PasteSplice',
