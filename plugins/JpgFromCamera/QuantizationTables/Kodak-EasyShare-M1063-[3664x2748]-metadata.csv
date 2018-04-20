@@ -1,0 +1,81 @@
+database,-FlashPix:UsedExtensionNumbers,1
+compute,-File:ImageHeight,#CalcHeight
+database,-File:FileTypeExtension,JPG
+database,-ExifIFD:ExifVersion,0221
+database,-IFD0:Orientation,1
+database,-ExifIFD:SceneType,1
+database,-FlashPix:CreatingApplication,Picoss
+database,-FlashPix:ScreenNail,(Binary data 49690 bytes, use -b option to extract)
+database,-ExifIFD:ColorSpace,1
+database,-FlashPix:ExtensionName,Screen Nail
+database,-ExifIFD:SubjectDistanceRange,0
+database,-IFD0:ResolutionUnit,2
+database,-ExifIFD:GainControl,0
+compute,-FlashPix:ExtensionCreateDate,2003:03:29 17:47:50
+database,-IFD0:XResolution,480
+compute,-ExifIFD:ExposureTime,0.004
+database,-ExifIFD:DigitalZoomRatio,0
+database,-ExifIFD:FNumber,5.5
+database,-ExifIFD:Flash,24
+database,-IFD1:ThumbnailOffset,33792
+compute,-ExifIFD:DateTimeOriginal,2009:01:06 12:38:41
+database,-ExifIFD:FlashpixVersion,0100
+database,-File:BitsPerSample,8
+database,-ExifIFD:WhiteBalance,0
+database,-IFD0:Model,KODAK EASYSHARE M1063 DIGITAL CAMERA
+database,-ExifIFD:ApertureValue,5.48313121991881
+database,-ExifIFD:ExposureMode,0
+database,-ExifIFD:CustomRendered,0
+database,-Composite:Aperture,5.5
+compute,-ExifIFD:ExifImageWidth,#ComputeWidth
+database,-ExifIFD:SensingMethod,2
+database,-ExifIFD:FileSource,3
+database,-File:MIMEType,image/jpeg
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:SceneCaptureType,0
+database,-File:ExifByteOrder,II
+database,-ExifIFD:ISO,64
+database,-IFD0:Make,EASTMAN KODAK COMPANY
+database,-Composite:LightValue,13.5285037117114
+database,-Composite:CircleOfConfusion,0.00535199017451686
+database,-IFD0:YCbCrPositioning,2
+database,-Composite:FOV,58.7155566804916
+compute,-FlashPix:ExtensionModifyDate,2003:03:29 17:47:50
+database,-FlashPix:ExtensionPersistence,1
+database,-ExifIFD:MeteringMode,5
+database,-ExifIFD:FocalLengthIn35mmFormat,32
+compute,-File:ImageWidth,#ComputeWidth
+database,-FlashPix:PreviewImage,(Binary data 49550 bytes, use -b option to extract)
+database,-Composite:ShutterSpeed,0.004
+database,-FlashPix:Storage-StreamPathname,/.Screen Nail_bd0100609719a180
+database,-ExifIFD:ExposureIndex,64
+database,-IFD1:ThumbnailImage,(Binary data 3232 bytes, use -b option to extract)
+database,-ExifIFD:FocalLength,5.7
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-File:YCbCrSubSampling,2 2
+database,-System:FileSize,1782725
+database,-Composite:ScaleFactor35efl,5.6140350877193
+database,-FlashPix:CodePage,1200
+database,-Composite:HyperfocalDistance,1.10375253590707
+database,-FlashPix:ExtensionDescription,Presized image for LCD display
+database,-ExifIFD:LightSource,0
+database,-File:EncodingProcess,0
+compute,-ExifIFD:ExifImageHeight,2748
+database,-FlashPix:ExtensionClassID,30020010-C06F-D011-BD01-00609719A180
+database,-ExifIFD:ExposureProgram,2
+database,-Composite:Megapixels,10.068672
+database,-InteropIFD:InteropIndex,R98
+database,-ExifIFD:MaxApertureValue,2.79917173119039
+database,-ExifIFD:Contrast,0
+database,-ExifIFD:Sharpness,0
+database,-IFD0:YResolution,480
+database,-Composite:FocalLength35efl,32
+database,-File:ColorComponents,3
+database,-InteropIFD:InteropVersion,0100
+database,-ExifIFD:ShutterSpeedValue,0.00401606963537526
+database,-ExifIFD:ExposureCompensation,0
+database,-File:FileType,JPEG
+database,-IFD1:ThumbnailLength,3232
+database,-ExifIFD:Saturation,0
+database,-IFD1:Compression,6
+database,-IFD0:Rating,0

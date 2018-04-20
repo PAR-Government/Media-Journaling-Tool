@@ -15,7 +15,7 @@ from math import *
 from Tkinter import *
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+import logging
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
@@ -499,21 +499,27 @@ class JPEG_Reader:
 
         return out
 
-
+def getHist(filename):
+    try:
+        import JPEG_MetaInfoxPy
+        hist, lowValue = JPEG_MetaInfoxPy.generateHistogram(filename)
+        return np.asarray(hist),np.asarray(range(lowValue,lowValue+len(hist)+1))
+    except Exception as ex:
+        logging.getLogger('maskgen').warn('External JPEG_MetaInfoPy failed: {}'.format(str(ex)))
+        DC = JPEG_Reader().readDCT_Coeffs(filename)[0]
+        minDC = min(DC)
+        maxDC = max(DC)
+        binCount = maxDC - minDC + 1
+        return np.histogram (DC, bins=binCount,
+                                                    range=(minDC, maxDC + 1))
 class JPEG_View:
     def appliesTo (self, filename):
         return filename.lower ().endswith (('jpg', 'jpeg'))
 
     def draw (self, frame, filename):
 
-        DC = JPEG_Reader ().readDCT_Coeffs (filename)[0]
-        minDC = min (DC)
-        maxDC = max (DC)
-        binCount = maxDC - minDC + 1
-
         fig = plt.figure ();
-        self._plotHistogram (fig, np.histogram (DC, bins=binCount,
-                                                range=(minDC, maxDC + 1)))
+        self._plotHistogram (fig, getHist(filename))
         canvas = FigureCanvasTkAgg (fig, frame)
         canvas.show ()
         canvas.get_tk_widget ().pack (side=BOTTOM, fill=BOTH, expand=True)
@@ -531,10 +537,7 @@ class DCTView (JPEG_View):
         return 'JPG DCT Histogram'
 
     def _plotHistogram (self, figure, histogram):
-
         ordinates, abscissae = histogram
-
-#         plt.plot (abscissae[:-1], ordinates)
         plt.bar (abscissae[:-1], ordinates, 1);
         self._labelSigma (figure, ordinates.std ())
 

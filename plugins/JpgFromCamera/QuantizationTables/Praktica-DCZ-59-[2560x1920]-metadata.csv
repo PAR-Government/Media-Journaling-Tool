@@ -1,0 +1,74 @@
+database,-ExifIFD:WhiteBalance,0
+database,-ExifIFD:LightSource,0
+database,-Olympus:DigitalZoom,1
+compute,-File:ImageHeight,#CalcHeight
+database,-File:FileTypeExtension,JPG
+database,-ExifIFD:MeteringMode,2
+database,-ExifIFD:DigitalZoomRatio,1
+database,-IFD0:Model,5MP-9Y2
+database,-ExifIFD:ExifVersion,0220
+compute,-ExifIFD:ExifImageHeight,1920
+database,-IFD0:Orientation,1
+database,-Olympus:BWMode,0
+database,-ExifIFD:ExposureProgram,2
+database,-Olympus:CameraType,CAMERA
+database,-ExifIFD:GainControl,0
+database,-InteropIFD:InteropIndex,R98
+database,-IFD1:ThumbnailOffset,10828
+database,-Composite:Megapixels,4.9152
+database,-Olympus:Quality,0
+database,-Composite:FocalLength35efl,35.4536756676884
+database,-File:EncodingProcess,0
+database,-ExifIFD:MaxApertureValue,2.79917173119039
+database,-ExifIFD:CustomRendered,0
+database,-Olympus:CameraID,DIGITAL CAMERA
+database,-ExifIFD:Contrast,0
+compute,-File:ImageWidth,#ComputeWidth
+compute,-ExifIFD:DateTimeOriginal,2009:01:06 12:53:31
+compute,-ExifIFD:ExifImageWidth,2560
+database,-ExifIFD:ColorSpace,1
+database,-Composite:ShutterSpeed,0.003931
+database,-Olympus:FocalPlaneDiagonal,6.59
+database,-Olympus:Macro,0
+database,-IFD0:Software,V1.091
+database,-Composite:HyperfocalDistance,1.13782787773683
+database,-ExifIFD:FileSource,3
+database,-IFD1:ThumbnailLength,10374
+database,-ExifIFD:SubjectDistanceRange,2
+database,-IFD0:ResolutionUnit,2
+database,-ExifIFD:SceneCaptureType,0
+database,-IFD0:YResolution,72
+database,-File:MIMEType,image/jpeg
+database,-IFD1:ThumbnailImage,(Binary data 10374 bytes, use -b option to extract)
+database,-IFD0:XResolution,72
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:FocalLength,5.4
+database,-File:ColorComponents,3
+database,-Olympus:LensDistortionParams,-176 -386 -470 -186 -412 -504
+compute,-ExifIFD:ExposureTime,0.003931
+database,-InteropIFD:InteropVersion,0100
+database,-File:ExifByteOrder,II
+database,-Olympus:CameraParameters,(Binary data 8068 bytes, use -b option to extract)
+database,-Composite:Aperture,5.6
+database,-ExifIFD:ISO,64
+database,-ExifIFD:FNumber,5.6
+database,-IFD0:ImageDescription,DIGITAL CAMERA
+database,-ExifIFD:ExposureCompensation,0
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-File:YCbCrSubSampling,2 1
+database,-ExifIFD:Flash,16
+database,-IFD1:Compression,6
+database,-IFD0:Make,CAMERA
+database,-ExifIFD:Saturation,0
+database,-ExifIFD:Sharpness,0
+database,-System:FileSize,2373071
+database,-Composite:LightValue,13.6055977650153
+database,-ExifIFD:ExposureMode,0
+database,-Olympus:SpecialMode,0 0 0
+database,-File:FileType,JPEG
+database,-Composite:ScaleFactor35efl,6.56549549401637
+database,-ExifIFD:FlashpixVersion,0100
+database,-IFD0:YCbCrPositioning,2
+database,-File:BitsPerSample,8
+database,-Composite:CircleOfConfusion,0.00457638888888889
+database,-Composite:FOV,53.8342894755695

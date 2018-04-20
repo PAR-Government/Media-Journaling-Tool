@@ -245,17 +245,16 @@ def loadCustomFunctions():
         if p.name not in pluginSpecFuncs:
             pluginSpecFuncs[p.name] = p.load()
 
-
-def callPluginSpec(specification, local_state):
+def callPluginSpec(specification, local_state, global_state, postProcess):
     if specification['name'] not in pluginSpecFuncs:
         raise ValueError("Invalid specification name:" + str(specification['name']))
+    parameters = processValue(MyFormatter(local_state,global_state),specification['parameters'], postProcess)
     if 'state_name' in specification:
         if specification['state_name'] not in local_state:
             local_state[specification['state_name']] = dict()
-        return pluginSpecFuncs[specification['name']](specification['parameters'],
+        return pluginSpecFuncs[specification['name']](parameters,
                                                       state=local_state[specification['state_name']])
-    return pluginSpecFuncs[specification['name']](specification['parameters'])
-
+    return pluginSpecFuncs[specification['name']](parameters)
 
 def executeParamSpec(specification_name, specification, global_state, local_state, node_name, predecessors):
     import copy
@@ -327,7 +326,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         return postProcess(getNodeState(specification['source'], local_state)['output'])
     elif spec_type == 'plugin':
-        return postProcess(callPluginSpec(specification, local_state))
+        return postProcess(callPluginSpec(specification, local_state, global_state,postProcess))
     elif spec_type.startswith('global'):
         if 'name' not in specification:
             raise ValueError('source attribute missing in {}'.format(specification_name))
