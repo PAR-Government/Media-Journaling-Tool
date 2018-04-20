@@ -82,7 +82,7 @@ class QAProjectDialog(Toplevel):
 
 
     def getProbes(self):
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False)
+        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False,keepFailures=True)
 
     def getFileNameForNode(self, nodeid):
         fn = self.scModel.getFileName(nodeid)
@@ -183,7 +183,7 @@ class QAProjectDialog(Toplevel):
             #print(self.qaData.get_qalink_status(k))
             count += 1 if self.qaData.get_qalink_status(k) == 'yes' else 0
         self.progress = count / len(self.crit_links)
-        print(self.progress)
+        #print(self.progress)
         #print(self.crit_links)
         count= 1
         #page1.grid_forget()
@@ -525,8 +525,7 @@ class QAProjectDialog(Toplevel):
             self.listbox.insert(ANCHOR, sg)
         #print (edge['op'])
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
-        print(self.type
-        )
+        #print(self.type)
         #print(operation)
         if self.type == 'image':
             self.loadt(t)
@@ -620,7 +619,7 @@ class QAProjectDialog(Toplevel):
             if self.getFileNameForNode(p.end) == self.edgeTuple[0]:
                 current = c
             #str = ""
-        print(str(self.edgeTuple) + ":" + str(current))
+        #print(str(self.edgeTuple) + ":" + str(current))
         self.pathList.selection_set(current)
         self.pathList.see(max(0,current-5))
         return ""
@@ -718,7 +717,7 @@ class QAProjectDialog(Toplevel):
                 self.qaData.set_qalink_status(self.crit_links[ind - 1], 'no')
                 self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END).strip())
         for p in self.progressBars:
-            print("stepping {}".format(step))
+            #print("stepping {}".format(step))
             p.step(step)
         i = self.pages.index(self.cur) + dir
 
