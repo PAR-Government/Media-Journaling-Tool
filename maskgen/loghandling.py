@@ -41,6 +41,7 @@ class MaskGenTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
 
 
 def set_logging_level(level):
+    logging.getLogger('maskgen').setLevel(level)
     for handler in logging.getLogger('maskgen').handlers:
         handler.setLevel(level)
 

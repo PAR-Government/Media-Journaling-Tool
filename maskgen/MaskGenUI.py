@@ -7,15 +7,18 @@
 # ==============================================================================
 
 import argparse
+
 import matplotlib
+
 matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
-from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
+from software_loader import operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
-from maskgen.userinfo import get_username,setPwdX,CustomPwdX
+from maskgen.userinfo import setPwdX,CustomPwdX
 from description_dialog import *
+from loghandling import set_logging_level
 from group_filter import  GroupFilterLoader
 from tool_set import *
 from group_manager import GroupManagerDialog
@@ -23,7 +26,6 @@ from maskgen import maskGenPreferences
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
-from maskgen.validation.browser_api import ValidationAPI
 from validation.core import ValidationAPIComposite
 from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
@@ -1218,28 +1220,28 @@ class MakeGenUI(Frame):
         return types
 
     def getSystemPreferences(self):
-        props =  [ProjectProperty(name='username',
-                                  type=getMetDataLoader().getProperty('username').type,
-                                  description='User Name',
-                                  information='Journal User Name'),
-                ProjectProperty(name='organization', type='text',
-                                description='Organization',
-                                information="journal user's organization"),
-                ProjectProperty(name='log.validation', type='yesno',
-                                  description="Log Validation Status",
-                                  information='Log Validation'),
-                ProjectProperty(name='apiurl', type='text',
-                                description="API URL",
-                                information='Validation API URL'),
-                ProjectProperty(name='apitoken', type='text',
-                                description="API Token",
-                                information = 'Validation API URL'),
-                  ProjectProperty(name='temp.dir',
-                                  type='folder:' + os.path.expanduser('~'),
-                                  description="Tempoary Directory for Export",
-                                  information='Tempoary Directory for Export')
+        props = [ProjectProperty(name='username',
+                                 type=getMetDataLoader().getProperty('username').type,
+                                 description='User Name',
+                                 information='Journal User Name'),
+                 ProjectProperty(name='organization', type='text',
+                                 description='Organization',
+                                 information="journal user's organization"),
+                 ProjectProperty(name='log.validation', type='yesno',
+                                 description="Log Validation Status",
+                                 information='Log Validation'),
+                 ProjectProperty(name='apiurl', type='text',
+                                 description="API URL",
+                                 information='Validation API URL'),
+                 ProjectProperty(name='apitoken', type='text',
+                                 description="API Token",
+                                 information='Validation API URL'),
+                 ProjectProperty(name='temp.dir',
+                                 type='folder:' + os.path.expanduser('~'),
+                                 description="Tempoary Directory for Export",
+                                 information='Tempoary Directory for Export')
 
-                ]
+                 ]
         for k, v in self.notifiers.get_properties().iteritems():
             props.append(ProjectProperty(name=k, type='text', description=k,
                                          information='notification property'))
@@ -1316,6 +1318,7 @@ def main(argv=None):
     parser.add_argument('--test',action='store_true', help='For testing')
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
+    parser.add_argument('--debug', help="debug logging ",action='store_true')
     parser.add_argument('--http', help="http address and header params", nargs='+')
 
     imgdir = None
@@ -1337,6 +1340,8 @@ def main(argv=None):
         if not headless_systemcheck(prefLoader):
             sys.exit(1)
         return
+    if args.debug:
+        set_logging_level(logging.DEBUG)
     root = Tk()
     gui = MakeGenUI(imgdir, master=root,
                     base=args.base if args.base is not None else None, uiProfile=uiProfile)
