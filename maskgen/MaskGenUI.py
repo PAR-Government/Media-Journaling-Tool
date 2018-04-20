@@ -41,6 +41,7 @@ import preferences_initializer
 from software_loader import getMetDataLoader
 from cachetools import LRUCache
 
+from QAExtreme import QAProjectDialog
 """
   Main UI Driver for MaskGen
 """
@@ -982,7 +983,7 @@ class MakeGenUI(Frame):
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
-        d = QAViewDialog(self)
+        d = QAProjectDialog(self)
 
     def comments(self):
         d = CommentViewer(self)

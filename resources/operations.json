@@ -3027,6 +3027,12 @@
       "includeInMask": {"default" : true},
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Confirm Mask is Correct",
+        "Include resizing, rotating, positioning, and cropping of the pasted object",
+        "Verify that all relevant local changes are accurately represented in the composite and donor mask image",
+        "All relevant semantic groups are identified."
       ]
     },
     {
