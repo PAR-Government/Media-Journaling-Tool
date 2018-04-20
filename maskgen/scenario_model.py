@@ -34,6 +34,7 @@ from maskgen.userinfo import get_username
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 import traceback
 from support import MaskgenThreadPool
+import notifiers
 
 def formatStat(val):
     if type(val) == float:
@@ -937,7 +938,9 @@ class ImageProjectModel:
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
                  baseImageFileName=None, username=None,tool=None):
-        self.notify = notify
+        self.notify = None
+        if notify is not None:
+            self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier(self)])
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
         # Group Operations are tied to models since
@@ -2614,30 +2617,21 @@ class ImageProjectModel:
                 groups.extend(edge['semanticGroups'])
         self.setProjectData('semanticgroups', groups)
 
-    def set_validation_properties(self, qaState, qaPerson, qaComment):
-        import time
+    def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
+        import qa_logic
+        qa_logic.ValidationData(self,qaState,qaPerson,None,qaComment,qaData)
+        """
         self.setProjectData('validation', qaState, excludeUpdate=True)
         self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
         self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
         self.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
         self.setProjectData('qacomment', qaComment.strip())
-
+        self.setProjectData('qaData',qaData, excludeUpdate=False)
+        """
     def clear_validation_properties(self):
-        import time
-        validationProps = {'validation': 'no', 'validatedby': '', 'validationtime': '', 'validationdate': ''}
-        currentProps = {}
-        for p in validationProps:
-            currentProps[p] = self.getProjectData(p)
-        datetimeval = time.clock()
-        if currentProps['validationdate'] is not None and \
-                        len(currentProps['validationdate']) > 0:
-            datetimestr = currentProps['validationdate'] + ' ' + currentProps['validationtime']
-            datetimeval = time.strptime(datetimestr, "%m/%d/%Y %H:%M:%S")
-        if all(vp in currentProps for vp in validationProps) and \
-                        currentProps['validatedby'] != self.username and \
-                        self.getGraph().getLastUpdateTime() > datetimeval:
-            for key, val in validationProps.iteritems():
-                self.setProjectData(key, val, excludeUpdate=True)
+        import qa_logic
+        logic = qa_logic.ValidationData(self)
+        logic.clearProperties()
 
 
 class VideoMaskSetInfo:
