@@ -326,7 +326,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
             raise ValueError('name attribute missing in  {}'.format(specification_name))
         return postProcess(getNodeState(specification['source'], local_state)['output'])
     elif spec_type == 'plugin':
-        return postProcess(callPluginSpec(specification, local_state, global_state,postProcess))
+        return postProcess(callPluginSpec(specification, local_state, global_state, postProcess))
     elif spec_type.startswith('global'):
         if 'name' not in specification:
             raise ValueError('source attribute missing in {}'.format(specification_name))
@@ -991,13 +991,19 @@ class BatchProject:
          not getValue(self.G.edge[predecessor][op_node_name], 'donor', defaultValue=False) and \
          getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
 
-    def executeForProject(self, project, nodes, workdir=None):
+    def executeForProject(self, project, nodes, workdir=None, global_variables={}):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         global_state = {'project': self,
                         'workdir': project.get_dir() if workdir is None else workdir,
                         'permutegroupsmanager': PermuteGroupManager(
                             dir=project.get_dir() if workdir is None else workdir)
                         }
+        if global_variables is not None:
+            if type(global_variables) == str:
+                global_state.update({pair[0]: pair[1] for pair in [pair.split('=') \
+                                                                        for pair in global_variables.split(',')]})
+            else:
+                global_state.update(global_variables)
         self.logger.info('Building project {} with local state'.format(project.getName()))
         local_state = self._buildLocalState()
         mydata = local()
@@ -1327,6 +1333,16 @@ def thread_worker(iq):
         'Starting Thread')
     QueueThreadWorker(iq).execute()
 
+
+def updateAndInitializeGlobalState(global_state, global_variables=dict(), initializers=None):
+    if global_variables is not None:
+        if type(global_variables) == str:
+            global_state.update({pair[0]: pair[1] for pair in [pair.split('=') \
+                                                                    for pair in global_variables.split(',')]})
+        else:
+            global_state.update(global_variables)
+    return loadGlobalStateInitialers(global_state,initializers)
+
 def loadGlobalStateInitialers(global_state, initializers):
     import importlib
     if initializers is None:
@@ -1409,7 +1425,9 @@ class BatchExecutor:
         @type stopOnError: bool
         @type fromFailedStateFile: str
         """
-        if not os.path.exists(results) or not os.path.isdir(results):
+        if not os.path.exists(results):
+            os.mkdir(results)
+        if not os.path.isdir(results):
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
             return
         plugins.loadPlugins()
@@ -1429,13 +1447,9 @@ class BatchExecutor:
                                               removeBadProjects=removeBadProjects,
                                               stopOnError=stopOnError,
                                               fromFailedStateFile=fromFailedStateFile)
-        if global_variables is not None:
-            if type(global_variables) == str:
-                self.initialState.update({pair[0]: pair[1] for pair in [pair.split('=') \
-                                                                        for pair in global_variables.split(',')]})
-            else:
-                self.initialState.update(global_variables)
-        loadGlobalStateInitialers(self.initialState, initializers)
+        self.initialState = updateAndInitializeGlobalState(self.initialState,
+                                                           global_variables=global_variables,
+                                                           initializers=initializers)
 
     def __setupThreads(self, threads_count):
         self.threads = []

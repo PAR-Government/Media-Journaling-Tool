@@ -358,7 +358,7 @@ class MakeGenUI(Frame):
             if errorlistDialog.errorMessagesIncomplete():
                 message = 'Validation Errors Exist'
             if not errorlistDialog.isok or not errorlistDialog.autofixesComplete():
-                return
+                return False, message
         self.scModel.executeFinalNodeRules()
         processProjectProperties(self.scModel)
         self.getproperties()

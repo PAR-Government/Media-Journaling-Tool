@@ -1096,7 +1096,7 @@
       ],
       "optionalparameters": {},
       "description": "Disguise quantization artifacts by adding noise.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {"default" : false},
       "transitions": [
         "image.image"
       ]
@@ -3439,6 +3439,8 @@
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_cut_frames",
+        "audio_preprocess": "maskgen.mask_rules.select_cut_frames_preprocess",
+        "video_preprocess": "maskgen.mask_rules.select_cut_frames_preprocess",
         "audio": "maskgen.mask_rules.delete_audio"
       },
       "description": "Remove a series of frames from a video clip.",
@@ -3561,7 +3563,6 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ ""],
       "description": "Stitching video frames together to form a comprehensive view of the scene.",
       "includeInMask": {"default" : false},
       "transitions": [

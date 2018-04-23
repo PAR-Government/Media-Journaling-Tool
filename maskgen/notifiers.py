@@ -75,16 +75,18 @@ class NotifyDelegate:
         self.notifiers = notifiers
 
     def __call__(self,*args,**kwargs):
+        ok = True
         for notify in self.notifiers:
-            notify(args,kwargs)
+            ok &= notify(*args,**kwargs)
+        return ok
 
 class QaNotifier:
     def __init__(self, scmodel):
         self.qadata = None
         self.scmodel = scmodel
-    def __call__(self, args, *kwargs):
+    def __call__(self, *args, **kwargs):
         if args[1] != 'update_edge':
-            pass
+            return True
         else:
             scmodel = self.scmodel
             qadata = qa_logic.ValidationData(scmodel)
@@ -107,6 +109,7 @@ class QaNotifier:
                     donor = '<-'.join([i,fin])
                     if donor in critlinks:
                         qadata.set_qalink_status(donor,'no')
+            return True
 
     def _dictionaryify(self,l):
         d = {}

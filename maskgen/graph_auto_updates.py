@@ -51,7 +51,7 @@ def updateJournal(scModel):
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
          ('0.5.0227.6d9889731b', [_fixPNGS]),
          ('0.5.0227.bf007ef4cd', [_fixTool]),
-         ('0.5.0401.db02ad8372', [_fixContrastPlugin])])
+         ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -743,12 +743,16 @@ def _replace_oldops(scModel,gopLoader):
             currentLink['arguments']['purpose'] = 'heal'
 
 
-def _fixContrastPlugin(scModel, gopLoader):
+def _fixContrastAndAddFlowPlugin(scModel, gopLoader):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         oldOp = currentLink['op']
         if oldOp == 'ColorBalance' and getValue(currentLink,'plugin_name') == 'Contrast':
             currentLink['op'] = 'Contrast'
+        if oldOp == 'TimeAlterationWarp' and getValue(currentLink,'plugin_name') == 'FlowDrivenVideoTimeWarp':
+            startTime = getValue(currentLink,'arguments.Start Time')
+            count = getValue(currentLink,'arguments.Frames to Add')
+            setPathValue(currentLink,'arguments.End Time', str(int(startTime) + int(count) - 1))
 
 def _fixDescriptions(scModel, gopLoader):
     for edge in scModel.getGraph().get_edges():

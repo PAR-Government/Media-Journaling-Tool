@@ -4,6 +4,9 @@ import tensorflow as tf
 import tensorlayer as tl
 from maskgen.support import getValue
 from maskgen.exif import rotateAccordingToExif,getOrientationFromExif
+from threading import RLock
+
+rlock = RLock()
 
 def cfa_sample(ims):
     sampled = np.copy(ims)
@@ -90,47 +93,49 @@ def generator(image):
     return conv7
 
 def run_model(img, target, model, channel=3, overlap=8):
-    input_image = tf.placeholder(tf.float32, [None, None, None, channel], name='input_image')
-    gen_out = generator(input_image)
+    with rlock:
+        tf.reset_default_graph()
+        input_image = tf.placeholder(tf.float32, [None, None, None, channel], name='input_image')
+        gen_out = generator(input_image)
 
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        tl.files.load_and_assign_npz_dict(name=model, sess=sess)
-        nx, ny, sx, sy = divide_image(img)
-        gen_im = np.zeros(img.shape)
-        for i in range(nx):
-            for j in range(ny):
-                flag_u = 1
-                flag_d = 1
-                flag_l = 1
-                flag_r = 1
-                start_i = i * sx - overlap
-                if start_i < 0:
-                    flag_u = 0
-                    start_i = 0
-                end_i = (i + 1) * sx + overlap
-                if end_i > img.shape[0]:
-                    flag_d = 0
-                    end_i = img.shape[0]
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            tl.files.load_and_assign_npz_dict(name=model, sess=sess)
+            nx, ny, sx, sy = divide_image(img)
+            gen_im = np.zeros(img.shape)
+            for i in range(nx):
+                for j in range(ny):
+                    flag_u = 1
+                    flag_d = 1
+                    flag_l = 1
+                    flag_r = 1
+                    start_i = i * sx - overlap
+                    if start_i < 0:
+                        flag_u = 0
+                        start_i = 0
+                    end_i = (i + 1) * sx + overlap
+                    if end_i > img.shape[0]:
+                        flag_d = 0
+                        end_i = img.shape[0]
 
-                start_j = j * sy - overlap
-                if start_j < 0:
-                    flag_l = 0
-                    start_j = 0
-                end_j = (j + 1) * sy + overlap
-                if end_j > img.shape[1]:
-                    flag_r = 0
-                    end_j = img.shape[1]
-                batch = img[start_i:end_i, start_j:end_j, :]
-                #print start_i, end_i, start_j, end_j
-                batch_smp = color_cfa_sample(np.expand_dims(batch, 0))
-                gen_batch = sess.run(gen_out, feed_dict={input_image: batch_smp})
-                gen_x = gen_batch.shape[1]
-                gen_y = gen_batch.shape[2]
-                gen_im[i * sx:(i + 1) * sx, j * sy:(j + 1) * sy, :] = gen_batch[0,
-                                                                      flag_u * overlap:gen_x - flag_d * overlap,
-                                                                      flag_l * overlap:gen_y - flag_r * overlap, :]
-        cv2.imwrite(target, gen_im)
+                    start_j = j * sy - overlap
+                    if start_j < 0:
+                        flag_l = 0
+                        start_j = 0
+                    end_j = (j + 1) * sy + overlap
+                    if end_j > img.shape[1]:
+                        flag_r = 0
+                        end_j = img.shape[1]
+                    batch = img[start_i:end_i, start_j:end_j, :]
+                    #print start_i, end_i, start_j, end_j
+                    batch_smp = color_cfa_sample(np.expand_dims(batch, 0))
+                    gen_batch = sess.run(gen_out, feed_dict={input_image: batch_smp})
+                    gen_x = gen_batch.shape[1]
+                    gen_y = gen_batch.shape[2]
+                    gen_im[i * sx:(i + 1) * sx, j * sy:(j + 1) * sy, :] = gen_batch[0,
+                                                                          flag_u * overlap:gen_x - flag_d * overlap,
+                                                                          flag_l * overlap:gen_y - flag_r * overlap, :]
+            cv2.imwrite(target, gen_im)
 
 
 def transform(img, source, target, **kwargs):
