@@ -208,6 +208,8 @@ class QAProjectDialog(Toplevel):
         col = 0
         lastpage = Frame(self)
         self.cur = lastpage
+        validlabel = Label(lastpage, justify=LEFT, text='You must run validation and check all boxes before accepting any journal.').grid(row=row, column=col, columnspan=3)
+        row +=1
         self.validateButton = Button(lastpage, text='Check Validation', command=self.validategoodtimes, width=50)
         self.validateButton.grid(row=row, column=col, padx=10, pady=10, columnspan=3, sticky='EW')
         row += 1
@@ -281,6 +283,8 @@ class QAProjectDialog(Toplevel):
         #print(v)
         if validation.core.hasErrorMessages(v,lambda x: True):
             self.valid = False
+            tkMessageBox.showerror("Validation Errors!","It seems this journal has unresolved validation errors. "
+                                    "Please address these and try again don't worry your QA progress will be saved.")
         else:
             self.valid = True
         self.check_ok()

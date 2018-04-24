@@ -53,7 +53,7 @@ def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     if validationMessageList is None:
         return False
     for msg in validationMessageList:
-        if msg.Severity == Severity.ERROR and contentCheck(msg.Message):
+        if msg.Severity.value == Severity.ERROR.value and contentCheck(msg.Message):
             return True
     return False
 
