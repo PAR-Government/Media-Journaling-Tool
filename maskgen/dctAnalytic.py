@@ -501,8 +501,8 @@ class JPEG_Reader:
 
 def getHist(filename):
     try:
-        import JPEG_MetaInfoxPy
-        hist, lowValue = JPEG_MetaInfoxPy.generateHistogram(filename)
+        import JPEG_MetaInfoPy
+        hist, lowValue = JPEG_MetaInfoPy.generateHistogram(filename)
         return np.asarray(hist),np.asarray(range(lowValue,lowValue+len(hist)+1))
     except Exception as ex:
         logging.getLogger('maskgen').warn('External JPEG_MetaInfoPy failed: {}'.format(str(ex)))

@@ -2450,7 +2450,6 @@ def __diffMask(img1, img2, invert, args=None):
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (gray_image if invert else (255 - gray_image)), analysis
 
-
 def coordsFromString(value):
     import re
     value = re.sub('[\(\)\,]', ' ', value)

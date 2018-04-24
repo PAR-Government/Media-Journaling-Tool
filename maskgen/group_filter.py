@@ -70,6 +70,7 @@ class GroupFilter:
     def __init__(self, name, filters):
         self.name = name
         self.filters = filters
+        self.operation = None
 
     def isValid(self):
         for filter in self.filters:

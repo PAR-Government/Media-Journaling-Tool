@@ -577,6 +577,48 @@ class TestVideoTools(TestSupport):
         self.assertEqual(167, result[1]['endframe'])
         self._add_mask_files_to_kill(result)
 
+    def test_cut(self):
+        sets = []
+        change = dict()
+        change['starttime'] = 3078.1
+        change['startframe'] = 94
+        change['endtime'] = 3111.4
+        change['endframe'] = 95
+        change['frames'] = 2
+        change['rate'] = 30
+        change['type'] = 'video'
+        sets.append(change)
+        change = dict()
+        change['starttime'] = 3078.1
+        change['startframe'] = 94
+        change['endtime'] = 3263.4
+        change['endframe'] = 99
+        change['frames'] = 5
+        change['rate'] = 30
+        change['type'] = 'video'
+        result = video_tools.insertFramesWithoutMask([change], sets)
+        self.assertEqual(100, result[0]['startframe'])
+        sets = []
+        change = dict()
+        change['starttime'] = 3078.1
+        change['startframe'] = 94
+        change['endtime'] = 3111.4
+        change['endframe'] = 95
+        change['frames'] = 2
+        change['rate'] = 30
+        change['type'] = 'video'
+        sets.append(change)
+        change = dict()
+        change['starttime'] = 3111.3
+        change['startframe'] = 95
+        change['endtime'] = 3296.7
+        change['endframe'] = 100
+        change['frames'] = 5
+        change['rate'] = 30
+        change['type'] = 'video'
+        result = video_tools.insertFramesWithoutMask([change], sets)
+        self.assertEqual(94, result[0]['startframe'])
+
     def test_after_dropping(self):
         amount = 30
         fileOne = self._init_write_file('test_ts_bd1', 0, 1, 30, 30)

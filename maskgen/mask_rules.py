@@ -327,7 +327,8 @@ def _guess_type(edge):
 
 def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
                          returnEmpty=True,
-                         fillWithUserBoundaries=False):
+                         fillWithUserBoundaries=False,
+                         operation=None):
     """
     Remove empty videosegments, set the videosegment file names to full path names,
     set the media_type of the segment if missing.
@@ -339,8 +340,16 @@ def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
     :param returnEmpty: If True, emoty masks (e.g. []) is permitted, otherwise return None
     :return: CompositeImage
     @rtype: CompositeImage
+    @type operation: Operation
     """
     import copy
+
+    def preprocess(func, video_masks):
+        return [func(mask) for mask in video_masks]
+
+    def donothing(mask):
+        return mask
+
     def replace_with_dir(directory, video_masks):
         for mask in video_masks:
             mask_copy = copy.deepcopy(mask)
@@ -364,8 +373,15 @@ def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
                                                                        defaultValue='00:00:00.000'),
                                                  end_time = getValue(edge,'arguments.End Time'),
                                                  media_types=[media_type])
+    preprocess_func = donothing
+    if operation is not None:
+        preprocess_func_id = media_type + '_preprocess'
+        if preprocess_func_id in operation.maskTransformFunction:
+            preprocess_func = graph_rules.getRule(operation.maskTransformFunction[preprocess_func_id])
     return None if len(video_masks) == 0 and not returnEmpty else \
-         CompositeImage(source, target, media_type, [item for item in replace_with_dir(graph.dir, video_masks)])
+         CompositeImage(source, target, media_type, [item for item in
+                                                     preprocess(preprocess_func,
+                                                                replace_with_dir(graph.dir, video_masks))])
 
 
 def recapture_transform(buildState):
@@ -653,6 +669,24 @@ def video_rotate_transform(buildState):
                                                      expectedDims=(targetSize[1],targetSize[0]), cval=0))
     return None
 
+
+def select_cut_frames_preprocess(mask):
+    """
+
+    :param mask:
+    :return:
+    @type mask: dict
+    """
+    mask = mask.copy()
+    if 'videomasks' in mask:
+        mask.pop('videomasks')
+    mask['startframe'] = mask['startframe']  - 1
+    mask['endframe'] = mask['startframe'] + 1
+    mask['framecount'] = 2
+    fps = 1000.0/mask['rate']
+    mask['starttime'] = mask['starttime'] - fps
+    mask['endtime'] = mask['starttime'] + fps
+    return mask
 
 def select_cut_frames(buildState):
     """
@@ -1810,6 +1844,12 @@ def _getMaskTranformationFunction(
         source,
         target,
         graph=None):
+    """
+    @type op: Operation
+    @type source: str
+    @type target: str
+    @type graph: ImageGraph
+    """
     sourceType = getNodeFileType(graph, source)
     if op.maskTransformFunction is not None and sourceType in op.maskTransformFunction:
         return graph_rules.getRule(op.maskTransformFunction[sourceType])
@@ -1830,6 +1870,7 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
     :param pred_edges:
     :param graph:
     :return:
+    @type op: Operation
     """
 
     transformFunction = _getMaskTranformationFunction(op, source, target, graph=graph)
@@ -2333,9 +2374,13 @@ class CompositeDelegate:
     def _getComposite(self):
         if self.composite is not None:
             return self.composite
+        op = self.gopLoader.getOperationWithGroups(self.edge['op'])
         if 'videomasks' in self.edge :
             return _prepare_video_masks(self.graph, self.edge['videomasks'], _guess_type(self.edge),
-                                        self.edge_id[0], self.edge_id[1], self.edge,fillWithUserBoundaries=True)
+                                        self.edge_id[0], self.edge_id[1],
+                                        self.edge,
+                                        fillWithUserBoundaries=True,
+                                        operation=op)
         else:
             edgeMask = self.graph.get_edge_image(self.edge_id[0], self.edge_id[1],
                                                  'maskname', returnNoneOnMissing=True)
@@ -2343,8 +2388,8 @@ class CompositeDelegate:
                 raiseError('_getComposite','Edge Mask is Missing',self.edge_id)
             mask = edgeMask.invert().to_array()
             args = {}
-            args.update(self.gopLoader.getOperationWithGroups(self.edge['op']).mandatoryparameters)
-            args.update(self.gopLoader.getOperationWithGroups(self.edge['op']).optionalparameters)
+            args.update(op.mandatoryparameters)
+            args.update(op.optionalparameters)
             shapeChange = toIntTuple(self.edge['shape change']) if 'shape change' in self.edge else (0, 0)
             expectedShape = (mask.shape[0] + shapeChange[0], mask.shape[1] + shapeChange[1])
             for k,v in args.iteritems():
@@ -2588,6 +2633,7 @@ class CompositeDelegate:
 
     def __getDonorMaskForEdge(self, edge_id,returnEmpty=True):
         edge = self.graph.get_edge(edge_id[0], edge_id[1])
+        op = self.gopLoader.getOperationWithGroups(edge['op'], fake=True)
         if 'videomasks' in edge:
             return _prepare_video_masks(self.graph, edge['videomasks'], _guess_type(edge),
                                         edge_id[0],
@@ -2598,7 +2644,6 @@ class CompositeDelegate:
         startMask = self.graph.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)
         if startMask is None:
             raise EdgeMaskError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
-        op = self.gopLoader.getOperationWithGroups(edge['op'],fake=True)
         if op.category == 'Select':
             return startMask.to_array()
         return startMask.invert().to_array()

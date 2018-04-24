@@ -995,12 +995,16 @@ class ImageProjectModel:
 
 
     def addImage(self, pathname, cgi=False):
-        maxx = max(
-            [self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
-        maxy = max(
-            [self.G.get_node(node)['ypos'] for node in self.G.get_nodes() if 'ypos' in self.G.get_node(node)] + [50])
+        maxx = 50
+        max_node = None
+        for node_id in self.G.get_nodes():
+            node = self.G.get_node(node_id)
+            if 'xpos' in node and int(node['xpos']) > maxx:
+                maxx = int(node['xpos'])
+                max_node = node
+        maxy = max_node['ypos'] + 50 if max_node is not None else 50
         additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
-        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx + 75, ypos=maxy,
+        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx, ypos=maxy,
                                 **additional)
         self.start = nname
         self.end = None
@@ -2530,6 +2534,8 @@ class ImageProjectModel:
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
+            #errors = []
+            #path = ''
             path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir)
             if len(errors) == 0:
                 config = TransferConfig()

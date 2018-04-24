@@ -12,205 +12,15 @@
   },
   "nodes": [
     {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel5.OutputJpg"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel2.OutputJpg"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel6.OutputJpg"
-    },
-    {
-      "plugin": "JpgFromCamera",
-      "autojtoutput": false,
-      "arguments": {
-        "qtfile": {
-          "value": "{qtfiles}/Apple-iPhone-6s-[4032x3024]-QT.txt",
-          "type": "value"
-        },
-        "rotate": {
-          "type": "value",
-          "value": "no"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel10.JpgFromCamera"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel8.OutputJpg"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel9.OutputCopy"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel7.OutputCopy"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel4.OutputCopy"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel9.OutputJpg"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel4.OutputJpg"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel3.OutputJpg"
-    },
-    {
-      "plugin": "JpgFromCamera",
-      "autojtoutput": false,
-      "arguments": {
-        "qtfile": {
-          "value": "{qtfiles}/Olympus-Stylus-1050SW-[3648x2736]-QT.txt",
-          "type": "value"
-        },
-        "rotate": {
-          "type": "value",
-          "value": "no"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel3.JpgFromCamera"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel1.OutputJpg"
-    },
-    {
-      "plugin": "JpgFromCamera",
-      "autojtoutput": false,
-      "arguments": {
-         "qtfile": {
-          "value": "{qtfiles}/Samsung-Galaxy-S4-[4128x2322]-QT.txt",
-          "type": "value"
-        },
-        "rotate": {
-          "type": "value",
-          "value": "no"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel8.JpgFromCamera"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel6.OutputCopy"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel2.OutputCopy"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel10.OutputCopy"
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base_PNG"
     },
     {
       "plugin": "CameraModelGan",
       "autojtspecid": "Canon_EOS_SL1",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel9",
+      "id": "AddCameraModelRebelSL1",
       "source": "base_PNG",
       "autojtsignature": [
         "Canon_EOS_SL1"
@@ -233,7 +43,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Samsung_Galaxy_S4",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel8",
+      "id": "AddCameraModelGalaxyS4",
       "source": "base_PNG",
       "autojtsignature": [
         "Samsung_Galaxy_S4"
@@ -256,7 +66,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Kodak_M1063",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel5",
+      "id": "AddCameraModelM1063",
       "source": "base_PNG",
       "autojtsignature": [
         "Kodak_M1063"
@@ -279,7 +89,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Samsung_Digimax_L74_Wide",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel4",
+      "id": "AddCameraModelL74Wide",
       "source": "base_PNG",
       "autojtsignature": [
         "Samsung_Digimax_L74_Wide"
@@ -302,7 +112,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Motorola_Droid_MAXX",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel7",
+      "id": "AddCameraModelDroidMAXX",
       "source": "base_PNG",
       "autojtsignature": [
         "Motorola_Droid_MAXX"
@@ -325,7 +135,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Panasonic_DMC_FZ50",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel6",
+      "id": "AddCameraModelDMCFZ50",
       "source": "base_PNG",
       "autojtsignature": [
         "Panasonic_DMC_FZ50"
@@ -337,9 +147,9 @@
         },
         "Camera Make": {
           "type": "value",
-          "value": "Panasonic",
-          "model": "{gan_models}/Panasonic DMC-FZ50.npz"
-        }
+          "value": "Panasonic"
+        },
+        "model": "{gan_models}/Panasonic DMC-FZ50.npz"
       },
       "autojtselector": false,
       "op_type": "PluginOperation"
@@ -348,7 +158,7 @@
        "plugin": "CameraModelGan",
       "autojtspecid": "Sony_NEX_5TL",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel1",
+      "id": "AddCameraModelNEX5TL",
       "source": "base_PNG",
       "autojtsignature": [
         "Sony_NEX_5TL"
@@ -371,7 +181,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Olympus_Stylus_1050SW",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel3",
+      "id": "AddCameraModel1050SW",
       "source": "base_PNG",
       "autojtsignature": [
         "Olympus_Stylus_1050SW"
@@ -394,7 +204,7 @@
       "plugin": "CameraModelGan",
       "autojtspecid": "Praktica_DCZ_59",
       "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel2",
+      "id": "AddCameraModelDCZ59",
       "source": "base_PNG",
       "autojtsignature": [
         "Praktica_DCZ_59"
@@ -428,20 +238,7 @@
       },
       "autojtselector": false,
       "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel6.JpgFromCamera"
-    },
-    {
-      "op_type": "NodeAttachment",
-      "experiment_id": 0,
-      "id": "base"
-    },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel1.OutputCopy"
+      "id": "JpgFromCameraDMCFZ50"
     },
     {
       "plugin": "JpgFromCamera",
@@ -458,7 +255,7 @@
       },
       "autojtselector": false,
       "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel7.JpgFromCamera"
+      "id": "JpgFromCameraDroidMAXX"
     },
     {
       "plugin": "JpgFromCamera",
@@ -475,7 +272,7 @@
       },
       "autojtselector": false,
       "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel1.JpgFromCamera"
+      "id": "JpgFromCameraNEX5TL"
     },
     {
       "plugin": "JpgFromCamera",
@@ -492,7 +289,7 @@
       },
       "autojtselector": false,
       "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel4.JpgFromCamera"
+      "id": "JpgFromCameraL74Wide"
     },
     {
       "plugin": "JpgFromCamera",
@@ -509,77 +306,9 @@
       },
       "autojtselector": false,
       "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel5.JpgFromCamera"
+      "id": "JpgFromCameraM1063"
     },
-    {
-      "plugin": "OutputCopy",
-      "autojtoutput": false,
-      "arguments": {},
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel3.OutputCopy"
-    },
-    {
-      "plugin": "CameraModelGan",
-      "autojtspecid": "iPhone6s",
-      "autojtoutput": false,
-      "id": "base_PNG.AddCameraModel10",
-      "source": "base_PNG",
-      "autojtsignature": [
-        "iPhone6s"
-      ],
-      "arguments": {
-        "Camera Model": {
-          "type": "value",
-          "value": "iPhone 6s"
-        },
-        "Camera Make": {
-          "type": "value",
-          "value": "iPhone"
-        },
-         "model": "{gan_models}/Apple6.npz"
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel10.OutputJpg"
-    },
-    {
-      "plugin": "OutputJpg",
-      "autojtoutput": false,
-      "arguments": {
-        "quality": {
-          "type": "int[80:100]"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel7.OutputJpg"
-    },
-    {
-      "experiment_id": 1,
-      "plugin": "OutputPNG",
-      "autojtoutput": true,
-      "arguments": {
-        "Image Rotated": {
-          "type": "value",
-          "value": "yes"
-        }
-      },
-      "autojtselector": false,
-      "op_type": "PluginOperation",
-      "id": "base_PNG"
-    },
+
     {
       "plugin": "JpgFromCamera",
       "autojtoutput": false,
@@ -595,7 +324,7 @@
       },
       "autojtselector": false,
       "op_type": "PluginOperation",
-      "id": "base_PNG.AddCameraModel2.JpgFromCamera"
+      "id": "JpgFromCameraDCZ59"
     },
     {
       "plugin": "JpgFromCamera",
@@ -612,190 +341,112 @@
       }, 
       "autojtselector": false, 
       "op_type": "PluginOperation", 
-      "id": "base_PNG.AddCameraModel9.JpgFromCamera"
-    }, 
+      "id": "JpgFromCameraRebelSL1"
+    },
     {
-      "plugin": "OutputCopy", 
-      "autojtoutput": false, 
-      "arguments": {}, 
-      "autojtselector": false, 
-      "op_type": "PluginOperation", 
-      "id": "base_PNG.AddCameraModel8.OutputCopy"
-    }, 
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Olympus-Stylus-1050SW-[3648x2736]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCamera1050SW"
+    },
     {
-      "plugin": "OutputCopy", 
-      "autojtoutput": false, 
-      "arguments": {}, 
-      "autojtselector": false, 
-      "op_type": "PluginOperation", 
-      "id": "base_PNG.AddCameraModel5.OutputCopy"
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Samsung-Galaxy-S4-[4128x2322]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraGalaxyS4"
     }
   ], 
   "links": [
     {
-      "source": 17, 
-      "target": 8
-    }, 
-    {
-      "source": 17, 
-      "target": 39
-    }, 
-    {
-      "source": 17, 
-      "target": 5
-    }, 
-    {
-      "source": 18, 
-      "target": 4
-    }, 
-    {
-      "source": 18, 
-      "target": 13
-    }, 
-    {
-      "source": 18, 
-      "target": 40
-    }, 
-    {
-      "source": 19, 
-      "target": 32
-    }, 
-    {
-      "source": 19, 
-      "target": 0
-    }, 
-    {
-      "source": 19, 
-      "target": 41
-    }, 
-    {
-      "source": 20, 
-      "target": 7
-    }, 
-    {
-      "source": 20, 
-      "target": 9
-    }, 
-    {
-      "source": 20, 
-      "target": 31
-    }, 
-    {
-      "source": 21, 
-      "target": 36
-    }, 
-    {
-      "source": 21, 
-      "target": 29
-    }, 
-    {
-      "source": 21, 
-      "target": 6
-    }, 
-    {
-      "source": 22, 
-      "target": 26
-    }, 
-    {
-      "source": 22, 
-      "target": 14
-    }, 
-    {
-      "source": 22, 
-      "target": 2
-    }, 
-    {
-      "source": 23, 
-      "target": 12
-    }, 
-    {
-      "source": 23, 
-      "target": 30
-    }, 
-    {
-      "source": 23, 
-      "target": 28
-    }, 
-    {
-      "source": 24, 
-      "target": 33
-    }, 
-    {
-      "source": 24, 
-      "target": 10
-    }, 
-    {
-      "source": 24, 
-      "target": 11
-    }, 
-    {
-      "source": 25, 
-      "target": 15
-    }, 
-    {
-      "source": 25, 
-      "target": 38
-    }, 
-    {
-      "source": 25, 
-      "target": 1
-    }, 
-    {
-      "source": 27, 
-      "target": 37
-    }, 
-    {
-      "source": 34, 
-      "target": 35
-    }, 
-    {
-      "source": 34, 
-      "target": 16
-    }, 
-    {
-      "source": 34, 
-      "target": 3
-    }, 
-    {
-      "source": 37, 
-      "target": 17
-    }, 
-    {
-      "source": 37, 
-      "target": 18
-    }, 
-    {
-      "source": 37, 
-      "target": 19
-    }, 
-    {
-      "source": 37, 
-      "target": 20
-    }, 
-    {
-      "source": 37, 
-      "target": 21
-    }, 
-    {
-      "source": 37, 
-      "target": 22
-    }, 
-    {
-      "source": 37, 
-      "target": 23
-    }, 
-    {
-      "source": 37, 
-      "target": 34
-    }, 
-    {
-      "source": 37, 
-      "target": 24
-    }, 
-    {
-      "source": 37, 
-      "target": 25
+      "source": "AddCameraModelGalaxyS4",
+      "target": "JpgFromCameraGalaxyS4"
+    },
+     {
+      "source": "AddCameraModel1050SW",
+      "target": "JpgFromCamera1050SW"
+    },
+     {
+      "source": "AddCameraModelRebelSL1",
+      "target": "JpgFromCameraRebelSL1"
+    },
+     {
+      "source": "AddCameraModelDCZ59",
+      "target": "JpgFromCameraDCZ59"
+    },
+     {
+      "source": "AddCameraModelM1063",
+      "target": "JpgFromCameraM1063"
+    },
+     {
+      "source": "AddCameraModelL74Wide",
+      "target": "JpgFromCameraL74Wide"
+    },
+     {
+      "source": "AddCameraModelDroidMAXX",
+      "target": "JpgFromCameraDroidMAXX"
+    },
+     {
+      "source": "AddCameraModelDMCFZ50",
+      "target": "JpgFromCameraDMCFZ50"
+    },
+     {
+      "source": "AddCameraModelNEX5TL",
+      "target": "JpgFromCameraNEX5TL"
+    },
+   {
+      "source": "base_PNG",
+      "target": "AddCameraModelGalaxyS4"
+    },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModel1050SW"
+    },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelRebelSL1"
+    },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelDCZ59"},
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelM1063"},
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelL74Wide"},
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelDroidMAXX"},
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelDMCFZ50"},
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelNEX5TL"
     }
+
   ], 
   "multigraph": false
 }
