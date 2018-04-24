@@ -995,6 +995,29 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
+def checkSizeAndExifPNG(op, graph, frm, to):
+    frm_shape = graph.get_image(frm)[0].size
+    to_shape = graph.get_image(to)[0].size
+    acceptable_change =(0.01 * frm_shape[0],0.01 * frm_shape[1])
+    if frm_shape[0] == to_shape[0] and frm_shape[1] == to_shape[1]:
+        return None
+    if frm_shape[0] - to_shape[0] < acceptable_change[0] and frm_shape[1] - to_shape[1] < acceptable_change[1]:
+        return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+    edge = graph.get_edge(frm, to)
+    orientation = getValue(edge, 'exifdiff.Orientation')
+    if orientation is None:
+        orientation = getOrientationFromMetaData(edge)
+    if orientation is not None:
+        orientation = str(orientation)
+        if ('270' in orientation or '90' in orientation):
+            if frm_shape[0] - to_shape[1] == 0 and \
+                                    frm_shape[1] - to_shape[0] == 0:
+                return None
+            if frm_shape[0] - to_shape[1] < acceptable_change[0] and \
+                frm_shape[1] - to_shape[0] < acceptable_change[1]:
+                return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+        return (Severity.ERROR, 'operation is not permitted to change the size of the image')
+    return None
 
 def checkSizeAndExif(op, graph, frm, to):
     """

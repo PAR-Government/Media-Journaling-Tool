@@ -49,8 +49,8 @@ def updateJournal(scModel):
          ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask, _fixGlobal]),
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
-         ('0.5.0227.6d9889731b', [_fixPNGS]),
-         ('0.5.0227.bf007ef4cd', [_fixTool]),
+         ('0.5.0227.6d9889731b', [_fixPNGS,_emptyMask]),
+         ('0.5.0227.bf007ef4cd', [_fixTool ]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin])])
     versions= list(fixes.keys())
     # find the maximum match
@@ -97,6 +97,16 @@ def _fixPNGS(scModel,gopLoader):
     for png_file in glob.glob(os.path.join(os.path.abspath(scModel.get_dir()) , '*.png')):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
+
+def _emptyMask(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'videomasks' in edge:
+            continue
+        if 'maskname' in edge:
+            mask = scModel.G.get_edge_image(frm,to, 'maskname')
+            if mask is not None and np.all(mask.to_array() == 255):
+                edge['empty mask'] = 'yes'
 
 def _fixTool(scModel,gopLoader):
     """
