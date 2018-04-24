@@ -2,45 +2,30 @@ import random
 
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from multiprocessing import Process
 
 from maskgen.description_dialog import SelectDialog
 
 matplotlib.use("TkAgg")
+import logging
 from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 from Tkinter import *
 import matplotlib.patches as mpatches
 import ttk
 import tkMessageBox
-from group_filter import GroupFilterLoader
-import tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
-from autocomplete_it import AutocompleteEntryInText
-from tool_set import imageResize, imageResizeRelative, openImage, fixTransparency, openImage, openFile, \
-    validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, get_username, coordsFromString, IntObject, get_icon
-from scenario_model import Modification, ImageProjectModel
-from software_loader import Software, SoftwareLoader
+from support import getValue
+from tool_set import imageResize, imageResizeRelative, openImage, fixTransparency, openImage,get_username
 import os
-import thread
 import numpy as np
 import qa_logic
 import video_tools
 import tool_set
 import random
 import validation
-import threading
-from time import sleep
-from tkintertable import TableCanvas, TableModel
-from image_wrap import ImageWrapper
-from functools import partial
-from group_filter import GroupOperationsLoader
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 from collapsing_frame import Chord, Accordion
-from PictureEditor import PictureEditor
-from CompositeViewer import ScrollCompositeViewer
 import webbrowser
 
 
@@ -66,6 +51,7 @@ class QAProjectDialog(Toplevel):
         self.photos = {}
         self.commentsBoxes = {}
         self.edges = {}
+        self.qaList = []
         self.pathboxes = {}
         self.qaData = qa_logic.ValidationData(self.scModel)
         self.resizable(width=False, height=False)
@@ -82,7 +68,11 @@ class QAProjectDialog(Toplevel):
 
 
     def getProbes(self):
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False,keepFailures=True)
+        try:
+            self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False,keepFailures=True)
+        except Exception as e:
+            logging.getLogger('maskgen').error(str(e))
+            self.probes = None
 
     def getFileNameForNode(self, nodeid):
         fn = self.scModel.getFileName(nodeid)
@@ -103,14 +93,14 @@ class QAProjectDialog(Toplevel):
         webbrowser.open_new(URL)
 
     def createWidgets(self):
-        #print(self)
         page1 = Frame(self)
         page1.grid()
         self.cur = page1
-        lbl = Label(page1, text="Welcome to the QA Wizard Press Next to begin the QA Process or Quit to stop. This is "
-                                "Manny hes here to help you analyze your masks. If you give him a few clicks he will take "
-                                "you to a guide about QA. We are currently generating the probes "
-                                "this could take a while, when the next button is enabled you may begin.", wraplength=400).grid(column=0,row=0,\
+        statusLabelText = StringVar()
+        statusLabelText.set('Probes Generating')
+        Label(page1, text="Welcome to the QA Wizard. Press Next to begin the QA Process or Quit to stop. This is "
+                                "Manny; He s here to help you analyze the journal. The tool is currently generating the probes. "
+                                "This could take a while. When the next button is enabled you may begin.", wraplength=400).grid(column=0,row=0,\
                                                                                                 rowspan=2,columnspan=2)
         filename = tool_set.get_icon('Manny_icon_color.jpg')
         filenamecol = tool_set.get_icon('Manny_icon_mask.jpg')
@@ -124,159 +114,155 @@ class QAProjectDialog(Toplevel):
         imgm = imageResizeRelative(imgm, (500,500), imgm.size)
         self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).overlay(imgm, self.colors[random.randint(0,6)]).toPIL())
         self.image_on_canvas = c.create_image(510/2,510/2, image=self.manny, anchor=CENTER, tag='things')
+        Label(page1,textvariable=statusLabelText).grid(column=0,row=3,columnspan=2,sticky=E+W)
         c.bind("<Double-Button-1>", self.help)
-        wquit = Button(page1, text='Quit', command=self.exitProgram, width=20).grid(column=0,row=3,sticky=W, padx=5, pady=5)
+        wquit = Button(page1, text='Quit', command=self.exitProgram, width=20).grid(column=0,row=4,sticky=W, padx=5, pady=5)
         wnext = Button(page1, text = 'Next', command=self.nex,state=DISABLED,width=20)
-        wnext.grid(column = 1,row=3,sticky = E,padx=5,pady=5)
+        wnext.grid(column = 1,row=4,sticky = E,padx=5,pady=5)
         self.parent.update()
-        threading.stack_size(0x2000000)
-        t = threading.Thread(target=self.getProbes)
-        t.start()
-        t.join()
-        #self.getProbes()
-        #print(self.probes)
+        self.getProbes()
         if self.probes is None:
-            raise ValueError("We couldn't generate the probes sorry about that")
-
-        #self.probes = self.scModel.getProbeSetWithoutComposites(saveTargets=False)
-        #print((self.probes))
-        self.pages = []
-        self.pages.append(page1)
-        self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.finalNodeId)]) for
-                           p in self.probes] if self.probes else []
-        self.crit_links = list(set(self.crit_links))
-
-        self.finNodes = []
-        for x in range(0,len(self.crit_links)):
-            for y in range(x,len(self.crit_links)):
-                link1 = self.crit_links[x]
-                link2 = self.crit_links[y]
-                fin1 = link1.split("->")[1]
-                fin2 = link2.split("->")[1]
-                self.finNodes.append(fin2)
-                if (fin1>fin2):
-                    self.crit_links[x] = self.crit_links[y]
-                    self.crit_links[y] = link1
-        self.finNodes = list(set(self.finNodes))
-
-        for end in self.finNodes:
-            n = self.lookup[end]
-            self.backs[end] = []
-            next = self.getPredNode(n)
-            while next != None:
-                n = next.start
-                self.backs[end].append(next)
-                next = self.getPredNode(n)
-            #print(len(self.backs[end]))
-            self.backs[end].reverse()
-
-        if (self.type =='image'):
-            donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                  self.probes if p.donorMaskImage is not None] if self.probes else []
+            statusLabelText.set('Probe Generation failed.  Please consult logs for more details.')
+            self.parent.update()
         else:
-            donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                      self.probes if p.donorVideoSegments is not None] if self.probes else []
-        donors = set(sorted(donors))
-        self.crit_links.extend([x for x in donors])
-        count = 0.0
-        for k in self.qaData.keys():
-            #print(self.qaData.get_qalink_status(k))
-            count += 1 if self.qaData.get_qalink_status(k) == 'yes' else 0
-        self.progress = count / len(self.crit_links)
-        #print(self.progress)
-        #print(self.crit_links)
-        count= 1
-        #page1.grid_forget()
-        for link in self.crit_links:
-            #page.grid_forget()
-            page = Frame(self)
-            #print('setting page ' + str(count))
-            self.cur = page
-            #print('making page ' + str(count))
-            #threa = threading.Thread(args = tuple([link,page]), target = self.createImagePage)
-            #threa.start()
-            #threa.join()
-            self.createImagePage(link,page)
-            #threading._start_new_thread(self.createImagePage, tuple([link,page]))
-            #print('appending page ' + str(count))
-            #print(self.cur)
-            self.pages.append(page)
-            count += 1
+            statusLabelText.set('Probes Complete. Press Next to Continue.')
+            self.pages = []
+            self.pages.append(page1)
+            self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.finalNodeId)]) for
+                               p in self.probes] if self.probes else []
+            self.crit_links = list(set(self.crit_links))
+
+            self.finNodes = []
+            for x in range(0,len(self.crit_links)):
+                for y in range(x,len(self.crit_links)):
+                    link1 = self.crit_links[x]
+                    link2 = self.crit_links[y]
+                    fin1 = link1.split("->")[1]
+                    fin2 = link2.split("->")[1]
+                    self.finNodes.append(fin2)
+                    if (fin1>fin2):
+                        self.crit_links[x] = self.crit_links[y]
+                        self.crit_links[y] = link1
+            self.finNodes = list(set(self.finNodes))
+
+            for end in self.finNodes:
+                n = self.lookup[end]
+                self.backs[end] = []
+                next = self.getPredNode(n)
+                while next != None:
+                    n = next.start
+                    self.backs[end].append(next)
+                    next = self.getPredNode(n)
+                #print(len(self.backs[end]))
+                self.backs[end].reverse()
+
+            if (self.type =='image'):
+                donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
+                      self.probes if p.donorMaskImage is not None] if self.probes else []
+            else:
+                donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
+                          self.probes if p.donorVideoSegments is not None] if self.probes else []
+            donors = set(sorted(donors))
+            self.crit_links.extend([x for x in donors])
+            count = 0.0
+            for k in self.qaData.keys():
+                #print(self.qaData.get_qalink_status(k))
+                count += 1 if self.qaData.get_qalink_status(k) == 'yes' else 0
+            self.progress = count / len(self.crit_links)
+            #print(self.progress)
+            #print(self.crit_links)
+            count= 1
+            #page1.grid_forget()
+            for link in self.crit_links:
+                #page.grid_forget()
+                page = Frame(self)
+                #print('setting page ' + str(count))
+                self.cur = page
+                #print('making page ' + str(count))
+                #threa = threading.Thread(args = tuple([link,page]), target = self.createImagePage)
+                #threa.start()
+                #threa.join()
+                self.createImagePage(link,page)
+                #threading._start_new_thread(self.createImagePage, tuple([link,page]))
+                #print('appending page ' + str(count))
+                #print(self.cur)
+                self.pages.append(page)
+                count += 1
 
 
-        row = 0
-        col = 0
-        lastpage = Frame(self)
-        self.cur = lastpage
-        validlabel = Label(lastpage, justify=LEFT, text='You must run validation and check all boxes before accepting any journal.').grid(row=row, column=col, columnspan=3)
-        row +=1
-        self.validateButton = Button(lastpage, text='Check Validation', command=self.validategoodtimes, width=50)
-        self.validateButton.grid(row=row, column=col, padx=10, pady=10, columnspan=3, sticky='EW')
-        row += 1
-        self.infolabel = Label(lastpage, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
-        row += 1
-        #print('creating qa checklists')
-        qa_list = [
-            'Base and terminal node images should be the same format. -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-            'All relevant semantic groups are identified.']
-        checkboxes = []
-        #self.checkboxvars = []
-        self.checkboxvars[self.cur] = []
-        for q in qa_list:
-            var = BooleanVar()
-            ck = Checkbutton(lastpage, variable=var, command=self.check_ok)
-            ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
-            ck.grid(row=row, column=col)
-            checkboxes.append(ck)
-            self.checkboxvars[self.cur].append(var)
-            Label(lastpage, text=q, wraplength=600, justify=LEFT).grid(row=row, column=col + 1,
-                                                                   sticky='W')  # , columnspan=4)
+            row = 0
+            col = 0
+            lastpage = Frame(self)
+            self.cur = lastpage
+            validlabel = Label(lastpage, justify=LEFT, text='You must run validation and check all boxes before accepting any journal.').grid(row=row, column=col, columnspan=3)
+            row +=1
+            self.validateButton = Button(lastpage, text='Check Validation', command=self.validategoodtimes, width=50)
+            self.validateButton.grid(row=row, column=col, padx=10, pady=10, columnspan=3, sticky='EW')
             row += 1
-        #print('done with checklisrt')
-        Label(lastpage, text='QA Signoff: ').grid(row=row, column=col)
-        col += 1
-        self.reporterStr = StringVar()
-        self.reporterStr.set(get_username())
-        self.reporterEntry = Entry(lastpage, textvar=self.reporterStr)
-        self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
-        row += 2
-        col -= 1
-        self.acceptButton = Button(lastpage, text='Accept', command=lambda: self.qa_done('yes'), width=15, state=DISABLED)
-        self.acceptButton.grid(row=row, column=col+2, columnspan=2, sticky='W')
-        self.rejectButton = Button(lastpage, text='Reject', command=lambda: self.qa_done('no'), width=15)
-        self.rejectButton.grid(row=row, column=col+1, columnspan=1, sticky='E')
-        self.previButton = Button(lastpage, text='Previous', command=self.pre, width=15)
-        self.previButton.grid(row=row, column=col, columnspan=2, sticky='W')
+            self.infolabel = Label(lastpage, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
+            row += 1
+            #print('creating qa checklists')
+            qa_list = [
+                'Base and terminal node images should be the same format. -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
+                'All relevant semantic groups are identified.']
+            checkboxes = []
+            #self.checkboxvars = []
+            self.checkboxvars[self.cur] = []
+            for q in qa_list:
+                var = BooleanVar()
+                ck = Checkbutton(lastpage, variable=var, command=self.check_ok)
+                ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
+                ck.grid(row=row, column=col)
+                checkboxes.append(ck)
+                self.checkboxvars[self.cur].append(var)
+                Label(lastpage, text=q, wraplength=600, justify=LEFT).grid(row=row, column=col + 1,
+                                                                       sticky='W')  # , columnspan=4)
+                row += 1
+            #print('done with checklisrt')
+            Label(lastpage, text='QA Signoff: ').grid(row=row, column=col)
+            col += 1
+            self.reporterStr = StringVar()
+            self.reporterStr.set(get_username())
+            self.reporterEntry = Entry(lastpage, textvar=self.reporterStr)
+            self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
+            row += 2
+            col -= 1
+            self.acceptButton = Button(lastpage, text='Accept', command=lambda: self.qa_done('yes'), width=15, state=DISABLED)
+            self.acceptButton.grid(row=row, column=col+2, columnspan=2, sticky='W')
+            self.rejectButton = Button(lastpage, text='Reject', command=lambda: self.qa_done('no'), width=15)
+            self.rejectButton.grid(row=row, column=col+1, columnspan=1, sticky='E')
+            self.previButton = Button(lastpage, text='Previous', command=self.pre, width=15)
+            self.previButton.grid(row=row, column=col, columnspan=2, sticky='W')
 
-        row += 1
-        # self.descriptionLabel.grid(row=row, column=col - 1)
+            row += 1
+            # self.descriptionLabel.grid(row=row, column=col - 1)
 
-        row += 1
-        self.commentsLabel = Label(lastpage, text='Comments: ')
-        self.commentsLabel.grid(row=row, column=col, columnspan=3)
-        row += 1
-        textscroll = Scrollbar(lastpage)
-        textscroll.grid(row=row, column=col + 4, sticky=NS)
-        self.commentsBox = Text(lastpage, height=5, width=100, yscrollcommand=textscroll.set,relief=SUNKEN)
-        self.commentsBox.grid(row=row, column=col, padx=5, pady=5, columnspan=3, sticky=NSEW)
-        textscroll.config(command=self.commentsBox.yview)
-        currentComment = self.parent.scModel.getProjectData('qacomment')
-        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
-        row+=1
-        pb = ttk.Progressbar(lastpage, orient='horizontal', mode='determinate', maximum=100.001)
-        pb.grid(row=row, column=0, sticky=EW, columnspan=8)
-        pb.step(self.progress*100)
-        # pb.start(100)
-        self.progressBars.append(pb)
-        #print('done with final page')
-        self.check_ok()
-        self.pages.append(lastpage)
-        self.cur=page1
-        wnext.config(state=NORMAL)
-        #self.cur.grid()
-        #print(len(self.pages))
-        #print(len(self.photos))
-        #print(len(self.crit_links))
+            row += 1
+            self.commentsLabel = Label(lastpage, text='Comments: ')
+            self.commentsLabel.grid(row=row, column=col, columnspan=3)
+            row += 1
+            textscroll = Scrollbar(lastpage)
+            textscroll.grid(row=row, column=col + 4, sticky=NS)
+            self.commentsBox = Text(lastpage, height=5, width=100, yscrollcommand=textscroll.set,relief=SUNKEN)
+            self.commentsBox.grid(row=row, column=col, padx=5, pady=5, columnspan=3, sticky=NSEW)
+            textscroll.config(command=self.commentsBox.yview)
+            currentComment = self.parent.scModel.getProjectData('qacomment')
+            self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
+            row+=1
+            pb = ttk.Progressbar(lastpage, orient='horizontal', mode='determinate', maximum=100.001)
+            pb.grid(row=row, column=0, sticky=EW, columnspan=8)
+            pb.step(self.progress*100)
+            # pb.start(100)
+            self.progressBars.append(pb)
+            #print('done with final page')
+            self.check_ok()
+            self.pages.append(lastpage)
+            self.cur=page1
+            wnext.config(state=NORMAL)
+            #self.cur.grid()
+            #print(len(self.pages))
+            #print(len(self.photos))
+            #print(len(self.crit_links))
 
     def validategoodtimes(self):
         v = self.scModel.validate()
@@ -284,7 +270,7 @@ class QAProjectDialog(Toplevel):
         if validation.core.hasErrorMessages(v,lambda x: True):
             self.valid = False
             tkMessageBox.showerror("Validation Errors!","It seems this journal has unresolved validation errors. "
-                                    "Please address these and try again don't worry your QA progress will be saved.")
+                                    "Please address these and try again. Your QA progress will be saved.")
         else:
             self.valid = True
         self.check_ok()
@@ -527,7 +513,6 @@ class QAProjectDialog(Toplevel):
         self.edges[p] = [edge,self.listbox]
         for sg in edge['semanticGroups'] if 'semanticGroups' in edge else []:
             self.listbox.insert(ANCHOR, sg)
-        #print (edge['op'])
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
         #print(self.type)
         #print(operation)
@@ -539,13 +524,16 @@ class QAProjectDialog(Toplevel):
             self.transitionString(None)
             #print('Video loaded')
         #thread.start_new_thread(self.loadt, ())
-        #print('loading checks')
-        try:
-            self.curOpList = operation.qaList
-        except AttributeError:
-            #print("No QAList Found")
-            self.curOpList = []
-        if (self.curOpList == None):
+        if operation.qaList is not None:
+            args = getValue(edge, 'arguments', {})
+            self.curOpList = [x for x in operation.qaList]
+            for item_pos in range(len(self.curOpList)):
+                item = self.curOpList[item_pos]
+                try:
+                    self.curOpList[item_pos] = item.format(**args )
+                except:
+                    pass
+        else:
             self.curOpList = []
         row += 5
         checkboxes = []

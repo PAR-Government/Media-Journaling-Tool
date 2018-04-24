@@ -8,6 +8,7 @@
 
 import matplotlib
 matplotlib.use("TkAgg")
+import re
 from Tkinter import *
 import ttk
 import tkMessageBox
@@ -146,8 +147,12 @@ def promptForURLAndFillButtonText(obj, id, row):
     """
     var = obj.values[row]
     val = URLCaptureDialog(obj, var.get().split('\n'))
-    var.set('\n'.join(val.urls).strip())
-    obj.buttons[id].configure(text=var.get(),height =(len(val.urls)))
+    url_string = '\n'.join(val.urls).strip()
+    var.set(url_string)
+    items = [re.sub('^http[s]*://', '', item) for item in val.urls]
+    obj.buttons[id].configure(text=' '.join(items)[:40],
+                               width=len(' '.join(items)),
+                               height =(len(val.urls))+1)
 
 def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     """
@@ -1363,6 +1368,8 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
     def add(self,event):
         import urllib2
         contents = self.url.get(1.0, END).strip()
+        if not contents.startswith('http'):
+            contents = 'http://' + contents
         if len(contents) == 0:
             return
         try:
@@ -1371,6 +1378,7 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
             f.close()
         except Exception as e:
             pass
+        self.url.delete(1.0,END)
 
 
 class ActionableTableCanvas(TableCanvas):
@@ -2353,8 +2361,11 @@ class PropertyFrame(VerticalScrolledFrame):
                widget.grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type == 'urls':
                partialf = partial(promptForURLAndFillButtonText, self, prop.name, row)
-               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ',
+               v_temp = v if v is not None else '               '
+               items  = [re.sub('^http[s]*://','',item) for item in v_temp.split('\n')]
+               self.buttons[prop.name] = widget = Button(master, text= ' '.join(items),
                                                          takefocus=False,
+                                                        # width=max([len(i) for i in items]),
                                                          height =(1 if v is None else v.count('\n')+1),
                                                          anchor=W, justify=LEFT, padx=2,
                                                          command=partialf)

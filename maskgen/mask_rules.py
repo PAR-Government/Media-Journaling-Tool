@@ -2371,7 +2371,7 @@ class CompositeDelegate:
         self.baseNodeId, self.level, self.path = baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels) > 0 else (
         None, None)
 
-    def _getComposite(self):
+    def _getComposite(self, keepFailures=False):
         if self.composite is not None:
             return self.composite
         op = self.gopLoader.getOperationWithGroups(self.edge['op'])
@@ -2384,7 +2384,7 @@ class CompositeDelegate:
         else:
             edgeMask = self.graph.get_edge_image(self.edge_id[0], self.edge_id[1],
                                                  'maskname', returnNoneOnMissing=True)
-            if edgeMask is None:
+            if edgeMask is None and not keepFailures:
                 raiseError('_getComposite','Edge Mask is Missing',self.edge_id)
             mask = edgeMask.invert().to_array()
             args = {}
@@ -2481,7 +2481,7 @@ class CompositeDelegate:
         %rtype: list of Probe
         """
         selectMasks = _getUnresolvedSelectMasksForEdge(self.edge)
-        finaNodeIdMasks = self.constructTransformedMask(self.edge_id, self._getComposite(), saveTargets=saveTargets, keepFailures=keepFailures)
+        finaNodeIdMasks = self.constructTransformedMask(self.edge_id, self._getComposite(keepFailures=keepFailures), saveTargets=saveTargets, keepFailures=keepFailures)
         probes = []
         for target_mask, target_mask_filename, finalNodeId, nodetype, failure in finaNodeIdMasks:
             if finalNodeId in selectMasks:
