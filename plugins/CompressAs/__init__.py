@@ -63,7 +63,7 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality):
         im.save(target)
     width, height = im.size
     maskgen.exif.runexif(['-overwrite_original', '-q', '-all=', target])
-    maskgen.exif.runexif([ '-P', '-q', '-m', '-tagsFromFile', donor, '-all:all>all:all', '-unsafe', target])
+    maskgen.exif.runexif([ '-overwrite_original', '-P', '-q', '-m', '-tagsFromFile', donor, '-all:all>all:all', '-unsafe', target])
 
     # Preview is not well standardized in JPG (unlike thumbnail), so it doesn't always work.
     if prevTable:
