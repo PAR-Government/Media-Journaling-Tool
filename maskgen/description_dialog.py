@@ -411,7 +411,6 @@ class DescriptionCaptureDialog(Toplevel):
     targetfiletype = 'image'
     argvalues = {}
     arginfo = []
-    argBox = None
 
     def __init__(self, parent, uiProfile, scModel, targetfiletype, end_im, name, description=None):
         """
@@ -430,6 +429,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.end_im = end_im
         self.start_im = scModel.startImage()
         self.parent = parent
+        self.argBox = None
         self.scModel = scModel
         self.sourcefiletype = scModel.getStartType()
         self.targetfiletype = targetfiletype
@@ -445,13 +445,11 @@ class DescriptionCaptureDialog(Toplevel):
             self.transient(parent)
 
         self.title(name)
-
         self.parent = parent
-
         self.result = None
-
         body = Frame(self)
         self.initial_focus = self.body(body)
+        body.pack_propagate(True)
         self.buttonbox()
         body.pack(padx=5, pady=5)
 
@@ -487,9 +485,11 @@ class DescriptionCaptureDialog(Toplevel):
         if self.argBox is not None:
             self.argBox.destroy()
         for argumentTuple in self.arginfo:
+
             if argumentTuple[0] not in self.argvalues and \
                 'defaultvalue' in argumentTuple[1]:
                 self.argvalues[argumentTuple[0]] = argumentTuple[1]['defaultvalue']
+
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
@@ -498,7 +498,7 @@ class DescriptionCaptureDialog(Toplevel):
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
-        self.argBox= PropertyFrame(self.argBoxMaster, properties,
+        self.argBox = PropertyFrame(self.argBoxMaster, properties,
                                 propertyFunction=EdgePropertyFunction(properties, self.scModel),
                                 changeParameterCB=self.changeParameter,
                                 extra_args={'end_im': self.end_im,
@@ -506,8 +506,7 @@ class DescriptionCaptureDialog(Toplevel):
                                             'model': self.scModel,
                                             'op': opname},
                                 dir=self.dir)
-        self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
-        self.argBox.grid_propagate(1)
+        self.argBox.pack()
 
     def newcommand(self, event):
         op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
@@ -566,6 +565,20 @@ class DescriptionCaptureDialog(Toplevel):
             self.popup.grab_release()
 
     def body(self, master):
+        top = Frame(master)
+        bottom = Frame(master)
+        self.argBoxMaster = bottom
+        self.topBody(top)
+        self.bottomBody(bottom)
+        master.pack_propagate(True)
+        top.pack_propagate(True)
+        top.pack(padx=5, pady=5)
+        bottom.pack(padx=5, pady=5)
+
+    def bottomBody(self, master):
+        return self.buildArgBox(master)
+
+    def topBody(self, master):
         self.okButton = None
 
         self.photo = ImageTk.PhotoImage(fixTransparency(imageResize(self.end_im, (250, 250))).toPIL())
@@ -600,10 +613,7 @@ class DescriptionCaptureDialog(Toplevel):
         row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
-        self.argBoxRow = row
-        self.argBoxMaster = master
-        self.argBox = self.buildArgBox(None)
-        row += 1
+
 
         cats = self.organizeOperationsByCategory()
         catlist = list(cats.keys())
@@ -816,10 +826,8 @@ class ItemDescriptionCaptureDialog(Toplevel):
                                 propertyFunction=NodePropertyFunction(self.argvalues),
                                 changeParameterCB=self.changeParameter,
                                 dir='.')
-       # self.argBox.pack(padx=5, pady=5, fill=BOTH, expand=True)
-        self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+        self.argBox.pack(padx=5, pady=5, fill=BOTH, expand=True)
         self.argBox.columnconfigure(0,weight=1)
-        self.argBox.grid_propagate(True)
 
 
     def body(self, master):
@@ -827,7 +835,6 @@ class ItemDescriptionCaptureDialog(Toplevel):
         row  = 0
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=E)
         row += 1
-        self.argBoxRow = row
         self.argBoxMaster = master
         self.argBox = self.buildArgBox(None)
         row += 1
@@ -1095,11 +1102,23 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         self.dir = scModel.get_dir()
         self.parent = parent
         self.scModel = scModel
+        self.argBox = None
         self.softwareLoader = SoftwareLoader()
         self.sourcefiletype = scModel.getStartType()
         tkSimpleDialog.Dialog.__init__(self, parent, os.path.split(filename)[1])
 
     def body(self, master):
+        top = Frame(master)
+        bottom = Frame(master)
+        self.argBoxMaster = bottom
+        self.topBody(top)
+        master.pack_propagate(True)
+        top.pack_propagate(True)
+        bottom.pack_propagate(True)
+        top.pack(padx=5, pady=5)
+        bottom.pack(padx=5, pady=5)
+
+    def topBody(self,master):
         self.photo = ImageTk.PhotoImage(imageResize(self.im, (250, 250)).toPIL())
         self.c = Canvas(master, width=250, height=250)
         self.c.create_image(128, 128, image=self.photo, tag='imgd')
@@ -1136,14 +1155,11 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         self.versionselect.grid(row=row, column=1)
         row +=1
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
-        row += 1
-        self.argBoxRow = row
-        self.argBoxMaster = master
-        self.argBox = Listbox(master)
-        self.argBox.bind("<Double-Button-1>", self.changeParameter)
-        self.argBox.grid(row=row, column=0, columnspan=2, sticky=E + W)
+
+    def bottomBody(self, master):
         if len(self.pluginOps.keys()) > 0:
             self.newop(None)
+        return
 
     def __getinfo(self,name):
         for k,v in self.arginfo.iteritems():
@@ -1215,7 +1231,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                 propertyFunction=EdgePropertyFunction(properties,self.scModel),
                                 changeParameterCB=self.changeParameter,
                                 dir=self.dir)
-        self.argBox.grid(row=self.argBoxRow, column=0, columnspan=2, sticky=E + W)
+        self.argBox.pack()
         self.arginfo = arginfo
 
     def buttonbox(self):
@@ -1226,7 +1242,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         w = Button(box, text="Cancel", width=10, command=self.cancel)
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Escape>", self.cancel)
-        box.pack()
+        box.pack(side=BOTTOM)
 
     def changeParameter(self, name, type, value):
         self.argvalues[name] = value
