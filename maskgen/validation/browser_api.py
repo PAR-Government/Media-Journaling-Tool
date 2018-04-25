@@ -67,7 +67,7 @@ class ValidationBrowserAPI(ValidationAPI):
                     fields = self.get_media_file(nodeData['file'])
                     if len(fields) > 0:
                         for journal in fields:
-                            if journal['manipulation_journal'] is not None and journal['manipulation_journal'] != graph.G.name:
+                            if journal['manipulation_journal'] is not None and journal['manipulation_journal'] != graph.get_name():
                                 errors.append(ValidationMessage(Severity.ERROR,
                                                         node,
                                                         node,

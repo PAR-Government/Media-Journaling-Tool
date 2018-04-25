@@ -13,6 +13,9 @@ class MockImageGraph:
         self.nodes= nodes
         self.api_validated_node = None
 
+    def get_name(self):
+        return self.name
+
     def get_node(self,name):
         return self.nodes[name]
 

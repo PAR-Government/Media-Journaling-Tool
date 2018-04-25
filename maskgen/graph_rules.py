@@ -946,7 +946,7 @@ def checkMoveMask(op, graph, frm,to):
         if os.path.exists(os.path.join(graph.dir, inputmaskname)) and \
             os.path.exists(os.path.join(graph.dir, maskname)):
             mask = openImageFile(os.path.join(graph.dir, maskname)).invert().to_array()
-            inputmask = openImage(os.path.join(graph.dir, inputmaskname))
+            inputmask = openImage(os.path.join(graph.dir, inputmaskname)).to_mask().to_array()
             inputmask[inputmask > 0] = 1
             mask[mask > 0] = 1
             intersection = inputmask * mask

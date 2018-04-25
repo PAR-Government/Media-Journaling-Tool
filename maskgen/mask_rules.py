@@ -2750,14 +2750,14 @@ class CompositeDelegate:
                          inclusionFunction(edge_id,edge,self.gopLoader.getOperationWithGroups(edge['op'],fake=True))):
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
                 if not os.path.exists(fullpath):
-                    errorNotifier('Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
+                    errorNotifier('constructDonors','Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     # we do need to invert because these masks are white=Keep(unchanged), Black=Remove (changed)
                     # we want to capture the 'unchanged' part, where as the other type we capture the changed part
                 startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
                 if startMask is None:
-                    errorNotifier('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
+                    errorNotifier('constructDonors','Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                 if startMask is not None and edgeMask.shape != startMask.shape:
-                    errorNotifier('Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
+                    errorNotifier('constructDonors','Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
             if startMask is not None:
                 if _is_empty_composite(startMask):
                     startMask = None
@@ -2772,9 +2772,9 @@ class CompositeDelegate:
                                                     self.__saveDonorVideoToFile if saveImage else self.__doNothingSave,
                                                     'video'))
                 except EdgeMaskError as e:
-                    errorNotifier(e.message,e.edge_id)
+                    errorNotifier('constructDonors',e.message,e.edge_id)
                 except Exception as e:
-                    errorNotifier(str(e), edge_id)
+                    errorNotifier('constructDonors',str(e), edge_id)
         return donors
 
 

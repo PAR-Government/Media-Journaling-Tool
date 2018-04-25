@@ -2237,15 +2237,23 @@ class VerticalScrolledFrame(Frame):
     * This frame only allows vertical scrolling
     """
 
-    def __init__(self, parent, *args, **kw):
-        Frame.__init__(self,parent, *args, **kw)
+    def __init__(self, parent, horizontal=False, **kw):
+        Frame.__init__(self,parent, **kw)
         self.parent = parent
         # create a canvas object and a vertical scrollbar for scrolling it
         self.canvas = canvas = Canvas(self, bd=0, highlightthickness=0)
         vscrollbar = Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        canvas = Canvas(self, bd=0, highlightthickness=0,
-                        yscrollcommand=vscrollbar.set)
+        if horizontal:
+            hscrollbar = Scrollbar(self, orient=HORIZONTAL)
+            hscrollbar.pack(fill=X, side=BOTTOM, expand=FALSE)
+            canvas = Canvas(self, bd=0, highlightthickness=0,
+                            yscrollcommand=vscrollbar.set,
+                            xscrollcommand=hscrollbar.set)
+            hscrollbar.config(command=canvas.xview)
+        else:
+            canvas = Canvas(self, bd=0, highlightthickness=0,
+                            yscrollcommand=vscrollbar.set)
         #canvas.configure(yscrollcommand=vscrollbar.set)
         vscrollbar.config(command=canvas.yview)
         canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
@@ -2285,7 +2293,8 @@ class VerticalScrolledFrame(Frame):
                 self.interior.winfo_height() != self.canvas.winfo_height()):
                 self.canvas.itemconfigure(self.interior_id, height=self.canvas.winfo_height())
 
-        canvas.bind('<Configure>', _configure_canvas)
+        if not horizontal:
+            canvas.bind('<Configure>', _configure_canvas)
 
         return
 
@@ -2637,7 +2646,7 @@ class ValidationFrame(VerticalScrolledFrame):
         :param kwargs:
         @type items: list of ValidationMessage
         """
-        VerticalScrolledFrame.__init__(self, master, **kwargs)
+        VerticalScrolledFrame.__init__(self, master,horizontal=True,**kwargs)
         self.parent = parent
         self.body(self.interior, items)
         self.fixes = []
