@@ -57,7 +57,8 @@ class QAProjectDialog(Toplevel):
         self.resizable(width=False, height=False)
         #self.grid()
         self.progressBars = []
-
+        #This actually stores failed or success icons
+        self.narnia = {}
         #print(self)
         #threading.stack_size(0x2000000)
 
@@ -320,7 +321,11 @@ class QAProjectDialog(Toplevel):
             else:
                 if (self.getFileNameForNode(p.finalNodeId) == self.edgeTuple[1]):
                     prolist.append(p)
-        tsec = video_tools.getMaskSetForEntireVideo(os.path.join(self.scModel.get_dir(), self.edgeTuple[1]))[0]['endtime'] /1000.0
+        try:
+            tsec = video_tools.getMaskSetForEntireVideo(os.path.join(self.scModel.get_dir(), self.edgeTuple[1]))[0]['endtime'] /1000.0
+        except Exception:
+            logging.getLogger("maskgen").warn("{} Duration could not be found the length displayed in the graph is incorrect")
+            tsec = 120.0
         #ts = (self.scModel.G.get_node(self.lookup[self.edgeTuple[1]])['duration'])
         #ftr = [3600, 60, 1]
 
@@ -353,9 +358,9 @@ class QAProjectDialog(Toplevel):
                         high = max(high,mvs.endtime)
                         low = min(low,mvs.starttime)
                         subplot.text(mvs.starttime, count-0.5, "F:" + str(int(mvs.startframe)))
-                        subplot.text( mvs.endtime,count-0.5, "F:" + str(int(mvs.endframe)))
+                        subplot.text(mvs.endtime,count-0.5, "F:" + str(int(mvs.endframe)))
             ytics.append(count)
-            ytic_lbl.append(self.abreive(p.edgeId[0]))
+            ytic_lbl.append(str(self.abreive(p.edgeId[0])))
 
         color_mapper = np.vectorize(lambda x: {0: 'red', 1: 'blue', 2: 'green'}.get(x))
         data.append([count+1,0,0.0,tsec*1000.0])
@@ -378,7 +383,7 @@ class QAProjectDialog(Toplevel):
             subplot.xaxis.set_view_interval(i[0],i[1])
         self.pltdata[self.cur] = na
         canvas = Canvas(self.cImgFrame,height=50,width=50)
-        canvas.grid(row = 0,column=0)
+
         imscroll = Scrollbar(self.cImgFrame, orient=HORIZONTAL)
         imscroll.grid(row =1,column=0,sticky=EW)
         imscroll.config(command=self.scrollplt)
@@ -387,6 +392,7 @@ class QAProjectDialog(Toplevel):
         fcanvas.show()
         fcanvas.get_tk_widget().grid(row=0,column=0)
         fcanvas._tkcanvas.grid(row=0, column=0)
+        canvas.grid(row=0, column=0)
         canvas.config(height=50,width=50)
         self.subplots[self.cur] = f
 
@@ -438,6 +444,7 @@ class QAProjectDialog(Toplevel):
             self.popup.grab_release()
 
     def createImagePage(self, t, p):
+
         #print('creating page for ' + str(t))
         self.edgeTuple = tuple(t.split("<-"))
         if len(self.edgeTuple) < 2:
@@ -445,10 +452,31 @@ class QAProjectDialog(Toplevel):
             self.edgeTuple = tuple(t.split("->"))
         else:
             self.finalNodeName = None
+        if (len(t.split('->'))>1):
+            probe = [probe for probe in self.probes if
+                 probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[self.edgeTuple[1]]][0]
+        else:
+            probe = \
+            [probe for probe in self.probes if
+             probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId ==
+             self.lookup[
+                 self.edgeTuple[1]]][0]
+        success = tool_set.get_icon('RedX.png') if probe.failure else tool_set.get_icon('check.png')
+        iFrame = Frame(p)
+        # manFrame.bind("<Button-1>", self.help)
+
+        c = Canvas(iFrame, width=35, height=35)
+        #c.configure(background='white')
+        c.pack()
+        img = openImage(success)
+        self.narnia[t] = ImageTk.PhotoImage(imageResizeRelative(img, (30, 30), img.size).toPIL())
+        self.image_on_canvas = c.create_image(15, 15, image=self.narnia[t], anchor=CENTER, tag='things')
         row = 0
         col = 0
+
         self.optionsLabel = Label(p, text=t, font=(None,10))
-        self.optionsLabel.grid(row=row, columnspan=3, sticky='EW', padx=10)
+        self.optionsLabel.grid(row=row, columnspan=3, sticky='EW', padx=(40,0),pady=10)
+        iFrame.grid(column=0, row=0, columnspan=1, sticky=W)
         row += 1
         self.operationVar = StringVar()
         self.operationVar.set("Operation [ Semantic Groups ]: ")
@@ -499,15 +527,7 @@ class QAProjectDialog(Toplevel):
         # self.pathText.setvar(self, self.transitionVar)
         # self.pathText.grid(row = row, column = col, rowspan = 5)
         #self.checkVars = []
-        if (len(t.split('->'))>1):
-            probe = [probe for probe in self.probes if
-                 probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[self.edgeTuple[1]]][0]
-        else:
-            probe = \
-            [probe for probe in self.probes if
-             probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId ==
-             self.lookup[
-                 self.edgeTuple[1]]][0]
+
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
         self.operationVar.set(self.operationVar.get() + self._compose_label(edge))
         self.edges[p] = [edge,self.listbox]
@@ -520,9 +540,9 @@ class QAProjectDialog(Toplevel):
             self.loadt(t)
             #print('loaded image')
         else:
-            self.setUpPlot(t)
             self.transitionString(None)
-            #print('Video loaded')
+            self.setUpPlot(t)
+                #print('Video loaded')
         #thread.start_new_thread(self.loadt, ())
         if operation.qaList is not None:
             args = getValue(edge, 'arguments', {})
@@ -573,6 +593,16 @@ class QAProjectDialog(Toplevel):
 
 
 
+    def displayX(self,t):
+        success = tool_set.get_icon('RedX.png')
+        iFrame = self.cImgFrame
+        # manFrame.bind("<Button-1>", self.help)
+
+        c = Canvas(iFrame, width=510, height=510)
+        c.pack()
+        img = openImage(success)
+        self.photos[t] = ImageTk.PhotoImage(imageResizeRelative(img, (500, 500), img.size).toPIL())
+        self.image_on_canvas = c.create_image(255, 255, image=self.photos[t], anchor=CENTER, tag='things')
 
     #def getProgress(self):
     #   count = 0.0
