@@ -455,7 +455,7 @@ def _pasteSpliceBlend(scModel,gopLoader):
     from group_filter import GroupFilterLoader
     gfl = GroupFilterLoader()
     scModel.G.addEdgeFilePath('arguments.Final Image', 'inputmaskownership')
-    grp = gfl.etGroup('PasteSpliceBlend')
+    grp = gfl.getGroup('PasteSpliceBlend')
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if 'pastemask'  in edge and edge['pastemask'] is not None:
@@ -466,9 +466,8 @@ def _pasteSpliceBlend(scModel,gopLoader):
             if len(donors) > 0:
                 args['donor'] = donors[0]
             args['sendNotifications'] = False
-            mod = scModel.getModificationForEdge(frm,to,edge)
+            mod = scModel.getModificationForEdge(frm, to, edge)
             scModel.imageFromGroup(grp, software=mod.software, **args)
-
 
 def _fixColors(scModel,gopLoader):
     scModel.assignColors(scModel)
@@ -657,14 +656,14 @@ def _fixRecordMasInComposite(scModel,gopLoader):
          edge = scModel.G.get_edge(frm, to)
          if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
             edge['recordMaskInComposite'] = 'yes'
-         op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+         op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
          if op.category in ['Output','AntiForensic','Laundering']:
              edge['recordMaskInComposite'] = 'no'
 
 def _fixGlobal(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+        op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
         if 'global' in edge and edge['global'] == 'yes' and "maskgen.tool_set.localTransformAnalysis" in op.analysisOperations:
             edge['global'] = 'no'
 

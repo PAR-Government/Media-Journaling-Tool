@@ -40,6 +40,7 @@ from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 import preferences_initializer
 from software_loader import getMetDataLoader
 from cachetools import LRUCache
+from ui.ui_tools import ProgressBar
 
 from QAExtreme import QAProjectDialog
 """
@@ -350,7 +351,7 @@ class MakeGenUI(Frame):
             if not tkMessageBox.askokcancel('Skipped Link Masks','Some link are missing edge masks and analysis. \n' +
                                                           'The link analysis will begin now and may take a while.'):
                 return False
-        errorList = self.scModel.validate(external=True)
+        errorList = self.scModel.validate(external=True,status_cb=self.progress_bar.postChange)
         message = None
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionValidationListDialog(self, errorList, "Validation Errors")
@@ -735,7 +736,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
     def validate(self):
-        errorList = self.scModel.validate(external=True)
+        errorList = self.scModel.validate(external=True,status_cb=self.progress_bar.postChange)
         ValidationListDialog(self, errorList, "Validation Errors")
 
     def getsystemproperties(self):
@@ -1182,6 +1183,8 @@ class MakeGenUI(Frame):
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
         mframe.grid(row=3, column=0, rowspan=1, columnspan=3, sticky=N + S + E + W)
+        self.progress_bar = ProgressBar(self.master)
+        self.progress_bar.grid(row=4, column=0, columnspan=3, sticky=S + E + W)
 
         if (self.scModel.start is not None):
             self.setSelectState('normal')

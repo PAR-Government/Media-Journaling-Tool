@@ -33,7 +33,7 @@ import copy
 from maskgen.userinfo import get_username
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 import traceback
-from support import MaskgenThreadPool
+from support import MaskgenThreadPool, StatusTracker
 import notifiers
 
 def formatStat(val):
@@ -1186,10 +1186,21 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True, graph=None, constructDonors=True, keepFailures=False):
+    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized,
+                                     saveTargets=True,
+                                     graph=None,
+                                     constructDonors=True,
+                                     keepFailures=False,
+                                     exclusions={}):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
+        :param graph: the ImageGraph
+        :param exclusions: dictionary of key value exclusion rules.  These rules apply to specific
+        subtypes of meta-data such as inputmasks for paste sampled or neighbor masks for seam carving
+        The agreed set of rules will evolve and is particular to the function.
+        Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
+        global.inputmaskname.
         :return: The set of probes
         @rtype: list of Probe
         """
@@ -1205,7 +1216,8 @@ class ImageProjectModel:
                     'saveTargets':saveTargets,
                     'inclusionFunction':inclusionFunction,
                     'constructDonors':constructDonors,
-                    'keepFailures':keepFailures
+                    'keepFailures':keepFailures,
+                    'exclusions':exclusions
                 }))
         probes = list()
         for future in futures:
@@ -1215,7 +1227,8 @@ class ImageProjectModel:
     def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,
                     compositeBuilders=[ColorCompositeBuilder],
                     graph=None,
-                    replacement_probes=None):
+                    replacement_probes=None,
+                    exclusions={}):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
@@ -1227,7 +1240,11 @@ class ImageProjectModel:
         """
         self.assignColors()
         probes = replacement_probes if replacement_probes is not None else \
-            self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction, saveTargets=saveTargets,graph=graph)
+            self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction,
+                                              saveTargets=saveTargets,
+                                              graph=graph,
+                                              exclusions=exclusions
+        )
         probes = sorted(probes, key=lambda probe: probe.level)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
         for compositeBuilder in localCompositeBuilders:
@@ -1486,8 +1503,8 @@ class ImageProjectModel:
         return len(self.G.getDataItem('skipped_edges', [])) > 0
 
 
-    def _executeQueue(self,q,results):
-        from Queue import Queue,Empty
+    def _executeQueue(self,q,results,tracker):
+        from Queue import Queue, Empty
         """
         :param q:
         :return:
@@ -1504,6 +1521,7 @@ class ImageProjectModel:
                     edge_data['end'],
                     edge_data['opName']
                 ))
+                tracker.next('{}->{}'.format(edge_data['start'], edge_data['end']))
                 if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']) and \
                     self.getGraph().has_edge(edge_data['start'],edge_data['end']):
                     mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
@@ -1538,33 +1556,52 @@ class ImageProjectModel:
                     results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
         return
 
-    def _executeSkippedComparisons(self):
+    def _executeSkippedComparisons(self,status_cb=None):
         from Queue import Queue
         from threading import Thread
         allErrors = []
         completed = []
         q = Queue()
+        status = Queue()
         results = Queue()
         skipped_edges = self.G.getDataItem('skipped_edges', [])
         if len(skipped_edges) == 0:
             return
+        tracker_cb = status_cb
+        tracker_cb = lambda x : status.put(x) if tracker_cb is not None and int(skipped_threads) >= 2 else None
+        tracker = StatusTracker(module_name='Mask Generator',
+                                amount=len(skipped_edges),
+                                status_cb=tracker_cb)
         for edge_data in skipped_edges:
             q.put(edge_data)
         skipped_threads = prefLoader.get_key('skipped_threads', 2)
         logging.getLogger('maskgen').info('Recomputing {} masks with {} threads'.format(q.qsize(), skipped_threads))
         threads = list()
-        self._executeQueue(q, results)
-        for i in range(int(skipped_threads)):
-            t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results))
-            threads.append(t)
-            t.start()
-        for thread in threads:
-            thread.join()
-        while not results.empty():
-            result = results.get_nowait()
-            allErrors.extend(result[2])
-            if result[1]:
-                completed.append(result[0])
+        try:
+            if int(skipped_threads) < 2:
+                self._executeQueue(q, results, tracker)
+            else:
+                for i in range(int(skipped_threads)):
+                    t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results,tracker))
+                    threads.append(t)
+                    t.start()
+                if status_cb is not None:
+                    while not q.empty():
+                        try:
+                            message = status.get(timeout=5)
+                            if message is not None:
+                                status_cb(message)
+                        except:
+                            continue
+                for thread in threads:
+                    thread.join()
+            while not results.empty():
+                result = results.get_nowait()
+                allErrors.extend(result[2])
+                if result[1]:
+                    completed.append(result[0])
+        finally:
+            tracker.complete()
         self.G.setDataItem('skipped_edges',[edge_data for edge_data in skipped_edges if (edge_data['start'], edge_data['end']) not in completed])
         msg = os.linesep.join(allErrors).strip()
         return msg if len(msg) > 0 else None
@@ -2062,7 +2099,7 @@ class ImageProjectModel:
         """ Return the list of errors from all validation rules on the graph.
         @rtype: list of ValidationMessage
         """
-        self._executeSkippedComparisons()
+        self._executeSkippedComparisons(status_cb=status_cb)
         logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
         total_errors = self.validator.run_graph_suite(self.getGraph(), external=external, status_cb=status_cb)
         for prop in getProjectProperties():

@@ -176,7 +176,7 @@ class GroupFilterLoader:
         pluginOp = plugins.getOperation(name) if filter else self.getOperation(name)
         return buildFilterOperation(pluginOp)
 
-    def _buildGroupOperation(self,grp, name, filter=True):
+    def _buildGroupOperation(self,grp, name, filter=True, warning=True):
         if grp is not None:
             if grp.operation is not None:
                 return grp.operation
@@ -239,12 +239,12 @@ class GroupFilterLoader:
                              maskTransformFunction=customFunctions,
                              parameter_dependencies=dependencies)
             return grp.operation
-        return getOperation(name,fake=True)
+        return getOperation(name,fake=True,warning=warning)
 
     def getOperation(self, name):
         grp = self.getGroup(name)
         try:
-            return self._buildGroupOperation(grp, name) if grp is not None else getOperation(name)
+            return self._buildGroupOperation(grp, name, warning=warning) if grp is not None else getOperation(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Group Filter {} is in an inconsistent state: {} '.format(name, str(e)))
             return None
@@ -343,7 +343,7 @@ class GroupFilterLoader:
         if op is None:
             if fake:
                 return [getOperation(name, fake=True, warning=warning)]
-            else:
+            elif warning:
                 logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
                 return []
         return [op]

@@ -2473,7 +2473,12 @@ class CompositeDelegate:
             result_probes.append(new_probe)
         return result_probes
 
-    def constructProbes(self, saveTargets=True, inclusionFunction=None, constructDonors=True, keepFailures=False):
+    def constructProbes(self,
+                        saveTargets=True,
+                        inclusionFunction=None,
+                        constructDonors=True,
+                        keepFailures=False,
+                        exclusions={}):
         """
 
         :param saveTargets:
@@ -2496,7 +2501,8 @@ class CompositeDelegate:
                     logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
             try:
                 donors = self.constructDonors(saveImage=saveTargets,
-                                              inclusionFunction=inclusionFunction) if constructDonors else []
+                                              inclusionFunction=inclusionFunction,
+                                              exclusions=exclusions) if constructDonors else []
             except Exception as ex:
                 if keepFailures:
                     failure = True
@@ -2730,7 +2736,11 @@ class CompositeDelegate:
             donors.append(DonorImage(target, baseNode, mask_wrapper, fname, media_type))
         return donors
 
-    def constructDonors(self, saveImage=True, inclusionFunction=isEdgeComposite, errorNotifier=raiseError):
+    def constructDonors(self,
+                        saveImage=True,
+                        inclusionFunction=isEdgeComposite,
+                        errorNotifier=raiseError,
+                        exclusions={}):
         """
           Construct donor images
           Find all valid base node, leaf node tuples
@@ -2749,15 +2759,19 @@ class CompositeDelegate:
                     (edge['recordMaskInComposite'] == 'yes' or
                          inclusionFunction(edge_id,edge,self.gopLoader.getOperationWithGroups(edge['op'],fake=True))):
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
-                if not os.path.exists(fullpath):
+                if not os.path.exists(fullpath) and getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     # we do need to invert because these masks are white=Keep(unchanged), Black=Remove (changed)
                     # we want to capture the 'unchanged' part, where as the other type we capture the changed part
-                startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
-                if startMask is None:
+                else:
+                    startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
+                if startMask is None and getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
-                if startMask is not None and edgeMask.shape != startMask.shape:
+                    startMask = None
+                if startMask is not None and edgeMask.shape != startMask.shape and \
+                        getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
+                    startMask = None
             if startMask is not None:
                 if _is_empty_composite(startMask):
                     startMask = None

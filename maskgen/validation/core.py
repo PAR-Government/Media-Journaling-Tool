@@ -7,7 +7,7 @@
 # ==============================================================================
 
 from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
-from maskgen.support import getValue
+from maskgen.support import getValue, ModuleStatus
 from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask,md5_of_file
 from maskgen.image_graph import ImageGraph, GraphProxy
 import os
@@ -195,13 +195,10 @@ def getRegisteredValidatorClasses(preferences):
         getClassFromName(name) for name in names
         ]
 
-class ValidationStatus:
+class ValidationStatus(ModuleStatus):
 
     def __init__(self,module_name, component, percentage):
-        self.module_name = module_name
-        self.component = component
-        self.percentage = percentage
-
+        ModuleStatus.__init__(self,'Validation', module_name,component,percentage)
 
 def ignoreStatus(validation_status):
     """
@@ -447,10 +444,11 @@ class Validator:
         @type preferences: MaskGenLoader
         @rtype:  list of ValidationMessage
         """
-        if status_cb is None and ('log.validation' not in self.preferences or self.preferences['log.validation'] == 'yes'):
-            status_cb = logStatus
-        else:
-            status_cb  = ignoreStatus
+        if status_cb is None:
+            if ('log.validation' not in self.preferences or self.preferences['log.validation'] == 'yes'):
+                status_cb = logStatus
+            else:
+                status_cb  = ignoreStatus
         nodeSet = set(graph.get_nodes())
         nodecount = len(nodeSet)
         edgecount = len(graph.get_edges())
