@@ -1772,7 +1772,7 @@
       "mandatoryparameters":{
         "urls": {
           "type": "urls",
-          "description" : "URL used to create the flight path simulated"
+          "description" : "URL used to create the flight path simulate"
         },
         "Recording Software": {
           "type" : "text",

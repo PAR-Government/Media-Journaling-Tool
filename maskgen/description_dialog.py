@@ -18,7 +18,7 @@ from autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
-from software_loader import Software, SoftwareLoader
+from software_loader import Software, SoftwareLoader, getFileName
 import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
@@ -299,6 +299,17 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
         d = EntryDialog(parent, "Set Parameter " + argumentTuple[0], argumentTuple[1]['description'],
                         validateCoordinates, initialvalue=initialvalue)
         res = d.choice
+    elif argumentTuple[1]['type'].startswith('listfromfile:'):
+        filename = getFileName(argumentTuple[1]['type'][13:])
+        if not os.path.isfile(filename):
+            d = EntryDialog(parent, "Set Parameter " + argumentTuple[0], argumentTuple[1]['description'], None,
+                            initialvalue=initialvalue)
+            res = d.choice
+        else:
+            with open(filename) as f:
+                values = sorted(f.read().splitlines())
+            d = SelectDialog(parent, "Set Parameter " + argumentTuple[0], argumentTuple[1]['description'], values)
+            res = d.choice
     else:
         d = EntryDialog(parent, "Set Parameter " + argumentTuple[0], argumentTuple[1]['description'], None,
                         initialvalue=initialvalue)
@@ -2482,6 +2493,15 @@ class PropertyFrame(VerticalScrolledFrame):
                                                          takefocus=False,
                                                          command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type.startswith('listfromfile:'):
+               filename = getFileName(prop.type[13:])
+               if os.path.isfile(filename):
+                   with open(filename) as f:
+                       values = sorted(f.read().splitlines())
+                   widget = ttk.Combobox(master, values=values, textvariable=self.values[row])
+               else:
+                   widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
+               widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)

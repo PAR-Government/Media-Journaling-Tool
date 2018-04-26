@@ -1191,7 +1191,7 @@ class MakeGenUI(Frame):
 
     def getSystemPreferences(self):
         props =  [ProjectProperty(name='username',
-                                  type='text',
+                                  type=getMetDataLoader().getProperty('username').type,
                                   description='User Name',
                                   information='Journal User Name'),
                 ProjectProperty(name='organization', type='text',
