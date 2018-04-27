@@ -11,23 +11,18 @@
     "validatedby": "", 
     "exporttime": "2018-04-05 16:29:17", 
     "jt_upgrades": [
-      "0.5.0401.db02ad8372", 
+      "0.5.0421.65e9a43cd3", 
       "0.5.0227.bf007ef4cd"
     ], 
     "creator_tool": "jtui", 
     "autopastecloneinputmask": "no", 
-    "idcount": 41, 
+    "idcount": 46, 
     "provenance": "no", 
     "api_validated_node": [
       "input_mod_2_25.jpg", 
       "56884521ef4db89e5ff5e34266a940fb.jpg"
     ], 
     "manipulationcategory": "4-Unit", 
-    "semanticgroups": "[]", 
-    "skipped_edges": [], 
-    "username": "ericrobertson", 
-    "igversion": "0.5.0227.bf007ef4cd", 
-    "validationdate": "", 
     "edgeFilePaths": {
       "maskname": "", 
       "videomasks.videosegment": "", 
@@ -39,8 +34,14 @@
       "inputmaskname": "inputmaskownership", 
       "arguments.PNG File Name": ""
     }, 
+    "skipped_edges": [], 
+    "username": "dupre", 
+    "igversion": "0.5.0227.bf007ef4cd", 
+    "validationdate": "", 
+    "semanticgroups": [], 
+    "qadata": {}, 
     "groups": {}, 
-    "updatetime": "2018-04-05 16:28:54", 
+    "updatetime": "2018-04-24 14:57:32", 
     "projecttype": "image", 
     "name": "sample", 
     "typespref": [
@@ -70,92 +71,15 @@
   }, 
   "nodes": [
     {
-      "xpos": 354, 
-      "nodetype": "final", 
-      "ctime": "2016-11-29 14:45:00", 
-      "ypos": 570, 
-      "seriesname": "orig_input", 
-      "ownership": "yes", 
-      "file": "56884521ef4db89e5ff5e34266a940fb.jpg", 
-      "id": "input_mod_2_25", 
-      "pathanalysis": {
-        "postprocesscompression": "no", 
-        "dialogchange": "no", 
-        "crowdrelocation": "no", 
-        "people": "no", 
-        "color": "yes", 
-        "antiforensicaddcamfingerprintprnu": "no", 
-        "otherenhancements": "no", 
-        "blurlocal": "no", 
-        "audioclone": "no", 
-        "Tattoos": "no", 
-        "compositepixelsize": "large", 
-        "audiosplice": "no", 
-        "seamcarving": "yes", 
-        "imagecompressiontable": "yes", 
-        "landscape": "no", 
-        "imagecompression": "yes", 
-        "audioactivity": "no", 
-        "temporalother": "no", 
-        "audiovoiceover": "no", 
-        "postprocesscropframes": "no", 
-        "othersubjects": "no", 
-        "antiforensicaberrationcorrection": "no", 
-        "dateandtime": "no", 
-        "wound": "no", 
-        "dataembeddingwatermark": "no", 
-        "antiforensiccfacorrection": "no", 
-        "launderingsocialmedia": "no", 
-        "temporalremove": "no", 
-        "antiforensicother": "no", 
-        "Personal Appearance": "no", 
-        "audioothers": "no", 
-        "imagereformat": "no", 
-        "audioremoval": "no", 
-        "audiovoiceswapping": "no", 
-        "dateburnin": "no", 
-        "spatialother": "no", 
-        "ambienceaudioswap": "no", 
-        "antiforensicnoiserestoration": "no", 
-        "temporalreorder": "no", 
-        "locationchange": "no", 
-        "healinglocal": "no", 
-        "semanticrefabrication": null, 
-        "aging": "no", 
-        "clone": "no", 
-        "manmade": "yes", 
-        "spatialsplice": "no", 
-        "semanticrepurposing": null, 
-        "spatialclone": "no", 
-        "spatialmovingobject": "no", 
-        "spatialremove": "no", 
-        "antiforensicillumination": "no", 
-        "histogramnormalizationglobal": "no", 
-        "launderingmedianfiltering": "no", 
-        "facemanipulations": "no", 
-        "cadaver": "no", 
-        "temporalclone": "no", 
-        "recapture": "no", 
-        "mosaicing": "no", 
-        "weatherchanges": "no", 
-        "manipulationcategory": "4-Unit", 
-        "natural": "no", 
-        "timeofday": "no", 
-        "voiceaudioswap": "no", 
-        "largemanmade": "no", 
-        "postprocessstabilization": "no", 
-        "contrastenhancement": "no", 
-        "buildingrelocation": "no", 
-        "remove": "no", 
-        "face": "no", 
-        "reflectionmanipulations": "no", 
-        "dataembeddingsteganography": "no", 
-        "semanticrestaging": null, 
-        "spatialmovingcamera": "no", 
-        "moodchange": "no", 
-        "temporalsplice": "no", 
-        "shadowmanipulations": "no"
-      }
+      "xpos": 325, 
+      "nodetype": "base", 
+      "ctime": "2016-07-28 13:06:28", 
+      "proxyfile": "sample_proxy.png", 
+      "ypos": 14, 
+      "seriesname": "sample", 
+      "ownership": "no", 
+      "file": "sample.jpg", 
+      "id": "sample"
     }, 
     {
       "xpos": 230, 
@@ -179,15 +103,92 @@
       "ctime": "2016-06-29 15:11:34"
     }, 
     {
-      "xpos": 325, 
-      "nodetype": "base", 
-      "ctime": "2016-07-28 13:06:28", 
-      "proxyfile": "sample_proxy.png", 
-      "ypos": 14, 
-      "seriesname": "sample", 
-      "ownership": "no", 
-      "file": "sample.jpg", 
-      "id": "sample"
+      "xpos": 354, 
+      "nodetype": "final", 
+      "ctime": "2016-11-29 14:45:00", 
+      "ypos": 570, 
+      "seriesname": "orig_input", 
+      "ownership": "yes", 
+      "file": "56884521ef4db89e5ff5e34266a940fb.jpg", 
+      "id": "input_mod_2_25", 
+      "pathanalysis": {
+        "voiceaudioswap": "no", 
+        "dialogchange": "no", 
+        "semanticrepurposing": null, 
+        "people": "no", 
+        "color": "yes", 
+        "antiforensicnoiserestoration": "no", 
+        "otherenhancements": "no", 
+        "blurlocal": "no", 
+        "audioclone": "no", 
+        "compositepixelsize": "large", 
+        "crowdrelocation": "no", 
+        "audiosplice": "no", 
+        "imagecompressiontable": "yes", 
+        "dataembeddingwatermark": "no", 
+        "antiforensicaddcamfingerprintprnu": "no", 
+        "landscape": "no", 
+        "imagecompression": "yes", 
+        "audioactivity": "no", 
+        "aging": "no", 
+        "temporalreorder": "no", 
+        "audiovoiceover": "no", 
+        "othersubjects": "no", 
+        "antiforensicaberrationcorrection": "no", 
+        "dateandtime": "no", 
+        "wound": "no", 
+        "shadowmanipulations": "no", 
+        "antiforensiccfacorrection": "no", 
+        "launderingsocialmedia": "no", 
+        "postprocesscropframes": "no", 
+        "antiforensicother": "no", 
+        "Personal Appearance": "no", 
+        "launderingmedianfiltering": "no", 
+        "spatialmovingcamera": "no", 
+        "temporalremove": "no", 
+        "audiovoiceswapping": "no", 
+        "dateburnin": "no", 
+        "spatialother": "no", 
+        "ambienceaudioswap": "no", 
+        "temporalother": "no", 
+        "audioothers": "no", 
+        "locationchange": "no", 
+        "healinglocal": "no", 
+        "semanticrefabrication": null, 
+        "Tattoos": "no", 
+        "clone": "no", 
+        "manmade": "yes", 
+        "spatialsplice": "no", 
+        "spatialclone": "no", 
+        "spatialmovingobject": "no", 
+        "spatialremove": "no", 
+        "antiforensicillumination": "no", 
+        "histogramnormalizationglobal": "no", 
+        "seamcarving": "yes", 
+        "facemanipulations": "no", 
+        "cadaver": "no", 
+        "temporalclone": "no", 
+        "audioremoval": "no", 
+        "recapture": "no", 
+        "mosaicing": "no", 
+        "weatherchanges": "no", 
+        "timeofday": "no", 
+        "natural": "no", 
+        "reflectionmanipulations": "no", 
+        "postprocessstabilization": "no", 
+        "contrastenhancement": "no", 
+        "buildingrelocation": "no", 
+        "manipulationcategory": "4-Unit", 
+        "remove": "no", 
+        "face": "no", 
+        "largemanmade": "no", 
+        "dataembeddingsteganography": "no", 
+        "semanticrestaging": null, 
+        "imagereformat": "no", 
+        "moodchange": "no", 
+        "temporalsplice": "no", 
+        "postprocesscompression": "no"
+      }
     }, 
     {
       "xpos": 538, 
@@ -250,159 +251,17 @@
   ], 
   "links": [
     {
-      "global": "no", 
-      "recordMaskInComposite": "no", 
-      "linkcolor": "0 255 174", 
-      "errors": [], 
-      "empty mask": "no", 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.6220126321186452, 
-      "source": 1, 
-      "username": "TheDoorKnob", 
-      "description": "", 
-      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
-      "change size ratio": 0.9320210653543987, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "automated": "no", 
-      "inputmaskname": null, 
-      "target": 5, 
-      "change size category": "large", 
-      "psnr": 25.23448219085477, 
-      "shape change": "(0, 0)", 
-      "exifdiff": {
-        "Background Color": [
-          "delete", 
-          "255 255 255"
-        ], 
-        "Modify Date": [
-          "delete", 
-          "2016:06:10 04:58:51"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_2.png", 
-          "input_mod_2_3.png"
-        ], 
-        "File Size": [
-          "change", 
-          "364 kB", 
-          "250 kB"
-        ], 
-        "Pixels Per Unit Y": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixels Per Unit X": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixel Units": [
-          "delete", 
-          "meters"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "op": "ColorBalance"
-    }, 
-    {
-      "global": "no", 
-      "recordMaskInComposite": "no", 
-      "inputmaskownership": "no", 
-      "linkcolor": "0 255 6", 
-      "errors": [], 
-      "empty mask": "no", 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.8824301202318747, 
-      "source": 2, 
-      "arguments": {
-        "function": "maskgen.algorithms.seam_carving.seamCompare", 
-        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_152113837226__final_mask.png", 
-        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png", 
-        "mask interpolated": "yes", 
-        "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
-        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png"
-      }, 
-      "location": "(0,0)", 
-      "username": "TheDoorKnob", 
-      "description": "", 
-      "maskname": "input_mod_1_input_mod_2_mask.png", 
-      "change size ratio": 0.04481132075471698, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "automated": "no", 
-      "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
-      "target": 1, 
-      "change size category": "large", 
-      "psnr": 19.43806324641574, 
-      "shape change": "(0, -19)", 
-      "exifdiff": {
-        "Image Size": [
-          "change", 
-          "424x572", 
-          "405x572"
-        ], 
-        "Modify Date": [
-          "change", 
-          "2016:06:07 18:29:06", 
-          "2016:06:10 04:58:51"
-        ], 
-        "File Inode Change Date/Time": [
-          "change", 
-          "2016:08:01 12:03:43-04:00", 
-          "2018:02:05 11:38:48-05:00"
-        ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
-        ], 
-        "Image Width": [
-          "change", 
-          "424", 
-          "405"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_1.png", 
-          "input_mod_2.png"
-        ], 
-        "Megapixels": [
-          "change", 
-          "0.243", 
-          "0.232"
-        ], 
-        "File Size": [
-          "change", 
-          "376 kB", 
-          "364 kB"
-        ], 
-        "File Access Date/Time": [
-          "change", 
-          "2018:03:15 14:23:32-04:00", 
-          "2018:03:15 14:17:44-04:00"
-        ], 
-        "Gamma": [
-          "delete", 
-          "2.2"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "op": "TransformSeamCarving", 
-      "transform matrix": null
-    }, 
-    {
       "recordMaskInComposite": "no", 
       "linkcolor": "0 168 255", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "ssim": 0.9999999855200266, 
-      "source": 3, 
+      "source": 0, 
       "arguments": {
         "Image Rotated": "no"
       }, 
-      "username": "ericrobertson", 
+      "username": "dupre", 
       "description": "", 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -511,23 +370,172 @@
       "op": "OutputPng"
     }, 
     {
-      "username": "TheDoorKnob", 
+      "username": "dupre", 
       "maskname": "sample_input_mod_2_25_mask.png", 
       "errors": [], 
       "description": "", 
       "empty mask": "no", 
       "homography max matches": 20, 
-      "automated": "no", 
       "editable": "no", 
       "recordMaskInComposite": "no", 
       "selectmaskname": null, 
-      "source": 3, 
+      "opsys": "Windows 7 6.1.7601", 
+      "source": 0, 
       "softwareVersion": "", 
       "softwareName": "", 
-      "opsys": "Windows 7 6.1.7601", 
+      "automated": "no", 
       "inputmaskname": null, 
-      "target": 0, 
+      "target": 3, 
       "op": "Donor"
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "0 255 174", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.6220126321186452, 
+      "softwareVersion": "CC2015.5.12", 
+      "source": 1, 
+      "location": "(0,0)", 
+      "username": "dupre", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.8456920469992365, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "automated": "no", 
+      "inputmaskname": null, 
+      "target": 5, 
+      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
+      "psnr": 9.785041050027957, 
+      "shape change": "(0, 0)", 
+      "exifdiff": {
+        "Background Color": [
+          "delete", 
+          "255 255 255"
+        ], 
+        "File Inode Change Date/Time": [
+          "change", 
+          "2018:02:05 11:38:48-05:00", 
+          "2016:08:01 12:03:43-04:00"
+        ], 
+        "Modify Date": [
+          "delete", 
+          "2016:06:10 04:58:51"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_2.png", 
+          "input_mod_2_3.png"
+        ], 
+        "File Size": [
+          "change", 
+          "364 kB", 
+          "250 kB"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ]
+      }, 
+      "local psnr": 9.057907711787468, 
+      "op": "ColorBalance"
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "no", 
+      "inputmaskownership": "no", 
+      "linkcolor": "0 255 6", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.8824301202318747, 
+      "source": 2, 
+      "location": "(0,0)", 
+      "arguments": {
+        "function": "maskgen.algorithms.seam_carving.seamCompare", 
+        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_152113837226__final_mask.png", 
+        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png", 
+        "mask interpolated": "yes", 
+        "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
+        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png"
+      }, 
+      "username": "dupre", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.04481132075471698, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "automated": "no", 
+      "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
+      "target": 1, 
+      "maskname": "input_mod_1_input_mod_2_mask.png", 
+      "psnr": 19.43806324641574, 
+      "shape change": "(0, -19)", 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "424x572", 
+          "405x572"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2016:06:07 18:29:06", 
+          "2016:06:10 04:58:51"
+        ], 
+        "File Inode Change Date/Time": [
+          "change", 
+          "2016:08:01 12:03:43-04:00", 
+          "2018:02:05 11:38:48-05:00"
+        ], 
+        "Background Color": [
+          "add", 
+          "255 255 255"
+        ], 
+        "Image Width": [
+          "change", 
+          "424", 
+          "405"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_1.png", 
+          "input_mod_2.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "0.243", 
+          "0.232"
+        ], 
+        "File Size": [
+          "change", 
+          "376 kB", 
+          "364 kB"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2018:03:15 14:23:32-04:00", 
+          "2018:03:15 14:17:44-04:00"
+        ], 
+        "Gamma": [
+          "delete", 
+          "2.2"
+        ]
+      }, 
+      "softwareVersion": "CC2015.5.12", 
+      "transform matrix": null, 
+      "op": "TransformSeamCarving"
     }, 
     {
       "global": "yes", 
@@ -539,9 +547,9 @@
       "ssim": 1.0, 
       "source": 4, 
       "location": "(24, 38)", 
-      "username": "Saffire", 
+      "username": "dupre", 
       "description": "", 
-      "change size category": "small", 
+      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
       "change size ratio": 0.0, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -549,7 +557,7 @@
       "automated": "no", 
       "inputmaskname": null, 
       "target": 7, 
-      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
+      "change size category": "small", 
       "psnr": 0.0, 
       "shape change": "(-46, -52)", 
       "exifdiff": {
@@ -613,7 +621,7 @@
       "arguments": {
         "rotate": "no"
       }, 
-      "username": "TheDoorKnob", 
+      "username": "dupre", 
       "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
       "editable": "no", 
       "softwareName": "PIL", 
@@ -623,7 +631,7 @@
       "shape change": "(0, 0)", 
       "maskname": "input_mod_2_3_input_mod_2_25_mask.png", 
       "psnr": 47.16511443998102, 
-      "target": 0, 
+      "target": 3, 
       "exifdiff": {
         "File Access Date/Time": [
           "change", 
@@ -639,9 +647,9 @@
           "png", 
           "jpg"
         ], 
-        "Encoding Process": [
+        "Color Space": [
           "add", 
-          "Baseline DCT, Huffman coding"
+          "Uncalibrated"
         ], 
         "Bits Per Sample": [
           "add", 
@@ -681,10 +689,6 @@
           "add", 
           "0100"
         ], 
-        "Exif Byte Order": [
-          "add", 
-          "Little-endian (Intel, II)"
-        ], 
         "File Modification Date/Time": [
           "change", 
           "2016:11:18 10:15:41-05:00", 
@@ -712,6 +716,10 @@
           "delete", 
           "Adaptive"
         ], 
+        "Software": [
+          "add", 
+          "Google"
+        ], 
         "Color Type": [
           "delete", 
           "RGB with Alpha"
@@ -728,9 +736,9 @@
           "delete", 
           "8"
         ], 
-        "Software": [
+        "Exif Byte Order": [
           "add", 
-          "Google"
+          "Little-endian (Intel, II)"
         ], 
         "X Resolution": [
           "add", 
@@ -745,9 +753,9 @@
           "input_mod_2_3.png", 
           "input_mod_2_25.jpg"
         ], 
-        "Color Space": [
+        "Encoding Process": [
           "add", 
-          "Uncalibrated"
+          "Baseline DCT, Huffman coding"
         ], 
         "Y Resolution": [
           "add", 
@@ -770,9 +778,9 @@
         "rotation": -90, 
         "local": "yes"
       }, 
-      "username": "Saffire", 
+      "username": "dupre", 
       "description": "", 
-      "change size category": "large", 
+      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
       "change size ratio": 0.4385283950617284, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -780,7 +788,7 @@
       "automated": "no", 
       "inputmaskname": null, 
       "target": 4, 
-      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
+      "change size category": "large", 
       "psnr": 8.309706653719859, 
       "shape change": "(0, 0)", 
       "exifdiff": {
@@ -811,6 +819,7 @@
         ]
       }, 
       "softwareVersion": "CC16.16", 
+      "op": "TransformRotate", 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -829,11 +838,10 @@
           9.891532278139353e-06, 
           1.0
         ]
-      }, 
-      "op": "TransformRotate"
+      }
     }, 
     {
-      "username": "Saffire", 
+      "username": "dupre", 
       "maskname": "hat_splice_crop_input_mod_1_mask.png", 
       "errors": [], 
       "description": "", 
@@ -848,8 +856,6 @@
       "softwareName": "", 
       "automated": "no", 
       "inputmaskname": null, 
-      "op": "Donor", 
-      "target": 2, 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -868,7 +874,9 @@
           -0.0007625612394162303, 
           1.0
         ]
-      }
+      }, 
+      "target": 2, 
+      "op": "Donor"
     }, 
     {
       "ssim": 0.9598897451746461, 
@@ -880,7 +888,7 @@
       "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "selectmaskownership": "no", 
-      "local psnr": 3.1876244887399414, 
+      "softwareVersion": "2.4.13", 
       "source": 8, 
       "arguments": {
         "purpose": "add", 
@@ -890,14 +898,14 @@
         "mode": "Hue", 
         "subject": "man-made object"
       }, 
-      "username": "ericrobertson", 
+      "username": "dupre", 
       "description": "", 
-      "maskname": "orig_input_input_mod_1_mask.png", 
+      "change size category": "large", 
       "change size ratio": 0.03736888111888112, 
       "editable": "yes", 
       "softwareName": "OpenCV", 
       "target": 2, 
-      "change size category": "large", 
+      "maskname": "orig_input_input_mod_1_mask.png", 
       "psnr": 17.462520610238176, 
       "shape change": "(0, 0)", 
       "semanticGroups": [], 
@@ -923,11 +931,11 @@
           "RGB with Alpha"
         ]
       }, 
-      "softwareVersion": "2.4.13", 
+      "local psnr": 3.1876244887399414, 
       "op": "PasteSplice"
     }, 
     {
-      "username": "ericrobertson", 
+      "username": "dupre", 
       "maskname": "hat_hat_splice_mask.png", 
       "psnr": 1.9792876806804547, 
       "description": "", 
@@ -947,10 +955,9 @@
           "jpg", 
           "png"
         ], 
-        "MIME Type": [
-          "change", 
-          "image/jpeg", 
-          "image/png"
+        "Background Color": [
+          "add", 
+          "255 255 255"
         ], 
         "Bits Per Sample": [
           "delete", 
@@ -981,9 +988,10 @@
           "add", 
           "meters"
         ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
+        "MIME Type": [
+          "change", 
+          "image/jpeg", 
+          "image/png"
         ], 
         "Color Components": [
           "delete", 

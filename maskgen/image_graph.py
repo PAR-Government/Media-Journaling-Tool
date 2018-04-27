@@ -430,6 +430,28 @@ class ImageGraph:
                 self.remove_edge(d['start'], d['end'])
         self.U = []
 
+    def get_edge_image_file_time(self, start, end, path):
+        """
+        Get image name and file name for image given edge identified by start and end and the edge property path
+        :param start:
+        :param end:
+        :param path:
+        :return:
+        @type start: str
+        @type end: str
+        @type path: str
+        @rtype (ImageWrapper, str)
+        """
+        edge = self.get_edge(start, end)
+        values = getPathValues(edge, path)
+        if len(values) > 0:
+            value = values[0]
+            fullpath = os.path.abspath(os.path.join(self.dir, value))
+            if not os.path.exists(fullpath):
+                return 0
+            return os.stat(fullpath).st_mtime
+        return 0
+
     def get_edge_image(self, start, end, path, returnNoneOnMissing=False):
         """
         Get image name and file name for image given edge identified by start and end and the edge property path
@@ -448,7 +470,7 @@ class ImageGraph:
             value = values[0]
             fullpath = os.path.abspath(os.path.join(self.dir, value))
             if returnNoneOnMissing and not os.path.exists(fullpath):
-                return None, None
+                return None
             im = self.openImage(fullpath, mask=True)
             return im
         return None

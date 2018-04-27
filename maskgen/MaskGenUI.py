@@ -7,15 +7,18 @@
 # ==============================================================================
 
 import argparse
+
 import matplotlib
+
 matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
-from software_loader import  getProjectProperties,getSemanticGroups,operationVersion,getPropertiesBySourceType
+from software_loader import operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
-from maskgen.userinfo import get_username,setPwdX,CustomPwdX
+from maskgen.userinfo import setPwdX,CustomPwdX
 from description_dialog import *
+from loghandling import set_logging_level
 from group_filter import  GroupFilterLoader
 from tool_set import *
 from group_manager import GroupManagerDialog
@@ -23,7 +26,6 @@ from maskgen import maskGenPreferences
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
-from maskgen.validation.browser_api import ValidationAPI
 from validation.core import ValidationAPIComposite
 from mask_frames import HistoryDialog
 from plugin_builder import PluginBuilder
@@ -38,7 +40,9 @@ from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 import preferences_initializer
 from software_loader import getMetDataLoader
 from cachetools import LRUCache
+from ui.ui_tools import ProgressBar
 
+from QAExtreme import QAProjectDialog
 """
   Main UI Driver for MaskGen
 """
@@ -98,8 +102,9 @@ class UserPropertyChange(ProperyChangeAction):
         newName = newvalue.lower()
         setPwdX(CustomPwdX(newName))
         self.scModel.setProjectData('username', newName)
-        if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
-            self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
+        if oldvalue != newvalue:
+            if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
+                self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
 
 class MakeGenUI(Frame):
     prefLoader = maskGenPreferences
@@ -182,19 +187,23 @@ class MakeGenUI(Frame):
         self._setTitle()
         self.drawState()
         self.canvas.update()
-        if (self.scModel.start is not None):
+        if self.scModel.start is not None:
             self.setSelectState('normal')
-        #if operationVersion() not in self.scModel.getGraph().getDataItem('jt_upgrades'):
-            #tkMessageBox.showwarning("Warning", "Operation file is too old to handle project")
+        try:
+            export_info = self.validator.get_journal_exporttime(self.scModel.getName())
 
-        export_info = self.validator.get_journal_exporttime(self.scModel.getName())
+            if export_info is not None:
+                if self.scModel.getProjectData("exporttime") is None:
+                    tkMessageBox.showwarning("Journal Version Warning",
+                                             "This version of the journal was not exported. Please check the browser for the latest version.")
+                else:
+                    local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
+                    browser_journal = datetime.strptime(export_info, "%Y-%m-%d %H:%M:%S")
 
-        if export_info and self.scModel.getProjectData("exporttime") is not None:
-            local_journal = datetime.strptime(self.scModel.getProjectData("exporttime"), "%Y-%m-%d %H:%M:%S")
-            browser_journal = datetime.strptime(export_info, "%Y-%m-%d %H:%M:%S")
-
-            if local_journal < browser_journal:
-                tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+                    if local_journal < browser_journal:
+                        tkMessageBox.showwarning("Journal Version Warning", "The browser version of this journal is newer.")
+        except:
+            tkMessageBox.showwarning("Journal Version Warning", "Unable to contact browser to verify if browser has a newer version of the journal.")
 
     def open(self):
         val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select project file",
@@ -224,7 +233,8 @@ class MakeGenUI(Frame):
             self.updateFileTypes(val[0])
             try:
                 totalSet = sorted(val, key=lambda f: os.stat(os.path.join(f)).st_mtime)
-                self.canvas.addNew([self.scModel.addImage(f,cgi=cgi) for f in totalSet])
+                ids = [self.scModel.addImage(f,cgi=cgi) for f in totalSet]
+                self.canvas.select(ids[-1])
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
             except IOError as e:
                 tkMessageBox.showinfo("Error", "Failed to load image {}: {}".format(self.scModel.startImageName(),
@@ -264,6 +274,10 @@ class MakeGenUI(Frame):
     def recomputeallrmask(self):
         for edge_id in self.scModel.getGraph().get_edges():
             self.scModel.reproduceMask(edge_id=edge_id)
+
+    def fixit(self):
+        video_tools.fixVideoMasks(self.scModel.getGraph(),self.scModel.start,
+                                  self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end))
 
     def recomputeedgemask(self):
         analysis_params = {}
@@ -337,19 +351,23 @@ class MakeGenUI(Frame):
             if not tkMessageBox.askokcancel('Skipped Link Masks','Some link are missing edge masks and analysis. \n' +
                                                           'The link analysis will begin now and may take a while.'):
                 return False
-        errorList = self.scModel.validate(external=True)
+        errorList = self.scModel.validate(external=True,status_cb=self.progress_bar.postChange)
+        message = None
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionValidationListDialog(self, errorList, "Validation Errors")
             errorlistDialog.wait(self)
-            if not errorlistDialog.isok:
-                return
+            if errorlistDialog.errorMessagesIncomplete():
+                message = 'Validation Errors Exist'
+            if not errorlistDialog.isok or not errorlistDialog.autofixesComplete():
+                return False, message
         self.scModel.executeFinalNodeRules()
         processProjectProperties(self.scModel)
         self.getproperties()
-        return True
+        return True, message
 
     def export(self):
-        if not self._preexport():
+        status, message = self._preexport()
+        if not status:
             return
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
@@ -360,14 +378,15 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo("Export", "Complete")
 
     def exporttoS3(self):
-        if not self._preexport():
+        status, message = self._preexport()
+        if not status:
             return
         info = self.prefLoader.get_key('s3info')
         val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
                                        initialvalue=info if info is not None else '')
         if (val is not None and len(val) > 0):
             try:
-                errorList = self.scModel.exporttos3(val)
+                errorList = self.scModel.exporttos3(val,additional_message=message)
                 uploaded = self.prefLoader.get_key('lastlogupload')
                 uploaded = exportlogsto3(val,uploaded)
                 # preserve the file uploaded
@@ -397,8 +416,8 @@ class MakeGenUI(Frame):
                 return
         if len(pairs) == 0:
             tkMessageBox.showwarning("Warning", "Leaf image nodes with base JPEG or TIFF images do not exist in this project")
-        for pair in pairs:
-            self.canvas.add(pair[0], pair[1])
+        #for pair in pairs:
+        #    self.canvas.add(pair[0], pair[1])
         self.drawState()
 
 
@@ -512,7 +531,7 @@ class MakeGenUI(Frame):
                 ValidationListDialog(self,msgs,'Connect Errors')
             if status:
                 self.drawState()
-                self.canvas.add(self.scModel.start, self.scModel.end)
+                #self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nodeproxy(self):
@@ -550,7 +569,7 @@ class MakeGenUI(Frame):
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.connect(destination, mod=d.description)
             self.drawState()
-            self.canvas.add(self.scModel.start, self.scModel.end)
+            #self.canvas.add(self.scModel.start, self.scModel.end)
             self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def nextautofromfile(self):
@@ -568,7 +587,7 @@ class MakeGenUI(Frame):
                 ValidationListDialog(self,msgs,'Connect Errors')
             if status:
                 self.drawState()
-                self.canvas.add(self.scModel.start, self.scModel.end)
+                #self.canvas.add(self.scModel.start, self.scModel.end)
                 self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def resolvePluginValues(self, args):
@@ -652,26 +671,32 @@ class MakeGenUI(Frame):
     def drawState(self):
 
         start_cache_name = self.scModel.start if self.scModel.start else '#empty@'
-        sim = self.image_cache[start_cache_name] if start_cache_name in self.image_cache else \
-            fixTransparency(imageResizeRelative(self.scModel.startImage(), (250, 250), None)).toPIL()
+        sim,sim_time = self.image_cache[start_cache_name] if start_cache_name in self.image_cache else \
+            (fixTransparency(imageResizeRelative(self.scModel.startImage(), (250, 250), None)).toPIL(),0)
 
         end_cache_name = start_cache_name + '#end' if self.scModel.end is None else self.scModel.end
-        nim = self.image_cache[end_cache_name] if end_cache_name in self.image_cache else \
-            fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL()
+        nim,nim_time = self.image_cache[end_cache_name] if end_cache_name in self.image_cache else \
+            (fixTransparency(imageResizeRelative(self.scModel.nextImage(), (250, 250), None)).toPIL(),0)
 
         mask_cache_name = start_cache_name+ '#mask' if self.scModel.end is None else start_cache_name + self.scModel.end
+        mim_time = self.scModel.maskImageFileTime()
         if mask_cache_name in self.image_cache:
-            mim = self.image_cache[mask_cache_name]
+            mim,cache_mim_time = self.image_cache[mask_cache_name]
+            if cache_mim_time<mim_time:
+                im = self.scModel.maskImage()
+                mim = fixTransparency(
+                    imageResizeRelative(im, (250, 250), im.size if im is not None else sim.size)).toPIL()
         else:
             im = self.scModel.maskImage()
+            mim_time = self.scModel.maskImageFileTime()
             mim = fixTransparency(imageResizeRelative(im, (250, 250), im.size if im is not None else sim.size)).toPIL()
 
         self.img1 = ImageTk.PhotoImage(sim)
         self.img2 = ImageTk.PhotoImage(nim)
         self.img3 = ImageTk.PhotoImage(mim)
-        self.image_cache[mask_cache_name] = mim
-        self.image_cache[start_cache_name] = sim
-        self.image_cache[end_cache_name] = nim
+        self.image_cache[mask_cache_name] = (mim,mim_time)
+        self.image_cache[start_cache_name] = (sim,sim_time)
+        self.image_cache[end_cache_name] = (nim,nim_time)
         self.img1c.config(image=self.img1)
         self.img2c.config(image=self.img2)
         self.img3c.config(image=self.img3)
@@ -711,7 +736,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showwarning("S3 Download failure", str(e))
 
     def validate(self):
-        errorList = self.scModel.validate(external=True)
+        errorList = self.scModel.validate(external=True,status_cb=self.progress_bar.postChange)
         ValidationListDialog(self, errorList, "Validation Errors")
 
     def getsystemproperties(self):
@@ -779,6 +804,9 @@ class MakeGenUI(Frame):
 
     def compareto(self):
         self.canvas.compareto()
+
+    def invertinput(self):
+        self.scModel.invertInputMask()
 
     def viewcomposite(self):
         probes = self.scModel.constructPathProbes()
@@ -889,7 +917,7 @@ class MakeGenUI(Frame):
                     self.scModel.save()
                 except Exception as e:
                     logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
-        if eventType == 'export':
+        elif eventType == 'export':
             qacomment = self.scModel.getProjectData('qacomment')
             validation_person = self.scModel.getProjectData('validatedby')
             comment = 'Exported by ' + self.prefLoader.get_key('username')
@@ -902,8 +930,10 @@ class MakeGenUI(Frame):
                                                  self.scModel.getGraph().getCreator().lower(),
                                                  comment,
                                                  self.scModel.getGraph().get_project_type())
-        #        elif eventType == 'connect':
-        #           self.canvas.showEdge(recipient[0],recipient[1])
+        if eventType == 'connect':
+            self.canvas.add(recipient[0],recipient[1])
+        elif eventType == 'add':
+            self.canvas.addNew(recipient)
         return True
 
     def remove(self):
@@ -954,7 +984,7 @@ class MakeGenUI(Frame):
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
-        d = QAViewDialog(self)
+        d = QAProjectDialog(self)
 
     def comments(self):
         d = CommentViewer(self)
@@ -1117,6 +1147,8 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
+        self.edgemenu.add_command(label="Invert Input Mask", command=self.invertinput)
+        self.edgemenu.add_command(label="Fix It", command=self.fixit)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
@@ -1151,6 +1183,8 @@ class MakeGenUI(Frame):
         self.vscrollbar.config(command=self.canvas.yview)
         self.hscrollbar.config(command=self.canvas.xview)
         mframe.grid(row=3, column=0, rowspan=1, columnspan=3, sticky=N + S + E + W)
+        self.progress_bar = ProgressBar(self.master)
+        self.progress_bar.grid(row=4, column=0, columnspan=3, sticky=S + E + W)
 
         if (self.scModel.start is not None):
             self.setSelectState('normal')
@@ -1190,25 +1224,28 @@ class MakeGenUI(Frame):
         return types
 
     def getSystemPreferences(self):
-        props =  [ProjectProperty(name='username',
-                                  type=getMetDataLoader().getProperty('username').type,
-                                  description='User Name',
-                                  information='Journal User Name'),
-                ProjectProperty(name='organization', type='text',
-                                description='Organization',
-                                information="journal user's organization"),
-                ProjectProperty(name='apiurl', type='text',
-                                description="API URL",
-                                information='Validation API URL'),
-                ProjectProperty(name='apitoken', type='text',
-                                description="API Token",
-                                information = 'Validation API URL'),
-                  ProjectProperty(name='temp.dir',
-                                  type='folder:' + os.path.expanduser('~'),
-                                  description="Tempoary Directory for Export",
-                                  information='Tempoary Directory for Export')
+        props = [ProjectProperty(name='username',
+                                 type=getMetDataLoader().getProperty('username').type,
+                                 description='User Name',
+                                 information='Journal User Name'),
+                 ProjectProperty(name='organization', type='text',
+                                 description='Organization',
+                                 information="journal user's organization"),
+                 ProjectProperty(name='log.validation', type='yesno',
+                                 description="Log Validation Status",
+                                 information='Log Validation'),
+                 ProjectProperty(name='apiurl', type='text',
+                                 description="API URL",
+                                 information='Validation API URL'),
+                 ProjectProperty(name='apitoken', type='text',
+                                 description="API Token",
+                                 information='Validation API URL'),
+                 ProjectProperty(name='temp.dir',
+                                 type='folder:' + os.path.expanduser('~'),
+                                 description="Tempoary Directory for Export",
+                                 information='Tempoary Directory for Export')
 
-                ]
+                 ]
         for k, v in self.notifiers.get_properties().iteritems():
             props.append(ProjectProperty(name=k, type='text', description=k,
                                          information='notification property'))
@@ -1234,9 +1271,12 @@ class MakeGenUI(Frame):
     def initCheck(self):
         if self.prefLoader.get_key('username',None) is None:
             self.getsystemproperties()
-        sha, message =  UpdaterGitAPI().isOutdated()
-        if sha is not None:
-            tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+        try:
+            sha, message = UpdaterGitAPI().isOutdated()
+            if sha is not None:
+                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+        except:
+            tkMessageBox.showwarning('JT Update Status','Unable to verify latest version of JT due to connection error to GitHub. See logs for details')
         if self.startedWithNewProject:
             self.getproperties()
 
@@ -1282,6 +1322,7 @@ def main(argv=None):
     parser.add_argument('--test',action='store_true', help='For testing')
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
+    parser.add_argument('--debug', help="debug logging ",action='store_true')
     parser.add_argument('--http', help="http address and header params", nargs='+')
 
     imgdir = None
@@ -1303,6 +1344,8 @@ def main(argv=None):
         if not headless_systemcheck(prefLoader):
             sys.exit(1)
         return
+    if args.debug:
+        set_logging_level(logging.DEBUG)
     root = Tk()
     gui = MakeGenUI(imgdir, master=root,
                     base=args.base if args.base is not None else None, uiProfile=uiProfile)

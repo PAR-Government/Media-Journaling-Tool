@@ -1,0 +1,85 @@
+compute,-File:ImageHeight,#ComputeHeight
+database,-File:FileTypeExtension,JPG
+database,-ExifIFD:BrightnessValue,10.40286482
+database,-ExifIFD:ExifVersion,0221
+database,-XMP-mwg-rs:RegionAppliedToDimensionsUnit,pixel
+database,-ExifIFD:FNumber,2.2
+database,-ExifIFD:FlashpixVersion,0100
+database,-XMP-mwg-rs:RegionExtensionsAngleInfoYaw,0
+database,-ExifIFD:SceneType,1
+database,-ExifIFD:SubjectArea,971 1088 96 96
+database,-XMP-mwg-rs:RegionExtensionsConfidenceLevel,99
+database,-IFD0:ResolutionUnit,2
+database,-Composite:Megapixels,12.192768
+database,-IFD0:XResolution,72
+compute,-ExifIFD:ExposureTime,0.0007800312012
+database,-XMP-x:XMPToolkit,XMP Core 5.4.0
+database,-XMP-mwg-rs:RegionType,Face
+database,-ExifIFD:Flash,24
+database,-IFD1:ThumbnailOffset,2008
+compute,-ExifIFD:DateTimeOriginal,2015:12:10 12:58:24
+database,-Apple:AccelerationVector,-1.007140307 0.002726553109 -0.1407169609
+database,-File:BitsPerSample,8
+database,-ExifIFD:WhiteBalance,0
+database,-XMP-mwg-rs:RegionExtensionsAngleInfoRoll,0
+database,-IFD0:Model,iPhone 6s
+compute,-Apple:RunTimeEpoch,0
+database,-ExifIFD:ApertureValue,2.2000000590909
+database,-ExifIFD:ExposureMode,0
+database,-File:FileType,JPEG
+compute,-ExifIFD:ExifImageWidth,4032
+database,-ExifIFD:SensingMethod,2
+database,-IFD0:Software,9.2
+database,-File:MIMEType,image/jpeg
+database,-XMP-mwg-rs:RegionAreaW,0.024000
+database,-XMP-mwg-rs:RegionAreaX,0.245000
+database,-XMP-mwg-rs:RegionAreaY,0.351000
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:SceneCaptureType,0
+database,-File:ExifByteOrder,MM
+compute,-XMP-mwg-rs:RegionExtensionsTimeStamp,1790049712042
+database,-ExifIFD:ISO,25
+database,-XMP-mwg-rs:RegionAreaH,0.032000
+compute,-Apple:RunTimeValue,74585471384333
+compute,-Apple:RunTimeScale,1000000000
+database,-IFD0:Make,Apple
+database,-Composite:LightValue,14.5991875942075
+database,-XMP-mwg-rs:RegionExtensionsFaceID,4
+database,-Composite:CircleOfConfusion,0.00429972350378608
+database,-IFD0:YCbCrPositioning,1
+database,-Composite:FOV,63.6549469203797
+database,-ExifIFD:MeteringMode,5
+compute,-ExifIFD:SubSecTimeOriginal,486
+database,-ExifIFD:FocalLengthIn35mmFormat,29
+database,-ExifIFD:LensInfo,4.15 4.15 2.2 2.2
+compute,-ExifIFD:SubSecTimeDigitized,486
+compute,-File:ImageWidth,#ComputeWidth
+database,-Composite:ShutterSpeed,0.0007800312012
+compute,-Composite:SubSecDateTimeOriginal,2015:12:10 12:58:24.486
+database,-ExifIFD:ColorSpace,1
+database,-IFD1:ThumbnailImage,(Binary data 12929 bytes, use -b option to extract)
+database,-ExifIFD:FocalLength,4.15
+database,-XMP-mwg-rs:RegionAreaUnit,normalized
+database,-Composite:Aperture,2.2
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-File:YCbCrSubSampling,2 2
+compute,-Composite:RunTimeSincePowerUp,74585.471384333
+database,-System:FileSize,4556549
+database,-Composite:ScaleFactor35efl,6.98795180722891
+database,-Composite:HyperfocalDistance,1.8206773258829
+database,-ExifIFD:LensModel,iPhone 6s back camera 4.15mm f/2.2
+database,-File:EncodingProcess,0
+database,-XMP-mwg-rs:RegionAppliedToDimensionsW,4032
+compute,-ExifIFD:ExifImageHeight,3024
+database,-XMP-mwg-rs:RegionAppliedToDimensionsH,3024
+database,-ExifIFD:ExposureProgram,2
+compute,-Apple:RunTimeFlags,1
+database,-ExifIFD:LensMake,Apple
+database,-IFD0:YResolution,72
+database,-Composite:FocalLength35efl,29
+database,-File:ColorComponents,3
+database,-ExifIFD:ShutterSpeedValue,0.000780000376065818
+database,-ExifIFD:ExposureCompensation,0
+database,-IFD1:ThumbnailLength,12929
+database,-IFD1:Compression,6
+

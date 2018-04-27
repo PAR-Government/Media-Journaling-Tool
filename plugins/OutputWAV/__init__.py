@@ -11,7 +11,7 @@ def transform(img, source, target, **kwargs):
 
 
 def operation():
-    return {'name': 'OutputWAV',
+    return {'name': 'OutputAudioPCM',
             'category': 'Output',
             'description': 'Extract Audio Stream from Video',
             'software': 'ffmpeg',

@@ -63,6 +63,14 @@ class TestBatchProcess(TestSupport):
     def test_value_shortcut(self):
         self.assertEqual('foo', batch_project.executeParamSpec('test_value_spec', 'foo',
                                                                {}, {}, 'test_node', []))
+        self.assertEqual(1, batch_project.executeParamSpec('test_value_spec', {'type':'value','value':'{foo}','function':'numpy.int'},
+                                                               {'foo':1}, {}, 'test_node', []))
+        self.assertEqual(1, batch_project.executeParamSpec('test_value_spec',
+                                                           {'type': 'value', 'value': '{foo@nodex}', 'function': 'numpy.int'},
+                                                           {'foo': 2}, {'nodex':{'foo':1}}, 'test_node', []))
+        self.assertEqual('2,331.23', batch_project.executeParamSpec('test_value_spec',
+                                                           {'type': 'value', 'value': '{foo@nodex:,}'},
+                                                           {'foo': 2}, {'nodex': {'foo': 2331.23}}, 'test_node', []))
 
     def test_list_picker(self):
         manager = PermuteGroupManager()

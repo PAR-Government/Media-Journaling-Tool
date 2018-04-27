@@ -22,7 +22,6 @@
     {
       "op_type": "PluginOperation",
       "plugin": "OutputPNG",
-      "plugin": "OutputPNG",
       "picklist": "imageset",
       "id": "1",
       "arguments": {

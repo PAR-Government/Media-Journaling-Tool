@@ -1,33 +1,48 @@
 {
   "version": "0.4.1115.32eabae8e6",
   "operations": [
-     {
+    {
       "category": "Audio",
       "name": "AudioCopyAdd",
       "mandatoryparameters": {
-        "voice" : {
-            "type": "yesno",
-             "description": "Is the sample a voice."
+        "voice": {
+          "type": "yesno",
+          "description": "Is the sample a voice."
         },
-        "add type" : {
-            "type": "list",
-            "values" : ["replace", "overlay"],
-             "description": "Replacing or overlaying."
+        "add type": {
+          "type": "list",
+          "values": [
+            "replace",
+            "overlay"
+          ],
+          "description": "Replacing or overlaying."
         },
-        "synchronization" : {
-            "type": "list",
-            "values" : ["none", "spacing", "compressing"],
-             "description": "If additional track alignment changes occurred with the addition."
+        "synchronization": {
+          "type": "list",
+          "values": [
+            "none",
+            "spacing",
+            "compressing"
+          ],
+          "description": "If additional track alignment changes occurred with the addition."
         },
-        "Copy Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Copy Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
-        "Insertion Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Insertion Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
         "Copy Start Time": {
           "type": "time",
@@ -46,23 +61,30 @@
         "checkSameChannels",
         "checkUncompressed"
       ],
-      "maskTransformFunction": {"image": "maskgen.mask_rules.add_audio"},
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.add_audio"
+      },
       "optionalparameters": {
         "Copy End Time": {
           "type": "time",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
       },
       "analysisOperations": [],
       "description": "Copy audio stream(s) from one section of video to another (or one stream to the other)",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "transitions": [
         "video.video",
         "audio.audio"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
@@ -71,54 +93,76 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Copy Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Copy Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         }
       },
-      "rules": ["checkFrameTimes"],
+      "rules": [
+        "checkFrameTimes"
+      ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": ["checkFrameTimes","checkAudioChannels"],
+      "rules": [
+        "checkFrameTimes",
+        "checkAudioChannels"
+      ],
       "analysisOperations": [],
       "description": "Extract audio stream(s) from a video",
-      "generateMask" : "all",
+      "generateMask": "all",
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioSample"
+        "video_function": "maskgen.video_tools.audioSample"
       },
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.audio",
         "audio.audio",
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
       "category": "Audio",
       "name": "DeleteAudioSample",
       "mandatoryparameters": {
-       "Start Time": {
+        "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
-        "Type" : {
-          "type" : "list",
-          "values": ["splice", "interpolation", "other"],
-          "description" : "Type of deletion"
+        "Type": {
+          "type": "list",
+          "values": [
+            "splice",
+            "interpolation",
+            "other"
+          ],
+          "description": "Type of deletion"
         }
       },
       "rules": [
@@ -133,46 +177,65 @@
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "maskTransformFunction": {"image": "maskgen.mask_rules.delete_audio"},
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.delete_audio"
+      },
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
       "category": "Audio",
       "name": "AddAudioSample",
       "mandatoryparameters": {
-        "voice" : {
-            "type": "yesno",
-             "description": "Is the sample a voice."
+        "voice": {
+          "type": "yesno",
+          "description": "Is the sample a voice."
         },
-        "add type" : {
-            "type": "list",
-            "values" : ["replace", "overlay", "insert"],
-             "description": "Replacing or overlaying."
+        "add type": {
+          "type": "list",
+          "values": [
+            "replace",
+            "overlay",
+            "insert"
+          ],
+          "description": "Replacing or overlaying."
         },
-        "synchronization" : {
-            "type": "list",
-            "values" : ["none", "spacing", "compressing"],
-             "description": "If additional track alignment changes occurred with the addition."
+        "synchronization": {
+          "type": "list",
+          "values": [
+            "none",
+            "spacing",
+            "compressing"
+          ],
+          "description": "If additional track alignment changes occurred with the addition."
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
-        "Direct from PC" : {
-          "type" : "yesno",
-          "description" : "Is audio recorded into the video from PC rather than a separate audio file?"
+        "Direct from PC": {
+          "type": "yesno",
+          "description": "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
       "rules": [
@@ -186,8 +249,8 @@
         "checkChannelLoss"
       ],
       "maskTransformFunction": {
-        "video" : "maskgen.mask_rules.add_audio",
-        "audio" : "maskgen.mask_rules.add_audio"
+        "video": "maskgen.mask_rules.add_audio",
+        "audio": "maskgen.mask_rules.add_audio"
       },
       "optionalparameters": {
         "End Time": {
@@ -196,16 +259,21 @@
         }
       },
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioAddCompare"
+        "video_function": "maskgen.video_tools.audioAddCompare"
       },
       "analysisOperations": [],
       "description": "Adding a donor audio stream to a video",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "transitions": [
         "video.video",
         "audio.audio",
         "audio.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
@@ -214,12 +282,18 @@
       "mandatoryparameters": {
         "Effects Type": {
           "type": "list",
-          "values" : ["Flange", "Modulation", "Pitch", "Distortion", "Custom"],
+          "values": [
+            "Flange",
+            "Modulation",
+            "Pitch",
+            "Distortion",
+            "Custom"
+          ],
           "description": "Type of filter"
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -230,8 +304,8 @@
         "checkSameChannels",
         "checkUncompressed"
       ],
-      "parameter_dependencies" : {
-        "Effects Type" : {
+      "parameter_dependencies": {
+        "Effects Type": {
           "Custom": "Tool Name",
           "Distortion": "Distortion Type",
           "Pitch": "Frequency",
@@ -255,8 +329,14 @@
           "description": "MS"
         },
         "Distortion Type": {
-          "type" : "list",
-          "values": ["Harmonic", "Phase", "Frequency Response", "Amplitude", "Other"],
+          "type": "list",
+          "values": [
+            "Harmonic",
+            "Phase",
+            "Frequency Response",
+            "Amplitude",
+            "Other"
+          ],
           "description": "Distortion Type"
         },
         "Tool Name": {
@@ -275,10 +355,14 @@
           "type": "int[1:100]",
           "description": "Percent"
         },
-        "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
         "End Time": {
           "type": "time",
@@ -287,32 +371,46 @@
       },
       "analysisOperations": [],
       "description": "Apply an effect to audio stream",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
+        "video_function": "maskgen.video_tools.audioCompare"
       },
       "transitions": [
         "video.video",
         "audio.audio"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
       "category": "Audio",
       "name": "AudioFilter",
       "mandatoryparameters": {
-
         "Filter Type": {
           "type": "list",
-          "values" : ["high pass", "low pass", "EQ", "FFT", "Adaptive", "Spectral Subtraction","Frequency Stretch", "Ratio","Non Linearity"],
+          "values": [
+            "high pass",
+            "low pass",
+            "EQ",
+            "FFT",
+            "Adaptive",
+            "Spectral Subtraction",
+            "Frequency Stretch",
+            "Ratio",
+            "Non Linearity"
+          ],
           "description": "Type of filter"
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-         "Smoothing": {
+        "Smoothing": {
           "type": "yesno",
           "description": "If noise smoothing algorithms were applied"
         }
@@ -324,8 +422,8 @@
         "checkSameChannels",
         "checkUncompressed"
       ],
-      "parameter_dependencies" : {
-        "Filter Type" : {
+      "parameter_dependencies": {
+        "Filter Type": {
           "Ratio": "Ratio",
           "high pass": "Frequency",
           "low pass": "Frequency",
@@ -333,7 +431,7 @@
           "FFT": "Frequency",
           "Adaptive": "Frequency",
           "Spectral Subtraction": "Frequency",
-          "Frequency Stretch":"Frequency"
+          "Frequency Stretch": "Frequency"
         }
       },
       "optionalparameters": {
@@ -341,10 +439,14 @@
           "type": "int[0:10000000]",
           "description": "Frequency"
         },
-        "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
         "End Time": {
           "type": "time",
@@ -369,14 +471,19 @@
       },
       "analysisOperations": [],
       "description": "Apply filter to audio stream",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
+        "video_function": "maskgen.video_tools.audioCompare"
       },
       "transitions": [
         "video.video",
         "audio.audio"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
@@ -385,12 +492,18 @@
       "mandatoryparameters": {
         "PreGain": {
           "type": "int[-100000:100000]",
-          "defaultvalue":0,
+          "defaultvalue": 0,
           "description": "How much to raise or lower volume"
         },
         "Fading": {
           "type": "list",
-          "values" : ["fade in","fade out","both","cross", "none"],
+          "values": [
+            "fade in",
+            "fade out",
+            "both",
+            "cross",
+            "none"
+          ],
           "description": "Fading effect"
         },
         "Left Pan": {
@@ -403,7 +516,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -418,35 +531,48 @@
           "type": "int[-100000:100000]",
           "description": "Final fade level in Db, if applicable"
         },
-        "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
         "End Time": {
           "type": "time",
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "analysisOperations": [],
       "description": "Amplify Audio Signal",
-      "generateMask" : "all",
+      "generateMask": "all",
       "transitions": [
         "audio.audio",
         "video.video"
       ],
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
-      }
+        "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "qaList": [
+        "Time Stamps Ok?"
+      ]
     },
-     {
+    {
       "category": "Audio",
       "name": "AudioReverb",
       "mandatoryparameters": {
         "Room Size Change": {
           "type": "list",
-          "values" : ["small","medium","large"],
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
           "description": "How much change is being applied to the original signal"
         },
         "Damping": {
@@ -455,17 +581,26 @@
         },
         "Damping Filters": {
           "type": "list",
-          "values" : ["high","low","both","none"],
+          "values": [
+            "high",
+            "low",
+            "both",
+            "none"
+          ],
           "description": "Damping filters applied."
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Subtype": {
           "type": "list",
-          "values" : ["delay","reverb","echo"],
+          "values": [
+            "delay",
+            "reverb",
+            "echo"
+          ],
           "defaultvalue": "reverb",
           "description": "Damping filters applied."
         }
@@ -481,8 +616,8 @@
           "type": "int[0:1000000]",
           "description": "Milliseconds recording difference between signal and reverb"
         },
-        "Reverb Time" : {
-         "type": "int[-1000000:1000000]",
+        "Reverb Time": {
+          "type": "int[-1000000:1000000]",
           "description": "Milliseconds based on RT60 value."
         },
         "End Time": {
@@ -492,25 +627,30 @@
       },
       "analysisOperations": [],
       "description": "Add Reverb or Dampen an Audio Signal to alter the perception of the room size.",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "transitions": [
         "audio.audio",
         "video.video"
       ],
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
-      }
+        "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "qaList": [
+        "Time Stamps Ok?"
+      ]
     },
-     {
+    {
       "category": "Audio",
       "name": "AudioCompress",
       "mandatoryparameters": {
-         "Attack": {
+        "Attack": {
           "type": "float[0:100]",
           "description": "Length of time to react to reducing gain "
         },
-         "Release": {
+        "Release": {
           "type": "float[0:100]",
           "description": "Length of time to return to normal gain reduction"
         },
@@ -526,9 +666,9 @@
           "type": "int[0:100000]",
           "description": "How much to raise volume"
         },
-       "Start Time": {
+        "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -540,10 +680,14 @@
         "checkUncompressed"
       ],
       "optionalparameters": {
-         "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         },
         "End Time": {
           "type": "time",
@@ -552,38 +696,50 @@
       },
       "analysisOperations": [],
       "description": "Compress Audio Signal",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "transitions": [
         "audio.audio",
         "video.video"
       ],
-       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
-      }
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "qaList": [
+        "Time Stamps Ok?"
+      ]
     },
     {
       "category": "Audio",
       "name": "ReplaceAudioSample",
       "mandatoryparameters": {
-        "voice" : {
-            "type": "yesno",
-             "description": "Is the sample a voice."
+        "voice": {
+          "type": "yesno",
+          "description": "Is the sample a voice."
         },
-        "filter type" : {
-            "type": "list",
-            "values" : ["EQ Match", "Other"],
-             "description": "Replacing or overlaying."
+        "filter type": {
+          "type": "list",
+          "values": [
+            "EQ Match",
+            "Other"
+          ],
+          "description": "Replacing or overlaying."
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":"00:00:00",
+          "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
-        "Stream" : {
-          "type" : "list",
-          "values": ["left", "right", "all"],
-          "description" : "all includes mono and stereo, depending on available streams"
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
         }
       },
       "rules": [
@@ -601,26 +757,31 @@
         }
       },
       "maskTransformFunction": {
-          "audio": "maskgen.mask_rules.replace_audio",
-          "video": "maskgen.mask_rules.replace_audio"
+        "audio": "maskgen.mask_rules.replace_audio",
+        "video": "maskgen.mask_rules.replace_audio"
       },
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "transitions": [
         "video.video",
         "audio.audio"
       ],
       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
-      }
+        "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "qaList": [
+        "Time Stamps Ok?"
+      ]
     },
-     {
+    {
       "category": "AdditionalEffect",
       "name": "CameraMovement",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -649,11 +810,18 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Make it appear is if the camera is moving or not moving",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
@@ -687,11 +855,18 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Decrease opacity of an image or a layer.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
@@ -712,7 +887,7 @@
           "description": "Number of rectangular regions created in horizontal direction"
         },
         "Sharp Colors": {
-          "type" : "yesno",
+          "type": "yesno",
           "description": "Sharp colors"
         }
       },
@@ -732,19 +907,27 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Create a mosaic pattern and then reassemble",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
       "category": "AdditionalEffect",
       "name": "ReduceInterlaceFlicker",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -769,25 +952,40 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Smooth the artifacts resultant from interlacing.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
       "category": "Filter",
       "name": "AddNoise",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Noise Type": {
-          "type" : "list",
-          "values" : ["salt-pepper", "shot", "uniform", "random", "gaussian", "periodic", "other" ],
+          "type": "list",
+          "values": [
+            "salt-pepper",
+            "shot",
+            "uniform",
+            "random",
+            "gaussian",
+            "periodic",
+            "other"
+          ],
           "description": "The type of noise introduced"
         }
       },
@@ -812,27 +1010,46 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Add random variations of brightness or color information.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Is this a global change that does not need to be included in the composite mask?",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "Filter",
       "name": "Blur",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Blur Type": {
           "type": "list",
-          "values" : ["Smooth", "Wavelet Denoise",  "Median Smoothing", "Gaussian", "Radial", "Tilt Shift", "Motion", "Other", "Wiener"],
-          "description" : "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
+          "values": [
+            "Smooth",
+            "Wavelet Denoise",
+            "Median Smoothing",
+            "Gaussian",
+            "Radial",
+            "Tilt Shift",
+            "Motion",
+            "Other",
+            "Wiener"
+          ],
+          "description": "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
         },
         "Laundering": {
           "type": "yesno",
@@ -861,27 +1078,37 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Make details unclear or less distinct.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Is this a global change that does not need to be included in the composite mask?",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "AdditionalEffect",
       "name": "WarpStabilize",
       "mandatoryparameters": {
-         "result" : {
-           "type": "list",
-            "values": [
+        "result": {
+          "type": "list",
+          "values": [
             "smooth motion",
             "no motion"
-           ],
+          ],
           "description": "Smooth Motion = smoothed at a variable rate, preserving camera motion. No Motion = All motion has been removed in order to make a shot appear as though it was attached to a surface."
         },
-        "method" : {
+        "method": {
           "type": "list",
           "values": [
             "position",
@@ -892,7 +1119,7 @@
           ],
           "description": "Position = Stabilization is based on position data only and is the most basic way footage can be stabilized. Position, Scale and Rotation = Stabilization is based on manipulations to the frame that change the size, orientation, and location. Perspective  = Uses a type of stabilization in which the entire frame is effectively corner-pinned. If there are not enough areas to track, Warp Stabilizer chooses the previous type (Position, Scale, Rotation). Subspace Warp = Attempts to warp various parts of the frame differently to stabilize the entire frame. If there are not enough areas to track, Warp Stabilizer choose the previous type (Perspective)."
         },
-        "boarders" : {
+        "boarders": {
           "type": "list",
           "values": [
             "stablize only",
@@ -913,22 +1140,27 @@
         "checkEmpty"
       ],
       "optionalparameters": {},
-      "analysisOperations": [ ],
+      "analysisOperations": [],
       "description": "Distort and/or crop video layers in order to remove camera shake",
-      "includeInMask": {"default" : true},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
       "category": "Filter",
       "name": "Sharpening",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
-           "defaultValue":1,
+          "defaultValue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -954,29 +1186,41 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Enhance edge definition within an image.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Is this a global change that does not need to be included in the composite mask?",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "AdditionalEffect",
       "name": "AddTransitions",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": ["checkFrameTimes",
+      "rules": [
+        "checkFrameTimes",
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"],
+        "checkEmpty"
+      ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -985,9 +1229,14 @@
         }
       },
       "description": "Add a series of frame modifications that create a visual blend between two pieces of media",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Ok?"
       ]
     },
     {
@@ -1001,23 +1250,31 @@
       ],
       "optionalparameters": {
         "rotate": {
-          "type":"yesno",
+          "type": "yesno",
           "description": "Was video rotated"
         }
       },
-       "maskTransformFunction": {
-          "video": "maskgen.mask_rules.copy_exif"
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.copy_exif",
+        "image": "maskgen.mask_rules.exif_transform"
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Copy metadata information from a source.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Exif Changed?"
       ]
     },
-     {
+    {
       "category": "AntiForensic",
       "name": "AddCameraModel",
       "mandatoryparameters": {
@@ -1027,7 +1284,7 @@
         },
         "Camera Make": {
           "type": "text",
-          "value": "Make Name from Browser"
+          "description": "Make Name from Browser"
         }
       },
       "rules": [
@@ -1036,19 +1293,27 @@
       ],
       "optionalparameters": {
       },
-       "maskTransformFunction": {
-          "video": "maskgen.mask_rules.copy_exif"
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.copy_exif",
+        "image": "maskgen.mask_rules.exif_transform"
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Copy metadata information from a source.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "all",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "all",
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Exif Changed?"
       ]
     },
-        {
+    {
       "category": "AntiForensic",
       "name": "AntiForensicEditExif",
       "mandatoryparameters": {},
@@ -1059,7 +1324,9 @@
       ],
       "optionalparameters": {},
       "description": "Alter image metadata.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -1079,9 +1346,14 @@
       ],
       "optionalparameters": {},
       "description": "Use quantization tables and exif data from a particular camera to save an image as JPG.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Exif Changed?"
       ]
     },
     {
@@ -1094,9 +1366,14 @@
       ],
       "optionalparameters": {},
       "description": "Disguise quantization artifacts by adding noise.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Exif Changed?"
       ]
     },
     {
@@ -1114,10 +1391,19 @@
         "check_eight_bit"
       ],
       "optionalparameters": {},
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.copy_exif",
+        "image": "maskgen.mask_rules.exif_transform"
+      },
       "description": "Alter Image to be compliant with another images quantization and EXIF",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Exif Changed?"
       ]
     },
     {
@@ -1137,9 +1423,14 @@
         }
       },
       "description": "CFA Correction",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "CFA Applied?"
       ]
     },
     {
@@ -1163,7 +1454,9 @@
       ],
       "optionalparameters": {},
       "description": "Apply artificial lens distortion",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -1185,7 +1478,9 @@
         }
       },
       "description": "Add PRNU fingerprint trace from an image.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -1206,7 +1501,9 @@
         }
       },
       "description": "Remove PRNU fingerprint from image.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -1227,7 +1524,9 @@
       "optionalparameters": {
       },
       "description": "Add PRNU fingerprint trace, generated from a set of images.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -1247,7 +1546,9 @@
       ],
       "optionalparameters": {},
       "description": "Remove PRNU fingerprint trace, generated from a set of images from a camera.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -1264,7 +1565,9 @@
       ],
       "optionalparameters": {},
       "description": "Chromatic Aberration Correction",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image"
       ]
@@ -1273,7 +1576,7 @@
       "category": "CGI",
       "name": "ArtificialLighting",
       "mandatoryparameters": {
-            "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1302,19 +1605,28 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Add sources of illumination that were not originally present.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate. This operation is often associated with: Antiforensic Illumination, Shadow and Reflection Manipulations "
       ]
     },
     {
       "category": "CGI",
       "name": "ArtificialReflection",
       "mandatoryparameters": {
-          "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1335,25 +1647,33 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Add sources of reflection that were not originally present.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate. This operation is often associated with: Antiforensic Illumination and Reflection Manipulations"
       ]
     },
     {
       "category": "CGI",
       "name": "ArtificialShadow",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1375,31 +1695,39 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Add shadows that were not originally present.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate. This operation is often associated with: Antiforensic Illumination, Shadow and Manipulations "
       ]
     },
     {
       "category": "CGI",
       "name": "ObjectCGI",
       "mandatoryparameters": {
-         "urls": {
+        "urls": {
           "type": "urls",
           "description": "An image file containing the image used.  The unused portion of the image should be transparent with an alpha-channel"
         },
         "is3D": {
-          "type":"yesno",
-          "description":"Indicates if the CGI is a 3D model with light sources, etc."
+          "type": "yesno",
+          "description": "Indicates if the CGI is a 3D model with light sources, etc."
         },
         "Start Time": {
           "type": "time",
@@ -1423,18 +1751,27 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Create objects that were not originally present in an image.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Confirm URL(s) {urls} leads to the correct 3D model(s)"
       ]
     },
     {
@@ -1445,7 +1782,7 @@
           "type": "int[0:100]",
           "description": "Transparency level"
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1472,9 +1809,13 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Change the transparency of a given color overlay.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -1488,7 +1829,7 @@
           "type": "int[0:100]",
           "description": "Fill level--amount of blended into the layer"
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1516,33 +1857,65 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Change the fill using a solid color or gradient.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "If this operation follows a paste splice, the operations may be able to be consolidated into a paste splice operation with a blend option"
       ]
     },
     {
       "category": "Layer",
       "name": "Blend",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "mode": {
-           "type":"list",
-           "values" : ["Color Dodge","Color","Darken","Difference",
-              "Dissolve","Divide","Exclusion","Hard Light",
-             "Hard Mix","Hue","IntensityBurn","Lighten",
-              "Lighter Dodge","Linear Burn","Linear Dodge (add)","Linear Light",
-              "Luminosity","Multiply","Multiply","Pin Light","Saturation",
-              "Screen","Smudge","Soft Light","Subtract","Vivid Light"],
-           "description":"Blend Mode"
-         }
+          "type": "list",
+          "values": [
+            "Color Dodge",
+            "Color",
+            "Darken",
+            "Difference",
+            "Dissolve",
+            "Divide",
+            "Exclusion",
+            "Hard Light",
+            "Hard Mix",
+            "Hue",
+            "IntensityBurn",
+            "Lighten",
+            "Lighter Dodge",
+            "Linear Burn",
+            "Linear Dodge (add)",
+            "Linear Light",
+            "Luminosity",
+            "Multiply",
+            "Multiply",
+            "Pin Light",
+            "Saturation",
+            "Screen",
+            "Smudge",
+            "Soft Light",
+            "Subtract",
+            "Vivid Light"
+          ],
+          "description": "Blend Mode"
+        }
       },
       "rules": [
         "checkLengthSame",
@@ -1562,10 +1935,14 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
-      "includeInMask": {"default" : true},
-      "hidden" : false,
+      "includeInMask": {
+        "default": true
+      },
+      "hidden": false,
       "transitions": [
         "video.video"
       ]
@@ -1575,40 +1952,58 @@
       "name": "SocialMedia",
       "mandatoryparameters": {
         "type": {
-           "type":"list",
-           "values" : ["Facebook", "Instagram", "Youtube"],
-           "description":"Service"
-         },
-         "upload": {
-           "type":"list",
-           "values" : ["Mobile Device","Desktop"],
-           "description":"How was the image uploaded?"
-         },
+          "type": "list",
+          "values": [
+            "Facebook",
+            "Instagram",
+            "Youtube"
+          ],
+          "description": "Service"
+        },
+        "upload": {
+          "type": "list",
+          "values": [
+            "Mobile Device",
+            "Desktop"
+          ],
+          "description": "How was the image uploaded?"
+        },
         "download": {
-           "type":"list",
-           "values" : ["Mobile Device","Desktop"],
-           "description":"How was the image downloaded"
-         }
+          "type": "list",
+          "values": [
+            "Mobile Device",
+            "Desktop"
+          ],
+          "description": "How was the image downloaded"
+        }
       },
-      "compareparameters" : {
-        "function":"maskgen.tool_set.resizeCompare"
+      "compareparameters": {
+        "function": "maskgen.tool_set.resizeCompare"
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.resize_transform",
         "video": "maskgen.mask_rules.video_resize_transform"
-       },
-      "generateMask" : "meta",
+      },
+      "generateMask": "meta",
       "rules": [
         "checkSameChannels"
       ],
       "optionalparameters": {
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Laundering",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -1619,7 +2014,8 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }},
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1641,12 +2037,21 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Is this a global operation that does not need to be added to the composite mask"
       ]
     },
     {
@@ -1657,7 +2062,8 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }},
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -1683,27 +2089,40 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Changing color space or changing based on a lut.",
-     "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate. This operation is often associated with TimeOfDay"
       ]
     },
     {
       "category": "CGI",
       "name": "CGIFill",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Fill Category": {
           "type": "list",
-          "values" : ["uniform color", "pattern", "paint brush"],
-          "description":"Fill Operation"
+          "values": [
+            "uniform color",
+            "pattern",
+            "paint brush"
+          ],
+          "description": "Fill Operation"
         }
       },
       "rules": [
@@ -1729,67 +2148,89 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Uniformly alter the color of an image within a given selection.",
-      "includeInMask": {"default" : true},
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category":"CGI",
-      "name":"Synthesize",
-      "mandatoryparameters":{
-        "is3D": {
-          "type":"yesno",
-          "description":"Indicates if the CGI is a 3D model with light sources, etc."
-        },
-        "isGan": {
-          "type":"yesno",
-          "description":"Whether of not the image or video GAN generated"
-        }
+      "includeInMask": {
+        "default": true
       },
-      "optionalparameters":{
-        "urls": {
-          "type": "urls",
-          "description" : "CGI Object files"
-        },
-        "Recording Software": {
-          "type" : "text",
-          "description": "Name of software to recapture screen"
-        },
-        "KML File": {
-          "type" : "file:kml",
-          "description": "Name of KML File"
-        },
-        "Model File": {
-          "type" : "file:*",
-          "description" : "The model file of the GAN that made the file"
-        }
-      },
-      "includeInMask": {"default" : false},
       "transitions": [
         "image.image",
         "video.video"
       ],
-      "parameter_dependencies" : {
-        "isGan" : {"yes": "Model File"},
-        "isCGI" : {"yes": "urls"}
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
+      ]
+    },
+    {
+      "category": "CGI",
+      "name": "Synthesize",
+      "mandatoryparameters": {
+        "is3D": {
+          "type": "yesno",
+          "description": "Indicates if the CGI is a 3D model with light sources, etc."
+        },
+        "isGan": {
+          "type": "yesno",
+          "description": "Whether of not the image or video GAN generated"
+        }
       },
-      "rules" : [
+      "optionalparameters": {
+        "urls": {
+          "type": "urls",
+          "description": "CGI Object files"
+        },
+        "Recording Software": {
+          "type": "text",
+          "description": "Name of software to recapture screen"
+        },
+        "KML File": {
+          "type": "file:kml",
+          "description": "Name of KML File"
+        },
+        "Model File": {
+          "type": "file:*",
+          "description": "The model file of the GAN that made the file"
+        }
+      },
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "parameter_dependencies": {
+        "isGan": {
+          "yes": "Model File"
+        },
+        "isCGI": {
+          "yes": "urls"
+        }
+      },
+      "rules": [
         "checkSize",
         "checkFileTypeChange"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Confirm URL(s) {urls} leads to the correct 3D model(s)"
       ]
     },
     {
       "category": "Color",
       "name": "Hue",
       "mandatoryparameters": {
-        "Source" : {
+        "Source": {
           "type": "list",
-          "values" : ["self","other"],
-          "description":"source of color.  Other is some color palette or texture. Self is using a color from the same image."
+          "values": [
+            "self",
+            "other"
+          ],
+          "description": "source of color.  Other is some color palette or texture. Self is using a color from the same image."
         },
         "Start Time": {
           "type": "time",
@@ -1818,24 +2259,36 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Alter the color of a selection or image without adjusting saturation or luminance.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "Color",
       "name": "Saturation",
       "mandatoryparameters": {
-        "Direction" : {
-          "type":"list",
-          "values" : ["increase", "decrease"],
-          "description":"intent of saturation alteration"
+        "Direction": {
+          "type": "list",
+          "values": [
+            "increase",
+            "decrease"
+          ],
+          "description": "intent of saturation alteration"
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1862,12 +2315,21 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Alter the color intensity of a given hue.",
-     "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -1875,9 +2337,12 @@
       "name": "Vibrance",
       "mandatoryparameters": {
         "Direction": {
-          "type":"list",
-          "values": ["increase","decrease"],
-          "description" : "INcrease or decrease color vibrance"
+          "type": "list",
+          "values": [
+            "increase",
+            "decrease"
+          ],
+          "description": "Increase or decrease color vibrance"
         }
       },
       "rules": [
@@ -1895,19 +2360,27 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Visually change brightness and saturation",
-     "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "Filter",
       "name": "CreativeFilter",
       "mandatoryparameters": {
-
       },
       "rules": [
         "checkLengthSame",
@@ -1924,12 +2397,22 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Filter to alter visual impact of the image.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Could this operation be done in steps that more accurately describes the manipulation?"
       ]
     },
     {
@@ -1946,7 +2429,7 @@
           ],
           "description": "Purpose: remove an object, enlarge (extend), or healing using sampled pixels."
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1974,22 +2457,31 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
-      "compareparameters" : {
-         "tolerance" : 0.0001
+      "compareparameters": {
+        "tolerance": 0.0001
       },
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Verify that content aware fill was used and not paste sampled or content aware scale."
       ]
     },
     {
       "category": "CGI",
       "name": "Gradient",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2017,12 +2509,20 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Apply a donor adjustment within a selection with scaling intensities.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -2061,7 +2561,9 @@
           "type": "file:image",
           "source": "image",
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
-          "rule" : {"purpose": "clone"}
+          "rule": {
+            "purpose": "clone"
+          }
         },
         "End Time": {
           "type": "time",
@@ -2069,22 +2571,32 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.paste_sampled"
       },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "If this operation would better be represented by a paste splice, please make the appropriate changes",
+        "Input masks are only supported for clone type paste sampled. The clone input mask should be a rough but accurate selection of the donor pixels"
       ]
     },
     {
       "category": "Filter",
       "name": "FilterConvolutionKernel",
       "mandatoryparameters": {
-        "convolutionkernel":{
+        "convolutionkernel": {
           "type": "fileset:",
           "description": "Text file containing 3x3 or 5x5 convolution kernel, separated by spaces and/or newlines."
         }
@@ -2099,18 +2611,34 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-        "type":{
+        "type": {
           "type": "list",
-          "values": ["edge detection", "anti-alias", "sharpen", "unsharp masking", "blur", "gaussian blur", "other"],
+          "values": [
+            "edge detection",
+            "anti-alias",
+            "sharpen",
+            "unsharp masking",
+            "blur",
+            "gaussian blur",
+            "other"
+          ],
           "description": "Description of the desired effect of the kernel (e.g. anti-aliasing, blurring, etc.)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Convolve an image with a custom convolution kernel.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -2121,7 +2649,8 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }},
+        }
+      },
       "rules": [
         "checkSize",
         "checkLengthSame",
@@ -2143,11 +2672,19 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Modify an image or image selection to create the illusion of motion.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Mask Correct?",
+        "Time Stamps Correct?"
       ]
     },
     {
@@ -2172,12 +2709,23 @@
           "description": "XMP file recording meta-data."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Make edits to raw imagery in a raw processor.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "This operation includes the corresponding xmp file that details the changes if possible",
+        "This operation was used during output between a raw file and a png as an initial step to do custom raw image processing",
+        "This operation was used because it was impossible to break it up into other discrete steps."
       ]
     },
     {
@@ -2190,7 +2738,10 @@
       ],
       "optionalparameters": {},
       "description": "Remove a color from a layer of video.",
-      "includeInMask": {"default" : false, "video":false},
+      "includeInMask": {
+        "default": false,
+        "video": false
+      },
       "transitions": [
         "video.video"
       ]
@@ -2199,7 +2750,7 @@
       "category": "Intensity",
       "name": "Normalization",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2216,13 +2767,17 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-         "gamma": {
+        "gamma": {
           "type": "float[0:10]",
           "description": "Gamma Correction, if applicable"
         },
-         "selection type": {
+        "selection type": {
           "type": "list",
-          "values": ["auto","manual","NA"],
+          "values": [
+            "auto",
+            "manual",
+            "NA"
+          ],
           "description": "Gamma Correction, if applicable"
         },
         "End Time": {
@@ -2231,12 +2786,21 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Normalize using histograms.",
-    "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -2260,18 +2824,27 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-         "End Time": {
-           "type": "time",
-           "source": "video",
-           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-         }
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Shift luminance values on a histogram where higher values become higher and lower values become lower.",
-     "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -2302,24 +2875,37 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Shift luminance values on a histogram with an editable and flexible curve.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "Intensity",
       "name": "Exposure",
       "mandatoryparameters": {
-        "Direction" : {
+        "Direction": {
           "type": "list",
-          "values" : ["increase","decrease", "match to video frames"],
+          "values": [
+            "increase",
+            "decrease",
+            "match to video frames"
+          ],
           "description": "Shift midtone luminance in the desired direction"
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2340,19 +2926,28 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Shift all luminance values on a histogram to higher or lower values.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "Intensity",
       "name": "Levels",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2379,19 +2974,28 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Adjust brightness, contrast, and tonal range by specifying the location of complete black, complete white, and midtones in a histogram.",
-     "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "Intensity",
       "name": "Luminosity",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2418,19 +3022,28 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Alter the values of a luminance histogram.",
-      "includeInMask": {"default" : false, "video":true},
+      "includeInMask": {
+        "default": false,
+        "video": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
       "category": "CGI",
       "name": "DigitalPenDraw",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2455,12 +3068,20 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -2491,23 +3112,32 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Operation includes adding a pattern or 2d structure that is not a 3d model. All 3d models should be documented using the ObjectCGI operation"
       ]
     },
     {
       "category": "CGI",
       "name": "OverlayObject",
       "mandatoryparameters": {
-         "Start Time": {
-           "type": "time",
-           "source": "video",
-           "defaultvalue":1,
-           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "defaultvalue": 1,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -2529,19 +3159,28 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Add an object to another image or selection. Do not use a donor image.  Consider using ObjectCGI.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Operation includes adding a pattern or 2d structure that is not a 3d model. All 3d models should be documented using the ObjectCGI operation"
       ]
     },
     {
       "category": "CGI",
       "name": "OverlayText",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -2566,15 +3205,23 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Add text to an image or selection. Do not use a donor image.  Donor images must be inserted using a PasteSplice operation.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate. This operation is often associated with Date Burn-in"
       ]
     },
-     {
+    {
       "category": "Output",
       "name": "OutputCopy",
       "mandatoryparameters": {
@@ -2585,11 +3232,19 @@
       ],
       "optionalparameters": {
       },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.copy_transform"
+      },
       "description": "Export the image in the in the same format. Used to branch off a final image  node",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Confirm that no other manipulation was done other than creating a duplicate of the previous file"
       ]
     },
     {
@@ -2610,31 +3265,37 @@
           "description": "XMP file provided when exporting from a raw image."
         }
       },
-      "compareparameters" : {
-         "function" :"maskgen.tool_set.convertCompare"
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
       },
       "description": "Export the image in the bmp format.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
     },
-     {
+    {
       "category": "Output",
       "name": "OutputAudioPCM",
       "mandatoryparameters": {
-
       },
       "rules": [
-         "checkLengthSame"
+        "checkLengthSame"
       ],
-       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
       },
       "description": "Export the image in the PCM format (wave, aif, etc.).",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "audio.audio",
         "video.audio",
@@ -2647,15 +3308,17 @@
       "mandatoryparameters": {
       },
       "rules": [
-         "checkLengthSame"
+        "checkLengthSame"
       ],
-       "compareparameters": {
-          "video_function" :"maskgen.video_tools.audioCompare"
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
       },
       "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "audio.audio",
         "video.audio"
@@ -2670,7 +3333,9 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the DNG format.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -2688,8 +3353,13 @@
           "description": "XMP file provided when exporting from a raw image."
         }
       },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
       "description": "Export the image in the jpeg format.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -2704,7 +3374,7 @@
         }
       },
       "rules": [
-        "checkSizeAndExif",
+        "checkSizeAndExifPNG",
         "rotationCheck"
       ],
       "optionalparameters": {
@@ -2713,13 +3383,22 @@
           "description": "XMP file provided when exporting from a raw image."
         }
       },
-       "compareparameters" : {
-         "function" :"maskgen.tool_set.convertCompare"
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
       },
       "description": "Export the image in the png format.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Confirm that the file was transformed into a png",
+        "The file was compressed in a lossless fashion"
       ]
     },
     {
@@ -2736,7 +3415,9 @@
       "optionalparameters": {
       },
       "description": "Export the image in the PDF format.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -2754,17 +3435,22 @@
         "checkSizeAndExif",
         "rotationCheck"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
       "optionalparameters": {
         "XMP File Name": {
           "type": "file:xmp",
           "description": "XMP file provided when exporting from a raw image."
         }
       },
-       "compareparameters" : {
-         "function" :"maskgen.tool_set.convertCompare"
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
       },
       "description": "Export the image in the tif format.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -2799,8 +3485,10 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "meta",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "meta",
       "transitions": [
         "video.video"
       ]
@@ -2835,8 +3523,10 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "meta",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "meta",
       "transitions": [
         "video.video"
       ]
@@ -2871,8 +3561,10 @@
       ],
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "meta",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "meta",
       "transitions": [
         "video.video",
         "image.video"
@@ -2888,7 +3580,7 @@
       "optionalparameters": {},
       "description": "Export the image to lossless format.",
       "includeInMask": false,
-      "generateMask" : "meta",
+      "generateMask": "meta",
       "transitions": [
         "video.video",
         "audio.audio"
@@ -2933,8 +3625,10 @@
         "image": "maskgen.mask_rules.image_to_video"
       },
       "description": "Export the image in the AVI format.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "meta",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "meta",
       "transitions": [
         "video.video",
         "image.video",
@@ -2991,21 +3685,58 @@
       ],
       "optionalparameters": {
         "mode": {
-           "type":"list",
-           "values" : ["Color Dodge","Color","Darken","Difference","Dissolve","Divide","Exclusion","Hard Light","Hard Mix","Hue","IntensityBurn","Lighten","Lighter Dodge","Linear Burn",
-             "Linear Dodge (add)","Linear Light","Luminosity","Multiply","Opacity","Overlay","Pin Light","Saturation","Screen","Soft Light","Subtract","Vivid Light" ],
-           "description":"Blend Mode",
-           "rule" : {"purpose": "blend"}
-         }
+          "type": "list",
+          "values": [
+            "Color Dodge",
+            "Color",
+            "Darken",
+            "Difference",
+            "Dissolve",
+            "Divide",
+            "Exclusion",
+            "Hard Light",
+            "Hard Mix",
+            "Hue",
+            "IntensityBurn",
+            "Lighten",
+            "Lighter Dodge",
+            "Linear Burn",
+            "Linear Dodge (add)",
+            "Linear Light",
+            "Luminosity",
+            "Multiply",
+            "Opacity",
+            "Overlay",
+            "Pin Light",
+            "Saturation",
+            "Screen",
+            "Soft Light",
+            "Subtract",
+            "Vivid Light"
+          ],
+          "description": "Blend Mode",
+          "rule": {
+            "purpose": "blend"
+          }
+        }
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.paste_splice"
       },
-      "analysisOperations": [ "maskgen.tool_set.localTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
       "description": "Paste a region of an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Does the highlighted area represent the final size, placement and cropping of the pasted object?",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
@@ -3013,8 +3744,11 @@
       "name": "PasteFrames",
       "mandatoryparameters": {
         "add type": {
-          "type" : "list",
-          "values" :["insert","replace"],
+          "type": "list",
+          "values": [
+            "insert",
+            "replace"
+          ],
           "description": "Replacement does not have to be the same size."
         },
         "Start Time": {
@@ -3036,14 +3770,22 @@
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }},
-      "compareparameters" : {
-         "video_function": "maskgen.video_tools.pasteCompare"
+        }
+      },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.pasteCompare"
       },
       "description": "Adding a series of frames from a video clip",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Time Stamps Correct?"
       ]
     },
     {
@@ -3052,16 +3794,16 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
-          "defaultvalue":1,
+          "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "motion mapping": {
-           "type": "yesno",
-           "description": "Is motion mapping used?"
-         },
-        "purpose" : {
-          "type" : "list",
-           "values": [
+          "type": "yesno",
+          "description": "Is motion mapping used?"
+        },
+        "purpose": {
+          "type": "list",
+          "values": [
             "remove",
             "add"
           ],
@@ -3086,10 +3828,17 @@
         }
       },
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
-      "includeInMask": {"default" : true},
-      "generateMask":"all",
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Time Stamps Correct?"
       ]
     },
     {
@@ -3100,19 +3849,19 @@
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
-         "subject": {
-           "type": "list",
-           "values": [
-             "people",
-             "face",
-             "natural object",
-             "man-made object",
-             "large man-made object",
-             "landscape",
-             "other"
-           ],
-           "description": "Subject catgeory pasted to image"
-         },
+        "subject": {
+          "type": "list",
+          "values": [
+            "people",
+            "face",
+            "natural object",
+            "man-made object",
+            "large man-made object",
+            "landscape",
+            "other"
+          ],
+          "description": "Subject catgeory pasted to image"
+        },
         "motion mapping": {
           "type": "yesno",
           "description": "Is motion mapping used?"
@@ -3145,12 +3894,18 @@
       },
       "analysisOperations": [],
       "description": "Paste into a series of frames an image spliced from another image.  The other image is a Donor image.  The donor image should first be prepared by using an alpha channel to exclude the unselected regions of the image.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Does the mask reflect the image pasted into one frame?",
+        "Inspected the change masks on the link."
       ]
     },
-      {
+    {
       "category": "Paste",
       "name": "CopyPaste",
       "mandatoryparameters": {
@@ -3159,10 +3914,10 @@
           "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
-         "type": "int[0:1000000]",
+          "type": "int[0:1000000]",
           "description": "Numbers of frames copy/pasted"
         },
-         "Dest Paste Time": {
+        "Dest Paste Time": {
           "type": "time",
           "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or frame number)"
         }
@@ -3172,14 +3927,19 @@
         "checkSameChannels",
         "checkEmpty"
       ],
-        "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.copy_paste_frames"
       },
       "optionalparameters": {},
       "description": "Copy & Paste a series of frames within the same video",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Correct?"
       ]
     },
     {
@@ -3191,7 +3951,7 @@
           "description": "Start time of the cut video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
-         "type": "int[0:1000000]",
+          "type": "int[0:1000000]",
           "description": "Numbers of frames cut/pasted"
         },
         "Dest Paste Time": {
@@ -3205,9 +3965,14 @@
       ],
       "optionalparameters": {},
       "description": "Cut & Paste a series of frames within the same video",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Correct?"
       ]
     },
     {
@@ -3220,7 +3985,9 @@
       ],
       "optionalparameters": {},
       "description": "Alter the metadata in order that when the image is displayed it changes the presentation orientation.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image"
       ]
@@ -3298,7 +4065,9 @@
         "image": "maskgen.mask_rules.recapture_transform"
       },
       "description": "Recapture an image through a digital photo of a picture or screen shot.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3308,7 +4077,7 @@
       "category": "Select",
       "name": "SelectRegion",
       "mandatoryparameters": {
-         "subject": {
+        "subject": {
           "type": "list",
           "values": [
             "people",
@@ -3321,10 +4090,11 @@
           ],
           "description": "Subject catgeory selected to image"
         },
-         "location change": {
+        "location change": {
           "type": "list",
           "values": [
-            "yes","no"
+            "yes",
+            "no"
           ],
           "description": "Did the selected region relocate in the image?"
         }
@@ -3341,47 +4111,59 @@
         }
       },
       "analysisOperations": [
-         "maskgen.tool_set.optionalSiftAnalysis"
+        "maskgen.tool_set.optionalSiftAnalysis"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.select_region"
       },
       "description": "Create a limited selection in a donor image.  The result should be preserved in PNG.  Best practice involves using an alpha channel to mask out unselected regions.  The image can then be spliced into a series if frames.",
-      "includeInMask": {"default" : false},
-      "compareparameters" : {
-         "convert_function" :"maskgen.tool_set.extractAlpha"
+      "includeInMask": {
+        "default": false
+      },
+      "compareparameters": {
+        "convert_function": "maskgen.tool_set.extractAlpha"
       },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Is the selected region as accurate as possible so that it will represent the area of pixels that will be used in the manipulation."
       ]
     },
     {
       "category": "Select",
       "name": "SelectRegionFromFrames",
-      "mandatoryparameters": { "Start Time": {
+      "mandatoryparameters": {
+        "Start Time": {
           "type": "time",
-           "defaultvalue":1,
+          "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": ["checkFrameTimes",
+      "rules": [
+        "checkFrameTimes",
         "checkSameChannels",
-        "checkEmpty"],
+        "checkEmpty"
+      ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
-        "key insertion" :{
-           "type" : "yesno",
-           "description": "Was a chroma or luminance key inserted into the video?"
+        "key insertion": {
+          "type": "yesno",
+          "description": "Was a chroma or luminance key inserted into the video?"
         }
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.select_region_frames"
       },
       "description": "Create a limited selection,removing background,from a donor video,for the intent of pasting.  The result should be a black back ground for non-keyed manipulations.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "video.video"
       ]
@@ -3407,15 +4189,19 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "compareparameters" : {
-         "video_function" :"maskgen.video_tools.cutCompare"
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.cutCompare"
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_cut_frames",
+        "audio_preprocess": "maskgen.mask_rules.select_cut_frames_preprocess",
+        "video_preprocess": "maskgen.mask_rules.select_cut_frames_preprocess",
         "audio": "maskgen.mask_rules.delete_audio"
       },
       "description": "Remove a series of frames from a video clip.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "video.video"
       ]
@@ -3437,23 +4223,30 @@
       "optionalparameters": {
       },
       "description": "Remove any frames that are near duplicates of the previous frame.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "video.video"
+      ],
+      "qaList": [
+        "Time Stamps Correct?"
       ]
     },
     {
       "category": "Select",
       "name": "SelectCropFrames",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
-        "checkLengthSmaller","checkFrameTimes",
-        "checkSameChannels","checkCropLength"
+        "checkLengthSmaller",
+        "checkFrameTimes",
+        "checkSameChannels",
+        "checkCropLength"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3462,7 +4255,9 @@
         }
       },
       "description": "Remove all frames before and after the selected video clip.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "generateMask": "frames",
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.select_crop_frames"
@@ -3490,9 +4285,15 @@
         "image": "maskgen.mask_rules.select_remove"
       },
       "description": "Remove a limited selection within an image.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Confirm that this step was necessary and could not be included in the paste splice operation or by recreating previous steps with the final placement of pixels"
       ]
     },
     {
@@ -3509,7 +4310,9 @@
       "optionalparameters": {
       },
       "description": "Select a single frame into an image.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "video.image"
       ]
@@ -3534,9 +4337,10 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "analysisOperations": [ ""],
       "description": "Stitching video frames together to form a comprehensive view of the scene.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "video.image"
       ]
@@ -3563,12 +4367,13 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":1,
+          "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
-        "checkLengthSame","checkFrameTimes",
+        "checkLengthSame",
+        "checkFrameTimes",
         "checkSameChannels"
       ],
       "optionalparameters": {
@@ -3578,7 +4383,9 @@
         }
       },
       "description": "Duplicate video frames and replay them at a delay to create a trail.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "video.video"
       ]
@@ -3593,7 +4400,8 @@
         }
       },
       "rules": [
-        "checkLengthSame","checkFrameTimes",
+        "checkLengthSame",
+        "checkFrameTimes",
         "checkSameChannels"
       ],
       "optionalparameters": {
@@ -3607,8 +4415,10 @@
         }
       },
       "description": "Lock a layer to a specific frame rate.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video"
       ]
@@ -3657,8 +4467,10 @@
         }
       },
       "description": "Calculate the color difference between two layers as a useful aid in color correction",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video"
       ]
@@ -3677,7 +4489,8 @@
         }
       },
       "rules": [
-        "checkLengthSame","checkFrameTimes",
+        "checkLengthSame",
+        "checkFrameTimes",
         "checkSameChannels"
       ],
       "optionalparameters": {
@@ -3691,8 +4504,10 @@
         }
       },
       "description": "Distorts the image by shifting pixels across time.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video"
       ]
@@ -3712,7 +4527,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue":1,
+          "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Vector Detail": {
@@ -3720,8 +4535,10 @@
           "description": "Determine how many motion vectors are used during interpolation. The more vectors used, the longer the rendering time. A value of 100 produces one vector per pixel."
         }
       },
-      "rules": ["checkFrameTimes",
-        "checkSameChannels"],
+      "rules": [
+        "checkFrameTimes",
+        "checkSameChannels"
+      ],
       "optionalparameters": {
         "Smoothing": {
           "type": "list",
@@ -3746,10 +4563,12 @@
         }
       },
       "description": "Alter frame rate and frame blending to change playback rate. Vector Detail is a integer that determines how many motion vectors are used during interpolation. Methods include 'Whole Frames', 'Frame Mix' and 'Pixel Motion'. Adjust Time By controls is a percentage of reduction.",
-      "includeInMask": {"default" : true},
-      "generateMask" : "all",
-       "compareparameters" : {
-         "video_function" :"maskgen.video_tools.warpCompare"
+      "includeInMask": {
+        "default": true
+      },
+      "generateMask": "all",
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.warpCompare"
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.time_warp_frames",
@@ -3759,11 +4578,11 @@
         "video.video"
       ]
     },
-     {
+    {
       "category": "Transform",
       "name": "ImageInterpolation",
       "mandatoryparameters": {
-          "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3790,9 +4609,13 @@
           "description": "An image file containing a mask describing the areas affected."
         }
       },
-      "analysisOperations": [ "maskgen.tool_set.globalTransformAnalysis"],
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
       "description": "Replace large selections with an averaging of surrounding pixel groups.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3802,7 +4625,7 @@
       "category": "Transform",
       "name": "TransformAffine",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3821,20 +4644,20 @@
         "homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3843,8 +4666,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.affine_transform"
+      },
       "description": "Apply a linear mapping method that preserves points, straight lines, and planes",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3854,7 +4682,7 @@
       "category": "Transform",
       "name": "TransformContentAwareScale",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3873,16 +4701,16 @@
         "homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "None",
-             "Map",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "None",
+            "Map",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
         "composite homography": {
           "type": "list",
@@ -3893,11 +4721,11 @@
           ],
           "description": "Use a single transform or one per probe mask component"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3906,9 +4734,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
-      "maskTransformFunction": {"image": "maskgen.mask_rules.cas_transform"},
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.cas_transform"
+      },
       "description": "Resize an image without changing important visual content.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3930,19 +4762,21 @@
           "description": "Tuple in form of (x,y) describing the upper left crop corner."
         }
       },
-      "compareparameters" : {
-         "function" :"maskgen.tool_set.cropCompare",
-         "video_function": "maskgen.video_tools.cropCompare"
+      "compareparameters": {
+        "function": "maskgen.tool_set.cropCompare",
+        "video_function": "maskgen.video_tools.cropCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Removing edge content from an image. For video, remove data from certain areas of the frame.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.crop_transform",
-        "video":"maskgen.mask_rules.video_crop_transform"
+        "video": "maskgen.mask_rules.video_crop_transform"
       },
       "transitions": [
         "image.image",
@@ -3953,7 +4787,7 @@
       "category": "Transform",
       "name": "TransformDistort",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3976,20 +4810,20 @@
         "homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3998,8 +4832,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.distort_transform"
+      },
       "description": "Alter the shape and dimensions of a given selection or image.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -4032,7 +4871,7 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4042,11 +4881,14 @@
         "maskgen.tool_set.globalTransformAnalysis"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.video_flip_transform"
+        "video": "maskgen.mask_rules.video_flip_transform",
+        "image": "maskgen.mask_rules.flip_transform"
       },
       "description": "Reverse pixel coordinates of an image or selection along a vertical or horizontal axis.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "image.image",
         "video.video"
@@ -4056,11 +4898,11 @@
       "category": "Transform",
       "name": "TransformMove",
       "mandatoryparameters": {
-      "inputmaskname": {
+        "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the component that was moved. "
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4076,31 +4918,34 @@
         "checkMoveMask"
       ],
       "optionalparameters": {
-
         "homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "None",
-             "Map",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "None",
+            "Map",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
         "use input mask for composites": {
-          "type":"list",
-          "values":["JT decides", "yes", "no"],
-          "description" : "Override JT decision to use the input mask in composite generation"
+          "type": "list",
+          "values": [
+            "JT decides",
+            "yes",
+            "no"
+          ],
+          "description": "Override JT decision to use the input mask in composite generation"
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4109,9 +4954,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftWithInputAnalysis"
       ],
-      "maskTransformFunction": {"image": "maskgen.mask_rules.move_transform"},
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.move_transform"
+      },
       "description": "Reposition a selection within a larger composition.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -4121,22 +4970,22 @@
       "category": "Transform",
       "name": "TransformResize",
       "mandatoryparameters": {
-          "interpolation": {
+        "interpolation": {
           "type": "list",
           "source": "image",
           "values": [
-             "none-canvas expanded",
-             "bicubic",
-             "bilinear",
-             "cubic",
-             "mesh",
-             "lanczos",
-             "nearest",
-             "other"
+            "none-canvas expanded",
+            "bicubic",
+            "bilinear",
+            "cubic",
+            "mesh",
+            "lanczos",
+            "nearest",
+            "other"
           ],
           "description": "Interpolation is used to resize entire composite images. 'none' indicates a localized change; SIFT is used"
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4150,7 +4999,7 @@
         "checkFrameTimeAlignment"
       ],
       "optionalparameters": {
-         "inputmaskname": {
+        "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask of the component that was moved"
         },
@@ -4158,18 +5007,18 @@
           "type": "list",
           "source": "image",
           "values": [
-             "None",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "analysisOperations": [
@@ -4178,13 +5027,15 @@
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.resize_transform",
         "video": "maskgen.mask_rules.video_resize_transform"
-       },
-       "compareparameters" : {
-        "function":"maskgen.tool_set.resizeCompare"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.resizeCompare"
       },
       "description": "Alter the dimensions of an image.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "image.image"
       ]
@@ -4199,9 +5050,9 @@
         },
         "local": {
           "type": "yesno",
-          "description": "Rotate entire image or a local selection"
+          "description": "Rotate entire image or a local selection.  Use 'yes' if global but masks in QA created through the rotation are incorrect."
         },
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4218,20 +5069,20 @@
           "type": "list",
           "source": "image",
           "values": [
-             "None",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4241,13 +5092,15 @@
         "maskgen.tool_set.rotateSiftAnalysis"
       ],
       "description": "Alter the angle of display for an image or layer.  The image dimensions may resized to accomodate the rotation.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.rotate_transform",
         "video": "maskgen.mask_rules.video_rotate_transform"
       },
-      "compareparameters" : {
-         "function" :"maskgen.tool_set.rotateCompare"
+      "compareparameters": {
+        "function": "maskgen.tool_set.rotateCompare"
       },
       "transitions": [
         "image.image",
@@ -4258,7 +5111,7 @@
       "category": "Transform",
       "name": "TransformScale",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4277,21 +5130,21 @@
         "homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "None",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4300,8 +5153,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.scale_transform"
+      },
       "description": "Change the size of an image or layer while preserving dimensions.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -4320,23 +5178,23 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-         "inputmaskname": {
+        "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing preserved and sliced areas"
         },
         "homography": {
           "type": "list",
           "source": "image",
-           "values": [
-             "None",
-             "Map",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform during composite mask generation"
+          "values": [
+            "None",
+            "Map",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform during composite mask generation"
         },
         "composite homography": {
           "type": "list",
@@ -4347,47 +5205,54 @@
           ],
           "description": "Use a single transform or one per probe mask component"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-        "row adjuster" : {
-           "type": "file:image",
-           "description": "An 16 unsigned bit mapping indices image file directing the change in pixels row from space to another"
+        "row adjuster": {
+          "type": "file:image",
+          "description": "An 16 unsigned bit mapping indices image file directing the change in pixels row from space to another"
         },
-        "column adjuster" : {
-           "type": "file:image",
-           "description": "An 16 unsigned bit mapping indices image file directing the change in pixels column from space to another"
+        "column adjuster": {
+          "type": "file:image",
+          "description": "An 16 unsigned bit mapping indices image file directing the change in pixels column from space to another"
         },
         "neighbor mask": {
-            "type": "file:image",
-            "use as composite": true,
-            "description": "A 8 unsigned but image file indicating which pixels in the resulting image  had neighbors removed or added"
+          "type": "file:image",
+          "use as composite": true,
+          "description": "A 8 unsigned but image file indicating which pixels in the resulting image  had neighbors removed or added"
         },
         "plugin mask": {
-             "type": "file:image",
-            "description": "A 8 unsigned but image file indicating which pixels in the source image were removed"
+          "type": "file:image",
+          "description": "A 8 unsigned but image file indicating which pixels in the source image were removed"
         }
       },
-      "compareparameters" : {
-         "function" :"maskgen.algorithms.seam_carving.seamCompare"
+      "compareparameters": {
+        "function": "maskgen.algorithms.seam_carving.seamCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.seamAnalysis"
       ],
-      "maskTransformFunction": {"image": "maskgen.mask_rules.seam_transform"},
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.seam_transform"
+      },
       "description": "Resize an image while preserving the integrity of content.",
-      "includeInMask": {"default" : true},
+      "includeInMask": {
+        "default": true
+      },
       "transitions": [
         "image.image",
         "video.video"
+      ],
+      "qaList": [
+        "Seams represent neighbors of pixels removed?"
       ]
     },
     {
       "category": "Transform",
       "name": "TransformShear",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4407,21 +5272,21 @@
         "homography": {
           "type": "list",
           "source": "image",
-         "values": [
-             "None",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4430,8 +5295,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.shear_transform"
+      },
       "description": "Warp the shape of an object or a selection with anchored endpoints.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -4441,7 +5311,7 @@
       "category": "Transform",
       "name": "TransformSkew",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4463,20 +5333,20 @@
           "type": "list",
           "source": "image",
           "values": [
-             "None",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4485,8 +5355,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.skew_transform"
+      },
       "description": "Alter the shape or dimensions of a given selection or image along their respective vertices.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -4496,7 +5371,7 @@
       "category": "Transform",
       "name": "TransformWarp",
       "mandatoryparameters": {
-         "Start Time": {
+        "Start Time": {
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4515,26 +5390,26 @@
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },
-         "homography": {
+        "homography": {
           "type": "list",
           "source": "image",
           "values": [
-             "None",
-             "Map",
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5",
-             "RANSAC-6"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+            "None",
+            "Map",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5",
+            "RANSAC-6"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         },
-         "End Time": {
+        "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
@@ -4543,9 +5418,13 @@
       "analysisOperations": [
         "maskgen.tool_set.forcedSiftAnalysis"
       ],
-      "maskTransformFunction": {"image": "maskgen.mask_rules.warp_transform"},
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.warp_transform"
+      },
       "description": "Freely alter the shape or dimensions of a given selection or image.",
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -4560,20 +5439,21 @@
           "description": "Format widthxheight:  1280x960"
         },
         "pixel aspect": {
-           "type": "list",
-           "source": "video",
-           "values": [
-             "No Change",
-             "Square Pixels (1.0)",
-             "D1/DV NTSC (0.9091)",
-             "D1/DV NTSC Widescreen 16:9 (1.2121)",
-             "D1/DV PAL (1.0940)",
-             "D1/DV PAL Widescreen 16:9 (1.4587)",
-             "Anamorphic 2:1 (2.0)",
-             "HD Anamorphic 1080 (1.333)",
-             "DVCPRO HD (1.5)",
-             "Custom"],
-           "description": "."
+          "type": "list",
+          "source": "video",
+          "values": [
+            "No Change",
+            "Square Pixels (1.0)",
+            "D1/DV NTSC (0.9091)",
+            "D1/DV NTSC Widescreen 16:9 (1.2121)",
+            "D1/DV PAL (1.0940)",
+            "D1/DV PAL Widescreen 16:9 (1.4587)",
+            "Anamorphic 2:1 (2.0)",
+            "HD Anamorphic 1080 (1.333)",
+            "DVCPRO HD (1.5)",
+            "Custom"
+          ],
+          "description": "."
         }
       },
       "rules": [
@@ -4583,22 +5463,28 @@
         "interlacing": {
           "type": "list",
           "source": "video",
-          "values": [ "add", "remove", "semantic-remove"],
+          "values": [
+            "add",
+            "remove",
+            "semantic-remove"
+          ],
           "description": "Semantic remove attempts to mitigate lines prior to export in non interlaced format."
         },
-		"Start Time": {
-   		  "type": "time",
-   		  "defaultvalue":"00:00:00",
-   		  "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
- 		},
-		"End Time": {
-  		  "type": "time",
-		  "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-		}
+        "Start Time": {
+          "type": "time",
+          "defaultvalue": "00:00:00",
+          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "description": "Down sample a video to a lower frame resolution.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video"
       ]
@@ -4607,11 +5493,15 @@
       "category": "Transform",
       "name": "TransformReverse",
       "mandatoryparameters": {
-         "Channels" : {
-           "type" : "list",
-           "values": ["left", "right", "all"],
-           "source": "audio",
-           "description" : "all includes mono and stereo, depending on available streams"
+        "Channels": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "source": "audio",
+          "description": "all includes mono and stereo, depending on available streams"
         }
       },
       "rules": [
@@ -4621,18 +5511,18 @@
         "Homography": {
           "type": "list",
           "source": "image",
-         "values": [
-             "All",
-             "LMEDS",
-             "RANSAC-3",
-             "RANSAC-4",
-             "RANSAC-5"
-           ],
-           "description": "Tune transform creation for composite mask generation"
+          "values": [
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
         },
-        "homography max matches" : {
-            "type": "int[20:10000]",
-           "description": "Maximum number of matched feature points used to compute the homography."
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
         }
       },
       "maskTransformFunction": {
@@ -4640,8 +5530,10 @@
         "audio": "maskgen.mask_rules.reverse_transform"
       },
       "description": "Reverse the direction of video play.",
-      "includeInMask": {"default" : false},
-      "generateMask" : "frames",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "frames",
       "transitions": [
         "video.video",
         "audio.audio"
@@ -4656,65 +5548,71 @@
   },
   "node_properties": {
     "audio": {
-      "Registered" : {
+      "Registered": {
         "type": "yesno",
-        "description" : "Is Registered?"
+        "description": "Is Registered?"
       },
-      "In Door" : {
+      "In Door": {
         "type": "yesno",
-        "description" : "Is Indoor Sample?"
+        "description": "Is Indoor Sample?"
       },
       "Source Type": {
         "type": "list",
-        "values" : ["background", "voice"],
-        "description" : "Prominent audio signal"
+        "values": [
+          "background",
+          "voice"
+        ],
+        "description": "Prominent audio signal"
       },
       "Device ID": {
         "type": "string",
-        "description" : "Valid Microphone Device ID"
+        "description": "Valid Microphone Device ID"
       },
       "Proximity": {
         "type": "list",
-        "values" : ["short", "medium", "far"],
-        "description" : "Microphone distance to subject"
+        "values": [
+          "short",
+          "medium",
+          "far"
+        ],
+        "description": "Microphone distance to subject"
       },
-      "cgi" : {
+      "cgi": {
         "type": "yesno",
-        "description" : "Is CGI?"
+        "description": "Is CGI?"
       }
     },
     "video": {
-      "cgi" : {
+      "cgi": {
         "type": "yesno",
-        "description" : "Is CGI?"
+        "description": "Is CGI?"
       },
       "urls": {
         "type": "urls",
-        "description" : "CGI Object files"
+        "description": "CGI Object files"
       },
       "Rendering Software": {
-        "type" : "text",
+        "type": "text",
         "description": "Type of software used to render the image"
       },
       "Recording Software": {
-        "type" : "text",
+        "type": "text",
         "description": "Name of software to recapture screen"
       },
       "KML File": {
-        "type" : "file:kwl",
+        "type": "file:kwl",
         "description": "Name of KML File"
       }
     },
     "image": {
-      "cgi" : {
+      "cgi": {
         "type": "yesno",
-        "description" : "Is CGI?"
+        "description": "Is CGI?"
       },
       "objecturls": {
         "type": "urls",
-        "description" : "CGI Object files"
+        "description": "CGI Object files"
       }
-
     }
   }
 }

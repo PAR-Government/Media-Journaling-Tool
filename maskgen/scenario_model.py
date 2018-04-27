@@ -33,7 +33,8 @@ import copy
 from maskgen.userinfo import get_username
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 import traceback
-from support import MaskgenThreadPool
+from support import MaskgenThreadPool, StatusTracker
+import notifiers
 
 def formatStat(val):
     if type(val) == float:
@@ -937,7 +938,9 @@ class ImageProjectModel:
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
                  baseImageFileName=None, username=None,tool=None):
-        self.notify = notify
+        self.notify = None
+        if notify is not None:
+            self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier(self)])
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
         # Group Operations are tied to models since
@@ -971,38 +974,42 @@ class ImageProjectModel:
                              not filename.endswith('_mask' + suffix) and \
                              not filename.endswith('_proxy' + suffix)])
         totalSet = sorted(totalSet, key=sortalg)
-        added = 0
+        added = []
         for filename in totalSet:
             try:
                 pathname = os.path.abspath(os.path.join(dir, filename))
                 additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
                 nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
+                added.append(nname)
                 ypos += 50
                 if ypos == 450:
                     ypos = initialYpos
                     xpos += 50
-                added=True
                 if filename == baseImageFileName:
                     self.start = nname
                     self.end = None
             except Exception as ex:
                 logging.getLogger('maskgen').warn('Failed to add media file {}'.format(filename))
-        if added and self.notify is not None:
-            self.notify((self.start, None), 'add')
+            if self.notify is not None:
+                self.notify(added, 'add')
 
 
     def addImage(self, pathname, cgi=False):
-        maxx = max(
-            [self.G.get_node(node)['xpos'] for node in self.G.get_nodes() if 'xpos' in self.G.get_node(node)] + [50])
-        maxy = max(
-            [self.G.get_node(node)['ypos'] for node in self.G.get_nodes() if 'ypos' in self.G.get_node(node)] + [50])
+        maxx = 50
+        max_node = None
+        for node_id in self.G.get_nodes():
+            node = self.G.get_node(node_id)
+            if 'xpos' in node and int(node['xpos']) > maxx:
+                maxx = int(node['xpos'])
+                max_node = node
+        maxy = max_node['ypos'] + 50 if max_node is not None else 50
         additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
-        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx + 75, ypos=maxy,
+        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx, ypos=maxy,
                                 **additional)
         self.start = nname
         self.end = None
         if self.notify is not None:
-            self.notify((self.start, None), 'add')
+            self.notify([self.start], 'add')
         return nname
 
     def getEdgesBySemanticGroup(self):
@@ -1179,10 +1186,21 @@ class ImageProjectModel:
         return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
 
-    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True, graph=None, constructDonors=True):
+    def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized,
+                                     saveTargets=True,
+                                     graph=None,
+                                     constructDonors=True,
+                                     keepFailures=False,
+                                     exclusions={}):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
+        :param graph: the ImageGraph
+        :param exclusions: dictionary of key value exclusion rules.  These rules apply to specific
+        subtypes of meta-data such as inputmasks for paste sampled or neighbor masks for seam carving
+        The agreed set of rules will evolve and is particular to the function.
+        Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
+        global.inputmaskname.
         :return: The set of probes
         @rtype: list of Probe
         """
@@ -1197,7 +1215,9 @@ class ImageProjectModel:
                 futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
                     'saveTargets':saveTargets,
                     'inclusionFunction':inclusionFunction,
-                    'constructDonors':constructDonors
+                    'constructDonors':constructDonors,
+                    'keepFailures':keepFailures,
+                    'exclusions':exclusions
                 }))
         probes = list()
         for future in futures:
@@ -1207,7 +1227,8 @@ class ImageProjectModel:
     def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,
                     compositeBuilders=[ColorCompositeBuilder],
                     graph=None,
-                    replacement_probes=None):
+                    replacement_probes=None,
+                    exclusions={}):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
@@ -1219,7 +1240,11 @@ class ImageProjectModel:
         """
         self.assignColors()
         probes = replacement_probes if replacement_probes is not None else \
-            self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction, saveTargets=saveTargets,graph=graph)
+            self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction,
+                                              saveTargets=saveTargets,
+                                              graph=graph,
+                                              exclusions=exclusions
+        )
         probes = sorted(probes, key=lambda probe: probe.level)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
         for compositeBuilder in localCompositeBuilders:
@@ -1343,6 +1368,26 @@ class ImageProjectModel:
             return composite_generator.constructDonors(saveImage=False)
         return []
 
+    def invertInputMask(self):
+        """
+        Temporary: Add missing input masks
+        :return:
+        """
+        if self.start is not None and self.end is not None:
+            start_im = self.startImage()
+            edge = self.G.get_edge(self.start, self.end)
+            if edge is not None:
+                maskname= getValue(edge,'inputmaskname')
+                if maskname is not None:
+                    mask = openImageMaskFile(self.get_dir(),maskname)
+                    if mask is not None:
+                        expected_shape = start_im.image_array.shape[0:2]
+                        if expected_shape != mask.shape:
+                            mask = cv2.resize(mask,tuple(reversed(expected_shape)))
+                        mask = ImageWrapper(mask)
+                        mask = mask.invert()
+                        mask.save(os.path.join(self.get_dir(),maskname))
+
     def fixInputMasks(self):
         """
         Temporary: Add missing input masks
@@ -1390,6 +1435,8 @@ class ImageProjectModel:
         for k, v in self.getAddTool(pathname).getAdditionalMetaData(pathname).iteritems():
             params[k] = v
         destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
+        if self.notify is not None:
+            self.notify([destination],'add')
         analysis_params = dict({ k:v for k,v in edge_parameters.iteritems() if v is not None})
         msgs, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules, analysis_params=analysis_params)
@@ -1456,8 +1503,8 @@ class ImageProjectModel:
         return len(self.G.getDataItem('skipped_edges', [])) > 0
 
 
-    def _executeQueue(self,q,results):
-        from Queue import Queue,Empty
+    def _executeQueue(self,q,results,tracker):
+        from Queue import Queue, Empty
         """
         :param q:
         :return:
@@ -1474,6 +1521,7 @@ class ImageProjectModel:
                     edge_data['end'],
                     edge_data['opName']
                 ))
+                tracker.next('{}->{}'.format(edge_data['start'], edge_data['end']))
                 if self.getGraph().has_node(edge_data['start']) and self.getGraph().has_node(edge_data['end']) and \
                     self.getGraph().has_edge(edge_data['start'],edge_data['end']):
                     mask, analysis, errors = self.getLinkTool(edge_data['start'], edge_data['end']).compareImages(
@@ -1508,33 +1556,52 @@ class ImageProjectModel:
                     results.put(((edge_data['start'], edge_data['end']),False, [str(e)]))
         return
 
-    def _executeSkippedComparisons(self):
+    def _executeSkippedComparisons(self,status_cb=None):
         from Queue import Queue
         from threading import Thread
         allErrors = []
         completed = []
         q = Queue()
+        status = Queue()
         results = Queue()
         skipped_edges = self.G.getDataItem('skipped_edges', [])
         if len(skipped_edges) == 0:
             return
+        tracker_cb = status_cb
+        tracker_cb = lambda x : status.put(x) if tracker_cb is not None and int(skipped_threads) >= 2 else None
+        tracker = StatusTracker(module_name='Mask Generator',
+                                amount=len(skipped_edges),
+                                status_cb=tracker_cb)
         for edge_data in skipped_edges:
             q.put(edge_data)
         skipped_threads = prefLoader.get_key('skipped_threads', 2)
         logging.getLogger('maskgen').info('Recomputing {} masks with {} threads'.format(q.qsize(), skipped_threads))
         threads = list()
-        self._executeQueue(q, results)
-        for i in range(int(skipped_threads)):
-            t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results))
-            threads.append(t)
-            t.start()
-        for thread in threads:
-            thread.join()
-        while not results.empty():
-            result = results.get_nowait()
-            allErrors.extend(result[2])
-            if result[1]:
-                completed.append(result[0])
+        try:
+            if int(skipped_threads) < 2:
+                self._executeQueue(q, results, tracker)
+            else:
+                for i in range(int(skipped_threads)):
+                    t = Thread(target=self._executeQueue, name='skipped_edges' + str(i), args=(q,results,tracker))
+                    threads.append(t)
+                    t.start()
+                if status_cb is not None:
+                    while not q.empty():
+                        try:
+                            message = status.get(timeout=5)
+                            if message is not None:
+                                status_cb(message)
+                        except:
+                            continue
+                for thread in threads:
+                    thread.join()
+            while not results.empty():
+                result = results.get_nowait()
+                allErrors.extend(result[2])
+                if result[1]:
+                    completed.append(result[0])
+        finally:
+            tracker.complete()
         self.G.setDataItem('skipped_edges',[edge_data for edge_data in skipped_edges if (edge_data['start'], edge_data['end']) not in completed])
         msg = os.linesep.join(allErrors).strip()
         return msg if len(msg) > 0 else None
@@ -1615,9 +1682,9 @@ class ImageProjectModel:
 
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start, destination), 'connect')
+            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
             edgeErrors = edgeErrors if len(edgeErrors) > 0 else None
             self.labelNodes(self.start)
             self.labelNodes(destination)
@@ -1629,7 +1696,8 @@ class ImageProjectModel:
                                       self.start,
                                       destination,
                                       'Exception (' + str(e) + ')',
-                                      'Change Mask')], False
+                                      'Change Mask',
+                                      None)], False
 
     def __scan_args_callback(self, opName, arguments):
         """
@@ -1945,7 +2013,12 @@ class ImageProjectModel:
         edge = self.G.get_edge(self.start, self.end)
         return edge['maskname'] if 'maskname' in edge else ''
 
-    def maskImage(self):
+    def maskImageFileTime(self):
+        if self.end is None:
+            return 0
+        return self.G.get_edge_image_file_time(self.start, self.end, 'maskname')
+
+    def maskImage(self, inputmask=False):
         if self.end is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
@@ -2022,13 +2095,13 @@ class ImageProjectModel:
         """
         return self.G
 
-    def validate(self, external=False):
+    def validate(self, external=False, status_cb=None):
         """ Return the list of errors from all validation rules on the graph.
         @rtype: list of ValidationMessage
         """
-        self._executeSkippedComparisons()
+        self._executeSkippedComparisons(status_cb=status_cb)
         logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
-        total_errors = self.validator.run_graph_suite(self.getGraph(),external=external)
+        total_errors = self.validator.run_graph_suite(self.getGraph(), external=external, status_cb=status_cb)
         for prop in getProjectProperties():
             if prop.mandatory:
                 item = self.G.getDataItem(prop.name)
@@ -2038,7 +2111,8 @@ class ImageProjectModel:
                                           '',
                                           '',
                                           'Project property ' + prop.description + ' is empty or invalid',
-                                          'Mandatory Property'))
+                                          'Mandatory Property',
+                                          None))
 
         return total_errors
 
@@ -2354,7 +2428,8 @@ class ImageProjectModel:
                                             self.start,
                                             self.start,
                                             warning_message,
-                                            'Plugin {}'.format(filter)))
+                                            'Plugin {}'.format(filter),
+                                            None))
         if results2 is not None:
             errors.extend(results2)
 
@@ -2413,7 +2488,8 @@ class ImageProjectModel:
                                       self.start,
                                       self.start,
                                       'Plugin ' + filter + ': ' + msg,
-                                      'Plugin {}'.format(filter))]
+                                      'Plugin {}'.format(filter),
+                                      None)]
         return None
 
     def scanNextImageUnConnectedImage(self):
@@ -2487,14 +2563,16 @@ class ImageProjectModel:
             self.clear_validation_properties()
             self.compress(all=True)
             path, errors = self.G.create_archive(location, include=include)
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export') for error in errors]
+            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
-    def exporttos3(self, location, tempdir=None):
+    def exporttos3(self, location, tempdir=None, additional_message=None):
         import boto3
         from boto3.s3.transfer import S3Transfer, TransferConfig
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
+            #errors = []
+            #path = ''
             path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir)
             if len(errors) == 0:
                 config = TransferConfig()
@@ -2506,10 +2584,11 @@ class ImageProjectModel:
                 s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
                 os.remove(path)
                 if self.notify is not None and not self.notify(self.getName(), 'export',
-                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1]):
+                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
+                                                               additional_message=additional_message):
                     errors = [('', '',
                                'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export') for error in errors]
+            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def export_path(self, location):
         if self.end is None and self.start is not None:
@@ -2581,41 +2660,36 @@ class ImageProjectModel:
                 groups.extend(edge['semanticGroups'])
         self.setProjectData('semanticgroups', groups)
 
-    def set_validation_properties(self, qaState, qaPerson, qaComment):
-        import time
+    def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
+        import qa_logic
+        qa_logic.ValidationData(self,qaState,qaPerson,None,qaComment,qaData)
+        """
         self.setProjectData('validation', qaState, excludeUpdate=True)
         self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
         self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
         self.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
         self.setProjectData('qacomment', qaComment.strip())
-
+        self.setProjectData('qaData',qaData, excludeUpdate=False)
+        """
     def clear_validation_properties(self):
-        import time
-        validationProps = {'validation': 'no', 'validatedby': '', 'validationtime': '', 'validationdate': ''}
-        currentProps = {}
-        for p in validationProps:
-            currentProps[p] = self.getProjectData(p)
-        datetimeval = time.clock()
-        if currentProps['validationdate'] is not None and \
-                        len(currentProps['validationdate']) > 0:
-            datetimestr = currentProps['validationdate'] + ' ' + currentProps['validationtime']
-            datetimeval = time.strptime(datetimestr, "%m/%d/%Y %H:%M:%S")
-        if all(vp in currentProps for vp in validationProps) and \
-                        currentProps['validatedby'] != self.username and \
-                        self.getGraph().getLastUpdateTime() > datetimeval:
-            for key, val in validationProps.iteritems():
-                self.setProjectData(key, val, excludeUpdate=True)
+        import qa_logic
+        logic = qa_logic.ValidationData(self)
+        logic.clearProperties()
 
 
 class VideoMaskSetInfo:
     """
     Set of change masks video clips
     """
+
     columnNames = ['Start', 'End', 'Frames', 'File']
+    func = [float,float,int,str]
+    columnKeys = ['starttime', 'endtime', 'frames', 'File']
     columnValues = {}
 
     def __init__(self, maskset):
         self.columnValues = {}
+        self.maskset = maskset
         for i in range(len(maskset)):
             self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
 
@@ -2623,6 +2697,11 @@ class VideoMaskSetInfo:
         return {'Start': self.tofloat(item['starttime']), 'End': self.tofloat(item['endtime']),
                 'Frames': item['frames'],
                 'File': item['videosegment'] if 'videosegment' in item else ''}
+
+
+    def update(self, item_number, column, value):
+        self.maskset[item_number][self.columnKeys[column]] = self.func[column](value)
+        self.maskset[item_number]['rate'] = (self.maskset[item_number]['endtime'] - self.maskset[item_number]['starttime'])/self.maskset[item_number]['frames']
 
     def tofloat(self, o):
         return o if o is None else float(o)

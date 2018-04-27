@@ -27,9 +27,11 @@ class MaskGenLoader:
             with open(self.file_path, "r") as jsonfile:
                 global_image = json.load(jsonfile)
                 config.global_config['global_image'] = global_image
+        else:
+            config.global_config['global_image'] = {}
 
     def __iter__(self):
-        return self.load().keys()
+        return self.load().keys().__iter__()
 
     def __contains__(self,key):
         return key in self.load()

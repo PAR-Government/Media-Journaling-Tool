@@ -120,3 +120,10 @@ def archive_probes(project, directory='.'):
         archive.add(os.path.join(project_dir, item),
                     arcname=os.path.join(scModel.getName(), item))
     archive.close()
+
+def main():
+    import sys
+    archive_probes(sys.argv[1])
+
+if __name__ == '__main__':
+    main()

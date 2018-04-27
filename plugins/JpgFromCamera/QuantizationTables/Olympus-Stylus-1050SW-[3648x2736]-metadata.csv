@@ -1,0 +1,139 @@
+compute,-File:ImageHeight,#CalcHeight
+database,-File:FileTypeExtension,JPG
+database,-Olympus:SerialNumber,G38500098
+database,-ExifIFD:UserComment,
+database,-Olympus:CompressionFactor,4
+database,-ExifIFD:ExifVersion,0221
+database,-IFD0:Orientation,1
+database,-Olympus:AFPoint,0
+database,-ExifIFD:FlashpixVersion,0100
+database,-Olympus:DistortionCorrection,0
+database,-Olympus:ShadingCompensation2,1
+database,-Composite:Aperture,3.5
+database,-ExifIFD:ColorSpace,1
+database,-Olympus:FocusDistance,18.71
+database,-IFD0:ResolutionUnit,2
+database,-Olympus:ManualFlashStrength,undef undef undef
+database,-ExifIFD:GainControl,0
+database,-IFD0:XResolution,314
+compute,-ExifIFD:ExposureTime,0.0025
+database,-ExifIFD:DigitalZoomRatio,1
+database,-Olympus:AFPointSelected,undef undef undef undef
+database,-Olympus:ZoomStepCount,1
+database,-Olympus:FacesDetected,0 0 0
+database,-Olympus:ManometerReading,0 0
+database,-ExifIFD:FNumber,3.5
+database,-Olympus:FocusProcess,0 0
+database,-IFD0:ImageDescription,OLYMPUS DIGITAL CAMERA
+database,-Olympus:ShadingCompensation,0
+database,-IFD0:Software,Version 1.0
+database,-ExifIFD:Flash,24
+database,-ExifIFD:ExposureMode,0
+compute,-ExifIFD:DateTimeOriginal,2009:01:06 12:29:09
+database,-System:FileSize,4423736
+database,-File:BitsPerSample,8
+database,-Olympus:PreviewImageValid,1
+database,-Olympus:FaceDetectArea,(Binary data 383 bytes, use -b option to extract)
+database,-Olympus:WB_RBLevels,450 386 256 258
+database,-ExifIFD:WhiteBalance,0
+database,-IFD0:Model,u1050SW,S1050SW
+database,-Olympus:ExternalFlash,0 0
+database,-PrintIM:PrintIMVersion,0300
+database,-Olympus:MacroLED,0
+database,-Composite:DOF,2.1443259298497 0
+database,-IFD1:ThumbnailOffset,9760
+database,-Olympus:EquipmentVersion,0100
+database,-Olympus:MacroMode,0
+database,-ExifIFD:CustomRendered,0
+database,-File:FileType,JPEG
+compute,-ExifIFD:ExifImageWidth,#ComputeWidth
+database,-Olympus:PanoramaMode,0 0
+database,-Olympus:ExternalFlashZoom,0
+database,-Olympus:WhiteBalanceBracket,0 0
+database,-ExifIFD:FileSource,3
+database,-Composite:ScaleFactor35efl,5.67164179104478
+database,-Olympus:PreviewImageLength,48440
+database,-Olympus:SceneMode,0
+database,-Olympus:ExtendedWBDetect,0
+database,-File:MIMEType,image/jpeg
+database,-Olympus:RawDevEditStatus,0
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:SceneCaptureType,0
+database,-File:ExifByteOrder,II
+database,-Olympus:InternalSerialNumber,0207807000599001
+database,-ExifIFD:ISO,80
+database,-Olympus:AFAreas,0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+database,-Olympus:NoiseReduction2,0
+database,-Olympus:FocusInfoVersion,0100
+database,-IFD0:Make,OLYMPUS IMAGING CORP.
+database,-Composite:LightValue,12.5804941287773
+database,-Olympus:ManometerPressure,0
+database,-Composite:CircleOfConfusion,0.00529763016351069
+database,-Olympus:SharpnessSetting,0 -2 2
+database,-IFD0:YCbCrPositioning,2
+database,-Olympus:BodyFirmwareVersion,4104
+database,-Olympus:CameraSettingsVersion,0100
+database,-Olympus:FocusStepInfinity,453
+database,-Composite:FOV,50.6765181441017 17.7189157894737
+database,-Olympus:ImageProcessingVersion,0112
+database,-Olympus:DriveMode,0 0 0
+database,-ExifIFD:FocalLengthIn35mmFormat,38
+database,-Olympus:FlashControlMode,0 0 0
+database,-Composite:ShutterSpeed,0.0025
+database,-Olympus:DistortionCorrection2,0
+database,-Olympus:NoiseReduction,0
+compute,-File:ImageWidth,#ComputeWidth
+database,-Olympus:InternalFlash,0
+database,-Olympus:ImageStabilization,
+database,-Olympus:ExternalFlashBounce,0
+database,-Olympus:FocusStepNear,478
+database,-IFD1:ThumbnailImage,(Binary data 6071 bytes, use -b option to extract)
+database,-Olympus:ModifiedSaturation,0
+database,-ExifIFD:FocalLength,6.7
+database,-Olympus:FlashMode,0
+database,-Olympus:PreviewImageStart,4375296
+database,-Olympus:FocusStepCount,456
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-Olympus:FlashExposureComp,0
+database,-File:YCbCrSubSampling,2 1
+database,-Olympus:CameraType2,D4370
+database,-Composite:RedBalance,1.7578125
+database,-Olympus:Gradation,0 0 0 0
+database,-Olympus:MeteringMode,5
+database,-Olympus:PreviewImage,(Binary data 48440 bytes, use -b option to extract)
+database,-Olympus:NoiseFilter,0 0 0
+database,-Composite:HyperfocalDistance,2.4210286278676
+database,-Olympus:AFSearch,0
+database,-ExifIFD:LightSource,0
+database,-File:EncodingProcess,0
+database,-Olympus:AELock,0
+database,-Olympus:ColorMatrix,396 -120 -20 -48 428 -124 -6 -124 386
+compute,-ExifIFD:ExifImageHeight,2736
+database,-Olympus:SceneDetect,0
+database,-ExifIFD:ExposureProgram,2
+database,-Olympus:FlashIntensity,undef undef undef
+database,-Composite:Megapixels,9.980928
+database,-InteropIFD:InteropIndex,R98
+database,-Olympus:FocusMode,0 0
+database,-Composite:BlueBalance,1.5078125
+database,-ExifIFD:MaxApertureValue,3.49429158366678
+database,-Olympus:ContrastSetting,0 -2 2
+database,-ExifIFD:Contrast,0
+database,-Olympus:WhiteBalanceTemperature,0
+database,-ExifIFD:Sharpness,0
+database,-Olympus:CustomSaturation,0 -2 2
+database,-Olympus:FocalPlaneDiagonal,7.62
+database,-Olympus:RawDevVersion,0100
+database,-IFD0:YResolution,314
+database,-Composite:FocalLength35efl,38
+database,-File:ColorComponents,3
+database,-InteropIFD:InteropVersion,0100
+database,-Olympus:FlashRemoteControl,0
+database,-Olympus:CameraID,OLYMPUS DIGITAL CAMERA
+database,-ExifIFD:ExposureCompensation,0
+database,-IFD1:ThumbnailLength,6071
+database,-ExifIFD:Saturation,0
+database,-IFD1:Compression,6
+database,-Olympus:SpecialMode,0 0 0
+database,-Olympus:BlackLevel2,0 0 0 0
+database,-Olympus:WhiteBalance2,0

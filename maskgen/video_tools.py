@@ -24,6 +24,7 @@ import cv2
 from cachetools import LRUCache
 from cachetools import cached
 from threading import RLock
+from support import getValue
 
 meta_lock = RLock()
 meta_cache = LRUCache(maxsize=24)
@@ -477,23 +478,28 @@ def getMeta(file, with_frames=False, show_streams=False):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
-        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut')
-        stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr')
+        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut'+str(os.getpid()))
         try:
-            p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
-            p.wait()
+            stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr'+str(os.getpid()))
+            try:
+                p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
+                p.wait()
+            finally:
+                os.close(stder_fd)
         finally:
             os.close(stdout_fd)
-            os.close(stder_fd)
+
+        stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
         try:
-            stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
             stder_fd = os.fdopen(os.open(stder_path, os.O_RDONLY), 'r')
-            return func(stdout_fd,stder_fd)
+            try:
+                return func(stdout_fd,stder_fd)
+            finally:
+                stder_fd.close()
+                os.remove(stder_path)
         finally:
             stdout_fd.close()
-            stder_fd.close()
             os.remove(stdout_path)
-            os.remove(stder_path)
 
 
     def runProbe(func, args=None):
@@ -546,7 +552,8 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,0), end_ti
     """
     st = start_time_tuple
     et = end_time_tuple
-    calculate_frames = st[0] > 0  or st[1] > 1 or et is not None
+    # calculate frames if there is a start other than 0 or an end time.
+    calculate_frames = st[0] > 0 or st[1] > 1 or et is not None
     meta, frames = getMeta(video_file, show_streams=True, with_frames=calculate_frames)
     found_num = 0
     results = []
@@ -1411,6 +1418,58 @@ def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
 
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
+
+def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
+        video_masks = getMaskSetForEntireVideo(graph.get_image_path(source),
+                                                           start_time=getValue(edge, 'arguments.Start Time',
+                                                                               defaultValue='00:00:00.000'),
+                                                           end_time=getValue(edge, 'arguments.End Time'),
+                                                           media_types=media_types,
+                                                           channel=channel)
+
+        def justFixIt(graph, source, start_time, end_time, media_types):
+            """
+
+            :param graph:
+            :param source:
+            :return:
+            @type graph: ImageGraph
+            """
+
+            def findBase(graph, node):
+                """
+
+                :param graph:
+                :param node:
+                :return:
+                @type graph: ImageGraph
+                @rtype : str
+                """
+                preds = graph.predecessors(node)
+                if len(preds) == 0:
+                    return node
+                for pred in preds:
+                    if getValue(graph.get_edge(pred, node), 'op', 'Donor') != 'Donor':
+                        return findBase(graph, pred)
+
+            base = findBase(graph, source)
+            if base is not None:
+                return getMaskSetForEntireVideo(
+                    os.path.join(graph.dir, getValue(graph.get_node(base), 'file')),
+                    start_time=start_time, end_time=end_time, media_types=media_types)
+            return []
+
+        if video_masks is None or len(video_masks) == 0:
+            video_masks = justFixIt(graph, source,
+                                    getValue(edge, 'arguments.Start Time',
+                                             defaultValue='00:00:00.000'),
+                                    getValue(edge, 'arguments.End Time'),
+                                    media_types)
+        for item in video_masks:
+            item.pop('mask')
+        edge['masks count'] = len(video_masks)
+        edge['videomasks'] = video_masks
+
 
 def formMaskDiff(fileOne,
                  fileTwo,
@@ -2519,9 +2578,10 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
         change['type'] = mask_set['type']
         change['rate'] = mask_set['rate']
         change['videosegment'] = mask_set['videosegment']
+        mask_file_name = mask_set['videosegment']
+        reader = tool_set.GrayBlockReader(mask_set['videosegment'])
         try:
-            mask_file_name = mask_set['videosegment']
-            reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+            writer = None
             mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
             writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
                                                   reader.fps)
@@ -2546,7 +2606,8 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
             logging.getLogger('maskgen').error(e)
         finally:
             reader.close()
-            writer.close()
+            if writer is not None:
+                writer.close()
     return new_mask_set
 
 

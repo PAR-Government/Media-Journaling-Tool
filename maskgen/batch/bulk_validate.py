@@ -13,6 +13,7 @@ import csv
 import os
 from maskgen.batch import pick_projects
 from maskgen.preferences_initializer import initialize
+from maskgen import graph_rules
 
 
 def validate_export(error_writer,project, sm):
