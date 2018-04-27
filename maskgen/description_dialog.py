@@ -2140,6 +2140,12 @@ class SelectDialog(tkSimpleDialog.Dialog):
         self.e1.grid(row=1, column=0, sticky=N, columnspan=3 if self.information else 1)
 
         if self.information:
+            from maskgen.ui.help_tools import HelpFrame
+
+            fr = HelpFrame(master, True, False, self.var1)
+            fr.grid(row=2, column=0, columnspan=3)
+
+        '''
             self.info_text = Label(master)
             self.info_text.grid(row=2, column=0, columnspan=3)
 
@@ -2198,6 +2204,7 @@ class SelectDialog(tkSimpleDialog.Dialog):
             self.info_image2.grid_forget()
 
         self.info_text['text'] = self.data[self.selection]["text_description"]
+        '''
 
     def cancel(self):
         if self.cancelled:
