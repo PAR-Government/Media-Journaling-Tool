@@ -6,6 +6,7 @@ import json
 import requests
 import subprocess
 import maskgen.maskgen_loader
+from maskgen.software_loader import getFileName
 from tkinter import ttk
 
 key = os.path.join(os.path.expanduser("~"), "medifor_ingest.gpg")
@@ -31,10 +32,18 @@ class Window(Frame):
         info_text.grid(row=r, columnspan=2, pady=5)
         r += 1
 
-        # Get Maskgen Directory
-        self.maskgen_button = Button(text="Select Maskgen Folder", command=self.get_maskgen)
-        self.maskgen_button.grid(row=r, columnspan=2)
-        r+=1
+        ufile = getFileName("ManipulatorCodeNames.txt")
+        if ufile:
+            with open(ufile, "r") as names:
+                self.valid_usernames = sorted(names.read().splitlines())
+        else:
+            self.valid_usernames = []
+            self.maskgen_button = Button(text="Select Maskgen Folder", command=self.get_maskgen)
+            self.maskgen_button.grid(row=r, column=0, columnspan=2)
+            r += 1
+            self.master.withdraw()
+            tkMessageBox.showerror("No Username File", "A username list file could not be found.")
+            self.master.deiconify()
 
         # General Header
         general_label = Label(text="General Setup")
@@ -65,7 +74,7 @@ class Window(Frame):
         # Username
         self.username_label = Button(text="Username*", command=lambda: self.get_info("username"))
         self.username_label.grid(row=r, column=0, padx=10)
-        self.username_field = ttk.Combobox(self.valid_usernames)
+        self.username_field = ttk.Combobox(values=self.valid_usernames)
         self.username_field.grid(row=r, column=1, padx=10)
         r += 1
 

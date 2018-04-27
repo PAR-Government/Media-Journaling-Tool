@@ -541,9 +541,8 @@ class DescriptionCaptureDialog(Toplevel):
 
     def group_add(self):
         d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
-                         getSemanticGroups(), information=["test test test", ["semantic_groups\\add.png",
-                                                                              "semantic_groups\\leftarrow.png",
-                                                                              "semantic_groups\\RedX.png"]])
+                         getSemanticGroups(), information=getFileName(os.path.join("help",
+                                                                                   "group_config.json")))
         res = d.choice
         if res is not None:
             self.listbox.insert(END,res)
@@ -2188,44 +2187,71 @@ class SelectDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         self.desc_lines = '\n'.join(self.description.split('.'))
         self.desc_label = Label(master, text=self.desc_lines, wraplength=400)
-        self.desc_label.grid(row=0, sticky=N)
+        self.desc_label.grid(row=0, sticky=N, columnspan=(3 if self.information else 1))
         self.var1 = StringVar()
         self.var1.set(self.values[0] if self.initial_value is None or self.initial_value not in self.values else self.initial_value)
         self.e1 = OptionMenu(master, self.var1, *self.values)
-        self.e1.grid(row=1, column=0, sticky=N)
+        self.e1.grid(row=1, column=0, sticky=N, columnspan=3 if self.information else 1)
 
         if self.information:
-            self.load_info(master)
+            self.info_text = Label(master)
+            self.info_text.grid(row=2, column=0, columnspan=3)
 
-    def load_info(self, master):
-        import PIL.Image
+            self.info_image0 = Button(master)
+            self.info_image1 = Button(master)
+            self.info_image2 = Button(master)
 
-        r = 2
-        if self.information[0]:
-            self.info_text = Label(master, text=self.information[0])
-            self.info_text.grid(row=r, column=0, columnspan=1 if not self.information[1] else len(self.information[1]))
-            r += 1
-        if self.information[1]:
-            self.e1.grid_configure(columnspan=len(self.information[1]))
-            self.desc_label.grid_configure(columnspan=len(self.information[1]))
-            c=0
-            for item in self.information[1]:
-                info_image = Button(master)
-                try:
-                    path = getFileName(item)
-                    with PIL.Image.open(path, "r") as i:
-                        i = i.resize((480, 360), PIL.Image.ANTIALIAS)
-                        tkimg = ImageTk.PhotoImage(i)
-                    info_image.configure(image=tkimg, command=lambda path=path: openFile(path))
-                    info_image.image = tkimg
-                    info_image.grid(row=r, column=c)
-                    c+=1
-                except IOError as e:
-                    tkMessageBox.showerror("Could not load image", "Could not load image {0}.\n\n{1}".format(item, e))
+            self.var1.trace("w", lambda *args: self.update_choice(master))
 
-            r += 1
+            self.update_choice(master)
 
-        self.lift()
+    def update_choice(self, master, *args):
+        from PIL import Image
+        with open(self.information) as f:
+            import json
+            self.data = json.load(f)
+
+        self.selection = self.var1.get()
+
+        imglist = self.data[self.selection]['images']
+
+        if len(imglist) >= 1:
+            path = getFileName(os.path.join("help", imglist[0]))
+            with Image.open(path, "r") as i:
+                i = i.resize((480, 360), Image.ANTIALIAS)
+                tkimg = ImageTk.PhotoImage(i)
+            self.info_image0.configure(image=tkimg, command=lambda path=path: openFile(path))
+            self.info_image0.image = tkimg
+            self.info_image0.grid(row=3, column=0)
+        else:
+            self.info_image0.grid_forget()
+            self.info_image1.grid_forget()
+            self.info_image2.grid_forget()
+
+        if len(imglist) >= 2:
+            path = getFileName(os.path.join("help", imglist[1]))
+            with Image.open(path, "r") as i:
+                i = i.resize((480, 360), Image.ANTIALIAS)
+                tkimg = ImageTk.PhotoImage(i)
+            self.info_image1.configure(image=tkimg, command=lambda path=path: openFile(path))
+            self.info_image1.image = tkimg
+            self.info_image1.grid(row=3, column=1)
+        else:
+            self.info_image1.grid_forget()
+            self.info_image2.grid_forget()
+
+        if len(imglist) >= 3:
+            path = getFileName(os.path.join("help", imglist[2]))
+            with Image.open(path, "r") as i:
+                i = i.resize((480, 360), Image.ANTIALIAS)
+                tkimg = ImageTk.PhotoImage(i)
+            self.info_image2.configure(image=tkimg, command=lambda path=path: openFile(path))
+            self.info_image2.image = tkimg
+            self.info_image2.grid(row=3, column=2)
+        else:
+            self.info_image2.grid_forget()
+
+        self.info_text['text'] = self.data[self.selection]["text_description"]
 
     def cancel(self):
         if self.cancelled:
