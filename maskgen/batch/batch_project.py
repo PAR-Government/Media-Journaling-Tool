@@ -525,7 +525,8 @@ class BaseSelectionOperation(BatchOperation):
                                              suffixes=tool_set.suffixes+ [suffix],
                                              username=preferred_username,
                                              organization=preferred_organization,
-                                             tool='jtproject')[0]
+                                             tool='jtproject',
+                                             preferences=node['arguments'] if 'arguments' in node else {})[0]
         for prop, val in local_state['project'].iteritems():
             model.setProjectData(prop, val)
         if 'edgeFilePaths' in graph.graph:
@@ -636,7 +637,10 @@ class PreProcessedMediaOperation(BatchOperation):
         directory = node['directory'].format(**global_state)
         if not os.path.exists(directory):
             raise ValueError('Invalid directory "' + directory + '" with node ' + node_name)
-        results = glob.glob(directory + os.path.sep + filename[0:filename.rfind('.')] + '*')
+        if 'copy' in node and node['copy']:
+            results = [local_state['model'].currentImage()[1]]
+        else:
+            results = glob.glob(directory + os.path.sep + filename[0:filename.rfind('.')] + '*')
         if len(results) == 0:
             results = glob.glob(directory + os.path.sep + local_state['model'].getName() + '*')
         if len(results) == 1:
