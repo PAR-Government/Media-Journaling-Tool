@@ -244,7 +244,7 @@ class GroupFilterLoader:
     def getOperation(self, name):
         grp = self.getGroup(name)
         try:
-            return self._buildGroupOperation(grp, name, warning=warning) if grp is not None else getOperation(name)
+            return self._buildGroupOperation(grp, name, warning=False) if grp is not None else getOperation(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Group Filter {} is in an inconsistent state: {} '.format(name, str(e)))
             return None
