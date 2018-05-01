@@ -19,3 +19,5 @@ class TestBatchConverter(TestSupport):
         batch = converter.convert()
         bp = BatchProject(batch)
         bp.saveGraphImage('.')
+
+

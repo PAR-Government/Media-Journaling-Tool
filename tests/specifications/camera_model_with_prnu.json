@@ -42,9 +42,9 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "PRNU-AddFromDonor",
+      "plugin": "CropToFitDonor",
       "source": "base_PNG",
-      "id":"AddPRNURebelSL1",
+      "id":"CropToFitDonorRebelSL1",
        "arguments": {
          "donor": {
            "type": "donor",
@@ -54,9 +54,9 @@
      },
      {
       "op_type": "PluginOperation",
-      "plugin": "PRNU-AddFromDonor",
+      "plugin": "CropToFitDonor",
        "source": "base_PNG",
-      "id":"AddPRNUNEX5TL",
+      "id":"CropToFitDonorNEX5TL",
        "arguments": {
          "donor": {
            "type": "donor",
@@ -66,9 +66,9 @@
     },
      {
       "op_type": "PluginOperation",
-      "plugin": "PRNU-AddFromDonor",
+      "plugin": "CropToFitDonor",
        "source": "base_PNG",
-      "id":"AddPRNUDMCFZ50",
+       "id":"CropToFitDonorDMCFZ50",
        "arguments": {
          "donor": {
            "type": "donor",
@@ -76,16 +76,72 @@
          }
        }
     },
-     {
+    {
       "op_type": "PluginOperation",
-      "plugin": "PRNU-AddFromDonor",
+      "plugin": "CropToFitDonor",
        "source": "base_PNG",
-      "id":"AddPRNUM1063",
+      "id":"CropToFitDonorM1063",
        "arguments": {
          "donor": {
            "type": "donor",
            "source": "SelectM1063"
          }
+       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "source": "CropToFitDonorRebelSL1",
+      "id":"AddPRNURebelSL1",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectRebelSL1"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+       "source": "CropToFitDonorNEX5TL",
+      "id":"AddPRNUNEX5TL",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectNEX5TL"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+       "source": "CropToFitDonorDMCFZ50",
+       "id":"AddPRNUDMCFZ50",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectDMCFZ50"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+       "source": "CropToFitDonorM1063",
+      "id":"AddPRNUM1063",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectM1063"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
        }
     },
     {
@@ -453,19 +509,55 @@
   "links": [
     {
       "source": "base_PNG",
+      "target": "CropToFitDonorRebelSL1"
+    },
+    {
+       "source": "base_PNG",
+       "target": "CropToFitDonorDMCFZ50"
+    },
+    {
+       "source": "base_PNG",
+       "target": "CropToFitDonorNEX5TL"
+    },
+    {
+       "source": "base_PNG",
+       "target": "CropToFitDonorM1063"
+    },
+    {
+      "source": "CropToFitDonorRebelSL1",
       "target": "AddPRNURebelSL1"
     },
     {
-       "source": "base_PNG",
+       "source": "CropToFitDonorDMCFZ50",
        "target": "AddPRNUDMCFZ50"
     },
     {
-       "source": "base_PNG",
+       "source": "CropToFitDonorNEX5TL",
        "target": "AddPRNUNEX5TL"
     },
     {
-       "source": "base_PNG",
+       "source": "CropToFitDonorM1063",
        "target": "AddPRNUM1063"
+    },
+     {
+       "source": "SelectDMCFZ50",
+       "target": "CropToFitDonorDMCFZ50",
+       "donor":true
+    },
+    {
+       "source": "SelectNEX5TL",
+       "target": "CropToFitDonorNEX5TL",
+       "donor":true
+    },
+    {
+       "source": "SelectRebelSL1",
+       "target": "CropToFitDonorRebelSL1",
+       "donor":true
+    },
+    {
+       "source": "SelectM1063",
+       "target": "CropToFitDonorM1063",
+       "donor":true
     },
     {
        "source": "SelectDMCFZ50",
@@ -503,21 +595,42 @@
        "source": "AddPRNUM1063",
        "target": "AddCameraModelM1063"
      },
-    {
-       "source": "base_PNG",
-       "target": "AddCameraModelDCZ59"},
-
      {
        "source": "base_PNG",
-       "target": "AddCameraModelL74Wide"},
+       "target": "AddCameraModelRebelSL1",
+       "split":true
+    },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelDMCFZ50",
+       "split":true
+    },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelNEX5TL",
+       "split":true
+    },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelM1063",
+       "split":true
+     },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelDCZ59"
+    },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelL74Wide"
+     },
      {
        "source": "base_PNG",
        "target": "AddCameraModelDroidMAXX"
      },
-    {
+     {
       "source": "base_PNG",
       "target": "AddCameraModelGalaxyS4"
-    },
+     },
      {
        "source": "base_PNG",
        "target": "AddCameraModel1050SW"

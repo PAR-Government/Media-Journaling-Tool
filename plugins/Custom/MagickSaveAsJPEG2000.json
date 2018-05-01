@@ -11,6 +11,17 @@
           "type":"int[40:100]",
           "defaultvalue":"90",
           "description":"Image Quality"
+        },
+        "resolutions": {
+          "type":"int[1:100]",
+          "defaultvalue":"1",
+          "description":"Number of resolutions to encode"
+        },
+        "encoding": {
+          "type":"list",
+          "value": ["J2K","J2C","JP2"],
+          "defaultvalue":"1",
+          "description":"Encoding"
         }
       },
       "transitions": ["image.image"]
@@ -20,6 +31,10 @@
       "default": [
         "convert",
         "{inputimage}",
+        "-encoding",
+        "{encoding}",
+        "-define",
+        "jp2:number-resolutions={resolutions}",
         "-quality",
         "{quality}",
         "{outputimage}"

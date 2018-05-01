@@ -7,37 +7,37 @@
 #==============================================================================
 
 
-import json
-import networkx as nx
-import argparse
-import sys
-from networkx.readwrite import json_graph
-import os
-from maskgen import software_loader
-from maskgen import scenario_model
-from maskgen.image_graph import ImageGraph
-import random
-from maskgen import tool_set
-import shutil
-from maskgen import plugins
-from maskgen import group_operations
-import logging
-from threading import Thread, local, Semaphore
-import numpy as np
-from maskgen.batch.permutations import *
-import time
-from datetime import datetime
-from maskgen.loghandling import set_logging,set_logging_level
 import Queue as queue
-from maskgen.graph_output import ImageGraphPainter
-from maskgen.software_loader import getRule
+import argparse
+import copy
+import json
+import random
+import shutil
+import sys
 import traceback
+from datetime import datetime
 from functools import partial
-from maskgen.preferences_initializer import initial_user
-from maskgen.support import getValue
+from threading import Thread, Semaphore
+
+import networkx as nx
+import numpy as np
+from maskgen import group_operations
 from maskgen import maskGenPreferences
-from maskgen.validation.core import Severity
+from maskgen import plugins
+from maskgen import scenario_model
+from maskgen import software_loader
+from maskgen import tool_set
+from maskgen.batch.permutations import *
+from maskgen.graph_output import ImageGraphPainter
+from maskgen.image_graph import ImageGraph
+from maskgen.loghandling import set_logging,set_logging_level
+from maskgen.preferences_initializer import initial_user
+from maskgen.software_loader import getRule
+from maskgen.support import getValue
 from maskgen.userinfo import get_username
+from maskgen.validation.core import Severity
+from networkx.readwrite import json_graph
+
 
 class IntObject:
     value = 0
@@ -59,6 +59,102 @@ class IntObject:
             return self.value
 
 
+
+def _findTops(graph):
+    """
+    Find and return top node name
+    :return:
+    @rtype: str
+    """
+    return [node for node in graph.nodes() if len(graph.predecessors(node)) == 0]
+
+
+def _findChildren(graph):
+    q = _findTops(graph)
+    children = []
+    while len(q) > 0:
+        next = q.pop(0)
+        if next not in children:
+            children.append(next)
+            q.extend( graph.successors(next))
+    return children
+
+def new_id(node_id):
+    import uuid
+    """
+      :param node_id:
+      :param: graph
+      :return:
+      @type graph: nx.DiGraph
+      @type node_id: str
+      """
+    parts = node_id.split('##')
+    return parts[0] + str(uuid.uuid4())
+
+def duplicate_path(graph, new_node_id, old_node_id, to_visit):
+    """
+    Duplicate all the children edges and nodes starting with
+    old_node_id, replacing the duplicates with the new parent
+    new_node_id.
+    :param graph: the graph
+    :param new_node_id: the replacement for next_node
+    :param old_node_id: the next node to process
+    :param to_visit: nodes to still process; add new nodes to this list
+    :return:
+    """
+    for next_node in graph.successors(old_node_id):
+        node = graph.node[next_node]
+        dup_node_id = new_id(next_node)
+        graph.add_node(dup_node_id, **node)
+        if getValue(node, 'source', '$$') == old_node_id:
+                graph.node[dup_node_id]['source'] = new_node_id
+        to_visit.append(dup_node_id)
+        graph.add_edge(new_node_id, dup_node_id, **graph[old_node_id][next_node])
+        duplicate_path(graph,dup_node_id,next_node,to_visit)
+
+def split_sourced_graph(graph, to_visit):
+    """
+    Graph edges indicate a split point with multiple parents, one which is labeled as a source, are split
+    :param graph:
+    :param: to_visit
+    :return:
+    @type graph: nx.DiGraph
+    @type to_visit: list
+    """
+    while len(to_visit) > 0:
+        node_id = to_visit.pop(0)
+        node = graph.node[node_id]
+        #
+        if getValue(node, 'source', '$$') in ['','$$']:
+            continue
+        preds = []
+        for pred in graph.predecessors(node_id):
+            edge = graph.edge[pred][node_id]
+            if getValue(edge,'split',False) and \
+                    not getValue(edge,'donor',False) and \
+                    getValue(node, 'source', '$$') != pred:
+                preds.append(pred)
+        if len(preds) == 0:
+            continue
+        for pred in preds:
+            dup_node_id = new_id(node_id)
+            graph.add_node(dup_node_id, **node)
+            graph.node[dup_node_id]['source'] = pred
+            to_visit.append(dup_node_id)
+            graph.add_edge(pred, dup_node_id, **graph[pred][node_id])
+            graph.remove_edge(pred, node_id)
+            duplicate_path(graph, dup_node_id, node_id, to_visit)
+    return graph
+
+def separate_paths(graph):
+    """
+    Graph edges indicate a split point with multiple parents, one which is labeled as a source, are split
+    :param graph:
+    :return: graph augmented
+    @type graph: nx.DiGraph
+    """
+    return split_sourced_graph(graph, _findChildren(graph))
+
 def remap_links(json_data):
     """
     Networkx usings links that reference nodes by position.
@@ -78,16 +174,18 @@ def remap_links(json_data):
     def remap_link(link, key, node_index):
         if key in link and type(link[key]) in [str,unicode]:
             if link[key] not in node_index:
-                raise IndexError('Node ID {} not found in link'.format(link['source']))
+                raise IndexError('Node ID {} not found in link'.format(link[key]))
             return node_index[link[key]]
         return link[key]
 
     new_linked_list = []
     for item in link_list:
-        new_linked_list.append({
-            'source':remap_link(item, 'source', node_index),
-            'target':remap_link(item, 'target', node_index)
+        new_link = copy.copy(item)
+        new_link .update ({
+            'source': remap_link(item, 'source', node_index),
+            'target': remap_link(item, 'target', node_index)
         })
+        new_linked_list.append(new_link)
     json_data['links'] = new_linked_list
     return json_data
 
@@ -257,7 +355,6 @@ def callPluginSpec(specification, local_state, global_state, postProcess):
     return pluginSpecFuncs[specification['name']](parameters)
 
 def executeParamSpec(specification_name, specification, global_state, local_state, node_name, predecessors):
-    import copy
     """
     :param specification:
     :param global_state:
@@ -525,7 +622,8 @@ class BaseSelectionOperation(BatchOperation):
                                              suffixes=tool_set.suffixes+ [suffix],
                                              username=preferred_username,
                                              organization=preferred_organization,
-                                             tool='jtproject')[0]
+                                             tool='jtproject',
+                                             preferences=node['arguments'] if 'arguments' in node else {})[0]
         for prop, val in local_state['project'].iteritems():
             model.setProjectData(prop, val)
         if 'edgeFilePaths' in graph.graph:
@@ -581,7 +679,6 @@ class PreProcessedMediaOperation(BatchOperation):
         self.index = dict()
 
     def _fetchArguments(self, directory, node, nodename, image_file_name, arguments):
-        import copy
         import csv
         argcopy = copy.deepcopy(arguments)
         if 'argument file' in node:
@@ -636,7 +733,10 @@ class PreProcessedMediaOperation(BatchOperation):
         directory = node['directory'].format(**global_state)
         if not os.path.exists(directory):
             raise ValueError('Invalid directory "' + directory + '" with node ' + node_name)
-        results = glob.glob(directory + os.path.sep + filename[0:filename.rfind('.')] + '*')
+        if 'copy' in node and node['copy']:
+            results = [local_state['model'].currentImage()[1]]
+        else:
+            results = glob.glob(directory + os.path.sep + filename[0:filename.rfind('.')] + '*')
         if len(results) == 0:
             results = glob.glob(directory + os.path.sep + local_state['model'].getName() + '*')
         if len(results) == 1:
@@ -974,10 +1074,13 @@ class BatchProject:
         if isinstance(json_data, nx.Graph):
             self.G = json_data
         else:
-            self.G = json_graph.node_link_graph(remap_links(json_data), multigraph=False, directed=True)
+            self.G = separate_paths(json_graph.node_link_graph(remap_links(json_data), multigraph=False, directed=True))
         initial_user(maskGenPreferences,
                      username=getValue(self.G.graph,'username',
                                                       defaultValue=maskGenPreferences.get_key('username')))
+        self.saveGraphImage('.')
+
+
     def _buildLocalState(self):
         local_state = {'cleanup': list()}
         local_state['project'] = {}
@@ -1068,7 +1171,7 @@ class BatchProject:
                 # establish the starting point
                 local_state['start node name'] = node
                 queue = [base_node]
-                queue.extend([top for top in self._findTops() if top != base_node])
+                queue.extend([top for top in _findTops(self.G) if top != base_node])
                 self._processQueueOfNodes(local_state, global_state, queue, completed)
             self._postProcessProject(local_state, global_state)
         except Exception as e:
@@ -1096,7 +1199,7 @@ class BatchProject:
         try:
             self._execute_node(base_node, None, local_state, global_state)
             local_state['model'].setProjectData('batch specification name', self.getName())
-            queue = [top for top in self._findTops() if top != base_node]
+            queue = [top for top in _findTops(self.G) if top != base_node]
             logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
             project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
@@ -1178,7 +1281,7 @@ class BatchProject:
 
         errors = []
         topcount = 0
-        for top in self._findTops():
+        for top in _findTops(self.G):
             top_node = self.G.node[top]
             if top_node['op_type'] == 'BaseSelection':
                 topcount += 1
@@ -1203,13 +1306,7 @@ class BatchProject:
                                                                     node_name,
                                                                     global_state))
 
-    def _findTops(self):
-        """
-        Find and return top node name
-        :return:
-        @rtype: str
-        """
-        return [node for node in self.G.nodes() if len(self.G.predecessors(node)) == 0]
+
 
     def _findBase(self):
         """
@@ -1217,7 +1314,7 @@ class BatchProject:
         :return:
         @rtype: str
         """
-        tops = self._findTops()
+        tops = _findTops(self.G)
         for top in tops:
             top_node = self.G.node[top]
             if top_node['op_type'] in ['BaseSelection', 'NodeAttachment']:

@@ -75,7 +75,7 @@ EdgeTuple = collections.namedtuple('EdgeTuple', ['start', 'end', 'edge'])
 def createProject(path, notify=None, base=None, name=None, suffixes=[],
                   tool=None,
                   username=None,
-                  organization=None):
+                  organization=None,preferences={}):
     """
         This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
@@ -147,7 +147,7 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[],
 
     if image is not None:
         model.addImagesFromDir(path, baseImageFileName=os.path.split(image)[1], suffixes=suffixes, \
-                               sortalg=lambda f: os.stat(os.path.join(path, f)).st_mtime)
+                               sortalg=lambda f: os.stat(os.path.join(path, f)).st_mtime, preferences=preferences)
     return model, not existingProject
 
 
@@ -958,7 +958,7 @@ class ImageProjectModel:
         return self.gopLoader
 
     def addImagesFromDir(self, dir, baseImageFileName=None, xpos=100, ypos=30, suffixes=list(),
-                         sortalg=lambda s: s.lower()):
+                         sortalg=lambda s: s.lower(),preferences={}):
         """
           Bulk add all images from a given directory into the project.
           Position the images in a grid, separated by 50 vertically with a maximum height of 520.
@@ -979,6 +979,7 @@ class ImageProjectModel:
             try:
                 pathname = os.path.abspath(os.path.join(dir, filename))
                 additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+                additional.update(preferences)
                 nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
                 added.append(nname)
                 ypos += 50
