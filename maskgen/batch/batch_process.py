@@ -247,7 +247,8 @@ def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, 
 
 
 def processSpecification(specification, extensionRules, projects_directory, completeFile=None, outputGraph=False,
-                         threads=1, loglevel=None, global_variables=dict(), initializers=None):
+                         threads=1, loglevel=None, global_variables='',
+                         initializers=None):
     """
     Perform a plugin operation on all projects in directory
     :param projects_directory: directory of projects
@@ -479,6 +480,7 @@ def main():
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
+    parser.add_argument('--test', required=False,action='store_true', help='test extension')
 
     args = parser.parse_args()
 
@@ -491,7 +493,9 @@ def main():
                              imagereformat=args.imageReformatting)
 
     setPwdX(CustomPwdX(args.username))
-    maskgen.plugins.loadPlugins()
+    manager = maskgen.plugins.loadPlugins()
+    if args.test:
+        maskgen.plugins.EchoInterceptor(manager.getBroker())
     if args.plugins:
         for plugin in maskgen.plugins.loadPlugins().keys():
             if args.plugin is not None and plugin != args.plugin:

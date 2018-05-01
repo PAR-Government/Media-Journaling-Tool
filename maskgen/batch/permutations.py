@@ -227,6 +227,15 @@ class ListPermuteGroupElement(IteratorPermuteGroupElement):
         self.list_of_values = list_of_values
         IteratorPermuteGroupElement.__init__(self,name,list_of_values.__iter__,dependent=dependent)
 
+class ConstantGroupElement(PermuteGroupElement):
+
+    def __init__(self, name, value):
+        PermuteGroupElement.__init__(self, name, listIterator([value]))
+        self.current.item = value
+
+    def next(self,chained=False):
+       pass
+
 class PermuteGroup:
     """
     A single group of iterators

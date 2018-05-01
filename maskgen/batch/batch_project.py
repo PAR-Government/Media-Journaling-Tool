@@ -407,6 +407,9 @@ def getNodeStateFromPredecessor(current_node, local_state, graph):
 def pickImageIterator(specification, spec_name, global_state):
     if 'picklists' not in global_state:
         global_state['picklists'] = dict()
+    if 'files' in specification:
+        return PermuteGroupElement(spec_name, randomGeneratorFactory(lambda: random.choice(
+            [file.format(**global_state) for file in specification['files']])))
     picklist_name = specification['picklist'] if 'picklist' in specification else spec_name
     directory = specification['image_directory'].format(**global_state)
     if picklist_name not in global_state['picklists']:
@@ -437,14 +440,14 @@ class BatchOperation:
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         pass
 
@@ -459,21 +462,22 @@ class ImageSelectionOperation(BatchOperation):
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type local_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         manager = global_state['permutegroupsmanager']
         pick = manager.current(node['permutegroup'] if 'permutegroup' in node else None,
                                node_name)
         logging.getLogger('maskgen').info('Picking file {}'.format(pick))
-        getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick)
-        return local_state['model']
+        getNodeState(node_name, local_state)['node'] = \
+            local_state['model'].addImage(pick, prnu='prnu' in node and node['prnu'])
+        return getNodeState(node_name, local_state)['node']
 
 
 class BaseSelectionOperation(BatchOperation):
@@ -486,14 +490,14 @@ class BaseSelectionOperation(BatchOperation):
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         manager = global_state['permutegroupsmanager']
         pick = manager.current(node['permutegroup'] if 'permutegroup' in node else None,
@@ -529,7 +533,7 @@ class BaseSelectionOperation(BatchOperation):
                 model.getGraph().addEdgeFilePath(path,'')
         local_state['model'] = model
         getNodeState(node_name, local_state)['node'] = local_state['model'].getNodeNames()[0]
-        return local_state['model']
+        return getNodeState(node_name, local_state)['node']
 
 
 class BaseAttachmentOperation(BatchOperation):
@@ -544,19 +548,19 @@ class BaseAttachmentOperation(BatchOperation):
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         getNodeState(node_name, local_state)['node'] = local_state['start node name']
         if (self.logger.isEnabledFor(logging.DEBUG)):
             self.logger.debug('Attaching to node {}'.format(local_state['start node name']))
-        return local_state['model']
+        return getNodeState(node_name, local_state)['node']
 
 
 class PreProcessedMediaOperation(BatchOperation):
@@ -609,14 +613,14 @@ class PreProcessedMediaOperation(BatchOperation):
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         import glob
         my_state = getNodeState(node_name, local_state)
@@ -685,7 +689,7 @@ class PreProcessedMediaOperation(BatchOperation):
                 directory, filename, str([os.path.basename(r) for r in results])))
         else:
             raise ValueError('Directory {} does not contain a match media for {}'.format(directory, filename))
-        return local_state['model']
+        return my_state['node']
 
 
 class PluginOperation(BatchOperation):
@@ -700,14 +704,14 @@ class PluginOperation(BatchOperation):
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         my_state = getNodeState(node_name, local_state)
 
@@ -747,7 +751,7 @@ class PluginOperation(BatchOperation):
             self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                        filename,
                                                                        str(args)))
-        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
+        errors, pairs = local_state['model'].imageFromPlugin(plugin_name , **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
             real_error = None
             for error in errors:
@@ -777,7 +781,7 @@ class PluginOperation(BatchOperation):
                                          skipDonorAnalysis='skip_donor_analysis' in node and node[
                                              'skip_donor_analysis'])
             local_state['model'].selectImage(my_state['node'])
-        return local_state['model']
+        return my_state['node']
 
 
 class InputMaskPluginOperation(PluginOperation):
@@ -792,21 +796,21 @@ class InputMaskPluginOperation(PluginOperation):
         :param connect_to_node_name:
         :param local_state:
         :param global_state:
-        :return:
+        :return: node id
         @type graph: nx.DiGraph
         @type node_name : str
         @type node: Dict
         @type connect_to_node_name : str
         @type global_state: Dict
         @type global_state: Dict
-        @rtype: scenario_model.ImageProjectModel
+        @rtype: str
         """
         my_state = getNodeState(node_name, local_state)
 
         predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
                         if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
         if connect_to_node_name is None:
-            predecessor_state = getNodeStateFromPredecessor(node_name,local_state, graph)
+            predecessor_state = getNodeStateFromPredecessor(node_name, local_state, graph)
         else:
             predecessor_state = getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
@@ -831,7 +835,7 @@ class InputMaskPluginOperation(PluginOperation):
         if params is not None and type(params) == type({}):
             for k, v in params.iteritems():
                 my_state[k] = v
-        return local_state['model']
+        return predecessor_state['node']
 
     def resolveDonor(selfl, k, v, local_state):
         if k.lower() == 'donor':
@@ -991,8 +995,53 @@ class BatchProject:
          not getValue(self.G.edge[predecessor][op_node_name], 'donor', defaultValue=False) and \
          getValue(self.G.edge[predecessor][op_node_name],'connect',defaultValue=True)]
 
-    def executeForProject(self, project, nodes, workdir=None, global_variables={}):
+    def _processQueueOfNodes(self, local_state, global_state, queue, completed):
+        while len(queue) > 0:
+            op_node_name = queue.pop(0)
+            if op_node_name in completed:
+                continue
+            if op_node_name not in self.G.nodes():
+                logging.getLogger('maskgen').error('Project {} missing node {}'.format(self.getName(), op_node_name))
+            predecessors = list(self.G.predecessors(op_node_name))
+            # skip if a predecessor is missing
+            if len([pred for pred in predecessors if pred not in completed]) > 0:
+                return
+            connecttonodes = self.getConnectToNodes(op_node_name)
+            node = self.G.node[op_node_name]
+            if len(connecttonodes) > 0 and 'source' in node:
+                connect_to_node_name = node['source']
+            else:
+                connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
+            self.logger.debug('Starting: {}'.format(op_node_name))
+            self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
+            completed.append(op_node_name)
+            if (self.logger.isEnabledFor(logging.DEBUG)):
+                self.logger.debug('Completed: {}'.format(op_node_name))
+            queue.extend(self.G.successors(op_node_name))
+
+    def _postProcessProject(self, local_state, global_state):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
+        sm = local_state['model']
+        if recompress:
+            self.logger.debug("Run Save As")
+            op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
+            op.performOp()
+        sm.renameFileImages()
+        summary_file = os.path.join(sm.get_dir(), '_overview_.png')
+        ImageGraphPainter(sm.getGraph()).output(summary_file)
+        if 'archives' in global_state:
+            sm.export(global_state['archives'])
+
+    def _cleanUp(self, local_state):
+        for file in local_state['cleanup']:
+            if os.path.exists(file):
+                try:
+                    os.remove(file)
+                except:
+                    # MS Windows?
+                    continue
+
+    def executeForProject(self, project, nodes, workdir=None, global_variables={}):
         global_state = {'project': self,
                         'workdir': project.get_dir() if workdir is None else workdir,
                         'permutegroupsmanager': PermuteGroupManager(
@@ -1004,6 +1053,7 @@ class BatchProject:
                                                                         for pair in global_variables.split(',')]})
             else:
                 global_state.update(global_variables)
+        self.loadPermuteGroups(global_state)
         self.logger.info('Building project {} with local state'.format(project.getName()))
         local_state = self._buildLocalState()
         mydata = local()
@@ -1013,34 +1063,14 @@ class BatchProject:
         local_state['model'] = project
         base_node = self._findBase()
         try:
+            completed = []
             for node in nodes:
                 # establish the starting point
                 local_state['start node name'] = node
-                completed = []
                 queue = [base_node]
-                queue.extend(self.G.successors(base_node))
-                while len(queue) > 0:
-                    op_node_name = queue.pop(0)
-                    if op_node_name in completed:
-                        continue
-                    predecessors = list(self.G.predecessors(op_node_name))
-                    # skip if a predecessor is missing
-                    if len([pred for pred in predecessors if pred not in completed]) > 0:
-                        continue
-                    connecttonodes = self.getConnectToNodes(op_node_name)
-                    connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
-                    self.logger.debug('Starting: {}'.format(op_node_name))
-                    self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
-                    completed.append(op_node_name)
-                    self.logger.debug('Completed: {}'.format(op_node_name))
-                    queue.extend(self.G.successors(op_node_name))
-            if recompress:
-                self.logger.debug("Run Save As")
-                op = group_operations.CopyCompressionAndExifGroupOperation(project)
-                op.performOp()
-            local_state['model'].renameFileImages()
-            if 'archives' in global_state:
-                project.export(global_state['archives'])
+                queue.extend([top for top in self._findTops() if top != base_node])
+                self._processQueueOfNodes(local_state, global_state, queue, completed)
+            self._postProcessProject(local_state, global_state)
         except Exception as e:
             project_name = project.getName()
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -1048,16 +1078,13 @@ class BatchProject:
             logging.getLogger('maskgen').error('Creation of project {} failed: {}'.format(project_name, str(e)))
             return False
         finally:
-            for file in local_state['cleanup']:
-                if os.path.exists(file):
-                    os.remove(file)
+            self._cleanUp(local_state)
         return True
 
     def executeOnce(self, global_state=dict()):
         permuteGroupManager = global_state['permutegroupsmanager']
         permuteGroupManager.save()
         permuteGroupManager.next()
-        recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
         local_state = self._buildLocalState()
         mydata = local()
         mydata.current_local_state = local_state
@@ -1072,40 +1099,10 @@ class BatchProject:
             queue = [top for top in self._findTops() if top != base_node]
             logging.getLogger('maskgen').info('Project {} top level nodes {}'.format(self.getName(), ','.join(queue)))
             queue.extend(self.G.successors(base_node))
-            completed = [base_node]
             project_name = local_state['model'].getName() if 'model' in local_state else 'NA'
-            while len(queue) > 0:
-                op_node_name = queue.pop(0)
-                if op_node_name in completed:
-                    continue
-                if op_node_name not in self.G.nodes():
-                    logging.getLogger('maskgen').error('Project {} missing node {}'.format( self.getName(),op_node_name))
-                predecessors = list(self.G.predecessors(op_node_name))
-                # skip if a predecessor is missing
-                if len([pred for pred in predecessors if pred not in completed]) > 0:
-                    continue
-                connecttonodes = self.getConnectToNodes(op_node_name)
-                node = self.G.node[op_node_name]
-                if len(connecttonodes) > 0 and 'source' in node:
-                    connect_to_node_name = node['source']
-                else:
-                    connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
-                self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)
-                completed.append(op_node_name)
-                if (self.logger.isEnabledFor(logging.DEBUG)):
-                    self.logger.debug('Completed: {}'.format(op_node_name))
-                queue.extend(self.G.successors(op_node_name))
-            if recompress:
-                self.logger.debug("Run Save As")
-                op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
-                op.performOp()
-            sm = local_state['model']
-            sm.renameFileImages()
+            self._processQueueOfNodes(local_state, global_state, queue, [base_node])
             ok = True
-            summary_file = os.path.join(sm.get_dir(), '_overview_.png')
-            ImageGraphPainter(sm.getGraph()).output(summary_file)
-            if 'archives' in global_state:
-                sm.export(global_state['archives'])
+            self._postProcessProject(local_state,global_state)
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logger.error(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback, limit=10)))
@@ -1119,9 +1116,7 @@ class BatchProject:
                         shutil.rmtree(local_state['model'].get_dir())
                 return None, project_name
         finally:
-            for file in local_state['cleanup']:
-                if os.path.exists(file):
-                    os.remove(file)
+            self._cleanUp(local_state)
         self.logger.info('Creation of project {} succeeded'.format(project_name))
         return local_state['model'].get_dir(), project_name
 
@@ -1404,7 +1399,8 @@ class BatchExecutor:
                  threads_count=1,
                  removeBadProjects=True,
                  stopOnError=False,
-                 fromFailedStateFile=None):
+                 fromFailedStateFile=None,
+                 testMode=False):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1430,7 +1426,9 @@ class BatchExecutor:
         if not os.path.isdir(results):
             logging.getLogger('maskgen').error('invalid directory for results: ' + results)
             return
-        plugins.loadPlugins()
+        manager = plugins.loadPlugins()
+        if testMode:
+            plugins.EchoInterceptor(manager.getBroker())
         self.removeBadProjects = removeBadProjects
         self.__setupThreads(threads_count)
         self.workdir = os.path.abspath(workdir)
@@ -1536,6 +1534,7 @@ def main():
     parser.add_argument('--export',required=False)
     parser.add_argument('--keep_failed',required=False,action='store_true')
     parser.add_argument('--stop_on_error', required=False, action='store_true')
+    parser.add_argument('--test', required=False, action='store_true')
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.json)
@@ -1547,7 +1546,8 @@ def main():
                        loglevel=args.loglevel,
                        stopOnError=args.stop_on_error,
                        removeBadProjects=not args.keep_failed,
-                       fromFailedStateFile=args.from_state)
+                       fromFailedStateFile=args.from_state,
+                       testMode=args.test)
 
     notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
 

@@ -994,7 +994,7 @@ class ImageProjectModel:
                 self.notify(added, 'add')
 
 
-    def addImage(self, pathname, cgi=False):
+    def addImage(self, pathname, cgi=False, prnu=False):
         maxx = 50
         max_node = None
         for node_id in self.G.get_nodes():
@@ -1004,7 +1004,11 @@ class ImageProjectModel:
                 max_node = node
         maxy = max_node['ypos'] + 50 if max_node is not None else 50
         additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
-        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx, ypos=maxy,
+        nname = self.G.add_node(pathname, nodetype='base',
+                                cgi='yes' if cgi else 'no',
+                                xpos=maxx,
+                                ypos=maxy,
+                                prnu='yes' if prnu else 'no',
                                 **additional)
         self.start = nname
         self.end = None
@@ -2352,6 +2356,8 @@ class ImageProjectModel:
         op = plugins.getOperation(filter)
         suffix = os.path.splitext(filename)[1].lower()
         preferred = plugins.getPreferredSuffix(filter)
+        if type(preferred) == dict:
+            preferred = preferred[filetype]
         fullOp = buildFilterOperation(op)
         resolved, donors, graph_args, suffix_override = self._resolvePluginValues(kwargs, fullOp)
         if suffix_override is not None:

@@ -1,0 +1,28 @@
+{
+    "name": "MagickSaveAsJPEG2000",
+    "operation": {
+      "name": "OutputJpg",
+      "category": "Output",
+      "description": "Save Input file as JPEG 2000",
+      "software": "ImageMagick",
+      "version": "7",
+      "arguments":{
+        "quality": {
+          "type":"int[40:100]",
+          "defaultvalue":"90",
+          "description":"Image Quality"
+        }
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".jp2",
+    "command": {
+      "default": [
+        "convert",
+        "{inputimage}",
+        "-quality",
+        "{quality}",
+        "{outputimage}"
+      ]
+    }
+}
