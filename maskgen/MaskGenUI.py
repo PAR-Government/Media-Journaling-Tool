@@ -121,7 +121,6 @@ class MakeGenUI(Frame):
     l2 = None
     l3 = None
     processmenu = None
-    mypluginops = {}
     nodemenu = None
     edgemenu = None
     filteredgemenu = None
@@ -1254,7 +1253,7 @@ class MakeGenUI(Frame):
     def __init__(self, dir, master=None, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
-        self.mypluginops = plugins.loadPlugins()
+        plugins.loadPlugins()
         self.gfl = GroupFilterLoader()
         tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
                               username=self.get_username(),

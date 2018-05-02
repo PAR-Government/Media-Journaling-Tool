@@ -1169,6 +1169,8 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
 
     def __checkParams(self):
         ok = True
+        if self.opvar.get() in [None,'']:
+            return False
         for k, v in self.argvalues.iteritems():
             info = self.__getinfo(k)
             if info is None or 'type' not in info:

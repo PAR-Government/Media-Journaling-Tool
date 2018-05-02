@@ -75,7 +75,7 @@ EdgeTuple = collections.namedtuple('EdgeTuple', ['start', 'end', 'edge'])
 def createProject(path, notify=None, base=None, name=None, suffixes=[],
                   tool=None,
                   username=None,
-                  organization=None):
+                  organization=None,preferences={}):
     """
         This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
@@ -147,7 +147,7 @@ def createProject(path, notify=None, base=None, name=None, suffixes=[],
 
     if image is not None:
         model.addImagesFromDir(path, baseImageFileName=os.path.split(image)[1], suffixes=suffixes, \
-                               sortalg=lambda f: os.stat(os.path.join(path, f)).st_mtime)
+                               sortalg=lambda f: os.stat(os.path.join(path, f)).st_mtime, preferences=preferences)
     return model, not existingProject
 
 
@@ -958,7 +958,7 @@ class ImageProjectModel:
         return self.gopLoader
 
     def addImagesFromDir(self, dir, baseImageFileName=None, xpos=100, ypos=30, suffixes=list(),
-                         sortalg=lambda s: s.lower()):
+                         sortalg=lambda s: s.lower(),preferences={}):
         """
           Bulk add all images from a given directory into the project.
           Position the images in a grid, separated by 50 vertically with a maximum height of 520.
@@ -979,6 +979,7 @@ class ImageProjectModel:
             try:
                 pathname = os.path.abspath(os.path.join(dir, filename))
                 additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+                additional.update(preferences)
                 nname = self.G.add_node(pathname, xpos=xpos, ypos=ypos, nodetype='base', **additional)
                 added.append(nname)
                 ypos += 50
@@ -994,7 +995,7 @@ class ImageProjectModel:
                 self.notify(added, 'add')
 
 
-    def addImage(self, pathname, cgi=False):
+    def addImage(self, pathname, cgi=False, prnu=False):
         maxx = 50
         max_node = None
         for node_id in self.G.get_nodes():
@@ -1004,7 +1005,11 @@ class ImageProjectModel:
                 max_node = node
         maxy = max_node['ypos'] + 50 if max_node is not None else 50
         additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
-        nname = self.G.add_node(pathname, nodetype='base', cgi='yes' if cgi else 'no', xpos=maxx, ypos=maxy,
+        nname = self.G.add_node(pathname, nodetype='base',
+                                cgi='yes' if cgi else 'no',
+                                xpos=maxx,
+                                ypos=maxy,
+                                prnu='yes' if prnu else 'no',
                                 **additional)
         self.start = nname
         self.end = None
@@ -2352,6 +2357,8 @@ class ImageProjectModel:
         op = plugins.getOperation(filter)
         suffix = os.path.splitext(filename)[1].lower()
         preferred = plugins.getPreferredSuffix(filter)
+        if type(preferred) == dict:
+            preferred = preferred[filetype]
         fullOp = buildFilterOperation(op)
         resolved, donors, graph_args, suffix_override = self._resolvePluginValues(kwargs, fullOp)
         if suffix_override is not None:
