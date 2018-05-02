@@ -376,7 +376,7 @@ def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
     preprocess_func = donothing
     if operation is not None:
         preprocess_func_id = media_type + '_preprocess'
-        if preprocess_func_id in operation.maskTransformFunction:
+        if operation.maskTransformFunction is not None and preprocess_func_id in operation.maskTransformFunction:
             preprocess_func = graph_rules.getRule(operation.maskTransformFunction[preprocess_func_id])
     return None if len(video_masks) == 0 and not returnEmpty else \
          CompositeImage(source, target, media_type, [item for item in
