@@ -15,7 +15,7 @@ from maskgen.algorithms.optical_flow import smartDropFrames
 Returns the start and end time of the frames to drop and the optimal number of frames to replace the dropped frames
 """
 
-def transform(img,source,target,**kwargs):
+def transform(img, source, target, **kwargs):
     start_time = getMilliSecondsAndFrameCount(str(kwargs['Start Time'])) if 'Start Time' in kwargs else (0,1)
     end_time = getMilliSecondsAndFrameCount(str(kwargs['End Time'])) if 'End Time' in kwargs else None
     seconds_to_drop = float(kwargs['seconds to drop']) if 'seconds to drop' in kwargs else 1.0
@@ -28,10 +28,7 @@ def transform(img,source,target,**kwargs):
                                               seconds_to_drop,
                                               savehistograms=save_histograms,
                                               codec=codec,
-                      drop = drop)
-    #start = 1235
-    #stop = 1245
-    #frames_to_add=7
+                                              drop = drop)
     return {'Start Time': str(start),
             'End Time': str(stop),
             'Frames Dropped' : stop-start + 1,

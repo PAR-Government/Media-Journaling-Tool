@@ -69,14 +69,20 @@ def _findTops(graph):
     return [node for node in graph.nodes() if len(graph.predecessors(node)) == 0]
 
 
-def _findChildren(graph):
-    q = _findTops(graph)
-    children = []
-    while len(q) > 0:
-        next = q.pop(0)
-        if next not in children:
-            children.append(next)
-            q.extend( graph.successors(next))
+def _listOfAllNodes(graph):
+    """
+    BFS
+    :param graph:
+    :return: Return all nodes in the graph, top to bottom breadth-first
+    """
+    children = _findTops(graph)
+    pos = 0
+    while pos < len(children):
+        next = children[pos]
+        for child in graph.successors(next):
+            if child not in children:
+                children.append(child)
+        pos += 1
     return children
 
 def new_id(node_id):
@@ -153,7 +159,7 @@ def separate_paths(graph):
     :return: graph augmented
     @type graph: nx.DiGraph
     """
-    return split_sourced_graph(graph, _findChildren(graph))
+    return split_sourced_graph(graph, _listOfAllNodes(graph))
 
 def remap_links(json_data):
     """
