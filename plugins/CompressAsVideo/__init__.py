@@ -307,9 +307,9 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
     ffargs.extend(['-map_metadata', '0:g', '-y', target])
 
     # Codec overrides
-    if video_codec != 'Use Donor':
+    if video_codec.lower() != 'use donor':
         replace_codec_name(ffargs, get_codec_name(ffargs, 'video'), video_codec)
-    if audio_codec != 'Use Donor':
+    if audio_codec.lower() != 'use donor':
         replace_codec_name(ffargs, get_codec_name(ffargs, 'audio'), audio_codec)
 
     # Total override
@@ -353,7 +353,8 @@ def transform(img, source, target, **kwargs):
         targetname = target[0:target.rfind('.')+1] + container
         analysis = {'override_target': targetname}
     else:
-        targetname = target
+        targetname = target[0:target.rfind('.')] + path.splitext(donor)[1]
+        analysis = {'override_target': targetname}
 
     analysis.update(save_as_video(source, targetname, donor, matchcolor=matchcolor, apply_rotate=rotate,
                                   video_codec=video_codec_preference, audio_codec=audio_codec_preference,

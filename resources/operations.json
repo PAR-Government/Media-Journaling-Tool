@@ -2165,22 +2165,45 @@
       ]
     },
     {
-      "category": "CGI",
-      "name": "Synthesize",
-      "mandatoryparameters": {
-        "is3D": {
-          "type": "yesno",
-          "description": "Indicates if the CGI is a 3D model with light sources, etc."
-        },
-        "isGan": {
-          "type": "yesno",
-          "description": "Whether of not the image or video GAN generated"
-        }
-      },
-      "optionalparameters": {
+      "category":"CGI",
+      "name":"SynthesizeGAN",
+      "mandatoryparameters":{
         "urls": {
           "type": "urls",
-          "description": "CGI Object files"
+          "description" : "URL of GAN"
+        },
+        "Name" : {
+          "type" : "text",
+          "description" : "Name of GAN"
+        }
+      },
+      "optionalparameters":{
+        "Random seed value": {
+          "type" : "float",
+          "description" : "The random fed to the GAN to produce the output"
+        }
+      },
+      "includeInMask": {"default" : false},
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "rules" : [
+        "checkSize",
+        "checkFileTypeChange"
+      ],
+       "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
+      ]
+    },
+    {
+      "category":"CGI",
+      "name":"SynthesizeVideo",
+      "mandatoryparameters":{
+        "urls": {
+          "type": "urls",
+          "description" : "URL used to create the flight path simulate"
         },
         "Recording Software": {
           "type": "text",
@@ -2190,9 +2213,25 @@
           "type": "file:kml",
           "description": "Name of KML File"
         },
-        "Model File": {
-          "type": "file:*",
-          "description": "The model file of the GAN that made the file"
+        "Rendering Software": {
+          "type" : "text",
+          "description" : "Name of software used to render the video"
+        }
+      },
+      "optionalparameters":{
+        "Time Settings": {
+          "type" : "list",
+          "values" : ["Default time", "Morning","Evening","Night","Early Morning","Late Morning", "Late Evening", "Early Evening"],
+          "description" : "The time setting used if changed",
+          "defaultvalue" : "Default time"
+        },
+        "Video Location": {
+          "type" : "text",
+          "description": "Where the video is supposed to take place"
+        },
+        "Time of Sun": {
+          "type" : "text",
+          "description" : "Time of day video was taken if unknown leave blank"
         }
       },
       "includeInMask": {
@@ -2202,15 +2241,7 @@
         "image.image",
         "video.video"
       ],
-      "parameter_dependencies": {
-        "isGan": {
-          "yes": "Model File"
-        },
-        "isCGI": {
-          "yes": "urls"
-        }
-      },
-      "rules": [
+      "rules" : [
         "checkSize",
         "checkFileTypeChange"
       ],
