@@ -51,7 +51,7 @@ def updateJournal(scModel):
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
          ('0.5.0227.6d9889731b', [_fixPNGS,_emptyMask]),
          ('0.5.0227.bf007ef4cd', [_fixTool ]),
-         ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin])])
+         ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -180,6 +180,21 @@ def _fixHP(scModel,gopLoader):
         node= scModel.G.get_node(nodename)
         if 'HP' in node:
             node['Registered'] = node.pop('HP')
+
+def _fixCompressor(scModel,gopLoader):
+    for nodename in scModel.getNodeNames():
+        node = scModel.G.get_node(nodename)
+        file = getValue(node,'file','')
+        if file[:-4].endswith('_compressed'):
+            node['compressed'] = u'maskgen.video_tools.x264fast'
+
+def _fixVideoMaskType(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        masks = edge['videomasks'] if 'videomasks' in edge else []
+        for mask in masks:
+            if 'type' not in mask:
+                mask['type'] = 'audio' if 'Audio' in edge['op'] else 'video'
 
 def _fixFrameRate(scModel,gopLoader):
     from maskgen import video_tools

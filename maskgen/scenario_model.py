@@ -1160,7 +1160,7 @@ class ImageProjectModel:
 
         compressor = prefLoader.get_key('compressor.' + ftype,
                                         default_value=defaults['compressor.' + ftype])
-        if ('compressed' in node and node['compressed'] == compressor):
+        if 'compressed' in node:
             return
 
         func = getRule(compressor)
@@ -1170,6 +1170,7 @@ class ImageProjectModel:
             if newfilename is not None:
                 newfile = os.path.split(newfilename)[1]
                 node['file'] = newfile
+                node['compressed'] = compressor
         return newfile
 
     def connect(self, destination, mod=Modification('Donor', '',category='Donor'), invert=False, sendNotifications=True,
@@ -1815,7 +1816,7 @@ class ImageProjectModel:
         return self.end if self.end is not None else self.start
 
     def getFileName(self, nodeid):
-        return self.G.get_node(nodeid)['file']
+            return self.G.get_node(nodeid)['file']
 
     def startImageName(self):
         return self.G.get_node(self.start)['file'] if self.start is not None else ""
