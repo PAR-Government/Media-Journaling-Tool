@@ -474,13 +474,18 @@ def __get_metadata_item(data, item, default_value):
     return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False):
+    import uuid
     def runProbeWithFrames(func, args=None):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
             ffmpegcommand.append(args)
-        stdout_fd, stdout_path = tempfile.mkstemp('.txt', 'stdOut'+str(os.getpid()))
+        stdout_fd, stdout_path = tempfile.mkstemp('.txt',
+                                                  'stdout_{}_{}'.format(uuid.uuid4(),
+                                                                        str(os.getpid())))
         try:
-            stder_fd, stder_path = tempfile.mkstemp('.txt', 'stdEr'+str(os.getpid()))
+            stder_fd, stder_path = tempfile.mkstemp('.txt',
+                                                    'stderr_{}_{}'.format(uuid.uuid4(),
+                                                                          str(os.getpid())))
             try:
                 p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
                 p.wait()
@@ -496,10 +501,12 @@ def getMeta(file, with_frames=False, show_streams=False):
                 return func(stdout_fd,stder_fd)
             finally:
                 stder_fd.close()
-                os.remove(stder_path)
         finally:
             stdout_fd.close()
-            os.remove(stdout_path)
+            if os.path.exists(stder_path):
+                os.remove(stder_path)
+            if os.path.exists(stdout_path):
+                os.remove(stdout_path)
 
 
     def runProbe(func, args=None):
