@@ -76,8 +76,12 @@ class QAProjectDialog(Toplevel):
             self.probes = None
 
     def getFileNameForNode(self, nodeid):
-        fn = self.scModel.getFileName(nodeid)
-        self.lookup[fn] = nodeid
+        try:
+            fn = self.scModel.getFileName(nodeid)
+            self.lookup[fn] = nodeid
+        except TypeError:
+            fn = None
+            logging.getLogger('maskgen').warn("Unable to locate File for node with Id {}".format(nodeid))
         return fn
 
     def pre(self):
@@ -306,6 +310,8 @@ class QAProjectDialog(Toplevel):
     def abreive(self,str):
         if (len(str)>10):
             return(str[:5]+ "...\n" + str[-6:])
+        else:
+            return str
 
     def setUpPlot(self,t):
         ps = [mpatches.Patch(color="red", label="Target Video"),mpatches.Patch(color="blue",label="Current Manipulations"),mpatches.Patch(color="green",label="Other Manipulations")]
@@ -316,7 +322,7 @@ class QAProjectDialog(Toplevel):
         prolist = []
         for p in self.probes:
             if (self.finalNodeName == None):
-                if self.getFileNameForNode(p.donorBaseNodeId) == self.edgeTuple[1]:
+                if p.donorBaseNodeId is not None and self.getFileNameForNode(p.donorBaseNodeId) == self.edgeTuple[1]:
                     prolist.append(p)
             else:
                 if (self.getFileNameForNode(p.finalNodeId) == self.edgeTuple[1]):
@@ -324,7 +330,7 @@ class QAProjectDialog(Toplevel):
         try:
             tsec = video_tools.getMaskSetForEntireVideo(os.path.join(self.scModel.get_dir(), self.edgeTuple[1]))[0]['endtime'] /1000.0
         except Exception:
-            logging.getLogger("maskgen").warn("{} Duration could not be found the length displayed in the graph is incorrect")
+            logging.getLogger("maskgen").warn("{} Duration could not be found the length displayed in the graph is incorrect".format(self.edgeTuple[1]))
             tsec = 120.0
         #ts = (self.scModel.G.get_node(self.lookup[self.edgeTuple[1]])['duration'])
         #ftr = [3600, 60, 1]
