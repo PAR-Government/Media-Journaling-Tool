@@ -799,7 +799,7 @@ class HPSpreadsheet(Toplevel):
             name = self.pt.model.df['ImageFilename'][r] if self.pt.model.df["Type"][r] != "model" else os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][r].split(".")[0]))
             files_in_csv.append(name)
 
-        dif_list = [x for x in files_in_dir if x not in files_in_csv]
+        dif_list = [x for x in files_in_dir if x not in files_in_csv and "_" not in x]
 
         if dif_list:
             ans = tkMessageBox.askyesno("Missing Data", "There have been files found in the output directory that are not in the csv.  Would you like to delete them?")
