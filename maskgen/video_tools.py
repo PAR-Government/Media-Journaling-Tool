@@ -475,6 +475,7 @@ def __get_metadata_item(data, item, default_value):
 
 def getMeta(file, with_frames=False, show_streams=False):
     import uuid
+    import time
     def runProbeWithFrames(func, args=None):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
         if args != None:
@@ -503,11 +504,19 @@ def getMeta(file, with_frames=False, show_streams=False):
                 stder_fd.close()
         finally:
             stdout_fd.close()
-            if os.path.exists(stder_path):
-                os.remove(stder_path)
-            if os.path.exists(stdout_path):
-                os.remove(stdout_path)
+            persistantDelete(stder_path)
+            persistantDelete(stdout_path)
 
+    def persistantDelete(path, attempts=10):
+        if os.path.exists(path):
+            for x in range(attempts):
+                try:
+                    os.remove(path)
+                    break
+                except WindowsError:
+                    time.sleep(0.1)
+        if os.path.exists(path):
+            logging.getLogger('maskgen').warn("Failed to remove file {}".format(path))
 
     def runProbe(func, args=None):
         ffmpegcommand = [tool_set.getFFprobeTool(), file]
