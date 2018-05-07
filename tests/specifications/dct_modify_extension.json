@@ -1,0 +1,47 @@
+{
+  "directed": true, 
+  "graph": {
+    "username": "dupre",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "semanticrestaging": "no",
+    "organization": "PAR",
+    "technicalsummary": "Automated: DCT Attack",
+    "projectdescription":"Change DCT",
+    "name": "DCT Attack"
+  },
+  "nodes": [
+    {
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base_PNG"
+    },
+    {
+      "plugin": "DCTQTDither",
+      "arguments": {
+        "donor": {
+          "source": "base",
+          "type": "donor"
+        }
+      },
+      "op_type": "PluginOperation",
+      "id": "DCTQTDither"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputCopy",
+      "id": "OutputCopy"
+    }
+  ], 
+  "links": [
+    {
+      "source": "base_PNG",
+      "target": "OutputCopy"
+    },
+     {
+      "source": "base_PNG",
+      "target": "DCTQTDither"
+    }
+  ], 
+  "multigraph": false
+}

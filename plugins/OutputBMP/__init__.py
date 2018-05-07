@@ -24,11 +24,11 @@ def transform(im, source, target, **kwargs):
     if 'donor' in kwargs:
         donor = kwargs['donor']
         exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
-        exif.runexif(['-q', '-all=', target])
-        exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
+        exif.runexif(['-overwrite_original','-q', '-all=', target])
+        exif.runexif(['-overwrite_original','-P', '-q', '-m', '-TagsFromFile', donor, '-all:all', '-unsafe', target])
     createtime = exif.getexif(target, args=['-args', '-System:FileCreateDate'], separator='=')
     if '-FileCreateDate' in createtime:
-        exif.runexif(['-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
+        exif.runexif(['-overwrite_original','-P', '-q', '-m', '-System:fileModifyDate=' + createtime['-FileCreateDate'], target])
     analysis['Image Rotated'] = 'yes' if 'rotation' in analysis else 'no'
     return analysis , None
 

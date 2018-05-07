@@ -1,8 +1,9 @@
-from maskgen.mask_rules import Probe,GraphCompositeIdAssigner
+from maskgen.mask_rules import *
 import unittest
 from maskgen.image_graph import ImageGraph
 import numpy as np
 import networkx as nx
+from tests.test_support import TestSupport
 
 class ImageGraphB:
     def __init__(self, G):
@@ -27,7 +28,307 @@ class ImageGraphB:
 
 
 
-class TestMaskRules(unittest.TestCase):
+class TestMaskRules(TestSupport):
+
+    def test_recapture_transform(self):
+        edge = { u'maskname': u'Rotate_mask.png',
+                  u'inputmaskname': None,
+                  u'shape change': u'(0, 0)',
+                 'empty mask': 'no',
+                 u'arguments': {u'Position Mapping': '(86, 0, 2860, 3973):(0, 0, 7968, 5313):90'},
+                 u'transform matrix': {u'c': 3,
+                                       u'r': 3,
+                                       u'r0': [0.8266647515769302, 0.07178941510501777, 159.50098419871705],
+                                       u'r1': [-0.06021837537671073, 0.9344977768387763, 137.85479973696164],
+                                       u'r2': [-3.946051215265123e-05, 1.8621034727368588e-05, 1.0]},
+                 u'op': u'Recapture'}
+        buildState = BuildState(edge,
+                                self.locateFile('images/PostRotate.png'),
+                                self.locateFile('images/PostRotate.png'), #does not matter
+                                openImageFile(self.locateFile('images/Recapture_mask.png'),isMask=True).image_array,
+                                (3984, 2988),
+                                (5320, 7968),
+                                directory='.',
+                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
+                                pred_edges=None,
+                                graph=None)
+        result = recapture_transform(buildState)
+        self.assertEquals((5320, 7968), result.shape)
+
+        buildState = BuildState(edge,
+                                self.locateFile('images/PostRotate.png'),
+                                self.locateFile('images/PostRotate.png'), #does not matter
+                                openImageFile(self.locateFile('images/Recapture_mask.png'),isMask=True).image_array,
+                                (3984, 2988),
+                                (5320, 7968),
+                                directory='.',
+                                donorMask=result,
+                                pred_edges=None,
+                                graph=None)
+        result= recapture_transform(buildState)
+        self.assertEquals((3984, 2988), result.shape)
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {},
+                u'transform matrix': {u'c': 3,
+                                      u'r': 3,
+                                      u'r0': [0.8266647515769302, 0.07178941510501777, 159.50098419871705],
+                                      u'r1': [-0.06021837537671073, 0.9344977768387763, 137.85479973696164],
+                                      u'r2': [-3.946051215265123e-05, 1.8621034727368588e-05, 1.0]},
+                u'op': u'Recapture'}
+        buildState = BuildState(edge,
+                                self.locateFile('images/PostRotate.png'),
+                                self.locateFile('images/PostRotate.png'),  # does not matter
+                                openImageFile(self.locateFile('images/Recapture_mask.png'), isMask=True).image_array,
+                                (3984, 2988),
+                                (5320, 7968),
+                                directory='.',
+                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'),
+                                                            isMask=True).image_array,
+                                pred_edges=None,
+                                graph=None)
+        result = recapture_transform(buildState)
+        self.assertEquals((5320, 7968),result.shape)
+
+        buildState = BuildState(edge,
+                                self.locateFile('images/PostRotate.png'),
+                                self.locateFile('images/PostRotate.png'),  # does not matter
+                                openImageFile(self.locateFile('images/Recapture_mask.png'), isMask=True).image_array,
+                                (3984, 2988),
+                                (5320, 7968),
+                                directory='.',
+                                donorMask=result,
+                                pred_edges=None,
+                                graph=None)
+        result =recapture_transform(buildState)
+        self.assertEquals((3984, 2988), result.shape)
+
+
+    def test_rotate_transform(self):
+        edge = { u'maskname': u'Rotate_mask.png',
+                  u'inputmaskname': None,
+                  u'shape change': u'(0, 0)',
+                 'empty mask': 'no',
+                 u'arguments': {u'rotation': 358},
+                 u'transform matrix': {u'c': 3,
+                                       u'r': 3,
+                                       u'r0': [0.8266647515769302, 0.07178941510501777, 159.50098419871705],
+                                       u'r1': [-0.06021837537671073, 0.9344977768387763, 137.85479973696164],
+                                       u'r2': [-3.946051215265123e-05, 1.8621034727368588e-05, 1.0]},
+                 u'op': u'TransformRotate'}
+        buildState = BuildState(edge,
+                                self.locateFile('images/PreRotate.png'),
+                                self.locateFile('images/PostRotate.png'),
+                                openImageFile(self.locateFile('images/Rotate_mask.png'),isMask=True).image_array,
+                                (3984, 2988),
+                                (3984, 2988),
+                                directory='.',
+                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
+                                pred_edges=None,
+                                graph=None)
+        result = rotate_transform(buildState)
+        self.assertEqual((3984, 2988), result.shape)
+
+        buildState = BuildState(edge,
+                                self.locateFile('images/PreRotate.png'),
+                                self.locateFile('images/PostRotate.png'),
+                                openImageFile(self.locateFile('images/Rotate_mask.png'),isMask=True).image_array,
+                                (3984, 2988),
+                                (3984, 2988),
+                                directory='.',
+                                donorMask=result,
+                                pred_edges=None,
+                                graph=None)
+        result = rotate_transform(buildState)
+        self.assertEqual((3984, 2988),result.shape)
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(-996, 996)',
+                'empty mask': 'no',
+                u'arguments': {u'rotation': 90},
+                u'op': u'TransformRotate'}
+        buildState = BuildState(edge,
+                                self.locateFile('images/PreRotate.png'),
+                                self.locateFile('images/PostRotate.png'),
+                                openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
+                                (3984, 2988),
+                                (2988, 3984),
+                                directory='.',
+                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'),
+                                                            isMask=True).image_array,
+                                pred_edges=None,
+                                graph=None)
+        result = rotate_transform(buildState)
+        self.assertEqual((2988,3984), result.shape)
+
+        buildState = BuildState(edge,
+                                self.locateFile('images/PreRotate.png'),
+                                self.locateFile('images/PostRotate.png'),
+                                openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
+                                (3984, 2988),
+                                (3984, 2988),
+                                directory='.',
+                                donorMask=result,
+                                pred_edges=None,
+                                graph=None)
+        result = rotate_transform(buildState)
+        self.assertEqual((3984, 2988), result.shape)
+
+    def test_resize_transform(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(-100, -100)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other'},
+                u'op': u'TransformResize'}
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=np.ones((3984, 2988),dtype=np.uint8),
+                                pred_edges=None,
+                                graph=None)
+        result = resize_transform(buildState)
+        self.assertEqual((3884, 2888), result.shape)
+        self.assertEqual(1, result[11, 11])
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(-100, -100)',
+                'empty mask': 'no',
+                u'arguments': {'location':'10,10',
+                               'interpolation':'none',
+                               u'transform matrix': {u'c': 3,
+                                                     u'r': 3,
+                                                     u'r0': [1, 0,
+                                                             2],
+                                                     u'r1': [0, 1, 12],
+                                                     u'r2': [0, 0, 1.0]}
+                               },
+                u'op': u'TransformResize'}
+        mask = np.zeros((3984, 2988), dtype=np.uint8)
+        mask[200:300,200:300]=1
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                mask,
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=mask,
+                                pred_edges=None,
+                                graph=None)
+        result = resize_transform(buildState)
+        self.assertEqual((3884, 2888), result.shape)
+        self.assertEqual(0, result[201,201])
+        self.assertEqual(1, result[212, 212])
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8)*255,
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                donorMask=result*255,
+                                pred_edges=None,
+                                graph=None)
+        result = resize_transform(buildState)
+        self.assertEqual((3984, 2988), result.shape)
+        ImageWrapper(result).save('foo.png')
+        self.assertEqual(255, result[205, 206])
+
+    def test_cas_transform(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                'empty mask': 'no',
+                u'arguments': {
+                               u'transform matrix': {u'c': 3,
+                                                     u'r': 3,
+                                                     u'r0': [0.7, -0.7, 50],
+                                                     u'r1': [0.7, 0.7, 50],
+                                                     u'r2': [0, 0, 1.0]}
+                               },
+                u'op': u'TransformContentAwareScale'}
+        mask = np.zeros((3984, 2988), dtype=np.uint8)
+        cm = np.zeros((3984, 2988), dtype=np.uint8)
+        cm[200:300, 200:300] = 1
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                mask,
+                                (3984, 2988),
+                                (3984, 2988),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=None)
+        result = cas_transform(buildState)
+        self.assertEqual((3984, 2988), result.shape)
+        self.assertEqual(0, result[201,201])
+        self.assertEqual(1, result[330, 50])
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8)*255,
+                                (3984, 2988),
+                                (3984, 2988),
+                                directory='.',
+                                donorMask=result*255,
+                                pred_edges=None,
+                                graph=None)
+        result = resize_transform(buildState)
+        self.assertEqual((3984, 2988), result.shape)
+        self.assertEqual(255, result[201,201])
+        self.assertEqual(0, result[330, 50])
+
+    def test_crop_transform(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(-100, -100)',
+                u'location' : '50,50',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other'},
+                u'op': u'TransformResize'}
+        cm = np.zeros((3984, 2988),dtype=np.uint8)
+        cm[25:75,25:75] = 1
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=None)
+        result = crop_transform(buildState)
+        self.assertEqual((3884, 2888), result.shape)
+        self.assertEqual(1, result[0, 0])
+        self.assertEqual(0, result[26, 26])
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                donorMask=result,
+                                pred_edges=None,
+                                graph=None)
+        result = crop_transform(buildState)
+        self.assertEqual((3984, 2988), result.shape)
+        self.assertEqual(0, result[0, 0])
+        self.assertEqual(0, result[26, 26])
+        self.assertEqual(1, result[51, 51])
+
 
     def test_compositeIdAssigner(self):
         G = nx.DiGraph(name="Empty")

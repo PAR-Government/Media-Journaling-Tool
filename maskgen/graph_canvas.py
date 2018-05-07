@@ -146,10 +146,13 @@ class MaskGraphCanvas(tk.Canvas):
             center = (center[0] + 75, center[1])
         for id in ids:
             node = self.scModel.getGraph().get_node(id)
-            node['xpos'] = center[0]
-            node['ypos'] = center[1]
+            if 'xpos' not in node or 'ypos' not in node:
+                node['xpos'] = center[0]
+                node['ypos'] = center[1]
+            else:
+                center = (node['xpos'],node['ypos'])
             self.lastNodeAdded = node
-            self._mark(self._draw_node(id))
+            self._draw_node(id)
             center = (center[0], center[1] + 30)
 
     def add(self, start, end):
@@ -270,6 +273,14 @@ class MaskGraphCanvas(tk.Canvas):
             self.config(cursor='')
             for k, v in self.itemToCanvas.items():
                 v.config(cursor='')
+
+    def selectLink(self, start, end):
+        if start == end:
+            end = None
+        if end is not None:
+            self.showEdge(start, end)
+        else:
+            self.showNode(start)
 
     def onNodeButtonPress(self, event):
         """Being drag of an object"""
@@ -398,6 +409,9 @@ class MaskGraphCanvas(tk.Canvas):
             if self.marked in self.itemToCanvas:
                 self.itemToCanvas[self.marked].unmark()
             self.marked = None
+
+    def select(self,item):
+        self._mark(item)
 
     def _mark(self, item):
         self._unmark()
@@ -530,6 +544,8 @@ class MaskGraphCanvas(tk.Canvas):
         return wid
 
     def _draw_edge(self, u, v):
+        if (u,v) in self.toItemIds:
+            return
         edge = self.scModel.getGraph().get_edge(u, v)
         x1, y1 = self._node_center(u)
         x2, y2 = self._node_center(v)
@@ -541,7 +557,6 @@ class MaskGraphCanvas(tk.Canvas):
         self.itemToEdgeIds[wid] = (u, v)
         self.itemToCanvas[wid] = lineC
         return wid
-
 
 class NodeObj(tk.Canvas):
     node_name = ''

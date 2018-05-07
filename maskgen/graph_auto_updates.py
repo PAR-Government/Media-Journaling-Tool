@@ -49,18 +49,17 @@ def updateJournal(scModel):
          ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask, _fixGlobal]),
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
-         ('0.5.0227.6d9889731b', [_fixPNGS]),
-         ('0.5.0227.bf007ef4cd', [_fixTool]),
-         ('0.5.0401.db02ad8372', [_fixContrastPlugin])])
+         ('0.5.0227.6d9889731b', [_fixPNGS,_emptyMask]),
+         ('0.5.0227.bf007ef4cd', [_fixTool ]),
+         ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
     if len(matched_versions) > 0:
-        max_upgrade = max(matched_versions)
-    else:
-        max_upgrade = 0
         # fix what is left
-    fixes_needed = max_upgrade-len(versions) + 1
+        fixes_needed = max(matched_versions) - len(versions) + 1
+    else:
+        fixes_needed = - len(versions)
     ok = True
     if fixes_needed < 0:
         for id in fixes.keys()[fixes_needed:]:
@@ -98,6 +97,16 @@ def _fixPNGS(scModel,gopLoader):
     for png_file in glob.glob(os.path.join(os.path.abspath(scModel.get_dir()) , '*.png')):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
+
+def _emptyMask(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'videomasks' in edge:
+            continue
+        if 'maskname' in edge:
+            mask = scModel.G.get_edge_image(frm,to, 'maskname')
+            if mask is not None and np.all(mask.to_array() == 255):
+                edge['empty mask'] = 'yes'
 
 def _fixTool(scModel,gopLoader):
     """
@@ -171,6 +180,21 @@ def _fixHP(scModel,gopLoader):
         node= scModel.G.get_node(nodename)
         if 'HP' in node:
             node['Registered'] = node.pop('HP')
+
+def _fixCompressor(scModel,gopLoader):
+    for nodename in scModel.getNodeNames():
+        node = scModel.G.get_node(nodename)
+        file = getValue(node,'file','')
+        if file[:-4].endswith('_compressed'):
+            node['compressed'] = u'maskgen.video_tools.x264fast'
+
+def _fixVideoMaskType(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        masks = edge['videomasks'] if 'videomasks' in edge else []
+        for mask in masks:
+            if 'type' not in mask:
+                mask['type'] = 'audio' if 'Audio' in edge['op'] else 'video'
 
 def _fixFrameRate(scModel,gopLoader):
     from maskgen import video_tools
@@ -446,7 +470,7 @@ def _pasteSpliceBlend(scModel,gopLoader):
     from group_filter import GroupFilterLoader
     gfl = GroupFilterLoader()
     scModel.G.addEdgeFilePath('arguments.Final Image', 'inputmaskownership')
-    grp = gfl.etGroup('PasteSpliceBlend')
+    grp = gfl.getGroup('PasteSpliceBlend')
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if 'pastemask'  in edge and edge['pastemask'] is not None:
@@ -457,9 +481,8 @@ def _pasteSpliceBlend(scModel,gopLoader):
             if len(donors) > 0:
                 args['donor'] = donors[0]
             args['sendNotifications'] = False
-            mod = scModel.getModificationForEdge(frm,to,edge)
+            mod = scModel.getModificationForEdge(frm, to, edge)
             scModel.imageFromGroup(grp, software=mod.software, **args)
-
 
 def _fixColors(scModel,gopLoader):
     scModel.assignColors(scModel)
@@ -521,7 +544,7 @@ def _fixLocalRotate(scModel,gopLoader):
         if edge['op'].lower() == 'transformrotate':
             tm = edge['transform matrix'] if 'transform matrix' in edge  else None
             sizeChange = tool_set.toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
-            local = 'yes' if  tm is not  None and sizeChange == (0,0) else 'no'
+            local = 'yes' if  tm is not None and sizeChange == (0, 0) else 'no'
             if 'arguments' not in edge:
                 edge['arguments'] = {'local' : local}
             else:
@@ -648,14 +671,14 @@ def _fixRecordMasInComposite(scModel,gopLoader):
          edge = scModel.G.get_edge(frm, to)
          if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'true':
             edge['recordMaskInComposite'] = 'yes'
-         op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+         op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
          if op.category in ['Output','AntiForensic','Laundering']:
              edge['recordMaskInComposite'] = 'no'
 
 def _fixGlobal(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        op = gopLoader.getOperationWithGroups(edge['op'],fake=True)
+        op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
         if 'global' in edge and edge['global'] == 'yes' and "maskgen.tool_set.localTransformAnalysis" in op.analysisOperations:
             edge['global'] = 'no'
 
@@ -744,12 +767,16 @@ def _replace_oldops(scModel,gopLoader):
             currentLink['arguments']['purpose'] = 'heal'
 
 
-def _fixContrastPlugin(scModel, gopLoader):
+def _fixContrastAndAddFlowPlugin(scModel, gopLoader):
     for edge in scModel.getGraph().get_edges():
         currentLink = scModel.getGraph().get_edge(edge[0], edge[1])
         oldOp = currentLink['op']
         if oldOp == 'ColorBalance' and getValue(currentLink,'plugin_name') == 'Contrast':
             currentLink['op'] = 'Contrast'
+        if oldOp == 'TimeAlterationWarp' and getValue(currentLink,'plugin_name') == 'FlowDrivenVideoTimeWarp':
+            startTime = getValue(currentLink,'arguments.Start Time')
+            count = getValue(currentLink,'arguments.Frames to Add')
+            setPathValue(currentLink,'arguments.End Time', str(int(startTime) + int(count) - 1))
 
 def _fixDescriptions(scModel, gopLoader):
     for edge in scModel.getGraph().get_edges():

@@ -106,6 +106,7 @@ def openImageMaskFile(directory, filename):
 
 
 def openRaw(filename, isMask=False, args=None):
+    logger = logging.getLogger('maskgen')
     try:
         import rawpy
         with rawpy.imread(filename) as raw:
@@ -119,10 +120,13 @@ def openRaw(filename, isMask=False, args=None):
                             result[argitem['outputname']] = rawim
                         else:
                             result[str(argitem)] = rawim
-                return result
-            return _processRaw(raw)
+            else:
+                result = _processRaw(raw)
+            if logger.isEnabledFor(logging.DEBUG):
+                logging.debug('Opened {} as raw'.format(filename))
+            return result
     except Exception as e:
-        logging.getLogger('maskgen').error('Raw Open: ' + str(e))
+        logger.error('Raw Open: ' + str(e))
         return None
 
 
@@ -276,6 +280,11 @@ def openFromRegistry(filename, isMask=False, args=None):
                     if result is not None and result.__class__ is not ImageWrapper:
                         result = ImageWrapper(result[0], mode=result[1])
                     if result is not None and result.size != (0, 0):
+                        logger = logging.getLogger('maskgen')
+                        if logger.isEnabledFor(logging.DEBUG):
+                            logging.getLogger('maskgen').debug('Opened {} with {}'.format(
+                                filename, func.__name__
+                            ))
                         return result
                 except Exception as e:
                     logging.getLogger('maskgen').info(

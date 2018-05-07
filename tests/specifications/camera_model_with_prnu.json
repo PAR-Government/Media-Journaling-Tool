@@ -1,0 +1,676 @@
+{
+  "directed": true, 
+  "graph": {
+    "username": "dupre",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "semanticrestaging": "no",
+    "organization": "PAR",
+    "technicalsummary": "Automated: Camera Model Attack",
+    "projectdescription":"Change camera model of image",
+    "name": "Camera Model Attack"
+  },
+  "nodes": [
+    {
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base_PNG"
+    },
+    {
+      "op_type": "ImageSelection",
+      "id":"SelectRebelSL1",
+      "files":["{PRNU}/Cannon_eos sl1_BF-CanonSL1_20180427-221041.png"],
+      "prnu": true
+    },
+      {
+      "op_type": "ImageSelection",
+      "id":"SelectNEX5TL",
+      "files":["{PRNU}/sony_nex-5_camera285.png"],
+      "prnu": true
+    },
+    {
+      "op_type": "ImageSelection",
+      "id":"SelectDMCFZ50",
+      "files":["{PRNU}/panasonic_DMC-FZ50_camera39449.png"],
+      "prnu": true
+    },
+     {
+      "op_type": "ImageSelection",
+      "id":"SelectM1063",
+      "files":["{PRNU}/Kodak_M1063_camera36734.png"],
+      "prnu": true
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CropToFitDonor",
+      "source": "base_PNG",
+      "id":"CropToFitDonorRebelSL1",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectRebelSL1"
+         }
+       }
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CropToFitDonor",
+       "source": "base_PNG",
+      "id":"CropToFitDonorNEX5TL",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectNEX5TL"
+         }
+       }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CropToFitDonor",
+       "source": "base_PNG",
+       "id":"CropToFitDonorDMCFZ50",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectDMCFZ50"
+         }
+       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CropToFitDonor",
+       "source": "base_PNG",
+      "id":"CropToFitDonorM1063",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectM1063"
+         }
+       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "source": "CropToFitDonorRebelSL1",
+      "id":"AddPRNURebelSL1",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectRebelSL1"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+     },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+       "source": "CropToFitDonorNEX5TL",
+      "id":"AddPRNUNEX5TL",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectNEX5TL"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+       "source": "CropToFitDonorDMCFZ50",
+       "id":"AddPRNUDMCFZ50",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectDMCFZ50"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+       "source": "CropToFitDonorM1063",
+      "id":"AddPRNUM1063",
+       "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "SelectM1063"
+         },
+         "donor is prnu":"yes",
+         "coerce shape": "yes"
+       }
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Canon_EOS_SL1",
+      "autojtoutput": false,
+      "id": "AddCameraModelRebelSL1",
+      "source": "AddPRNURebelSL1",
+      "autojtsignature": [
+        "Canon_EOS_SL1"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Canon EOS REBEL SL1"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Canon"
+        },
+        "model": "{gan_models}/Canon EOS SL1.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Samsung_Galaxy_S4",
+      "autojtoutput": false,
+      "id": "AddCameraModelGalaxyS4",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Samsung_Galaxy_S4"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Samsung Galaxy S4"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Samsung"
+        },
+        "model": "{gan_models}/Samsung Galaxy S4.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Kodak_M1063",
+      "autojtoutput": false,
+      "id": "AddCameraModelM1063",
+      "source": "AddPRNUM1063",
+      "autojtsignature": [
+        "Kodak_M1063"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Kodak EasyShare M1063"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Kodak"
+        },
+        "model": "{gan_models}/Kodak M1063.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Samsung_Digimax_L74_Wide",
+      "autojtoutput": false,
+      "id": "AddCameraModelL74Wide",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Samsung_Digimax_L74_Wide"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Digimax L74 Wide"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Samsung"
+        },
+         "model": "{gan_models}/Samsung L74wide.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Motorola_Droid_MAXX",
+      "autojtoutput": false,
+      "id": "AddCameraModelDroidMAXX",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Motorola_Droid_MAXX"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Motorola DROID MAXX"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Motorola"
+        },
+        "model": "{gan_models}/Motorola Droid Maxx.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Panasonic_DMC_FZ50",
+      "autojtoutput": false,
+      "id": "AddCameraModelDMCFZ50",
+      "source": "AddPRNUDMCFZ50",
+      "autojtsignature": [
+        "Panasonic_DMC_FZ50"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "DMC-FZ50"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Panasonic"
+        },
+        "model": "{gan_models}/Panasonic DMC-FZ50.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+       "plugin": "CameraModelGan",
+      "autojtspecid": "Sony_NEX_5TL",
+      "autojtoutput": false,
+      "id": "AddCameraModelNEX5TL",
+      "source": "AddPRNUNEX5TL",
+      "autojtsignature": [
+        "Sony_NEX_5TL"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "NEX-5TL"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Sony"
+        },
+        "model": "{gan_models}/Sony NEX-5TL.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Olympus_Stylus_1050SW",
+      "autojtoutput": false,
+      "id": "AddCameraModel1050SW",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Olympus_Stylus_1050SW"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Olympus Stylus 1050SW"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Olympus"
+        },
+        "model": "{gan_models}/Olympus mju-1050SW.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "CameraModelGan",
+      "autojtspecid": "Praktica_DCZ_59",
+      "autojtoutput": false,
+      "id": "AddCameraModelDCZ59",
+      "source": "base_PNG",
+      "autojtsignature": [
+        "Praktica_DCZ_59"
+      ],
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "DCZ 5.9"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Praktica"
+        },
+         "model": "{gan_models}/Praktica DCZ5.9.npz"
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Panasonic-DMC-FZ50-[3648x2736]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraDMCFZ50"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Motorola-Droid-Maxx-[5344x4008]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraDroidMAXX"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Sony-NEX-5TL-[4912x3264]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraNEX5TL"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Samsung-Digimax-L74_Wide-[3072x2304]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraL74Wide"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+       "qtfile": {
+          "value": "{qtfiles}/Kodak-EasyShare-M1063-[3664x2748]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraM1063"
+    },
+
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Praktica-DCZ-59-[2560x1920]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraDCZ59"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Canon-EOS-SL1-[5184x3456]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraRebelSL1"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtfiles}/Olympus-Stylus-1050SW-[3648x2736]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCamera1050SW"
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+         "qtfile": {
+          "value": "{qtfiles}/Samsung-Galaxy-S4-[4128x2322]-QT.txt",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "JpgFromCameraGalaxyS4"
+    }
+  ],
+  "links": [
+    {
+      "source": "base_PNG",
+      "target": "CropToFitDonorRebelSL1"
+    },
+    {
+       "source": "base_PNG",
+       "target": "CropToFitDonorDMCFZ50"
+    },
+    {
+       "source": "base_PNG",
+       "target": "CropToFitDonorNEX5TL"
+    },
+    {
+       "source": "base_PNG",
+       "target": "CropToFitDonorM1063"
+    },
+    {
+      "source": "CropToFitDonorRebelSL1",
+      "target": "AddPRNURebelSL1"
+    },
+    {
+       "source": "CropToFitDonorDMCFZ50",
+       "target": "AddPRNUDMCFZ50"
+    },
+    {
+       "source": "CropToFitDonorNEX5TL",
+       "target": "AddPRNUNEX5TL"
+    },
+    {
+       "source": "CropToFitDonorM1063",
+       "target": "AddPRNUM1063"
+    },
+     {
+       "source": "SelectDMCFZ50",
+       "target": "CropToFitDonorDMCFZ50",
+       "donor":true
+    },
+    {
+       "source": "SelectNEX5TL",
+       "target": "CropToFitDonorNEX5TL",
+       "donor":true
+    },
+    {
+       "source": "SelectRebelSL1",
+       "target": "CropToFitDonorRebelSL1",
+       "donor":true
+    },
+    {
+       "source": "SelectM1063",
+       "target": "CropToFitDonorM1063",
+       "donor":true
+    },
+    {
+       "source": "SelectDMCFZ50",
+       "target": "AddPRNUDMCFZ50",
+       "donor":true
+    },
+    {
+       "source": "SelectNEX5TL",
+       "target": "AddPRNUNEX5TL",
+       "donor":true
+    },
+    {
+       "source": "SelectRebelSL1",
+       "target": "AddPRNURebelSL1",
+       "donor":true
+    },
+    {
+       "source": "SelectM1063",
+       "target": "AddPRNUM1063",
+       "donor":true
+    },
+    {
+       "source": "AddPRNURebelSL1",
+       "target": "AddCameraModelRebelSL1"
+    },
+      {
+       "source": "AddPRNUDMCFZ50",
+       "target": "AddCameraModelDMCFZ50"
+    },
+    {
+       "source": "AddPRNUNEX5TL",
+       "target": "AddCameraModelNEX5TL"
+    },
+    {
+       "source": "AddPRNUM1063",
+       "target": "AddCameraModelM1063"
+     },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelRebelSL1",
+       "split":true
+    },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelDMCFZ50",
+       "split":true
+    },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelNEX5TL",
+       "split":true
+    },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelM1063",
+       "split":true
+     },
+    {
+       "source": "base_PNG",
+       "target": "AddCameraModelDCZ59"
+    },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelL74Wide"
+     },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModelDroidMAXX"
+     },
+     {
+      "source": "base_PNG",
+      "target": "AddCameraModelGalaxyS4"
+     },
+     {
+       "source": "base_PNG",
+       "target": "AddCameraModel1050SW"
+    },
+    {
+      "source": "AddCameraModelGalaxyS4",
+      "target": "JpgFromCameraGalaxyS4"
+    },
+     {
+      "source": "AddCameraModel1050SW",
+      "target": "JpgFromCamera1050SW"
+    },
+     {
+      "source": "AddCameraModelRebelSL1",
+      "target": "JpgFromCameraRebelSL1"
+    },
+     {
+      "source": "AddCameraModelDCZ59",
+      "target": "JpgFromCameraDCZ59"
+    },
+     {
+      "source": "AddCameraModelM1063",
+      "target": "JpgFromCameraM1063"
+    },
+     {
+      "source": "AddCameraModelL74Wide",
+      "target": "JpgFromCameraL74Wide"
+    },
+     {
+      "source": "AddCameraModelDroidMAXX",
+      "target": "JpgFromCameraDroidMAXX"
+    },
+     {
+      "source": "AddCameraModelDMCFZ50",
+      "target": "JpgFromCameraDMCFZ50"
+    },
+     {
+      "source": "AddCameraModelNEX5TL",
+      "target": "JpgFromCameraNEX5TL"
+    }
+  ], 
+  "multigraph": false
+}

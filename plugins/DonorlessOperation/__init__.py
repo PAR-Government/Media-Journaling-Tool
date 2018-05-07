@@ -1,13 +1,10 @@
 import logging
-import shutil
 from maskgen import video_tools
 import random
 import maskgen.video_tools
-from maskgen.plugins import callPlugin
 import os
 import maskgen
 import json
-from maskgen import scenario_model
 
 plugin = "DonorPicker"
 def transform(img, source, target, **kwargs):

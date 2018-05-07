@@ -13,20 +13,6 @@ import logging
 
 maskgenloader = MaskGenLoader()
 
-def callRule(functions, *args, **kwargs):
-    import copy
-    for func in functions:
-        edge = args[0]
-        edgeMask = args[1]
-        res = getRule(func)(edge, edgeMask, **kwargs)
-        kwargs = copy.copy(kwargs)
-        if 'donorMask' in kwargs and 'donorMask' is not None:
-            kwargs['donorMask'] = res
-        else:
-            kwargs['compositeMask'] = res
-    return res
-
-
 def addToSet(aSet, aList):
     if aList is None:
         return
@@ -84,6 +70,7 @@ class GroupFilter:
     def __init__(self, name, filters):
         self.name = name
         self.filters = filters
+        self.operation = None
 
     def isValid(self):
         for filter in self.filters:
@@ -141,6 +128,14 @@ def chooseHigherRank(setting1, setting2):
         return setting1
     return setting1
 
+def mergeKeys(dest_dict, source_dict):
+    for k,v in source_dict.iteritems():
+        if k not in dest_dict:
+            dest_dict[k] = [v]
+        else:
+            dest_dict[k].append(v)
+    return mergeKeys
+
 class GroupFilterLoader:
     groups = {}
 
@@ -181,8 +176,7 @@ class GroupFilterLoader:
         pluginOp = plugins.getOperation(name) if filter else self.getOperation(name)
         return buildFilterOperation(pluginOp)
 
-    def _buildGroupOperation(self,grp, name, filter=True):
-        from functools import partial
+    def _buildGroupOperation(self,grp, name, filter=True, warning=True):
         if grp is not None:
             if grp.operation is not None:
                 return grp.operation
@@ -195,11 +189,12 @@ class GroupFilterLoader:
             analysisOperations = set()
             generateMask = "meta"
             grp_categories = set()
-            customFunctions = []
+            customFunctions = {}
             ops = []
             if filter and not grp.isValid():
                 return None
             logging.getLogger('maskgen').info('Building group {} filter {}'.format(grp, name))
+            compareparameters = {}
             for op in grp.filters:
                 operation = self._getOperation(op)
                 ops.append(operation)
@@ -215,18 +210,21 @@ class GroupFilterLoader:
                 addToMap(opt_params, operation.optionalparameters)
                 addToSet(analysisOperations, operation.analysisOperations)
                 addToMap(dependencies, operation.parameter_dependencies)
+                compareparameters.update(operation.compareparameters)
                 if operation.maskTransformFunction is not None:
-                    customFunctions.append(operation.maskTransformFunction)
-                else:
-                    customFunctions.append("maskgen.mask_rules.defaultMaskTransform")
+                    mergeKeys(customFunctions, operation.maskTransformFunction)
             opt_params = dict([(k, v) for (k, v) in opt_params.iteritems() if k is not mandatory_params])
             transitions = get_transitions(ops)
 
-            maskTransformFunction = None
             if len(customFunctions) > 0:
-                maskTransformFunction = name + '_mtf'
-                insertCustomRule(maskTransformFunction, partial(callRule, customFunctions))
-            grp.operation = Operation(name=name, category='Groups',
+                for k in customFunctions:
+                    if len(customFunctions[k]) > 0:
+                        #TODO...not using this now...list vs. str issue
+                        customFunctions[k] = customFunctions[k]
+                    else:
+                        customFunctions[k] = customFunctions[k][0]
+
+            return Operation(name=name, category='Groups',
                              includeInMask=includeInMask,
                              generateMask=generateMask,
                              mandatoryparameters=mandatory_params,
@@ -235,17 +233,18 @@ class GroupFilterLoader:
                              rules=list(rules),
                              transitions=transitions,
                              groupedOperations=grp.filters,
+                             compareparameters=compareparameters,
                              groupedCategories=grp_categories,
                              analysisOperations=analysisOperations,
-                             maskTransformFunction=maskTransformFunction,
+                             maskTransformFunction=customFunctions,
                              parameter_dependencies=dependencies)
             return grp.operation
-        return getOperation(name,fake=True)
+        return getOperation(name,fake=True,warning=warning)
 
     def getOperation(self, name):
         grp = self.getGroup(name)
         try:
-            return self._buildGroupOperation(grp, name) if grp is not None else getOperation(name)
+            return self._buildGroupOperation(grp, name, warning=False) if grp is not None else getOperation(name)
         except Exception as e:
             logging.getLogger('maskgen').error('Group Filter {} is in an inconsistent state: {} '.format(name, str(e)))
             return None
@@ -338,15 +337,13 @@ class GroupFilterLoader:
             if grp is not None:
                 results = []
                 for filter in grp.filters:
-                    newop = self._buildGroupOperation(grp, name)
-                    if newop is not None:
-                        newop.name=filter
-                        results.append(newop)
+                    newop = self.getOperationsWithinGroup(filter,fake=fake,warning=warning)
+                    results.extend(newop)
                 return results
         if op is None:
             if fake:
                 return [getOperation(name, fake=True, warning=warning)]
-            else:
+            elif warning:
                 logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
                 return []
         return [op]
@@ -394,6 +391,8 @@ class GroupOperationsLoader(GroupFilterLoader):
             real_op = getOperation(op_name, fake=True)
             has_generate_mask.add(real_op.generateMask)
         ops = getOperations()
+        if len(operations_used) > 1:
+            return []
         return [op_name for op_name in ops if op_name not in operations_used and (not \
             ("all" in has_generate_mask and ops[op_name].generateMask == "all")) \
                 and not \

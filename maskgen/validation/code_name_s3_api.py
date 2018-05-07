@@ -7,6 +7,7 @@
 #==============================================================================
 
 from maskgen.software_loader import getFileName,getMetDataLoader
+from maskgen import maskGenPreferences
 from maskgen.image_graph import ImageGraph
 from core import ValidationAPI,ValidationMessage,Severity
 
@@ -34,6 +35,7 @@ class ValidationCodeNameS3(ValidationAPI):
         """
         return self.names is not None
 
+
     def check_graph(self,graph):
         """
         Graph meta-data level errors only
@@ -46,7 +48,8 @@ class ValidationCodeNameS3(ValidationAPI):
                                       '',
                                       '',
                                       'user name {} not valid'.format(graph.getDataItem('username','')),
-                                      'User')]
+                                      'User',
+                                      self.fixUserNameGraph)]
         return []
 
     def check_edge(self, op, graph, frm, to):
@@ -68,7 +71,8 @@ class ValidationCodeNameS3(ValidationAPI):
                                       frm,
                                       to,
                                       'user name {} not valid'.format( edge['username']),
-                                      'User')]
+                                      'User',
+                                      self.fixUserNameEdge)]
         return []
 
     def check_node(self, node, graph):
@@ -86,5 +90,25 @@ class ValidationCodeNameS3(ValidationAPI):
         return None if self.isConfigured() else 'Checking usernames not configured.  Missing ' + ValidationCodeNameS3.filename
 
 
+    def fixUserNameGraph(self, graph, start, end):
+        """
+
+        :param graph:
+        :param start:
+        :param end:
+        :return:
+        @type graph: ImageGraph
+        """
+        user = maskGenPreferences.get_key('username', 'NA')
+        if user not in self.names:
+            raise ValueError('Cannot fix name until the username is correct in the system settings')
+        graph.setDataItem('username',user)
+
+    def fixUserNameEdge(self, graph, start, end):
+        user = graph.getDataItem('username', maskGenPreferences.get_key('username', 'NA'))
+        if user not in self.names:
+            raise ValueError('Cannot fix name until the project username is correct in the project properties')
+        edge = graph.get_edge(start, end)
+        edge['username'] = user
 
 ValidationAPI.register(ValidationCodeNameS3)

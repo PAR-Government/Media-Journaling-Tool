@@ -52,7 +52,7 @@
       "arguments": {
          "op": {
            "type":"value",
-           "value": "slic"
+           "value": "felzenszwalb"
          }
       },
       "plugin": "SelectRegion"
@@ -163,8 +163,8 @@
            "type": "donor",
            "source": "0"
          },
-        "rotate" : {
-          "type" : "Image Rotated",
+        "Image Rotated" : {
+          "type" : "value",
           "value" :"yes"
         }
       }

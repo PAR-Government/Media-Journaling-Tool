@@ -1,0 +1,260 @@
+database,-Canon:AverageBlackLevel,2048 2048 2048 2048
+database,-Composite:ShootingMode,3
+compute,-Canon:CanonImageWidth,#ComputeWidth
+compute,-File:ImageHeight,3456
+database,-File:FileTypeExtension,JPG
+compute,-Canon:CroppedImageWidth,5184
+database,-Canon:WhiteBalanceRed,0
+database,-ExifIFD:UserComment,
+database,-ExifIFD:ExifVersion,0230
+database,-Canon:MeasuredEV,7.625
+database,-IFD0:Orientation,1
+database,-Canon:SensorTopBorder,64
+database,-Canon:WB_RGGBLevelsMeasured,1489 1024 1024 2330
+database,-Canon:PictureStylePC,0 0 0
+database,-Canon:BracketShotNumber,0
+database,-Canon:Saturation,0
+database,-Canon:ToneCurve,0
+database,-ExifIFD:OwnerName,
+database,-Canon:RawMeasuredRGGB,244881 179931 179673 54661
+database,-Canon:HighISONoiseReduction,0
+database,-Canon:MeteringMode,3
+database,-Canon:WB_RGGBLevelsFlash,2351 1024 1024 1434
+database,-Canon:CropBottomMargin,0
+database,-Canon:MiniatureFilter,-1
+database,-Canon:SpecularWhiteLevel,15092
+database,-Canon:WB_RGGBLevelsKelvin,2114 1024 1024 1574
+database,-Canon:FlashBits,0
+database,-Composite:Aperture,5
+database,-Canon:MeasuredRGGB,1386 1024 1024 303
+database,-ExifIFD:ColorSpace,1
+database,-Canon:AspectRatio,0
+database,-Canon:WBShiftGM,0
+database,-Canon:FocusRange,2
+database,-Canon:AFPointsInFocus,1 0
+database,-CanonCustom:ShutterButtonAFOnButton,0
+database,-IFD0:ResolutionUnit,2
+database,-Composite:Megapixels,17.915904
+database,-IFD0:Artist,
+database,-IFD0:XResolution,72
+database,-Canon:BlackMaskBottomBorder,0
+database,-Composite:Lens,18
+compute,-ExifIFD:ExposureTime,0.01666666667
+database,-Canon:SensorBlueLevel,0
+database,-Canon:WBBracketValueAB,0
+database,-Canon:VignettingCorrVersion,0
+database,-Canon:SRAWQuality,0
+database,-Canon:ColorTempAuto,3200
+database,-Canon:HDR,0
+database,-ExifIFD:FNumber,5
+database,-Canon:CustomPictureStyleFileName,
+database,-Canon:ManualFlashOutput,0
+database,-Canon:FlashExposureLock,0
+database,-Canon:MeasuredEV2,7.5
+database,-ExifIFD:Flash,16
+database,-Canon:AutoISO,100
+database,-ExifIFD:FocalPlaneXResolution,5798.657718
+database,-Canon:CameraType,248
+compute,-ExifIFD:SubSecTime,00
+database,-Canon:NDFilter,-1
+database,-ExifIFD:ExposureMode,0
+database,-CanonCustom:ExposureLevelIncrements,0
+compute,-ExifIFD:DateTimeOriginal,2013:04:04 14:25:39
+database,-Canon:AmbienceSelection,0
+database,-ExifIFD:FlashpixVersion,0100
+database,-File:BitsPerSample,8
+database,-Canon:PictureStyle,135
+database,-Canon:FlashExposureComp,0
+database,-Canon:EasyMode,1
+database,-Canon:FisheyeFilter,-1
+database,-IFD0:Model,Canon EOS 100D
+compute,-Canon:OriginalImageWidth,5184
+database,-Canon:WB_RGGBLevelsDaylight,2114 1024 1024 1574
+database,-Canon:CameraISO,Auto
+database,-Canon:LinearityUpperMargin,10000
+database,-Canon:SoftFocusFilter,-1
+database,-Canon:FocusDistanceLower,0.52
+database,-Canon:HighlightTonePriority,1
+database,-ExifIFD:ApertureValue,4.96743124829394
+database,-Canon:ExposureCompensation,0
+database,-Canon:ColorTempShade,7000
+database,-Canon:BracketValue,0
+compute,-Composite:SubSecModifyDate,2013:04:04 14:25:39.00
+database,-Canon:SequenceNumber,0
+database,-Canon:ColorTempTungsten,3200
+database,-Canon:FlashActivity,0
+database,-Canon:SensorRedLevel,0
+database,-File:MIMEType,image/jpeg
+database,-Canon:DustRemovalData,(Binary data 1024 bytes, use -b option to extract)
+database,-ExifIFD:CustomRendered,0
+database,-Canon:ColorTempMeasured,3200
+compute,-Canon:ZoomSourceWidth,0
+database,-Canon:WhiteBalance,0
+compute,-Canon:AFImageHeight,3456
+database,-Canon:BaseISO,800
+compute,-Canon:AFAreaWidths,223 181 181 128 128 128 128 128 128 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+database,-File:FileType,JPEG
+compute,-ExifIFD:ExifImageWidth,5184
+database,-Canon:AFAreaYPositions,0 730 -730 388 388 -388 -388 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+database,-Canon:GrainyBWFilter,-1
+compute,-Canon:CanonImageHeight,3456
+compute,-Canon:TimeZoneCity,20
+database,-Canon:MaxFocalLength,135
+database,-Canon:CanonExposureMode,3
+database,-Canon:AFAreaXPositions,0 0 0 -821 821 -821 821 -1370 1370 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+database,-CanonCustom:ISOExpansion,1
+database,-Canon:MiniatureFilterPosition,0
+database,-Canon:AFPointsSelected,1 0
+database,-Canon:FocalUnits,1
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:SceneCaptureType,0
+database,-Canon:ChromaticAberrationSetting,1
+database,-Canon:ColorTempCloudy,6000
+database,-CanonCustom:MirrorLockup,0
+database,-File:ExifByteOrder,II
+database,-Canon:WatercolorFilter,-1
+database,-Canon:LiveViewShooting,0
+database,-Canon:PeripheralIlluminationCorr,0
+database,-ExifIFD:ISO,800
+database,-Canon:HDREffect,0
+database,-Canon:MinAperture,30.6433049823544
+database,-Canon:SensorLeftBorder,84
+database,-Canon:CanonFirmwareVersion,Firmware Version 4.3.0
+database,-Canon:CanonImageType,Canon EOS 100D
+compute,-Canon:CroppedImageHeight,3456
+database,-Canon:AEBBracketValue,0
+database,-IFD0:Make,Canon
+database,-Canon:BlackMaskTopBorder,0
+database,-Canon:ColorDataVersion,10
+database,-Canon:BlackMaskLeftBorder,0
+database,-Canon:ColorTempKelvin,5189
+database,-Canon:MinFocalLength,18
+database,-Canon:PeripheralLighting,1
+database,-Canon:PaintingFilter,-1
+database,-Canon:CropLeftMargin,0
+database,-IFD0:YCbCrPositioning,2
+database,-Composite:LightValue,7.5507467850947
+database,-Canon:InternalSerialNumber,HA0022413
+database,-Canon:PerChannelBlackLevel,2047 2047 2049 2049
+database,-XMP-xmp:Rating,0
+database,-Canon:PictureStyleUserDef,135 135 135
+database,-Canon:BlackMaskRightBorder,0
+database,-Canon:WB_RGGBLevelsCloudy,2265 1024 1024 1448
+database,-Canon:CropRightMargin,0
+database,-Canon:FocusDistanceUpper,0.56
+compute,-ExifIFD:SubSecTimeOriginal,00
+database,-Canon:Contrast,0
+database,-Canon:TargetAperture,5.03968419957949
+database,-CanonCustom:LCDDisplayAtPowerOn,0
+compute,-File:ImageWidth,5184
+database,-Canon:SharpnessFrequency,0
+compute,-Canon:SelfTimer,0
+database,-Composite:ShutterSpeed,0.01666666667
+database,-Canon:ColorTempFluorescent,3720
+database,-ExifIFD:LensInfo,18 135 0 0
+database,-Canon:MiniatureFilterOrientation,0
+compute,-ExifIFD:SubSecTimeDigitized,00
+database,-Canon:WB_RGGBLevelsFluorescent,1849 1024 1024 2250
+database,-ExifIFD:SerialNumber,009090000482
+database,-Canon:ControlMode,1
+database,-Canon:SlowShutter,3
+database,-Canon:DigitalZoom,0
+database,-Canon:CanonModelID,2147484486
+database,-Canon:BracketMode,0
+database,-Canon:CanonFlashMode,0
+compute,-Composite:SubSecDateTimeOriginal,2013:04:04 14:25:39.00
+compute,-Canon:TargetExposureTime,0.015625
+database,-Canon:MaxAperture,4.75682846001088
+database,-ExifIFD:SensitivityType,2
+database,-Composite:ScaleFactor35efl,1.58455377807343
+database,-Canon:Sharpness,3
+database,-Canon:RecordMode,7
+database,-ExifIFD:RecommendedExposureIndex,800
+database,-Composite:CircleOfConfusion,0.018961969637533
+database,-IFD0:Copyright,
+database,-Canon:CropTopMargin,0
+database,-Canon:BulbDuration,0
+database,-Canon:DigitalGain,0
+database,-Canon:VRDOffset,0
+database,-Canon:CroppedImageTop,0
+database,-Canon:ColorTemperature,5200
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-ExifIFD:LensSerialNumber,0000005f1a
+database,-Canon:ValidAFPoints,9
+database,-File:YCbCrSubSampling,2 1
+compute,-Canon:ZoomTargetWidth,0
+database,-Composite:DOF,0.530148395378969 0.550224676741918
+database,-System:FileSize,5386544
+database,-Composite:RedBalance,1.4541015625
+compute,-Canon:OriginalImageHeight,3456
+database,-Canon:CameraTemperature,24
+database,-Canon:AFMicroAdjMode,0
+database,-Composite:DriveMode,2
+database,-Canon:AFMicroAdjValue,0
+database,-Canon:FocusMode,0
+database,-Canon:WhiteBalanceBlue,0
+database,-Composite:HyperfocalDistance,26.3685687488028
+compute,-Canon:AFAreaHeights,223 119 119 172 172 172 172 172 172 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+database,-CanonCustom:AFAssistBeam,0
+database,-ExifIFD:FocalPlaneYResolution,5788.944724
+database,-ExifIFD:LensModel,EF-S18-135mm f/3.5-5.6 IS STM
+database,-Canon:FlashGuideNumber,0
+database,-Canon:RawJpgSize,0
+compute,-Canon:SensorHeight,3528
+database,-Canon:NumAFPoints,31
+database,-Canon:ColorTempAsShot,3200
+database,-File:EncodingProcess,0
+database,-Canon:WB_RGGBLevelsShade,2433 1024 1024 1339
+database,-Canon:WBShiftAB,0
+database,-Canon:PeripheralLightingValue,60
+compute,-ExifIFD:ExifImageHeight,3456
+database,-Canon:ContinuousDrive,0
+database,-ExifIFD:ExposureProgram,3
+database,-Canon:WB_RGGBLevelsAsShot,1489 1024 1024 2330
+database,-Canon:ChromaticAberrationCorr,1
+database,-InteropIFD:InteropIndex,R98
+database,-IFD1:ThumbnailOffset,11200
+database,-Composite:LensID,4142
+database,-Canon:OpticalZoomCode,8
+database,-IFD1:ThumbnailImage,(Binary data 15855 bytes, use -b option to extract)
+compute,-Canon:AFImageWidth,5184
+database,-Canon:WB_RGGBLevelsAuto,1489 1024 1024 2330
+database,-Canon:AutoLightingOptimizer,3
+database,-Canon:MiniatureFilterParameter,0
+database,-Canon:AFAreaMode,2
+database,-Canon:ColorTempDaylight,5200
+database,-Composite:WB_RGGBLevels,1489 1024 1024 2330
+database,-Canon:NormalWhiteLevel,14580
+database,-Canon:LongExposureNoiseReduction,0
+database,-Canon:Quality,3
+database,-Canon:ColorTempFlash,6272
+database,-Canon:AutoExposureBracketing,0
+compute,-Canon:SensorWidth,5280
+database,-Canon:ToyCameraFilter,-1
+database,-ExifIFD:FocalLength,50
+database,-IFD0:YResolution,72
+database,-Composite:FocalLength35efl,79.2276889036715
+database,-Canon:SensorRightBorder,5267
+database,-Canon:WBBracketMode,0
+database,-Canon:DaylightSavings,0
+database,-File:ColorComponents,3
+database,-Canon:ThumbnailImageValidArea,0 159 7 112
+database,-Canon:LensType,4142
+database,-InteropIFD:InteropVersion,0100
+database,-Canon:MacroMode,2
+database,-ExifIFD:ShutterSpeedValue,0.015625
+database,-Canon:CanonImageSize,0
+database,-Canon:WBBracketValueGM,0
+compute,-Canon:TimeZone,0
+database,-Composite:BlueBalance,2.275390625
+database,-IFD1:ThumbnailLength,15855
+database,-CanonCustom:SetButtonWhenShooting,0
+database,-IFD1:Compression,6
+database,-Canon:PeripheralLightingSetting,1
+database,-Canon:ColorTone,0
+database,-Canon:CroppedImageLeft,0
+database,-ExifIFD:FocalPlaneResolutionUnit,2
+database,-Canon:SensorBottomBorder,3519
+database,-Composite:Lens35efl,28.5219680053218
+database,-Composite:FOV,25.5998988199367
+database,-Canon:WB_RGGBLevelsTungsten,1515 1024 1024 2383

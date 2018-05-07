@@ -1,0 +1,62 @@
+database,-ExifIFD:WhiteBalance,0
+compute,-File:ImageHeight,#CalcHeight
+database,-File:FileTypeExtension,JPG
+database,-ExifIFD:BrightnessValue,-1
+database,-ExifIFD:MeteringMode,1
+database,-IFD0:Model,XT1585
+database,-ExifIFD:ExifVersion,0220
+compute,-ExifIFD:ExifImageHeight,4008
+database,-ExifIFD:ApertureValue,2
+database,-ExifIFD:ExposureProgram,2
+database,-Composite:Megapixels,21.418752
+database,-InteropIFD:InteropIndex,R98
+database,-IFD1:ThumbnailOffset,2216
+database,-Composite:FocalLength35efl,4.67
+database,-File:EncodingProcess,0
+database,-ExifIFD:MaxApertureValue,2
+database,-ExifIFD:CustomRendered,0
+database,-ExifIFD:Contrast,0
+compute,-File:ImageWidth,#ComputeWidth
+compute,-ExifIFD:DateTimeOriginal,2015:10:16 07:57:04
+compute,-ExifIFD:ExifImageWidth,#ComputeWidth
+database,-ExifIFD:ColorSpace,1
+database,-Composite:ShutterSpeed,0.00099
+database,-IFD0:Software,kinzie_verizon-user 5.1.1 LCK23.130-23 23 release-keys
+database,-IFD1:ThumbnailLength,48658
+database,-IFD0:ResolutionUnit,2
+database,-ExifIFD:SceneCaptureType,0
+database,-IFD0:YResolution,72
+database,-File:MIMEType,image/jpeg
+database,-IFD1:ThumbnailImage,(Binary data 48658 bytes, use -b option to extract)
+database,-IFD0:XResolution,72
+database,-ExifTool:ExifToolVersion,10.50
+database,-ExifIFD:FocalLength,4.67
+database,-Composite:Aperture,2
+database,-File:ColorComponents,3
+compute,-ExifIFD:ExposureTime,0.00099
+database,-InteropIFD:InteropVersion,0100
+database,-File:ExifByteOrder,MM
+database,-ExifIFD:ShutterSpeedValue,0.00100401740884381
+database,-ExifIFD:ISO,50
+database,-ExifIFD:FNumber,2
+database,-ExifIFD:SceneType,1
+database,-ExifIFD:DigitalZoomRatio,1
+database,-ExifIFD:ExposureCompensation,0
+database,-ExifIFD:ComponentsConfiguration,1 2 3 0
+database,-Motorola:Sensor,BACK,IMX230
+database,-File:YCbCrSubSampling,2 2
+database,-ExifIFD:Flash,16
+database,-IFD1:Compression,6
+database,-IFD0:Make,Motorola
+database,-ExifIFD:Saturation,1
+database,-ExifIFD:Sharpness,1
+database,-System:FileSize,10360326
+database,-Composite:LightValue,12.9802838543572
+database,-GPS:GPSMapDatum,WGS-84
+database,-ExifIFD:ExposureMode,0
+database,-File:FileType,JPEG
+database,-GPS:GPSVersionID,2 2 0 0
+database,-ExifIFD:FlashpixVersion,0100
+database,-IFD0:YCbCrPositioning,1
+database,-File:BitsPerSample,8
+compute,-Motorola:ManufactureDate,04Jul2015

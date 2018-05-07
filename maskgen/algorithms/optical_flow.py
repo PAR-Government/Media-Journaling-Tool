@@ -97,6 +97,7 @@ def createOutput(in_file, out_file, timeManager, codec=None):
     finally:
         cap.release()
         out_video.release()
+    return dropcount
 
 
 def scanHistList(histograms, distance, offset, saveHistFile=None):
@@ -226,7 +227,7 @@ def smartDropFrames(in_file, out_file,
     logger = logging.getLogger('maskgen')
     logger.info('Read {} frames into memory'.format(in_file))
     frames, histograms, fps, start = readFrames(in_file, start_time, end_time)
-    dumpFrames(frames, in_file[0:in_file.rfind('.')] + '-frames.csv')
+    #dumpFrames(frames, in_file[0:in_file.rfind('.')] + '-frames.csv')
     distance = int(round(fps * seconds_to_drop))
     logger.info('Distance {} for {} frames to drop with {} fps'.format(distance, seconds_to_drop, fps))
     offset = int(round(fps * seconds_to_drop))
@@ -265,7 +266,8 @@ def dropFrames(in_file, out_file,
     :return:
     """
     time_manager = VidTimeManager(startTimeandFrame=start_time, stopTimeandFrame=end_time)
-    createOutput(in_file, out_file, time_manager, codec=codec)
+    dropped = createOutput(in_file, out_file, time_manager, codec=codec)
+    return time_manager.getStartFrame(), time_manager.getEndFrame(), dropped
 
 
 class OpticalFlow:

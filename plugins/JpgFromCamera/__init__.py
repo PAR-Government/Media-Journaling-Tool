@@ -87,7 +87,7 @@ def save_as_camera(source, target, donor, imageTable, prevTable, thumbTable, qtf
 
     (databaseArgs, donorArgs, calcArgs) = parse_metadata_args(qtfile, donor, target)
     maskgen.exif.runexif(
-        [ '-P', '-q', '-m', '-unsafe'] + databaseArgs + donorArgs + calcArgs + [target])
+        [ '-overwrite_original','-P', '-q', '-m', '-unsafe'] + databaseArgs + donorArgs + calcArgs + [target])
 
     if thumbTable:
         im.thumbnail((128, 128))
@@ -135,7 +135,7 @@ def parse_metadata_args(qtfile, source, target):
     calculatedArgs = []
 
     for tag, val in tagsFromDatabase.iteritems():
-        databaseArgs.append(tag + '=' + val)
+        databaseArgs.append(tag + '#=' + val)
     for tag, val in tagsFromSource.iteritems():
         donorArgs.append(get_args_donor(tag, val, source, target))
     for tag, val in tagsCalculated.iteritems():
@@ -149,9 +149,9 @@ def get_args_calculated(tag, val, source, target):
     with Image.open(target) as im:
         (width, height) = im.size
     totalSize = width*height
-    if tag == '-ExifIFD:ExifImageHeight' or val == '#CalcHeight':
+    if tag == '-ExifIFD:ExifImageHeight' or val in ['#ComputeHeight','#CalcHeight']:
         args.append(tag + '=' + str(height))
-    elif tag == '-ExifIFD:ExifImageWidth' or val == '#CalcWidth':
+    elif tag == '-ExifIFD:ExifImageWidth' or val in ['#ComputeWidth','#CalcWidth']:
         args.append(tag + '=' + str(width))
     elif val == '#CalcSizePixels':
         args.append(tag + '=' + str(totalSize))

@@ -32,7 +32,7 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("PTX Pentax", "*.ptx"),
                   ("PEF Pentax", "*.pef"), ("MRW Minolta", "*.nrw"), ("Adobe", "*.dng"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf"), ('cr2', '*.cr2'), ('raf Fuji', '*.raf'),
-                  ("NITF files","*.ntf"),("NITF files","*.nitf")]
+                  ("NITF files","*.ntf"),("NITF files","*.nitf"),('JP2','*.jp2')]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts'), ('3gp', '*.3gp'),
@@ -43,7 +43,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
-            ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",
+            ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
@@ -1122,20 +1122,26 @@ def seamAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(
 
 def rotateSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     import copy
-    if img1.size != img2.size:
-        return siftAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments, directory=directory)
+    rot = float(getValue(arguments,'rotation',-1))
+    is_local = getValue(arguments,'local',True)
     globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
+    if abs(rot % 90)<0.001 and not is_local:
+        return
+    if is_local:
+        return siftAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments, directory=directory)
+    # global case and not a factor of 90
+    # skip video
     if linktype != 'image.image':
         return
     mask2 = mask.resize(img2.size, Image.ANTIALIAS) if mask is not None and img1.size != img2.size else mask
     serializedMatrix = getValue(arguments,'transform matrix')
-    if serializedMatrix is  None:
+    if serializedMatrix is None:
         args = copy.copy(arguments)
         (x,y),(w,h) = boundingRegion(mask.invert().image_array)
         if (w-x + h-y) > 0.5*(mask.size[0] + mask.size[1]):
             args['Matcher.TREES'] = 6
             args['Matcher.CHECKS'] = 20
-        matrix,matchCount  = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=args)
+        matrix,matchCount = __sift(img1, img2, mask1=mask, mask2=mask2, arguments=args)
         if matrix is not None and isHomographyOk(matrix,img1.size[1],img1.size[0]):
             analysis['transform matrix'] = serializeMatrix(matrix)
     else:
@@ -1416,20 +1422,20 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     return None, None
 
 
-def applyResizeComposite(compositeMask, size):
+def applyResizeComposite(compositeMask, shape):
     """
     Resize the composite mask
     :param compositeMask:
     :param transform_matrix:
     :return:
     """
-    newMask = np.zeros(size).astype('uint8')
+    newMask = np.zeros(shape).astype('uint8')
     for level in list(np.unique(compositeMask)):
         if level == 0:
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 1024
-        newLevelMask = cv2.resize(levelMask, (size[1], size[0]))
+        newLevelMask = cv2.resize(levelMask, (shape[1], shape[0]))
         newMask[newLevelMask > 150] = level
     return newMask
 
@@ -1481,11 +1487,12 @@ def applyFlipComposite(compositeMask, mask, flip):
     """
     maskInverted = ImageWrapper(np.asarray(mask)).invert().to_array()
     flipper = Flipper(maskInverted, flip)
-    flipCompositeMask = flipper.flip(compositeMask)
-    maskInverted[maskInverted > 0] = 1
     maskAltered = np.copy(mask)
     maskAltered[maskAltered > 0] = 1
-    return (flipCompositeMask + compositeMask * maskAltered).astype('uint8')
+    def work(levelMask):
+        flipCompositeMask = flipper.flip(levelMask)
+        return (flipCompositeMask + levelMask * maskAltered).astype('uint8')
+    return applyToComposite(compositeMask,work)
 
 
 def applyToComposite(compositeMask, func, shape=None):
@@ -2015,6 +2022,8 @@ def __rotateImage(rotation, img, expectedDims=None, cval=0):
         res = np.rot90(img, rotNorm)
     else:
         res = ndimage.interpolation.rotate(img, rotation, cval=cval, reshape=(img.shape != expectedDims), order=0)
+    if (res.shape[0],res.shape[1]) != expectedDims:
+        res = cv2.resize(res,(expectedDims[1],expectedDims[0]))
     return res
 
 
@@ -2267,90 +2276,82 @@ def carveMask(image, mask, expectedSize):
     return newimage
 
 
-def alterMask(compositeMask, edgeMask, rotation=0.0, sizeChange=(0, 0), interpolation='nearest', location=(0, 0),
+def alterMask(compositeMask, edgeMask, rotation=0.0, targetShape=(0, 0), interpolation='nearest', location=(0, 0),
               transformMatrix=None, flip=None, crop=False, cut=False):
     res = compositeMask
-    if location != (0, 0):
-        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
-    expectedSize = (res.shape[0] + sizeChange[0], res.shape[1] + sizeChange[1])
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
     if location != (0, 0) or crop:
-        if sizeChange[0] > 0 or sizeChange[1] > 0:
+        if targetShape != res.shape:
             # inverse crop
-            newRes = np.zeros(expectedSize).astype('uint8')
-            upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
+            newRes = np.zeros(targetShape).astype('uint8')
+            upperBound = (min(res.shape[0] + location[0],newRes.shape[0]),
+                          min(res.shape[1] + location[1],newRes.shape[0]))
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
         else:
-            upperBound = (min(res.shape[0], expectedSize[0] + location[0]),
-                          min(res.shape[1], expectedSize[1] + location[1]))
+            upperBound = (min(res.shape[0], targetShape[0] + location[0]),
+                          min(res.shape[1], targetShape[1] + location[1]))
             res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
     if transformMatrix is not None and not cut and flip is None:
-        res = applyTransformToComposite(compositeMask, edgeMask, deserializeMatrix(transformMatrix))
+        res = applyTransformToComposite(compositeMask, edgeMask, transformMatrix)
     elif abs(rotation) > 0.001:
-        if sizeChange[0] != 0 or abs(rotation) % 90 < 0.001:
+        if targetShape != res.shape or abs(rotation) % 90 < 0.001:
             res = __rotateImage(rotation, compositeMask,
-                                expectedDims=(
-                                    compositeMask.shape[0] + sizeChange[0], compositeMask.shape[1] + sizeChange[1]),
+                                expectedDims=targetShape,
                                 cval=0)
         else:
             res = applyRotateToComposite(rotation, res,
                                          edgeMask,
-                                         (compositeMask.shape[0] + sizeChange[0],
-                                          compositeMask.shape[1] + sizeChange[1]))
+                                         targetShape)
     # if transform matrix provided and alternate path is taken above
     if flip is not None:
         res = applyFlipComposite(res, edgeMask, flip)
     if cut:
         res = applyMask(res, edgeMask)
-    if expectedSize != res.shape:
-        res = applyResizeComposite(res, (expectedSize[0], expectedSize[1]))
+    if targetShape != res.shape:
+        res = applyResizeComposite(res, targetShape)
     return res
 
 
-def alterReverseMask(donorMask, edgeMask, rotation=0.0, sizeChange=(0, 0), location=(0, 0),
-                     transformMatrix=None, flip=None, crop=False, cut=False, targetSize=None):
+def alterReverseMask(donorMask, edgeMask, rotation=0.0, location=(0, 0),
+                     transformMatrix=None, flip=None, crop=False, cut=False, targetShape=None):
     res = donorMask
-    if location != (0, 0):
-        sizeChange = (-location[0], -location[1]) if sizeChange == (0, 0) else sizeChange
-    expectedSize = (res.shape[0] - sizeChange[0], res.shape[1] - sizeChange[1])
     # if we are cutting, then do not want to use the edge mask as mask for transformation.
     # see the cut section below, where the transform occurs directly on the mask
     # this  occurs in donor cases
     if ((location != (0, 0) or crop) and not cut):
-        if sizeChange[0] > 0 or sizeChange[1] > 0:
+        if targetShape != donorMask.shape:
             # inverse crop
-            upperBound = (min(res.shape[0], expectedSize[0] + location[0]),
-                          min(res.shape[1], expectedSize[1] + location[1]))
+            upperBound = (min(res.shape[0], targetShape[0] + location[0]),
+                          min(res.shape[1], targetShape[1] + location[1]))
             res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
         else:
-            newRes = np.zeros(expectedSize).astype('uint8')
+            newRes = np.zeros(targetShape).astype('uint8')
             upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
     if transformMatrix is not None and not cut and flip is None:
-        res = applyTransform(res, mask=edgeMask, transform_matrix=deserializeMatrix(transformMatrix), invert=True,
+        res = applyTransform(res, mask=edgeMask, transform_matrix=transformMatrix, invert=True,
                              returnRaw=False)
     elif abs(rotation) > 0.001:
-        res = __rotateImage(-rotation, res, expectedDims=expectedSize, cval=0)
+        res = __rotateImage(-rotation, res, expectedDims=targetShape, cval=0)
     elif flip is not None:
         res = applyFlipComposite(res, edgeMask, flip)
-
     if cut:
         # res is the donor mask
         # edgeMask may be the overriding mask from a PasteSplice, thus in the same shape
         # The transfrom will convert to the target mask size of the donor path.
         res = applyMask(res, edgeMask)
         if transformMatrix is not None:
-            res = cv2.warpPerspective(res, deserializeMatrix(transformMatrix), (targetSize[1], targetSize[0]),
+            res = cv2.warpPerspective(res, transformMatrix, (targetShape[1], targetShape[0]),
                                       flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
     # need to use target size since the expected does ot align with the donor paths.
-    if targetSize != res.shape:
-        res = cv2.resize(res, (targetSize[1], targetSize[0]))
+    if targetShape != res.shape:
+        res = cv2.resize(res, (targetShape[1], targetShape[0]))
     return res
 
 
@@ -2448,7 +2449,6 @@ def __diffMask(img1, img2, invert, args=None):
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (gray_image if invert else (255 - gray_image)), analysis
-
 
 def coordsFromString(value):
     import re

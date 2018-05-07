@@ -217,7 +217,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         with open(os.path.join('.', self.path), 'w') as newJSON:
             json.dump(self.data, newJSON, indent=4)
 
-        plugins.loadCustom(self.pluginName, self.path)
+        plugins.loadPlugins().loadCustom(self.pluginName, self.path)
 
     def cancel(self, event=None):
         self.destroy()

@@ -9,7 +9,7 @@
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,composeCloneMask
 from support import getValue
 import numpy
 from image_graph import ImageGraph
@@ -19,6 +19,7 @@ import logging
 from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration
 import numpy as np
 from maskgen.validation.core import Severity
+from image_wrap import ImageWrapper
 
 project_property_rules = {}
 
@@ -37,6 +38,7 @@ def eligible_donor_inputmask(edge):
             len(edge['inputmaskname']) > 0 and \
             edge['op'] == 'PasteSampled' and \
             getValue(edge,'arguments.purpose') == 'clone')
+
 
 
 def eligible_for_donor(edge):
@@ -107,6 +109,8 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     if fileType(file) not in ['audio','video']:
         return
     real_masks = getMaskSetForEntireVideo(file,start_time=st, end_time=et,media_types=['video','audio'])
+    if real_masks is None:
+        return
     for mask in masks:
         mask_start_constraints[ mask['type']] = min(
             (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
@@ -140,7 +144,7 @@ def checkFrameTimeAlignment(op,graph, frm, to):
                 getDurationStringFromMilliseconds(mask_start_constraints[key])))
     for key, value in real_mask_end_constraints.iteritems():
         if key in mask_end_constraints and abs(value - mask_end_constraints[key]) > mask_rates[key]:
-            return (Severity.WARNING,'End time entered does not match detected start time: {}'.format(
+            return (Severity.WARNING,'End time entered does not match detected end time: {}'.format(
                 getDurationStringFromMilliseconds(mask_end_constraints[key])))
 
 
@@ -942,7 +946,7 @@ def checkMoveMask(op, graph, frm,to):
         if os.path.exists(os.path.join(graph.dir, inputmaskname)) and \
             os.path.exists(os.path.join(graph.dir, maskname)):
             mask = openImageFile(os.path.join(graph.dir, maskname)).invert().to_array()
-            inputmask = openImage(os.path.join(graph.dir, inputmaskname))
+            inputmask = openImage(os.path.join(graph.dir, inputmaskname)).to_mask().to_array()
             inputmask[inputmask > 0] = 1
             mask[mask > 0] = 1
             intersection = inputmask * mask
@@ -991,6 +995,29 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
+def checkSizeAndExifPNG(op, graph, frm, to):
+    frm_shape = graph.get_image(frm)[0].size
+    to_shape = graph.get_image(to)[0].size
+    acceptable_change =(0.01 * frm_shape[0],0.01 * frm_shape[1])
+    if frm_shape[0] == to_shape[0] and frm_shape[1] == to_shape[1]:
+        return None
+    if frm_shape[0] - to_shape[0] < acceptable_change[0] and frm_shape[1] - to_shape[1] < acceptable_change[1]:
+        return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+    edge = graph.get_edge(frm, to)
+    orientation = getValue(edge, 'exifdiff.Orientation')
+    if orientation is None:
+        orientation = getOrientationFromMetaData(edge)
+    if orientation is not None:
+        orientation = str(orientation)
+        if ('270' in orientation or '90' in orientation):
+            if frm_shape[0] - to_shape[1] == 0 and \
+                                    frm_shape[1] - to_shape[0] == 0:
+                return None
+            if frm_shape[0] - to_shape[1] < acceptable_change[0] and \
+                frm_shape[1] - to_shape[0] < acceptable_change[1]:
+                return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+        return (Severity.ERROR, 'operation is not permitted to change the size of the image')
+    return None
 
 def checkSizeAndExif(op, graph, frm, to):
     """

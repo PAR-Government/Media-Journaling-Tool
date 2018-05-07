@@ -13,6 +13,9 @@ class MockImageGraph:
         self.nodes= nodes
         self.api_validated_node = None
 
+    def get_name(self):
+        return self.name
+
     def get_node(self,name):
         return self.nodes[name]
 
@@ -133,7 +136,6 @@ class TestValidationAPI(TestSupport):
     def test_journal(self):
         model = ImageProjectModel(self.locateFile('images/sample.json'))
         results = model.validate(external=False)
-        self.assertTrue(len(results)==0)
 
     def test_browser_api(self):
         from datetime import datetime
@@ -161,12 +163,19 @@ class TestValidationAPI(TestSupport):
 
     def test_support_functions(self):
         messages = removeErrorMessages([
-            ValidationMessage(Severity.ERROR,'','', 'big'),
-            ValidationMessage(Severity.ERROR, '', '', 'bad'),
-            ValidationMessage(Severity.ERROR, '', '', 'wolf')
+            ValidationMessage(Severity.ERROR,'','', 'big','mod1'),
+            ValidationMessage(Severity.ERROR, '', '', 'bad','mod1'),
+            ValidationMessage(Severity.ERROR, '', '', 'wolf','mod1')
         ],lambda x : x == 'big')
         self.assertTrue(hasErrorMessages(messages,lambda  x: x == 'bad'))
         self.assertTrue(hasErrorMessages(messages, lambda x: x == 'wolf'))
+        messages = removeErrorMessages([
+            ValidationMessage(Severity.WARNING, '', '', 'big', 'mod1'),
+            ValidationMessage(Severity.WARNING, '', '', 'bad', 'mod1'),
+            ValidationMessage(Severity.WARNING, '', '', 'wolf', 'mod1')
+        ], lambda x: x == 'big')
+        self.assertFalse(hasErrorMessages(messages, lambda x: x == 'bad'))
+        self.assertFalse(hasErrorMessages(messages, lambda x: x == 'wolf'))
 
 if __name__ == '__main__':
     unittest.main()

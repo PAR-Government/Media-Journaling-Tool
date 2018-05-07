@@ -24,7 +24,7 @@ import bulk_export
 import maskgen.group_operations
 import maskgen
 from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
-from batch_project import loadJSONGraph, BatchProject
+from batch_project import loadJSONGraph, BatchProject, updateAndInitializeGlobalState
 from maskgen.image_graph import extract_archive
 from maskgen.userinfo import setPwdX, CustomPwdX
 
@@ -123,7 +123,6 @@ def create_image_list(fileList):
 def parseRules(extensionRules):
     return extensionRules.split(',') if extensionRules is not None else []
 
-
 def findNodesToExtend(sm, rules):
     """
 
@@ -139,14 +138,12 @@ def findNodesToExtend(sm, rules):
         baseNode = sm.getGraph().get_node(baseNodeName)
         if (baseNode['nodetype'] != 'base') and 'donorpath' not in rules:
             continue
-        if (node['nodetype'] == 'final' or len(sm.getGraph().successors(nodename)) == 0) and 'finalnode' not in rules:
-            continue
         isBaseNode = node['nodetype'] == 'base' or len(sm.getGraph().predecessors(nodename)) == 0
-        if isBaseNode and 'basenode' not in rules:
-            continue
         ops = []
-        isOutput = False
-        isAntiForensic = False
+        isSourceOutput = False
+        isSourceAntiForensic = False
+        isTargetAntiForensic = False
+        isTargetOutput = False
         op = None
         if not isBaseNode:
             for predecessor in sm.getGraph().predecessors(nodename):
@@ -155,24 +152,44 @@ def findNodesToExtend(sm, rules):
                     continue
                 op = sm.getGroupOperationLoader().getOperationWithGroups(edge['op'], fake=True)
                 ops.append(edge['op'])
-                isOutput |= op.category == 'Output'
-                isAntiForensic |= op.category == 'AntiForensic'
-        if isOutput and 'outputop' not in rules:
+                isTargetOutput |= op.category == 'Output'
+                isTargetAntiForensic |= op.category == 'AntiForensic'
+            for successor in sm.getGraph().successors(nodename):
+                edge = sm.getGraph().get_edge(nodename, successor)
+                if edge['op'] == 'Donor':
+                    continue
+                op = sm.getGroupOperationLoader().getOperationWithGroups(edge['op'], fake=True)
+                ops.append(edge['op'])
+                isSourceOutput |= op.category == 'Output'
+                isSourceAntiForensic |= op.category == 'AntiForensic'
+        if (node['nodetype'] == 'final' or len(sm.getGraph().successors(nodename)) == 0):
+            if 'finalnode'  in rules:
+                nodes.append(nodename)
             continue
-        if isAntiForensic and 'antiforensicop' not in rules:
+        if (isTargetOutput and 'outputop' not in rules) or\
+            (isTargetAntiForensic and 'antiforensicop' not in rules):
             continue
+        if (isSourceOutput and 'outputsourceop' in rules) or \
+            (isSourceAntiForensic and 'antiforensicsourceop' in rules):
+            nodes.append(nodename)
+            continue
+        if isBaseNode and 'basenode' not in rules:
+            continue
+        skip=False
         for rule in rules:
-            if rule.startswith('~'):
-                catandop = rule[1:].split(':')
-                if op is not None:
-                    if op.category == catandop[0] and \
-                            (len(catandop) == 0 or len(catandop[1]) == '' or catandop[1] == op.name):
-                        continue
-        nodes.append(nodename)
+                if rule.startswith('~'):
+                    catandop = rule[1:].split(':')
+                    if op is not None:
+                        if (op.category == catandop[0] or catandop[0] == '') and \
+                                (len(catandop) == 0 or len(catandop[1]) == 0 or catandop[1] == op.name):
+                            skip= True
+                            break
+        if not skip:
+            nodes.append(nodename)
     return nodes
 
 
-def _processProject(batchSpecification, extensionRules, project, workdir=None):
+def _processProject(batchSpecification, extensionRules, project, workdir=None, global_state=dict()):
     """
 
     :param batchSpecification:
@@ -184,26 +201,28 @@ def _processProject(batchSpecification, extensionRules, project, workdir=None):
     sm = maskgen.scenario_model.ImageProjectModel(project,tool='jtprocess')
     nodes = findNodesToExtend(sm, extensionRules)
     print ('extending {}'.format(' '.join(nodes)))
-    if not batchSpecification.executeForProject(sm, nodes,workdir=workdir):
+    if not batchSpecification.executeForProject(sm, nodes,workdir=workdir,global_variables=global_state):
         raise ValueError('Failed to process {}'.format(sm.getName()))
     sm.save()
     return sm
 
 
-def processZippedProject(batchSpecification, extensionRules, project,workdir=None):
+def processZippedProject(batchSpecification, extensionRules, project, workdir=None, global_state=dict()):
     import tempfile
     import shutil
     dir = tempfile.mkdtemp()
     try:
-        extract_archive(os.path.join(dir, project), dir)
+        extract_archive(project, dir)
         for project in pick_projects(dir):
-            sm = _processProject(batchSpecification, extensionRules, project,workdir=workdir)
-            sm.export(os.path.join(dir, project))
+            sm = _processProject(batchSpecification, extensionRules, project,
+                                 workdir=workdir,
+                                 global_state=global_state)
+            sm.export(workdir)
     finally:
         shutil.rmtree(dir)
 
 
-def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, project):
+def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, global_state, project):
     from maskgen.graph_output import ImageGraphPainter
     """
     :param project:
@@ -211,9 +230,13 @@ def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, 
     @type project: str
     """
     if project.endswith('tgz'):
-        processZippedProject(batchSpecification, extensionRules, project,workdir=workdir)
+        processZippedProject(batchSpecification, extensionRules, project,
+                             workdir=workdir,
+                             global_state=global_state)
     else:
-        sm = _processProject(batchSpecification, extensionRules, project,workdir=workdir)
+        sm = _processProject(batchSpecification, extensionRules, project,
+                             workdir=workdir,
+                             global_state=global_state)
         if outputGraph:
             summary_file = os.path.join(sm.get_dir(), '_overview_.png')
             try:
@@ -224,7 +247,8 @@ def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, 
 
 
 def processSpecification(specification, extensionRules, projects_directory, completeFile=None, outputGraph=False,
-                         threads=1, loglevel=None):
+                         threads=1, loglevel=None, global_variables='',
+                         initializers=None):
     """
     Perform a plugin operation on all projects in directory
     :param projects_directory: directory of projects
@@ -235,12 +259,13 @@ def processSpecification(specification, extensionRules, projects_directory, comp
     from functools import partial
     batch = loadJSONGraph(specification)
     rules = parseRules(extensionRules)
+    global_state = updateAndInitializeGlobalState(dict(), global_variables, initializers)
     if batch is None:
         return
     iterator = pick_projects(projects_directory)
     iterator.extend(pick_zipped_projects(projects_directory))
     processor = BatchProcessor(completeFile, iterator, threads=threads)
-    func = partial(processAnyProject, batch, rules, outputGraph, '.')
+    func = partial(processAnyProject, batch, rules, outputGraph, '.', global_state)
     return processor.process(func)
 
 
@@ -453,6 +478,9 @@ def main():
     parser.add_argument('--graph', action='store_true', help='Output Summary Graph')
     parser.add_argument('--threads', default='1', help='Number of Threads')
     parser.add_argument('--loglevel', required=False, help='log level')
+    parser.add_argument('--global_variables', required=False, help='global state initialization')
+    parser.add_argument('--initializers', required=False, help='global state initialization')
+    parser.add_argument('--test', required=False,action='store_true', help='test extension')
 
     args = parser.parse_args()
 
@@ -465,7 +493,9 @@ def main():
                              imagereformat=args.imageReformatting)
 
     setPwdX(CustomPwdX(args.username))
-    maskgen.plugins.loadPlugins()
+    manager = maskgen.plugins.loadPlugins()
+    if args.test:
+        maskgen.plugins.EchoInterceptor(manager.getBroker())
     if args.plugins:
         for plugin in maskgen.plugins.loadPlugins().keys():
             if args.plugin is not None and plugin != args.plugin:
@@ -504,7 +534,8 @@ def main():
             print ('projects is required')
             sys.exit(-1)
         processSpecification(args.specification, args.extensionRules, args.projects, completeFile=args.completeFile,
-                             outputGraph=args.graph, threads=int(args.threads), loglevel=args.loglevel)
+                             outputGraph=args.graph, threads=int(args.threads), loglevel=args.loglevel,
+                             global_variables=args.global_variables, initializers=args.initializers)
     # perform the specified operation
     elif args.plugin:
         if args.projects is None:

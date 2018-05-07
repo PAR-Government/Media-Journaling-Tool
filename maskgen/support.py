@@ -9,6 +9,8 @@
 from os.path import expanduser
 import new
 from types import MethodType
+import logging
+from threading import RLock
 
 class Proxy(object):
     def __init__(self, target):
@@ -180,4 +182,49 @@ class MaskgenThreadPool:
             result = AsyncResult({},False)
             result._set(0,(True,func(*args, **kwds)))
             return result
+
+
+
+class ModuleStatus:
+
+    def __init__(self,system_name, module_name, component, percentage):
+        self.system_name = system_name
+        self.module_name = module_name
+        self.component = component
+        self.percentage = percentage
+
+
+class StatusTracker:
+    def __init__(self, system_name='System', module_name='?', amount=100, status_cb=None):
+        self.amount = amount
+        self.system_name = system_name
+        self.module_name = module_name
+        self.current = 0
+        self.lock = RLock()
+        self.status_cb = status_cb
+        self.logger = logging.getLogger('maskgen')
+
+    def post(self, module_status):
+        """
+
+        :param module_status:
+        :return:
+        @type module_status : ModuleStatus
+        """
+        if self.status_cb is None:
+            self.logger.info(
+                '{} module {} for component {}: {}% Complete'.format(module_status.system_name,
+                                                                     module_status.module_name,
+                                                                     module_status.component,
+                                                                     module_status.percentage))
+        else:
+            self.status_cb(module_status)
+
+    def complete(self):
+        self.post(ModuleStatus(self.system_name, self.module_name, 'Complete',100.0))
+
+    def next(self,id):
+        with self.lock:
+            self.post(ModuleStatus(self.system_name, self.module_name, id, (float(self.current)/self.amount)*100.0))
+            self.current += 1
 

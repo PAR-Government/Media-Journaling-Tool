@@ -7,14 +7,15 @@
 # ==============================================================================
 
 from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
-from maskgen.support import getValue
-from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue
+from maskgen.support import getValue, ModuleStatus
+from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask,md5_of_file
 from maskgen.image_graph import ImageGraph, GraphProxy
 import os
-from collections import namedtuple
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from maskgen import MaskGenLoader
+from maskgen.image_wrap import ImageWrapper
+import logging
 
 global_loader = SoftwareLoader()
 
@@ -24,7 +25,21 @@ class Severity(Enum):
     ERROR = 3
     CRITICAL = 4
 
-ValidationMessage = namedtuple('ValidationMessage', ['Severity', 'Start', 'End', 'Message', 'Module'], verbose=False)
+class ValidationMessage:
+
+    def __init__(self,Severity, Start, End, Message, Module,Fix=None):
+        self.Severity = Severity
+        self.Start = Start
+        self.End = End
+        self.Message = Message
+        self.Module = Module
+        self.Fix = Fix
+
+    def __getitem__(self, item):
+        return [self.Severity,self.Start,self.End,self.Message,self.Module,self.Fix][item]
+
+    def applyFix(self,graph):
+        self.Fix(graph,self.Start,self.End)
 
 def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     """
@@ -38,7 +53,7 @@ def hasErrorMessages(validationMessageList, contentCheck=lambda x: True):
     if validationMessageList is None:
         return False
     for msg in validationMessageList:
-        if msg.Severity == Severity.ERROR and contentCheck(msg.Message):
+        if msg.Severity.value == Severity.ERROR.value and contentCheck(msg.Message):
             return True
     return False
 
@@ -180,12 +195,39 @@ def getRegisteredValidatorClasses(preferences):
         getClassFromName(name) for name in names
         ]
 
+class ValidationStatus(ModuleStatus):
+
+    def __init__(self,module_name, component, percentage):
+        ModuleStatus.__init__(self,'Validation', module_name,component,percentage)
+
+def ignoreStatus(validation_status):
+    """
+
+    :param validation_status:
+    :return:
+    @type validation_status: ValidationStatus
+    """
+    pass
+
+def logStatus(validation_status):
+    """
+    :param validation_status:
+    :return:
+    @type validation_status: ValidationStatus
+    """
+    logging.getLogger('maskgen').info(
+        'Validation module {} for component {}: {}% Complete'.format(validation_status.module_name,
+                                                                     validation_status.component,
+                                                                     validation_status.percentage))
 
 class ValidationAPIComposite(ValidationAPI):
-    def __init__(self, preferences, external=False):
+
+
+    def __init__(self, preferences, external=False, status_cb=logStatus):
         self.preferences = preferences
         self.external = external
         self.instances = []
+        self.status_cb = status_cb
 
         selector = getRegisteredValidatorClasses(self.preferences)
         for subclass in selector:
@@ -223,6 +265,7 @@ class ValidationAPIComposite(ValidationAPI):
         """
         result = []
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__,'edge {}:{}'.format(frm,to),0))
             result.extend(subclassinstance.check_edge(op, graph, frm, to))
         return result
 
@@ -235,6 +278,7 @@ class ValidationAPIComposite(ValidationAPI):
         """
         result = []
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'graph', 0))
             result.extend(subclassinstance.check_graph(graph))
         return result
 
@@ -248,6 +292,7 @@ class ValidationAPIComposite(ValidationAPI):
         """
         result = []
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'node {}'.format(node), 0))
             result.extend(subclassinstance.check_node(node, graph))
         return result
 
@@ -275,11 +320,89 @@ class ValidationAPIComposite(ValidationAPI):
         @type journalname: str
         @rtype: str
         """
+        complete = 0.0
+        advance = 100.0/len(self.instances)
         for subclassinstance in self._get_subclassinstances():
+            self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'graph export time', complete))
             result = subclassinstance.get_journal_exporttime(journalname)
+            complete += advance
             if result is not None:
-                return result
+                break
+        self.status_cb(ValidationStatus(subclassinstance.__class__.__name__, 'graph export time', 100.0))
+        return result
 
+
+def renameToMD5(graph,start,end):
+    """
+       :param graph:
+       :param start:
+       :param end:
+       :return:
+       @type graph: ImageGraph
+       @type start: str
+       @type end: str
+    """
+    import shutil
+    file_path_name =graph.get_image_path(start)
+    filename = os.path.basename(file_path_name)
+    if os.path.exists(file_path_name):
+        try:
+            suffix = os.path.splitext(filename)[1]
+            new_file_name = md5_of_file(file_path_name) + suffix
+            fullname = os.path.join(graph.dir, new_file_name)
+        except:
+            logging.getLogger('maskgen').error(
+                'Missing file or invalid permission: {} '.format(file_path_name))
+            return
+        try:
+            os.rename(file_path_name, fullname)
+            logging.getLogger('maskgen').info(
+                'Renamed {} to {} '.format(filename, new_file_name))
+            graph.update_node(start, file=new_file_name)
+        except Exception as e:
+            logging.getLogger('maskgen').error(
+                    ('Failure to rename file {} : {}.  Trying copy').format(file_path_name, str(e)))
+            shutil.copy2(file_path_name, fullname)
+            logging.getLogger('maskgen').info(
+                    'Renamed {} to {} '.format(filename, new_file_name))
+            graph.update_node(start, file=new_file_name)
+
+
+def repairMask(graph,start,end):
+    """
+      :param graph:
+      :param start:
+      :param end:
+      :return:
+      @type graph: ImageGraph
+      @type start: str
+      @type end: str
+      """
+    edge = graph.get_edge(start,end)
+    startimage, name = graph.get_image(start)
+    finalimage, fname = graph.get_image(end)
+    mask = graph.get_edge_image(start,end, 'maskname')
+    inputmaskname = os.path.splitext(name)[0] + '_inputmask.png'
+    ImageWrapper(composeCloneMask(mask, startimage, finalimage)).save(inputmaskname)
+    edge['inputmaskname'] = os.path.split(inputmaskname)[1]
+    graph.setDataItem('autopastecloneinputmask', 'yes')
+
+
+class ValidationCallback:
+
+    def __init__(self,advance_percent=1.0,start_percent=0.0, status_cb=logStatus):
+        self.advance_percent = advance_percent
+        self.current_percent = start_percent
+        self.status_cb = status_cb
+
+    def update_state(self,validation_status):
+        """
+        :param validation_status:
+        :return:
+        @type validation_status : ValidationStatus
+        """
+        self.status_cb(ValidationStatus(validation_status.module_name,validation_status.component,self.current_percent))
+        self.current_percent += self.advance_percent
 
 class Validator:
     """
@@ -306,7 +429,7 @@ class Validator:
         rules = [getRule(name, globals=globals(), default_module='maskgen.graph_rules') for name in ruleNames if len(name) > 0]
         self.rules[op] = [rule for rule in rules if rule is not None]
 
-    def run_graph_suite(self, graph, external=None):
+    def run_graph_suite(self, graph, external=None, status_cb=None):
         """
         Run the validation suite including rules determined by operation definitions associated
         with each edge in the graph.
@@ -321,29 +444,41 @@ class Validator:
         @type preferences: MaskGenLoader
         @rtype:  list of ValidationMessage
         """
-        if len(graph.get_nodes()) == 0:
+        if status_cb is None:
+            if ('log.validation' not in self.preferences or self.preferences['log.validation'] == 'yes'):
+                status_cb = logStatus
+            else:
+                status_cb  = ignoreStatus
+        nodeSet = set(graph.get_nodes())
+        nodecount = len(nodeSet)
+        edgecount = len(graph.get_edges())
+        if nodecount == 0:
             return []
 
         total_errors = []
         finalNodes = []
         # check for disconnected nodes
         # check to see if predecessors > 1 consist of donors
+        status_cb(ValidationStatus('Connectivity', 'graph', 0))
         for node in graph.get_nodes():
             if not graph.has_neighbors(node):
                 total_errors.append(ValidationMessage(Severity.ERROR, str(node), str(node),
                                                       str(node) + ' is not connected to other nodes',
-                                                      'Graph'))
+                                                      'Graph',
+                                                      None))
             predecessors = graph.predecessors(node)
             if len(predecessors) == 1 and graph.get_edge(predecessors[0], node)['op'] == 'Donor':
                 total_errors.append(ValidationMessage(Severity.ERROR,
                                                       str(predecessors[0]),
                                                       str(node), str(node) +
                                                       ' donor links must coincide with another link to the same destintion node',
-                                                      'Graph'))
+                                                      'Graph',
+                                                      None))
             successors = graph.successors(node)
             if len(successors) == 0:
                 finalNodes.append(node)
 
+        status_cb(ValidationStatus('Project Type','Graph',4))
         # check project type
         project_type = graph.get_project_type()
         matchedType = [node for node in finalNodes if
@@ -352,16 +487,7 @@ class Validator:
             graph.setDataItem('projecttype',
                               fileType(os.path.join(graph.dir, graph.get_node(finalNodes[0])['file'])))
 
-        finalfiles = set()
-        duplicates = dict()
-        for node in finalNodes:
-            filename = graph.get_node(node)['file']
-            if filename in finalfiles and filename not in duplicates:
-                duplicates[filename] = node
-            finalfiles.add(filename)
-
-        nodeSet = set(graph.get_nodes())
-
+        status_cb(ValidationStatus('Graph Cuts', 'Graph', 5))
         # check graph cuts
         for found in graph.findRelationsToNode(nodeSet.pop()):
             if found in nodeSet:
@@ -373,16 +499,20 @@ class Validator:
                                                   str(node),
                                                   str(node),
                                                   str(node) + ' is part of an unconnected subgraph',
-                                                  'Graph'))
+                                                  'Graph',
+                                                  None))
 
+        status_cb(ValidationStatus('File Check', 'Graph', 6))
         # check all files accounted for
         for file_error_tuple in graph.file_check():
             total_errors.append(ValidationMessage(Severity.ERROR,
                                                   file_error_tuple[0],
                                                   file_error_tuple[1],
                                                   file_error_tuple[2],
-                                                  'Graph'))
+                                                  'Graph',
+                                                  None))
 
+        status_cb(ValidationStatus('Cycle Check', 'Graph', 8))
         # check cycles
         cycleNode = graph.getCycleNode()
         if cycleNode is not None:
@@ -390,7 +520,17 @@ class Validator:
                                                   str(cycleNode),
                                                   str(cycleNode),
                                                   "Graph has a cycle",
-                                                  'Graph'))
+                                                  'Graph',
+                                                  None))
+
+        status_cb(ValidationStatus('Final Node Check', 'Duplicates', 9))
+        finalfiles = set()
+        duplicates = dict()
+        for node in finalNodes:
+            filename = graph.get_node(node)['file']
+            if filename in finalfiles and filename not in duplicates:
+                duplicates[filename] = node
+            finalfiles.add(filename)
 
         # check duplicate final end nodes
         if len(duplicates) > 0:
@@ -399,28 +539,35 @@ class Validator:
                                                       str(node),
                                                       str(node),
                                                       "Duplicate final end node file %s" % filename,
-                                                      'Graph'))
+                                                      'Graph',
+                                                      None))
 
-        valiation_apis = ValidationAPIComposite(self.preferences, external=external)
+
+        validation_callback = ValidationCallback(advance_percent=90.0/(nodecount + edgecount),start_percent=10.0,status_cb=status_cb)
+        valiation_apis = ValidationAPIComposite(self.preferences, external=external, status_cb=validation_callback.update_state)
+        validation_callback.advance_percent = 90.0/((nodecount + edgecount)*(1+len(valiation_apis.instances)) + len(valiation_apis.instances))
 
         total_errors.extend(valiation_apis.check_graph(graph))
 
         for node in graph.get_nodes():
             total_errors.extend(valiation_apis.check_node(node, graph))
+            validation_callback.update_state(ValidationStatus('Internal','node {}'.format(node),0))
             for error in run_node_rules(graph, node, external=external, preferences=self.preferences):
                 if type(error) != tuple:
                     error = (Severity.ERROR, str(error))
-                total_errors.append(ValidationMessage(error[0], str(node), str(node), error[1],'Node'))
+                total_errors.append(ValidationMessage(error[0], str(node), str(node), error[1],'Node',None if len(error) == 2 else error[2]))
 
         for frm, to in graph.get_edges():
             edge = graph.get_edge(frm, to)
             op = edge['op']
             total_errors.extend(valiation_apis.check_edge(op, graph, frm, to))
+            validation_callback.update_state(ValidationStatus('Internal', 'edge {}:{}'.format(frm, to),0))
             errors = run_all_edge_rules(self.gopLoader.getOperationWithGroups(op, fake=True),
                                     self.rules[op] if op in self.rules else [],
                                     graph, frm, to)
             if len(errors) > 0:
                 total_errors.extend(errors)
+        validation_callback.status_cb(ValidationStatus('Validation','Complete',100.0))
         return total_errors
 
     def run_edge_rules(self,graph, frm, to):
@@ -487,7 +634,8 @@ def run_node_rules(graph, node, external=False, preferences=None):
                 hashname = hashlib.md5(rp.read()).hexdigest()
                 if hashname not in nodeData['file']:
                     errors.append(
-                        (Severity.WARNING, "Final image {} is not composed of its MD5.".format(nodeData['file'])))
+                        (Severity.WARNING, "Final image {} is not composed of its MD5.".format(nodeData['file']),
+                         renameToMD5))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():
@@ -531,9 +679,9 @@ def run_all_edge_rules(op, rules, graph, frm, to):
         res = rule(op, graph, frm, to)
         if res is not None:
             if type(res) == str:
-                res = ValidationMessage(Severity.ERROR, frm, to, res,rule.__name__)
+                res = ValidationMessage(Severity.ERROR, frm, to, res,rule.__name__,None)
             else:
-                res = ValidationMessage(res[0], frm, to, res[1],rule.__name__)
+                res = ValidationMessage(res[0], frm, to, res[1],rule.__name__,None)
             results.append(res)
     return results
 
@@ -587,7 +735,8 @@ def check_operation(edge, op, graph, frm, to):
                                  frm,
                                  to,
                                  'Operation ' + op.name + ' is invalid',
-                                 'Operation')
+                                 'Operation',
+                                 None)
 
 
 def check_link_errors(edge, op, graph, frm, to):
@@ -606,7 +755,8 @@ def check_link_errors(edge, op, graph, frm, to):
                                   frm,
                                   to,
                                   'Link has mask processing errors',
-                                  'Change Mask')]
+                                  'Change Mask',
+                                  None)]
     return []
 
 
@@ -636,7 +786,8 @@ def check_version(edge, op, graph, frm, to):
                                       '',
                                       '',
                                       sversion + ' not in approved set for software ' + sname,
-                                      'Software')]
+                                      'Software',
+                                      None)]
     return []
 
 
@@ -671,9 +822,9 @@ def check_arguments(edge, op, graph, frm, to):
                                              frm,
                                              to,
                                              argName + str(e),
-                                             'Argument {}'.format(argName)))
+                                             'Argument {}'.format(argName),
+                                             None))
     return results
-
 
 def check_masks(edge, op, graph, frm, to):
     """
@@ -701,7 +852,8 @@ def check_masks(edge, op, graph, frm, to):
                                   frm,
                                   to,
                                   'Link mask is missing. Recompute the link mask.',
-                                  'Change Mask')]
+                                  'Change Mask',
+                                  None)]
     inputmaskname = edge['inputmaskname'] if 'inputmaskname' in edge  else None
     if inputmaskname is not None and len(inputmaskname) > 0 and \
             not os.path.exists(os.path.join(graph.dir, inputmaskname)):
@@ -709,10 +861,12 @@ def check_masks(edge, op, graph, frm, to):
                                   frm,
                                   to,
                                   "Input mask file {} is missing".format(inputmaskname),
-                                  'Input Mask')]
+                                  'Input Mask',
+                                  repairMask)]
     if inputmaskname is not None and len(inputmaskname) > 0 and \
             os.path.exists(os.path.join(graph.dir, inputmaskname)):
-        if fileType(os.path.join(graph.dir, inputmaskname)) == 'audio':
+        ft = fileType(os.path.join(graph.dir, inputmaskname))
+        if ft == 'audio':
             return []
         inputmask = openImage(os.path.join(graph.dir, inputmaskname))
         if inputmask is None:
@@ -720,7 +874,8 @@ def check_masks(edge, op, graph, frm, to):
                                       frm,
                                       to,
                                       "Input mask file {} is missing".format(inputmaskname),
-                                      'Input Mask')]
+                                      'Input Mask',
+                                      repairMask if ft == 'image' else None)]
         inputmask = inputmask.to_mask().to_array()
         mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
         if inputmask.shape != mask.shape:
@@ -728,7 +883,8 @@ def check_masks(edge, op, graph, frm, to):
                                       frm,
                                       to,
                                       'input mask name parameter has an invalid size',
-                                      'Input Mask')]
+                                      'Input Mask',
+                                      repairMask if ft == 'image' else None)]
     return []
 
 
@@ -757,7 +913,8 @@ def check_mandatory(edge, opInfo, graph, frm, to):
                                   frm,
                                   to,
                                   opInfo.name + ' is not a valid operation',
-                                  'Mandatory')] if opInfo.name != 'Donor' else []
+                                  'Mandatory',
+                                  None)] if opInfo.name != 'Donor' else []
     args = edge['arguments'] if 'arguments' in edge  else []
     frm_file = graph.get_image(frm)[1]
     frm_file_type = fileType(frm_file)
@@ -781,4 +938,5 @@ def check_mandatory(edge, opInfo, graph, frm, to):
                               frm,
                               to,
                               'Mandatory parameter ' + m + ' is missing',
-                              'Mandatory') for m in missing]
+                              'Mandatory',
+                              None) for m in missing]

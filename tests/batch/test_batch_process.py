@@ -9,6 +9,7 @@ from threading import Lock
 from maskgen import plugins
 from maskgen.tool_set import openImageFile
 from tests.test_support import TestSupport
+from maskgen.support import getValue
 from networkx.readwrite import json_graph
 
 
@@ -63,6 +64,14 @@ class TestBatchProcess(TestSupport):
     def test_value_shortcut(self):
         self.assertEqual('foo', batch_project.executeParamSpec('test_value_spec', 'foo',
                                                                {}, {}, 'test_node', []))
+        self.assertEqual(1, batch_project.executeParamSpec('test_value_spec', {'type':'value','value':'{foo}','function':'numpy.int'},
+                                                               {'foo':1}, {}, 'test_node', []))
+        self.assertEqual(1, batch_project.executeParamSpec('test_value_spec',
+                                                           {'type': 'value', 'value': '{foo@nodex}', 'function': 'numpy.int'},
+                                                           {'foo': 2}, {'nodex':{'foo':1}}, 'test_node', []))
+        self.assertEqual('2,331.23', batch_project.executeParamSpec('test_value_spec',
+                                                           {'type': 'value', 'value': '{foo@nodex:,}'},
+                                                           {'foo': 2}, {'nodex': {'foo': 2331.23}}, 'test_node', []))
 
     def test_list_picker(self):
         manager = PermuteGroupManager()
@@ -210,6 +219,72 @@ class TestBatchProcess(TestSupport):
         remapped = batch_project.remap_links(network)
         G = json_graph.node_link_graph(remapped, multigraph=False, directed=True)
         self.assertTrue(G.edge['A']['B'] is not None)
+
+    def test_remap(self):
+        network = {
+            "directed": True,
+            "graph": {
+                "username": "test",
+            },
+            "nodes": [
+                {
+                    "id": "A",
+                    "fooA":"barA"
+                },
+                {
+                    "id": "B",
+                    "fooB": "barB"
+                },
+                {
+                    "id": "C",
+                    "fooC": "barC"
+                },
+                {
+                    "id": "D",
+                    "fooD": "barD",
+                    'source':'A'
+                },
+                {
+                    "id": "E",
+                    "fooE": "barE"
+                }
+            ],
+            "links": [
+                {
+                    "source": "A",
+                    "target": "B"
+                },
+                {
+                    "source": "A",
+                    "target": "D"
+                },
+                {
+                    "source": "B",
+                    "target": "C"
+                },
+                {
+                    "source": "C",
+                    "target": "D",
+                    "split":True
+                },
+                {
+                    "source": "D",
+                    "target": "E",
+                    "foo":"bar"
+                }
+
+            ],
+            "multigraph": False
+        }
+        remapped = batch_project.remap_links(network)
+        G = json_graph.node_link_graph(remapped, multigraph=False, directed=True)
+        G = batch_project.separate_paths(G)
+        for node_id in G.nodes():
+            preds = [pred for pred in G.predecessors(node_id) if not getValue(G[pred][node_id], 'donor', False)]
+            self.assertTrue(len(preds)<2)
+        self.assertEqual(7,len(G.nodes()))
+
+
 
 if __name__ == '__main__':
     unittest.main()

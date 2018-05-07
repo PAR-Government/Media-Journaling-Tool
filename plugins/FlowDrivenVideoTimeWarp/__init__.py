@@ -33,7 +33,7 @@ def transform(img,source,target,**kwargs):
     if start_time[0] > 0:
         et = getDurationStringFromMilliseconds(end_time_millis)
     else:
-        et = str(int(start_time[1]) + int(add_frames))
+        et = str(int(start_time[1]) + int(add_frames)) - 1
 
     return {'Start Time':str(kwargs['Start Time']),
             'End Time': et,
