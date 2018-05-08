@@ -864,18 +864,22 @@ def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
     maskInverted = mask if invert else mask.invert()
     mask = np.asarray(mask)
     mask = mask.astype('uint8')
+    logger = logging.getLogger('maskgen')
     try:
         mask1 = convertToMask(startIm).to_array() if startIm.has_alpha() else None
+        logger.debug('SIFT')
         TM, matchCount = __sift(startIm, destIm, mask1=mask1, mask2=maskInverted, arguments=arguments)
     except:
         TM = None
     if TM is not None:
+        logger.debug('WARP')
         newMask = cv2.warpPerspective(mask, TM, (startIm.size[0], startIm.size[1]), flags=cv2.WARP_INVERSE_MAP,
                                       borderMode=cv2.BORDER_CONSTANT, borderValue=255)
         analysis = {}
         analysis['transform matrix'] = serializeMatrix(TM)
         return newMask, analysis
-    else:
+    elif getValue(arguments,'homography','None') != 'None':
+        logger.debug('SIFT Failed. Find Countours')
         try:
             contours, hier = cv2api.findContours(255 - mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             minpoint = None
@@ -900,7 +904,7 @@ def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
                 return mask[y:y + h, x:x + w], {}
         except:
             return None, None
-        return None, None
+    return None, None
 
 
 def serializeMatrix(m):
