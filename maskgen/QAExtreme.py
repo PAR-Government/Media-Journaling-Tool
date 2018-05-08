@@ -100,7 +100,7 @@ class QAProjectDialog(Toplevel):
         statusLabelText = StringVar()
         statusLabelText.set('Probes Generating')
         Label(page1, text="Welcome to the QA Wizard. Press Next to begin the QA Process or Quit to stop. This is "
-                                "Manny; He s here to help you analyze the journal. The tool is currently generating the probes. "
+                                "Manny; He is here to help you analyze the journal. The tool is currently generating the probes. "
                                 "This could take a while. When the next button is enabled you may begin.", wraplength=400).grid(column=0,row=0,\
                                                                                                 rowspan=2,columnspan=2)
         filename = tool_set.get_icon('Manny_icon_color.jpg')
