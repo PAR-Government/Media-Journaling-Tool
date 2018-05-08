@@ -11,12 +11,11 @@
     "validatedby": "", 
     "exporttime": "2018-04-05 16:29:17", 
     "jt_upgrades": [
-      "0.5.0421.65e9a43cd3", 
-      "0.5.0227.bf007ef4cd"
+      "0.5.0421.65e9a43cd3"
     ], 
     "creator_tool": "jtui", 
     "autopastecloneinputmask": "no", 
-    "idcount": 46, 
+    "idcount": 67, 
     "provenance": "no", 
     "api_validated_node": [
       "input_mod_2_25.jpg", 
@@ -36,12 +35,12 @@
     }, 
     "skipped_edges": [], 
     "username": "dupre", 
-    "igversion": "0.5.0227.bf007ef4cd", 
+    "igversion": "0.5.0421.65e9a43cd3", 
     "validationdate": "", 
     "semanticgroups": [], 
     "qadata": {}, 
     "groups": {}, 
-    "updatetime": "2018-04-24 14:57:32", 
+    "updatetime": "2018-05-08 14:06:49", 
     "projecttype": "image", 
     "name": "sample", 
     "typespref": [
@@ -65,7 +64,7 @@
     "modifier_tools": [
       "jtui"
     ], 
-    "organization": "Wonderland", 
+    "organization": "wonderland", 
     "validation": "no", 
     "creator": "ericrobertson"
   }, 
@@ -112,21 +111,19 @@
       "file": "56884521ef4db89e5ff5e34266a940fb.jpg", 
       "id": "input_mod_2_25", 
       "pathanalysis": {
-        "voiceaudioswap": "no", 
+        "contrastenhancement": "no", 
         "dialogchange": "no", 
         "semanticrepurposing": null, 
-        "people": "no", 
-        "color": "yes", 
+        "dateandtime": "no", 
+        "postprocesscropframes": "no", 
         "antiforensicnoiserestoration": "no", 
         "otherenhancements": "no", 
         "blurlocal": "no", 
         "audioclone": "no", 
         "compositepixelsize": "large", 
-        "crowdrelocation": "no", 
         "audiosplice": "no", 
         "imagecompressiontable": "yes", 
-        "dataembeddingwatermark": "no", 
-        "antiforensicaddcamfingerprintprnu": "no", 
+        "audiovoiceswapping": "no", 
         "landscape": "no", 
         "imagecompression": "yes", 
         "audioactivity": "no", 
@@ -135,48 +132,49 @@
         "audiovoiceover": "no", 
         "othersubjects": "no", 
         "antiforensicaberrationcorrection": "no", 
-        "dateandtime": "no", 
+        "people": "no", 
         "wound": "no", 
-        "shadowmanipulations": "no", 
-        "antiforensiccfacorrection": "no", 
+        "dataembeddingwatermark": "no", 
         "launderingsocialmedia": "no", 
-        "postprocesscropframes": "no", 
+        "antiforensiccfacorrection": "no", 
         "antiforensicother": "no", 
         "Personal Appearance": "no", 
         "launderingmedianfiltering": "no", 
         "spatialmovingcamera": "no", 
         "temporalremove": "no", 
-        "audiovoiceswapping": "no", 
+        "timeofday": "no", 
         "dateburnin": "no", 
         "spatialother": "no", 
         "ambienceaudioswap": "no", 
         "temporalother": "no", 
         "audioothers": "no", 
-        "locationchange": "no", 
         "healinglocal": "no", 
         "semanticrefabrication": null, 
         "Tattoos": "no", 
         "clone": "no", 
         "manmade": "yes", 
         "spatialsplice": "no", 
+        "cadaver": "no", 
+        "antiforensicillumination": "no", 
         "spatialclone": "no", 
         "spatialmovingobject": "no", 
         "spatialremove": "no", 
-        "antiforensicillumination": "no", 
+        "crowdrelocation": "no", 
         "histogramnormalizationglobal": "no", 
         "seamcarving": "yes", 
         "facemanipulations": "no", 
-        "cadaver": "no", 
+        "locationchange": "no", 
         "temporalclone": "no", 
         "audioremoval": "no", 
-        "recapture": "no", 
+        "color": "yes", 
         "mosaicing": "no", 
         "weatherchanges": "no", 
-        "timeofday": "no", 
+        "antiforensicaddcamfingerprintprnu": "no", 
         "natural": "no", 
+        "voiceaudioswap": "no", 
         "reflectionmanipulations": "no", 
         "postprocessstabilization": "no", 
-        "contrastenhancement": "no", 
+        "postprocesscompression": "no", 
         "buildingrelocation": "no", 
         "manipulationcategory": "4-Unit", 
         "remove": "no", 
@@ -186,8 +184,9 @@
         "semanticrestaging": null, 
         "imagereformat": "no", 
         "moodchange": "no", 
+        "recapture": "no", 
         "temporalsplice": "no", 
-        "postprocesscompression": "no"
+        "shadowmanipulations": "no"
       }
     }, 
     {
@@ -252,7 +251,7 @@
   "links": [
     {
       "recordMaskInComposite": "no", 
-      "linkcolor": "0 168 255", 
+      "linkcolor": "85 85 85", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
@@ -391,7 +390,7 @@
     {
       "global": "no", 
       "recordMaskInComposite": "no", 
-      "linkcolor": "0 255 174", 
+      "linkcolor": "113 28 199", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Windows 7 6.1.7601", 
@@ -456,7 +455,7 @@
       "global": "no", 
       "recordMaskInComposite": "no", 
       "inputmaskownership": "no", 
-      "linkcolor": "0 255 6", 
+      "linkcolor": "227 56 142", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Windows 7 6.1.7601", 
@@ -540,7 +539,7 @@
     {
       "global": "yes", 
       "recordMaskInComposite": "no", 
-      "linkcolor": "162 255 0", 
+      "linkcolor": "199 113 28", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
@@ -612,7 +611,7 @@
     }, 
     {
       "recordMaskInComposite": "no", 
-      "linkcolor": "255 180 0", 
+      "linkcolor": "56 142 227", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Windows 7 6.1.7601", 
@@ -694,9 +693,9 @@
           "2016:11:18 10:15:41-05:00", 
           "2016:11:29 14:44:59-05:00"
         ], 
-        "Resolution Unit": [
+        "Exif Byte Order": [
           "add", 
-          "inches"
+          "Little-endian (Intel, II)"
         ], 
         "MIME Type": [
           "change", 
@@ -736,9 +735,9 @@
           "delete", 
           "8"
         ], 
-        "Exif Byte Order": [
+        "Resolution Unit": [
           "add", 
-          "Little-endian (Intel, II)"
+          "inches"
         ], 
         "X Resolution": [
           "add", 
@@ -768,7 +767,7 @@
     {
       "global": "no", 
       "recordMaskInComposite": "no", 
-      "linkcolor": "255 12 0", 
+      "linkcolor": "170 170 170", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
@@ -879,33 +878,32 @@
       "op": "Donor"
     }, 
     {
-      "ssim": 0.9598897451746461, 
       "global": "no", 
       "recordMaskInComposite": "yes", 
-      "inputmaskownership": "no", 
-      "linkcolor": "255 0 156", 
+      "linkcolor": "28 199 113", 
       "errors": [], 
       "empty mask": "no", 
-      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
-      "selectmaskownership": "no", 
-      "softwareVersion": "2.4.13", 
+      "opsys": "Windows 10 10.0.16299", 
+      "softwareVersion": "2.4", 
       "source": 8, 
       "arguments": {
-        "purpose": "add", 
-        "donor resized": "yes", 
         "donor cropped": "no", 
-        "donor rotated": "yes", 
-        "mode": "Hue", 
+        "donor resized": "yes", 
+        "donor rotated": "no", 
+        "purpose": "add", 
         "subject": "man-made object"
       }, 
-      "username": "dupre", 
+      "location": "(0,0)", 
+      "username": "duck", 
       "description": "", 
-      "change size category": "large", 
+      "maskname": "8db66d86ee4f8322b28e72cd899f9974_ogititmd1_47__mask.png", 
+      "tool": "jtui", 
       "change size ratio": 0.03736888111888112, 
       "editable": "yes", 
       "softwareName": "OpenCV", 
-      "target": 2, 
-      "maskname": "orig_input_input_mod_1_mask.png", 
+      "automated": "no", 
+      "ctime": "2018-05-08 10:06:36", 
+      "change size category": "large", 
       "psnr": 17.462520610238176, 
       "shape change": "(0, 0)", 
       "semanticGroups": [], 
@@ -932,6 +930,7 @@
         ]
       }, 
       "local psnr": 3.1876244887399414, 
+      "target": 2, 
       "op": "PasteSplice"
     }, 
     {
@@ -1047,7 +1046,7 @@
       "inputmaskownership": "no", 
       "softwareVersion": "2.4", 
       "ssim": 0.3481807393556555, 
-      "linkcolor": "186 0 255", 
+      "linkcolor": "142 227 56", 
       "softwareName": "GIMP", 
       "target": 6, 
       "arguments": {
