@@ -1350,7 +1350,6 @@ def manipulationCategoryRule(scModel, edgeTuples):
             best = nodedata['pathanalysis']['manipulationcategory']
     return best
 
-
 def otherEnhancementRule(scModel, edgeTuples):
     found = False
     for edgeTuple in edgeTuples:
@@ -1389,6 +1388,13 @@ def _filterEdgesByNodeType(scModel, edges, nodetype):
     return [edgeTuple for edgeTuple in edges if scModel.getNodeFileType(edgeTuple.start) == nodetype]
 
 
+def ganComponentRule(scModel, edges):
+    for edgeTuple in edges:
+        if edgeTuple.edge['op'] == 'ObjectCGI' and \
+            getValue(edgeTuple.edge,'arguments.isGAN','no') == 'yes':
+            return 'yes'
+    return 'no'
+
 def _cleanEdges(scModel, edges):
     for edgeTuple in edges:
         node = scModel.getGraph().get_node(edgeTuple.end)
@@ -1408,11 +1414,12 @@ def setFinalNodeProperties(scModel, finalNode):
     """
     _setupPropertyRules()
     edges = _cleanEdges(scModel, scModel.getEdges(finalNode))
+    edgesAll = scModel.getEdges(finalNode,excludeDonor=False)
     analysis = dict()
     for prop in getProjectProperties():
         if not prop.node and not prop.semanticgroup:
             continue
-        filtered_edges = edges
+        filtered_edges = edgesAll if prop.includedonors else edges
         if prop.nodetype is not None:
             filtered_edges = _filterEdgesByNodeType(scModel, filtered_edges, prop.nodetype)
         if prop.semanticgroup:
@@ -1433,7 +1440,7 @@ def setFinalNodeProperties(scModel, finalNode):
                      prop.parameter in edgeTuple.edge['arguments'] and \
                      edgeTuple.edge['arguments'][prop.parameter] == prop.value]) > 0)
             analysis[prop.name] = 'yes' if foundOne else 'no'
-        if prop.rule is not None:
+        if prop.rule is not None and getValue(analysis, prop.name,'no') == 'no':
             analysis[prop.name] = project_property_rules[propertyRuleIndexKey(prop)](scModel, edges)
     scModel.getGraph().update_node(finalNode, pathanalysis=analysis)
     return analysis

@@ -1729,6 +1729,10 @@
           "type": "yesno",
           "description": "Indicates if the CGI is a 3D model with light sources, etc."
         },
+        "isGAN": {
+          "type": "yesno",
+          "description": "IS CGI Object overlayed using a GAN using using the image/frame itself as input parameters"
+        },
         "Start Time": {
           "type": "time",
           "source": "video",
@@ -2167,6 +2171,7 @@
     {
       "category":"CGI",
       "name":"SynthesizeGAN",
+      "description" : "Synthesize an image using a trained GAN model and provided input",
       "mandatoryparameters":{
         "urls": {
           "type": "urls",
@@ -2200,6 +2205,7 @@
     {
       "category":"CGI",
       "name":"SynthesizeVideo",
+      "description" : "Synthesize an video scene using a trained GAN model and provided input",
       "mandatoryparameters":{
         "urls": {
           "type": "urls",
@@ -5622,6 +5628,10 @@
         "type": "urls",
         "description": "CGI Object files"
       },
+      "isGAN": {
+        "type": "yesno",
+        "description": "Is GAN Generated?"
+      },
       "Rendering Software": {
         "type": "text",
         "description": "Type of software used to render the image"
@@ -5639,6 +5649,10 @@
       "cgi": {
         "type": "yesno",
         "description": "Is CGI?"
+      },
+      "isGAN": {
+        "type": "yesno",
+        "description": "Is GAN Generated?"
       },
       "objecturls": {
         "type": "urls",

@@ -60,7 +60,7 @@ class ProjectProperty:
 
     def __init__(self, name='', type='', operations=None, parameter=None, description=None,
                  information=None, value=None, values=None, rule=None, node=False, readonly=False,mandatory=True,
-                 nodetype=None,semanticgroup=False,defaultvalue = None):
+                 nodetype=None,semanticgroup=False,defaultvalue = None,includedonors=False):
         self.name = name
         self.type = type
         self.operations = operations
@@ -76,6 +76,7 @@ class ProjectProperty:
         self.nodetype = nodetype
         self.semanticgroup = semanticgroup
         self.defaultvalue = defaultvalue
+        self.includedonors = includedonors
 
 
 class Operation:
@@ -273,7 +274,8 @@ def loadProjectPropertyJSON(fileName):
                                                 mandatory=prop['mandatory'] if 'mandatory' in prop else False,
                                                 semanticgroup=prop['semanticgroup'] if 'semanticgroup' in prop else False,
                                                 nodetype=prop['nodetype'] if 'nodetype' in prop else None,
-                                                defaultvalue=prop['defaultvalue'] if 'defaultvalue' in prop else None))
+                                                defaultvalue=prop['defaultvalue'] if 'defaultvalue' in prop else None,
+                                                includedonors=prop['includedonors'] if 'includedonors' in prop else False))
     return res
 
 

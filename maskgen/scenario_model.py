@@ -1121,13 +1121,13 @@ class ImageProjectModel:
                          len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
         return [(node, self._findBaseNodes(node)) for node in terminalNodes]
 
-    def getEdges(self, endNode):
+    def getEdges(self, endNode,excludeDonor=True):
         """
 
         :param endNode: (identifier)
         :return: tuple (start, end, edge map) for all edges ending in endNode
         """
-        return self._findEdgesWithCycleDetection(endNode, excludeDonor=True, visitSet=list())
+        return self._findEdgesWithCycleDetection(endNode, excludeDonor=excludeDonor, visitSet=list())
 
     def getNodeNames(self):
         return self.G.get_nodes()
