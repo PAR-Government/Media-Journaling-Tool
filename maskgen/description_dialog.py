@@ -622,7 +622,7 @@ class DescriptionCaptureDialog(Toplevel):
         catlist.sort()
         self.oplist = cats[catlist[0]] if len(cats) > 0 else []
         self.e1 = MyDropDown(master, catlist, command=self.newcategory)
-        self.e2 = Button(master, textvar=self.opname, command=lambda: SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation", initial_value=self.opname.get()))
+        self.e2 = Button(master, textvar=self.opname, command=self.select_op)
         self.e4 = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
@@ -672,6 +672,13 @@ class DescriptionCaptureDialog(Toplevel):
                 initialValue=self.softwareLoader.get_preferred_version(self.softwareLoader.get_preferred_name()))
 
         return self.e1  # initial focus
+
+    def select_op(self):
+        if len(self.oplist) > 0:
+            SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation",
+                        initial_value=self.opname.get())
+        else:
+            tkMessageBox.showerror("No Operations", "There are no available operations under the current category.")
 
     def __getinfo(self,name):
         for k,v in self.arginfo:
