@@ -509,7 +509,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.argBox.pack()
 
     def newcommand(self, event):
-        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get())
         self.arginfo = []
         if op is not None:
             for k, v in op.mandatoryparameters.iteritems():
@@ -524,7 +524,7 @@ class DescriptionCaptureDialog(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 self.arginfo.append((k, v))
-        self.buildArgBox(self.e2.get())
+        self.buildArgBox(self.opname.get())
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -534,19 +534,18 @@ class DescriptionCaptureDialog(Toplevel):
     def newcategory(self, event):
         opByCat = self.organizeOperationsByCategory()
         if self.e1.get() in opByCat:
-            oplist = opByCat[self.e1.get()]
-            self.e2.set_completion_list(oplist)
+            self.oplist = opByCat[self.e1.get()]
+            self.opname.set(self.oplist[0] if self.oplist else "")
             self.newcommand(event)
         else:
-            self.e2.set_completion_list([])
+            self.oplist = []
 
     def group_remove(self):
         self.listbox.delete(ANCHOR)
 
     def group_add(self):
         d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
-                         getSemanticGroups(), information=getFileName(os.path.join("help",
-                                                                                   "group_config.json")))
+                         getSemanticGroups(), information="semanticgroup")
         res = d.choice
         if res is not None:
             self.listbox.insert(END,res)
@@ -616,18 +615,19 @@ class DescriptionCaptureDialog(Toplevel):
         row += 1
 
 
+        self.opname = StringVar()
+        self.opname.set(self.description.operationName)
         cats = self.organizeOperationsByCategory()
         catlist = list(cats.keys())
         catlist.sort()
-        oplist = cats[catlist[0]] if len(cats) > 0 else []
+        self.oplist = cats[catlist[0]] if len(cats) > 0 else []
         self.e1 = MyDropDown(master, catlist, command=self.newcategory)
-        self.e2 = MyDropDown(master, oplist, command=self.newcommand)
+        self.e2 = Button(master, textvar=self.opname, command=lambda: SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation", initial_value=self.opname.get()))
         self.e4 = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
         self.e1.bind("<<ComboboxSelected>>", self.newcategory)
-        self.e2.bind("<Return>", self.newcommand)
-        self.e2.bind("<<ComboboxSelected>>", self.newcommand)
+        self.e2.bind("<Return>", lambda: SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation", initial_value=self.opname.get()))
         self.e4.bind("<Return>", self.newsoftware)
         self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
         self.e3 = Text(master, height=2, width=40, font=('Times', '14'), relief=RAISED, borderwidth=2)
@@ -649,8 +649,8 @@ class DescriptionCaptureDialog(Toplevel):
             if self.description.operationName is not None and len(self.description.operationName) > 0:
                 selectCat = getCategory(self.scModel.getGroupOperationLoader(),self.description)
                 self.e1.set_completion_list(catlist, initialValue=selectCat)
-                oplist = cats[selectCat] if selectCat in cats else []
-                self.e2.set_completion_list(oplist, initialValue=self.description.operationName)
+                self.oplist = cats[selectCat] if selectCat in cats else []
+                # self.e2.set_completion_list(oplist, initialValue=self.description.operationName)
             if (self.description.additionalInfo is not None):
                 self.e3.delete(1.0, END)
                 self.e3.insert(1.0, self.description.additionalInfo)
@@ -688,7 +688,7 @@ class DescriptionCaptureDialog(Toplevel):
             cv,error = checkValue(k,info['type'],v)
             if v is not None and len(str(v)) > 0 and cv is None:
                 ok = False
-        ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
+        ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.opname.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
         return ok
 
     def buttonbox(self):
@@ -718,7 +718,7 @@ class DescriptionCaptureDialog(Toplevel):
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def help(self):
-        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get())
         if op is not None:
             tkMessageBox.showinfo(op.name, op.description if op.description is not None and len(
                 op.description) > 0 else 'No description')
@@ -733,9 +733,9 @@ class DescriptionCaptureDialog(Toplevel):
 
     def apply(self):
         self.cancelled = False
-        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True),
+        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get(),fake=True),
                                           filetype = self.sourcefiletype)
-        self.description.setOperationName(self.e2.get())
+        self.description.setOperationName(self.opname.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
         self.description.semanticGroups =  list(self.listbox.get(0,END))
@@ -2142,69 +2142,8 @@ class SelectDialog(tkSimpleDialog.Dialog):
         if self.information:
             from maskgen.ui.help_tools import HelpFrame
 
-            fr = HelpFrame(master, True, False, self.var1)
+            fr = HelpFrame(master, self.information, self.var1)
             fr.grid(row=2, column=0, columnspan=3)
-
-        '''
-            self.info_text = Label(master)
-            self.info_text.grid(row=2, column=0, columnspan=3)
-
-            self.info_image0 = Button(master)
-            self.info_image1 = Button(master)
-            self.info_image2 = Button(master)
-
-            self.var1.trace("w", lambda *args: self.update_choice(master))
-
-            self.update_choice(master)
-
-    def update_choice(self, master, *args):
-        from PIL import Image
-        with open(self.information) as f:
-            import json
-            self.data = json.load(f)
-
-        self.selection = self.var1.get()
-
-        imglist = self.data[self.selection]['images']
-
-        if len(imglist) >= 1:
-            path = getFileName(os.path.join("help", imglist[0]))
-            with Image.open(path, "r") as i:
-                i = i.resize((480, 360), Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
-            self.info_image0.configure(image=tkimg, command=lambda path=path: openFile(path))
-            self.info_image0.image = tkimg
-            self.info_image0.grid(row=3, column=0)
-        else:
-            self.info_image0.grid_forget()
-            self.info_image1.grid_forget()
-            self.info_image2.grid_forget()
-
-        if len(imglist) >= 2:
-            path = getFileName(os.path.join("help", imglist[1]))
-            with Image.open(path, "r") as i:
-                i = i.resize((480, 360), Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
-            self.info_image1.configure(image=tkimg, command=lambda path=path: openFile(path))
-            self.info_image1.image = tkimg
-            self.info_image1.grid(row=3, column=1)
-        else:
-            self.info_image1.grid_forget()
-            self.info_image2.grid_forget()
-
-        if len(imglist) >= 3:
-            path = getFileName(os.path.join("help", imglist[2]))
-            with Image.open(path, "r") as i:
-                i = i.resize((480, 360), Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
-            self.info_image2.configure(image=tkimg, command=lambda path=path: openFile(path))
-            self.info_image2.image = tkimg
-            self.info_image2.grid(row=3, column=2)
-        else:
-            self.info_image2.grid_forget()
-
-        self.info_text['text'] = self.data[self.selection]["text_description"]
-        '''
 
     def cancel(self):
         if self.cancelled:
@@ -2214,6 +2153,9 @@ class SelectDialog(tkSimpleDialog.Dialog):
     def apply(self):
         self.cancelled = False
         self.choice = self.var1.get()
+        if self.information == "operation":
+            self.parent.opname.set(self.var1.get())
+            self.parent.newcommand(None)
 
 
 class EntryDialog(tkSimpleDialog.Dialog):

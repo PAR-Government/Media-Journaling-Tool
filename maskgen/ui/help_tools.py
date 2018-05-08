@@ -19,7 +19,7 @@ class HelpFrame(Frame):
         self.setup_window()
 
     def setup_window(self):
-        self.info_text = Label(self)
+        self.info_text = Label(self, wraplength=750)
         self.info_text.grid(row=self.r, column=0)
         self.r += 1
 
@@ -94,7 +94,7 @@ class HelpFrame(Frame):
             self.img_nb.add(self.img2f)
 
         new_desc = self.loader.get_help_description(self.textvar.get(), self.itemtype)
-        self.info_text['text'] = new_desc
+        self.info_text['text'] = new_desc if new_desc else "No help description is available."
 
         self.img_nb.select(0)
 
