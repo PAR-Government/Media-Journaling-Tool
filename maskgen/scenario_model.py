@@ -2460,6 +2460,8 @@ class ImageProjectModel:
         os.remove(target)
         if status:
             pairs.append((self.start, self.end))
+            if (self.notify is not None and sendNotifications):
+                self.notify((self.start,  self.end), 'connect')
             for donor in donors:
                 _end = self.end
                 _start = self.start

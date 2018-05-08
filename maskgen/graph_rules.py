@@ -619,6 +619,10 @@ def sampledInputMask(op,graph, frm, to):
     return None
 
 
+def addToComposite(graph, start, end):
+    edge = graph.get_edge(start, end)
+    edge['recordMaskInComposite'] = 'yes'
+
 def check_local(op, graph, frm, to):
     """
          :param op:
@@ -635,7 +639,7 @@ def check_local(op, graph, frm, to):
     included_in_composite = 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes'
     is_global = 'global' in edge and edge['global'] == 'yes'
     if not is_global and not included_in_composite:
-        return (Severity.ERROR,'Operation link appears affect local area in the image and should be included in the composite mask')
+        return (Severity.ERROR,'Operation link appears affect local area in the image and should be included in the composite mask',addToComposite)
     return None
 
 

@@ -409,14 +409,14 @@ class MakeGenUI(Frame):
 
     def createJPEGorTIFF(self):
         msgs, pairs = CopyCompressionAndExifGroupOperation(self.scModel).performOp(promptFunc=self._promptRotate)
-        if msgs is not None:
+        if msgs is not None and len(msgs) > 0:
             ValidationListDialog(self,msgs, 'Compression Errors')
             if not pairs:
                 return
         if len(pairs) == 0:
             tkMessageBox.showwarning("Warning", "Leaf image nodes with base JPEG or TIFF images do not exist in this project")
-        #for pair in pairs:
-        #    self.canvas.add(pair[0], pair[1])
+        for pair in pairs:
+            self.canvas.add(pair[0], pair[1])
         self.drawState()
 
 
@@ -1184,6 +1184,7 @@ class MakeGenUI(Frame):
         mframe.grid(row=3, column=0, rowspan=1, columnspan=3, sticky=N + S + E + W)
         self.progress_bar = ProgressBar(self.master)
         self.progress_bar.grid(row=4, column=0, columnspan=3, sticky=S + E + W)
+        self.progress_bar.grid_propagate(False)
 
         if (self.scModel.start is not None):
             self.setSelectState('normal')
