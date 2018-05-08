@@ -660,6 +660,13 @@
       "information": "Destroying a building to look like it was attacked or collapsed"	
 	},
     {
+	  "description": "Drone Video Tests",
+      "name": "Drone Video Tests",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Processing to make a synthetic video journal"
+	},
+    {
 	  "description": "Manhattan World",
       "name": "Manhattan World",
       "type": "yesno",

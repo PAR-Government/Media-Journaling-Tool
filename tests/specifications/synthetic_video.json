@@ -5,7 +5,7 @@
     "name": "synthetic_video",
     "organization": "PAR",
     "projectDescription" : "Runs some basic operation to turn a Synthetic Video into an extendable journal",
-    "technicalSummary" : "Automated",
+    "technicalSummary" : "Automated: Synthetic video media",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
@@ -19,7 +19,8 @@
       "id": "0",
       "arguments": {
         "cgi":"yes"
-      }
+      },
+      "semanticGroups":["Drone Video Tests"]
     },
 	{
 	  "op_type": "PreProcessedMediaOperation",
