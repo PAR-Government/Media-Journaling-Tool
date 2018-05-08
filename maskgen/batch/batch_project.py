@@ -1264,7 +1264,9 @@ class BatchProject:
                     if 'description'  in node:
                         name = node['description']
                 elif op_type in ['PreProcessedMediaOperation']:
-                    name = node['plugin']
+                    name = node['op']
+                    if 'description'  in node:
+                        name = node['description']
             color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
             pydot_nodes[node_id] = pydot.Node(node_id, label=name,
                                               shape='plain',

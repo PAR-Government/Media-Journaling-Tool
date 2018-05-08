@@ -83,23 +83,22 @@ export PATH=/usr/local/bin:$PATH
 pip install nose
 pip install pyparsing
 pip install pep8
+brew upgrade
 brew install graphviz
+brew install imagemagick
 brew install libraw
 brew install homebrew/science/hdf5
 brew tap homebrew/science
 brew install matplotlib
 brew install scipy
-cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core
-git -C "$(brew --repo homebrew/core)" fetch --unshallow
 brew unlink ffmpeg
-git checkout e1b6557c45bdbf85060f35c3ed8e34e3d1b0248 Formula/ffmpeg.rb 
 brew install ffmpeg --with-fdk-aac --with-sdl2 --with-freetype --with-libass --with-libvorbis --with-libvpx --with-opus --with-x265 --with-xvid --with-openh264
 brew install opencv --with-ffmpeg --with-gstreamer --with-tbb --with-vtk --with-ximea --without-test --with-contrib
 brew install hdf5
 
-wget http://www.sno.phy.queensu.ca/~phil/exiftool/ExifTool-10.50.dmg
-hdiutil mount ExifTool-10.50.dmg
-sudo installer -pkg /Volumes/ExifTool-10.50/ExifTool-10.50.pkg -target /
+wget http://www.sno.phy.queensu.ca/~phil/exiftool/ExifTool-10.95.dmg
+hdiutil mount ExifTool-10.95.dmg
+sudo installer -pkg /Volumes/ExifTool-10.95/ExifTool-10.95.pkg -target /
 
 pip install tifffile
 pip install graphviz
@@ -112,6 +111,7 @@ pip install boto3
 pip install rawpy
 pip install scikit-image
 pip install awscli --force-reinstall --upgrade
+pip install shapely
 
 #git clone https://github.com/rwgdrummer/maskgen.git
 pip install setuptools

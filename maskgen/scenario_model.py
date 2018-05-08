@@ -1205,7 +1205,7 @@ class ImageProjectModel:
                 return "Cannot connect to the same node twice", False
         errors,status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
-        return 'Validation errors occcurred' if len(errors) > 0 else '',status
+        return ('Validation errors occcurred' if (errors is not None and len(errors) > 0) else None), status
 
     def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized,
                                      saveTargets=True,

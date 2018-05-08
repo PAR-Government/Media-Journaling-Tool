@@ -312,7 +312,7 @@ class MaskGraphCanvas(tk.Canvas):
                     if (
                                 d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                         msgs, ok = self.scModel.connect(nodeId, mod=d.description)
-                        if msgs is not None:
+                        if msgs is not None and not ok:
                             ValidationListDialog(self, msgs, 'Connect Errors')
                     else:
                         ok = False
@@ -324,7 +324,7 @@ class MaskGraphCanvas(tk.Canvas):
 
 
                     msg, ok = self.scModel.connect(nodeId, mod=mod)
-                    if msg is not None:
+                    if not ok and msg is not None:
                         tkMessageBox.showwarning("Connect Error", msg)
                 else:
                     tkMessageBox.showwarning("Error", "Destination node already has two predecessors")

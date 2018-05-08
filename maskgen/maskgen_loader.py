@@ -81,7 +81,7 @@ class MaskGenLoader:
     def getTempDir(self):
         import tempfile
         dir = self.get_key('temp.dir',None)
-        if os.path.isdir(dir) and os.access(dir, os.W_OK):
+        if dir is not None and os.path.isdir(dir) and os.access(dir, os.W_OK):
             return dir
         return tempfile.gettempdir()
 
