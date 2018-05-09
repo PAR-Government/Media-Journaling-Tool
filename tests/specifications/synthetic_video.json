@@ -3,7 +3,7 @@
   "graph": {
     "username": "unicorn",
     "name": "synthetic_video",
-    "organization": "PAR",
+    "organization": "Wonderland",
     "projectDescription" : "Runs some basic operation to turn a Synthetic Video into an extendable journal",
     "technicalSummary" : "Automated: Synthetic video media",
     "semanticrestaging" : "no",
@@ -16,7 +16,7 @@
       "op_type": "BaseSelection",
       "image_directory": "{image_dir}",
       "picklist": "videoset",
-      "id": "0",
+      "id": "Base",
       "arguments": {
         "cgi":"yes"
       },
@@ -24,7 +24,7 @@
     },
 	{
 	  "op_type": "PreProcessedMediaOperation",
-	  "id": "1",
+	  "id": "Synthesize",
 	  "arguments":{
 		"urls":  "https://www.nonesence.com",
         "Recording Software": {
@@ -49,9 +49,10 @@
 	  "directory": "{AllDir}",
 	  "op": "SynthesizeVideo",
       "plugin": "None",
-	  "category": "PostProcessing",
+	  "category": "CGI",
 	  "software": "SyntheticVidSpec",
 	  "software version": "1.0",
+      "copy": true,
 	  "argument names": ["Rendering Software","Recording Software","Video Location","KML File","urls","Time Settings","Time of Sun"]
 	},
     {
@@ -64,7 +65,7 @@
 	{
 	  "op_type": "PluginOperation",
       "plugin": "FrameDuplicateDrop",
-      "id": "2",
+      "id": "FrameDropped",
       "arguments": {
 	    "Threshold": {
           "type" : "value",
@@ -92,7 +93,7 @@
     {
       "op_type": "PluginOperation",
       "plugin": "PRNUFromDonorVid",
-      "id":"4",
+      "id":"PRNUAdded",
       "arguments": {
         "donor": {
           "type" : "donor",
@@ -111,7 +112,7 @@
 	{
       "op_type": "PluginOperation",
       "plugin": "CompressAsVideo",
-      "id": "6",
+      "id": "PRNUOutput",
       "arguments": {
         "donor": {
           "type" : "donor",
@@ -122,42 +123,42 @@
   ],
   "links":[
 	{
-	  "source":"0",
-	  "target":"1"
+	  "source":"Base",
+	  "target":"Synthesize"
 	},
     {
-      "source": "1",
+      "source": "Synthesize",
       "target": "SynthCopy"
     },
 	{
-	  "source":"1",
-	  "target":"2"
+	  "source":"Synthesize",
+	  "target":"FrameDropped"
 	},
     {
-      "source":"0",
+      "source":"Base",
       "target":"SelectDJI",
       "connect": false
     },
     {
       "source":"SelectDJI",
-      "target":"4",
+      "target":"PRNUAdded",
       "connect": false
     },
     {
       "source":"SelectDJI",
-      "target":"6",
+      "target":"PRNUOutput",
       "connect": false
     },
     {
-      "source":"2",
-      "target":"4"
+      "source":"FrameDropped",
+      "target":"PRNUAdded"
     },
     {
-      "source": "4",
-      "target": "6"
+      "source": "PRNUAdded",
+      "target": "PRNUOutput"
     },
     {
-      "source": "2",
+      "source": "FrameDropped",
       "target": "PRNULess"
     }
   ]
