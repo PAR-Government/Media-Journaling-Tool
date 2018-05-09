@@ -627,7 +627,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
         self.e1.bind("<<ComboboxSelected>>", self.newcategory)
-        self.e2.bind("<Return>", lambda: SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation", initial_value=self.opname.get()))
+        self.e2.bind("<Return>", self.select_op)
         self.e4.bind("<Return>", self.newsoftware)
         self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
         self.e3 = Text(master, height=2, width=40, font=('Times', '14'), relief=RAISED, borderwidth=2)

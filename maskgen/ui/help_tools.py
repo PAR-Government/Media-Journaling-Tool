@@ -12,7 +12,7 @@ class HelpFrame(Frame):
         self.master = master
         self.r = 0
         self.itemtype = itemtype
-        self.slide_size = (720, 480)
+        self.slide_size = (960, 540)
         self.loader = getHelpLoader()
         self.textvar = textvar
         Frame.__init__(self, master)
