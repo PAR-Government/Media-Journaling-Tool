@@ -495,15 +495,11 @@ def getMeta(file, with_frames=False, show_streams=False):
         finally:
             os.close(stdout_fd)
 
-        stdout_fd = os.fdopen(os.open(stdout_path, os.O_RDONLY), 'r')
         try:
-            stder_fd = os.fdopen(os.open(stder_path, os.O_RDONLY), 'r')
-            try:
-                return func(stdout_fd,stder_fd)
-            finally:
-                stder_fd.close()
+            with open(stdout_path) as stdout_fd:
+                with open(stder_path) as stder_fd:
+                    return func(stdout_fd,stder_fd)
         finally:
-            stdout_fd.close()
             persistantDelete(stder_path)
             persistantDelete(stdout_path)
 

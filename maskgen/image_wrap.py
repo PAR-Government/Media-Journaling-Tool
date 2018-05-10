@@ -130,6 +130,17 @@ def openRaw(filename, isMask=False, args=None):
         return None
 
 
+def _openCV2(filename):
+    img = cv2.imread(filename, flags=cv2.IMREAD_UNCHANGED)
+    if len(img.shape) > 2:
+        if img.shape[2] > 3:
+            result = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+        else:
+            result = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    else:
+        result = img
+    return result
+
 def openTiff(filename, isMask=False, args=None):
     raw = openRaw(filename, isMask=isMask, args=args)
     info = {}
@@ -144,7 +155,7 @@ def openTiff(filename, isMask=False, args=None):
         except:
             pass
         try:
-            nonRaw = ImageWrapper(cv2.cvtColor(cv2.imread(filename, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),
+            nonRaw = ImageWrapper(_openCV2(filename),
                                   info=info,
                                   to_mask=isMask)
             if raw is not None and raw.size[0] > nonRaw.size[0] and raw.size[1] > nonRaw.size[1]:
@@ -222,9 +233,9 @@ def defaultOpen(filename, isMask=False, args=None):
 
 def readPNG(filename, isMask=False):
     import itertools
-    with open(filename, 'rb') as f:
-        exifdata = exif.getexif(filename)
-        if 'Bit Depth' in exifdata and exifdata['Bit Depth'] == '16':
+    exifdata = exif.getexif(filename)
+    if 'Bit Depth' in exifdata and exifdata['Bit Depth'] == '16':
+        with open(filename, 'rb') as f:
             pngdata = png.Reader(file=f).asDirect()
             image_2d = np.vstack(itertools.imap(np.uint16, pngdata[2]))
             shape = image_2d.shape[1] / pngdata[0]
@@ -234,11 +245,9 @@ def readPNG(filename, isMask=False):
                 result = ImageWrapper(image_3d, to_mask=isMask)
             else:
                 result = ImageWrapper(image_2d)
-        else:
-            im = Image.open(f)
-            im.load()
-            result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
-    return result
+    else:
+        result = _openCV2(filename)
+    return ImageWrapper(result)
 
 
 def proxyOpen(filename, isMask=False):

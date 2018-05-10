@@ -749,9 +749,6 @@ class ItemDescriptionCaptureDialog(Toplevel):
     """
     Edit properties of a graph item (node, edge, etc.)
     """
-    cancelled = True
-    argvalues = {}
-    argBox = None
 
     def __init__(self, parent,  dictionary, properties, name):
         """
@@ -763,6 +760,8 @@ class ItemDescriptionCaptureDialog(Toplevel):
        :param name: title of window
         """
         self.parent = parent
+        self.cancelled = True
+        self.argvalues = {}
         self.properties = properties
         for prop_name in self.properties:
             if prop_name in dictionary:
@@ -811,9 +810,7 @@ class ItemDescriptionCaptureDialog(Toplevel):
         self.initial_focus = None
         Toplevel.destroy(self)
 
-    def buildArgBox(self, opname):
-        if self.argBox is not None:
-            self.argBox.destroy()
+    def buildArgBox(self, master):
 
         disp_properties = [ProjectProperty(name=prop_name,
                                       description=prop_name,
@@ -822,24 +819,17 @@ class ItemDescriptionCaptureDialog(Toplevel):
                                       values=prop_def['values'] if 'values' in prop_def else [],
                                       value=self.argvalues[prop_name] if prop_name in self.argvalues else None) \
                       for prop_name, prop_def in self.properties.iteritems()]
-        self.argBox= PropertyFrame(self.argBoxMaster, disp_properties,
+        argBox= PropertyFrame(master, disp_properties,
                                 propertyFunction=NodePropertyFunction(self.argvalues),
                                 changeParameterCB=self.changeParameter,
                                 dir='.')
-        self.argBox.pack(padx=5, pady=5, fill=BOTH, expand=True)
-        self.argBox.columnconfigure(0,weight=1)
+        argBox.pack(padx=5, pady=5, fill=BOTH, expand=True)
 
 
     def body(self, master):
         self.okButton = None
-        row  = 0
-        Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2,sticky=E)
-        row += 1
-        self.argBoxMaster = master
-        self.argBox = self.buildArgBox(None)
-        row += 1
-        return self.argBox  # initial focus
-
+        Label(master, text='Parameters:', anchor=W, justify=LEFT).pack()
+        self.buildArgBox(master)
 
     def buttonbox(self):
         box = Frame(self)

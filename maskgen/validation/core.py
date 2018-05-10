@@ -681,7 +681,7 @@ def run_all_edge_rules(op, rules, graph, frm, to):
             if type(res) == str:
                 res = ValidationMessage(Severity.ERROR, frm, to, res,rule.__name__,None)
             else:
-                res = ValidationMessage(res[0], frm, to, res[1],rule.__name__,None)
+                res = ValidationMessage(res[0], frm, to, res[1], rule.__name__, None if len(res) == 2 else res[2])
             results.append(res)
     return results
 

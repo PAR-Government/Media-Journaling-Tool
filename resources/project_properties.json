@@ -454,7 +454,7 @@
        "description": "AntiForensic CFACorrection",
        "name": "antiforensiccfacorrection",
        "node" : true,
-       "operations": ["CFACorrection"],
+       "operations": ["CFACorrection", "AddCameraModel"],
        "type": "yesno",
        "information": "AntiForensic CFACorrection"
     },
@@ -729,6 +729,17 @@
        "readonly": true,
        "information": "The maximum number of semantic units for all images produced by the project.",
       "rule" : "manipulationCategoryRule"
+    },
+    {
+      "description": "GAN Component",
+      "name": "gan_component",
+      "type": "yesno",
+      "readonly": true,
+      "node":true,
+      "information": "Has a GAN provided the manipulation.",
+      "operations": ["SynthesizeGAN","AddCameraModel"],
+      "rule": "ganComponentRule",
+      "includedonors": true
     }
   ]
 }

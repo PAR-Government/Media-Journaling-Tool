@@ -463,6 +463,7 @@ class ImageImageLinkTool(LinkTool):
                     edge_op = scModel.gopLoader.getOperationWithGroups(pred_edge['op'])
                     expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
                     if expect_donor_mask:
+                        expect_donor_mask = getValue(scModel.G.get_edge(pred, destination), 'arguments.homography','None') not in ['None', 'Map']
                         mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')
                         if mask is None:
                             mask = scModel.G.get_edge_image(pred, destination, 'maskname')
@@ -494,6 +495,7 @@ class ImageImageLinkTool(LinkTool):
                 mask = startIm.apply_alpha_to_mask(mask)
                 analysis = {}
         else:
+            logging.getLogger('maskgen').debug('Create Mask')
             mask, analysis, error = createMask(startIm,
                                         destIm,
                                         invert=invert,
@@ -507,9 +509,11 @@ class ImageImageLinkTool(LinkTool):
                     start,
                     destination
                 ))
+            logging.getLogger('maskgen').debug('EXIF Compare')
             exifDiff = exif.compareexif(startFileName, destFileName)
             analysis = analysis if analysis is not None else {}
             analysis['exifdiff'] = exifDiff
+            logging.getLogger('maskgen').debug('Analysis')
             self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='image.image',
                               arguments=consolidate(arguments, analysis_params),
                               start=start, end=destination, scModel=scModel)
@@ -957,6 +961,16 @@ class ImageProjectModel:
     def getGroupOperationLoader(self):
         return self.gopLoader
 
+    def isParentSelect(self):
+        if self.getImage(self.start).has_alpha():
+            return True
+        predecessors = self.G.predecessors(self.start)
+        for pred in predecessors:
+            edge = self.G.get_edge(pred, self.start)
+            if edge['op'].startswith('Select'):
+                return True
+        return False
+
     def addImagesFromDir(self, dir, baseImageFileName=None, xpos=100, ypos=30, suffixes=list(),
                          sortalg=lambda s: s.lower(),preferences={}):
         """
@@ -1107,13 +1121,13 @@ class ImageProjectModel:
                          len(self.G.successors(node)) == 0 and len(self.G.predecessors(node)) > 0]
         return [(node, self._findBaseNodes(node)) for node in terminalNodes]
 
-    def getEdges(self, endNode):
+    def getEdges(self, endNode,excludeDonor=True):
         """
 
         :param endNode: (identifier)
         :return: tuple (start, end, edge map) for all edges ending in endNode
         """
-        return self._findEdgesWithCycleDetection(endNode, excludeDonor=True, visitSet=list())
+        return self._findEdgesWithCycleDetection(endNode, excludeDonor=excludeDonor, visitSet=list())
 
     def getNodeNames(self):
         return self.G.get_nodes()
@@ -1189,8 +1203,9 @@ class ImageProjectModel:
         for suc in self.G.successors(self.start):
             if suc == destination:
                 return "Cannot connect to the same node twice", False
-        return self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
+        errors,status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                       skipDonorAnalysis=skipDonorAnalysis)
+        return ('Validation errors occcurred' if (errors is not None and len(errors) > 0) else None), status
 
     def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized,
                                      saveTargets=True,
@@ -1690,6 +1705,7 @@ class ImageProjectModel:
 
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start, destination), 'connect')
+            logging.getLogger('maskgen').debug('Validation')
             edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
             edgeErrors = edgeErrors if len(edgeErrors) > 0 else None
             self.labelNodes(self.start)
@@ -2444,6 +2460,8 @@ class ImageProjectModel:
         os.remove(target)
         if status:
             pairs.append((self.start, self.end))
+            if (self.notify is not None and sendNotifications):
+                self.notify((self.start,  self.end), 'connect')
             for donor in donors:
                 _end = self.end
                 _start = self.start

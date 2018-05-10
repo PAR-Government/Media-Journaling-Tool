@@ -2768,7 +2768,8 @@ class CompositeDelegate:
                 if startMask is None and getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     startMask = None
-                if startMask is not None and edgeMask.shape != startMask.shape and \
+                if startMask is not None and type(edgeMask) == type(startMask) and \
+                                edgeMask.shape != startMask.shape and \
                         getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     startMask = None

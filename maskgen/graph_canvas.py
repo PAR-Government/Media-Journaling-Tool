@@ -13,6 +13,7 @@ import platform
 from math import atan2, pi, cos, sin
 from description_dialog import DescriptionCaptureDialog, createCompareDialog,ValidationListDialog
 import collections
+from scenario_model import Modification
 
 """
 Class and support for the graph view canvas of the JT
@@ -311,13 +312,19 @@ class MaskGraphCanvas(tk.Canvas):
                     if (
                                 d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
                         msgs, ok = self.scModel.connect(nodeId, mod=d.description)
-                        if msgs is not None:
+                        if msgs is not None and not ok:
                             ValidationListDialog(self, msgs, 'Connect Errors')
                     else:
                         ok = False
                 elif len(preds) == 1:
-                    msg, ok = self.scModel.connect(nodeId)
-                    if msg is not None:
+                    mod = Modification('Donor', '', category='Donor')
+                    if self.scModel.isParentSelect() and tkMessageBox.askquestion('Donor Search Option',
+                                                'Region is selected, bypass search for donor mask') == 'yes':
+                        mod.arguments = {'homography': 'None'}
+
+
+                    msg, ok = self.scModel.connect(nodeId, mod=mod)
+                    if not ok and msg is not None:
                         tkMessageBox.showwarning("Connect Error", msg)
                 else:
                     tkMessageBox.showwarning("Error", "Destination node already has two predecessors")
