@@ -50,7 +50,10 @@ def updateJournal(scModel):
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
          ('0.5.0227.6d9889731b', [_fixPNGS,_emptyMask]),
-         ('0.5.0227.bf007ef4cd', [_fixTool ]),
+         ("0.5.0227.db02ad8372", []),
+         # it appears that bf007ef4cd went with 0227 and not 0401
+         ('0.5.0227.bf007ef4cd', []),
+         ('0.5.0401.bf007ef4cd', [_fixTool]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor])])
     versions= list(fixes.keys())
     # find the maximum match
@@ -591,7 +594,8 @@ def _fixResolution(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if 'arguments' in edge and 'scale'  in edge['arguments']:
-            edge['arguments']['resolution'] = edge['arguments']['scale'].replace(':','x')
+            if type( edge['arguments']['scale']) != float:
+                edge['arguments']['resolution'] = edge['arguments']['scale'].replace(':','x')
 
 def _fixResize(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
