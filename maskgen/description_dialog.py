@@ -28,10 +28,10 @@ from functools import partial
 from group_filter import GroupOperationsLoader
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
-from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
 from maskgen.validation.core import ValidationMessage,Severity,sortMessages
+from maskgen.ui.semantic_frame import *
 
 
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
@@ -540,30 +540,6 @@ class DescriptionCaptureDialog(Toplevel):
         else:
             self.oplist = []
 
-    def group_remove(self):
-        self.listbox.delete(ANCHOR)
-
-    def group_add(self):
-        d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
-                         getSemanticGroups(), information="semanticgroup")
-        res = d.choice
-        if res is not None:
-            self.listbox.insert(END,res)
-
-    def listBoxHandler(self,evt):
-        # Note here that Tkinter passes an event object to onselect()
-        w = evt.widget
-        x = w.winfo_rootx()
-        y = w.winfo_rooty()
-        if w.curselection() is not None and len(w.curselection()) > 0:
-            index = int(w.curselection()[0])
-            self.group_to_remove = index
-        try:
-            self.popup.tk_popup(x, y, 0)
-        finally:
-            # make sure to release the grab (Tk 8.0a1 only)
-            self.popup.grab_release()
-
     def body(self, master):
         top = Frame(master)
         bottom = Frame(master)
@@ -595,21 +571,8 @@ class DescriptionCaptureDialog(Toplevel):
         Label(master, text="Software Version:").grid(row=5, sticky=W)
         #Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0)
 
-        self.popup = Menu(master, tearoff=0)
-        self.popup.add_command(label="Add", command=self.group_add)
-        self.popup.add_command(label="Remove",command=self.group_remove)  #
-
-        self.collapseFrame = Accordion(master) #,height=100,width=100)
-        self.groupFrame = Chord(self.collapseFrame,title='Semantic Groups' )
-        self.gscrollbar = Scrollbar(self.groupFrame, orient=VERTICAL)
-        self.listbox = Listbox(self.groupFrame, yscrollcommand=self.gscrollbar.set,height=3)
-        self.listbox.config(yscrollcommand=self.gscrollbar.set)
-        self.listbox.bind("<<ListboxSelect>>", self.listBoxHandler)
-        self.listbox.grid(row=0, column=0,columnspan=3,sticky=E+W)
-        self.gscrollbar.config(command=self.listbox.yview)
-        self.gscrollbar.grid(row=0, column=1, stick=N + S)
-        self.collapseFrame.append_chords([self.groupFrame])
-        self.collapseFrame.grid(row=6,column=0,columnspan=3,sticky=W)
+        self.semanticFrame = SemanticFrame(master)
+        self.semanticFrame.grid(row=6,column=0,columnspan=3,sticky=W)
         row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
@@ -642,7 +605,7 @@ class DescriptionCaptureDialog(Toplevel):
             if self.description.semanticGroups is not None:
                 pos = 1
                 for grp in self.description.semanticGroups:
-                    self.listbox.insert(pos,grp)
+                    self.semanticFrame.insertListbox(pos,grp)
                     pos += 1
             if (self.description.inputMaskName is not None):
                 self.inputMaskName = self.description.inputMaskName
@@ -745,7 +708,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.description.setOperationName(self.opname.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
-        self.description.semanticGroups =  list(self.listbox.get(0,END))
+        self.description.semanticGroups =  list(self.semanticFrame.getListContents(0, END))
         self.description.setArguments(
             {k: v for (k, v) in self.argvalues.iteritems() if v is not None  and len(str(v)) > 0 and (k in [x[0] for x in self.arginfo])})
         self.description.setSoftware(Software(self.e4.get(), self.e5.get()))

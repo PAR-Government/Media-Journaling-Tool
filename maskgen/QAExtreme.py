@@ -1,8 +1,8 @@
 import random
-
 import matplotlib
+from maskgen.ui.semantic_frame import SemanticFrame
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from maskgen.maskgen_loader import MaskGenLoader
 from maskgen.description_dialog import SelectDialog
 
 matplotlib.use("TkAgg")
@@ -90,7 +90,7 @@ class QAProjectDialog(Toplevel):
         self.destroy()
 
     def help(self,event):
-        URL = "https://medifor.rankone.io/journal/"
+        URL = MaskGenLoader.get_key("apiurl")[:-3] + "journal"
         webbrowser.open_new(URL)
 
     def createWidgets(self):
@@ -419,29 +419,6 @@ class QAProjectDialog(Toplevel):
 
 
         #print('done')
-    def group_remove(self):
-        self.pathboxes[self.cur].delete(ANCHOR)
-
-    def group_add(self):
-        d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
-                         getSemanticGroups())
-        res = d.choice
-        if res is not None:
-            self.pathboxes[self.cur].insert(END,res)
-
-    def listBoxHandler(self,evt):
-        # Note here that Tkinter passes an event object to onselect()
-        w = evt.widget
-        x = w.winfo_rootx()
-        y = w.winfo_rooty()
-        if w.curselection() is not None and len(w.curselection()) > 0:
-            index = int(w.curselection()[0])
-            self.group_to_remove = index
-        try:
-            self.popup.tk_popup(x, y, 0)
-        finally:
-            # make sure to release the grab (Tk 8.0a1 only)
-            self.popup.grab_release()
 
     def createImagePage(self, t, p):
 
@@ -480,22 +457,9 @@ class QAProjectDialog(Toplevel):
         row += 1
         self.operationVar = StringVar()
         self.operationVar.set("Operation [ Semantic Groups ]: ")
-        self.popup = Menu(p, tearoff=0)
-        self.popup.add_command(label="Add", command=self.group_add)
-        self.popup.add_command(label="Remove", command=self.group_remove)
         self.operationLabel = Label(p, textvariable=self.operationVar, justify=LEFT)
-        self.collapseFrame = Accordion(p)# ,height=100,width=100)
-        self.groupFrame = Chord(self.collapseFrame, title='Semantic Groups')
-        self.gscrollbar = Scrollbar(self.groupFrame, orient=VERTICAL)
-        self.listbox = Listbox(self.groupFrame, yscrollcommand=self.gscrollbar.set, height=3,selectmode=EXTENDED,exportselection=0)
-        self.listbox.config(yscrollcommand=self.gscrollbar.set)
-        self.listbox.bind("<<ListboxSelect>>", self.listBoxHandler)
-        self.listbox.grid(row=0, column=0, columnspan=3, sticky=E + W)
-        self.gscrollbar.config(command=self.listbox.yview)
-        self.gscrollbar.grid(row=0, column=1, stick=N + S)
-        self.collapseFrame.append_chords([self.groupFrame])
-        self.collapseFrame.grid(row=row+1, column=0, columnspan=2
-                                , sticky=N+W,rowspan=1,pady=10)
+        self.semanticFrame = SemanticFrame(p)
+        self.semanticFrame.grid(row=row+1, column=0, columnspan=2, sticky=N+W, rowspan=1, pady=10)
         row += 2
         self.cImgFrame = Frame(p)
         # self.load_overlay(initialize= True)
@@ -520,7 +484,7 @@ class QAProjectDialog(Toplevel):
         # self.scrollh.grid(row=row + 5, column=col,sticky= EW)
         self.pathList = Listbox(p, width=30, yscrollcommand=scroll.set,selectmode=EXTENDED,exportselection=0)
         self.pathList.grid(row=row, column=col-1, rowspan=5, columnspan=3, padx=(30,10), pady=(20,20))
-        self.pathboxes[p] = self.listbox
+        self.pathboxes[p] = self.semanticFrame.getListbox()
         scroll.config(command=self.pathList.yview)
         self.transitionVar = StringVar()
         # self.pathText = Text(self, width=100, height=100,yscrollcommand=self.scroll.set)
@@ -530,9 +494,9 @@ class QAProjectDialog(Toplevel):
 
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
         self.operationVar.set(self.operationVar.get() + self._compose_label(edge))
-        self.edges[p] = [edge,self.listbox]
+        self.edges[p] = [edge, self.semanticFrame.getListbox()]
         for sg in edge['semanticGroups'] if 'semanticGroups' in edge else []:
-            self.listbox.insert(ANCHOR, sg)
+            self.semanticFrame.insertListbox(ANCHOR, sg)
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
         #print(self.type)
         #print(operation)
@@ -715,7 +679,7 @@ class QAProjectDialog(Toplevel):
         #print(len(self.pages))
         #print(self.cur)
         if self.cur in self.edges.keys():
-            self.edges[self.cur][0]['semanticGroups'] = self.edges[self.cur][1].get(0,END)
+            self.edges[self.cur][0]['semanticGroups'] = self.edges[self.cur][1].get(0, END)
         finish = True
         if self.cur in self.checkboxvars.keys():
             for i in self.checkboxvars[self.cur]:
