@@ -24,7 +24,7 @@
     },
 	{
 	  "op_type": "PreProcessedMediaOperation",
-	  "id": "Synthesize",
+	  "id": "Synthetic",
 	  "arguments":{
 		"urls":  "https://www.nonesence.com",
         "Recording Software": {
@@ -50,9 +50,9 @@
 	  "op": "SynthesizeVideo",
       "plugin": "None",
 	  "category": "CGI",
+      "copy": true,
 	  "software": "SyntheticVidSpec",
 	  "software version": "1.0",
-      "copy": true,
 	  "argument names": ["Rendering Software","Recording Software","Video Location","KML File","urls","Time Settings","Time of Sun"]
 	},
     {
@@ -109,10 +109,37 @@
         }
       }
     },
+    {
+      "plugin": "CameraModelGan",
+      "id": "AddCameraModelGalaxyS4",
+      "arguments": {
+        "Camera Model": {
+          "type": "value",
+          "value": "Samsung Galaxy S4"
+        },
+        "Camera Make": {
+          "type": "value",
+          "value": "Samsung"
+        },
+        "model": "{gan_models}/Samsung Galaxy S4.npz"
+      },
+      "op_type": "PluginOperation"
+    },
 	{
       "op_type": "PluginOperation",
       "plugin": "CompressAsVideo",
       "id": "PRNUOutput",
+      "arguments": {
+        "donor": {
+          "type" : "donor",
+          "source": "SelectDJI"
+        }
+      }
+	},
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "CFAOutput",
       "arguments": {
         "donor": {
           "type" : "donor",
@@ -124,14 +151,14 @@
   "links":[
 	{
 	  "source":"Base",
-	  "target":"Synthesize"
+	  "target":"Synthetic"
 	},
     {
-      "source": "Synthesize",
+      "source": "Synthetic",
       "target": "SynthCopy"
     },
 	{
-	  "source":"Synthesize",
+	  "source":"Synthetic",
 	  "target":"FrameDropped"
 	},
     {
@@ -160,6 +187,14 @@
     {
       "source": "FrameDropped",
       "target": "PRNULess"
+    },
+    {
+      "source": "PRNUAdded",
+      "target": "AddCameraModelGalaxyS4"
+    },
+     {
+      "source": "AddCameraModelGalaxyS4",
+       "target": "CFAOutput"
     }
   ]
 }

@@ -142,7 +142,7 @@ def get_rotation_filter(difference):
     else:
         return None
 
-def parse_override_command(command):
+def parse_override_command(command, source, target):
     """
     Build the FFmpeg command arguments from the override string
     :param command: string, the override instructions from the plugin window
@@ -150,6 +150,13 @@ def parse_override_command(command):
     """
     command = command.lower()
     args = shlex.split(command, r"'")
+    if not path.exists(args[-1]):
+        args.insert(-1,target)
+    try:
+        inp = args.index('-i')
+    except ValueError:
+        args.insert(0,'-i')
+        args.insert(1,source)
     for term in args:
         if term == ' ' or term == 'ffmpeg':
             args.remove(term)
@@ -314,7 +321,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
 
     # Total override
     if allow_override and override_cmd != '':
-        ffargs = parse_override_command(override_cmd)
+        ffargs = parse_override_command(override_cmd, source, target)
 
     #logging.getLogger('maskgen').info("Running ffmpeg with:" + str(ffargs))
 

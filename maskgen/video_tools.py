@@ -685,7 +685,9 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None, streamId=0,  meta_diff=None, su
                 diff[k] = ('change', v, twoMeta[k])
                 meta_diff[meta_key] = ('change', v, twoMeta[k])
             elif meta_diff is not None:
-                if meta_diff[meta_key][2] != twoMeta[k]:
+                if (meta_diff[meta_key][0] == 'change' and meta_diff[meta_key][2] != twoMeta[k]) or \
+                        (meta_diff[meta_key][0] == 'add' and meta_diff[meta_key][1] != twoMeta[k]) or \
+                        meta_diff[meta_key][0] == 'delete':
                     if not __aggregate(k, v, twoMeta[k], summary):
                         diff[k] = ('change', v, twoMeta[k])
             else:
