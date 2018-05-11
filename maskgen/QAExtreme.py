@@ -1,13 +1,10 @@
-import random
 import matplotlib
 from maskgen.ui.semantic_frame import SemanticFrame
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from maskgen.maskgen_loader import MaskGenLoader
-from maskgen.description_dialog import SelectDialog
 
 matplotlib.use("TkAgg")
 import logging
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 from Tkinter import *
 import matplotlib.patches as mpatches
@@ -15,7 +12,7 @@ import ttk
 import tkMessageBox
 from PIL import ImageTk
 from support import getValue
-from tool_set import imageResize, imageResizeRelative, openImage, fixTransparency, openImage,get_username
+from tool_set import imageResizeRelative, openImage,get_username
 import os
 import numpy as np
 import qa_logic
@@ -23,9 +20,6 @@ import video_tools
 import tool_set
 import random
 import validation
-from software_loader import ProjectProperty, getSemanticGroups
-import sys
-from collapsing_frame import Chord, Accordion
 import webbrowser
 
 

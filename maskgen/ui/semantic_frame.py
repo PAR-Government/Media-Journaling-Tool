@@ -1,5 +1,5 @@
 from maskgen.description_dialog import *
-from maskgen.collapsing_frame import Accordion, Chord
+from maskgen.ui.collapsing_frame import Accordion, Chord
 from maskgen.software_loader import *
 from tkinter import *
 
