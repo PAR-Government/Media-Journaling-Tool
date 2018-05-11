@@ -25,7 +25,6 @@ import random
 import validation
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
-from collapsing_frame import Chord, Accordion
 import webbrowser
 
 
