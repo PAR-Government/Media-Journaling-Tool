@@ -523,6 +523,24 @@ class MetaDataLoader:
             if propertyname == prop.name:
                 return prop
 
+def getProjectProperty(name, prop_type):
+    """
+
+    :param name: name of property
+    :param prop_type: one of 'semanticgroup' or 'node' or 'project'
+    :return: ProjectProperty
+    @type name: str
+    @type prop_type: str
+    @rtype: list of ProjectProperty
+    """
+    for prop in getProjectProperties():
+        if (prop.description == name or prop.name == name) and \
+                ((prop.semanticgroup and prop_type == 'semanticgroup') or
+                 (prop.node and prop_type == 'node') or (prop_type == 'project'
+                 and not (prop.node or prop.semanticgroup))):
+            return prop
+    return None
+
 
 def toSoftware(columns):
     return [x.strip() for x in columns[1:] if len(x) > 0]

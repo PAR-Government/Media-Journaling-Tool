@@ -28,10 +28,10 @@ from functools import partial
 from group_filter import GroupOperationsLoader
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
-from collapsing_frame import  Chord, Accordion
 from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
 from maskgen.validation.core import ValidationMessage,Severity,sortMessages
+from maskgen.ui.semantic_frame import *
 
 
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
@@ -509,7 +509,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.argBox.pack()
 
     def newcommand(self, event):
-        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get())
         self.arginfo = []
         if op is not None:
             for k, v in op.mandatoryparameters.iteritems():
@@ -524,7 +524,7 @@ class DescriptionCaptureDialog(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 self.arginfo.append((k, v))
-        self.buildArgBox(self.e2.get())
+        self.buildArgBox(self.opname.get())
         if self.okButton is not None:
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
@@ -534,35 +534,11 @@ class DescriptionCaptureDialog(Toplevel):
     def newcategory(self, event):
         opByCat = self.organizeOperationsByCategory()
         if self.e1.get() in opByCat:
-            oplist = opByCat[self.e1.get()]
-            self.e2.set_completion_list(oplist)
+            self.oplist = opByCat[self.e1.get()]
+            self.opname.set(self.oplist[0] if self.oplist else "")
             self.newcommand(event)
         else:
-            self.e2.set_completion_list([])
-
-    def group_remove(self):
-        self.listbox.delete(ANCHOR)
-
-    def group_add(self):
-        d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.',
-                         getSemanticGroups())
-        res = d.choice
-        if res is not None:
-            self.listbox.insert(END,res)
-
-    def listBoxHandler(self,evt):
-        # Note here that Tkinter passes an event object to onselect()
-        w = evt.widget
-        x = w.winfo_rootx()
-        y = w.winfo_rooty()
-        if w.curselection() is not None and len(w.curselection()) > 0:
-            index = int(w.curselection()[0])
-            self.group_to_remove = index
-        try:
-            self.popup.tk_popup(x, y, 0)
-        finally:
-            # make sure to release the grab (Tk 8.0a1 only)
-            self.popup.grab_release()
+            self.oplist = []
 
     def body(self, master):
         top = Frame(master)
@@ -595,38 +571,26 @@ class DescriptionCaptureDialog(Toplevel):
         Label(master, text="Software Version:").grid(row=5, sticky=W)
         #Label(master, text='Semantic Groups:', anchor=W, justify=LEFT).grid(row=6, column=0)
 
-        self.popup = Menu(master, tearoff=0)
-        self.popup.add_command(label="Add", command=self.group_add)
-        self.popup.add_command(label="Remove",command=self.group_remove)  #
-
-        self.collapseFrame = Accordion(master) #,height=100,width=100)
-        self.groupFrame = Chord(self.collapseFrame,title='Semantic Groups' )
-        self.gscrollbar = Scrollbar(self.groupFrame, orient=VERTICAL)
-        self.listbox = Listbox(self.groupFrame, yscrollcommand=self.gscrollbar.set,height=3)
-        self.listbox.config(yscrollcommand=self.gscrollbar.set)
-        self.listbox.bind("<<ListboxSelect>>", self.listBoxHandler)
-        self.listbox.grid(row=0, column=0,columnspan=3,sticky=E+W)
-        self.gscrollbar.config(command=self.listbox.yview)
-        self.gscrollbar.grid(row=0, column=1, stick=N + S)
-        self.collapseFrame.append_chords([self.groupFrame])
-        self.collapseFrame.grid(row=6,column=0,columnspan=3,sticky=W)
+        self.semanticFrame = SemanticFrame(master)
+        self.semanticFrame.grid(row=6,column=0,columnspan=3,sticky=W)
         row = 8
         Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=2)
         row += 1
 
 
+        self.opname = StringVar()
+        self.opname.set(self.description.operationName)
         cats = self.organizeOperationsByCategory()
         catlist = list(cats.keys())
         catlist.sort()
-        oplist = cats[catlist[0]] if len(cats) > 0 else []
+        self.oplist = cats[catlist[0]] if len(cats) > 0 else []
         self.e1 = MyDropDown(master, catlist, command=self.newcategory)
-        self.e2 = MyDropDown(master, oplist, command=self.newcommand)
+        self.e2 = Button(master, textvar=self.opname, command=self.select_op)
         self.e4 = MyDropDown(master, sorted(self.softwareLoader.get_names(self.sourcefiletype), key=str.lower), command=self.newsoftware)
         self.e5 = AutocompleteEntryInText(master, values=[], takefocus=False, width=40)
         self.e1.bind("<Return>", self.newcategory)
         self.e1.bind("<<ComboboxSelected>>", self.newcategory)
-        self.e2.bind("<Return>", self.newcommand)
-        self.e2.bind("<<ComboboxSelected>>", self.newcommand)
+        self.e2.bind("<Return>", self.select_op)
         self.e4.bind("<Return>", self.newsoftware)
         self.e4.bind("<<ComboboxSelected>>", self.newsoftware)
         self.e3 = Text(master, height=2, width=40, font=('Times', '14'), relief=RAISED, borderwidth=2)
@@ -641,15 +605,15 @@ class DescriptionCaptureDialog(Toplevel):
             if self.description.semanticGroups is not None:
                 pos = 1
                 for grp in self.description.semanticGroups:
-                    self.listbox.insert(pos,grp)
+                    self.semanticFrame.insertListbox(pos,grp)
                     pos += 1
             if (self.description.inputMaskName is not None):
                 self.inputMaskName = self.description.inputMaskName
             if self.description.operationName is not None and len(self.description.operationName) > 0:
                 selectCat = getCategory(self.scModel.getGroupOperationLoader(),self.description)
                 self.e1.set_completion_list(catlist, initialValue=selectCat)
-                oplist = cats[selectCat] if selectCat in cats else []
-                self.e2.set_completion_list(oplist, initialValue=self.description.operationName)
+                self.oplist = cats[selectCat] if selectCat in cats else []
+                # self.e2.set_completion_list(oplist, initialValue=self.description.operationName)
             if (self.description.additionalInfo is not None):
                 self.e3.delete(1.0, END)
                 self.e3.insert(1.0, self.description.additionalInfo)
@@ -672,6 +636,13 @@ class DescriptionCaptureDialog(Toplevel):
 
         return self.e1  # initial focus
 
+    def select_op(self):
+        if len(self.oplist) > 0:
+            SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation",
+                        initial_value=self.opname.get())
+        else:
+            tkMessageBox.showerror("No Operations", "There are no available operations under the current category.")
+
     def __getinfo(self,name):
         for k,v in self.arginfo:
             if k == name:
@@ -687,7 +658,7 @@ class DescriptionCaptureDialog(Toplevel):
             cv,error = checkValue(k,info['type'],v)
             if v is not None and len(str(v)) > 0 and cv is None:
                 ok = False
-        ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.e2.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
+        ok &= checkMandatory(self.scModel.getGroupOperationLoader(),self.opname.get(),self.sourcefiletype,self.targetfiletype,self.argvalues)
         return ok
 
     def buttonbox(self):
@@ -717,7 +688,7 @@ class DescriptionCaptureDialog(Toplevel):
             self.okButton.config(state=ACTIVE if self.__checkParams() else DISABLED)
 
     def help(self):
-        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get())
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get())
         if op is not None:
             tkMessageBox.showinfo(op.name, op.description if op.description is not None and len(
                 op.description) > 0 else 'No description')
@@ -732,12 +703,12 @@ class DescriptionCaptureDialog(Toplevel):
 
     def apply(self):
         self.cancelled = False
-        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.e2.get(),fake=True),
+        self.description.setFromOperation(self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get(),fake=True),
                                           filetype = self.sourcefiletype)
-        self.description.setOperationName(self.e2.get())
+        self.description.setOperationName(self.opname.get())
         self.description.setAdditionalInfo(self.e3.get(1.0, END).strip())
         self.description.setInputMaskName(self.inputMaskName)
-        self.description.semanticGroups =  list(self.listbox.get(0,END))
+        self.description.semanticGroups =  list(self.semanticFrame.getListContents(0, END))
         self.description.setArguments(
             {k: v for (k, v) in self.argvalues.iteritems() if v is not None  and len(str(v)) > 0 and (k in [x[0] for x in self.arginfo])})
         self.description.setSoftware(Software(self.e4.get(), self.e5.get()))
@@ -2112,22 +2083,29 @@ class ButtonFrame(Frame):
 class SelectDialog(tkSimpleDialog.Dialog):
     cancelled = True
 
-    def __init__(self, parent, name, description, values, initial_value=None):
+    def __init__(self, parent, name, description, values, initial_value=None, information=None):
         self.description = description
         self.values = values
         self.parent = parent
         self.initial_value = initial_value
         self.name = name
+        self.information = information
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
-        desc_lines = '\n'.join(self.description.split('.'))
-        Label(master, text=desc_lines, wraplength=400).grid(row=0, sticky=W)
+        self.desc_lines = '\n'.join(self.description.split('.'))
+        self.desc_label = Label(master, text=self.desc_lines, wraplength=400)
+        self.desc_label.grid(row=0, sticky=N, columnspan=(3 if self.information else 1))
         self.var1 = StringVar()
         self.var1.set(self.values[0] if self.initial_value is None or self.initial_value not in self.values else self.initial_value)
         self.e1 = OptionMenu(master, self.var1, *self.values)
-        self.e1.grid(row=1, column=0,sticky=EW)
-        self.lift()
+        self.e1.grid(row=1, column=0, sticky=N, columnspan=3 if self.information else 1)
+
+        if self.information:
+            from maskgen.ui.help_tools import HelpFrame
+
+            fr = HelpFrame(master, self.information, self.var1)
+            fr.grid(row=2, column=0, columnspan=3)
 
     def cancel(self):
         if self.cancelled:
@@ -2137,6 +2115,9 @@ class SelectDialog(tkSimpleDialog.Dialog):
     def apply(self):
         self.cancelled = False
         self.choice = self.var1.get()
+        if self.information == "operation":
+            self.parent.opname.set(self.var1.get())
+            self.parent.newcommand(None)
 
 
 class EntryDialog(tkSimpleDialog.Dialog):

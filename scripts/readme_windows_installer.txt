@@ -1,3 +1,46 @@
+############INDEX##############
+*0*			Windows Server Installation
+*1*			Building th JT Installer on your own machine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*0* Windows Server Installation
+On a Windows Server installation of the JT, there may be problems with path setup during the prerequisite installation.
+This will involve manual path additions to the following locations:
+	C:\Program Files (x86)\GnuPG\bin
+	C:\Program Files\fmpeg-3.2-win64-shared\bin
+	C:\Users\<USERNAME HERE>\Anaconda2
+	C:\Users\<USERNAME HERE>\Anaconda2\Library\usr\bin
+	C:\Users\<USERNAME HERE>\Anaconda2\Library\bin
+	C:\Users\<USERNAME HERE>\Anaconda2\Scripts
+	C:\Users\<USERNAME HERE>\AppData\Local\Microsoft\WindowsApps
+	C:\Program Files\Exiftool
+	C:\Program Files (x86)\Graphviz2.38\bin
+	C:\Program Files\opencv\build\x64\vc14\bin
+
+
+
+
+
+
+
+
+
+
+
+*1* Building the JT Installer on your own machine
 ###########Downloads#############
 
 NSIS Requirements:
