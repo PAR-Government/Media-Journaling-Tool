@@ -25,6 +25,7 @@ class SemanticFrame(Frame):
         self.gscrollbar.config(command=self.listbox.yview)
         self.gscrollbar.grid(row=0, column=1, stick=N + S)
         self.collapseFrame.append_chords([self.groupFrame])
+        self.collapseFrame._click_handler(self.groupFrame)
         self.collapseFrame.pack()
 
     def group_remove(self):
