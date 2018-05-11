@@ -6,6 +6,9 @@ from tests.test_support import TestSupport
 class TestDuplicateDrop(TestSupport):
     filesToKill = []
 
+    def setUp(self):
+        plugins.loadPlugins()
+
     def test_plugin(self):
         filename= self.locateFile('tests/videos/sample1.mov')
         filename_output = os.path.join(os.path.dirname(os.path.abspath(filename)), 'sample_out1a.avi')

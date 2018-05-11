@@ -101,6 +101,10 @@ class TestBatchProcess(TestSupport):
         with open('imageset.txt', 'w') as fp:
             fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
                            not filename.startswith('test_project')])
+        self.addFileToRemove('donorset.txt', preemptive=True)
+        with open('donorset', 'w') as fp:
+            fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
+                           not filename.startswith('test_project')])
         self.addFileToRemove('test_projects', preemptive=True)
         os.mkdir('test_projects')
         batch_project.loadCustomFunctions()
@@ -112,7 +116,8 @@ class TestBatchProcess(TestSupport):
             'workdir': '.',
             'image_dir': self.locateFile('tests/images'),
             'count': batch_project.IntObject(20),
-            'permutegroupsmanager': PermuteGroupManager()
+            'permutegroupsmanager': PermuteGroupManager(),
+            'donorImages':self.locateFile('tests/images')
         }
         batchProject.loadPermuteGroups(global_state)
         for i in range(2):
@@ -220,7 +225,7 @@ class TestBatchProcess(TestSupport):
         G = json_graph.node_link_graph(remapped, multigraph=False, directed=True)
         self.assertTrue(G.edge['A']['B'] is not None)
 
-    def test_remap(self):
+    def test_remap2(self):
         network = {
             "directed": True,
             "graph": {

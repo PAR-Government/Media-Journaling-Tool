@@ -624,11 +624,11 @@ class ImageWrapper:
         """
         s = self.image_array.shape
         if self.mode == 'F':
-            return self
+            return self.convert('RGB').to_16BitGray()
         if len(s) == 2:
-            return ImageWrapper(tofloat(self.image_array))
+            return ImageWrapper(self.to_array().astype('uint16'))
         if self.mode == 'LA':
-            return ImageWrapper(self.image_array[:, :, 0] * tofloat(self.image_array[:, :, 1]).astype('float32'))
+            return ImageWrapper(self.image_array[:, :, 0] * tofloat(self.image_array[:, :, 1]).astype('uint16'))
         rgbaimg = self.convert('RGBA') if self.mode != 'RGBA' else self
         r, g, b = rgbaimg.image_array[:, :, 0], rgbaimg.image_array[:, :, 1], rgbaimg.image_array[:, :, 2]
         if equalize_colors:

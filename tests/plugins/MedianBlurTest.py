@@ -24,7 +24,7 @@ class MedianBlurTestCase(unittest.TestCase):
                             wrapper,
                            filename,
                            filename_output,
-                            kernelSize=24,
+                            kernelSize=25,
                            percentageChange = 0.5)
         wrapper = image_wrap.openImageFile(filename_output)
         output = wrapper.to_array()

@@ -21,7 +21,7 @@
     {
       "op_type": "ImageSelection",
       "image_directory": "{donorImages}",
-      "picklist": "donorset",
+      "picklist": "imageset",
       "id": "1"
     },
     {

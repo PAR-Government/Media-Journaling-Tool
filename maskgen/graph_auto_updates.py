@@ -30,7 +30,7 @@ def updateJournal(scModel):
     gopLoader = scModel.gopLoader
     fixes = OrderedDict(
         [("0.3.1115", [_replace_oldops]),
-         ("0.3.1213", [_fixQT, _fixUserName]),
+         ("0.3.1213", [_fixQT]),
          ("0.4.0101.8593b8f323", [_fixResize, _fixResolution]),
          ("0.4.0101.b4561b475b", [_fixCreator, _fixValidationTime]),
          ("0.4.0308.f7d9a62a7e", [_fixLabels]),
@@ -48,7 +48,7 @@ def updateJournal(scModel):
          ("0.4.1115.32eabae8e6", [_fixRecordMasInComposite]),
          ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask, _fixGlobal]),
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
-         ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions]),
+         ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions,_fixUserName]),
          ('0.5.0227.6d9889731b', [_fixPNGS,_emptyMask]),
          ("0.5.0227.db02ad8372", []),
          # it appears that bf007ef4cd went with 0227 and not 0401
@@ -625,8 +625,49 @@ def _fixUserName(scModel,gopLoader):
     :return:
     @type scModel: ImageProjectModel
     """
+    from maskgen import software_loader
+    names = software_loader.getFileName('ManipulatorCodeNames.txt')
+    with open(names,'r') as f:
+        allnames = [x.strip() for x in f.readlines()]
+
+    def levenshtein(s, t):
+        ''' From Wikipedia article; Iterative with two matrix rows. '''
+        if s == t:
+            return 0
+        elif len(s) == 0:
+            return len(t)
+        elif len(t) == 0:
+            return len(s)
+        v0 = [None] * (len(t) + 1)
+        v1 = [None] * (len(t) + 1)
+        for i in range(len(v0)):
+            v0[i] = i
+        for i in range(len(s)):
+            v1[0] = i + 1
+            for j in range(len(t)):
+                cost = 0 if s[i] == t[j] else 1
+                v1[j + 1] = min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost)
+            for j in range(len(v0)):
+                v0[j] = v1[j]
+        return v1[len(t)]
+
+    def best_name(oldname):
+        if oldname not in allnames and len(allnames) > 0:
+            try:
+                alldistances = [levenshtein(oldname,x) for x in allnames]
+                oldname = allnames[np.argmin(alldistances)]
+            except:
+                oldname = allnames[0]
+        return oldname
+
     if scModel.getGraph().getDataItem('username') is not None:
-        scModel.getGraph().setDataItem('username',scModel.getGraph().getDataItem('username').lower())
+        scModel.getGraph().setDataItem('username',best_name(scModel.getGraph().getDataItem('username').lower()))
+    if scModel.getGraph().getDataItem('creator') is not None:
+        scModel.getGraph().setDataItem('creator', best_name(scModel.getGraph().getDataItem('creator').lower()))
+    for frm, to in scModel.getGraph().get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'username' in edge:
+            edge['username']  = best_name(edge['username'])
 
 def _fixQT(scModel,gopLoader):
     """

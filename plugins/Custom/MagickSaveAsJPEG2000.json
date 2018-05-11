@@ -28,6 +28,18 @@
     },
     "suffix" : ".jp2",
     "command": {
+      "win": [
+        "magick",
+        "convert",
+        "{inputimage}",
+        "-encoding",
+        "{encoding}",
+        "-define",
+        "jp2:number-resolutions={resolutions}",
+        "-quality",
+        "{quality}",
+        "{outputimage}"
+      ],
       "default": [
         "convert",
         "{inputimage}",
