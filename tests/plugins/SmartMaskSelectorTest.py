@@ -85,8 +85,7 @@ class SmartMaskSelectorTestCase(test_support.TestSupport):
         self.assertTrue(len(output.shape) == 3)
         totalsize = sum(sum(output[:,:,1] / 255))
         print totalsize
-        self.assertTrue(totalsize <= (2 * 22500))
-        #self.assertTrue(totalsize >= 22500)
+        self.assertTrue(totalsize >= 22500)
         self.assertTrue('paste_x' in args and args['paste_x'] > 0)
         self.assertTrue('paste_y' in args and args['paste_y'] > 0)
 

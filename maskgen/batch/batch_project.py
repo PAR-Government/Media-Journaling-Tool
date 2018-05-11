@@ -264,7 +264,7 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     :return: a iterator function to construct an iterator over possible values
     """
     if param_spec['type'] == 'list':
-        new_values =[value.format(**global_state) for value in param_spec['values']]
+        new_values =[(value.format(**global_state) if type(value) in ['str','unicode'] else value) for value in param_spec['values']]
         if not random_selection:
             return ListPermuteGroupElement(spec_name, new_values)
         else:
@@ -1114,7 +1114,7 @@ class BatchProject:
             predecessors = list(self.G.predecessors(op_node_name))
             # skip if a predecessor is missing
             if len([pred for pred in predecessors if pred not in completed]) > 0:
-                return
+                continue
             connecttonodes = self.getConnectToNodes(op_node_name)
             node = self.G.node[op_node_name]
             if len(connecttonodes) > 0 and 'source' in node:
@@ -1436,7 +1436,7 @@ def thread_worker(iq):
 
 def updateAndInitializeGlobalState(global_state, global_variables=dict(), initializers=None):
     if global_variables is not None:
-        if type(global_variables) == str:
+        if type(global_variables) == str and len(global_variables)>0:
             global_state.update({pair[0]: pair[1] for pair in [pair.split('=') \
                                                                     for pair in global_variables.split(',')]})
         else:

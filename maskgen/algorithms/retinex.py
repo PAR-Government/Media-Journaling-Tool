@@ -110,7 +110,7 @@ class MultiScaleResinexLab(MultiScaleResinex):
             img_msrcr = gain_offset(intensity_r, G=self.G, b=self.b)
         else:
             img_msrcr = simplestColorBalance(intensity_r, self.colorBalance[0], self.colorBalance[1])
-        print img_msrcr
+        #print img_msrcr
         lab[:, :, 0] = img_msrcr[:, :, 0]
         gbr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
         return gbr

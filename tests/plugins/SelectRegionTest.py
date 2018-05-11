@@ -4,6 +4,7 @@ from maskgen import plugins, image_wrap
 import numpy
 import tempfile
 
+from tests.test_support import TestSupport
 
 def widthandheight(img):
     a = numpy.where(img != 0)
@@ -11,19 +12,18 @@ def widthandheight(img):
     h,w = bbox[1] - bbox[0], bbox[3] - bbox[2]
     return bbox[2],bbox[0],w,h
 
-class SegmentedMaskSelectorTestCase(unittest.TestCase):
+class SegmentedMaskSelectorTestCase(TestSupport):
 
     def setUp(self):
         plugins.loadPlugins()
 
     filesToKill = []
     def test_gray(self):
-        img_wrapper = image_wrap.openImageFile('tests/images/test_project5.jpg')
+        filename = self.locateFile('tests/images/test_project5.jpg')
+        img_wrapper = image_wrap.openImageFile(filename)
         img = img_wrapper.to_array()
-        img_wrapper = image_wrap.ImageWrapper(img)
         target_wrapper = image_wrap.ImageWrapper(img)
-        filename  = 'tests/images/test_project5.jpg'
-        filename_output = tempfile.mktemp(prefix='mstcr', suffix='.jpg', dir='.')
+        filename_output = tempfile.mktemp(prefix='mstcr', suffix='.png', dir='.')
         self.filesToKill.extend([filename_output])
         target_wrapper.save(filename_output)
 
@@ -46,12 +46,11 @@ class SegmentedMaskSelectorTestCase(unittest.TestCase):
         self.assertTrue('paste_y' in args and args['paste_y'] >= 0)
 
     def test_rgb(self):
-        img_wrapper = image_wrap.openImageFile('tests/images/test_project5.jpg')
+        filename = self.locateFile('tests/images/test_project5.jpg')
+        img_wrapper = image_wrap.openImageFile(filename)
         img = img_wrapper.to_array()
-        img_wrapper = image_wrap.ImageWrapper(img)
         target_wrapper = image_wrap.ImageWrapper(img)
-        filename = 'tests/images/test_project5.jpg'
-        filename_output = tempfile.mktemp(prefix='mstcr', suffix='.jpg', dir='.')
+        filename_output = tempfile.mktemp(prefix='mstcr', suffix='.png', dir='.')
         self.filesToKill.extend([filename_output])
         target_wrapper.save(filename_output)
 

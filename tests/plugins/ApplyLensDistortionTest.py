@@ -3,17 +3,17 @@ import os
 from maskgen import plugins, image_wrap
 import numpy
 import tempfile
+from tests.test_support import TestSupport
 
-
-class CropSelectorTestCase(unittest.TestCase):
+class CropSelectorTestCase(TestSupport):
     filesToKill = []
 
     def setUp(self):
         plugins.loadPlugins()
 
     def test_all(self):
-        filename = "tests/videos/sample1.mov"
-        filename_output = "tests/videos/sample1_ds.mov"
+        filename = self.locateFile("tests/videos/sample1.mov")
+        filename_output = filename.replace('.mov','_ds.mov')
         self.filesToKill.append(filename_output)
         args,error = plugins.callPlugin('ApplyLensDistortion',
                         None,
