@@ -65,7 +65,7 @@
     "modifier_tools": [
       "jtui"
     ], 
-    "organization": "Wonderland", 
+    "organization": "wonderland", 
     "validation": "no", 
     "creator": "ericrobertson"
   }, 
@@ -629,9 +629,9 @@
           "2016:08:01 12:03:43-04:00", 
           "2018:05:11 10:33:18-04:00"
         ], 
-        "Resolution Unit": [
+        "Exif Byte Order": [
           "add", 
-          "inches"
+          "Little-endian (Intel, II)"
         ], 
         "MIME Type": [
           "change", 
@@ -811,7 +811,6 @@
       }
     }, 
     {
-      "ssim": 0.9598897451746461, 
       "global": "no", 
       "recordMaskInComposite": "yes", 
       "inputmaskownership": "no", 
@@ -823,14 +822,14 @@
       "local psnr": 3.1876244887399414, 
       "source": 8, 
       "arguments": {
-        "purpose": "add", 
-        "donor resized": "yes", 
         "donor cropped": "no", 
-        "donor rotated": "yes", 
-        "mode": "Hue", 
+        "donor resized": "yes", 
+        "donor rotated": "no", 
+        "purpose": "add", 
         "subject": "man-made object"
       }, 
-      "username": "dupre", 
+      "location": "(0,0)", 
+      "username": "duck", 
       "description": "", 
       "maskname": "orig_input_input_mod_1_mask.png", 
       "change size ratio": 0.03736888111888112, 
