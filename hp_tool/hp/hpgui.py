@@ -97,7 +97,7 @@ class HP_Starter(Frame):
                                             'and uploaded for a device prior to HP uploads.')
             return
 
-        if self.camModel.get() == '':
+        if not self.master.cameras:
             input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
             models = all(os.path.isdir(x) for x in input_dir_files)
 
@@ -744,6 +744,7 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Open Keywords Spreadsheet for Editing', command=self.open_old_keywords_csv)
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
+        self.fileMenu.add_command(label='Add a New GAN', command=self.add_gan)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
         self.fileMenu.add_command(label='System Check', command=self.system_check)
         self.fileMenu.add_command(label='Download HP Device List for Offline Use',
@@ -774,7 +775,21 @@ class HPGUI(Frame):
             tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
             return
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'))
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'), gan=False)
+        h.wait_window()
+        if h.camera_added:
+            self.reload_ids()
+
+    def add_gan(self):
+        """
+        Open the form for uploading a new HP GAN. Requires browser login.
+        :return: None
+        """
+        if self.settings.get_key('apitoken') in (None, ''):
+            tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
+            return
+        new_device = StringVar()
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'), gan=True)
         h.wait_window()
         if h.camera_added:
             self.reload_ids()
