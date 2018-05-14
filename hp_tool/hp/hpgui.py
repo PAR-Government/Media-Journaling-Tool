@@ -1,3 +1,4 @@
+import argparse
 import tarfile
 import tempfile
 import threading
@@ -8,7 +9,6 @@ import rawpy
 from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
-
 from maskgen.maskgen_loader import MaskGenLoader
 matplotlib.use("TkAgg")
 import ttk
@@ -24,6 +24,7 @@ from prefs import SettingsWindow
 from CameraForm import HP_Device_Form, Update_Form
 from camera_handler import API_Camera_Handler
 from data_files import *
+import sys
 
 
 class HP_Starter(Frame):
@@ -90,6 +91,11 @@ class HP_Starter(Frame):
         elif self.outputdir.get() == '':
             self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
         self.update_model()
+
+        if not (self.master.lenient or self.master.cameras[self.localID.get()]['available']):
+            tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
+                                            'and uploaded for a device prior to HP uploads.')
+            return
 
         if self.camModel.get() == '':
             input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
@@ -712,12 +718,13 @@ class HPGUI(Frame):
     The main HP GUI Window. Contains the initial UI setup, the camera list updating, and the file menu options.
     """
 
-    def __init__(self, master=None, **kwargs):
+    def __init__(self, master=None, lenient=False, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
         self.trello_key = data_files._TRELLO['app_key']
         self.settings = MaskGenLoader()
         self.cam_local_id = ""
+        self.lenient = lenient
         self.create_widgets()
         self.statusBox.println('See terminal/command prompt window for progress while processing.')
         try:
@@ -950,13 +957,21 @@ class ReadOnlyText(Text):
         self.config(state='disabled')
 
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--lenient', help='Start HP Tool in Lenient Mode', required=False, action="store_true")
+    args = parser.parse_args(argv[1:])
+    lenient = True if args.lenient else False
+
     root = Tk()
     root.resizable(width=False, height=False)
     root.wm_title('HP GUI')
-    HPGUI(master=root).pack(side=TOP, fill=BOTH, expand=TRUE)
+    HPGUI(master=root, lenient=lenient).pack(side=TOP, fill=BOTH, expand=TRUE)
     root.mainloop()
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
