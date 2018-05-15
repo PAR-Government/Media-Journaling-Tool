@@ -633,7 +633,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                 found_num+=1
                 continue
             mask = {}
-            fr = item['r_frame_rate'] if 'r_frame_rate' in item else (item['avg_frame_rate'] if 'avg_frame_rate' in item else '30000/1001')
+            fr = item['avg_frame_rate'] if 'avg_frame_rate' in item else (item['r_frame_rate'] if 'r_frame_rate' in item else '30000/1001')
             if item['codec_type'] == 'video':
                 parts = fr.split('/')
                 rate = float(parts[0])/int(parts[1]) if len(parts)>0 and int(parts[1]) != 0 else float(parts[0])
@@ -654,6 +654,10 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                 mask['endframe'] = int(mask['endtime']*rate/1000.0)
                 mask['frames'] = mask['endframe'] - mask['startframe'] + 1
                 mask['type']   = item['codec_type']
+            if start_time_tuple == end_time_tuple:
+                mask['endtime'] = mask['starttime']
+                mask['endframe'] = mask['startframe']
+                mask['frames'] = mask['endframe'] - mask['startframe'] + 1
             results.append(mask)
     return results  if len(results) > 0 else None
 
@@ -2658,7 +2662,7 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
     return new_mask_set
 
 
-def getChangeInFrames(edge,inputFile,outputFile,expectedType='video'):
+def getChangeInFrames(edge, inputFile, outputFile, expectedType='video'):
     changeFrame = None
     changeDuration = None
     changeRate = None
@@ -2673,9 +2677,8 @@ def getChangeInFrames(edge,inputFile,outputFile,expectedType='video'):
             if changeRate is None:
                 changeRate = item['0:r_frame_rate'][1:] if '0:r_frame_rate' in item and \
                                                            item['0:r_frame_rate'][0] == 'change' else None
-
-    if not changeFrame and not changeDuration:
-        return None
+        if not changeFrame and not changeDuration:
+            return None
 
     try:
         if changeFrame and changeDuration and changeRate:
@@ -2692,11 +2695,11 @@ def getChangeInFrames(edge,inputFile,outputFile,expectedType='video'):
     except:
         pass
 
-    maskSource = getMaskSetForEntireVideoForTuples(inputFile,media_types=[expectedType])
+    maskSource = getMaskSetForEntireVideoForTuples(inputFile, media_types=[expectedType])
     maskTarget= getMaskSetForEntireVideoForTuples(outputFile, media_types=[expectedType])
-    return maskSource['frames'], maskSource['endtime'], \
-           maskTarget['frames'], maskTarget['endtime'], \
-           maskTarget['rate']
+    return maskSource[0]['frames'], maskSource[0]['endtime'], \
+           maskTarget[0]['frames'], maskTarget[0]['endtime'], \
+           maskTarget[0]['rate']
 
 
 def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inverse=False):
@@ -2712,6 +2715,9 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     if result is None:
         return video_masks
     sourceFrames, sourceTime, targetFrames, targetTime, targetRate = result
+
+    if sourceFrames == targetFrames and sourceTime == targetTime:
+        return video_masks
 
     def apply_change(existing_value, orig_count, final_count, inverse=False, round_value=True):
         multiplier = -1.0 if inverse else 1.0

@@ -1,5 +1,5 @@
 {
-  "version": "0.4.1115.32eabae8e6",
+  "version": "0.5.0515.afee2e2e08",
   "operations": [
     {
       "category": "Audio",
@@ -1960,7 +1960,8 @@
           "values": [
             "Facebook",
             "Instagram",
-            "Youtube"
+            "Youtube",
+            "Twitter"
           ],
           "description": "Service"
         },
@@ -4362,6 +4363,9 @@
       "description": "Select a single frame into an image.",
       "includeInMask": {
         "default": false
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.image_selection"
       },
       "transitions": [
         "video.image"

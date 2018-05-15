@@ -1705,6 +1705,30 @@ def skew_transform(buildState):
     return scale_transform(buildState)
 
 
+def image_selection(buildState):
+    """
+       :param buildState:
+       :return: updated composite mask
+       @type buildState: BuildState
+       @rtype: np.ndarray
+       """
+    if buildState.isComposite:
+        return buildState.compositeMask
+    else:
+        masks = video_tools.getMaskSetForEntireVideo(getNodeFile(buildState.graph, buildState.source),
+                                             start_time=getValue(buildState.edge, 'arguments.Frame Time',
+                                                                 defaultValue='00:00:00.000'),
+                                             end_time=getValue(buildState.edge, 'arguments.Frame Time',
+                                                                 defaultValue='00:00:00.000'),
+                                             media_types=['video'])
+
+        return _prepare_video_masks(buildState.graph, masks, _guess_type(buildState.edge),
+                             buildState.source,
+                             buildState.target,
+                             buildState.edge,
+                             returnEmpty=False,
+                             fillWithUserBoundaries=True)
+
 def output_video_change(buildState):
     """
     :param buildState:
@@ -1723,7 +1747,7 @@ def output_video_change(buildState):
     else:
         return  CompositeImage(buildState.donorMask.source,
                                   buildState.donorMask.target,
-                                  buildState.compositeMask.media_type,
+                                  buildState.donorMask.media_type,
                                   video_tools._warpMask(buildState.donorMask.videomasks,
                                                         buildState.edge,
                                                         buildState.getSourceFileName(),

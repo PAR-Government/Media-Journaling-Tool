@@ -922,6 +922,27 @@ class TestVideoTools(TestSupport):
         self.assertEqual(20, result_noise1[0]['startframe'])
 
 
+    def testWarp(self):
+        source = self.locateFile('tests/videos/sample1.mov')
+        target = 'sample1_out.mov'
+        os.system('ffmpeg -y -i {}  -r 10/1  {}'.format(source, target))
+        source_set = video_tools.getMaskSetForEntireVideo(source,
+                                                      start_time='29',end_time='55')
+        new_mask_set = video_tools._warpMask(source_set, {}, source, source)
+        self.assertTrue(new_mask_set[0]['frames'] == source_set[0]['frames'])
+        self.assertTrue(new_mask_set[0]['endtime'] == source_set[0]['endtime'])
+        self.assertTrue(new_mask_set[0]['rate'] == source_set[0]['rate'])
+        self.assertTrue(new_mask_set[0]['startframe'] == source_set[0]['startframe'])
+        self.assertTrue(new_mask_set[0]['starttime'] == source_set[0]['starttime'])
+        self._add_mask_files_to_kill(source_set)
+        self.addFileToRemove(target)
+        new_mask_set = video_tools._warpMask(source_set,{}, source,target)
+        self.assertTrue(new_mask_set[0]['frames'] == 20)
+        self.assertTrue(int(new_mask_set[0]['endtime']) == 4082)
+        self.assertTrue(new_mask_set[0]['rate'] == 10)
+        self.assertTrue(int(new_mask_set[0]['startframe']) == 22)
+        self.assertTrue(int(new_mask_set[0]['starttime']) == 2078)
+
     def testAudio(self):
         from maskgen.tool_set import  VidTimeManager
         video_tools.audioWrite('test_ta.0.0.wav',512)

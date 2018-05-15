@@ -21,13 +21,12 @@ class CAPReader:
         @type cap: cv2.VideoCapture
         """
         self.cap = cap
-        self.done = False
 
     def grab(self):
         ret = self.cap.grab()
         if not ret:
-            self.done = self.cap.grab()
-            return self.done
+            ret = self.cap.grab()
+            return ret
         return ret
 
     def release(self):
@@ -36,8 +35,8 @@ class CAPReader:
     def read(self):
         ret, frame = self.cap.read()
         if not ret:
-            self.done, frame = self.cap.read()
-            return self.done, frame
+            ret, frame = self.cap.read()
+            return ret, frame
         return ret, frame
 
     def retrieve(self, channel = None):
@@ -48,6 +47,9 @@ class CAPReader:
 
     def set(self, prop, value):
         return self.cap.set(prop, value)
+
+    def isOpened(self):
+        return self.cap.isOpened()
 
 class CV2Api:
     def __init__(self):
