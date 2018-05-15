@@ -13,6 +13,42 @@ Wrapper class around CV2 to support different API versions (opencv 2 and 3)
 """
 
 
+class CAPReader:
+
+    def __init__(self, cap):
+        """
+        :param cap:
+        @type cap: cv2.VideoCapture
+        """
+        self.cap = cap
+        self.done = False
+
+    def grab(self):
+        ret = self.cap.grab()
+        if not ret:
+            self.done = self.cap.grab()
+            return self.done
+        return ret
+
+    def release(self):
+        self.cap.release()
+
+    def read(self):
+        ret, frame = self.cap.read()
+        if not ret:
+            self.done, frame = self.cap.read()
+            return self.done, frame
+        return ret, frame
+
+    def retrieve(self, channel = None):
+        return self.cap.retrieve()  if channel is None else self.cap.retrieve(channel)
+
+    def get(self, prop):
+        return self.cap.get(prop)
+
+    def set(self, prop, value):
+        return self.cap.set(prop, value)
+
 class CV2Api:
     def __init__(self):
         pass
@@ -25,8 +61,8 @@ class CV2Api:
 
     def videoCapture(self, filename, preference=None):
         if preference is not None:
-            return cv2.VideoCapture(filename, preference)
-        return cv2.VideoCapture(filename)
+            return CAPReader(cv2.VideoCapture(filename, preference))
+        return CAPReader(cv2.VideoCapture(filename))
 
     def computeSIFT(self, img):
         None, None
