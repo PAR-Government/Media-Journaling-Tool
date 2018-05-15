@@ -3526,6 +3526,9 @@
         "default": false
       },
       "generateMask": "meta",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video"
       ]
@@ -3564,6 +3567,9 @@
         "default": false
       },
       "generateMask": "meta",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video"
       ]
@@ -3602,6 +3608,9 @@
         "default": false
       },
       "generateMask": "meta",
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video",
         "image.video"
@@ -3618,6 +3627,9 @@
       "description": "Export the image to lossless format.",
       "includeInMask": false,
       "generateMask": "meta",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video",
         "audio.audio"
@@ -3659,7 +3671,8 @@
         }
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.image_to_video"
+        "image": "maskgen.mask_rules.image_to_video",
+        "video": "maskgen.mask_rules.output_video_change"
       },
       "description": "Export the image in the AVI format.",
       "includeInMask": {

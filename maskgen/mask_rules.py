@@ -253,6 +253,12 @@ class BuildState:
     def getName(self):
         return '{} to {}'.format(self.source,self.target)
 
+    def getSourceFileName(self):
+        return self.graph.get_pathname(self.source)
+
+    def getTargetFileName(self):
+        return self.graph.get_pathname(self.target)
+
     def shapeChange(self):
         return (self.targetShape[0]-self.sourceShape[0], self.targetShape[1]-self.sourceShape[1])
 
@@ -1698,6 +1704,31 @@ def skew_transform(buildState):
     """
     return scale_transform(buildState)
 
+
+def output_video_change(buildState):
+    """
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: np.ndarray
+    """
+    if buildState.isComposite:
+        return  CompositeImage(buildState.compositeMask.source,
+                                  buildState.compositeMask.target,
+                                  buildState.compositeMask.media_type,
+                                  video_tools._warpMask(buildState.compositeMask.videomasks,
+                                                     buildState.edge,
+                                                     buildState.getSourceFileName(),
+                                                     buildState.getTargetFileName()))
+    else:
+        return  CompositeImage(buildState.donorMask.source,
+                                  buildState.donorMask.target,
+                                  buildState.compositeMask.media_type,
+                                  video_tools._warpMask(buildState.donorMask.videomasks,
+                                                        buildState.edge,
+                                                        buildState.getSourceFileName(),
+                                                        buildState.getTargetFileName(),
+                                                        inverse=True))
 
 def audio_donor(buildState):
     """
