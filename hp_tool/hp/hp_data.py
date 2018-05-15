@@ -19,7 +19,7 @@ import data_files
 from PIL import Image
 
 
-exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
+exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes] + [".zip"],  # .zip = DNG Stacks
         'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
         'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
         'MODEL': ['.3d.zip'],
@@ -52,12 +52,11 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     currentExt = os.path.splitext(image)[1]
     if os.path.isdir(image):
         return
-    files_in_dir = os.listdir(os.path.dirname(image))
+    files_in_dir = os.listdir(os.path.dirname(image)) if containsmodels else []
 
     if any(filename.lower().endswith('.3d.zip') for filename in files_in_dir):
         sub = 'model'
     elif any(os.path.splitext(filename)[1].lower() in exts["nonstandard"] for filename in files_in_dir):
-
         sub = 'nonstandard'
     elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'

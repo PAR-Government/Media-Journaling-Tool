@@ -1,3 +1,4 @@
+import argparse
 import tarfile
 import tempfile
 import threading
@@ -8,7 +9,6 @@ import rawpy
 from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
-
 from maskgen.maskgen_loader import MaskGenLoader
 matplotlib.use("TkAgg")
 import ttk
@@ -24,6 +24,7 @@ from prefs import SettingsWindow
 from CameraForm import HP_Device_Form, Update_Form
 from camera_handler import API_Camera_Handler
 from data_files import *
+import sys
 
 
 class HP_Starter(Frame):
@@ -91,7 +92,12 @@ class HP_Starter(Frame):
             self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
         self.update_model()
 
-        if self.camModel.get() == '':
+        if not (self.master.lenient or self.master.cameras[self.localID.get()]['available']):
+            tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
+                                            'and uploaded for a device prior to HP uploads.')
+            return
+
+        if not self.master.cameras:
             input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
             models = all(os.path.isdir(x) for x in input_dir_files)
 
@@ -712,12 +718,13 @@ class HPGUI(Frame):
     The main HP GUI Window. Contains the initial UI setup, the camera list updating, and the file menu options.
     """
 
-    def __init__(self, master=None, **kwargs):
+    def __init__(self, master=None, lenient=False, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.master = master
         self.trello_key = data_files._TRELLO['app_key']
         self.settings = MaskGenLoader()
         self.cam_local_id = ""
+        self.lenient = lenient
         self.create_widgets()
         self.statusBox.println('See terminal/command prompt window for progress while processing.')
         try:
@@ -737,6 +744,7 @@ class HPGUI(Frame):
         self.fileMenu.add_command(label='Open Keywords Spreadsheet for Editing', command=self.open_old_keywords_csv)
         self.fileMenu.add_command(label='Settings...', command=self.open_settings)
         self.fileMenu.add_command(label='Add a New Device', command=self.open_form)
+        self.fileMenu.add_command(label='Add a New GAN', command=self.add_gan)
         self.fileMenu.add_command(label='Update a Device', command=self.edit_device)
         self.fileMenu.add_command(label='System Check', command=self.system_check)
         self.fileMenu.add_command(label='Download HP Device List for Offline Use',
@@ -767,7 +775,21 @@ class HPGUI(Frame):
             tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
             return
         new_device = StringVar()
-        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'))
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'), gan=False)
+        h.wait_window()
+        if h.camera_added:
+            self.reload_ids()
+
+    def add_gan(self):
+        """
+        Open the form for uploading a new HP GAN. Requires browser login.
+        :return: None
+        """
+        if self.settings.get_key('apitoken') in (None, ''):
+            tkMessageBox.showerror(title='Error', message='Browser login is required to use this feature. Enter this in settings.')
+            return
+        new_device = StringVar()
+        h = HP_Device_Form(self, validIDs=self.cameras.keys(), pathvar=new_device, token=self.settings.get_key('trello'), browser=self.settings.get_key('apitoken'), gan=True)
         h.wait_window()
         if h.camera_added:
             self.reload_ids()
@@ -950,13 +972,21 @@ class ReadOnlyText(Text):
         self.config(state='disabled')
 
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--lenient', help=argparse.SUPPRESS, required=False, action="store_true")
+    args = parser.parse_args(argv[1:])
+    lenient = True if args.lenient else False
+
     root = Tk()
     root.resizable(width=False, height=False)
     root.wm_title('HP GUI')
-    HPGUI(master=root).pack(side=TOP, fill=BOTH, expand=TRUE)
+    HPGUI(master=root, lenient=lenient).pack(side=TOP, fill=BOTH, expand=TRUE)
     root.mainloop()
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
