@@ -977,7 +977,7 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--lenient', required=False, action="store_true")
+    parser.add_argument('--lenient', help=argparse.SUPPRESS, required=False, action="store_true")
     args = parser.parse_args(argv[1:])
     lenient = True if args.lenient else False
 
