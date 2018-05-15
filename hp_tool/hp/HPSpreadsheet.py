@@ -1131,10 +1131,20 @@ class CustomTable(pandastable.Table):
         return
 
     def enter_true(self, event=None):
-        self.fill_selection(val='True')
+        current = self.getSelectedColumn()
+        ps_col = 52
+        if current == ps_col:
+            self.fill_selection(val='primary')
+        else:
+            self.fill_selection(val='True')
 
     def enter_false(self, event=None):
-        self.fill_selection(val='False')
+        current = self.getSelectedColumn()
+        ps_col = 52
+        if current == ps_col:
+            self.fill_selection(val='secondary')
+        else:
+            self.fill_selection(val='False')
 
     def fill_selection(self, event=None, val=None):
         if hasattr(self, 'disabled_cells'):
