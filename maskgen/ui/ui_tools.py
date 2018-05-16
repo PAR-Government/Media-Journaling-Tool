@@ -9,6 +9,8 @@
 import time
 import ttk
 from Tkinter import *
+import  tkSimpleDialog
+import tkMessageBox
 
 from maskgen.support import ModuleStatus
 
@@ -64,3 +66,79 @@ class ProgressBar(Frame):
                 self.pb_status.set(0)
             self.last_time = current_time
             self.pb.update_idletasks()
+
+class SelectDialog(tkSimpleDialog.Dialog):
+    cancelled = True
+
+    def __init__(self, parent, name, description, values, initial_value=None, information=None, callback=None):
+        self.description = description
+        self.values = values
+        self.parent = parent
+        self.initial_value = initial_value
+        self.name = name
+        self.information = information
+        self.callback = callback
+        tkSimpleDialog.Dialog.__init__(self, parent, name)
+
+    def body(self, master):
+        self.desc_lines = '\n'.join(self.description.split('.'))
+        self.desc_label = Label(master, text=self.desc_lines, wraplength=400)
+        self.desc_label.grid(row=0, sticky=N, columnspan=(3 if self.information else 1))
+        self.var1 = StringVar()
+        self.var1.set(self.values[0] if self.initial_value is None or self.initial_value not in self.values else self.initial_value)
+        self.e1 = OptionMenu(master, self.var1, *self.values)
+        self.e1.grid(row=1, column=0, sticky=N, columnspan=3 if self.information else 1)
+        if self.information:
+            from maskgen.ui.help_tools import HelpFrame
+            fr = HelpFrame(master, self.information, self.var1)
+            fr.grid(row=2, column=0, columnspan=3)
+
+    def cancel(self):
+        if self.cancelled:
+            self.choice = None
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+        self.choice = self.var1.get()
+        if self.callback is not None:
+            self.callback(self.var1.get())
+
+
+class EntryDialog(tkSimpleDialog.Dialog):
+    cancelled = True
+
+    def __init__(self, parent, name, description, validateFunc, initialvalue=None):
+        self.description = description
+        self.validateFunc = validateFunc
+        self.parent = parent
+        self.name = name
+        self.initialvalue = initialvalue
+        tkSimpleDialog.Dialog.__init__(self, parent, name)
+
+    def body(self, master):
+        Label(master, text=self.description).grid(row=0, sticky=W)
+        self.e1 = Entry(master, takefocus=True)
+        if self.initialvalue:
+            self.e1.insert(0, self.initialvalue)
+        self.e1.grid(row=1, column=0)
+        self.lift()
+
+    def cancel(self):
+        if self.cancelled:
+            self.choice = None
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+        self.choice = self.e1.get()
+
+    def validate(self):
+        v = self.e1.get()
+        if self.validateFunc and not self.validateFunc(v):
+            tkMessageBox.showwarning(
+                "Bad input",
+                "Illegal values, please try again"
+            )
+            return 0
+        return 1

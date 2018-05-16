@@ -1,5 +1,5 @@
 {
-  "version": "0.4.1115.32eabae8e6",
+  "version": "0.5.0515.afee2e2e08",
   "operations": [
     {
       "category": "Audio",
@@ -1960,7 +1960,8 @@
           "values": [
             "Facebook",
             "Instagram",
-            "Youtube"
+            "Youtube",
+            "Twitter"
           ],
           "description": "Service"
         },
@@ -3526,6 +3527,9 @@
         "default": false
       },
       "generateMask": "meta",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video"
       ]
@@ -3564,6 +3568,9 @@
         "default": false
       },
       "generateMask": "meta",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video"
       ]
@@ -3602,6 +3609,9 @@
         "default": false
       },
       "generateMask": "meta",
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video",
         "image.video"
@@ -3618,6 +3628,9 @@
       "description": "Export the image to lossless format.",
       "includeInMask": false,
       "generateMask": "meta",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "transitions": [
         "video.video",
         "audio.audio"
@@ -3659,7 +3672,8 @@
         }
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.image_to_video"
+        "image": "maskgen.mask_rules.image_to_video",
+        "video": "maskgen.mask_rules.output_video_change"
       },
       "description": "Export the image in the AVI format.",
       "includeInMask": {
@@ -4349,6 +4363,9 @@
       "description": "Select a single frame into an image.",
       "includeInMask": {
         "default": false
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.image_selection"
       },
       "transitions": [
         "video.image"

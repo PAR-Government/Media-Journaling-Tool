@@ -54,7 +54,8 @@ def updateJournal(scModel):
          # it appears that bf007ef4cd went with 0227 and not 0401
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool]),
-         ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor])])
+         ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -190,6 +191,23 @@ def _fixCompressor(scModel,gopLoader):
         file = getValue(node,'file','')
         if file[:-4].endswith('_compressed'):
             node['compressed'] = u'maskgen.video_tools.x264fast'
+
+def _fixVideoMasksEndFrame(scModel, gopLoader):
+    from maskgen import video_tools
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        masks = edge['videomasks'] if 'videomasks' in edge else []
+        end_time = getValue(edge, 'arguments.End Time')
+        for mask in masks:
+            if end_time is None and mask['type'] == 'video':
+                result = video_tools.getFrameCount(scModel.G.get_pathname(frm))
+                if 'endframe' not in result:
+                    continue
+                diff = result['endframe'] - mask['endframe']
+                if diff > 0 and diff < max(2,min(20,int(0.05 * result['frames']))):
+                    mask['endtime'] = result['endtime']
+                    mask['endframe'] = result['endframe']
+                    mask['frames'] = mask['endframe'] - mask['startframe'] + 1
 
 def _fixVideoMaskType(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
@@ -627,6 +645,9 @@ def _fixUserName(scModel,gopLoader):
     """
     from maskgen import software_loader
     names = software_loader.getFileName('ManipulatorCodeNames.txt')
+    if names is None:
+        logging.getLogger('maskgen').warn('Can not repair user names; ManipulatorCodeNames.txt is missing.')
+        return
     with open(names,'r') as f:
         allnames = [x.strip() for x in f.readlines()]
 

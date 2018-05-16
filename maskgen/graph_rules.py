@@ -843,8 +843,8 @@ def checkForAudio(op, graph, frm, to):
     if currentLink['op'] == 'AddAudioSample':
         sourceim, source = graph.get_image(frm)
         im, dest = graph.get_image(to)
-        sourcemetadata = getMeta(source, show_streams=True)[0]
-        destmetadata = getMeta(dest, show_streams=True)[0]
+        sourcemetadata = getMeta(source, show_streams=True,media_types=['audio'])[0]
+        destmetadata = getMeta(dest, show_streams=True,media_types=['audio'])[0]
         if len(sourcemetadata) > 0:
             sourcevidcount = len([idx for idx, val in enumerate(sourcemetadata) if val['codec_type'] != 'audio'])
         if len(destmetadata) > 0:

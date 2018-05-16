@@ -32,6 +32,7 @@ from PictureEditor import PictureEditor
 from CompositeViewer import  ScrollCompositeViewer
 from maskgen.validation.core import ValidationMessage,Severity,sortMessages
 from maskgen.ui.semantic_frame import *
+from maskgen.ui.ui_tools import SelectDialog,EntryDialog
 
 
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
@@ -636,10 +637,19 @@ class DescriptionCaptureDialog(Toplevel):
 
         return self.e1  # initial focus
 
+    def set_op_name(self,name):
+        self.opname.set(name)
+        self.newcommand(None)
+
     def select_op(self):
         if len(self.oplist) > 0:
-            SelectDialog(self, "Set Operation", "Select an operation", self.oplist, information="operation",
-                        initial_value=self.opname.get())
+            SelectDialog(self,
+                         "Set Operation",
+                         "Select an operation",
+                         self.oplist,
+                         information="operation",
+                         initial_value=self.opname.get(),
+                         callback=self.set_op_name)
         else:
             tkMessageBox.showerror("No Operations", "There are no available operations under the current category.")
 
@@ -2079,84 +2089,6 @@ class ButtonFrame(Frame):
     def openMask(self):
         openFile(os.path.join(self.dir, self.fileName))
 
-
-class SelectDialog(tkSimpleDialog.Dialog):
-    cancelled = True
-
-    def __init__(self, parent, name, description, values, initial_value=None, information=None):
-        self.description = description
-        self.values = values
-        self.parent = parent
-        self.initial_value = initial_value
-        self.name = name
-        self.information = information
-        tkSimpleDialog.Dialog.__init__(self, parent, name)
-
-    def body(self, master):
-        self.desc_lines = '\n'.join(self.description.split('.'))
-        self.desc_label = Label(master, text=self.desc_lines, wraplength=400)
-        self.desc_label.grid(row=0, sticky=N, columnspan=(3 if self.information else 1))
-        self.var1 = StringVar()
-        self.var1.set(self.values[0] if self.initial_value is None or self.initial_value not in self.values else self.initial_value)
-        self.e1 = OptionMenu(master, self.var1, *self.values)
-        self.e1.grid(row=1, column=0, sticky=N, columnspan=3 if self.information else 1)
-
-        if self.information:
-            from maskgen.ui.help_tools import HelpFrame
-
-            fr = HelpFrame(master, self.information, self.var1)
-            fr.grid(row=2, column=0, columnspan=3)
-
-    def cancel(self):
-        if self.cancelled:
-            self.choice = None
-        tkSimpleDialog.Dialog.cancel(self)
-
-    def apply(self):
-        self.cancelled = False
-        self.choice = self.var1.get()
-        if self.information == "operation":
-            self.parent.opname.set(self.var1.get())
-            self.parent.newcommand(None)
-
-
-class EntryDialog(tkSimpleDialog.Dialog):
-    cancelled = True
-
-    def __init__(self, parent, name, description, validateFunc, initialvalue=None):
-        self.description = description
-        self.validateFunc = validateFunc
-        self.parent = parent
-        self.name = name
-        self.initialvalue = initialvalue
-        tkSimpleDialog.Dialog.__init__(self, parent, name)
-
-    def body(self, master):
-        Label(master, text=self.description).grid(row=0, sticky=W)
-        self.e1 = Entry(master, takefocus=True)
-        if self.initialvalue:
-            self.e1.insert(0, self.initialvalue)
-        self.e1.grid(row=1, column=0)
-        self.lift()
-
-    def cancel(self):
-        if self.cancelled:
-            self.choice = None
-        tkSimpleDialog.Dialog.cancel(self)
-
-    def apply(self):
-        self.cancelled = False
-        self.choice = self.e1.get()
-
-    def validate(self):
-        v = self.e1.get()
-        if self.validateFunc and not self.validateFunc(v):
-            tkMessageBox.showwarning(
-                "Bad input",
-                "Illegal values, please try again"
-            )
-            return 0
-        return 1
 
 
 def createCompareDialog(master, im2, mask, nodeId, analysis, dir, linktype):
