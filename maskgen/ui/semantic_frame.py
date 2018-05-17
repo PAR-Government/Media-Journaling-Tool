@@ -1,7 +1,7 @@
-from maskgen.description_dialog import *
 from maskgen.ui.collapsing_frame import Accordion, Chord
 from maskgen.software_loader import *
-from tkinter import *
+from maskgen.ui.ui_tools import SelectDialog
+from Tkinter import *
 
 
 class SemanticFrame(Frame):

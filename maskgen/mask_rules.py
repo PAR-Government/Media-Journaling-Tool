@@ -2832,7 +2832,11 @@ class CompositeDelegate:
                 if _is_empty_composite(startMask):
                     startMask = None
                 try:
-                    donor_masks = self._constructDonor(edge_id[0], startMask)
+                    if getValue(exclusions, 'global.videodonors', False) and \
+                        type(edgeMask) !=  CompositeImage:
+                        donor_masks = {}
+                    else:
+                        donor_masks = self._constructDonor(edge_id[0], startMask)
                     imageDonorToNodes = self.__processImageDonor(donor_masks)
                     videoDonorToNodes = self.__processVideoDonor(donor_masks)
                     donors.extend(self.__saveDonors(edge_id[1], imageDonorToNodes, self.__imagePreprocess,
