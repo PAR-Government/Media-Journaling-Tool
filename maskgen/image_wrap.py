@@ -602,6 +602,7 @@ class ImageWrapper:
         gray_image_temp = self.convert('L')
         if len(s) == 3 and self.mode.find('A') > 0:
             gray_image = 255 * np.ones(gray_image_temp.image_array.shape).astype('uint8')
+            gray_image[gray_image_temp.image_array == 0] = 0
             gray_image[self.image_array[:, :, self.image_array.shape[2] - 1] == 0] = 0
         else:
             gray_image = np.ones(gray_image_temp.image_array.shape).astype('uint8') * 255

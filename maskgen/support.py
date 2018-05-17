@@ -131,6 +131,8 @@ def getValue(obj, path, defaultValue=None, convertFunction=None):
 
         This function recurses
     """
+    if obj is None:
+        return defaultValue
     if not path:
         return convertFunction(obj) if convertFunction and obj is not None else (defaultValue if obj is None else obj)
 
