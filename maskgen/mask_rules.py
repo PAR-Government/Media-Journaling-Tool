@@ -350,10 +350,10 @@ def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
     """
     import copy
 
-    def preprocess(func, video_masks):
-        return [func(mask) for mask in video_masks]
+    def preprocess(func, edge, video_masks):
+        return [func(mask,edge) for mask in video_masks]
 
-    def donothing(mask):
+    def donothing(mask, edge):
         return mask
 
     def replace_with_dir(directory, video_masks):
@@ -387,6 +387,7 @@ def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
     return None if len(video_masks) == 0 and not returnEmpty else \
          CompositeImage(source, target, media_type, [item for item in
                                                      preprocess(preprocess_func,
+                                                                edge,
                                                                 replace_with_dir(graph.dir, video_masks))])
 
 
@@ -676,10 +677,19 @@ def video_rotate_transform(buildState):
     return None
 
 
-def select_cut_frames_preprocess(mask):
+def image_selection_preprocess(mask, edge):
     """
+       :param mask:
+       :param edge
+       :return:
+       @type mask: dict
+       """
+    return mask
 
+def select_cut_frames_preprocess(mask, edge):
+    """
     :param mask:
+    :param edge
     :return:
     @type mask: dict
     """
@@ -2804,6 +2814,9 @@ class CompositeDelegate:
           @rtype list of DonorImage
         """
         donors = list()
+        if getValue(exclusions, 'global.donors', False):
+            return donors
+
         for edge_id in self.find_donor_edges():
             edge = self.graph.get_edge(edge_id[0], edge_id[1])
             startMask = None
@@ -2818,21 +2831,34 @@ class CompositeDelegate:
                     errorNotifier('constructDonors','Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     # we do need to invert because these masks are white=Keep(unchanged), Black=Remove (changed)
                     # we want to capture the 'unchanged' part, where as the other type we capture the changed part
+                elif tool_set.fileType(fullpath) in ['video','audio'] and 'videomasks' in edge:
+                    startMask = _prepare_video_masks(self.graph,
+                                                     video_tools.getMaskSetForEntireVideo(fullpath),
+                                                     tool_set.fileType(fullpath),
+                                                     edge_id[0],
+                                                     edge_id[1],
+                                                     edge,
+                                                     returnEmpty=False,
+                                                     operation=self.gopLoader.getOperationWithGroups(edge['op']))
                 else:
                     startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
+                    if startMask is not None and type(edgeMask) == type(startMask) and \
+                                    edgeMask.shape != startMask.shape and \
+                            getValue(exclusions, 'global.inputmaskname', False):
+                        errorNotifier('constructDonors',
+                                      'Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1], edge_id)
+                        startMask = None
                 if startMask is None and getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
-                    startMask = None
-                if startMask is not None and type(edgeMask) == type(startMask) and \
-                                edgeMask.shape != startMask.shape and \
-                        getValue(exclusions,'global.inputmaskname',False):
-                    errorNotifier('constructDonors','Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
-                    startMask = None
             if startMask is not None:
                 if _is_empty_composite(startMask):
                     startMask = None
                 try:
-                    donor_masks = self._constructDonor(edge_id[0], startMask)
+                    if getValue(exclusions, 'global.videodonors', False) and \
+                        type(startMask) == CompositeImage:
+                        donor_masks = {}
+                    else:
+                        donor_masks = self._constructDonor(edge_id[0], startMask)
                     imageDonorToNodes = self.__processImageDonor(donor_masks)
                     videoDonorToNodes = self.__processVideoDonor(donor_masks)
                     donors.extend(self.__saveDonors(edge_id[1], imageDonorToNodes, self.__imagePreprocess,

@@ -400,18 +400,8 @@ class PropertyFunction:
         return None
 
 class DescriptionCaptureDialog(Toplevel):
-    description = None
-    im = None
-    inputMaskName = None
-    dir = '.'
     photo = None
     c = None
-    moc = None
-    cancelled = True
-    sourcefiletype = 'image'
-    targetfiletype = 'image'
-    argvalues = {}
-    arginfo = []
 
     def __init__(self, parent, uiProfile, scModel, targetfiletype, end_im, name, description=None):
         """
@@ -425,13 +415,18 @@ class DescriptionCaptureDialog(Toplevel):
         :param description:
         @type scModel: ImageProjectModel
         """
+        self.im = None
         self.dir = scModel.get_dir()
         self.uiProfile = uiProfile
         self.end_im = end_im
         self.start_im = scModel.startImage()
         self.parent = parent
+        self.cancelled = True
         self.argBox = None
         self.scModel = scModel
+        self.argvalues = {}
+        self.arginfo = []
+        self.inputMaskName = None
         self.sourcefiletype = scModel.getStartType()
         self.targetfiletype = targetfiletype
         self.argvalues = description.arguments if description is not None else {}
@@ -1057,23 +1052,23 @@ class VideoCompareDialog(tkSimpleDialog.Dialog):
 
 
 class FilterCaptureDialog(tkSimpleDialog.Dialog):
-    im = None
-    photo = None
-    c = None
-    optocall = None
-    argvalues = {}
-    cancelled = True
-    okButton = None
 
     def __init__(self, parent, groupFilterLoader, scModel):
         im, filename = scModel.currentImage()
         self.gfl = groupFilterLoader
         self.pluginOps = self.gfl.getOperations(scModel.getStartType(),None)
         self.im = im
+        self.c = None
         self.dir = scModel.get_dir()
         self.parent = parent
         self.scModel = scModel
+        self.okButton = None
+        self.photo= None
         self.argBox = None
+        self.optocall = None
+        self.cancelled = True
+        self.arginfo = {}
+        self.argvalues = {}
         self.softwareLoader = SoftwareLoader()
         self.sourcefiletype = scModel.getStartType()
         tkSimpleDialog.Dialog.__init__(self, parent, os.path.split(filename)[1])

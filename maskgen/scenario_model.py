@@ -811,32 +811,11 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
-        destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = ImageWrapper(
-            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
-        maskSet = []
-        errors = list()
+        mask = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
         if op == 'Donor':
-            maskSet, errors = self._constructDonorMask(startFileName,
-                                                       destFileName,
-                                                       start,
-                                                       destination,
-                                                       scModel,
-                                                       invert=invert,
-                                                       arguments=consolidate(arguments,
-                                                                             analysis_params))
-        # for now, just save the first mask
-        if len(maskSet) > 0:
-            mask = ImageWrapper(maskSet[0]['mask'])
-            for item in maskSet:
-                item.pop('mask')
-        analysis['masks count'] = len(maskSet)
-        analysis['videomasks'] = maskSet
-        analysis = analysis if analysis is not None else {}
-        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='image.video',
-                          arguments=consolidate(arguments, analysis_params),
-                          start=start, end=destination, scModel=scModel)
-        return mask, analysis, errors
+            mask = startIm.to_mask()
+        return mask, {}, ()
 
 
 class ImageZipAudioLinkTool(VideoAudioLinkTool):

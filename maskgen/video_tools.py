@@ -433,20 +433,19 @@ def ffmpegToolTest():
         return ffmpegcommand[0] + ' not installed properly'
     return None
 
+global loaded_codecs
+loaded_codecs = None
 def get_valid_codecs(codec_type='video'):
     """
     Returns a list of valid Codecs given a string determining which type of codec.
     :param codec_type: string, determines kind of codec.
     :returns: a list of strings, codec names.
     """
-    valid_codecs = ['Use Donor']
-    codecs = (runffmpeg(['-codecs'], False).split("\n")[10:-1]
+    global loaded_codecs
+    if loaded_codecs is None:
+        loaded_codecs = (runffmpeg(['-codecs'], False).split("\n")[10:-1]
               + runffmpeg(['-encoders'], False).split("\n")[10:-1])
-    for line in codecs:
-        valid = parse_codec_list(line, codec_type)
-        if valid != '':
-            valid_codecs.append(valid)
-    return valid_codecs
+    return [codec for codec in [parse_codec_list(line, codec_type) for line in loaded_codecs] if codec != '']
 
 def parse_codec_list(line, codec_type='video'):
     """
@@ -571,14 +570,11 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     frmcnt = 0
     startcomplete = False
     framessince_start = 1 if start_time_tuple[0] == 0 else 0
-    mask = {}
+    mask = {'starttime':0,'startframe':1}
     last = 0
     cap = cv2api_delegate.videoCapture(video_file)
     try:
-        while True:
-            grabbed = cap.grab()
-            if not grabbed:
-                break
+        while cap.grab():
             frmcnt+=1
             aptime = cap.get(cv2api_delegate.prop_pos_msec)
             if last >= start_time_tuple[0] and not startcomplete:
@@ -642,7 +638,18 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
             mask['rate'] = rate
             mask['type'] = item['codec_type']
             if mask['type'] == 'video':
-                mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple,end_time_tuple=end_time_tuple))
+                if 'nb_frames' in item and item['nb_frames'][0] not in ['N','0'] and end_time_tuple is None and \
+                        start_time_tuple in [(0,0),(0,1)]:
+                    try:
+                        mask['frames'] = int(item['nb_frames'])
+                        mask['starttime'] = 0
+                        mask['startframe'] = 1
+                        mask['endframe'] = mask['frames']
+                        mask['endtime'] = mask['endframe']/rate*1000.0
+                    except:
+                        mask.update(getFrameCount(video_file))
+                else:
+                   mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple,end_time_tuple=end_time_tuple))
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             else:
                 mask['starttime'] = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0

@@ -19,9 +19,30 @@
         },
         "encoding": {
           "type":"list",
-          "value": ["J2K","J2C","JP2"],
-          "defaultvalue":"1",
+          "values": ["J2K","J2C","JP2"],
+          "defaultvalue":"JP2",
           "description":"Encoding"
+        },
+        "progression": {
+          "type":"list",
+          "values": ["LRCP","RLCP","RPCL","PCRL","CPRL"],
+          "defaultvalue":"LRCP",
+          "description":"Progression Order"
+        },
+        "quality layers": {
+          "type":"int[1:100]",
+          "defaultvalue":"1",
+          "description":"Number of quality layers"
+        },
+        "tile width": {
+          "type":"int[1:1000000]",
+          "defaultvalue":"1024",
+          "description":"Tile Size"
+        },
+        "tile height": {
+          "type":"int[1:1000000]",
+          "defaultvalue":"1024",
+          "description":"Tile Size"
         }
       },
       "transitions": ["image.image"]
@@ -36,6 +57,14 @@
         "{encoding}",
         "-define",
         "jp2:number-resolutions={resolutions}",
+         "-define",
+        "jp2:progression-order={progression}",
+        "-define",
+        "jp2:quality={quality layers}",
+        "-define",
+        "jp2:tilewidth={tile width}",
+        "-define",
+        "jp2:tileheight={tile height}",
         "-quality",
         "{quality}",
         "{outputimage}"
@@ -47,6 +76,14 @@
         "{encoding}",
         "-define",
         "jp2:number-resolutions={resolutions}",
+         "-define",
+        "jp2:progression-order={progression}",
+        "-define",
+        "jp2:quality={quality layers}",
+        "-define",
+        "jp2:tilewidth={tile width}",
+        "-define",
+        "jp2:tileheight={tile height}",
         "-quality",
         "{quality}",
         "{outputimage}"

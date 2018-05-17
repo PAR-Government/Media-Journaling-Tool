@@ -4365,7 +4365,8 @@
         "default": false
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.image_selection"
+        "video": "maskgen.mask_rules.image_selection",
+        "video_preprocess": "maskgen.mask_rules.image_selection_preprocess"
       },
       "transitions": [
         "video.image"
