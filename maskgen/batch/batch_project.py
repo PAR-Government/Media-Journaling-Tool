@@ -919,9 +919,12 @@ class InputMaskPluginOperation(PluginOperation):
             predecessor_state = getNodeStateFromPredecessor(node_name, local_state, graph)
         else:
             predecessor_state = getNodeState(connect_to_node_name, local_state)
+        if 'node' not in predecessor_state:
+            raise ValueError('image selection operation requires a source node')
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
+        prnu = node['prnu'] if 'prnu' in node else False
         plugin_op = plugins.getOperation(plugin_name)
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
@@ -934,7 +937,7 @@ class InputMaskPluginOperation(PluginOperation):
             self.logger.debug('Calling plugin {} for {} with args {}'.format(filter,
                                                                              filename,
                                                                              str(args)))
-        targetfile, params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, **args)
+        targetfile, params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, prnu, **args)
         if (self.logger.isEnabledFor(logging.DEBUG)):
             self.logger.debug('Plugin {} returned args {}'.format(filter,str(params)))
         my_state['output'] = targetfile
@@ -948,7 +951,7 @@ class InputMaskPluginOperation(PluginOperation):
             return os.path.join(local_state['model'].get_dir(), local_state['model'].getFileName(v))
         return v
 
-    def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
+    def imageFromPlugin(self, filter, im, filename, node_name, local_state, prnu, **kwargs):
         import tempfile
         """
           @type filter: str
@@ -989,7 +992,7 @@ class InputMaskPluginOperation(PluginOperation):
 class ImageSelectionPluginOperation(InputMaskPluginOperation):
     logger = logging.getLogger('maskgen')
 
-    def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
+    def imageFromPlugin(self, filter, im, filename, node_name, local_state, prnu, **kwargs):
         import tempfile
         """
           @type filter: str
@@ -1013,7 +1016,7 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
             else:
                 pick = extra_args.pop('file')
                 logging.getLogger('maskgen').info('Picking file {}'.format(pick))
-                getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick)
+                getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick, prnu=prnu)
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
                     if k not in kwargs:

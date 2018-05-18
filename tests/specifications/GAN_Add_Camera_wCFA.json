@@ -1,0 +1,165 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "Flamingo",
+    "name": "",
+    "organization": "Wonderland",
+    "projectDescription": "GAN generated images with some Antiforensics applied.",
+    "technicalSummary": "Automated: Apply Antiforensics to GAN images",
+    "semanticrestaging": "no",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "recompress": false
+  },
+  "nodes":[
+	{
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "Base",
+      "arguments": {"cgi":"yes", "isgan":"yes"},
+      "semanticGroups":["GANface"]
+    },
+    {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "JSONSelector",
+      "id":"Selector",
+      "prnu":true,
+      "arguments": {"Json File": "{json_path}", "Index":"0", "File Key":"prnu"}
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "JpgFromCamera",
+      "id": "Camera Output1",
+      "arguments":{
+        "qtfile":{
+          "type": "variable",
+          "source":"Selector",
+          "name": "qtable"
+        },
+        "rotate":{
+          "type": "value",
+          "value": "no"
+        },
+        "quality":{
+          "type": "value",
+          "value": "100"
+        }
+      }
+	},
+    {
+      "op_type":"PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id":"PRNU Added",
+      "arguments":{
+        "donor": {
+          "type": "donor",
+          "source": "Selector",
+          "name": "prnu"
+        },
+        "donor is prnu":{
+          "type": "value",
+          "value": "yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "JpgFromCamera",
+      "id": "Camera Output2",
+      "arguments": {
+        "qtfile": {
+          "type": "variable",
+          "source": "Selector",
+          "name": "qtable"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        },
+        "quality": {
+          "type": "value",
+          "value": "100"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CameraModelGan",
+      "id": "CFA GAN",
+      "arguments": {
+        "Camera Model": {
+          "type": "variable",
+          "source": "Selector",
+          "name": "model"
+        },
+        "Camera Make": {
+          "type": "variable",
+          "source": "Selector",
+          "name":"make"
+        },
+        "model": {
+          "type": "variable",
+          "source": "Selector",
+          "name":"model_path"
+        }
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "JpgFromCamera",
+      "id": "Camera Output3",
+      "arguments":{
+        "qtfile":{
+          "type": "variable",
+          "source":"Selector",
+          "name": "qtable"
+        },
+        "rotate":{
+          "type": "value",
+          "value": "no"
+        },
+        "quality":{
+          "type": "value",
+          "value": "100"
+        }
+      }
+	}
+    ],
+  "links":[
+    {
+	  "source":"Base",
+	  "target":"Camera Output1"
+    },
+    {
+      "source":"Base",
+	  "target":"Selector",
+      "connect":false
+    },
+    {
+      "source":"Selector",
+      "target":"Camera Output1",
+      "connect":false
+    },
+    {
+      "source":"Selector",
+      "target":"PRNU Added"
+    },
+    {
+      "source": "Base",
+      "target": "PRNU Added"
+    },
+    {
+      "source": "PRNU Added",
+      "target": "Camera Output2"
+    },
+    {
+      "source": "PRNU Added",
+      "target": "CFA GAN"
+    },
+    {
+      "source": "CFA GAN",
+      "target": "Camera Output3"
+    }
+    ]
+}
