@@ -850,6 +850,8 @@ class PluginOperation(BatchOperation):
             raise ValueError('Invalid argument ({}) for node {}'.format(ex.message, node_name))
         if 'experiment_id' in node:
             args['experiment_id'] = node['experiment_id']
+        if node_name in getValue(global_state,'passthrus',[]):
+            args['passthru']= True
         args['skipRules'] = True
         args['sendNotifications'] = False
         args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []
@@ -857,7 +859,7 @@ class PluginOperation(BatchOperation):
             self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                        filename,
                                                                        str(args)))
-        errors, pairs = local_state['model'].imageFromPlugin(plugin_name , **args)
+        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
             real_error = None
             for error in errors:
@@ -1509,7 +1511,8 @@ class BatchExecutor:
                  removeBadProjects=True,
                  stopOnError=False,
                  fromFailedStateFile=None,
-                 testMode=False):
+                 testMode=False,
+                 passthrus=[]):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1520,6 +1523,7 @@ class BatchExecutor:
         :param removeBadProjects: projects that failed are removed
         :param stopOnError: stop processing if an error occurs
         :param fromFailedStateFile: a file containing failed state of permutations groups from which to run
+        :param passthrus: list of plugins to pass thru / do not run
         @type results : str
         @type workdir : str
         @type global_variables : dict
@@ -1529,6 +1533,7 @@ class BatchExecutor:
         @type removeBadProjects: bool
         @type stopOnError: bool
         @type fromFailedStateFile: str
+        @type passthru: list of str
         """
         if not os.path.exists(results):
             os.mkdir(results)
@@ -1557,6 +1562,8 @@ class BatchExecutor:
         self.initialState = updateAndInitializeGlobalState(self.initialState,
                                                            global_variables=global_variables,
                                                            initializers=initializers)
+        if len(passthrus) > 0:
+            self.initialState.update({'passthrus':passthrus})
 
     def __setupThreads(self, threads_count):
         self.threads = []
@@ -1644,6 +1651,7 @@ def main():
     parser.add_argument('--keep_failed',required=False,action='store_true')
     parser.add_argument('--stop_on_error', required=False, action='store_true')
     parser.add_argument('--test', required=False, action='store_true')
+    parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.specification)
@@ -1656,7 +1664,8 @@ def main():
                        stopOnError=args.stop_on_error,
                        removeBadProjects=not args.keep_failed,
                        fromFailedStateFile=args.from_state,
-                       testMode=args.test)
+                       testMode=args.test,
+                       passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
 
     notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
 

@@ -27,7 +27,7 @@ from maskgen.batch import pick_projects, BatchProcessor, pick_zipped_projects
 from batch_project import loadJSONGraph, BatchProject, updateAndInitializeGlobalState
 from maskgen.image_graph import extract_archive
 from maskgen.userinfo import setPwdX, CustomPwdX
-
+from maskgen.loghandling import set_logging,set_logging_level
 
 
 def args_to_map(args, op):
@@ -248,7 +248,7 @@ def processAnyProject(batchSpecification, extensionRules, outputGraph, workdir, 
 
 def processSpecification(specification, extensionRules, projects_directory, completeFile=None, outputGraph=False,
                          threads=1, loglevel=None, global_variables='',
-                         initializers=None):
+                         initializers=None,passthrus=[]):
     """
     Perform a plugin operation on all projects in directory
     :param projects_directory: directory of projects
@@ -260,6 +260,11 @@ def processSpecification(specification, extensionRules, projects_directory, comp
     batch = loadJSONGraph(specification)
     rules = parseRules(extensionRules)
     global_state = updateAndInitializeGlobalState(dict(), global_variables, initializers)
+    if len(passthrus) > 0:
+        global_state['passthrus'] = passthrus
+    if loglevel is not None:
+            logging.getLogger('maskgen').setLevel(logging.INFO if loglevel is None else int(loglevel))
+            set_logging_level(logging.INFO if loglevel is None else int(loglevel))
     if batch is None:
         return
     iterator = pick_projects(projects_directory)
@@ -481,6 +486,7 @@ def main():
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
     parser.add_argument('--test', required=False,action='store_true', help='test extension')
+    parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
 
     args = parser.parse_args()
 
@@ -535,7 +541,8 @@ def main():
             sys.exit(-1)
         processSpecification(args.specification, args.extensionRules, args.projects, completeFile=args.completeFile,
                              outputGraph=args.graph, threads=int(args.threads), loglevel=args.loglevel,
-                             global_variables=args.global_variables, initializers=args.initializers)
+                             global_variables=args.global_variables, initializers=args.initializers,
+                             passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
     # perform the specified operation
     elif args.plugin:
         if args.projects is None:

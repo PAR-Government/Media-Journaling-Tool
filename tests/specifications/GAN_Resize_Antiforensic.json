@@ -47,8 +47,7 @@
       "arguments":{
         "donor": {
           "type": "donor",
-          "source": "Selector",
-          "name": "prnu"
+          "source": "Selector"
         }
       }
     },
@@ -59,8 +58,7 @@
       "arguments":{
         "donor": {
           "type": "donor",
-          "source": "Selector",
-          "name": "prnu"
+          "source": "Selector"
         },
         "donor is prnu":"yes"
       }
@@ -78,6 +76,7 @@
     {
       "op_type": "PluginOperation",
       "plugin": "CameraModelGan",
+      "source":"Resize",
       "id": "CFAGAN",
       "arguments": {
         "Camera Model": "{model@Selector}",
@@ -142,11 +141,16 @@
       "connect":false
     },
     {
-      "source":"Selector",
-      "target":"PRNUAdded",
-      "donor":true
+      "source":"Resize",
+      "target":"CFAGAN",
+       "split":true
     },
      {
+      "source":"Multi",
+      "target":"CFAGAN",
+       "split":true
+    },
+    {
       "source": "CFAGAN",
       "target": "CompressAsCFA"
     },

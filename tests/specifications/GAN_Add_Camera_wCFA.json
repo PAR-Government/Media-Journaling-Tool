@@ -11,54 +11,62 @@
     "semanticrefabrication": "no",
     "recompress": false
   },
-  "nodes":[
+  "nodes": [
     {
       "op_type": "BaseSelection",
       "image_directory": "{image_dir}",
       "picklist": "imageset",
       "id": "Base",
-      "arguments": {"cgi":"yes", "isgan":"yes", "subject":"face"}
+      "arguments": {
+        "cgi": "yes",
+        "isgan": "yes",
+        "subject": "face"
+      }
     },
     {
       "op_type": "ImageSelectionPluginOperation",
       "plugin": "JSONSelector",
-      "id":"Selector",
-      "prnu":true,
-      "arguments": {"Json File": "{json_path}", "Index":0, "File Key":"prnu"}
-    },
-    {
-      "op_type":"PluginOperation",
-      "plugin": "JpgFromCamera",
-      "id": "Camera Output1",
-      "arguments":{
-        "qtfile":"{qtable@Selector}",
-        "rotate":"no",
-        "quality":100
+      "id": "Selector",
+      "prnu": true,
+      "arguments": {
+        "Json File": "{json_path}",
+        "Index": 0,
+        "File Key": "prnu"
       }
     },
-      {
-      "op_type":"PluginOperation",
+    {
+      "op_type": "PluginOperation",
+      "plugin": "JpgFromCamera",
+      "id": "Camera Output1",
+      "arguments": {
+        "qtfile": "{qtable@Selector}",
+        "rotate": "no",
+        "quality": 100
+      }
+    },
+    {
+      "op_type": "PluginOperation",
       "plugin": "CropToFitDonor",
-      "id":"CropCFA",
-      "arguments":{
+      "id": "CropCFA",
+      "source": "Base",
+      "arguments": {
         "donor": {
           "type": "donor",
-          "source": "Selector",
-          "name": "prnu"
+          "source": "Selector"
         }
       }
     },
     {
-      "op_type":"PluginOperation",
+      "op_type": "PluginOperation",
       "plugin": "PRNU-AddFromDonor",
-      "id":"PRNU Added",
-      "arguments":{
+      "id": "PRNUAdded",
+      "arguments": {
         "donor": {
           "type": "donor",
           "source": "Selector",
           "name": "prnu"
         },
-        "donor is prnu":"yes"
+        "donor is prnu": "yes"
       }
     },
     {
@@ -74,7 +82,7 @@
     {
       "op_type": "PluginOperation",
       "plugin": "CameraModelGan",
-      "id": "CFA GAN",
+      "id": "CFAGAN",
       "arguments": {
         "Camera Model": "{model@Selector}",
         "Camera Make": "{make@Selector}",
@@ -82,54 +90,59 @@
       }
     },
     {
-      "op_type":"PluginOperation",
+      "op_type": "PluginOperation",
       "plugin": "JpgFromCamera",
       "id": "Camera Output3",
-      "arguments":{
-        "qtfile":"{qtable@Selector}",
-        "rotate":"no",
-        "quality":100
+      "arguments": {
+        "qtfile": "{qtable@Selector}",
+        "rotate": "no",
+        "quality": 100
       }
     }
-    ],
-  "links":[
+  ],
+  "links": [
     {
-	  "source":"Base",
-	  "target":"Camera Output1"
+      "source": "Base",
+      "target": "Camera Output1"
     },
     {
-      "source":"Base",
-	  "target":"Selector",
-      "connect":false
+      "source": "Base",
+      "target": "Selector",
+      "connect": false
     },
     {
-      "source":"Selector",
-      "target":"Camera Output1",
-      "connect":false
+      "source": "Selector",
+      "target": "Camera Output1",
+      "connect": false
     },
     {
-      "source":"Selector",
-      "target":"PRNU Added"
+      "source": "Selector",
+      "target": "PRNUAdded"
     },
-     {
+    {
       "source": "Base",
       "target": "CropCFA"
     },
     {
-      "source": "CropCFA",
-      "target": "PRNU Added"
+      "source": "Selector",
+      "target": "CropCFA",
+      "connect": false
     },
     {
-      "source": "PRNU Added",
+      "source": "CropCFA",
+      "target": "PRNUAdded"
+    },
+    {
+      "source": "PRNUAdded",
       "target": "Camera Output2"
     },
     {
-      "source": "PRNU Added",
-      "target": "CFA GAN"
+      "source": "PRNUAdded",
+      "target": "CFAGAN"
     },
     {
-      "source": "CFA GAN",
+      "source": "CFAGAN",
       "target": "Camera Output3"
     }
-    ]
+  ]
 }
