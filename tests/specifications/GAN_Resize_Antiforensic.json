@@ -1,8 +1,8 @@
 {
   "directed": true,
   "graph": {
-    "username": "flamingo",
-    "name": "CFAGan",
+    "username": "dupre",
+    "name": "gan_resize",
     "organization": "wonderland",
     "projectDescription": "GAN generated images with some Antiforensics applied.",
     "technicalSummary": "Automated: Apply Antiforensics to GAN images",
@@ -13,11 +13,9 @@
   },
   "nodes":[
     {
-      "op_type": "BaseSelection",
-      "image_directory": "{image_dir}",
-      "picklist": "imageset",
-      "id": "Base",
-      "arguments": {"cgi":"yes", "isgan":"yes", "subject":"face"}
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base_PNG"
     },
     {
       "op_type": "ImageSelectionPluginOperation",
@@ -28,15 +26,21 @@
     },
     {
       "op_type":"PluginOperation",
-      "plugin": "JpgFromCamera",
-      "id": "Camera Output1",
+      "plugin": "AntiforensicDrexelErasureGAN",
+      "id": "Resize",
       "arguments":{
-        "qtfile":"{qtable@Selector}",
-        "rotate":"no",
-        "quality":100
+        "model":"{models}/resize_GAN_model.npz"
       }
     },
-      {
+    {
+      "op_type":"PluginOperation",
+      "plugin": "AntiforensicDrexelErasureGAN",
+      "id": "Multi",
+      "arguments":{
+        "model":"{models}/multi-manip_GAN_model.npz"
+      }
+    },
+     {
       "op_type":"PluginOperation",
       "plugin": "CropToFitDonor",
       "id":"CropCFA",
@@ -51,7 +55,7 @@
     {
       "op_type":"PluginOperation",
       "plugin": "PRNU-AddFromDonor",
-      "id":"PRNU Added",
+      "id":"PRNUAdded",
       "arguments":{
         "donor": {
           "type": "donor",
@@ -64,7 +68,7 @@
     {
       "op_type": "PluginOperation",
       "plugin": "JpgFromCamera",
-      "id": "Camera Output2",
+      "id": "CameraAdded",
       "arguments": {
         "qtfile": "{qtable@Selector}",
         "rotate": "no",
@@ -74,7 +78,7 @@
     {
       "op_type": "PluginOperation",
       "plugin": "CameraModelGan",
-      "id": "CFA GAN",
+      "id": "CFAGAN",
       "arguments": {
         "Camera Model": "{model@Selector}",
         "Camera Make": "{make@Selector}",
@@ -82,54 +86,89 @@
       }
     },
     {
-      "op_type":"PluginOperation",
-      "plugin": "JpgFromCamera",
-      "id": "Camera Output3",
-      "arguments":{
-        "qtfile":"{qtable@Selector}",
-        "rotate":"no",
-        "quality":100
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsResize",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsMulti",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsCFA",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
       }
     }
     ],
   "links":[
     {
-	  "source":"Base",
-	  "target":"Camera Output1"
+	  "source":"base_PNG",
+	  "target":"Multi"
     },
     {
-      "source":"Base",
+      "source":"base_PNG",
 	  "target":"Selector",
       "connect":false
     },
     {
+	  "source":"base_PNG",
+	  "target":"Resize"
+    },
+    {
       "source":"Selector",
-      "target":"Camera Output1",
+      "target":"CFAGAN",
       "connect":false
     },
     {
       "source":"Selector",
-      "target":"PRNU Added"
+      "target":"PRNUAdded",
+      "donor":true
     },
      {
-      "source": "Base",
+      "source": "CFAGAN",
+      "target": "CompressAsCFA"
+    },
+     {
+      "source": "CFAGAN",
       "target": "CropCFA"
     },
     {
       "source": "CropCFA",
-      "target": "PRNU Added"
+      "target": "PRNUAdded"
     },
     {
-      "source": "PRNU Added",
-      "target": "Camera Output2"
+      "source": "PRNUAdded",
+      "target": "CameraAdded"
     },
     {
-      "source": "PRNU Added",
-      "target": "CFA GAN"
+      "source": "Resize",
+      "target": "CompressAsResize"
     },
     {
-      "source": "CFA GAN",
-      "target": "Camera Output3"
+      "source": "Multi",
+      "target": "CompressAsMulti"
     }
     ]
 }

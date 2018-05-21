@@ -907,6 +907,9 @@ class MakeGenUI(Frame):
         self.setSelectState('normal')
 
     def changeEvent(self, recipient, eventType, **kwargs):
+        # UI not setup yet.  Occurs when imagedir is used at command line
+        if self.canvas is None:
+            return
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
             return True

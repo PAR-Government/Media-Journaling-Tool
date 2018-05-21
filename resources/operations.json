@@ -1555,6 +1555,26 @@
     },
     {
       "category": "AntiForensic",
+      "name": "ErasureByGAN",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize",
+        "check_eight_bit",
+        "checkEmpty"
+      ],
+      "optionalparameters": {},
+      "description": "Remove effects of manipulations depending on the GAN model and architecture",
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image",
+        "video.video"
+      ]
+    },
+    {
+      "category": "AntiForensic",
       "name": "AberrationCorrection",
       "mandatoryparameters": {
       },
@@ -5664,6 +5684,19 @@
       }
     },
     "image": {
+       "subject": {
+          "type": "list",
+          "values": [
+            "people",
+            "face",
+            "natural object",
+            "man-made object",
+            "large man-made object",
+            "landscape",
+            "other"
+          ],
+          "description": "Primary subject of image"
+       },
       "cgi": {
         "type": "yesno",
         "description": "Is CGI?"

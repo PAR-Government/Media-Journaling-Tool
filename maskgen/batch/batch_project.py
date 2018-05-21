@@ -360,6 +360,12 @@ def callPluginSpec(specification, local_state, global_state, postProcess):
                                                       state=local_state[specification['state_name']])
     return pluginSpecFuncs[specification['name']](parameters)
 
+def specType(specification):
+    if type(specification) != dict or 'type' not in specification:
+        return 'value'
+    else:
+        return specification['type']
+
 def executeParamSpec(specification_name, specification, global_state, local_state, node_name, predecessors):
     """
     :param specification:
@@ -372,13 +378,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     """
     if type(specification) != dict:
         specification = {'value':specification}
-    if 'type' not in specification:
-        if 'value' not in specification:
-            raise ValueError('type attribute missing in  {}'.format(specification_name))
-        else:
-            spec_type = 'value'
-    else:
-        spec_type = specification['type']
+    spec_type = specType(specification)
     donothing = lambda x:  x
     postProcess = getRule(specification['function'],noopRule=donothing)  if 'function' in specification else donothing
     if spec_type == 'mask':
@@ -1307,9 +1307,10 @@ class BatchProject:
             node = self.G.node[node_name]
             if 'arguments' in node:
                 for name, spec in node['arguments'].iteritems():
-                    if 'permutegroup' in spec and spec['type'] != 'variable':
-                        permuteGroupManager.loadParameter(spec['permutegroup'],
-                                                          buildIterator(node_name + '.' + name, spec, global_state))
+                    specification = {'value': spec} if type(spec) != dict else spec
+                    if 'permutegroup' in specification and specType(specification) not in ['value','variable']:
+                        permuteGroupManager.loadParameter(specification['permutegroup'],
+                                                          buildIterator(node_name + '.' + name, specification, global_state))
             if 'op_type' in node and node['op_type'] in ['BaseSelection', 'ImageSelection']:
                 permutegroup = node['permutegroup'] if 'permutegroup' in node else None
                 permuteGroupManager.loadParameter(permutegroup,
@@ -1628,12 +1629,12 @@ class BatchExecutor:
 def main():
     global threadGlobalState
     parser = argparse.ArgumentParser()
-    parser.add_argument('--json', required=True, help='JSON File')
+    parser.add_argument('--specification', required=True, help='JSON File')
     parser.add_argument('--count', required=False, help='number of projects to build')
     parser.add_argument('--threads', required=False, help='number of projects to build')
     parser.add_argument('--workdir', required=False,
                         help='directory to maintain and look for lock list, logging and permutation files')
-    parser.add_argument('--results', required=True, help='project results directory')
+    parser.add_argument('--projects', required=True, help='project results directory')
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--graph', required=False, action='store_true', help='create graph PNG file')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
@@ -1645,8 +1646,8 @@ def main():
     parser.add_argument('--test', required=False, action='store_true')
     args = parser.parse_args()
 
-    batchProject = loadJSONGraph(args.json)
-    be = BatchExecutor(args.results,
+    batchProject = loadJSONGraph(args.specification)
+    be = BatchExecutor(args.projects,
                        workdir='.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir,
                        global_variables=args.global_variables,
                        initializers=args.initializers,
