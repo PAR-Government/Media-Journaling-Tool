@@ -360,6 +360,12 @@ def callPluginSpec(specification, local_state, global_state, postProcess):
                                                       state=local_state[specification['state_name']])
     return pluginSpecFuncs[specification['name']](parameters)
 
+def specType(specification):
+    if type(specification) != dict or 'type' not in specification:
+        return 'value'
+    else:
+        return specification['type']
+
 def executeParamSpec(specification_name, specification, global_state, local_state, node_name, predecessors):
     """
     :param specification:
@@ -372,13 +378,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     """
     if type(specification) != dict:
         specification = {'value':specification}
-    if 'type' not in specification:
-        if 'value' not in specification:
-            raise ValueError('type attribute missing in  {}'.format(specification_name))
-        else:
-            spec_type = 'value'
-    else:
-        spec_type = specification['type']
+    spec_type = specType(specification)
     donothing = lambda x:  x
     postProcess = getRule(specification['function'],noopRule=donothing)  if 'function' in specification else donothing
     if spec_type == 'mask':
@@ -850,6 +850,8 @@ class PluginOperation(BatchOperation):
             raise ValueError('Invalid argument ({}) for node {}'.format(ex.message, node_name))
         if 'experiment_id' in node:
             args['experiment_id'] = node['experiment_id']
+        if node_name in getValue(global_state,'passthrus',[]):
+            args['passthru']= True
         args['skipRules'] = True
         args['sendNotifications'] = False
         args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []
@@ -857,7 +859,7 @@ class PluginOperation(BatchOperation):
             self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                        filename,
                                                                        str(args)))
-        errors, pairs = local_state['model'].imageFromPlugin(plugin_name , **args)
+        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
             real_error = None
             for error in errors:
@@ -919,9 +921,12 @@ class InputMaskPluginOperation(PluginOperation):
             predecessor_state = getNodeStateFromPredecessor(node_name, local_state, graph)
         else:
             predecessor_state = getNodeState(connect_to_node_name, local_state)
+        if 'node' not in predecessor_state:
+            raise ValueError('image selection operation requires a source node')
         local_state['model'].selectImage(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
+        prnu = node['prnu'] if 'prnu' in node else False
         plugin_op = plugins.getOperation(plugin_name)
         if plugin_op is None:
             raise ValueError('Invalid plugin name "' + plugin_name + '" with node ' + node_name)
@@ -934,7 +939,7 @@ class InputMaskPluginOperation(PluginOperation):
             self.logger.debug('Calling plugin {} for {} with args {}'.format(filter,
                                                                              filename,
                                                                              str(args)))
-        targetfile, params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, **args)
+        targetfile, params = self.imageFromPlugin(plugin_name, im, filename, node_name, local_state, prnu, **args)
         if (self.logger.isEnabledFor(logging.DEBUG)):
             self.logger.debug('Plugin {} returned args {}'.format(filter,str(params)))
         my_state['output'] = targetfile
@@ -948,7 +953,7 @@ class InputMaskPluginOperation(PluginOperation):
             return os.path.join(local_state['model'].get_dir(), local_state['model'].getFileName(v))
         return v
 
-    def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
+    def imageFromPlugin(self, filter, im, filename, node_name, local_state, prnu, **kwargs):
         import tempfile
         """
           @type filter: str
@@ -989,7 +994,7 @@ class InputMaskPluginOperation(PluginOperation):
 class ImageSelectionPluginOperation(InputMaskPluginOperation):
     logger = logging.getLogger('maskgen')
 
-    def imageFromPlugin(self, filter, im, filename, node_name, local_state, **kwargs):
+    def imageFromPlugin(self, filter, im, filename, node_name, local_state, prnu, **kwargs):
         import tempfile
         """
           @type filter: str
@@ -1013,7 +1018,7 @@ class ImageSelectionPluginOperation(InputMaskPluginOperation):
             else:
                 pick = extra_args.pop('file')
                 logging.getLogger('maskgen').info('Picking file {}'.format(pick))
-                getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick)
+                getNodeState(node_name, local_state)['node'] = local_state['model'].addImage(pick, prnu=prnu)
             if extra_args is not None and type(extra_args) == type({}):
                 for k, v in extra_args.iteritems():
                     if k not in kwargs:
@@ -1304,9 +1309,10 @@ class BatchProject:
             node = self.G.node[node_name]
             if 'arguments' in node:
                 for name, spec in node['arguments'].iteritems():
-                    if 'permutegroup' in spec and spec['type'] != 'variable':
-                        permuteGroupManager.loadParameter(spec['permutegroup'],
-                                                          buildIterator(node_name + '.' + name, spec, global_state))
+                    specification = {'value': spec} if type(spec) != dict else spec
+                    if 'permutegroup' in specification and specType(specification) not in ['value','variable']:
+                        permuteGroupManager.loadParameter(specification['permutegroup'],
+                                                          buildIterator(node_name + '.' + name, specification, global_state))
             if 'op_type' in node and node['op_type'] in ['BaseSelection', 'ImageSelection']:
                 permutegroup = node['permutegroup'] if 'permutegroup' in node else None
                 permuteGroupManager.loadParameter(permutegroup,
@@ -1505,7 +1511,8 @@ class BatchExecutor:
                  removeBadProjects=True,
                  stopOnError=False,
                  fromFailedStateFile=None,
-                 testMode=False):
+                 testMode=False,
+                 passthrus=[]):
         """
         :param results:  project results directory
         :param workdir:  working directory for pool lists and other permutation states
@@ -1516,6 +1523,7 @@ class BatchExecutor:
         :param removeBadProjects: projects that failed are removed
         :param stopOnError: stop processing if an error occurs
         :param fromFailedStateFile: a file containing failed state of permutations groups from which to run
+        :param passthrus: list of plugins to pass thru / do not run
         @type results : str
         @type workdir : str
         @type global_variables : dict
@@ -1525,6 +1533,7 @@ class BatchExecutor:
         @type removeBadProjects: bool
         @type stopOnError: bool
         @type fromFailedStateFile: str
+        @type passthru: list of str
         """
         if not os.path.exists(results):
             os.mkdir(results)
@@ -1553,6 +1562,8 @@ class BatchExecutor:
         self.initialState = updateAndInitializeGlobalState(self.initialState,
                                                            global_variables=global_variables,
                                                            initializers=initializers)
+        if len(passthrus) > 0:
+            self.initialState.update({'passthrus':passthrus})
 
     def __setupThreads(self, threads_count):
         self.threads = []
@@ -1625,12 +1636,12 @@ class BatchExecutor:
 def main():
     global threadGlobalState
     parser = argparse.ArgumentParser()
-    parser.add_argument('--json', required=True, help='JSON File')
+    parser.add_argument('--specification', required=True, help='JSON File')
     parser.add_argument('--count', required=False, help='number of projects to build')
     parser.add_argument('--threads', required=False, help='number of projects to build')
     parser.add_argument('--workdir', required=False,
                         help='directory to maintain and look for lock list, logging and permutation files')
-    parser.add_argument('--results', required=True, help='project results directory')
+    parser.add_argument('--projects', required=True, help='project results directory')
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--graph', required=False, action='store_true', help='create graph PNG file')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
@@ -1640,10 +1651,11 @@ def main():
     parser.add_argument('--keep_failed',required=False,action='store_true')
     parser.add_argument('--stop_on_error', required=False, action='store_true')
     parser.add_argument('--test', required=False, action='store_true')
+    parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
     args = parser.parse_args()
 
-    batchProject = loadJSONGraph(args.json)
-    be = BatchExecutor(args.results,
+    batchProject = loadJSONGraph(args.specification)
+    be = BatchExecutor(args.projects,
                        workdir='.' if args.workdir is None or not os.path.exists(args.workdir) else args.workdir,
                        global_variables=args.global_variables,
                        initializers=args.initializers,
@@ -1652,7 +1664,8 @@ def main():
                        stopOnError=args.stop_on_error,
                        removeBadProjects=not args.keep_failed,
                        fromFailedStateFile=args.from_state,
-                       testMode=args.test)
+                       testMode=args.test,
+                       passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
 
     notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
 

@@ -2328,7 +2328,7 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
 
-    def imageFromPlugin(self, filter, software=None,**kwargs):
+    def imageFromPlugin(self, filter, software=None, passthru=False, **kwargs):
         """
           Create a new image from a plugin filter.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2369,7 +2369,10 @@ class ImageProjectModel:
         msg = None
         self.__addEdgeFilePaths(fullOp)
         try:
-            extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
+            if getValue(kwargs,'$$-pass-thru') or passthru:
+                extra_args, warning_message = None,None
+            else:
+                extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
         except Exception as e:
             msg = str(e)
             exc_type, exc_value, exc_traceback = sys.exc_info()

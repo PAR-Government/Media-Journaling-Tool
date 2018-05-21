@@ -377,6 +377,9 @@ class ImageGraph:
             includePathInUndo = True
             if (os.path.exists(pathname)):
                 shutil.copy2(pathname, newpathname)
+            else:
+                logging.getLogger('maskgen').error('Cannot find file {}'.format(pathname))
+                raise ValueError(pathname)
         self._setUpdate(nname, update_type='node')
         self.__recordTool()
         updated_args = self._updateNodePathValue(kwargs)

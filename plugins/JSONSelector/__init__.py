@@ -1,5 +1,5 @@
 import logging
-from maskgen import video_tools
+from maskgen.image_wrap import openImageFile
 import numpy as np
 import os
 import maskgen
@@ -7,9 +7,13 @@ import json
 
 
 def transform(img, source, target, **kwargs):
-    js = json.load(kwargs['Json File'])
+    js = json.load(open(kwargs['Json File']))
     index = kwargs['index'] if 'index' in kwargs else np.random.randint(0, len(js), 1)
-    return js[index], None
+    dictionary = js[int(index)]
+    if 'File Key' in kwargs and kwargs['File Key'] != '':
+        dictionary['file'] = dictionary[kwargs['File Key']]
+        #openImageFile(dictionary[kwargs['File Key']]).save(target)
+    return dictionary, None
 
 
 def operation():
@@ -28,10 +32,13 @@ def operation():
                 'Index': {
                     'type': 'text',
                     'description': 'Select the dictionary from the JSON list'
-                }
+                },
+                'File Key':{
+                    'type':'text',
+                    'description':'Key referencing a file to be saved as target'
+                  }
             },
             'transitions': [
-                'video.video'
                 'image.image'
             ]
             }

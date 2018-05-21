@@ -1,0 +1,178 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "gan_resize",
+    "organization": "wonderland",
+    "projectDescription": "GAN generated images with some Antiforensics applied.",
+    "technicalSummary": "Automated: Apply Antiforensics to GAN images",
+    "semanticrestaging": "no",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "recompress": false
+  },
+  "nodes":[
+    {
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base_PNG"
+    },
+    {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "JSONSelector",
+      "id":"Selector",
+      "prnu":true,
+      "arguments": {"Json File": "{json_path}", "Index":0, "File Key":"prnu"}
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "AntiforensicDrexelErasureGAN",
+      "id": "Resize",
+      "arguments":{
+        "model":"{models}/resize_GAN_model.npz"
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "AntiforensicDrexelErasureGAN",
+      "id": "Multi",
+      "arguments":{
+        "model":"{models}/multi-manip_GAN_model.npz"
+      }
+    },
+     {
+      "op_type":"PluginOperation",
+      "plugin": "CropToFitDonor",
+      "id":"CropCFA",
+      "arguments":{
+        "donor": {
+          "type": "donor",
+          "source": "Selector"
+        }
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id":"PRNUAdded",
+      "arguments":{
+        "donor": {
+          "type": "donor",
+          "source": "Selector"
+        },
+        "donor is prnu":"yes"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "JpgFromCamera",
+      "id": "CameraAdded",
+      "arguments": {
+        "qtfile": "{qtable@Selector}",
+        "rotate": "no",
+        "quality": 100
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CameraModelGan",
+      "source":"Resize",
+      "id": "CFAGAN",
+      "arguments": {
+        "Camera Model": "{model@Selector}",
+        "Camera Make": "{make@Selector}",
+        "model": "{model_path@Selector}"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsResize",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsMulti",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsCFA",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    }
+    ],
+  "links":[
+    {
+	  "source":"base_PNG",
+	  "target":"Multi"
+    },
+    {
+      "source":"base_PNG",
+	  "target":"Selector",
+      "connect":false
+    },
+    {
+	  "source":"base_PNG",
+	  "target":"Resize"
+    },
+    {
+      "source":"Selector",
+      "target":"CFAGAN",
+      "connect":false
+    },
+    {
+      "source":"Resize",
+      "target":"CFAGAN",
+       "split":true
+    },
+     {
+      "source":"Multi",
+      "target":"CFAGAN",
+       "split":true
+    },
+    {
+      "source": "CFAGAN",
+      "target": "CompressAsCFA"
+    },
+     {
+      "source": "CFAGAN",
+      "target": "CropCFA"
+    },
+    {
+      "source": "CropCFA",
+      "target": "PRNUAdded"
+    },
+    {
+      "source": "PRNUAdded",
+      "target": "CameraAdded"
+    },
+    {
+      "source": "Resize",
+      "target": "CompressAsResize"
+    },
+    {
+      "source": "Multi",
+      "target": "CompressAsMulti"
+    }
+    ]
+}
