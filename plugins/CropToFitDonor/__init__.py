@@ -5,9 +5,25 @@
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
 #==============================================================================
+
 import sys
 import numpy as np
 from maskgen.image_wrap import openImageFile, ImageWrapper
+
+def centeredCrop(im_source, im_donor_trace):
+
+    new_height = min(np.shape(im_donor_trace)[0], np.shape(im_source)[0])
+    new_width = min(np.shape(im_donor_trace)[1], np.shape(im_source)[1])
+
+    width = np.size(im_source, 1)
+    height = np.size(im_source, 0)
+
+    left = int(np.ceil((width - new_width)/2.))
+    top = int(np.ceil((height - new_height)/2.))
+    right = int(np.floor((width + new_width)/2.))
+    bottom = int(np.floor((height + new_height)/2.))
+    cImg = im_source[top:bottom, left:right, :]
+    return cImg
 
 def sign(num):
     return -1 if num < 0 else 1
@@ -23,8 +39,9 @@ def transform(img, source, target, **kwargs):
         orientation_donor = np.shape(im_donor_trace)[0] - np.shape(im_donor_trace)[1]
         if sign(orientation_source) != sign(orientation_donor):
             im_donor_trace = np.rot90(im_donor_trace, -1)
-        im_source = im_source[:min(np.shape(im_donor_trace)[0],np.shape(im_source)[0]),
-                              :min(np.shape(im_donor_trace)[1],np.shape(im_source)[1]),:]
+        im_source = centeredCrop(im_source, im_donor_trace)
+        #im_source = im_source[:min(np.shape(im_donor_trace)[0],np.shape(im_source)[0]),
+        #                      :min(np.shape(im_donor_trace)[1],np.shape(im_source)[1]),:]
         ImageWrapper(im_source).save(target, format='PNG')
     return None, None
 
