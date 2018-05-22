@@ -4,8 +4,8 @@
     "username": "flamingo",
     "name": "CFAGan",
     "organization": "wonderland",
-    "projectDescription": "GAN generated images with some Antiforensics applied.",
-    "technicalSummary": "Automated: Apply Antiforensics to GAN images",
+    "projectdescription": "GAN generated images with some Antiforensics applied.",
+    "technicalsummary": "Automated: Apply Antiforensics to GAN images",
     "semanticrestaging": "no",
     "semanticrepurposing": "no",
     "semanticrefabrication": "no",
@@ -30,7 +30,6 @@
       "prnu": true,
       "arguments": {
         "Json File": "{json_path}",
-        "Index": 0,
         "File Key": "prnu"
       }
     },
@@ -48,11 +47,11 @@
       "op_type": "PluginOperation",
       "plugin": "CropToFitDonor",
       "id": "CropCFA",
-      "source": "Base",
+      "source": "Selector",
       "arguments": {
         "donor": {
           "type": "donor",
-          "source": "Selector"
+          "source": "Base"
         }
       }
     },
@@ -60,10 +59,11 @@
       "op_type": "PluginOperation",
       "plugin": "PRNU-AddFromDonor",
       "id": "PRNUAdded",
+      "source":"Base",
       "arguments": {
         "donor": {
           "type": "donor",
-          "source": "Selector",
+          "source": "CropCFA",
           "name": "prnu"
         },
         "donor is prnu": "yes"
@@ -116,20 +116,21 @@
       "connect": false
     },
     {
-      "source": "Selector",
-      "target": "PRNUAdded"
+      "source": "Base",
+      "target": "CropCFA",
+      "donor":true
     },
     {
-      "source": "Base",
+      "source": "Selector",
       "target": "CropCFA"
     },
     {
-      "source": "Selector",
-      "target": "CropCFA",
-      "connect": false
+      "source": "CropCFA",
+      "target": "PRNUAdded",
+      "donor":true
     },
     {
-      "source": "CropCFA",
+      "source": "Base",
       "target": "PRNUAdded"
     },
     {

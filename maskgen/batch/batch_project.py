@@ -1104,6 +1104,10 @@ class BatchProject:
         return self.G.graph['name'] if 'name' in self.G.graph else 'Untitled'
 
     def getConnectToNodes(self,op_node_name):
+        connecttonodes = [predecessor for predecessor in self.G.predecessors(op_node_name)
+           if getValue(self.G.edge[predecessor][op_node_name], 'source', defaultValue=False)]
+        if len(connecttonodes) > 0:
+            return connecttonodes
         return [predecessor for predecessor in self.G.predecessors(op_node_name)
          if self.G.node[predecessor]['op_type'] != 'InputMaskPluginOperation' and \
          not getValue(self.G.edge[predecessor][op_node_name], 'donor', defaultValue=False) and \
@@ -1125,6 +1129,10 @@ class BatchProject:
             if len(connecttonodes) > 0 and 'source' in node:
                 connect_to_node_name = node['source']
             else:
+                if len(connecttonodes) == 0:
+                    self.logger.info('No source connections found for {}'.format(op_node_name))
+                elif len(connecttonodes) > 1:
+                    self.logger.warn('More than source connection for {}, picking {} as the source'.format(op_node_name, connecttonodes[0]))
                 connect_to_node_name = connecttonodes[0] if len(connecttonodes) > 0 else None
             self.logger.debug('Starting: {}'.format(op_node_name))
             self._execute_node(op_node_name, connect_to_node_name, local_state, global_state)

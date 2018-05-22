@@ -30,7 +30,7 @@ def operation():
                     'description': 'JSON file containing a list dictionaries of relevant options'
                 },
                 'Index': {
-                    'type': 'text',
+                    'type': 'int[0:100000]',
                     'description': 'Select the dictionary from the JSON list'
                 },
                 'File Key':{
