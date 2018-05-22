@@ -92,7 +92,12 @@ class HP_Starter(Frame):
             self.outputdir.insert(0, os.path.join(self.inputdir.get(), 'hp-output'))
         self.update_model()
 
-        if not (self.master.lenient or self.master.cameras[self.localID.get()]['available']):
+        try:
+            if not (self.master.lenient or self.master.cameras[self.localID.get()]['calibrations']):
+                tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
+                                                'and uploaded for a device prior to HP uploads.')
+                return
+        except KeyError:
             tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
                                             'and uploaded for a device prior to HP uploads.')
             return
@@ -904,9 +909,9 @@ class HPGUI(Frame):
         :return: string containing source of camera data ('local' or 'remote')
         """
         self.cam_local_id = local_id
-        cams = API_Camera_Handler(self, self.settings.get_key('apiurl'), self.settings.get_key('apitoken'), given_id=self.cam_local_id)
-        self.cameras = cams.get_all()
-        if cams.get_source() == 'remote':
+        self.cams = API_Camera_Handler(self, self.settings.get_key('apiurl'), self.settings.get_key('apitoken'), given_id=self.cam_local_id)
+        self.cameras = self.cams.get_all()
+        if self.cams.get_source() == 'remote':
             self.statusBox.println('Camera data successfully loaded from API.')
         else:
             self.statusBox.println(
@@ -914,7 +919,7 @@ class HPGUI(Frame):
                 ' list is empty and you will not be able to process your data!')
             self.statusBox.println(
                 'It is recommended to enter your browser credentials in settings and restart to get the most updated information.')
-        return cams.source
+        return self.cams.source
 
     def reload_ids(self, local_id=""):
         """Wipe and reload camera data"""

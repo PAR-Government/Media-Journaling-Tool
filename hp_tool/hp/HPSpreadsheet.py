@@ -23,6 +23,7 @@ import hp_data
 import datetime
 import threading
 import data_files
+from camera_handler import ValidResolutions, API_Camera_Handler
 
 RVERSION = hp_data.RVERSION
 
@@ -453,7 +454,7 @@ class HPSpreadsheet(Toplevel):
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username', 'HP-seed']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -481,6 +482,12 @@ class HPSpreadsheet(Toplevel):
         else:
             track_highlights = False
         tab.disabled_cells = []
+
+        local_id = self.pt.model.getValueAt(0, 9)
+        try:
+            device_type = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id).get_types()[0]
+        except IndexError:
+            device_type = None
 
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
@@ -513,6 +520,14 @@ class HPSpreadsheet(Toplevel):
                                                 tag='cellrect')
                     if (row, col) not in tab.disabled_cells:
                         tab.disabled_cells.append((row, col))
+                elif colName == "HP-PrimarySecondary" and device_type != "CellPhone":
+                    rect = tab.create_rectangle(x1, y1, x2, y2,
+                                                fill='#c1c1c1',
+                                                outline='#084B8A',
+                                                tag='cellrect')
+                    if (row, col) not in tab.disabled_cells:
+                        tab.disabled_cells.append((row, col))
+
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for errors in self.processErrors[image]:
@@ -746,10 +761,16 @@ class HPSpreadsheet(Toplevel):
         Run validation routines, and re-color code cells after check is complete
         :return: None. Opens ErrorWindow if errors exist.
         """
+        resolutions = []
         errors = []
         types = self.pt.model.df['Type']
         uniqueIDs = []
         self.processErrors = self.check_process_errors()
+
+        w_col = self.pt.get_col_by_name("ImageWidth")
+        h_col = self.pt.get_col_by_name("ImageHeight")
+        ps_col = self.pt.get_col_by_name("HP-PrimarySecondary")
+
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
                 currentColName = self.pt.model.df.columns[col]
@@ -767,6 +788,16 @@ class HPSpreadsheet(Toplevel):
                     elif type == 'audio' and col in self.mandatoryAudio:
                         errors.append('Invalid entry at column ' + currentColName + ', row ' + str(
                             row + 1) + '. Value must be True or False')
+                elif currentColName == "HP-PrimarySecondary" and val not in ['primary', 'secondary']:
+                    errors.append('Invalid entry at column HP-PrimarySecondary, row {0}.  Value must be "primary" or'
+                                  ' "secondary".'.format(row + 1))
+            width = int(self.pt.model.getValueAt(row, w_col))
+            height = int(self.pt.model.getValueAt(row, h_col))
+            ps = self.pt.model.getValueAt(row, ps_col)
+            res = (width, height)
+            if (res, ps) not in resolutions and res[0] != "" and res[1] != "":
+                resolutions.append((res, ps))
+
             errors.extend(self.parse_process_errors(row))
             errors.extend(self.check_model(row))
             errors.extend(self.check_kinematics(row))
@@ -774,6 +805,23 @@ class HPSpreadsheet(Toplevel):
             errors.extend(self.check_collections(row))
             if self.pt.model.df['HP-DeviceLocalID'][row] not in uniqueIDs:
                 uniqueIDs.append(self.pt.model.df['HP-DeviceLocalID'][row])
+
+        local_id = self.pt.model.getValueAt(0, 9)
+        browser_res_list = ValidResolutions(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"),
+                                            local_id=local_id).get_resolutions()
+        tkerrs = [[], []]
+        for r in resolutions:
+            opp = "secondary" if r[1] == 'primary' else 'primary'
+            if r[0] not in browser_res_list[r[1]]:
+                tkerrs[0].append("{0}x{1} - {2}.".format(r[0][0], r[0][1], r[1]))
+            if r[0] in browser_res_list[opp] and not r[0] in browser_res_list[r[1]]:
+                tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
+
+        if tkerrs:
+            tkMessageBox.showwarning("New Resolutions", "\nThe following resolutions do not exist under the camera "
+                                     "indicated\n" * (len(tkerrs[0]) > 0) + "\n".join(tkerrs[0]) + "\nThe following "
+                                     "resolutions were found online tagged as the opposite.\n" *(len(tkerrs[1]) > 0) +
+                                     "\n".join(tkerrs[1]))
 
         for coord in self.highlighted_cells:
             val = str(self.pt.model.getValueAt(coord[0], coord[1]))
@@ -1130,9 +1178,15 @@ class CustomTable(pandastable.Table):
         self.focus_set()
         return
 
+    def get_col_by_name(self, name):
+        for i in xrange(0, self.cols):
+            if self.model.getColumnName(i).lower() == name.lower():
+                return i
+        return None
+
     def enter_true(self, event=None):
         current = self.getSelectedColumn()
-        ps_col = 52
+        ps_col = self.get_col_by_name("HP-PrimarySecondary")
         if current == ps_col:
             self.fill_selection(val='primary')
         else:
@@ -1140,7 +1194,7 @@ class CustomTable(pandastable.Table):
 
     def enter_false(self, event=None):
         current = self.getSelectedColumn()
-        ps_col = 52
+        ps_col = self.get_col_by_name("HP-PrimarySecondary")
         if current == ps_col:
             self.fill_selection(val='secondary')
         else:

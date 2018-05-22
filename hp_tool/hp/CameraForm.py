@@ -150,11 +150,13 @@ class HP_Device_Form(Toplevel):
             self.questions['Exif Camera Make'].edit_items([])
             self.questions['Device Type*'].edit_items(['Computational'])
             self.questions['Device Type*'].set('Computational')
-            self.questions['Edition'].pack_forget()
+            self.add_required('Edition')
             self.questions['Sensor Information'].pack_forget()
             self.questions['Device Serial Number'].pack_forget()
-            self.questions['Exif Camera Model'].pack_forget()
+            self.add_required('Exif Camera Model')
+            self.questions['HP Model*'].pack_forget()
             self.questions["Lens Mount*"].pack_forget()
+            self.questions['Lens Mount*'].set("NA")
             self.remove_required("Lens Mount*")
             self.add_required('Firmware/OS')
             self.add_required('Firmware/OS Version')
@@ -228,6 +230,9 @@ class HP_Device_Form(Toplevel):
         Triggers when ok/complete button is clicked. Validates and exports the new camera data
         :return: None
         """
+        if self.is_gan:
+            self.questions["HP Model*"].set(self.questions['Exif Camera Model'].get())
+
         msg = None
         for h in self.headers:
             if h in self.renamed.keys():

@@ -9,6 +9,7 @@ import os
 import datetime
 import csv
 import hashlib
+import tkFileDialog
 import tkMessageBox
 import maskgen.tool_set
 import pandas as pd
@@ -17,6 +18,7 @@ import subprocess
 import json
 import data_files
 from PIL import Image
+from hp.GAN_tools import SeedProcessor
 
 
 exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes] + [".zip"],  # .zip = DNG Stacks
@@ -27,7 +29,7 @@ exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes] + [".zip"],
 
 orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
 
-RVERSION = '#@version=01.11'
+RVERSION = '#@version=01.12'
 thumbnail_conversion = {}
 
 
@@ -353,7 +355,7 @@ def combine_exif(exif_data, lut, d):
             d[lut[k]] = exif_data[k]
     return d
 
-def set_other_data(self, data, imfile):
+def set_other_data(self, data, imfile, set_primary):
     """
     Set implicit metadata to data.
     :param data: Dictionary of field data from one image
@@ -383,6 +385,9 @@ def set_other_data(self, data, imfile):
     except ValueError:
         # no/invalid image width or height in metadata
         pass
+
+    if set_primary and set_primary != "model":
+        data['HP-PrimarySecondary'] = 'primary'
 
     if 'back' in data['LensModel']:
         data['HP-PrimarySecondary'] = 'primary'
@@ -490,6 +495,8 @@ def parse_image_info(self, imageList, **kwargs):
     for item in exifDataResult:
         exifDict[os.path.normpath(item['SourceFile'])] = item
 
+    primary = self.master.cams.get_types()[0] != "CellPhone" if self.master.cams.get_types() else "model"
+
     data = {}
     reverseLUT = dict((remove_dash(v), k) for k, v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
@@ -502,7 +509,7 @@ def parse_image_info(self, imageList, **kwargs):
             del image_file_list[image_file_list.index(os.path.basename(imageList[i]))]
             data[i] = combine_exif({"Thumbnail": "; ".join(image_file_list)},
                                    reverseLUT, master.copy())
-        data[i] = set_other_data(self, data[i], imageList[i])
+        data[i] = set_other_data(self, data[i], imageList[i], primary)
 
     return data
 
@@ -637,6 +644,21 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
                 except KeyError:
                     pass
         imageInfo[model]['HP-Thumbnails'] = "; ".join(new_thumbnails)
+
+    # parse seeds
+    local_id = cameraData.keys()[0]
+    if local_id.lower().startswith("gan"):
+        seed = None
+        while not seed:
+            tkMessageBox.showinfo("Select Seed File", "Select the GAN seed file (ex. log.txt for the Progressive GAN).")
+            seed = tkFileDialog.askopenfilename()
+
+        print("Loading seeds... "),
+        seed_loader = SeedProcessor(self, seed)
+        print("done.")
+        seeds = seed_loader.get_seeds()
+        for im in xrange(0, len(imageInfo)):
+            imageInfo[im]['HP-seed'] = seeds[im]
 
     print(' done')
 
