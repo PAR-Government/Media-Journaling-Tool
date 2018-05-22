@@ -15,6 +15,7 @@ class HelpFrame(Frame):
         self.slide_size = (960, 540)
         self.loader = getHelpLoader()
         self.textvar = textvar
+        self.tabs = {}
         Frame.__init__(self, master)
         self.setup_window()
 
@@ -24,18 +25,8 @@ class HelpFrame(Frame):
         self.r += 1
 
         self.img_nb = Notebook(self)
-        self.img0f = Frame(self.img_nb)
-        self.img1f = Frame(self.img_nb)
-        self.img2f = Frame(self.img_nb)
-        self.img_nb.add(self.img0f, text="Image 1")
-        self.img_nb.add(self.img1f, text="Image 2")
-        self.img_nb.add(self.img2f, text="Image 3")
         self.img_nb.grid(row=self.r, column=0)
         self.r += 1
-
-        self.info_image0 = Button(self.img0f)
-        self.info_image1 = Button(self.img1f)
-        self.info_image2 = Button(self.img2f)
 
         Label(self, text="Click through the image tabs to view various available information.  Click on any image to"
                          " open it with your default photo viewer.").grid(row=self.r, column=0)
@@ -48,50 +39,45 @@ class HelpFrame(Frame):
         imglist = self.loader.get_help_png_list(self.selection, self.itemtype)
 
         # Clear all tabs
-        try:
-            self.img_nb.hide(1)
-            self.img_nb.hide(2)
-        except TclError:
-            pass
-        self.info_image0.grid_forget()
-        self.info_image1.grid_forget()
-        self.info_image2.grid_forget()
+        for k in self.tabs.keys():
+            self.tabs[k]["image"].grid_forget()
+            self.tabs[k]["frame"].grid_forget()
+            self.tabs.pop(k)
+            self.img_nb.forget(0)
 
-        if len(imglist) == 0:
-            with Image.open(get_icon("Manny_icon_color.jpg"), "r") as i:
-                i = i.resize(self.slide_size, Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
+        image_count = len(imglist) if imglist else 0
+
+        if image_count == 0:
+            with Image.open(get_icon("Manny_icon_color.jpg"), "r") as f:
+                f = f.resize(self.slide_size, Image.ANTIALIAS)
+                tkimg = ImageTk.PhotoImage(f)
             item = "semantic group" if self.itemtype == 'semanticgroup' else "operation" if self.itemtype == "operation" else "project property"
-            self.info_image0.configure(image=tkimg, command=lambda: tkMessageBox.showerror("No Images", "No help images have been supplied for this {0}.".format(item)))
-            self.info_image0.image = tkimg
+            fr = Frame(self.img_nb)
+            img = Button(fr)
+            self.img_nb.add(fr, text="Image 1")
+            img.configure(image=tkimg, command=lambda: tkMessageBox.showerror("No Images", "No help images have been "
+                                                                              "supplied for this {0}.".format(item)))
+            img.image = tkimg
+            img.grid(row=0, column=0)
+            self.tabs["Manny"] = {}
+            self.tabs["Manny"]["image"] = img
+            self.tabs["Manny"]["frame"] = fr
 
-            self.info_image0.grid(row=0, column=0)
-
-        if len(imglist) >= 1:
-            with Image.open(imglist[0], "r") as i:
-                i = i.resize(self.slide_size, Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
-            self.info_image0.configure(image=tkimg, command=lambda: openFile(imglist[0]))
-            self.info_image0.image = tkimg
-            self.info_image0.grid(row=0, column=0)
-
-        if len(imglist) >= 2:
-            with Image.open(imglist[1], "r") as i:
-                i = i.resize(self.slide_size, Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
-            self.info_image1.configure(image=tkimg, command=lambda: openFile(imglist[1]))
-            self.info_image1.image = tkimg
-            self.info_image1.grid(row=0, column=0)
-            self.img_nb.add(self.img1f)
-
-        if len(imglist) >= 3:
-            with Image.open(imglist[2], "r") as i:
-                i = i.resize(self.slide_size, Image.ANTIALIAS)
-                tkimg = ImageTk.PhotoImage(i)
-            self.info_image2.configure(image=tkimg, command=lambda: openFile(imglist[2]))
-            self.info_image2.image = tkimg
-            self.info_image2.grid(row=0, column=0)
-            self.img_nb.add(self.img2f)
+        else:
+            for n, i in enumerate(imglist):
+                with Image.open(i, "r") as f:
+                    f = f.resize(self.slide_size, Image.ANTIALIAS)
+                    tkimg = ImageTk.PhotoImage(f)
+                item = "semantic group" if self.itemtype == 'semanticgroup' else "operation" if self.itemtype == "operation" else "project property"
+                fr = Frame(self.img_nb)
+                img = Button(fr)
+                self.img_nb.add(fr, text="Image {0}".format(n + 1))
+                img.configure(image=tkimg, command=lambda i=i: openFile(i))
+                img.image = tkimg
+                img.grid(row=0, column=0)
+                self.tabs[i] = {}
+                self.tabs[i]["image"] = img
+                self.tabs[i]["frame"] = fr
 
         new_desc = self.loader.get_help_description(self.textvar.get(), self.itemtype)
         self.info_text['text'] = new_desc if new_desc else "No help description is available."
