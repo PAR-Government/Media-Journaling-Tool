@@ -43,6 +43,7 @@ Section -Prerequisites
     NsUnzip::Extract "$INSTDIR\exiftool-10.63.zip" /END
 	CreateDirectory "$PROGRAMFILES64\Exiftool"
 	Rename "$INSTDIR\exiftool (-k).exe" "$PROGRAMFILES64\Exiftool\exiftool.exe"
+	Sleep 5000
 	Delete "$INSTDIR\exiftool-10.63.zip"
     ${EnvVarUpdate} $0 "PATH" "A" "HKCU" "C:\Program Files\Exiftool"
     
@@ -101,7 +102,7 @@ Section -Prerequisites
 	ExecWait "$CONDA remove PIL -y"
     ExecWait "$CONDA install -c anaconda pillow -y"
 	ExecWait "$CONDA install scikit-image -y"
-	ExecWait "$CONDA install -c condo-forge shapely –y"
+	ExecWait "$CONDA install shapely –y"
 	ExecWait "$CONDA install scikit-image"
 
 	SetOutPath "$INSTDIR"
