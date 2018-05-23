@@ -1,4 +1,5 @@
 import tkMessageBox
+import webbrowser
 from Tkinter import *
 from maskgen.software_loader import *
 from maskgen.tool_set import *
@@ -28,8 +29,9 @@ class HelpFrame(Frame):
         self.img_nb.grid(row=self.r, column=0)
         self.r += 1
 
-        Label(self, text="Click through the image tabs to view various available information.  Click on any image to"
-                         " open it with your default photo viewer.").grid(row=self.r, column=0)
+        Label(self, text="Click through the image tabs to view various available information.  Click on any image "
+                         "(even Manny) to open it with your default photo viewer or visit the help link if available.")\
+            .grid(row=self.r, column=0)
 
         self.textvar.trace("w", lambda *args: self.update_choice(self.textvar))
         self.update_choice(self.textvar)
@@ -51,12 +53,10 @@ class HelpFrame(Frame):
             with Image.open(get_icon("Manny_icon_color.jpg"), "r") as f:
                 f = f.resize(self.slide_size, Image.ANTIALIAS)
                 tkimg = ImageTk.PhotoImage(f)
-            item = "semantic group" if self.itemtype == 'semanticgroup' else "operation" if self.itemtype == "operation" else "project property"
             fr = Frame(self.img_nb)
             img = Button(fr)
             self.img_nb.add(fr, text="Image 1")
-            img.configure(image=tkimg, command=lambda: tkMessageBox.showerror("No Images", "No help images have been "
-                                                                              "supplied for this {0}.".format(item)))
+            img.configure(image=tkimg, command=lambda: self.open(get_icon("Manny_icon_color.jpg")))
             img.image = tkimg
             img.grid(row=0, column=0)
             self.tabs["Manny"] = {}
@@ -72,7 +72,7 @@ class HelpFrame(Frame):
                 fr = Frame(self.img_nb)
                 img = Button(fr)
                 self.img_nb.add(fr, text="Image {0}".format(n + 1))
-                img.configure(image=tkimg, command=lambda i=i: openFile(i))
+                img.configure(image=tkimg, command=lambda i=i: self.open(i))
                 img.image = tkimg
                 img.grid(row=0, column=0)
                 self.tabs[i] = {}
@@ -84,8 +84,50 @@ class HelpFrame(Frame):
 
         self.img_nb.select(0)
 
-    def no_image_help(self):
-        tkMessageBox.showError("No Images", "No help images have been found.")
+    def open(self, i):
+        name = self.textvar.get()
+        dtype = self.itemtype
+        url = self.loader.get_help_link(name, dtype)
+        imgs = self.loader.get_help_png_list(name, dtype)
+        if url and imgs:
+            LargerOrLink(self, i)
+        elif url:
+            webbrowser.open(url)
+        elif imgs:
+            openFile(i)
+        else:
+            tkMessageBox.showerror("No Images", "No help images or link has been supplied.")
+
+
+class LargerOrLink(Toplevel):
+    def __init__(self, master, image):
+        Toplevel.__init__(self, master)
+        self.master = master
+        self.image = image
+        self.wm_resizable(False, False)
+        self.title("Help")
+        self.main = Frame(self)
+        self.main.pack()
+        self.create_widgets()
+
+    def create_widgets(self):
+        openLarger = Button(self.main, text="Open Larger", command=self.open_larger)
+        openLarger.grid(row=0, column=0)
+
+        openLink = Button(self.main, text="Open Link", command=self.open_link)
+        openLink.grid(row=0, column=1)
+
+        close = Button(self.main, text="Cancel", command=lambda: self.destroy())
+        close.grid(row=1, column=0, columnspan=2)
+
+    def open_larger(self):
+        openFile(self.image)
+        self.destroy()
+
+    def open_link(self):
+        webbrowser.open(self.master.loader.get_help_link(self.master.textvar.get(), self.master.itemtype), new=2)
+        self.destroy()
+
 
 
 def getHelpLoader():
@@ -99,24 +141,25 @@ class HelpLoader:
     Valid Item Types: 'project', 'semanticgroup', 'operation'
     """
     def __init__(self):
-        self.imglist = {}
+        self.linker = {}
         self.load_image_json()
 
     def load_image_json(self):
         fpath = getFileName(os.path.join("help", "image_linker.json"))
 
         with open(fpath) as f:
-            self.imglist = json.load(f)
+            self.linker = json.load(f)
 
-        for key in self.imglist.keys():
-            for subkey in self.imglist[key].keys():
-                current = self.imglist[key][subkey]
-                new = [getFileName(os.path.join("help", x)) for x in current]
-                self.imglist[key][subkey] = new
+        for key in self.linker.keys():
+            for subkey in self.linker[key].keys():
+                if "images" in self.linker[key][subkey].keys():
+                    current = self.linker[key][subkey]["images"]
+                    imgs = [getFileName(os.path.join("help", x)) for x in current]
+                    self.linker[key][subkey]["images"] = imgs
 
     def get_help_png_list(self, name, itemtype):
         try:
-            r = self.imglist[itemtype][name]
+            r = self.linker[itemtype][name]["images"]
         except KeyError:
             r = None
         return r
@@ -127,3 +170,10 @@ class HelpLoader:
         else:
             desc = getOperation(name).description
         return desc
+
+    def get_help_link(self, name, itemtype):
+        try:
+            r = self.linker[itemtype][name]["url"]
+        except KeyError:
+            r = None
+        return r
