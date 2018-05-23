@@ -51,7 +51,7 @@ class HelpFrame(Frame):
 
         if image_count == 0:
             with Image.open(get_icon("Manny_icon_color.jpg"), "r") as f:
-                f = f.resize(self.slide_size, Image.ANTIALIAS)
+                f = f.resize(self.slide_size)
                 tkimg = ImageTk.PhotoImage(f)
             fr = Frame(self.img_nb)
             img = Button(fr)
@@ -89,6 +89,7 @@ class HelpFrame(Frame):
         dtype = self.itemtype
         url = self.loader.get_help_link(name, dtype)
         imgs = self.loader.get_help_png_list(name, dtype)
+        imgs.append("Manny_icon_color.jpg")
         if url and imgs:
             LargerOrLink(self, i)
         elif url:
@@ -155,6 +156,8 @@ class HelpLoader:
                 if "images" in self.linker[key][subkey].keys():
                     current = self.linker[key][subkey]["images"]
                     imgs = [getFileName(os.path.join("help", x)) for x in current]
+                    while None in imgs:
+                        imgs.remove(None)
                     self.linker[key][subkey]["images"] = imgs
 
     def get_help_png_list(self, name, itemtype):
