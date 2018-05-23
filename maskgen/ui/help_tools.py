@@ -4,7 +4,7 @@ from Tkinter import *
 from maskgen.software_loader import *
 from maskgen.tool_set import *
 import json
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 from ttk import *
 
 
@@ -51,7 +51,8 @@ class HelpFrame(Frame):
 
         if image_count == 0:
             with Image.open(get_icon("Manny_icon_color.jpg"), "r") as f:
-                f = f.resize(self.slide_size)
+                f.thumbnail(self.slide_size,Image.ANTIALIAS)
+                #f = ImageOps.fit(f, self.slide_size, Image.ANTIALIAS)
                 tkimg = ImageTk.PhotoImage(f)
             fr = Frame(self.img_nb)
             img = Button(fr)
