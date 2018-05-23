@@ -279,7 +279,7 @@
 			]
         }, 
         "AudioCompress": {
-            "images": ["audio"]
+            "images": ["audio.png"]
         }, 
         "SelectImageFromFrame": {
             "images": ["selectAV.png"
@@ -370,7 +370,7 @@
 				"pastesplice3.png",
 				"pastespliceblend.png",
 				"pastesplicevspastesampled.png",
-				"pastesAV.png"
+				"pasteAV.png"
             ]
         }, 
         "CutPaste": {
@@ -413,7 +413,7 @@
             "images": []
         }, 
         "TransformDownSample": {
-            "images": ["Transform.png"
+            "images": ["Transforms.png"
 			]
         }, 
         "OverlayText": {
@@ -465,7 +465,7 @@
             ]
         }, 
         "WarpStabilize": {
-            "images": ["Transform.png"]
+            "images": ["Transforms.png"]
         }, 
         "AddAudioSample": {
             "images": ["audio.png"]
