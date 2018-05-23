@@ -118,7 +118,10 @@
             ]
         }, 
         "AntiForensic Illumination": {
-            "images": []
+            "images": ["antiforensic_illumination.png"
+			],
+			"url":["http://www.cosy.sbg.ac.at/~uhl/mmsec/acm05.pdf"
+			]
         }, 
         "Data Embedding Watermark": {
             "images": [
@@ -156,55 +159,69 @@
     }, 
     "operation": {
         "FilterConvolutionKernel": {
-            "url": "https://en.wikipedia.org/wiki/Kernel_(image_processing)"
+			"images":["convolutionkernel.png"
+			],
+            "url": ["https://en.wikipedia.org/wiki/Kernel_(image_processing)"
+			]
         }, 
         "AddCameraModel": {
             "images": []
         }, 
         "ArtificialLighting": {
             "images": [
+				"artificiallighting.png",
                 "cgi_add_lighting.png"
             ]
         }, 
         "LayerOpacity": {
             "images": [
-                "layer.png"
+				"opacityfill1.png",
+                "opacityfill2.png"
             ]
         }, 
         "LayerFill": {
             "images": [
-                "layer.png"
+                "opacityfill1.png",
+				"opacityfill2.png"
             ]
         }, 
         "TimeAlterationEcho": {
-            "images": []
+            "images": ["timealteration.png"
+			]
         }, 
         "AntiForensicCopyExif": {
-            "images": []
+            "images": ["antiforensic.png"
+			]
         }, 
         "Blur": {
             "images": [
-                "filter_blur.png", 
-                "filter_blur2.png", 
-                "filter.png"
+                "blur.png",
+				"blur2.png",
+				"blur3.png"
             ]
         }, 
         "TimeAlterationWarp": {
-            "images": []
+            "images": ["timealteration.png"
+			]
         }, 
         "OutputMP4": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "OverlayObject": {
-            "images": []
+            "images": ["overlayobject.png"
+			]
         }, 
         "DigitalPenDraw": {
-            "images": []
+            "images": ["digitalpendraw.png"
+			]
         }, 
         "Vibrance": {
             "images": [
                 "color_vibrance.png", 
+				"vibrance2.png",
                 "color.png"
+				
             ]
         }, 
         "OutputBmp": {
@@ -214,11 +231,12 @@
         }, 
         "SocialMedia": {
             "images": [
-                "laundering.png"
+                "socialmedia.png"
             ]
         }, 
         "TransformResize": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "OutputPng": {
             "images": [
@@ -226,11 +244,13 @@
             ]
         }, 
         "AudioSample": {
-            "images": []
+            "images": ["audio.png"
+			]
         }, 
         "Exposure": {
             "images": [
-                "intensity_exposure.png"
+                "exposure.png",
+				"exposure2.png"
             ]
         }, 
         "OutputCopy": {
@@ -240,46 +260,57 @@
         }, 
         "Sharpening": {
             "images": [
-                "filter_sharpening.png"
+                "sharpening.png",
+				"sharpening2.png"
             ]
         }, 
         "Handwriting": {
-            "images": []
+            "images": ["handwriting.png"
+			]
         }, 
         "ObjectCGI": {
-            "images": []
+            "images": ["objectcgi.png"
+			],
+			"url": ["https://stock.adobe.com/3d-assets"
+			]
         }, 
         "OutputMOV": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "AudioCompress": {
-            "images": []
+            "images": ["audio"]
         }, 
         "SelectImageFromFrame": {
-            "images": []
+            "images": ["selectAV.png"
+			]
         }, 
         "PasteImageSpliceToFrames": {
-            "images": []
+            "images": ["pasteAV.png"]
         }, 
         "PasteSampled": {
             "images": [
-                "paste.png", 
-                "paste_sampled_clone.png", 
-                "paste_sampled_overview.png", 
-                "paste_splice_sampled_clones.png"
+                "pastesampled.png",
+				"pastesampled2.png",
+				"pastesampled3.png",
+				"pastesplicevspastesampled.png",
+				"pastespliceblend.png"
             ]
         }, 
         "MotionBlur": {
-            "images": []
+            "images": ["filterAV.png"
+			]
         }, 
         "Synthesize": {
             "images": []
         }, 
         "AddCamFingerprintAveragePRNUFromSet": {
-            "images": []
+            "images": ["antiforensic.png"
+			]
         }, 
         "AberrationCorrection": {
-            "images": []
+            "images": ["antiforensic.png"
+			]
         }, 
         "OutputTif": {
             "images": [
@@ -287,55 +318,68 @@
             ]
         }, 
         "TransformMove": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "AddTransitions": {
-            "images": []
+            "images": ["filterAV.png"
+			]
         }, 
         "OutputAudioPCM": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "OutputXVID": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "CopyPaste": {
-            "images": []
+            "images": ["pasteAV.png"
+			]
         }, 
         "AudioCopyAdd": {
-            "images": []
+            "images": ["audio.png"
+			]
         }, 
         "TransformRotate": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "LensDistortion": {
             "images": []
         }, 
         "PasteFrames": {
-            "images": []
+            "images": ["pasteAV.png"
+			]
         }, 
         "AntiForensicEditExif": {
-            "images": []
+            "images": ["antiforensic.png"]
         }, 
         "AntiForensicJPGCompression": {
-            "images": []
+            "images": ["antiforensic.png"
+			]
         }, 
         "OutputAVI": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "PasteSplice": {
             "images": [
-                "paste.png", 
-                "paste_splice_clone.png", 
-                "paste_splice_overview.png", 
-                "paste_splice_sampled_clones.png", 
-                "paste_splice_blend.png"
+                "pastesplice.png",
+				"pastesplice2.png",
+				"pastesplice3.png",
+				"pastespliceblend.png",
+				"pastesplicevspastesampled.png",
+				"pastesAV.png"
             ]
         }, 
         "CutPaste": {
-            "images": []
+            "images": ["pasteAV.png"
+			]
         }, 
         "TransformSeamCarving": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "ImageInterpolation": {
             "images": [
@@ -344,40 +388,46 @@
             ]
         }, 
         "PostProcessingSizeUpDownOrgExif": {
-            "images": []
+            "images": ["postprocessing.png"
+			]
         }, 
         "RemoveCamFingerprintPRNU": {
-            "images": []
+            "images": ["antiforensic.png"]
         }, 
         "CameraRawFilter": {
-            "images": []
+            "images": ["camerarawfilter.png"
+			]
         }, 
         "DeleteAudioSample": {
-            "images": []
+            "images": ["audio.png"
+			]
         }, 
         "TransformShear": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "TransformWarp": {
-            "images": []
+            "images": ["Transforms.png"]
         }, 
         "Blend": {
             "images": []
         }, 
         "TransformDownSample": {
-            "images": []
+            "images": ["Transform.png"
+			]
         }, 
         "OverlayText": {
-            "images": []
+            "images": ["overlaytext.png"]
         }, 
         "AudioReverb": {
-            "images": []
+            "images": ["audio.png"
+			]
         }, 
         "CFACorrection": {
-            "images": []
+            "images": ["antiforensic.png"]
         }, 
         "AudioAmplify": {
-            "images": []
+            "images": ["audio.png"]
         }, 
         "OutputDng": {
             "images": [
@@ -390,46 +440,50 @@
             ]
         }, 
         "OutputM4": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "SelectRegionFromFrames": {
-            "images": []
+            "images": ["selectAV.png"
+			]
         }, 
         "Contrast": {
             "images": [
-                "intensity_contrast.png"
+                "contrast.png"
             ]
         }, 
         "ArtificialReflection": {
             "images": [
-                "cgi_add_lighting.png"
+                "reflection.png"
             ]
         }, 
         "Hue": {
             "images": [
-                "color_hue.png", 
+                "color_hue.png",
+				"color_hue2.png",
                 "color.png"
             ]
         }, 
         "WarpStabilize": {
-            "images": []
+            "images": ["Transform.png"]
         }, 
         "AddAudioSample": {
-            "images": []
+            "images": ["audio.png"]
         }, 
         "Levels": {
-            "images": [
-                "intensity_levels_curves.png", 
-                "intensity_levels_curves_color.png"
+            "images": ["levels.png",
+			"levelscurves.png",
+			"levelscurvescolors.png"
             ]
         }, 
         "SelectRegion": {
             "images": [
-                "select_region.png"
+                "select_region.png",
+				"selectAV.png"
             ]
         }, 
         "AntiForensicExifQuantizationTable": {
-            "images": []
+            "images": ["antiforensic.png"]
         }, 
         "Mosaic": {
             "images": [
@@ -437,22 +491,23 @@
             ]
         }, 
         "TimeAlterationDifferenceEffect": {
-            "images": []
+            "images": ["timealteration.png"
+			]
         }, 
         "FilterKeying": {
-            "images": []
+            "images": ["filterAV.png"]
         }, 
         "TransformDistort": {
-            "images": []
+            "images": ["Transforms.png"]
         }, 
         "CameraMovement": {
-            "images": []
+            "images": ["filterAV.png"]
         }, 
         "PasteOverlay": {
-            "images": []
+            "images": ["pasteAV.png"]
         }, 
         "ReplaceAudioSample": {
-            "images": []
+            "images": ["audio.png"]
         }, 
         "ColorBalance": {
             "images": [
@@ -461,91 +516,105 @@
             ]
         }, 
         "Normalization": {
-            "images": []
+            "images": ["normalization.png"],
+			"url":["https://en.wikipedia.org/wiki/Normalization_(image_processing)"]
         }, 
         "OutputPDF": {
-            "images": []
+            "images": ["output.png"
+			]
         }, 
         "TransformCrop": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "TransformSkew": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "CreativeFilter": {
             "images": [
-                "filter_creative.png"
+                "filter_creative.png",
+				"creativefilter2.png"
             ]
         }, 
         "TimeAlterationDisplacementEffect": {
-            "images": []
+            "images": ["timealteration.png"
+			]
         }, 
         "AudioEffect": {
-            "images": []
+            "images": ["audio.png"
+			]
         }, 
         "ArtificialShadow": {
             "images": [
-                "cgi_add_lighting.png"
+                "shadow.png"
             ]
         }, 
         "ColorLUT": {
             "images": [
-                "color.png"
+				"colorlut.png"
             ]
         }, 
         "TransformContentAwareScale": {
-            "images": []
+            "images": ["Transforms.png"]
         }, 
         "SelectCropFrames": {
-            "images": []
+            "images": ["selectAV.png"
+			]
         }, 
         "AntiForensicDither": {
-            "images": []
+            "images": ["antiforensic.png"
+			]
         }, 
         "OutputAudioCompressed": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "TransformFlip": {
-            "images": []
+            "images": ["Transforms.png"]
         }, 
         "Curves": {
             "images": [
-                "intensity_levels_curves.png", 
-                "intensity_levels_curves_color.png"
+                "curves.png", 
+                "levelscurves.png",
+				"levelscurvescolors.png"
             ]
         }, 
         "SelectCutFrames": {
-            "images": []
+            "images": ["selectAV.png"]
         }, 
         "ReduceInterlaceFlicker": {
-            "images": []
+            "images": ["filterAV.png"
+			]
         }, 
         "TransformScale": {
-            "images": []
+            "images": ["Transforms.png"]
         }, 
         "AddNoise": {
             "images": [
-                "filter_addnoise.png", 
-                "filter.png"
+                "addnoise.png",
+				"noise2.png"
             ]
         }, 
         "TransformAffine": {
-            "images": []
+            "images": ["Transforms.png"]
         }, 
         "DuplicateFrameDrop": {
             "images": []
         }, 
         "Saturation": {
             "images": [
-                "color_saturation.png", 
-                "color.png"
+                "saturation.png",
+				"saturation2.png"
             ]
         }, 
         "TimeAlterationPosterizeTime": {
-            "images": []
+            "images": ["timealteration.png"
+			]
         }, 
         "AudioFilter": {
-            "images": []
+            "images": ["audio.png"
+			]
         }, 
         "CGIFill": {
             "images": [
@@ -554,21 +623,28 @@
         }, 
         "ContentAwareFill": {
             "images": [
-                "paste_content_aware_fill.png", 
-                "paste.png"
+                "contentawarefill.png"
             ]
         }, 
         "Recapture": {
-            "images": []
+            "images": ["recapture.png",
+			"recapture1.png",
+			"recapture2.png",
+			"recapture3.png",
+			"postprocessing.png"
+			]
         }, 
         "Luminosity": {
-            "images": []
+            "images": ["luminosity.png"
+			]
         }, 
         "OutputMosaic": {
-            "images": []
+            "images": ["outputAV.png"
+			]
         }, 
         "RemoveCamFingerprintAveragePRNUFromSet": {
-            "images": []
+            "images": ["antiforensic.png"
+			]
         }, 
         "SelectRemove": {
             "images": [
@@ -576,7 +652,8 @@
             ]
         }, 
         "TransformReverse": {
-            "images": []
+            "images": ["Transforms.png"
+			]
         }, 
         "OutputJpg": {
             "images": [
@@ -584,7 +661,7 @@
             ]
         }, 
         "AddCamFingerprintPRNU": {
-            "images": []
+            "images": ["antiforensic.png"]
         }, 
         "Fading": {
             "images": []
