@@ -6,6 +6,7 @@ from maskgen.tool_set import *
 import json
 from PIL import Image, ImageTk, ImageOps
 from ttk import *
+import logging
 
 
 class HelpFrame(Frame):
@@ -52,7 +53,6 @@ class HelpFrame(Frame):
         if image_count == 0:
             with Image.open(get_icon("Manny_icon_color.jpg"), "r") as f:
                 f.thumbnail(self.slide_size,Image.ANTIALIAS)
-                #f = ImageOps.fit(f, self.slide_size, Image.ANTIALIAS)
                 tkimg = ImageTk.PhotoImage(f)
             fr = Frame(self.img_nb)
             img = Button(fr)
@@ -156,6 +156,9 @@ class HelpLoader:
             for subkey in self.linker[key].keys():
                 if "images" in self.linker[key][subkey].keys():
                     current = self.linker[key][subkey]["images"]
+                    for x in current:
+                        if getFileName(os.path.join("help", x)) is None:
+                            logging.getLogger('maskgen').warning('Couldnt find help image at: ' + os.path.join("help", x))
                     imgs = [getFileName(os.path.join("help", x)) for x in current]
                     while None in imgs:
                         imgs.remove(None)
@@ -177,7 +180,7 @@ class HelpLoader:
 
     def get_help_link(self, name, itemtype):
         try:
-            r = self.linker[itemtype][name]["url"]
+            r = self.linker[itemtype][name]["url"][0]
         except KeyError:
             r = None
         return r
