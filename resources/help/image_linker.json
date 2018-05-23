@@ -182,7 +182,7 @@
         "LayerFill": {
             "images": [
                 "opacityfill1.png",
-				"opacityfill2"
+				"opacityfill2.png"
             ]
         }, 
         "TimeAlterationEcho": {
@@ -516,10 +516,8 @@
             ]
         }, 
         "Normalization": {
-            "images": ["normalization.png"
-			],
-			"url":["https://en.wikipedia.org/wiki/Normalization_(image_processing) "
-			]
+            "images": ["normalization.png"],
+			"url":["https://en.wikipedia.org/wiki/Normalization_(image_processing)"]
         }, 
         "OutputPDF": {
             "images": ["output.png"

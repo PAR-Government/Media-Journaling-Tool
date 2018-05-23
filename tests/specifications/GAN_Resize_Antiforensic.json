@@ -4,8 +4,8 @@
     "username": "dupre",
     "name": "gan_resize",
     "organization": "wonderland",
-    "projectDescription": "GAN generated images with some Antiforensics applied.",
-    "technicalSummary": "Automated: Apply Antiforensics to GAN images",
+    "projectdescription": "Antiforensics resize and multi applied.",
+    "technicalsummary": "Automated: Apply Antiforensics to GAN images",
     "semanticrestaging": "no",
     "semanticrepurposing": "no",
     "semanticrefabrication": "no",
@@ -22,7 +22,7 @@
       "plugin": "JSONSelector",
       "id":"Selector",
       "prnu":true,
-      "arguments": {"Json File": "{json_path}", "Index":0, "File Key":"prnu"}
+      "arguments": {"Json File": "{json_path}", "File Key":"prnu"}
     },
     {
       "op_type":"PluginOperation",

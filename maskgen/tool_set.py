@@ -2130,7 +2130,7 @@ def bm(X, patch):
     return bp, bv
 
 
-def composeCropImageMask(img1, img2):
+def composeCropImageMask(img1, img2, location=None):
     """ Return a masking where img1 is bigger than img2 and
         img2 is likely a crop of img1.
         images are 16 bit unnsigned or floating point.
@@ -2138,9 +2138,12 @@ def composeCropImageMask(img1, img2):
         @type img1: np.array
         @type img2: np.array
     """
-    matched_tuple = __findBestMatch(img1, img2)
     analysis = {}
     analysis['location'] = '(0,0)'
+    if location is not None:
+        matched_tuple = (location[0],img2.shape[0]+location[0],location[1],img2.shape[1]+location[1])
+    else:
+        matched_tuple = __findBestMatch(img1, img2)
     if matched_tuple is not None:
         diffIm = np.zeros(img1.shape).astype(img1.dtype)
         diffIm[matched_tuple[0]:matched_tuple[2], matched_tuple[1]:matched_tuple[3]] = img2

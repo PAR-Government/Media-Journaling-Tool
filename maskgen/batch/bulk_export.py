@@ -19,6 +19,7 @@ from maskgen.userinfo import get_username, setPwdX,CustomPwdX
 from maskgen.validation.core import Severity, ValidationMessage, hasErrorMessages
 from maskgen.preferences_initializer import initialize
 from maskgen import maskGenPreferences
+import logging
 
 def upload_projects(s3dir, dir, qa, username, organization, error_writer, updatename):
     """
@@ -56,7 +57,8 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
         for err in errors:
             error_writer.writerow((scModel.getName(), err.Severity.name,err.Start,err.End,err.Message))
         if hasErrorMessages(errors):
-            raise ValueError('Validation Failed')
+	    logging.getLogger('maskgen').error('Validaiton Errors for {}'.format(scModel.getName()))
+            continue
         error_list = scModel.exporttos3(s3dir)
         if len(error_list) > 0:
             for err in error_list:
