@@ -156,10 +156,12 @@ class HelpLoader:
             for subkey in self.linker[key].keys():
                 if "images" in self.linker[key][subkey].keys():
                     current = self.linker[key][subkey]["images"]
+                    imgs = []
                     for x in current:
                         if getFileName(os.path.join("help", x)) is None:
                             logging.getLogger('maskgen').warning('Couldnt find help image at: ' + os.path.join("help", x))
-                    imgs = [getFileName(os.path.join("help", x)) for x in current]
+                        else:
+                            imgs.append(getFileName(os.path.join("help", x)))
                     while None in imgs:
                         imgs.remove(None)
                     self.linker[key][subkey]["images"] = imgs
