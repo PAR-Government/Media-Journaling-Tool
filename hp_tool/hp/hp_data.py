@@ -21,8 +21,8 @@ from PIL import Image
 from hp.GAN_tools import SeedProcessor
 
 
-exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes] + [".zip"],  # .zip = DNG Stacks
-        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
+exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
+        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes] + [".zip"],  # .zip = DNG Stacks
         'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
         'MODEL': ['.3d.zip'],
         'nonstandard': ['.lfr']}
