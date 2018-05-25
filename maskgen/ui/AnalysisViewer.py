@@ -6,18 +6,17 @@
 # All rights reserved.
 #==============================================================================
 
-from Tkinter import *
-from PIL import ImageTk
-from tool_set import imageResizeRelative
-import tkSimpleDialog
-from maskgen.image_wrap import openImageFile
-import logging
-from tool_set import fileType
 import Tkinter as tk
-import numpy as np
-import matplotlib
 import collections
-from dctAnalytic import *
+import tkSimpleDialog
+
+import matplotlib
+from PIL import ImageTk
+from maskgen.analytics.dctAnalytic import *
+from maskgen.image_wrap import openImageFile
+from maskgen.tool_set import fileType
+from maskgen.tool_set import imageResizeRelative
+
 matplotlib.use("TkAgg")
 import  tkFileDialog
 from maskgen.tool_set import imageResize,fixTransparency
@@ -76,7 +75,7 @@ class PCAAnalytic:
         imtuple[0].save(exportfilename)
 
     def draw(self,frame, filename):
-        from maskgen.analysis import pca
+        from maskgen.analytics.analysis import pca
         im = pca(openImageFile(filename))
         photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (400, 400))).toPIL())
         canvas = Canvas(frame, width=400, height=400)
@@ -96,7 +95,7 @@ class ElaAnalytic:
         imtuple[0].save(exportfilename)
 
     def draw(self,frame, filename):
-        from maskgen.analysis import ela
+        from maskgen.analytics.analysis import ela
         im = ela(openImageFile(filename))
         photo = ImageTk.PhotoImage(fixTransparency(imageResize(im, (400, 400))).toPIL())
         canvas = Canvas(frame, width=400, height=400)

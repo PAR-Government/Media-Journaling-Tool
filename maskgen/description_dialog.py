@@ -8,29 +8,23 @@
 
 import matplotlib
 matplotlib.use("TkAgg")
-import re
-from Tkinter import *
 import ttk
 import tkMessageBox
 from group_filter import GroupFilterLoader
 import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
-from autocomplete_it import AutocompleteEntryInText
+from maskgen.ui.autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
-from software_loader import Software, SoftwareLoader, getFileName
-import os
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
 from functools import partial
 from group_filter import GroupOperationsLoader
-from software_loader import ProjectProperty, getSemanticGroups
-import sys
-from PictureEditor import PictureEditor
-from CompositeViewer import  ScrollCompositeViewer
-from maskgen.validation.core import ValidationMessage,Severity,sortMessages
+from maskgen.ui.PictureEditor import PictureEditor
+from maskgen.ui.CompositeViewer import  ScrollCompositeViewer
+from maskgen.validation.core import ValidationMessage,Severity
 from maskgen.ui.semantic_frame import *
 from maskgen.ui.ui_tools import SelectDialog,EntryDialog
 
@@ -2270,7 +2264,9 @@ class PropertyFrame(VerticalScrolledFrame):
                self.values[row].set(v)
            if prop.type == 'list':
                if prop.readonly:
-                  widget = Label(master, text=', '.join(v if v is not None else ''))
+                  if v is not None and type(v) != list:
+                     v = [v]
+                  widget = Message(master, text=', '.join(v if v is not None else ''))#,width=80)
                   widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
                else:
                   widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row], state='readonly')
@@ -2368,7 +2364,7 @@ class PropertyFrame(VerticalScrolledFrame):
                if prop.type == 'yesno':
                    widget[0].config(state=DISABLED)
                    widget[1].config(state=DISABLED)
-               else:
+               elif prop.type != 'list':
                    widget.config(state=DISABLED)
            row += 1
 

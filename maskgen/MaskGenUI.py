@@ -13,7 +13,6 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 from botocore.exceptions import ClientError
-from software_loader import operationVersion,getPropertiesBySourceType
 from graph_canvas import MaskGraphCanvas
 from scenario_model import *
 from maskgen.userinfo import setPwdX,CustomPwdX
@@ -23,17 +22,18 @@ from group_filter import  GroupFilterLoader
 from tool_set import *
 from group_manager import GroupManagerDialog
 from maskgen import maskGenPreferences
+from software_loader import operationVersion, getPropertiesBySourceType
 from group_operations import CopyCompressionAndExifGroupOperation
 from web_tools import *
 from graph_rules import processProjectProperties
 from validation.core import ValidationAPIComposite
-from mask_frames import HistoryDialog
-from plugin_builder import PluginBuilder
+from maskgen.ui.mask_frames import HistoryDialog
+from maskgen.ui.plugin_builder import PluginBuilder
 from graph_output import ImageGraphPainter
-from CompositeViewer import CompositeViewDialog
+from maskgen.ui.CompositeViewer import CompositeViewDialog
 from notifiers import  getNotifier
 import logging
-from AnalysisViewer import AnalsisViewDialog,loadAnalytics
+from maskgen.ui.AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI
 from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
@@ -41,6 +41,7 @@ import preferences_initializer
 from software_loader import getMetDataLoader
 from cachetools import LRUCache
 from ui.ui_tools import ProgressBar
+from maskgen.services.probes import archive_probes
 
 from QAExtreme import QAProjectDialog
 """
@@ -980,7 +981,17 @@ class MakeGenUI(Frame):
                 logging.getLogger('maskgen').info('Eligible edge {} to {} op: {}'.format(
                     edge_id[0], edge_id[1],edge['op']
                 ))
-        ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
+        if tkMessageBox.askyesno('Archive','Archive Probes'):
+            archive_probes('.')
+        else:
+            ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
+            for probe in ps:
+                logging.getLogger('maskgen').info('{},{},{},{},{}'.format(
+                                                                        probe.targetBaseNodeId,
+                                                                        probe.edgeId,
+                                                                        probe.targetMaskFileName,
+                                                                        probe.donorBaseNodeId,
+                                                                        probe.donorMaskFileName))
 
     def startQA(self):
         if self.scModel.getProjectData('validation') == 'yes':

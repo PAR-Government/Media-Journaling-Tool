@@ -37,7 +37,7 @@ def append_segment(row, segment):
                   segment.starttime, segment.endtime, segment.rate]
 
 
-def archive_probes(project, directory='.'):
+def archive_probes(project, directory='.', archive=True):
     """
     Create an archive containing probe files and CSV file describing the probes.
 
@@ -109,17 +109,18 @@ def archive_probes(project, directory='.'):
                                                    '',
                                                    ''],
                                                   video_segment))
-    fname = os.path.join(directory, scModel.getName() + '.tgz')
-    archive = tarfile.open(fname, "w:gz", errorlevel=2)
-    # retain the CSV file in the archive
-    items_to_archive.append(os.path.basename(csvfilename))
-    # insure unique file names, as probes often reference the same image files (donors and targets)
-    items_to_archive = set(items_to_archive)
-    # move all files of interest into the archive
-    for item in items_to_archive:
-        archive.add(os.path.join(project_dir, item),
-                    arcname=os.path.join(scModel.getName(), item))
-    archive.close()
+    if archive:
+        fname = os.path.join(directory, scModel.getName() + '.tgz')
+        archive_file = tarfile.open(fname, "w:gz", errorlevel=2)
+        # retain the CSV file in the archive
+        items_to_archive.append(os.path.basename(csvfilename))
+        # insure unique file names, as probes often reference the same image files (donors and targets)
+        items_to_archive = set(items_to_archive)
+        # move all files of interest into the archive
+        for item in items_to_archive:
+            archive_file.add(os.path.join(project_dir, item),
+                        arcname=os.path.join(scModel.getName(), item))
+        archive_file.close()
 
 def main():
     import sys

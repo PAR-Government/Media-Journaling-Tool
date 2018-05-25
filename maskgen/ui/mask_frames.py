@@ -10,7 +10,7 @@ import ttk
 from Tkinter import *
 import tkSimpleDialog
 import tkFont
-from scenario_model import ImageProjectModel, Modification
+from maskgen.scenario_model import ImageProjectModel, Modification
 
 
 class HistoryDialog(Toplevel):

@@ -2664,8 +2664,10 @@ class ImageProjectModel:
         groups = []
         for edgeTuple in self.getGraph().get_edges():
             edge = self.getGraph().get_edge(edgeTuple[0], edgeTuple[1])
-            if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
-                groups.extend(edge['semanticGroups'])
+            semantic_groups = getValue(edge,'semanticGroups',[])
+            for group in semantic_groups:
+                if group not in groups:
+                    groups.append(group)
         self.setProjectData('semanticgroups', groups)
 
     def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
