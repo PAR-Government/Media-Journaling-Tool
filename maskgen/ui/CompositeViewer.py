@@ -1,6 +1,6 @@
 from Tkinter import *
 from PIL import ImageTk
-from tool_set import imageResizeRelative
+from maskgen.tool_set import imageResizeRelative
 import  tkFileDialog,tkSimpleDialog
 
 class ScrollCompositeViewer(Frame):

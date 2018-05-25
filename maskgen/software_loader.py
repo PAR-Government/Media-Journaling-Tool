@@ -151,7 +151,7 @@ class Operation:
     @type maskTransformFunction:dict
     """
 
-    def __init__(self, name='', category='', includeInMask=False, rules=list(), optionalparameters=dict(),
+    def __init__(self, name='', category='', includeInMask={"default": False}, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
                  maskTransformFunction=None,parameter_dependencies = None, qaList=None):

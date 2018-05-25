@@ -6,14 +6,16 @@
 # All rights reserved.
 # ==============================================================================
 
-import tkSimpleDialog
-import os
-import json
-import software_loader
-from group_filter import GroupOperationsLoader
-from autocomplete_it import *
-import plugins
 import collections
+import json
+import os
+import tkSimpleDialog
+
+import maskgen.plugins
+import maskgen.software_loader
+from maskgen.group_filter import GroupOperationsLoader
+from maskgen.ui.autocomplete_it import *
+
 
 class PluginBuilder(tkSimpleDialog.Dialog):
     def __init__(self, master, gopLoader):
@@ -23,7 +25,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         @type gopLoader: GroupOperationsLoader
         """
         self.gopLoader = gopLoader
-        self.softwareLoader = software_loader.SoftwareLoader()
+        self.softwareLoader = maskgen.software_loader.SoftwareLoader()
         self.sourcefiletype = 'image'
         self.targetfiletype = 'image'
         self.master = master
@@ -217,7 +219,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
         with open(os.path.join('.', self.path), 'w') as newJSON:
             json.dump(self.data, newJSON, indent=4)
 
-        plugins.loadPlugins().loadCustom(self.pluginName, self.path)
+        maskgen.plugins.loadPlugins().loadCustom(self.pluginName, self.path)
 
     def cancel(self, event=None):
         self.destroy()
@@ -258,7 +260,7 @@ class PluginBuilder(tkSimpleDialog.Dialog):
                                     initialValue=self.softwareLoader.get_preferred_version(name=sname))
 
 def main():
-    plugins.loadPlugins()
+    maskgen.plugins.loadPlugins()
     root = Tk()
     root.withdraw()
     d = PluginBuilder(root)
