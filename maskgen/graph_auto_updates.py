@@ -53,7 +53,7 @@ def updateJournal(scModel):
          ("0.5.0227.db02ad8372", []),
          # it appears that bf007ef4cd went with 0227 and not 0401
          ('0.5.0227.bf007ef4cd', []),
-         ('0.5.0401.bf007ef4cd', [_fixTool]),
+         ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI])])
     versions= list(fixes.keys())
@@ -91,6 +91,9 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fixInputMasks(scModel,gopLoader):
+    scModel.fixInputMasks()
 
 def _fixPNGS(scModel,gopLoader):
     """
