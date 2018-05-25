@@ -396,7 +396,7 @@ class JPEG_Reader:
                 if len (data) == 0 and self.inline_dc:
                     # The DC coefficient value is added to the DC value from
                     # the corresponding DU in the previous MCU
-                    num += dc[comp_num]
+                    num += self.dc[comp_num]
                     self.dc[comp_num] = num
 
                 data.append (num)

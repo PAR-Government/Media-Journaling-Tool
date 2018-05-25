@@ -6,14 +6,16 @@
 # All rights reserved.
 # ==============================================================================
 
-import tkSimpleDialog
-import os
+import collections
 import json
+import os
+import tkSimpleDialog
+
+import plugins
 import software_loader
 from group_filter import GroupOperationsLoader
-from autocomplete_it import *
-import plugins
-import collections
+from maskgen.ui.autocomplete_it import *
+
 
 class PluginBuilder(tkSimpleDialog.Dialog):
     def __init__(self, master, gopLoader):
