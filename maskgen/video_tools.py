@@ -570,9 +570,10 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     frmcnt = 0
     startcomplete = False
     framessince_start = 1 if start_time_tuple[0] == 0 else 0
-    mask = {'starttime':0,'startframe':1}
+    mask = {'starttime':0,'startframe':1,'endtime':0,'endframe':1,'frames':0,'rate':0}
     last = 0
     cap = cv2api_delegate.videoCapture(video_file)
+    aptime = 0
     try:
         while cap.grab():
             frmcnt+=1
@@ -591,12 +592,16 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
             else:
                 mask['endtime'] = aptime
                 mask['endframe'] = frmcnt
-                if end_time_tuple is not None and aptime  >= end_time_tuple[0]:
+                if end_time_tuple is not None and aptime >= end_time_tuple[0]:
                     if framessince_start >= end_time_tuple[1]:
                         break
                     else:
                         framessince_start += 1
             last = aptime
+        if not startcomplete and aptime > 0:
+            mask['starttime'] = aptime
+            mask['startframe'] = frmcnt
+            mask['rate'] = 1000 / (aptime - last)
         try:
             mask['frames'] = mask['endframe'] - mask['startframe'] + 1
         except:
@@ -620,7 +625,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
     """
     st = start_time_tuple
     et = end_time_tuple
-    meta, frames = getMeta(video_file, show_streams=True, with_frames='audio' in media_types, media_types=media_types)
+    meta, frames = getMeta(video_file, show_streams=True, media_types=media_types)
     found_num = 0
     results = []
     for item in meta:

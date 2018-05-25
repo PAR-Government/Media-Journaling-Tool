@@ -1771,7 +1771,7 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-        "inputmaskname": {
+        "model image": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },

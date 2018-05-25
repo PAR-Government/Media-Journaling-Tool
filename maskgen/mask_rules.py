@@ -10,6 +10,9 @@ import logging
 import os
 from collections import namedtuple
 
+import sys
+import traceback
+
 import cv2
 import exif
 import graph_rules
@@ -1922,8 +1925,6 @@ def _getMaskTranformationFunction(
 
 
 def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[], graph=None):
-    import sys
-    import traceback
     """
     :param donorMask:
     :param op:  operation name
@@ -2064,8 +2065,6 @@ def alterComposite(graph,
                    composite,
                    directory,
                    replacementEdgeMask=None):
-    import sys
-    import traceback
     """
 
     :param graph:
@@ -2504,8 +2503,14 @@ class CompositeDelegate:
                                              self.get_dir())
                 results.extend(self.constructTransformedMask((source, target), newMask, saveTargets=saveTargets, keepFailures=keepFailures))
             except Exception as ex:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logging.getLogger('maskgen').info('Failed composite generation: {} to {} for edge {} with operation {}'.format(
+                    source, target,edge_id , edge['op']
+                ))
+                logging.getLogger('maskgen').info(
+                    ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                 if keepFailures:
-                    logging.getLogger('maskgen').error('{}'.format(ex))
+                    logging.getLogger('maskgen').error('{} for edge {}'.format(ex, edge_id))
                     return [self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets, failure=True)]
                 raise ex
         return results if len(successors) > 0 else [
@@ -2569,6 +2574,9 @@ class CompositeDelegate:
                                               inclusionFunction=inclusionFunction,
                                               exclusions=exclusions) if constructDonors else []
             except Exception as ex:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logging.getLogger('maskgen').info(
+                    ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                 if keepFailures:
                     failure = True
                     logging.getLogger('maskgen').error(str(ex))

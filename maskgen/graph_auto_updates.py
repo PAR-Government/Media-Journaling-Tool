@@ -55,7 +55,7 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame])])
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -195,6 +195,16 @@ def _fixCompressor(scModel,gopLoader):
         file = getValue(node,'file','')
         if file[:-4].endswith('_compressed'):
             node['compressed'] = u'maskgen.video_tools.x264fast'
+
+def _fixOutputCGI(scModel, gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'ObjectCGI':
+            inputmask = getValue(edge,'inputmaskname')
+            if inputmask is not None:
+                setPathValue(edge,'arguments.model image',inputmask)
+                edge.pop('inputmaskname')
+                scModel.G.addEdgeFilePath('arguments.model image','')
 
 def _fixVideoMasksEndFrame(scModel, gopLoader):
     from maskgen import video_tools
