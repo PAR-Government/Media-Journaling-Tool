@@ -52,8 +52,6 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         newNameStr = newNameStr + '-' + other
 
     currentExt = os.path.splitext(image)[1]
-    if os.path.isdir(image):
-        return
     files_in_dir = os.listdir(os.path.dirname(image)) if containsmodels else []
 
     if any(filename.lower().endswith('.3d.zip') for filename in files_in_dir):
@@ -81,7 +79,11 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         thumbnail_counter = 0
         for i in os.listdir(file_dir):
             currentExt = os.path.splitext(i)[1].lower()
-            if currentExt in exts['IMAGE']:
+            if i.lower().endswith(".3d.zip"):
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
+            elif os.path.splitext(i)[1].lower() in exts["nonstandard"]:
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".lfr")
+            elif currentExt in exts['IMAGE']:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
                 dest = os.path.join(thumbnail_folder, newThumbnailName)
                 with Image.open(os.path.join(file_dir, i)) as im:
@@ -92,15 +94,9 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
                         shutil.copy2(os.path.join(file_dir, i), dest)
                 thumbnail_conversion[file_dir][i] = newThumbnailName
                 thumbnail_counter += 1
-            elif i.lower().endswith(".3d.zip"):
-                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
-
-            elif os.path.splitext(i)[1].lower() in exts["nonstandard"]:
-                newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".lfr")
             else:
                 tkMessageBox.showwarning("File Copy Error", i + " will not be copied to the output directory as it is"
                                                                 " an unrecognized file format")
-
 
     shutil.copy2(image, newPathName)
     return newPathName
@@ -604,7 +600,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     # copy with renaming
     print('Copying files...')
     newNameList = []
-    searchmodels = not (recursive or cameraData)
+    searchmodels = not (recursive or cameraData) or (not recursive and "lytro" in cameraData[cameraData.keys()[0]]["hp_camera_model"].lower())
     for image in imageList:
         newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('hp-organization'),
                              pad_to_5_str(count), additionalInfo, searchmodels)

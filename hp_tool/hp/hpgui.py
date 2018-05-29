@@ -121,7 +121,7 @@ class HP_Starter(Frame):
                                                             os.path.splitext(os.listdir(model_dir)[0])[1] in exts[
                                                                 'nonstandard']):
                         errors.append("No Thumbnail images found in {0}.".format(os.path.basename(model_dir)))
-                    if not any([fname.endswith('.3d.zip') for fname in os.listdir(model_dir)]):
+                    if not any([fname.lower().endswith('.3d.zip') for fname in os.listdir(model_dir)]):
                         needed_cammodel()
                         return
                 if len(errors) > 0:
