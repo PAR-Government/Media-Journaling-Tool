@@ -506,7 +506,10 @@ class QAProjectDialog(Toplevel):
         #print(self.type)
         #print(operation)
         if self.type == 'image':
-            self.loadt(t)
+            try:
+                self.loadt(t)
+            except IndexError:
+                tkMessageBox.showerror("Mask Size Mismatch","The mask for link {} did not match the size of the output".format(t))
             #print('loaded image')
         else:
             self.transitionString(None)
