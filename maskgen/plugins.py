@@ -122,9 +122,15 @@ class PluginManager:
     def getBroker(self):
         return broker
 
-    def getPreferredSuffix(self,name):
+    def getPreferredSuffix(self,name,filetype=None):
         loaded = self.plugins
-        return loaded[name]['suffix'] if 'suffix' in loaded[name] else None
+        if 'suffix' in loaded[name]:
+            suffix = loaded[name]['suffix']
+        if suffix is not None:
+            if type(suffix) == dict and filetype is not None:
+                return suffix[filetype]
+            return suffix
+        return None
 
     def getOperations(self,fileType=None):
         ops = {}
@@ -222,8 +228,8 @@ def loadPlugins(reload=False, customFolders=[]):
 def getOperations(fileType=None):
     return config.global_config['plugins'].getOperations(fileType=fileType)
 
-def getPreferredSuffix(name):
-    return config.global_config['plugins'].getPreferredSuffix(name)
+def getPreferredSuffix(name,filetype= None):
+    return config.global_config['plugins'].getPreferredSuffix(name,filetype=filetype)
 
 def getOperation(name):
     return config.global_config['plugins'].getOperation(name)
