@@ -130,16 +130,17 @@ def split_sourced_graph(graph, to_visit):
     while len(to_visit) > 0:
         node_id = to_visit.pop(0)
         node = graph.node[node_id]
-        #
-        if getValue(node, 'source', '$$') in ['','$$']:
-            continue
         preds = []
+        source = getValue(node, 'source', '$$')
         for pred in graph.predecessors(node_id):
             edge = graph.edge[pred][node_id]
             if getValue(edge,'split',False) and \
                     not getValue(edge,'donor',False) and \
-                    getValue(node, 'source', '$$') != pred:
+                    source not in [pred,'$$']:
                 preds.append(pred)
+        # if source not specific in node, assume the first one
+        if source == '$$':
+            preds = preds[1:]
         if len(preds) == 0:
             continue
         for pred in preds:

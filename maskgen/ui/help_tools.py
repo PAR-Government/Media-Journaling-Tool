@@ -177,7 +177,8 @@ class HelpLoader:
         if itemtype != "operation":
             desc = getProjectProperty(name, itemtype).information
         else:
-            desc = getOperation(name).description
+            op = getOperation(name)
+            desc = op.description if op is not None else ''
         return desc
 
     def get_help_link(self, name, itemtype):
