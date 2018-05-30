@@ -1907,6 +1907,29 @@ def defaultAlterDonor(buildState):
                             transformMatrix=tm,
                             targetShape=buildState.sourceShape)
 
+class GroupTransformFunction:
+
+    """
+    Support group operations with multiple transformation functions, running the functions in the order.
+
+    """
+    def __init__(self, functions):
+        self.functions = functions if type(functions) == list else [functions]
+        self.functions = [graph_rules.getRule(function) for function in self.functions]
+
+    def __call__(self, *args, **kwargs):
+        ids = range(len(self.functions))
+        if args[0].donorMask is not None:
+            ids = reversed(ids)
+        for pos in ids:
+            function = self.functions[pos]
+            result = function(*args)
+            if args[0].donorMask is not None:
+                args[0].donorMask = result
+            else:
+                args[0].compositeMask = result
+        return result
+
 def _getMaskTranformationFunction(
         op,
         source,
@@ -1920,8 +1943,9 @@ def _getMaskTranformationFunction(
     """
     sourceType = getNodeFileType(graph, source)
     if op.maskTransformFunction is not None and sourceType in op.maskTransformFunction:
-        return graph_rules.getRule(op.maskTransformFunction[sourceType])
+        return GroupTransformFunction(op.maskTransformFunction[sourceType])
     return None
+
 
 
 def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[], graph=None):
