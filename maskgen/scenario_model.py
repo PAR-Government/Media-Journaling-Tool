@@ -2352,7 +2352,7 @@ class ImageProjectModel:
         filetype= fileType(filename)
         op = plugins.getOperation(filter)
         suffix = os.path.splitext(filename)[1].lower()
-        preferred = plugins.getPreferredSuffix(filter)
+        preferred = plugins.getPreferredSuffix(filter,filetype=filetype)
         if type(preferred) == dict:
             preferred = preferred[filetype]
         fullOp = buildFilterOperation(op)
