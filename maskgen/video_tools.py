@@ -1483,6 +1483,9 @@ def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,an
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
 
 def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
+        video_masks = getValue(edge, 'videomasks', [])
+        if len(video_masks) > 0:
+            return
         video_masks = getMaskSetForEntireVideo(graph.get_image_path(source),
                                                            start_time=getValue(edge, 'arguments.Start Time',
                                                                                defaultValue='00:00:00.000'),
@@ -1492,7 +1495,7 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
 
         def justFixIt(graph, source, start_time, end_time, media_types):
             """
-
+            Use the final node as a way to find the mask set
             :param graph:
             :param source:
             :return:
@@ -1501,7 +1504,6 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
 
             def findBase(graph, node):
                 """
-
                 :param graph:
                 :param node:
                 :return:
@@ -1515,10 +1517,25 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
                     if getValue(graph.get_edge(pred, node), 'op', 'Donor') != 'Donor':
                         return findBase(graph, pred)
 
-            base = findBase(graph, source)
-            if base is not None:
+            def findFinal(graph, node):
+                """
+                :param graph:
+                param node:
+                :return:
+                @type graph: ImageGraph
+                @rtype : str
+                """
+
+                succs = graph.successors(node)
+                if len(succs) == 0:
+                    return node
+                for succ in succs:
+                    if getValue(graph.get_edge(node, succ), 'op', 'Donor') != 'Donor':
+                        return findFinal(graph, succ)
+            finalNode = findFinal(graph, source)
+            if finalNode is not None:
                 return getMaskSetForEntireVideo(
-                    os.path.join(graph.dir, getValue(graph.get_node(base), 'file')),
+                    os.path.join(graph.dir, getValue(graph.get_node(finalNode), 'file')),
                     start_time=start_time, end_time=end_time, media_types=media_types)
             return []
 
