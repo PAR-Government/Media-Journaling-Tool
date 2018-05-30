@@ -637,6 +637,7 @@ class QAProjectDialog(Toplevel):
 
     def load_overlay(self, initialize,t):
         edgeTuple = self.edgeTuple
+        message = 'final image'
         if (len(t.split('->')) > 1):
             probe = [probe for probe in self.probes if
                      probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[
@@ -648,7 +649,10 @@ class QAProjectDialog(Toplevel):
             finalResized = imageResizeRelative(final, (500, 500), final.size)
             imResized = imageResizeRelative(probe.targetMaskImage, (500, 500),
                                             probe.targetMaskImage.size if probe.targetMaskImage is not None else finalResized.size)
+
+
         else:
+            message = 'donor'
             probe = \
         [probe for probe in self.probes if probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.donorBaseNodeId == self.lookup[edgeTuple[1]]][0]
             n = self.scModel.G.get_node(probe.donorBaseNodeId)
@@ -662,16 +666,19 @@ class QAProjectDialog(Toplevel):
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
         #print('edge aquired')
         #self.operationVar.set(self.operationVar.get() + self._compose_label(edge))
-        #print('composed Lblsdskfjslfjs')
-        self.transitionString(None)
-        finalResized = finalResized.overlay(imResized)
-        #print('resized image')
-        self.photos[t] = ImageTk.PhotoImage(finalResized.toPIL())
-        #print('stored image')
         if initialize is True:
             self.c = Canvas(self.cImgFrame, width=510, height=510)
             self.c.pack()
-            #print('placed on canvas')
+        self.transitionString(None)
+        try:
+            finalResized = finalResized.overlay(imResized)
+        except IndexError:
+            tex = self.c.create_text(250,250,width=400,font=("Courier", 20))
+            self.c.itemconfig(tex, text="The mask of link {} did not match the size of the {}.".format(t, message))
+            return
+        #print('resized image')
+        self.photos[t] = ImageTk.PhotoImage(finalResized.toPIL())
+        #print('stored image')
         self.image_on_canvas = self.c.create_image(205, 205, image=self.photos[t], anchor=CENTER, tag='imgc')
 
     def nexCheck(self):
